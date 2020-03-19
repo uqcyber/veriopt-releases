@@ -1,4 +1,4 @@
-theory Scratch
+theory GraalIR2
   imports Main
 
 begin
@@ -15,8 +15,10 @@ class ConstNode = IRNode +
 class BinaryNode = IRNode +
   assumes is_binary: "\<forall>n. length(inputs(n)) = 2"
 
+(*
 class AddNode = BinaryNode +
-  assumes 
+  assumes ...
+*)
 
 class PhiNode = IRNode +
   fixes xxx :: "'a"

@@ -1,4 +1,4 @@
-theory GraalIR
+theory GraalIR1
 imports Main
 begin
 

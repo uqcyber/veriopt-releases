@@ -1,0 +1,4 @@
+*.thy#
+*.thy~
+extern/*
+output/*

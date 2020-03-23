@@ -15,13 +15,19 @@ class ConstNode = IRNode +
 class BinaryNode = IRNode +
   assumes is_binary: "\<forall>n. length(inputs(n)) = 2"
 
-(*
-class AddNode = BinaryNode +
-  assumes ...
-*)
-
 class PhiNode = IRNode +
   fixes xxx :: "'a"
+
+
+(*
+instantiation int :: BinaryNode
+begin
+  definition
+    successors_int_def : successors = (\<lambda> i. [i])
+    definition
+      inputs-int-def : inputs i = [0, 1]
+end
+*)
 
 class IRGraph =
   fixes start :: "'a" 
@@ -35,9 +41,8 @@ class IRGraph =
   assumes succ_nodes: "\<forall>n. n \<in> nodes \<Longrightarrow> succ_set(n) \<subseteq> nodes"
   assumes input_nodes: "\<forall>n. n \<in> nodes \<Longrightarrow> input_set(n) \<subseteq> nodes"
   assumes succ_list_set: "\<forall>n. n \<in> nodes \<Longrightarrow> succ_set(n) = elems(succ_seq(n))"
-  assumes input_list_set: "\<forall>n. n \<in> node \<Longrightarrow> input_set(n) = elems(input_seq(n))"
+  assumes input_list_set: "\<forall>n. n \<in> nodes \<Longrightarrow> input_set(n) = elems(input_seq(n))"
 
-instantiation int :: IRGraph
-begin
+class_deps type BinaryNode
 
 end

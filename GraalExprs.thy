@@ -55,7 +55,7 @@ fun inputEdges :: "IRNode \<Rightarrow> IRNode list" where
   "inputEdges (ParameterNode i) = []" |
   "inputEdges (AddNode x y) = [x, y]" |
   "inputEdges (SubNode x y) = [x, y]" |
-  "inputEdges Null = []"
+  "inputEdges NullNode = []"
 
 
 (* isAssociative method (only for int expressions at the moment). *)
@@ -86,6 +86,9 @@ lemma const_is_constant [simp]: "isConstant(ConstantNode i)"
   apply(simp add: isConstant_def)
   done
 
+lemma const_param [simp]: "isConstant(ParameterNode i) = False"
+  apply(simp add: isConstant_def)
+  done
 
 
 section canonical
@@ -165,15 +168,20 @@ fun BinArithTryConstFold :: "IRNode \<Rightarrow> IRNode \<Rightarrow> Stamp \<R
     }
 *)
 
-(* TODO: only apply first two rules if op is associative. *)
+fun minuend :: "IRNode \<Rightarrow> IRNode" where
+  "minuend (SubNode a b) = a" |
+  "minuend  a = undefined"
 
-(* PROBLEM: proving the function side-conditions. *)
-function AddNodeCanonical :: "IRNode \<Rightarrow> IRNode" where
-  "AddNodeCanonical (AddNode (SubNode a b) b) = a" |   (*  (a - b) + b  *)
-  "AddNodeCanonical (AddNode b (SubNode a b)) = a" |   (*  b + (a - b)  *)
-  "AddNodeCanonical (AddNode a b) = (AddNode a b)"
-    if "a \<noteq> (SubNode _ b) \<and> b \<noteq> (SubNode _ a)" 
-  apply(auto)
+(* TODO: only apply these rewrites if op is associative. *)
+fun AddNodeCanonical :: "IRNode \<Rightarrow> IRNode" where
+   (* (x - b) + b \<Longrightarrow> x *)
+   (* a + (x - a) \<Longrightarrow> x *)
+   (* else leave it unchanged *)
+  "AddNodeCanonical (AddNode a b) =
+    (if (\<exists> x. a = (SubNode x b)) then minuend a      
+     else (if (\<exists> x. b = (SubNode x a)) then minuend b
+     else (AddNode a b)))" |
+  "AddNodeCanonical n = n"
 
 
 (* From class AddNode:
@@ -193,21 +201,62 @@ function AddNodeCanonical :: "IRNode \<Rightarrow> IRNode" where
 *)
 
 
+definition AddNodeCreate :: "IRNode \<Rightarrow> IRNode \<Rightarrow> IRNode" where
+  "AddNodeCreate x y =
+    (let tryConstantFold = BinArithTryConstFold x y IntegerStamp in
+    (if tryConstantFold \<noteq> NullNode then
+        tryConstantFold
+     else if isConstant x \<and> \<not> isConstant y then
+        AddNodeCanonical (AddNode y x)
+     else
+        AddNodeCanonical (AddNode x y)
+    ))"
+
+(* OLD function style: less imperative, but more verbose.
 function AddNodeCreate :: "IRNode \<Rightarrow> IRNode \<Rightarrow> IRNode" where
   "AddNodeCreate x y = BinArithTryConstFold x y IntegerStamp"
-if "BinArithTryConstFold x y IntegerStamp \<noteq> NullNode" |
-  "AddNodeCreate x y = AddNodeCanonical y x"
-if "BinArithTryConstFold x y IntegerStamp = NullNode \<and> isConstant x \<and> \<not> isConstant y" |
-  "AddNodeCreate x y = AddNodeCanonical x y"
-if "BinArithTryConstFold x y IntegerStamp = NullNode \<and> (\<not> isConstant x \<or> isConstant y)"
+    if "BinArithTryConstFold x y IntegerStamp \<noteq> NullNode" |
+  "AddNodeCreate x y = AddNodeCanonical (AddNode y x)"
+    if "BinArithTryConstFold x y IntegerStamp = NullNode \<and> isConstant x \<and> \<not> isConstant y" |
+  "AddNodeCreate x y = AddNodeCanonical (AddNode x y)"
+    if "BinArithTryConstFold x y IntegerStamp = NullNode \<and> (\<not> isConstant x \<or> isConstant y)"
   apply(auto)
   by fastforce
+  done
+*)
 
 
 
-(*  An example optimization.  *)
-theorem canon_a1a: "AddNodeCanonical eg_a1a = (ConstantNode 1)"
+section examples
+(*========================================================================
+  Some example optimizations:
+ =========================================================================*)
+
+(* (1 - aa) + aa \<Longrightarrow> 1 *)
+theorem canon_add_sub_var: "AddNodeCanonical eg_a1a = (ConstantNode 1)"
   apply(simp)
+  done
+
+(* aa + (2 - aa) \<Longrightarrow> 2 *)
+theorem canon_add_var_sub:
+  "AddNodeCanonical (AddNode eg_aa (SubNode (ConstantNode 2) eg_aa))
+   = (ConstantNode 2)"
+  apply(simp)
+  done
+
+(* 2 + 3  \<Longrightarrow> 5 *)
+theorem create_fold:
+  "AddNodeCreate (ConstantNode 2) (ConstantNode 3)
+  = (ConstantNode 5)"
+  apply(simp add: AddNodeCreate_def)
+  done
+
+(* 2 + aa  \<Longrightarrow> aa + 2 *)
+theorem create_swap:
+  "AddNodeCreate (ConstantNode 2) (ParameterNode 6)
+  = AddNode (ParameterNode 6) (ConstantNode 2)"
+  apply(simp add: AddNodeCreate_def)
+  done
 
 
 end

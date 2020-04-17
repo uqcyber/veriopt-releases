@@ -11,6 +11,7 @@ evaluation in the exec function.
 theory Semantics
   imports
     Base
+    "HOL-Word.Word_Bitwise"
 begin 
 
 text \<open>
@@ -40,7 +41,7 @@ fun equal :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "equal a b = UndefinedValue"
 
 fun less :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "less (IntegerValue a) (IntegerValue b) = (BooleanValue (a < b))" |
+  "less (IntegerValue a) (IntegerValue b) = (BooleanValue (sint a < sint b))" |
   "less a b = (UndefinedValue)"
 
 fun logicAnd :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
@@ -68,7 +69,7 @@ fun logicNot :: "Value \<Rightarrow> Value" where
 
 fun abs :: "Value \<Rightarrow> Value" where
   "abs (IntegerValue a) = (
-    if (a < 0)
+    if (sint a < 0)
       then (IntegerValue (-a))
       else (IntegerValue a))" |
   "abs a = (UndefinedValue)"

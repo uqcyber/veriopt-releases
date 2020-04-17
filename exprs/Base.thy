@@ -1,3 +1,13 @@
+(* These theories of expression trees and rewrite rules
+   originally came from Brae Webb's BSc honours thesis:
+
+     "Verifying Semantics Preservation of Optimisation Passes"
+     by Brae Webb
+     School of Information Technology and Electrical Engineering,
+     The University of Queensland,
+     November 2019.
+*)
+
 section "Intermediate Representation"
 text \<open>This defines the IR of expressions and statements
 within a generic imperative programming language.
@@ -20,6 +30,7 @@ multiple locations as a form of representation optimisation.
 theory Base
   imports
     Main
+    "HOL-Word.Word_Bitwise"
 begin
 
 subsection "Values"
@@ -27,9 +38,14 @@ text \<open>
 Primitive data types such as integers and booleans. Undefined values occur during
 an evaluation of non type-correct expressions.
 \<close>
+
+(* This is unsigned, but we convert it to signed where needed. *)
+type_synonym int32 = "32 word"
+
+
 datatype Value =
   UndefinedValue |
-  IntegerValue int |
+  IntegerValue int32 |  (* just the 32-bit Java 'int' for the moment *)
   BooleanValue bool |
   StringValue string
 
@@ -149,7 +165,7 @@ fun bool :: "Value \<Rightarrow> bool" where
   "bool a = False"
 
 fun int :: "Value \<Rightarrow> int" where
-  "int (IntegerValue a) = a" |
+  "int (IntegerValue a) = sint a" |
   "int a = -1"
 
 fun int_to_str :: "int \<Rightarrow> string \<Rightarrow> string" where
@@ -162,7 +178,7 @@ fun bool_to_str :: "bool \<Rightarrow> string" where
   "bool_to_str False = ''False''"
 
 fun str :: "Value \<Rightarrow> string" where
-  "str (IntegerValue a) = (int_to_str a '''')" |
+  "str (IntegerValue a) = (int_to_str (sint a) '''')" |
   "str (BooleanValue a) = (bool_to_str a)" |
   "str (StringValue a) = a" |
   "str (UndefinedValue) = ''Undef''"

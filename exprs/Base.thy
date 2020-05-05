@@ -68,6 +68,22 @@ datatype BinaryOp =
   AndOp |
   OrOp |
   XorOp
+(* TODO: add operators for other GraalVM BinaryArithmeticNode subclasses?
+  - Integer{Add,Sub,Mul}ExactNode subclasses? that throw ArithmeticException on overflow.
+  - IntegerMulHighNode and UnsignedMulHighNode
+  - RemNode (and later, its subclass SafeFloatRemNode?)
+  - FloatDivNode?
+ Also, the operators associated with subclasses of ShiftNode:
+  - LeftShiftNode (ArithmeticOpTable.ShiftOp<Shl> op)
+  - RightShiftNode (ArithmeticOpTable.ShiftOp<Shr> op)
+  - UnsignedRightShiftNode (ArithmeticOpTable.ShiftOp<UShr> op)
+ And investigate:
+  - IntegerNormalizeCompareNode
+  - FloatNormalizeCompareNode
+
+ There are also several operators under FixedBinaryNode (why are these not floating?):
+  - IntegerDivRemNode has four subclasses: {Unsigned,Signed}{Div,Rem}Node
+*)
 
 subsection "Nodes"
 text \<open>

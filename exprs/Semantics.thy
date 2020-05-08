@@ -74,6 +74,32 @@ fun abs :: "Value \<Rightarrow> Value" where
       else (IntegerValue a))" |
   "abs a = (UndefinedValue)"
 
+text \<open>
+Some unusual properties of abs on 32-bit integers.
+Integer.MIN_VALUE stays negative!  (As in Java).
+See https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html#abs-int-
+\<close>
+
+lemma abs_minint: "abs (IntegerValue (-(2^31))) = IntegerValue (-(2^31))"
+  by simp
+
+value "2^31::int32"
+
+(* It would be nice to prove these lemmas about flipping the sign?
+   But they are not easy to prove...
+theorem abs_pos:
+  fixes val :: int32
+  assumes "0 < sint val"
+  shows "sint(-val) < 0"
+  
+  
+theorem abs_neg:
+  fixes val :: int32
+  assumes "sint val < 0"
+  assumes "val \<noteq> -(2^31 :: int32)"
+  shows "sint(-val) > 0"
+*)
+
 end
 
 subsection "Expression Evaluation"

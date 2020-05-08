@@ -30,7 +30,7 @@ multiple locations as a form of representation optimisation.
 theory Base
   imports
     Main
-    "HOL-Word.Word_Bitwise"
+    "HOL-Word.More_Word"
 begin
 
 subsection "Values"
@@ -62,7 +62,7 @@ datatype BinaryOp =
   AddOp |
   SubOp |
   MulOp |
-  DivOp |
+  DivOp |   (* Note: this is within a FixedBinaryNode *)
   EqualOp |
   LessOp |
   AndOp |

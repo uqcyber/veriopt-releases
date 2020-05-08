@@ -273,11 +273,61 @@ next
 qed
 
 subsection "Unary Node Rewrites"
+
+
+lemma abs_pos [simp]:
+  assumes pos: "sint val \<ge> 0"
+  shows "Semantic.abs (IntegerValue val) = IntegerValue val"
+  using Semantic.abs.simps(1) [of val]
+  by (simp add: less_le_not_le pos)
+
+lemma abs_neg [simp]:
+  assumes neg: "sint val < 0"
+  shows "Semantic.abs (IntegerValue val) = IntegerValue (-val)"
+  using Semantic.abs.simps(1) [of val]
+  by (simp add: neg)
+
+lemma abs_minint [simp]:
+  shows "Semantic.abs (IntegerValue (-2147483648::int32)) = IntegerValue (-2147483648::int32)"
+  using Semantic.abs.simps(1) [of "(-2147483648::int32)"]
+  by simp
+
+(*  Try to relate negative vs positive?
+lemma neg32_distrib:
+  fixes val :: int32
+  assumes val: "val \<noteq> (-2147483648::int32)"
+  assumes nonzero: "val \<noteq> 0"
+  assumes "sint val < 0"
+  shows "sint(-val) > 0"
+  apply word-bitwise
+*)
+
 text_raw \<open>\DefineSnippet{rewrite:abs}{\<close>
 lemma nested_abs:
-  assumes "e = (IntegerValue val)"
-  shows "Semantic.abs (Semantic.abs e) \<tturnstile> Semantic.abs e"
-  by (cases "val < 0"; simp add: Semantic.abs.simps(1) assms)
+  shows "Semantic.abs (Semantic.abs (IntegerValue val)) \<tturnstile> Semantic.abs (IntegerValue val)"
+  using Semantic.abs.simps(1) [of val]
+  (* apply (cases "sint val \<ge> 0" ; simp add: Semantic.abs.simps(1)) *)
+  apply (cases "val = (-2147483648::int32)" ; simp add: Semantic.abs.simps(1))
+  apply (cases "sint val < 0" ; simp)
+proof
+  assume "val \<noteq> - 2147483648"
+  assume "sint val < 0"
+  assume "sint (-val) < 0"
+  have valneg: "val <s 0"
+    by (simp add: \<open>sint val < 0\<close> word_sless_alt)
+  have negvalneg: "- val <s 0"
+    by (simp add: \<open>sint (- val) < 0\<close> word_sless_alt)
+  show "2 * val = 0"
+    sorry
+qed
+(*
+  apply simp
+  using Word.word_sless_alt[symmetric, where ?a="- val" and ?b=0]
+  apply simp
+  apply (simp only: word_sless_alt[of val 0] ])
+  using Word.word_sless_alt [of "- val" 0]
+*)
+  
 
 theorem rewrite_nested_abs:
   fixes e :: Node
@@ -377,32 +427,32 @@ subsection "Constant Folding"
 text "Constant folding is the elimination of expressions where all values are constant"
 
 theorem rewrite_fold_add:
-  fixes x y :: int
+  fixes x y :: int32
   shows "(BinaryNode AddOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y))) \<turnstile> ConstNode (IntegerValue (x + y))"
   using eval.simps
   by (simp add: Semantic.add.simps(1))
 
 theorem rewrite_fold_sub:
-  fixes x y :: int
+  fixes x y :: int32
   shows "(BinaryNode SubOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y))) \<turnstile> ConstNode (IntegerValue (x - y))"
   using eval.simps
   by (simp add: Semantic.sub.simps(1))
 
 theorem rewrite_fold_mul:
-  fixes x y :: int
+  fixes x y :: int32
   shows "(BinaryNode MulOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y))) \<turnstile> ConstNode (IntegerValue (x * y))"
   using eval.simps
   by (simp add: Semantic.mul.simps(1))
 
 theorem rewrite_fold_div:
-  fixes x y :: int
+  fixes x y :: int32
   shows "(BinaryNode DivOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y))) \<turnstile> ConstNode (IntegerValue (x div y))"
   using eval.simps
   by (simp add: Semantic.divide.simps(1))
 
 theorem rewrite_fold_less:
-  fixes x y :: int
-  shows "(BinaryNode LessOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y))) \<turnstile> ConstNode (BooleanValue (x < y))"
+  fixes x y :: int32
+  shows "(BinaryNode LessOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y))) \<turnstile> ConstNode (BooleanValue (sint x < sint y))"
   using eval.simps
   by (simp add: Semantic.less.simps(1))
 

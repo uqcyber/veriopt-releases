@@ -64,6 +64,94 @@ theorem "round":
     \<turnstile>  ConstNode (IntegerValue (-120))"
   by auto
 
+
+lemma "evaluate_5":
+  shows "(UnaryNode AbsOp (ConstNode (IntegerValue 0)))
+    \<turnstile>  ConstNode (IntegerValue 0)"
+  by auto
+
+lemma "evaluate_6":
+  shows "(UnaryNode AbsOp (UnaryNode MinusOp (ConstNode (IntegerValue 1))))
+    \<turnstile>  ConstNode (IntegerValue 1)"
+  by auto
+
+lemma "evaluate_7":
+  shows "(UnaryNode AbsOp (UnaryNode MinusOp (ConstNode (IntegerValue 2147483647))))
+    \<turnstile>  ConstNode (IntegerValue 2147483647)"
+  by auto
+
+lemma "evaluate_8":
+  shows "(UnaryNode AbsOp (BinaryNode SubOp (UnaryNode MinusOp (ConstNode (IntegerValue 2147483647))) (ConstNode (IntegerValue 1))))
+    \<turnstile>  ConstNode (IntegerValue (-2147483648))"
+  by auto
+
+
+
+lemma "and_ff":
+  shows "(BinaryNode AndOp (ConstNode (IntegerValue 0)) (ConstNode (IntegerValue 0)))
+    \<turnstile>  ConstNode (IntegerValue 0)"
+  by auto
+
+lemma "and_tf":
+  shows "(BinaryNode AndOp (ConstNode (IntegerValue 1)) (ConstNode (IntegerValue 0)))
+    \<turnstile>  ConstNode (IntegerValue 0)"
+  by auto
+
+lemma "and_ft":
+  shows "(BinaryNode AndOp (BinaryNode LessOp (ConstNode (IntegerValue 1)) (ConstNode (IntegerValue 0))) (ConstNode (IntegerValue 1)))
+    \<turnstile>  ConstNode (IntegerValue 0)"
+  by auto
+
+lemma "and_tt":
+  shows "(BinaryNode AndOp (ConstNode (IntegerValue 1)) (BinaryNode TODO (ConstNode (IntegerValue 1)) (ConstNode (IntegerValue 1))))
+    \<turnstile>  ConstNode (IntegerValue 1)"
+  by auto
+
+(* TODO: we want this to evaluate to IntegerValue 1. *)
+lemma "lt_neg1_zero":
+  shows "(BinaryNode LessOp
+       (UnaryNode MinusOp (ConstNode (IntegerValue 1)))
+       (ConstNode (IntegerValue 0)))
+    \<turnstile> ConstNode (BooleanValue True)"
+  by auto
+
+lemma "or_ff":
+  shows "(BinaryNode OrOp (ConstNode (IntegerValue 0)) (BinaryNode LessOp (ConstNode (IntegerValue 1)) (ConstNode (IntegerValue 1))))
+    \<turnstile>  ConstNode (IntegerValue 0)"
+  by auto
+
+(* TODO: add more comparison operators?
+lemma "or_ft":
+  shows "(BinaryNode OrOp (UnaryNode NotOp (ConstNode (IntegerValue 1))) (BinaryNode TODO (ConstNode (IntegerValue 1)) (ConstNode (IntegerValue 0))))
+    \<turnstile>  ConstNode (IntegerValue 1)"
+  by auto
+*)
+
+value "sint (1::int32)"
+
+(* TODO: should give IntegerValue 1 *)
+lemma "or_tf":
+  shows "(BinaryNode OrOp (BinaryNode LessOp (UnaryNode MinusOp (ConstNode (IntegerValue 1))) (ConstNode (IntegerValue 0))) (BinaryNode LessOp (ConstNode (IntegerValue 0)) (UnaryNode MinusOp (ConstNode (IntegerValue 1)))))
+    \<turnstile>  ConstNode (BooleanValue True)"
+  by auto
+
+(* TODO: should give IntegerValue 1 *)
+lemma "or_tt":
+  shows "(BinaryNode OrOp (BinaryNode LessOp (ConstNode (IntegerValue 0)) (UnaryNode MinusOp (ConstNode (IntegerValue 1)))) (BinaryNode LessOp (ConstNode (IntegerValue 0)) (ConstNode (IntegerValue 1))))
+    \<turnstile>  ConstNode (BooleanValue True)"
+  by (auto ; code_simp)   (* code_simp gives sint 1 = 1 *)
+
+(* TODO: fix NotOp to use 0/1.  It currently works because it is Undefined. *)
+lemma "not_not_t":
+  shows "(UnaryNode NotOp (UnaryNode NotOp (ConstNode (IntegerValue 1))))
+    \<turnstile>  ConstNode (IntegerValue 1)"
+  by auto
+
+lemma "not_not_f":
+  shows "(UnaryNode NotOp (UnaryNode NotOp (ConstNode (IntegerValue 0))))
+    \<turnstile>  ConstNode (IntegerValue 0)"
+  by auto
+
 end
 end
 

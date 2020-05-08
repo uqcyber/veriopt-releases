@@ -400,7 +400,13 @@ theorem rewrite_neutral_div:
 proof -
   fix s :: State
   show "Semantic.divide (eval e s) (IntegerValue 1) \<tturnstile> eval e s"
-    by (cases "eval e s"; simp add: Semantic.divide.simps)
+    apply (cases "eval e s" ; simp add: Semantic.divide.simps)
+  proof -
+    fix x :: int32
+    assume "eval e s = IntegerValue x"
+    show "x div 1 = x"
+      by (simp add: word_div_def[where ?a=x and ?b="1::int32"])
+  qed
 qed
 
 theorem rewrite_neutral_or:

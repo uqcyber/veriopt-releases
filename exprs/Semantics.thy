@@ -76,7 +76,7 @@ fun abs :: "Value \<Rightarrow> Value" where
 
 text \<open>
 Some unusual properties of abs on 32-bit integers.
-Integer.MIN_VALUE stays negative!  (As in Java).
+\verb!Integer.MIN_VALUE! stays negative!  (As in Java).
 \<close>
 
 lemma abs_minint: "abs (IntegerValue (-(2^31))) = IntegerValue (-(2^31))"

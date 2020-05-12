@@ -124,9 +124,20 @@ interpretation rewrite_interpretation: Rewrite
 text \<open>The export code mechanism of Isabelle used to export all rewriting rules
 under the Rewrite locale.
 \<close>
+
+(* 
+Temporarily disabled, due to the following codegen error:
+This seems to be caused by Word.zero_word being a lifted "0" rather than a constructor.
+
+"Word.zero_word_inst.zero_word" is not a constructor, on left hand side of equation, in theorem:
+rewrite_interpretation.rewrite
+ (BinaryNode SubOp ?e (ConstNode (IntegerValue zero_word_inst.zero_word))) \<equiv>
+?e
+
 text_raw \<open>\DefineSnippet{codegen:export}{\<close>
 export_code Rewrite.rewrite in Scala module_name Compiler
 export_code Rewrite.rewrite in Haskell module_name Compiler
 text_raw \<open>}%EndSnippet\<close>
+*)
 
 end

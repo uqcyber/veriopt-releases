@@ -77,7 +77,6 @@ fun abs :: "Value \<Rightarrow> Value" where
 text \<open>
 Some unusual properties of abs on 32-bit integers.
 Integer.MIN_VALUE stays negative!  (As in Java).
-See https://docs.oracle.com/javase/8/docs/api/java/lang/Math.html#abs-int-
 \<close>
 
 lemma abs_minint: "abs (IntegerValue (-(2^31))) = IntegerValue (-(2^31))"

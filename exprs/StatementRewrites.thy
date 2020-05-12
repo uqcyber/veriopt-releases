@@ -21,33 +21,33 @@ lemma statement_rewrites_def:
 
 subsection "If Rewrites"
 lemma negation:
-  assumes "(eval x s) = (BooleanValue val)"
+  assumes "(eval x s) = (IntegerValue val)"
   shows "(Eval.bool (eval (UnaryNode NotOp x) s)) = (\<not>(Eval.bool (eval x s)))"
   by (simp add: Eval.bool.simps(1) Semantic.logicNot.simps(1) assms)
 
 theorem rewrite_if_negated_condition:
   fixes trueBranch falseBranch :: ControlNode
-  assumes nc: "\<forall> s :: State . (eval x s = BooleanValue val)"
+  assumes nc: "\<forall> s :: State . (eval x s = IntegerValue val)"
   shows "(IfNode (UnaryNode NotOp x) trueBranch falseBranch)
           \<turnstile> (IfNode x falseBranch trueBranch)"
   using negation nc by auto
 
 theorem rewrite_if_true_const:
   fixes trueBranch falseBranch :: ControlNode
-  shows "(IfNode (ConstNode (BooleanValue True)) trueBranch falseBranch)
+  shows "(IfNode (ConstNode (IntegerValue 1)) trueBranch falseBranch)
     \<turnstile> trueBranch"
   by (simp add: Eval.bool.simps)
 
 theorem rewrite_if_false_const:
   fixes trueBranch falseBranch :: ControlNode
-  shows "(IfNode (ConstNode (BooleanValue False)) trueBranch falseBranch)
+  shows "(IfNode (ConstNode (IntegerValue 0)) trueBranch falseBranch)
     \<turnstile> falseBranch"
   by (simp add: Eval.bool.simps)
 
 subsection "While Rewrites"
 theorem rewrite_while_false_const:
   fixes body after :: ControlNode
-  shows "(WhileNode (ConstNode (BooleanValue False)) body after) \<turnstile> after"
+  shows "(WhileNode (ConstNode (IntegerValue 0)) body after) \<turnstile> after"
   by (simp add: Eval.bool.simps(1))
 
 subsection "Usage Rewrites"
@@ -73,6 +73,6 @@ theorem rewrite_unused_if:
   assumes nc: "\<not>(contains (AssignNode ident expr next) body) \<and> \<not>(contains (WriteNode expr next) body)"
   shows "(WhileNode cond body succ) \<turnstile> succ"
   using unmodified_state nc exec.simps
-  by (metis Value.distinct(11) contains.elims(2) equals0D eval.simps(1) subnodes.simps(1) subnodes.simps(4) update.elims)
+  by (metis Value.distinct(6) contains.elims(2) equals0D eval.simps(1) subnodes.simps(1) subnodes.simps(4) update.elims)
 
 end

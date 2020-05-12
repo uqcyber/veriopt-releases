@@ -36,25 +36,24 @@ fun sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "sub a b = (UndefinedValue)"
 
 fun equal :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "equal (IntegerValue a) (IntegerValue b) = (BooleanValue (a = b))" |
-  "equal (BooleanValue a) (BooleanValue b) = (BooleanValue (a = b))" |
+  "equal (IntegerValue a) (IntegerValue b) = IntegerValue (if a=b then 1 else 0)" |
   "equal a b = UndefinedValue"
 
 fun less :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "less (IntegerValue a) (IntegerValue b) = (BooleanValue (sint a < sint b))" |
+  "less (IntegerValue a) (IntegerValue b) = IntegerValue (if sint a < sint b then 1 else 0)" |
   "less a b = (UndefinedValue)"
 
 fun logicAnd :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "logicAnd (BooleanValue a) (BooleanValue b) = (BooleanValue (a \<and> b))" |
+  "logicAnd (IntegerValue a) (IntegerValue b) = IntegerValue (if a \<noteq> 0 \<and> b \<noteq> 0 then 1 else 0)" |
   "logicAnd a b = (UndefinedValue)"
 
 fun logicOr :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "logicOr (BooleanValue a) (BooleanValue b) = (BooleanValue (a \<or> b))" |
+  "logicOr (IntegerValue a) (IntegerValue b) = IntegerValue (if a \<noteq> 0 \<or> b \<noteq> 0 then 1 else 0)" |
   "logicOr a b = (UndefinedValue)"
 
 fun logicXor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "logicXor (BooleanValue a) (BooleanValue b) 
-      = (BooleanValue ((a \<and> b) \<or> ((\<not>a) \<and> (\<not>b))))" |
+  "logicXor (IntegerValue a) (IntegerValue b) 
+      = IntegerValue (if (a \<noteq> 0 \<and> b = 0) \<or> (a = 0 \<and> b \<noteq> 0) then 1 else 0)" |
   "logicXor a b = (UndefinedValue)"
 
 
@@ -64,7 +63,7 @@ fun uminus :: "Value \<Rightarrow> Value" where
   "uminus a = (UndefinedValue)"
 
 fun logicNot :: "Value \<Rightarrow> Value" where
-  "logicNot (BooleanValue a) = (BooleanValue (\<not>a))" |
+  "logicNot (IntegerValue a) = IntegerValue (if a = 0 then 1 else 0)" |
   "logicNot a = (UndefinedValue)"
 
 fun abs :: "Value \<Rightarrow> Value" where

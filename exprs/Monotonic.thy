@@ -50,65 +50,65 @@ theorem add_monotonic:
   "monotonic_both Semantic.add" 
   unfolding monotonic_both_def apply safe
   using monotonic_left_def Semantic.add.simps apply simp
-  apply (metis Value.distinct(1) Value.distinct(3) Value.distinct(5) refines.elims(3) refines_def)
-  by (metis (mono_tags, lifting) Semantic.add.simps(5) Value.distinct(1) Value.distinct(3) Value.distinct(5) monotonic_right_def refines.elims(3) refines_def)
+  apply (metis Value.distinct(1) Value.distinct(3) refines.elims(3) refines_def)
+  by (metis Semantic.add.simps(4) monotonic_right_def refines.elims(3) refines.simps(1) refines_def)
 
 theorem minus_monotonic:
   "monotonic_both Semantic.sub"
   unfolding monotonic_both_def apply safe
   using monotonic_left_def Semantic.sub.simps apply simp
-  apply (metis Value.distinct(1) Value.distinct(3) Value.distinct(5) refines.elims(3) refines_def)
-  by (metis (mono_tags, lifting) Semantic.sub.simps(5) Value.distinct(1) Value.distinct(3) Value.distinct(5) monotonic_right_def refines.elims(3) refines_def)
+  apply (metis Value.distinct(1) Value.distinct(3) refines.elims(3) refines_def)
+  by (metis Semantic.sub.elims Value.distinct(1) monotonic_right_def refines.elims(3) refines.simps(1) refines_def)
 
 theorem divide_monotonic:
   "monotonic_both Semantic.divide"
   unfolding monotonic_both_def apply safe
   using monotonic_left_def Semantic.divide.simps apply simp
-  apply (metis Value.distinct(1) Value.distinct(3) Value.distinct(5) refines.elims(3) refines_def)
-  by (metis (mono_tags, lifting) Semantic.divide.simps(5) Value.distinct(1) Value.distinct(3) Value.distinct(5) monotonic_right_def refines.elims(3) refines_def)
+  apply (metis Value.distinct(1) Value.distinct(3) refines.elims(3) refines_def)
+  by (metis Semantic.divide.elims Value.distinct(1) monotonic_right_def refines.elims(3) refines.simps(1) refines_def)
 
 
 theorem times_monotonic:
   "monotonic_both Semantic.mul"
   unfolding monotonic_both_def apply safe
   using monotonic_left_def Semantic.mul.simps apply simp
-  apply (metis Value.distinct(1) Value.distinct(3) Value.distinct(5) refines.elims(3) refines_def)
-  by (metis (mono_tags, lifting) Semantic.mul.simps(5) Value.distinct(1) Value.distinct(3) Value.distinct(5) monotonic_right_def refines.elims(3) refines_def)
+  apply (metis Value.distinct(1) Value.distinct(3)  refines.elims(3) refines_def)
+  by (metis Semantic.mul.elims Value.distinct(1) monotonic_right_def refines.elims(3) refines.simps(1) refines_def)
 
 
 theorem equal_monotonic:
   "monotonic_left Semantic.equal \<and> monotonic_right Semantic.equal"
   using monotonic_left_def monotonic_right_def Semantic.equal.simps apply simp
   using refines.simps
-  by (metis Semantic.equal.simps(3) refines.elims(2) refines.elims(3))
+  by (metis refines.elims(2) refines.elims(3))
 
 theorem less_monotonic:
   "monotonic_both Semantic.less"
   unfolding monotonic_both_def apply safe
   using monotonic_left_def Semantic.less.simps apply simp
-  apply (metis Value.distinct(1) Value.distinct(3) Value.distinct(5) refines.elims(3) refines_def)
-  by (metis (mono_tags, lifting) Semantic.less.simps(5) Value.distinct(1) Value.distinct(3) Value.distinct(5) monotonic_right_def refines.elims(3) refines_def)
+  apply (metis Value.distinct(1) Value.distinct(3) refines.elims(3) refines_def)
+  by (metis Semantic.less.simps(4) Value.distinct(1) Value.distinct(3) monotonic_right_def refines.elims(3) refines_def)
 
 theorem and_monotonic:
   "monotonic_both Semantic.logicAnd"
   unfolding monotonic_both_def apply safe
   using monotonic_left_def Semantic.logicAnd.simps apply simp
-  apply (metis Value.distinct(1) Value.distinct(3) Value.distinct(5) refines.elims(3) refines_def)
-  by (metis (mono_tags, lifting) Semantic.logicAnd.simps(5) Value.distinct(1) Value.distinct(3) Value.distinct(5) monotonic_right_def refines.elims(3) refines_def)
+  apply (metis Value.distinct(1) Value.distinct(3) refines.elims(3) refines_def)
+  by (metis Semantic.logicAnd.simps(4) Value.distinct(1) Value.distinct(3) monotonic_right_def refines.elims(3) refines_def)
 
 theorem or_monotonic:
   "monotonic_both Semantic.logicOr"
   unfolding monotonic_both_def apply safe
   using monotonic_left_def Semantic.logicOr.simps apply simp
-   apply (metis Value.distinct(1) Value.distinct(3) Value.distinct(5) refines.elims(3) refines_def)
-  by (metis (mono_tags, lifting) Semantic.logicOr.simps(5) Value.distinct(1) Value.distinct(3) Value.distinct(5) monotonic_right_def refines.elims(3) refines_def)
+  apply (metis Value.distinct(1) Value.distinct(3) refines.elims(3) refines_def)
+  by (metis Semantic.logicOr.simps(4) monotonic_right_def refines.elims(3) refines.simps(1) refines_def)
 
 theorem xor_monotonic:
   "monotonic_both Semantic.logicXor"
   unfolding monotonic_both_def apply safe
   using monotonic_left_def Semantic.logicXor.simps apply simp
-  apply (metis Value.distinct(1) Value.distinct(3) Value.distinct(5) refines.elims(3) refines_def)
-  by (metis (mono_tags, lifting) Semantic.logicXor.simps(5) Value.distinct(1) Value.distinct(3) Value.distinct(5) monotonic_right_def refines.elims(3) refines_def)
+  apply (metis Value.distinct(1) Value.distinct(3) refines.elims(3) refines_def)
+  by (metis Semantic.logicXor.simps(4) monotonic_right_def refines.elims(3) refines.simps(1) refines_def)
 
 
 subsubsection "Unary Monotonicity"

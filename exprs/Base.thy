@@ -46,7 +46,7 @@ type_synonym int32 = "32 word"
 datatype Value =
   UndefinedValue |
   IntegerValue int32 |  (* just the 32-bit Java 'int' for the moment *)
-  BooleanValue bool |
+  (* BooleanValue bool |  boolean is encoded as int 0/1 in Java. *)
   StringValue string
 
 subsection "Operations"
@@ -68,6 +68,7 @@ datatype BinaryOp =
   AndOp |
   OrOp |
   XorOp
+
 (* TODO: add operators for other GraalVM BinaryArithmeticNode subclasses?
   - Integer{Add,Sub,Mul}ExactNode subclasses? that throw ArithmeticException on overflow.
   - IntegerMulHighNode and UnsignedMulHighNode
@@ -115,8 +116,8 @@ text_raw \<open>}%EndSnippet\<close>
 text_raw \<open>\DefineSnippet{ir:example}{\<close>
 value "(IfNode
   (BinaryNode LessOp (LookupNode ''max'') (LookupNode ''value''))
-  (WriteNode (ConstNode (BooleanValue True)) next)
-  (WriteNode (ConstNode (BooleanValue False)) next)
+  (WriteNode (ConstNode (IntegerValue 1)) next)
+  (WriteNode (ConstNode (IntegerValue 0)) next)
 )"
 text_raw \<open>}%EndSnippet\<close>
 
@@ -177,7 +178,7 @@ text \<open>Coercion evaluations of values into specific primitive types.\<close
 locale Eval
 begin
 fun bool :: "Value \<Rightarrow> bool" where
-  "bool (BooleanValue a) = a" |
+  "bool (IntegerValue a) = (a \<noteq> 0)" |
   "bool a = False"
 
 fun int :: "Value \<Rightarrow> int" where
@@ -195,7 +196,7 @@ fun bool_to_str :: "bool \<Rightarrow> string" where
 
 fun str :: "Value \<Rightarrow> string" where
   "str (IntegerValue a) = (int_to_str (sint a) '''')" |
-  "str (BooleanValue a) = (bool_to_str a)" |
+  (* "str (BooleanValue a) = (bool_to_str a)" | *)
   "str (StringValue a) = a" |
   "str (UndefinedValue) = ''Undef''"
 

@@ -139,13 +139,13 @@ lemma reflexive_refinement:
   
 subsection "Conditional Node Rewrites"
 lemma negation:
-  assumes "(eval x s) = (BooleanValue val)"
+  assumes "(eval x s) = (IntegerValue val)"
   shows "(Eval.bool (eval (UnaryNode NotOp x) s)) = (\<not>(Eval.bool (eval x s)))"
   by (simp add: Eval.bool.simps(1) Semantic.logicNot.simps(1) assms)
 
 theorem rewrite_conditional_negated:
   fixes trueExp falseExp :: Node
-  assumes nc: "\<forall> s :: State . (eval x s = BooleanValue val)"
+  assumes nc: "\<forall> s :: State . (eval x s = IntegerValue val)"
   shows
   "(ConditionalNode (UnaryNode NotOp x) trueExp falseExp)
     \<turnstile> (ConditionalNode x falseExp trueExp)"
@@ -159,7 +159,7 @@ theorem rewrite_conditional_equal_xy:
 theorem rewrite_conditional_true:
   fixes trueExp falseExp :: Node
   shows
-  "(ConditionalNode (ConstNode (BooleanValue True)) trueExp falseExp)
+  "(ConditionalNode (ConstNode (IntegerValue 1)) trueExp falseExp)
     \<turnstile> trueExp"
   using refines.elims(3)
   by (simp add: Eval.bool.simps(1) reflexive_refinement)
@@ -167,7 +167,7 @@ theorem rewrite_conditional_true:
 theorem rewrite_conditional_false:
   fixes trueExp falseExp :: Node
   shows
-  "(ConditionalNode (ConstNode (BooleanValue False)) trueExp falseExp)
+  "(ConditionalNode (ConstNode (IntegerValue 0)) trueExp falseExp)
     \<turnstile> falseExp"
   using rewrite_conditional_true
   by (simp add: Eval.bool.simps(1))
@@ -180,25 +180,33 @@ lemma either_or:
 lemma equal_node_refinement:
   fixes a b :: Node
   fixes s :: State
-  assumes nc: "(eval (BinaryNode EqualOp a b) s) = (BooleanValue True)"
+  assumes nc: "(eval (BinaryNode EqualOp a b) s) = (IntegerValue 1)"
   shows "(eval a s) \<tturnstile> (eval b s)"
 proof - 
   have "(eval (BinaryNode EqualOp a b) s) \<tturnstile> (Semantic.equal (eval a s) (eval b s))" using nc by auto
-  then have "((eval (BinaryNode EqualOp a b) s) \<tturnstile> (BooleanValue ((eval a s) = (eval b s))))
+  then have alt: "((eval (BinaryNode EqualOp a b) s) \<tturnstile> (IntegerValue (if eval a s = eval b s then 1 else 0)))
             \<or> ((eval (BinaryNode EqualOp a b) s) \<tturnstile> (UndefinedValue))"
     by (cases "eval a s"; cases "eval b s"; simp add: Semantic.equal.simps)
   then show ?thesis
     using nc
-    by (simp add: reflexive_refinement)
+    proof -
+      have "eval b s = eval a s \<or> IntegerValue 1 = IntegerValue 0"
+        using \<open>eval (BinaryNode EqualOp a b) s = IntegerValue 1\<close> alt by force
+      then show ?thesis
+        by (simp add: reflexive_refinement)
+    qed
 qed
 
+(* TODO: re-prove this rule.  (More difficult after merging boolean into IntegerValue).
 theorem rewrite_conditional_equal:
   fixes a b :: Node
   shows "(ConditionalNode (BinaryNode EqualOp a b) a b) \<turnstile> b"
-  using either_or apply auto
+
+  using either_or
+  apply auto
   using equal_node_refinement
   by (metis (full_types) Eval.bool.elims(2) eval.simps(6))
-
+*)
 
 subsection "Binary Node Rewrites"
 lemma demorgans:
@@ -346,19 +354,22 @@ theorem rewrite_nested_minus:
   fixes e :: Node
   shows "(UnaryNode MinusOp (UnaryNode MinusOp e)) \<turnstile> e"
   using nested_minus
-  by (metis Semantic.uminus.elims Value.distinct(1) Value.distinct(3) Value.distinct(5) eval.simps(11) expression_rewrites.simps refines.elims(3))
+  by (metis Semantic.uminus.elims Value.distinct(1) Value.distinct(3) eval.simps(11) expression_rewrites.simps refines.elims(3))
 
+(* TODO: 
 lemma nested_not:
-  assumes "e = (BooleanValue val)"
+  assumes "e = (IntegerValue val)"
   shows "Semantic.logicNot (Semantic.logicNot e) = e"
   by (simp add: Semantic.logicNot.simps(1) assms)
+*)
 
+(* TODO:
 theorem rewrite_nested_not:
   fixes e :: Node
   shows "(UnaryNode NotOp (UnaryNode NotOp e)) \<turnstile> e"
-  apply (simp add: nested_not)
+  apply (simp) add: nested_not)
   by (metis Semantic.logicNot.elims Semantic.logicNot.simps(2) nested_not refines.simps(1) reflexive_refinement)
-
+*)
 
 subsection "Neutral Constants"
 text \<open>Rewrite rules that deal with neutral constant in expressions.\<close>
@@ -409,25 +420,29 @@ proof -
   qed
 qed
 
+(* TODO:
 theorem rewrite_neutral_or:
   fixes e :: Node
-  shows "(BinaryNode OrOp e (ConstNode (BooleanValue False))) \<turnstile> e"
+  shows "(BinaryNode OrOp e (ConstNode (IntegerValue 0))) \<turnstile> e"
   apply auto
 proof -
   fix s :: State
-  show "Semantic.logicOr (eval e s) (BooleanValue False) \<tturnstile> eval e s"
+  show "Semantic.logicOr (eval e s) (IntegerValue 0) \<tturnstile> eval e s"
     by (cases "eval e s"; simp add: Semantic.logicOr.simps)
 qed
+*)
 
+(* TODO:
 theorem rewrite_neutral_and:
   fixes e :: Node
-  shows "(BinaryNode AndOp e (ConstNode (BooleanValue True))) \<turnstile> e"
+  shows "(BinaryNode AndOp e (ConstNode (IntegerValue 1))) \<turnstile> e"
   apply auto
 proof -
   fix s :: State
-  show "Semantic.logicAnd (eval e s) (BooleanValue True) \<tturnstile> eval e s"
+  show "Semantic.logicAnd (eval e s) (IntegerValue 1) \<tturnstile> eval e s"
     by (cases "eval e s"; simp add: Semantic.logicAnd.simps)
 qed
+*)
 
 subsection "Constant Folding"
 text "Constant folding is the elimination of expressions where all values are constant"
@@ -458,25 +473,29 @@ theorem rewrite_fold_div:
 
 theorem rewrite_fold_less:
   fixes x y :: int32
-  shows "(BinaryNode LessOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y))) \<turnstile> ConstNode (BooleanValue (sint x < sint y))"
+  shows "(BinaryNode LessOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y)))
+         \<turnstile> ConstNode (IntegerValue (if sint x < sint y then 1 else 0))"
   using eval.simps
   by (simp add: Semantic.less.simps(1))
 
 theorem rewrite_fold_and:
-  fixes x y :: bool
-  shows "(BinaryNode AndOp (ConstNode (BooleanValue x)) (ConstNode (BooleanValue y))) \<turnstile> ConstNode (BooleanValue (x \<and> y))"
+  fixes x y :: int32
+  shows "(BinaryNode AndOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y)))
+         \<turnstile> ConstNode (IntegerValue (if x \<noteq> 0 \<and> y \<noteq> 0 then 1 else 0))"
   using eval.simps
   by (simp add: Semantic.logicAnd.simps(1))
 
 theorem rewrite_fold_or:
-  fixes x y :: bool
-  shows "(BinaryNode OrOp (ConstNode (BooleanValue x)) (ConstNode (BooleanValue y))) \<turnstile> ConstNode (BooleanValue (x \<or> y))"
+  fixes x y :: int32
+  shows "(BinaryNode OrOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y)))
+         \<turnstile> ConstNode (IntegerValue (if x \<noteq> 0 \<or> y \<noteq> 0 then 1 else 0))"
   using eval.simps
   by (simp add: Semantic.logicOr.simps(1))
 
 theorem rewrite_fold_xor:
-  fixes x y :: bool
-  shows "(BinaryNode XorOp (ConstNode (BooleanValue x)) (ConstNode (BooleanValue y))) \<turnstile> ConstNode (BooleanValue ((x \<and> y) \<or> (\<not>x \<and> \<not>y)))"
+  fixes x y :: int32
+  shows "(BinaryNode XorOp (ConstNode (IntegerValue x)) (ConstNode (IntegerValue y)))
+         \<turnstile> ConstNode (IntegerValue (if (x \<noteq> 0 \<and> y = 0) \<or> (x = 0 \<and> y \<noteq> 0) then 1 else 0))"
   using eval.simps
   by (simp add: Semantic.logicXor.simps(1))
 

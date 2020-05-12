@@ -51,6 +51,7 @@ lemma rewrite_conditional_false_code [code]:
   using noUndef rewrite_conditional_false apply auto
   using refines_def by (meson eval.simps(1))
 
+(* TODO:
 lemma rewrite_conditional_equal_code [code]:
   "rewrite (ConditionalNode (BinaryNode EqualOp a b) c d) = (
     if (a = c \<and> b = d)
@@ -61,7 +62,8 @@ lemma rewrite_conditional_equal_code [code]:
   using refines_def apply (meson eval.simps(14))
   using rewrite_def rewrite_conditional_false_code apply force
   by (meson eval.simps(14))
-  
+*)
+
 lemma rewrite_add_sub_code [code]:
   "rewrite (BinaryNode AddOp (BinaryNode SubOp x y) z) = (
     if (y = z)
@@ -94,15 +96,19 @@ lemma rewrite_neutral_sub_code [code]:
   using noUndef rewrite_neutral_sub apply auto
   using refines_def by (meson eval.simps(1))
 
+(* TODO:
 lemma rewrite_neutral_or_code [code]:
   "rewrite (BinaryNode OrOp e (ConstNode (BooleanValue False))) = e"
   using noUndef rewrite_neutral_or apply auto
   using refines_def by (meson eval.simps(1))
+*)
 
+(* TODO:
 lemma rewrite_neutral_and_code [code]:
   "rewrite (BinaryNode AndOp e (ConstNode (BooleanValue True))) = e"
   using noUndef rewrite_neutral_and apply auto
   using refines_def by (meson eval.simps(1))
+*)
 
 end
 

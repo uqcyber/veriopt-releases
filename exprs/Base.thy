@@ -46,7 +46,7 @@ type_synonym int32 = "32 word"
 datatype Value =
   UndefinedValue |
   IntegerValue int32 |  (* just the 32-bit Java 'int' for the moment *)
-  (* BooleanValue bool |  boolean is encoded as int 0/1 in Java. *)
+  (* BooleanValue bool |  boolean is encoded as int 0/1 in Graal input. *)
   StringValue string
 
 subsection "Operations"

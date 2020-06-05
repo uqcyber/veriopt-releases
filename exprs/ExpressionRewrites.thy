@@ -197,16 +197,54 @@ proof -
     qed
 qed
 
-(* TODO: re-prove this rule.  (More difficult after merging boolean into IntegerValue).
+lemma boolTrue:
+  assumes "Eval.bool val"
+  shows "\<exists>i. val = (IntegerValue i) \<and> i \<noteq> 0"
+  using Eval.bool.elims(2) assms by auto
+
+lemma eqOpTrue:
+  assumes i: "eval (BinaryNode EqualOp a b) s = (IntegerValue i)"
+  assumes nz: "i \<noteq> 0"
+  shows "(eval a s) = (eval b s)"
+proof -
+  have ival: "Semantic.equal (eval a s) (eval b s) = (IntegerValue i)" using i by auto
+  then obtain aval where aval: "eval a s = (IntegerValue aval)"
+    by (metis Semantic.equal.elims Value.distinct(1))
+  then obtain bval where bval: "eval b s = (IntegerValue bval)" 
+    by (metis ival Semantic.equal.elims Value.distinct(1))
+  have "aval = bval" 
+    using nz aval bval ival Eval.bool.simps(1) Semantic.equal.simps(1) by fastforce
+  then show ?thesis
+    by (simp add: aval bval)
+qed
+
+
+(* NOTE: this rule was much harder to prove after merging boolean into IntegerValue). *)
 theorem rewrite_conditional_equal:
   fixes a b :: Node
-  shows "(ConditionalNode (BinaryNode EqualOp a b) a b) \<turnstile> b"
+  shows "(ConditionalNode (BinaryNode EqualOp a b) a b) \<turnstile> b" (is "?COND \<turnstile> ?B")
+  unfolding expression_rewrites.simps
+proof
+  fix s
+  let ?C = "(BinaryNode EqualOp a b)"
+  show "eval ?COND s \<tturnstile> eval b s" 
+  proof (cases "(eval ?C s) = (IntegerValue 1)")
+    case True
+    then have tt: "Eval.bool (eval ?C s)"
+      by (simp add: Eval.bool.simps(1))
+    then obtain i where p: "(eval ?C s) = (IntegerValue i) \<and> i \<noteq> 0"
+      using True boolTrue by blast
+    then have eq: "(eval a s) = (eval b s)"
+      using eqOpTrue by blast
+    then show ?thesis
+      by (simp add: reflexive_refinement)
+  next
+    case False
+    then show ?thesis
+      by (metis boolTrue eqOpTrue eval.simps(15) reflexive_refinement)
+  qed
+qed
 
-  using either_or
-  apply auto
-  using equal_node_refinement
-  by (metis (full_types) Eval.bool.elims(2) eval.simps(6))
-*)
 
 subsection "Binary Node Rewrites"
 lemma demorgans:

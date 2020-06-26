@@ -54,8 +54,8 @@ datatype IRGraph =
   Graph
     (g_ids: "ID set")
     (g_node: "ID \<Rightarrow> IRNode")
-    (g_successors: "SuccessorEdges")
     (g_inputs: "InputEdges")
+    (g_successors: "SuccessorEdges")
 (*
   NOTES: from org.graalvm.compiler.graph.Graph
     * IRNode is actually a list ordered by registration time, but we abstract over that.
@@ -82,11 +82,14 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
 *)
 (* Alternative definition using pattern matching. *)
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
-  "wff_graph (Graph ids nodes successors inputs) = (
+  "wff_graph (Graph ids nodes inputs successors) = (
     0 \<in> ids \<and>
     nodes 0 = StartNode \<and>
     (\<forall> n. n \<in> ids \<longrightarrow> set(successors n) \<subseteq> ids) \<and>
-    (\<forall> n. n \<in> ids \<longrightarrow> set(inputs n) \<subseteq> ids)
+    (\<forall> n. n \<in> ids \<longrightarrow> set(inputs n) \<subseteq> ids) \<and>
+    (\<forall> n. n \<notin> ids \<longrightarrow> nodes n = StartNode) \<and>
+    (\<forall> n. n \<notin> ids \<longrightarrow> successors n = []) \<and>
+    (\<forall> n. n \<notin> ids \<longrightarrow> inputs n = [])
   )
   "
 
@@ -102,17 +105,18 @@ lemma wff_empty: "wff_graph (Graph {0} (\<lambda>i.(StartNode)) (\<lambda>i.[]) 
   public static int sq(int x) { return x * x; }
 
              [1 P(0)]
-                |
+               \ /
   [0 Start]   [4 *]
-       \      /
+       |      /
+       V     /
       [5 Return]
 *)
 fun eg2_node :: "ID \<Rightarrow> IRNode" where
   "eg2_node i =
-    (if i=0 then StartNode
+    (if i=5 then ReturnNode
      else if i=1 then ParameterNode 0
      else if i=4 then MulNode
-     else ReturnNode)"
+     else StartNode)"
 
 fun eg2_successors :: SuccessorEdges where
   "eg2_successors i = (if i=0 then [5] else [])"
@@ -121,7 +125,7 @@ fun eg2_inputs :: InputEdges where
   "eg2_inputs i = (if i=4 then [1,1] else if i=5 then [4] else [])"
 
 definition eg2_sq :: IRGraph where
-  "eg2_sq = Graph {0,1,4,5} eg2_node eg2_successors eg2_inputs"
+  "eg2_sq = Graph {0,1,4,5} eg2_node eg2_inputs eg2_successors"
 
 lemma wff_eg2_sq: "wff_graph eg2_sq"
   apply (unfold eg2_sq_def)

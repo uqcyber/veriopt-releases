@@ -21,16 +21,20 @@ type_synonym ID = "nat"
 datatype (discs_sels) IRNode = 
   CallNode
   | ConstantNode (intValue: int)  (* TODO: should be string *)
-  | ParameterNode (index: int)
+  | ParameterNode (index: int)    (* TODO: can index be nat? *)
   | PhiNode  (* TODO: subclasses GuardPhiNode, ValuePhiNode, MemoryPhiNode *)
   | AddNode
   | SubNode
   | MulNode
   | SwitchNode
+  | IfNode  (* TODO: add field: double trueSuccessorProbability; *)
+  | ShortCircuitOrNode (xNegated:bool) (yNegated:bool) (* TODO: add field: double shortCircuitProbability; *)
+  | LogicNegationNode   (* the logical not operator *)
   | KillingBeginNode
   | BeginNode  (* TODO: all the BeginStateSplitNode subclasses (inc. StartNode) *)
   | StartNode
   | LoopEndNode
+  | MergeNode
   | ReturnNode
   | EndNode
   (* and hundreds of other Node subclasses!... *)
@@ -53,7 +57,7 @@ type_synonym InputEdges = "ID \<Rightarrow> ID list"
 datatype IRGraph =
   Graph
     (g_ids: "ID set")
-    (g_node: "ID \<Rightarrow> IRNode")
+    (g_nodes: "ID \<Rightarrow> IRNode")
     (g_inputs: "InputEdges")
     (g_successors: "SuccessorEdges")
 (*
@@ -68,19 +72,53 @@ datatype IRGraph =
 *)
 
 
+(* Invariants for particular kinds of IRNodes. 
+   TODO: see Node.verify() for more things we could check.
+*)
+fun wff_binary_node :: "ID list \<Rightarrow> ID list \<Rightarrow> bool" where
+  "wff_binary_node inputs succs = (length inputs = 2 \<and> succs = [])"
+
+fun wff_node :: "IRNode \<Rightarrow> ID list \<Rightarrow> ID list \<Rightarrow> bool" where
+  "wff_node (ConstantNode _) inputs succs = (inputs = [] \<and> succs = [])" |
+  "wff_node (ParameterNode _) inputs succs = (inputs = [] \<and> succs = [])" |
+  "wff_node AddNode inputs succs = wff_binary_node inputs succs" |
+  "wff_node SubNode inputs succs = wff_binary_node inputs succs" |
+  "wff_node MulNode inputs succs = wff_binary_node inputs succs" |
+  "wff_node IfNode inputs succs = (length inputs = 1 \<and> length succs = 2)" |
+  "wff_node (ShortCircuitOrNode xneg yneg) inputs succs = (length inputs = 2 \<and> succs = [])" |
+  "wff_node LogicNegationNode inputs succs = (length inputs = 1 \<and> succs = [])" | 
+  "wff_node n inputs succs = True"
+
+
+(* Usage function is the reverse of the 'inputs' edges. *)
+fun g_usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "g_usages (Graph ids nodes inputs successors) n = {i. n \<in> set(inputs i)}"
+
+(* Predecessors function is the reverse of the 'successors' edges.
+   The result should be empty or a singleton set.
+*)
+fun g_predecessor :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "g_predecessor (Graph ids nodes inputs successors) n = {i. n \<in> set(successors i)}"
+
+
 (* First well-formedness predicate for IR graphs.
    This function uses field names.
 *
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph g = (
     0 \<in> g_ids g \<and>
-    g_node g 0 = StartNode \<and>
+    g_nodes g 0 = StartNode \<and>
     (\<forall> n. n \<in> g_ids g \<longrightarrow> set(g_successors g n) \<subseteq> g_ids g) \<and>
     (\<forall> n. n \<in> g_ids g \<longrightarrow> set(g_inputs g n) \<subseteq> g_ids g)
   )
   "
 *)
-(* Alternative definition using pattern matching. *)
+(* Alternative definition using pattern matching.
+  TODO: add invariants about no loops through input arrows?
+       (certainly ShortCircuitOrNode.canonicalizeNegation assumes 
+
+   (and also through successor arrows?)
+*)
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph (Graph ids nodes inputs successors) = (
     0 \<in> ids \<and>
@@ -89,7 +127,8 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
     (\<forall> n. n \<in> ids \<longrightarrow> set(inputs n) \<subseteq> ids) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> nodes n = StartNode) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> successors n = []) \<and>
-    (\<forall> n. n \<notin> ids \<longrightarrow> inputs n = [])
+    (\<forall> n. n \<notin> ids \<longrightarrow> inputs n = []) \<and>
+    (\<forall> n. n \<in> ids \<longrightarrow> wff_node (nodes n) (inputs n) (successors n))
   )
   "
 
@@ -127,10 +166,20 @@ fun eg2_inputs :: InputEdges where
 definition eg2_sq :: IRGraph where
   "eg2_sq = Graph {0,1,4,5} eg2_node eg2_inputs eg2_successors"
 
+
+(* Now check some basic properties of this example. *)
 lemma wff_eg2_sq: "wff_graph eg2_sq"
-  apply (unfold eg2_sq_def)
-  apply (simp)
-  done
+  unfolding eg2_sq_def by simp
+
+lemma "g_usages eg2_sq 1 = {4}"
+  unfolding eg2_sq_def by simp
+
+lemma "g_predecessor eg2_sq 5 = {0}"
+  unfolding eg2_sq_def by simp
+
+(* predecessor is always singleton or empty. *)
+lemma "\<forall> n \<in> g_ids eg2_sq. card(g_predecessor eg2_sq n) \<le> 1"
+  unfolding eg2_sq_def by simp
 
 end
 

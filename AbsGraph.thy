@@ -54,6 +54,15 @@ fun del_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
       ((g_successors g)(n := []))
   )"
 
+fun g_predecessor :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "g_predecessor (Graph ids nodes inputs successors) n = {i. n \<in> set(successors i)}"
+
+(* update some input/successor edges to point to a new node. *)
+fun update_edges :: "ID \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
+  "update_edges oldID newID (Graph ids nodes inputs succs) =
+    (let old2new = (\<lambda>i. if i=oldID then newID else i) in
+      (Graph ids nodes (\<lambda>n. map old2new (inputs n)) (\<lambda>n. (map old2new (succs n)))))"
+
 (* Deleting a freshly-added node (that does not reuse an existing ID)
    leaves the graph unchanged.
    NOTE: this was surprisingly hard to prove - should have been trivial?
@@ -124,5 +133,18 @@ lemma "del_node 0 (del_node 1 (del_node 4 (del_node 5 eg2_abs))) = empty_graph"
 
 lemma "(insert 0 ({0, 4, Suc 0, 0} - {4})) - {Suc 0} \<subseteq> {0}"
   by (simp add: insert_Diff_if)
+
+value "g_inputs eg2_abs 4"
+
+(* Test the update_edges function. *)
+lemma "g_inputs (update_edges 1 999 eg2_abs) 4 = [999, 999]"
+  unfolding eg2_abs_def
+  apply (simp add: Let_def)
+  done
+
+lemma "g_successors (update_edges 5 999 eg2_abs) 0 = [999]"
+  unfolding eg2_abs_def
+  apply (simp add: Let_def)
+  done
 
 end

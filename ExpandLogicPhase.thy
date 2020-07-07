@@ -36,6 +36,7 @@ fun do_expand_logic :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
         [firstIf, firstTrueTarget, firstTrueEnd, secondIfBegin,
          secondIf, secondTrueTarget, secondTrueEnd, trueTargetMerge] = next_ids gin 8 \<and>
     gout =
+      (update_edges ifNode firstIf
       (add_node firstIf          IfNode    [x]  [firstTrueTarget, secondIfBegin]
       (add_node firstTrueTarget  BeginNode []   [firstTrueEnd]
       (add_node firstTrueEnd     EndNode   []   []
@@ -46,8 +47,10 @@ fun do_expand_logic :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
       (add_node trueTargetMerge  MergeNode [firstTrueEnd,secondTrueEnd] [trueTarget]
       (del_node ifNode
       (del_node shortCircuitOr
-       gin))))))))))
+       gin)))))))))))
     )))))))"
+
+(* TODO: check that reusing IDs after "del_node <highest_ID>" is not a problem? *)
 
 (* ShortCutOr Example 1: (based on Figure 2 from Graal_IR_2013_10)
   ================================================================
@@ -106,15 +109,44 @@ lemma "wff_graph eg_short_cut_or1"
 (* See where this optimisation can be applied?  Returns {5}. *)
 value "can_expand_logic eg_short_cut_or1"
 
+(*
 schematic_goal opt1: "do_expand_logic 5 eg_short_cut_or1 = ?OUT"
   unfolding eg_short_cut_or1_def
-  apply (simp add: insert_Diff_if)   (* took about 15 minutes with relational defn! *)
+  apply (simp add: insert_Diff_if)  
+  (* took about 15 minutes with relational defn! *)
+  (* takes 2:30 mins with update_edges added. *)
   done
 
 thm opt1
+*)
 
-
-(* This calculated ?OUT as follows: *)
+(* This calculated ?OUT as follows:
+(let old2new = \<lambda>i. if i = 5 then 15 else i
+ in Graph {15, 16, 17, 18, 19, 20, 21, 22, 0, 14, 13, 12, 11, 10, 9, 8, 7, 6, 2, Suc 0, 0}
+     ((\<lambda>i. StartNode)
+      (0 := StartNode, Suc 0 := ParameterNode 0, 2 := ParameterNode 1, 6 := BeginNode,
+       7 := EndNode, 8 := BeginNode, 9 := EndNode, 10 := MergeNode, 11 := ConstantNode 42,
+       12 := ConstantNode 0, 13 := PhiNode, 14 := ReturnNode, 3 := StartNode,
+       5 := StartNode, 22 := MergeNode, 21 := EndNode, 20 := BeginNode, 19 := IfNode,
+       18 := BeginNode, 17 := EndNode, 16 := BeginNode, 15 := IfNode))
+     (\<lambda>n. map old2new
+           (if n = 15 then [Suc 0]
+            else ((\<lambda>i. [])
+                  (0 := [], Suc 0 := [], 2 := [], 3 := [Suc 0, 2], 6 := [], 7 := [],
+                   8 := [], 9 := [], 10 := [7, 9], 11 := [], 12 := [], 13 := [10, 11, 12],
+                   14 := [13], 3 := [], 5 := [], 22 := [17, 21], 21 := [], 20 := [],
+                   19 := [2], 18 := [], 17 := [], 16 := []))
+                  n))
+     (\<lambda>n. map old2new
+           (if n = 15 then [16, 18]
+            else ((\<lambda>i. [])
+                  (0 := [5], Suc 0 := [], 2 := [], 3 := [], 6 := [7], 7 := [], 8 := [9],
+                   9 := [], 10 := [14], 11 := [], 12 := [], 13 := [], 14 := [], 3 := [],
+                   5 := [], 22 := [6], 21 := [], 20 := [21], 19 := [20, 8], 18 := [19],
+                   17 := [], 16 := [17]))
+                  n)))
+which is equivalent to the following:
+*) 
 definition eg_out1 :: IRGraph where
   "eg_out1 = Graph 
  {15, 16, 17, 18, 19, 20, 21, 22, 0, 14, 13, 12, 11, 10, 9, 8, 7, 6, 2, Suc 0, 0}
@@ -128,23 +160,35 @@ definition eg_out1 :: IRGraph where
    12 := [], 13 := [10, 11, 12], 14 := [13], 3 := [], 5 := [], 22 := [17, 21], 21 := [], 20 := [],
    19 := [2], 18 := [], 17 := [], 16 := [], 15 := [Suc 0]))
  ((\<lambda>i. [])
-  (0 := [5], Suc 0 := [], 2 := [], 6 := [7], 7 := [], 8 := [9], 9 := [], 10 := [14], 11 := [],
+  (0 := [15], Suc 0 := [], 2 := [], 6 := [7], 7 := [], 8 := [9], 9 := [], 10 := [14], 11 := [],
    12 := [], 13 := [], 14 := [], 3 := [], 5 := [], 22 := [6], 21 := [], 20 := [21], 19 := [20, 8],
    18 := [19], 17 := [], 16 := [17], 15 := [16, 18]))
 "
 
+(* adding this kills/stops performance! *)
+lemma if_else_update: "(if n=15 then e else f n) = (f(15:=e)) n"
+  by auto
+
 lemma check1: "do_expand_logic 5 eg_short_cut_or1 = eg_out1"
   unfolding eg_short_cut_or1_def eg_out1_def
   (* apply code_simp  --- gives wellsortedness error *)
-  apply (simp add: Let_def)   
-  
+  apply (simp add: Let_def)  
+  (* 0:25, but with [simp_trace_new]) was much too slow *)
   (* Took about 4:30 mins with old relational-version of the optimisation.
-     Takes about 25 secs to simplify this functional version
+     Takes about 0:25 mins to simplify this functional version
      (or 1:20 if you add insert_Diff_if into the above simp.)  *)
-
-  apply (simp  add: insert_Diff_if [simp_trace])
+  apply (simp  add: insert_Diff_if)
+  apply auto
   done
 
-print_bundles
+lemma "wff_graph eg_out1"
+  unfolding eg_out1_def
+  by simp
+
+(* For debugging a non-wff graph!
+lemma "\<forall>n. has_good_successors n eg_out1"
+  unfolding eg_out1_def
+  nitpick
+*)
 
 end

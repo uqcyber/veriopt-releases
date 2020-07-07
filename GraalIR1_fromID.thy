@@ -119,19 +119,33 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
 
    (and also through successor arrows?)
 *)
+
+(* We define these helper functions to make it easier to debug non-well-formed graphs.
+   E.g. if "wff_graph g" 
+   fails then try to prove each of:
+       "(\<forall>n. has_good_inputs n g)"
+       "(\<forall>n. has_good_successors n g)"
+       "(\<forall>n. wff_node (g_nodes g n) (g_inputs g n) (g_successors g n))"
+   and use 'nitpick' to find the bad n.
+*)
+fun has_good_inputs :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "has_good_inputs n (Graph ids nodes inputs successors) = (set(inputs n) \<subseteq> ids)"
+
+fun has_good_successors :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "has_good_successors n (Graph ids nodes inputs successors) = (set(successors n) \<subseteq> ids)"
+
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph (Graph ids nodes inputs successors) = (
     0 \<in> ids \<and>
     nodes 0 = StartNode \<and>
-    (\<forall> n. n \<in> ids \<longrightarrow> set(successors n) \<subseteq> ids) \<and>
-    (\<forall> n. n \<in> ids \<longrightarrow> set(inputs n) \<subseteq> ids) \<and>
+    (\<forall> n. n \<in> ids \<longrightarrow> has_good_inputs n (Graph ids nodes inputs successors)) \<and>
+    (\<forall> n. n \<in> ids \<longrightarrow> has_good_successors n (Graph ids nodes inputs successors)) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> nodes n = StartNode) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> successors n = []) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> inputs n = []) \<and>
     (\<forall> n. n \<in> ids \<longrightarrow> wff_node (nodes n) (inputs n) (successors n))
   )
   "
-
 
 
 (* Example 1: empty graph (just a start node) *)

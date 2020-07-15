@@ -92,13 +92,13 @@ fun wff_node :: "IRNode \<Rightarrow> ID list \<Rightarrow> ID list \<Rightarrow
 
 (* Usage function is the reverse of the 'inputs' edges. *)
 fun g_usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
-  "g_usages (Graph ids nodes inputs successors) n = {i. n \<in> set(inputs i)}"
+  "g_usages (Graph ids nodes inputs successors) n = {i. i \<in> ids \<and> n \<in> set(inputs i)}"
 
 (* Predecessors function is the reverse of the 'successors' edges.
    The result should be empty or a singleton set.
 *)
 fun g_predecessor :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
-  "g_predecessor (Graph ids nodes inputs successors) n = {i. n \<in> set(successors i)}"
+  "g_predecessor (Graph ids nodes inputs successors) n = {i. i \<in> ids \<and> n \<in> set(successors i)}"
 
 
 (* First well-formedness predicate for IR graphs.

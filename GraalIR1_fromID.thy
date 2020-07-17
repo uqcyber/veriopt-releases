@@ -37,6 +37,18 @@ datatype (discs_sels) IRNode =
   | MergeNode
   | ReturnNode
   | EndNode
+(* Added nodes *)
+  | LoopBeginNode
+  | LoopExit
+  | AbsNode
+  | AndNode
+  | OrNode
+  | XorNode
+  | NegateNode
+  | IntegerEqualsNode
+  | IntegerLessThanNode
+  | ConditionalNode
+
   (* and hundreds of other Node subclasses!... *)
 
 (* Next we may want a predicate for each subclass.

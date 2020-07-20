@@ -50,6 +50,20 @@ fun get_dependent_phi :: "ID set \<Rightarrow> IRGraph \<Rightarrow> ID option" 
   (let res = {n. n \<in> s \<and> (case ((g_nodes g) n) of PhiNode \<Rightarrow> True | _ \<Rightarrow> False)} in
   (if card(res) = 1 then Some (the_elem (res)) else None))"
 
+
+definition some_elem :: "'a set \<Rightarrow> 'a" where [code del]:
+  "some_elem = (\<lambda>S. SOME x. x \<in> S)"
+code_printing
+  constant some_elem \<rightharpoonup> (SML) "(case/ _ of/ Set/ xs/ =>/ hd/ xs)"
+
+fun get_next_phi :: "ID set \<Rightarrow> IRGraph \<Rightarrow> (ID \<Rightarrow> Value option) \<Rightarrow> ID option" where
+"get_next_phi s g cur = 
+  (let the_phis = {n. 
+   n \<in> s \<and> 
+   (case ((g_nodes g) n) of PhiNode \<Rightarrow> True | _ \<Rightarrow> False) \<and>
+   (case (cur n) of None \<Rightarrow> True | _ \<Rightarrow> False)} in
+   (if (card the_phis) > 0 then Some (some_elem the_phis) else None))"
+
 primrec first_pos :: "'a \<Rightarrow> 'a list \<Rightarrow> nat option" where
 "first_pos a [] = None" |
 "first_pos a (x # xs) = 
@@ -60,6 +74,7 @@ primrec first_pos :: "'a \<Rightarrow> 'a list \<Rightarrow> nat option" where
       (case n of
         Some nn \<Rightarrow> Some (nn + 1) |
         None \<Rightarrow> None)))"
+
 
 type_synonym State = "string \<Rightarrow> Value"
 type_synonym Parameters = "int \<Rightarrow> Value"
@@ -94,7 +109,9 @@ function
   evalUnaryOp :: "ID \<Rightarrow> EvalState \<Rightarrow> Value" and
   evalMergeNode :: "ID \<Rightarrow> ID \<Rightarrow> EvalState \<Rightarrow> Value" and
   evalLoopBeginNode :: "ID \<Rightarrow> ID \<Rightarrow> EvalState \<Rightarrow> Value" and
-  evalPhiNode :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> Value"
+  evalPhiNode :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> Value" and
+  evalLoopBeginNodeHelp :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> (ID \<Rightarrow> Value option) \<Rightarrow> Value" and
+  evalMergeNodeHelp :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> (ID \<Rightarrow> Value option) \<Rightarrow> Value"
 where
 "eval n state = evalNode n ((g_nodes (s_graph state)) n) state" |
 
@@ -104,36 +121,47 @@ where
       LoopBeginNode \<Rightarrow> evalLoopBeginNode (get_successor n (s_graph state)) n state |
       _ \<Rightarrow> eval (get_successor n (s_graph state)) state)" |
 
-(* TODO: merge nodes without phis? what about multiple phis? *)
-"evalMergeNode n pred state = 
+"evalMergeNode n pred state =
   (case (first_pos pred (g_inputs (s_graph state) n)) of
-    Some branch \<Rightarrow> 
-      (let dphi = get_dependent_phi (g_usages (s_graph state) n) (s_graph state) in
-        (case dphi of 
-          None \<Rightarrow> (evalSuccessor n state) | 
-          Some dphinode \<Rightarrow> (
-          (let res = evalPhiNode dphinode (branch + 1) state in
-          (evalSuccessor 
+  Some branch \<Rightarrow> evalMergeNodeHelp n (branch + 1) state (\<lambda>id. None) |
+  None \<Rightarrow> UndefinedValue)" |
+
+"evalMergeNodeHelp n branch state cur =
+  (let next_phi = get_next_phi (g_usages (s_graph state) n) (s_graph state) cur in
+  (case (next_phi) of
+    None \<Rightarrow> (evalSuccessor 
             n 
             (EvalState
               (s_graph state)
-              ((s_phi state)(dphinode := res))
-              (s_params state))))))) |
-    None \<Rightarrow> evalSuccessor n state)" | (* should this even happen? *)
+              (\<lambda> id. case (cur id) of 
+                None \<Rightarrow> (s_phi state) id
+                | Some v \<Rightarrow> v)
+              (s_params state))) |
+    Some phi_id \<Rightarrow> 
+      (let res = evalPhiNode phi_id branch state in
+      evalMergeNodeHelp n branch state (\<lambda>id. if id = phi_id then Some res else cur id))))" |
 
 "evalLoopBeginNode n pred state =
   (let branch = (case (g_nodes (s_graph state) pred) of
      LoopEndNode \<Rightarrow> 2 |
      _ \<Rightarrow> 1) in
-   (let dphi = get_dependent_phi (g_usages (s_graph state) n) (s_graph state) in
-        (case dphi of None \<Rightarrow> (evalSuccessor n state) | Some dphinode \<Rightarrow> (
-          (let res = evalPhiNode dphinode branch state in
-          (evalSuccessor 
+  evalLoopBeginNodeHelp n branch state (\<lambda>id. None))" | 
+
+"evalLoopBeginNodeHelp n branch state cur =
+  (let next_phi = get_next_phi (g_usages (s_graph state) n) (s_graph state) cur in
+  (case (next_phi) of
+    None \<Rightarrow> (evalSuccessor 
             n 
             (EvalState
               (s_graph state)
-              ((s_phi state)(dphinode := res))
-              (s_params state))))))))" | 
+              (\<lambda> id. case (cur id) of 
+                None \<Rightarrow> (s_phi state) id
+                | Some v \<Rightarrow> v)
+              (s_params state))) |
+    Some phi_id \<Rightarrow> 
+      (let res = evalPhiNode phi_id branch state in
+      evalLoopBeginNodeHelp n branch state (\<lambda>id. if id = phi_id then Some res else cur id))))"  |
+
 "evalPhiNode n branch state = eval (nth_input branch n (s_graph state)) state" |
 
 "evalNode n PhiNode state = (s_phi state) n" |
@@ -144,7 +172,6 @@ where
 "evalNode n (ParameterNode k) state = nth (s_params state) (nat k) " |
 "evalBinop n state = applyBinop (g_nodes (s_graph state) n) (eval (get_input1 n (s_graph state)) state) (eval (get_input2 n (s_graph state)) state)" |
 "evalUnaryOp n state = applyUnaryOp (g_nodes (s_graph state) n) (eval (get_input1 n (s_graph state)) state)" |
-
 
 "evalNode n IfNode (EvalState graph phis params) = 
   evalSuccessor 
@@ -196,7 +223,6 @@ definition eg3 :: IRGraph where
 
 value "evalGraph eg3 [IntegerValue 1, IntegerValue 66, IntegerValue 5]"
 
-
 definition eg4 :: IRGraph where
   "eg4 =
     (add_node 14 (ParameterNode 0) [] []
@@ -216,18 +242,6 @@ definition eg4 :: IRGraph where
     (add_node 0 StartNode [] [1]
     empty_graph)))))))))))))))"
 
-value "eval 0 (EvalState eg4 (\<lambda>x. UndefinedValue) [IntegerValue 110])"
-
-(* Example 2:
-  =============================================
-  public static int sq(int x) { return x * x; }
-
-             [1 P(0)]
-               \ /
-  [0 Start]   [4 *]
-       |      /
-       V     /
-      [5 Return]
-*)
+value "eval 0 (EvalState eg4 (\<lambda>x. UndefinedValue) [IntegerValue 117])"
 
 end

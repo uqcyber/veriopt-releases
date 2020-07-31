@@ -1,6 +1,8 @@
-theory inductive_snip 
+theory InductiveSemantics 
   imports
     "AbsGraph"
+    "HOL-Library.LaTeXsugar"
+    "HOL-Library.OptionalSugar"
 begin
 
 datatype Value =
@@ -67,9 +69,6 @@ fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarro
   "add_value (EvalState graph phi params scope) ident val = 
       (EvalState graph phi params (update_state scope ident val))"
 
-fun unwrap :: "('a \<times> 'b) \<times> 'c \<Rightarrow> ('a \<times> 'b \<times> 'c)" where
-  "unwrap ((a, b), c) = (a, b, c)"
-
 inductive
   eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" (infix "\<Rightarrow>" 55)
 where
@@ -85,6 +84,21 @@ where
             \<Longrightarrow> (n, ReturnNode, s) \<Rightarrow> (s[''RETURN''\<rightarrow>v1], v1)" |
 
   IfNode: "\<lbrakk>(n, AddNode, s) \<Rightarrow> s'\<rbrakk> \<Longrightarrow> (n, IfNode, s) \<Rightarrow> s'"
+
+(* Format as inference rules *)
+text \<open>@{thm[mode=Rule] (sub, prem 2) eval.induct} {\sc StartNode}\<close>
+
+text \<open>@{thm[mode=Axiom] (sub, prem 3) eval.induct} {\sc ParameterNode}\<close>
+text \<open>@{thm[mode=Axiom] (sub, prem 4) eval.induct} {\sc ConstantNode}\<close>
+
+text \<open>@{thm[mode=Rule] (sub, prem 5) eval.induct} {\sc AddNode}\<close>
+text \<open>@{thm[mode=Rule] (sub, prem 6) eval.induct} {\sc SubNode}\<close>
+
+text \<open>@{thm[mode=Rule] (sub, prem 7) eval.induct} {\sc IfNodeTrue}\<close>
+text \<open>@{thm[mode=Rule] (sub, prem 8) eval.induct} {\sc IfNodeFalse}\<close>
+
+text \<open>@{thm[mode=Rule] (sub, prem 9) eval.induct} {\sc ReturnNode}\<close>
+
 
 definition ex_graph :: IRGraph where
   "ex_graph =

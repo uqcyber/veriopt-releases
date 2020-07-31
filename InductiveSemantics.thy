@@ -22,43 +22,33 @@ fun get_node :: "ID \<Rightarrow> EvalState \<Rightarrow> IRNode" where
 fun get_input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where 
   "get_input nid state i = (nth (g_inputs (s_graph state) nid) i)"
 
-fun get_input_node :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> IRNode" where
-  "get_input_node nid state i = (get_node (get_input nid state i) state)"
-
-fun get_input_pair :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID \<times> IRNode" where
-  "get_input_pair nid state i = 
-    (let next_id = (get_input nid state i) in
-    (next_id, (get_node next_id state)))"
-
-fun get_input_eval :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID \<times> IRNode \<times> EvalState" where
-  "get_input_eval nid state i = 
+fun input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID \<times> IRNode \<times> EvalState" where
+  "input nid state i = 
     (let next_id = (get_input nid state i) in
     (next_id, (get_node next_id state), state))"
 
-fun get_successor :: "ID \<Rightarrow> EvalState \<Rightarrow> ID" where
-"get_successor n state = 
+fun get_successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where
+"get_successor n state i = 
   (let g = s_graph state in
   (if (size (g_successors g n) > 0) then
-    (hd (g_successors g n))
+    (nth (g_successors g n) i)
   else
     (the_elem (g_usages g n))))"
 
-fun get_successor_node :: "ID \<Rightarrow> EvalState \<Rightarrow> IRNode" where
-  "get_successor_node nid state = (get_node (get_successor nid state) state)"
-
-fun get_successor_pair :: "ID \<Rightarrow> EvalState \<Rightarrow> ID \<times> IRNode" where
-  "get_successor_pair nid state =
-    (let next_id = (get_successor nid state) in
-    (next_id, (get_node next_id state)))"
-
-fun get_successor_eval :: "ID \<Rightarrow> EvalState \<Rightarrow> ID \<times> IRNode \<times> EvalState" where
-  "get_successor_eval nid state =
-    (let next_id = (get_successor nid state) in
+fun 
+  successor :: "ID \<Rightarrow> EvalState \<Rightarrow> ID \<times> IRNode \<times> EvalState" and
+  successori :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID \<times> IRNode \<times> EvalState"
+  where
+  "successor nid state =
+    (let next_id = (get_successor nid state 0) in
+    (next_id, (get_node next_id state), state))" |
+  "successori nid state i = 
+    (let next_id = (get_successor nid state i) in
     (next_id, (get_node next_id state), state))"
 
-fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" ("_[_._]" 89)
-  where
+fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" ("_[[_ _]]" 89) where
   "binary_expr AddNode (IntVal x) (IntVal y) = (IntVal (x + y))" |
+  "binary_expr SubNode (IntVal x) (IntVal y) = (IntVal (x - y))" |
   "binary_expr _ _ _ = UndefVal"
 
 fun update_state :: "(string \<Rightarrow> Value) \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> (string \<Rightarrow> Value)" where

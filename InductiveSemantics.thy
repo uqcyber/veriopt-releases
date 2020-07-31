@@ -51,6 +51,10 @@ fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow>
   "binary_expr SubNode (IntVal x) (IntVal y) = (IntVal (x - y))" |
   "binary_expr _ _ _ = UndefVal"
 
+fun bool_expr :: "Value \<Rightarrow> bool" where
+  "bool_expr (IntVal x) = (if x = 0 then False else True)" |
+  "bool_expr (UndefVal) = False"
+
 fun update_state :: "(string \<Rightarrow> Value) \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> (string \<Rightarrow> Value)" where
   "update_state scope ident val = (\<lambda> x. (if x = ident then val else (scope x)))"
 fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> EvalState" 
@@ -60,20 +64,36 @@ fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarro
       (EvalState graph phi params (update_state scope ident val))"
 
 inductive
-  eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" (infix "\<Rightarrow>" 55)
-where
-  StartNode: "\<lbrakk>(get_successor_eval n s) \<Rightarrow> succ\<rbrakk> \<Longrightarrow> (n, StartNode, s) \<Rightarrow> succ" |
+  eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
+  where
 
-  ParameterNode: "(n, (ParameterNode i), s) \<Rightarrow> (s, (IntVal i))" |
+  StartNode: "\<lbrakk>(successori num s 0) \<mapsto> succ\<rbrakk> \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
 
-  AddNode: "\<lbrakk>(get_input_eval n s 0) \<Rightarrow> (s1, v1);
-             (get_input_eval n s 1) \<Rightarrow> (s2, v2)\<rbrakk>
-            \<Longrightarrow> (n, AddNode, s) \<Rightarrow> (s, (binary_expr AddNode v1 v2))" |
+  ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, (IntVal i))" |
 
-  ReturnNode: "\<lbrakk>(get_input_eval n s 0) \<Rightarrow> (s1, v1)\<rbrakk> 
-            \<Longrightarrow> (n, ReturnNode, s) \<Rightarrow> (s[''RETURN''\<rightarrow>v1], v1)" |
+  ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
 
-  IfNode: "\<lbrakk>(n, AddNode, s) \<Rightarrow> s'\<rbrakk> \<Longrightarrow> (n, IfNode, s) \<Rightarrow> s'"
+  AddNode: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
+             (input num s1 1) \<mapsto> (s2, v2)\<rbrakk>
+             \<Longrightarrow> (num, AddNode, s) \<mapsto> (s2, AddNode[[v1 v2]])" |
+
+  SubNode: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
+             (input num s1 1) \<mapsto> (s2, v2)\<rbrakk>
+             \<Longrightarrow> (num, SubNode, s) \<mapsto> (s2, SubNode[[v1 v2]])" |
+  (* Abstract binary node relations *)
+
+  IfNodeTrue: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
+                (bool_expr v1);
+                (successori num s1 0) \<mapsto> s2\<rbrakk> 
+                \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
+
+  IfNodeFalse: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
+                 (\<not>(bool_expr v1));
+                 (successori num s1 1) \<mapsto> s2\<rbrakk> 
+                 \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
+
+  ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
+                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[''RETURN''\<rightarrow>v1], v1)"
 
 (* Format as inference rules *)
 text \<open>@{thm[mode=Rule] (sub, prem 2) eval.induct} {\sc StartNode}\<close>
@@ -89,23 +109,35 @@ text \<open>@{thm[mode=Rule] (sub, prem 8) eval.induct} {\sc IfNodeFalse}\<close
 
 text \<open>@{thm[mode=Rule] (sub, prem 9) eval.induct} {\sc ReturnNode}\<close>
 
+(* Example graph evaluation *)
+fun new_state :: "IRGraph \<Rightarrow> EvalState" where
+  "new_state graph = (EvalState graph (\<lambda> x. UndefVal) [] (\<lambda> x. UndefVal))"
 
 definition ex_graph :: IRGraph where
   "ex_graph =
     (add_node 3 ReturnNode [2] []
     (add_node 2 AddNode [1, 1] []
-    (add_node 1 (ParameterNode 2) [] []
+    (add_node 1 (ParameterNode 5) [] []
     (add_node 0 StartNode [] [2]
     empty_graph))))"
-definition ex_state :: EvalState where
-  "ex_state = (EvalState ex_graph (\<lambda> x. UndefVal) [] (\<lambda> x. UndefVal))"
+lemma "wff_graph ex_graph"
+  unfolding ex_graph_def by simp
 
-fun lookup :: "EvalState \<Rightarrow> string \<Rightarrow> Value" (infix "::" 56) where
-  "lookup (EvalState _ _ _ scope) ident = (scope ident)"
-
-value "(ex_state[''hi'' \<rightarrow> (IntVal 3)]) :: ''hi''"
+definition ex_graph2 :: IRGraph where
+  "ex_graph2 =
+    (add_node 5 ReturnNode [1] []
+    (add_node 4 ReturnNode [2] []
+    (add_node 3 IfNode [1] [4, 5]
+    (add_node 2 (ConstantNode 30) [] []
+    (add_node 1 (ConstantNode 1) [] []
+    (add_node 0 StartNode [] [3]
+    empty_graph))))))"
+lemma "wff_graph ex_graph2"
+  unfolding ex_graph2_def by simp
 
 code_pred eval .
-values "{(s, v). (0, StartNode, ex_state) \<Rightarrow> (s, v)}"
+values "{(s, v). (0, StartNode, (new_state ex_graph)) \<mapsto> (s, v)}"
+
+values "{(s, v). (0, StartNode, (new_state ex_graph2)) \<mapsto> (s, v)}"
 
 end

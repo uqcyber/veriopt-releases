@@ -2,6 +2,7 @@ theory IRSemantics
   imports
     AbsGraph
     "HOL-Word.More_Word"
+    HOL.Map
 begin
 
 (*
@@ -79,11 +80,18 @@ primrec first_pos :: "'a \<Rightarrow> 'a list \<Rightarrow> nat option" where
 type_synonym State = "string \<Rightarrow> Value"
 type_synonym Parameters = "int \<Rightarrow> Value"
 
+definition static_object :: "ID" where "static_object = 10000000000"
+
+type_synonym field_name = string
+type_synonym cname = string
+
 datatype EvalState = 
   EvalState 
     (s_graph: "IRGraph")
     (s_phi: "ID \<Rightarrow> Value" )
     (s_params: "Value list")
+    (s_heap: "ID \<rightharpoonup> (field_name \<rightharpoonup> Value)") 
+    (s_statics: "cname \<rightharpoonup> (field_name \<rightharpoonup> Value)")
    
 fun applyUnaryOp :: "IRNode \<Rightarrow> Value \<Rightarrow> Value" where
 "applyUnaryOp NegateNode (IntegerValue a) = (IntegerValue (-a))" |
@@ -110,6 +118,8 @@ function
   evalMergeNode :: "ID \<Rightarrow> ID \<Rightarrow> EvalState \<Rightarrow> Value" and
   evalLoopBeginNode :: "ID \<Rightarrow> ID \<Rightarrow> EvalState \<Rightarrow> Value" and
   evalPhiNode :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> Value" and
+  evalLoadFieldNode :: "ID \<Rightarrow> field_name \<Rightarrow> EvalState \<Rightarrow> Value" and
+  evalLoadStaticFieldNode :: "ID \<Rightarrow> cname \<Rightarrow> field_name \<Rightarrow> EvalState \<Rightarrow> Value" and
   evalLoopBeginNodeHelp :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> (ID \<Rightarrow> Value option) \<Rightarrow> Value" and
   evalMergeNodeHelp :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> (ID \<Rightarrow> Value option) \<Rightarrow> Value"
 where
@@ -119,6 +129,8 @@ where
   (case (g_nodes (s_graph state) (get_successor n (s_graph state))) of
       MergeNode \<Rightarrow> evalMergeNode (get_successor n (s_graph state)) n state |
       LoopBeginNode \<Rightarrow> evalLoopBeginNode (get_successor n (s_graph state)) n state |
+      (LoadFieldNode field) \<Rightarrow> evalLoadFieldNode (get_successor n (s_graph state)) field state |
+      (LoadStaticFieldNode clazz field) \<Rightarrow> evalLoadStaticFieldNode (get_successor n (s_graph state)) clazz field state |
       _ \<Rightarrow> eval (get_successor n (s_graph state)) state)" |
 
 "evalMergeNode n pred state =
@@ -136,7 +148,9 @@ where
               (\<lambda> id. case (cur id) of 
                 None \<Rightarrow> (s_phi state) id
                 | Some v \<Rightarrow> v)
-              (s_params state))) |
+              (s_params state)
+              (s_heap state)
+              (s_statics state))) |
     Some phi_id \<Rightarrow> 
       (let res = evalPhiNode phi_id branch state in
       evalMergeNodeHelp n branch state (\<lambda>id. if id = phi_id then Some res else cur id))))" |
@@ -157,7 +171,9 @@ where
               (\<lambda> id. case (cur id) of 
                 None \<Rightarrow> (s_phi state) id
                 | Some v \<Rightarrow> v)
-              (s_params state))) |
+              (s_params state)
+              (s_heap state)
+              (s_statics state))) |
     Some phi_id \<Rightarrow> 
       (let res = evalPhiNode phi_id branch state in
       evalLoopBeginNodeHelp n branch state (\<lambda>id. if id = phi_id then Some res else cur id))))"  |
@@ -173,10 +189,10 @@ where
 "evalBinop n state = applyBinop (g_nodes (s_graph state) n) (eval (get_input1 n (s_graph state)) state) (eval (get_input2 n (s_graph state)) state)" |
 "evalUnaryOp n state = applyUnaryOp (g_nodes (s_graph state) n) (eval (get_input1 n (s_graph state)) state)" |
 
-"evalNode n IfNode (EvalState graph phis params) = 
+"evalNode n IfNode (EvalState graph phis params heap statics) = 
   evalSuccessor 
-    (get_nth_successor n (if (bool (eval (get_input1 n graph) (EvalState graph phis params))) then 0 else 1) graph)
-    (EvalState graph phis params)" |
+    (get_nth_successor n (if (bool (eval (get_input1 n graph) (EvalState graph phis params heap statics))) then 0 else 1) graph)
+    (EvalState graph phis params heap statics)" |
 "evalNode n BeginNode state = evalSuccessor n state" |
 "evalNode n EndNode state = evalSuccessor n state" |
 "evalNode n StartNode state = evalSuccessor n state" |
@@ -197,12 +213,54 @@ where
 
 "evalNode n NegateNode state = evalUnaryOp n state" |
 "evalNode n AbsNode state = evalUnaryOp n state" |
-"evalNode n LogicNegationNode state = evalUnaryOp n state"
-sorry
-termination by auto
+"evalNode n LogicNegationNode state = evalUnaryOp n state" | 
+
+"evalNode n (NewInstanceNode cname) (EvalState graph phis params heap statics) = 
+  evalSuccessor n (EvalState graph phis params (heap(n \<mapsto> Map.empty)) statics)" |
+
+(* Lookup for floating node evaluation *)
+"evalNode n (LoadFieldNode field) (EvalState graph phis params heap statics) = (phis n)" | 
+"evalNode n (LoadStaticFieldNode clazz field) (EvalState graph phis params heap statics) = (phis n)" | 
+
+"evalNode n (StoreFieldNode field) (EvalState graph phis params heap statics) =
+  (let obj = get_input1 n graph in
+  (let val = eval (get_input2 n graph) (EvalState graph phis params heap statics) in
+    (case (heap obj) of
+       Some fields \<Rightarrow> evalSuccessor n (EvalState graph phis params (heap(obj \<mapsto> (fields(field \<mapsto> val)))) statics) |
+       None \<Rightarrow> evalSuccessor n (EvalState graph phis params (heap(obj \<mapsto> (Map.empty(field \<mapsto> val)))) statics))))" |
+
+(* TODO: input1 or input2 for static stores? *)
+"evalNode n (StoreStaticFieldNode clazz field) (EvalState graph phis params heap statics) =
+  (let val = eval (get_input1 n graph) (EvalState graph phis params heap statics) in
+    (case (statics clazz) of
+       Some fields \<Rightarrow> evalSuccessor n (EvalState graph phis params heap (statics(clazz \<mapsto> (fields(field \<mapsto> val))))) |
+       None \<Rightarrow> evalSuccessor n (EvalState graph phis params heap (statics(clazz \<mapsto> (Map.empty(field \<mapsto> val)))))))" |
+
+(* Control flow loads. Maps node id to loaded value *)
+"evalLoadFieldNode n field (EvalState graph phis params heap statics) = 
+  (let obj = get_input1 n graph in
+  (let val = (case (heap obj) of
+     Some fields \<Rightarrow>
+        (case (fields field) of
+          Some val \<Rightarrow> val |
+          None \<Rightarrow> UndefinedValue) |
+     None \<Rightarrow> UndefinedValue) in
+  evalSuccessor n (EvalState graph (phis(n := val)) params heap statics)))" |
+
+"evalLoadStaticFieldNode n clazz field (EvalState graph phis params heap statics) = 
+  (let val = (case (statics clazz) of
+     Some fields \<Rightarrow>
+        (case (fields field) of
+          Some val \<Rightarrow> val |
+          None \<Rightarrow> UndefinedValue) |
+     None \<Rightarrow> UndefinedValue) in
+  evalSuccessor n (EvalState graph (phis(n := val)) params heap statics))"
+
+  sorry
+termination sorry
 
 fun evalGraph :: "IRGraph \<Rightarrow> Value list \<Rightarrow>  Value" where
-"evalGraph g params = eval 0 (EvalState g (\<lambda>x. UndefinedValue) params)"
+"evalGraph g params = eval 0 (EvalState g (\<lambda>x. UndefinedValue) params Map.empty Map.empty)"
 
 definition eg3 :: IRGraph where
   "eg3 =
@@ -242,6 +300,6 @@ definition eg4 :: IRGraph where
     (add_node 0 StartNode [] [1]
     empty_graph)))))))))))))))"
 
-value "eval 0 (EvalState eg4 (\<lambda>x. UndefinedValue) [IntegerValue 117])"
+value "evalGraph eg4 [IntegerValue 117]"
 
 end

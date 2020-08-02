@@ -48,7 +48,12 @@ datatype (discs_sels) IRNode =
   | IntegerEqualsNode
   | IntegerLessThanNode
   | ConditionalNode
-
+  | NewInstanceNode string (* class name *)
+  | LoadFieldNode string (* field name *)
+  | StoreFieldNode string (* field name *)
+  | LoadStaticFieldNode string string (* class name, field name *)
+  | StoreStaticFieldNode string string (* class name, field name *)
+  | FrameStateNode (* effectively unused *)
   (* and hundreds of other Node subclasses!... *)
 
 (* Next we may want a predicate for each subclass.

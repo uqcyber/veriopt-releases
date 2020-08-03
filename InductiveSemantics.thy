@@ -55,6 +55,11 @@ fun bool_expr :: "Value \<Rightarrow> bool" where
   "bool_expr (IntVal x) = (if x = 0 then False else True)" |
   "bool_expr (UndefVal) = False"
 
+fun is_binary_node :: "IRNode \<Rightarrow> bool" where
+  "is_binary_node AddNode = True" |
+  "is_binary_node SubNode = True" |
+  "is_binary_node x = False"
+
 fun update_state :: "(string \<Rightarrow> Value) \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> (string \<Rightarrow> Value)" where
   "update_state scope ident val = (\<lambda> x. (if x = ident then val else (scope x)))"
 fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> EvalState" 
@@ -73,14 +78,10 @@ inductive
 
   ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
 
-  AddNode: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
-             (input num s1 1) \<mapsto> (s2, v2)\<rbrakk>
-             \<Longrightarrow> (num, AddNode, s) \<mapsto> (s2, AddNode[[v1 v2]])" |
-
-  SubNode: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
-             (input num s1 1) \<mapsto> (s2, v2)\<rbrakk>
-             \<Longrightarrow> (num, SubNode, s) \<mapsto> (s2, SubNode[[v1 v2]])" |
-  (* Abstract binary node relations *)
+  BinaryNode: "\<lbrakk>is_binary_node node;
+                (input num s 0) \<mapsto> (s1, v1);
+                (input num s1 1) \<mapsto> (s2, v2)\<rbrakk> 
+                \<Longrightarrow> (num, node, s) \<mapsto> (s2, node[[v1 v2]])" |
 
   IfNodeTrue: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
                 (bool_expr v1);

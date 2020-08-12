@@ -46,19 +46,39 @@ fun
     (let next_id = (get_successor nid state i) in
     (next_id, (get_node next_id state), state))"
 
+fun val_to_bool :: "Value \<Rightarrow> bool" where
+  "val_to_bool (IntVal x) = (if x = 0 then False else True)" |
+  "val_to_bool (UndefVal) = False"
+
+fun bool_to_val :: "bool \<Rightarrow> Value" where
+  "bool_to_val True = (IntVal 1)" |
+  "bool_to_val False = (IntVal 0)"
+
+fun binary_bool_expr :: "IRNode \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> Value" where
+  "binary_bool_expr AndNode x y = (bool_to_val (x \<and> y))" |
+  "binary_bool_expr OrNode x y = (bool_to_val (x \<or> y))" |
+  "binary_bool_expr XorNode x y = (bool_to_val ((x \<or> y) \<and> \<not>(x \<and> y)))" |
+  "binary_bool_expr _ _ _ = UndefVal"
+
 fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" ("_[[_ _]]" 89) where
   "binary_expr AddNode (IntVal x) (IntVal y) = (IntVal (x + y))" |
   "binary_expr SubNode (IntVal x) (IntVal y) = (IntVal (x - y))" |
+  "binary_expr MulNode (IntVal x) (IntVal y) = (IntVal (x * y))" |
+  "binary_expr AndNode x y = (binary_bool_expr AddNode (val_to_bool x) (val_to_bool y))" |
+  "binary_expr OrNode x y = (binary_bool_expr OrNode (val_to_bool x) (val_to_bool y))" |
+  "binary_expr XorNode x y = (binary_bool_expr XorNode (val_to_bool x) (val_to_bool y))" |
+  "binary_expr IntegerLessThanNode (IntVal x) (IntVal y) = (bool_to_val (x < y))" |
+  "binary_expr IntegerEqualsNode (IntVal x) (IntVal y) = (bool_to_val (x = y))" |
   "binary_expr _ _ _ = UndefVal"
-
-fun bool_expr :: "Value \<Rightarrow> bool" where
-  "bool_expr (IntVal x) = (if x = 0 then False else True)" |
-  "bool_expr (UndefVal) = False"
 
 fun is_binary_node :: "IRNode \<Rightarrow> bool" where
   "is_binary_node AddNode = True" |
   "is_binary_node SubNode = True" |
-  "is_binary_node x = False"
+  "is_binary_node MulNode = True" |
+  "is_binary_node AndNode = True" |
+  "is_binary_node OrNode = True" |
+  "is_binary_node XorNode = True" |
+  "is_binary_node _ = False"
 
 fun update_state :: "(string \<Rightarrow> Value) \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> (string \<Rightarrow> Value)" where
   "update_state scope ident val = (\<lambda> x. (if x = ident then val else (scope x)))"
@@ -72,7 +92,8 @@ inductive
   eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
   where
 
-  StartNode: "\<lbrakk>(successori num s 0) \<mapsto> succ\<rbrakk> \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
+  StartNode: "\<lbrakk>(successori num s 0) \<mapsto> succ\<rbrakk> 
+              \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
 
   ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, (IntVal i))" |
 
@@ -84,12 +105,12 @@ inductive
                 \<Longrightarrow> (num, node, s) \<mapsto> (s2, node[[v1 v2]])" |
 
   IfNodeTrue: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
-                (bool_expr v1);
+                (val_to_bool v1);
                 (successori num s1 0) \<mapsto> s2\<rbrakk> 
                 \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
 
   IfNodeFalse: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
-                 (\<not>(bool_expr v1));
+                 (\<not>(val_to_bool v1));
                  (successori num s1 1) \<mapsto> s2\<rbrakk> 
                  \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
 

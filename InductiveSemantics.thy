@@ -54,13 +54,18 @@ fun bool_to_val :: "bool \<Rightarrow> Value" where
   "bool_to_val True = (IntVal 1)" |
   "bool_to_val False = (IntVal 0)"
 
+fun unary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value" where
+  "unary_expr AbsNode (IntVal x) = (IntVal (if (x < 0) then -x else x))" |
+  "unary_expr NegateNode x = (bool_to_val (\<not>(val_to_bool x)))" |
+  "unary_expr _ _ = UndefVal"
+
 fun binary_bool_expr :: "IRNode \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> Value" where
   "binary_bool_expr AndNode x y = (bool_to_val (x \<and> y))" |
   "binary_bool_expr OrNode x y = (bool_to_val (x \<or> y))" |
   "binary_bool_expr XorNode x y = (bool_to_val ((x \<or> y) \<and> \<not>(x \<and> y)))" |
   "binary_bool_expr _ _ _ = UndefVal"
 
-fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" ("_[[_ _]]" 89) where
+fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "binary_expr AddNode (IntVal x) (IntVal y) = (IntVal (x + y))" |
   "binary_expr SubNode (IntVal x) (IntVal y) = (IntVal (x - y))" |
   "binary_expr MulNode (IntVal x) (IntVal y) = (IntVal (x * y))" |
@@ -70,6 +75,11 @@ fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow>
   "binary_expr IntegerLessThanNode (IntVal x) (IntVal y) = (bool_to_val (x < y))" |
   "binary_expr IntegerEqualsNode (IntVal x) (IntVal y) = (bool_to_val (x = y))" |
   "binary_expr _ _ _ = UndefVal"
+
+fun is_unary_node :: "IRNode \<Rightarrow> bool" where
+  "is_unary_node AbsNode = True" |
+  "is_unary_node NegateNode = True" |
+  "is_unary_node _ = False"
 
 fun is_binary_node :: "IRNode \<Rightarrow> bool" where
   "is_binary_node AddNode = True" |
@@ -99,10 +109,14 @@ inductive
 
   ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
 
+  UnaryNode: "\<lbrakk>is_unary_node node;
+              (input num s 0) \<mapsto> (s1, v1)\<rbrakk> 
+              \<Longrightarrow> (num, node, s) \<mapsto> (s1, (unary_expr node v1))" |
+
   BinaryNode: "\<lbrakk>is_binary_node node;
                 (input num s 0) \<mapsto> (s1, v1);
                 (input num s1 1) \<mapsto> (s2, v2)\<rbrakk> 
-                \<Longrightarrow> (num, node, s) \<mapsto> (s2, node[[v1 v2]])" |
+                \<Longrightarrow> (num, node, s) \<mapsto> (s2, (binary_expr node v1 v2))" |
 
   IfNodeTrue: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
                 (val_to_bool v1);

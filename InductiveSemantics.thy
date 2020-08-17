@@ -5,6 +5,8 @@ theory InductiveSemantics
     "HOL-Library.OptionalSugar"
 begin
 
+type_synonym field_name = string
+
 datatype Value =
   UndefVal |
   IntVal int
@@ -15,6 +17,7 @@ datatype EvalState =
     (s_phi: "ID \<Rightarrow> Value")
     (s_params: "Value list")
     (s_scope: "string \<Rightarrow> Value")
+    (s_heap: "ID \<rightharpoonup> (field_name \<rightharpoonup> Value)")
 
 fun get_node :: "ID \<Rightarrow> EvalState \<Rightarrow> IRNode" where
   "get_node n state = ((g_nodes (s_graph state)) n)"
@@ -90,13 +93,33 @@ fun is_binary_node :: "IRNode \<Rightarrow> bool" where
   "is_binary_node XorNode = True" |
   "is_binary_node _ = False"
 
-fun update_state :: "(string \<Rightarrow> Value) \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> (string \<Rightarrow> Value)" where
+fun update_state :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> ('a \<Rightarrow> 'b)" where
   "update_state scope ident val = (\<lambda> x. (if x = ident then val else (scope x)))"
+
 fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> EvalState" 
-  ("_[_\<rightarrow>_]" 55)
+  ("_[[_\<rightarrow>_]]" 55)
   where
-  "add_value (EvalState graph phi params scope) ident val = 
-      (EvalState graph phi params (update_state scope ident val))"
+  "add_value (EvalState graph phi params scope heap) ident val = 
+      (EvalState graph phi params (update_state scope ident val) heap)"
+
+fun add_instance :: "EvalState \<Rightarrow> ID \<Rightarrow> EvalState"
+where
+  "add_instance (EvalState graph phi params scope heap) node =
+      (EvalState graph phi params scope (heap(node\<mapsto>Map.empty)))"
+
+fun lookup_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Rightarrow> Value" where
+  "lookup_field state n field = (case ((s_heap state) n) of 
+    None \<Rightarrow> UndefVal |
+    Some class \<Rightarrow> (case (class field) of
+      None \<Rightarrow> UndefVal |
+      Some val \<Rightarrow> val))"
+
+(*
+fun store_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Rightarrow> Value \<Rightarrow> EvalState" where
+  "store_field state n field val = (case ((s_heap state) n) of
+    None \<Rightarrow> state |
+    Some class \<Rightarrow> 
+*)
 
 inductive
   eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
@@ -128,8 +151,18 @@ inductive
                  (successori num s1 1) \<mapsto> s2\<rbrakk> 
                  \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
 
+  NewInstanceNode: "(n, NewInstanceNode cname, s) \<mapsto> ((add_instance s n), UndefVal)" |
+
+  LoadFieldNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk>
+                  \<Longrightarrow> (n, LoadFieldNode field, s) 
+                      \<mapsto> (s1, (lookup_field s1 (get_input n s 0) field))" |
+
+(*
+  StoreFieldNode: "(n, StoreFieldNode field, s) \<mapsto> (s, UndefVal)" |
+*)
+
   ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
-                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[''RETURN''\<rightarrow>v1], v1)"
+                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)"
 
 (* Format as inference rules *)
 text \<open>@{thm[mode=Rule] (sub, prem 2) eval.induct} {\sc StartNode}\<close>

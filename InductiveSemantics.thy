@@ -1,6 +1,7 @@
 theory InductiveSemantics 
   imports
     "AbsGraph"
+    "HOL-Library.Datatype_Records"
     "HOL-Library.LaTeXsugar"
     "HOL-Library.OptionalSugar"
 begin
@@ -18,6 +19,19 @@ datatype EvalState =
     (s_params: "Value list")
     (s_scope: "string \<Rightarrow> Value")
     (s_heap: "ID \<rightharpoonup> (field_name \<rightharpoonup> Value)")
+type_synonym EvalNode = "ID \<times> IRNode \<times> EvalState"
+
+(* Adds the ability to update fields of datatype without making it a record *)
+local_setup \<open>Datatype_Records.mk_update_defs \<^type_name>\<open>EvalState\<close>\<close>
+(*
+datatype_record EvalState = 
+    s_graph:: "IRGraph"
+    s_phi:: "ID \<Rightarrow> Value"
+    s_params:: "Value list"
+    s_scope:: "string \<Rightarrow> Value"
+    s_heap:: "ID \<rightharpoonup> (field_name \<rightharpoonup> Value)"
+    s_begin_preds:: "ID \<Rightarrow> ID"
+*)
 
 fun get_node :: "ID \<Rightarrow> EvalState \<Rightarrow> IRNode" where
   "get_node n state = ((g_nodes (s_graph state)) n)"
@@ -99,13 +113,15 @@ fun update_state :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<R
 fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> EvalState" 
   ("_[[_\<rightarrow>_]]" 55)
   where
-  "add_value (EvalState graph phi params scope heap) ident val = 
-      (EvalState graph phi params (update_state scope ident val) heap)"
+  "add_value state ident val = 
+    (let scope = (s_scope state) in
+    update_s_scope (\<lambda>_. (update_state scope ident val)) state)"
 
 fun add_instance :: "EvalState \<Rightarrow> ID \<Rightarrow> EvalState"
 where
-  "add_instance (EvalState graph phi params scope heap) node =
-      (EvalState graph phi params scope (heap(node\<mapsto>Map.empty)))"
+  "add_instance state node =
+    (let heap = (s_heap state) in
+    update_s_heap (\<lambda>_. (heap(node\<mapsto>Map.empty))) state)"
 
 fun lookup_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Rightarrow> Value" where
   "lookup_field state n field = (case ((s_heap state) n) of 
@@ -180,7 +196,7 @@ text \<open>@{thm[mode=Rule] (sub, prem 9) eval.induct} {\sc ReturnNode}\<close>
 
 (* Example graph evaluation *)
 fun new_state :: "IRGraph \<Rightarrow> EvalState" where
-  "new_state graph = (EvalState graph (\<lambda> x. UndefVal) [] (\<lambda> x. UndefVal))"
+  "new_state graph = (EvalState graph (\<lambda> x. UndefVal) [] (\<lambda> x. UndefVal) Map.empty)"
 
 definition ex_graph :: IRGraph where
   "ex_graph =

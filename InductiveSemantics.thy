@@ -19,6 +19,8 @@ datatype EvalState =
     (s_params: "Value list")
     (s_scope: "string \<Rightarrow> Value")
     (s_heap: "ID \<rightharpoonup> (field_name \<rightharpoonup> Value)")
+    (s_begin_preds: "ID \<Rightarrow> ID")
+
 type_synonym EvalNode = "ID \<times> IRNode \<times> EvalState"
 
 (* Adds the ability to update fields of datatype without making it a record *)
@@ -107,6 +109,20 @@ fun is_binary_node :: "IRNode \<Rightarrow> bool" where
   "is_binary_node XorNode = True" |
   "is_binary_node _ = False"
 
+fun is_begin_node :: "IRNode \<Rightarrow> bool" where
+  "is_begin_node KillingBeginNode = True" |
+  "is_begin_node BeginNode = True" |
+  "is_begin_node StartNode = True" | (* maybe? *)
+  "is_begin_node LoopBeginNode = True" |
+  "is_begin_node _ = False"
+
+fun is_end_node :: "IRNode \<Rightarrow> bool" where
+  "is_end_node EndNode = True" |
+  "is_end_node LoopEndNode = True" |
+  "is_end_node LoopExit = True" | (* maybe? *)
+  "is_end_node ReturnNode = True" | (* maybe? *)
+  "is_end_node _ = False"
+
 fun update_state :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> ('a \<Rightarrow> 'b)" where
   "update_state scope ident val = (\<lambda> x. (if x = ident then val else (scope x)))"
 
@@ -137,8 +153,51 @@ fun store_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Righta
     Some class \<Rightarrow> 
 *)
 
+(* We obviously don't actually want a locale but helps group WIP things *)
+locale Phi
+begin
+(* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
+primrec find_index :: "('a => bool) => 'a list => nat" where
+"find_index _ [] = 0" |
+"find_index P (x#xs) = (if P x then 0 else find_index P xs + 1)"
+
+definition index_list :: "'a list => 'a => nat" where
+"index_list xs = (\<lambda>a. find_index (\<lambda>x. x=a) xs)"
+
+fun philist :: "EvalNode \<Rightarrow> ID list" where
+  "philist (n, node, s) = (if (is_begin_node node)
+      then sorted_list_of_set (g_usages (s_graph s) n)
+      else [])"
+
+fun ntharg :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalNode" where
+  "ntharg (n, node, s) k = input n s k"
+
+fun index :: "EvalNode \<Rightarrow> EvalNode \<Rightarrow> nat" where
+  "index (n, node, s) (n', node', s') = index_list (g_inputs (s_graph s) n) n'"
+
+fun set_pred :: "EvalNode \<Rightarrow> ID \<Rightarrow> EvalState" where
+  "set_pred (p, node, s) n = (let preds = (s_begin_preds s) in
+    (update_s_begin_preds (\<lambda>_. (update_state preds n p)) s))"
+
+fun find_pred :: "EvalNode \<Rightarrow> EvalNode" where
+  "find_pred (n, node, s) = (let p = ((s_begin_preds s) n) in
+    (p, (get_node p s), s))"
+
+fun phi_eval :: "EvalNode \<Rightarrow> EvalState" where
+  "phi_eval (n, node, s) = 
+  (let r = (ntharg (n, node, s) 0) in
+  (let p = (find_pred (n, node, s)) in
+  (let phixs = (philist r) in
+  (let k = (index p r) in
+    s
+  ))))"
+end
+interpretation t: Phi
+  done
+
 inductive
-  eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
+  eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55) and
+  eval_all :: "ID list \<Rightarrow> EvalState \<times> Value \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool"
   where
 
   StartNode: "\<lbrakk>(successori num s 0) \<mapsto> succ\<rbrakk> 
@@ -178,7 +237,18 @@ inductive
 *)
 
   ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
-                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)"
+                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)" |
+
+(* WIP *)
+  BeginNodes: "\<lbrakk>is_begin_node node\<rbrakk> \<Longrightarrow> (n, node, s) \<mapsto> (s, UndefVal)" |
+  EndNodes: "\<lbrakk>is_end_node node\<rbrakk> \<Longrightarrow> (n, node, s) \<mapsto> 
+    ((Phi.set_pred (n, node, s) (get_successor n s 0)), UndefVal)" |
+  PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)"
+(*
+  "eval_all [] (state, value) (state, value)" |
+  "eval_all (x # xs) (state, value) (eval_all xs (eval (x, (get_node x state), state)))" |
+*)
+  
 
 (* Format as inference rules *)
 text \<open>@{thm[mode=Rule] (sub, prem 2) eval.induct} {\sc StartNode}\<close>
@@ -196,7 +266,7 @@ text \<open>@{thm[mode=Rule] (sub, prem 9) eval.induct} {\sc ReturnNode}\<close>
 
 (* Example graph evaluation *)
 fun new_state :: "IRGraph \<Rightarrow> EvalState" where
-  "new_state graph = (EvalState graph (\<lambda> x. UndefVal) [] (\<lambda> x. UndefVal) Map.empty)"
+  "new_state graph = (EvalState graph (\<lambda> x. UndefVal) [] (\<lambda> x. UndefVal) Map.empty (\<lambda> x. 0))"
 
 definition ex_graph :: IRGraph where
   "ex_graph =

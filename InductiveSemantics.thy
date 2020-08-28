@@ -196,16 +196,18 @@ interpretation t: Phi
   done
 
 inductive
-  eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55) and
-  eval_all :: "ID list \<Rightarrow> EvalState \<times> Value \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool"
+  eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
+  (*eval_all :: "ID list \<Rightarrow> EvalState \<times> Value \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool"*)
   where
 
   StartNode: "\<lbrakk>(successori num s 0) \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
 
+
   ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, (IntVal i))" |
 
   ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
+
 
   UnaryNode: "\<lbrakk>is_unary_node node;
               (input num s 0) \<mapsto> (s1, v1)\<rbrakk> 
@@ -244,6 +246,7 @@ inductive
   EndNodes: "\<lbrakk>is_end_node node\<rbrakk> \<Longrightarrow> (n, node, s) \<mapsto> 
     ((Phi.set_pred (n, node, s) (get_successor n s 0)), UndefVal)" |
   PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)"
+
 (*
   "eval_all [] (state, value) (state, value)" |
   "eval_all (x # xs) (state, value) (eval_all xs (eval (x, (get_node x state), state)))" |
@@ -291,6 +294,22 @@ lemma "wff_graph ex_graph2"
   unfolding ex_graph2_def by simp
 
 code_pred eval .
+
+(* Currently causes a wellsortedness error which is resolved by removing
+ * all IRNode constructors which have parameters e.g (ParameterNode i)
+ * Specifically it is unhappy as nat \<Rightarrow> IRNode is not a sort equal
+ * cause nat is not of sort enum
+ * 
+ * export_code eval in Scala module_name Compiler
+ *
+ * Code generated when removing the offending IRNode constructors is
+ * available in the code_gen folder.
+ * 
+ * Note: "code_pred eval ." is required to generate code equations from
+ * inductive rules
+ *)
+
+
 values "{(s, v). (0, StartNode, (new_state ex_graph)) \<mapsto> (s, v)}"
 
 values "{(s, v). (0, StartNode, (new_state ex_graph2)) \<mapsto> (s, v)}"

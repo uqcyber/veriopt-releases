@@ -19,7 +19,7 @@ datatype EvalState =
     (s_params: "Value list")
     (s_scope: "string \<Rightarrow> Value")
     (s_heap: "ID \<rightharpoonup> (field_name \<rightharpoonup> Value)")
-    (s_begin_preds: "ID \<Rightarrow> ID")
+    (s_flow: "ID \<Rightarrow> nat")
 
 type_synonym EvalNode = "ID \<times> IRNode \<times> EvalState"
 
@@ -64,6 +64,17 @@ fun
   "successori nid state i = 
     (let next_id = (get_successor nid state i) in
     (next_id, (get_node next_id state), state))"
+
+fun get_usage :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where
+  "get_usage nid state i =
+    (nth (sorted_list_of_set (g_usages (s_graph state) nid)) i)"
+
+fun
+  usage :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID \<times> IRNode \<times> EvalState"
+  where
+  "usage nid state i =
+    (let use = (get_usage nid state i) in 
+    (use, (get_node use state), state))"
 
 fun val_to_bool :: "Value \<Rightarrow> bool" where
   "val_to_bool (IntVal x) = (if x = 0 then False else True)" |
@@ -123,6 +134,10 @@ fun is_end_node :: "IRNode \<Rightarrow> bool" where
   "is_end_node ReturnNode = True" | (* maybe? *)
   "is_end_node _ = False"
 
+fun is_phi_node :: "IRNode \<Rightarrow> bool" where
+  "is_phi_node PhiNode = True" |
+  "is_phi_node _ = False"
+
 fun update_state :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> ('a \<Rightarrow> 'b)" where
   "update_state scope ident val = (\<lambda> x. (if x = ident then val else (scope x)))"
 
@@ -166,7 +181,9 @@ definition index_list :: "'a list => 'a => nat" where
 
 fun philist :: "EvalNode \<Rightarrow> ID list" where
   "philist (n, node, s) = (if (is_begin_node node)
-      then sorted_list_of_set (g_usages (s_graph s) n)
+      then (filter 
+            (\<lambda>x.(is_phi_node (get_node x s)))
+            (sorted_list_of_set (g_usages (s_graph s) n)))
       else [])"
 
 fun ntharg :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalNode" where
@@ -175,22 +192,20 @@ fun ntharg :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalNode" where
 fun index :: "EvalNode \<Rightarrow> EvalNode \<Rightarrow> nat" where
   "index (n, node, s) (n', node', s') = index_list (g_inputs (s_graph s) n) n'"
 
-fun set_pred :: "EvalNode \<Rightarrow> ID \<Rightarrow> EvalState" where
-  "set_pred (p, node, s) n = (let preds = (s_begin_preds s) in
-    (update_s_begin_preds (\<lambda>_. (update_state preds n p)) s))"
+fun set_pred :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalState" where
+  "set_pred (p, node, s) i = (let preds = (s_flow s) in
+    (update_s_flow (\<lambda>_. (update_state preds i p)) s))"
 
 fun find_pred :: "EvalNode \<Rightarrow> EvalNode" where
-  "find_pred (n, node, s) = (let p = ((s_begin_preds s) n) in
+  "find_pred (n, node, s) = (let p = ((s_flow s) n) in
     (p, (get_node p s), s))"
 
-fun phi_eval :: "EvalNode \<Rightarrow> EvalState" where
-  "phi_eval (n, node, s) = 
-  (let r = (ntharg (n, node, s) 0) in
-  (let p = (find_pred (n, node, s)) in
-  (let phixs = (philist r) in
-  (let k = (index p r) in
-    s
-  ))))"
+fun phi_input :: "EvalNode \<Rightarrow> ID" where
+  "phi_input (n, node, s) = (
+    let merge = (get_input n s 0) in (
+    let i = ((s_flow s) merge) in
+    (get_input n s (i + 1))))"
+
 end
 interpretation t: Phi
   done
@@ -242,9 +257,19 @@ inductive
                 \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)" |
 
 (* WIP *)
-  BeginNodes: "\<lbrakk>is_begin_node node\<rbrakk> \<Longrightarrow> (n, node, s) \<mapsto> (s, UndefVal)" |
-  EndNodes: "\<lbrakk>is_end_node node\<rbrakk> \<Longrightarrow> (n, node, s) \<mapsto> 
-    ((Phi.set_pred (n, node, s) (get_successor n s 0)), UndefVal)" |
+
+  BeginNodes: "\<lbrakk>is_begin_node node;
+                phis = (Phi.philist (n, node, s))\<rbrakk> 
+                \<Longrightarrow> (n, node, s) \<mapsto> (s, UndefVal)" |
+
+
+  EndNodes: "\<lbrakk>is_end_node node;
+              merge = (usage n s 0);
+              (successori n s i) = merge\<rbrakk> 
+              \<Longrightarrow> (n, node, s) \<mapsto> 
+    ((Phi.set_pred merge i), UndefVal)" |
+
+
   PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)"
 
 (*

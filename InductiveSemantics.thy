@@ -25,57 +25,44 @@ type_synonym EvalNode = "ID \<times> IRNode \<times> EvalState"
 
 (* Adds the ability to update fields of datatype without making it a record *)
 local_setup \<open>Datatype_Records.mk_update_defs \<^type_name>\<open>EvalState\<close>\<close>
-(*
-datatype_record EvalState = 
-    s_graph:: "IRGraph"
-    s_phi:: "ID \<Rightarrow> Value"
-    s_params:: "Value list"
-    s_scope:: "string \<Rightarrow> Value"
-    s_heap:: "ID \<rightharpoonup> (field_name \<rightharpoonup> Value)"
-    s_begin_preds:: "ID \<Rightarrow> ID"
-*)
 
+(* Get the type of node for a node id in an eval state *)
 fun get_node :: "ID \<Rightarrow> EvalState \<Rightarrow> IRNode" where
   "get_node n state = ((g_nodes (s_graph state)) n)"
 
 fun get_input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where 
-  "get_input nid state i = (nth (g_inputs (s_graph state) nid) i)"
+  "get_input n state i = (nth (g_inputs (s_graph state) n) i)"
 
-fun input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID \<times> IRNode \<times> EvalState" where
+(* Get the nth input edge of a node id in an eval state *)
+fun input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode" where
   "input nid state i = 
     (let next_id = (get_input nid state i) in
     (next_id, (get_node next_id state), state))"
 
 fun get_successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where
-"get_successor n state i = 
-  (let g = s_graph state in
-  (if (size (g_successors g n) > 0) then
-    (nth (g_successors g n) i)
-  else
-    (the_elem (g_usages g n))))"
+  "get_successor n state i = (nth (g_successors (s_graph state) n) i)"
 
-fun 
-  successor :: "ID \<Rightarrow> EvalState \<Rightarrow> ID \<times> IRNode \<times> EvalState" and
-  successori :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID \<times> IRNode \<times> EvalState"
-  where
-  "successor nid state =
+(* Get the nth successor edge of a node id in an eval state *)
+fun successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode" where
+  "successor nid state i =
     (let next_id = (get_successor nid state 0) in
-    (next_id, (get_node next_id state), state))" |
-  "successori nid state i = 
-    (let next_id = (get_successor nid state i) in
     (next_id, (get_node next_id state), state))"
 
 fun get_usage :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where
   "get_usage nid state i =
     (nth (sorted_list_of_set (g_usages (s_graph state) nid)) i)"
 
-fun
-  usage :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID \<times> IRNode \<times> EvalState"
-  where
+(* Get the nth usage edge of a node id in an eval state *)
+fun usage :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode"  where
   "usage nid state i =
     (let use = (get_usage nid state i) in 
     (use, (get_node use state), state))"
 
+(*
+   ====
+   Functions to aid evaluating expressions
+   ====
+*)
 fun val_to_bool :: "Value \<Rightarrow> bool" where
   "val_to_bool (IntVal x) = (if x = 0 then False else True)" |
   "val_to_bool (UndefVal) = False"
@@ -106,6 +93,11 @@ fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow>
   "binary_expr IntegerEqualsNode (IntVal x) (IntVal y) = (bool_to_val (x = y))" |
   "binary_expr _ _ _ = UndefVal"
 
+(*
+  ====
+  Funtions to filter different types of nodes
+  ====
+*)
 fun is_unary_node :: "IRNode \<Rightarrow> bool" where
   "is_unary_node AbsNode = True" |
   "is_unary_node NegateNode = True" |
@@ -138,9 +130,15 @@ fun is_phi_node :: "IRNode \<Rightarrow> bool" where
   "is_phi_node PhiNode = True" |
   "is_phi_node _ = False"
 
+(* 
+update_state f a b = f'
+in the function f', passing a results in b, passing
+any other parameter, x, results in f(x)
+*)
 fun update_state :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> ('a \<Rightarrow> 'b)" where
   "update_state scope ident val = (\<lambda> x. (if x = ident then val else (scope x)))"
 
+(* Update the scope to map a new string to a value *)
 fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> EvalState" 
   ("_[[_\<rightarrow>_]]" 55)
   where
@@ -148,12 +146,14 @@ fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarro
     (let scope = (s_scope state) in
     update_s_scope (\<lambda>_. (update_state scope ident val)) state)"
 
+(* Update the heap to map a new id to an empty map *)
 fun add_instance :: "EvalState \<Rightarrow> ID \<Rightarrow> EvalState"
 where
   "add_instance state node =
     (let heap = (s_heap state) in
     update_s_heap (\<lambda>_. (heap(node\<mapsto>Map.empty))) state)"
 
+(* Lookup a field_name in a node id *)
 fun lookup_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Rightarrow> Value" where
   "lookup_field state n field = (case ((s_heap state) n) of 
     None \<Rightarrow> UndefVal |
@@ -211,18 +211,15 @@ interpretation t: Phi
   done
 
 inductive
-  eval :: "ID \<times> IRNode \<times> EvalState \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
-  (*eval_all :: "ID list \<Rightarrow> EvalState \<times> Value \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool"*)
+  eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
   where
 
-  StartNode: "\<lbrakk>(successori num s 0) \<mapsto> succ\<rbrakk> 
+  StartNode: "\<lbrakk>(successor num s 0) \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
-
 
   ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, (IntVal i))" |
 
   ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
-
 
   UnaryNode: "\<lbrakk>is_unary_node node;
               (input num s 0) \<mapsto> (s1, v1)\<rbrakk> 
@@ -235,13 +232,18 @@ inductive
 
   IfNodeTrue: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
                 (val_to_bool v1);
-                (successori num s1 0) \<mapsto> s2\<rbrakk> 
+                (successor num s1 0) \<mapsto> s2\<rbrakk> 
                 \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
 
   IfNodeFalse: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
                  (\<not>(val_to_bool v1));
-                 (successori num s1 1) \<mapsto> s2\<rbrakk> 
+                 (successor num s1 1) \<mapsto> s2\<rbrakk> 
                  \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
+
+  ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
+              \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)" |
+
+(* WIP *)
 
   NewInstanceNode: "(n, NewInstanceNode cname, s) \<mapsto> ((add_instance s n), UndefVal)" |
 
@@ -253,22 +255,18 @@ inductive
   StoreFieldNode: "(n, StoreFieldNode field, s) \<mapsto> (s, UndefVal)" |
 *)
 
-  ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
-                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)" |
-
-(* WIP *)
-
   BeginNodes: "\<lbrakk>is_begin_node node;
                 phis = (Phi.philist (n, node, s))\<rbrakk> 
                 \<Longrightarrow> (n, node, s) \<mapsto> (s, UndefVal)" |
 
-
+(* Something about this makes the example program eval
+   very unhappy
   EndNodes: "\<lbrakk>is_end_node node;
               merge = (usage n s 0);
-              (successori n s i) = merge\<rbrakk> 
+              (successor n s i) = merge\<rbrakk> 
               \<Longrightarrow> (n, node, s) \<mapsto> 
     ((Phi.set_pred merge i), UndefVal)" |
-
+*)
 
   PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)"
 

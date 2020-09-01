@@ -3,7 +3,7 @@ theory InductiveSemantics
     "AbsGraph"
     "HOL-Library.Datatype_Records"
     "HOL-Library.LaTeXsugar"
-    "HOL-Library.OptionalSugar"
+    (*"HOL-Library.OptionalSugar"*)
 begin
 
 type_synonym field_name = string
@@ -274,7 +274,6 @@ inductive
   "eval_all [] (state, value) (state, value)" |
   "eval_all (x # xs) (state, value) (eval_all xs (eval (x, (get_node x state), state)))" |
 *)
-  
 
 (* Format as inference rules *)
 text \<open>@{thm[mode=Rule] (sub, prem 2) eval.induct} {\sc StartNode}\<close>

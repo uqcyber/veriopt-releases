@@ -315,6 +315,31 @@ definition ex_graph2 :: IRGraph where
 lemma "wff_graph ex_graph2"
   unfolding ex_graph2_def by simp
 
+datatype GraphBuilder = 
+  GraphBuilder |
+  AddNode (gb_node_id: "nat") (gb_graph: "IRGraph")
+
+fun build :: "GraphBuilder \<Rightarrow> IRNode \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> GraphBuilder" ("_ _ _ _;")
+  where
+  "build GraphBuilder n i s = AddNode 0 (add_node 0 n i s empty_graph)" |
+  "build (AddNode nid graph) n i s = (AddNode (nid + 1) (add_node (nid + 1) n i s graph))"
+
+fun unpack :: "GraphBuilder \<Rightarrow> IRGraph" where
+  "unpack GraphBuilder = empty_graph" |
+  "unpack (AddNode nid graph) = graph"
+
+definition ex_graph3 :: IRGraph where
+  "ex_graph3 =            
+  unpack
+  (GraphBuilder
+    StartNode [] [3];
+    (ConstantNode 1) [] [];
+    (ConstantNode 30) [] [];
+    IfNode [1] [4, 5];
+    ReturnNode [2] [];
+    ReturnNode [1] [];)
+  "
+
 code_pred eval .
 
 (* Currently causes a wellsortedness error which is resolved by removing
@@ -335,5 +360,7 @@ code_pred eval .
 values "{(s, v). (0, StartNode, (new_state ex_graph)) \<mapsto> (s, v)}"
 
 values "{(s, v). (0, StartNode, (new_state ex_graph2)) \<mapsto> (s, v)}"
+
+values "{(s, v). (0, StartNode, (new_state ex_graph3)) \<mapsto> (s, v)}"
 
 end

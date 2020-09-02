@@ -112,18 +112,14 @@ fun is_binary_node :: "IRNode \<Rightarrow> bool" where
   "is_binary_node XorNode = True" |
   "is_binary_node _ = False"
 
-fun is_begin_node :: "IRNode \<Rightarrow> bool" where
-  "is_begin_node KillingBeginNode = True" |
-  "is_begin_node BeginNode = True" |
-  "is_begin_node StartNode = True" | (* maybe? *)
-  "is_begin_node LoopBeginNode = True" |
-  "is_begin_node _ = False"
+fun is_merge_node :: "IRNode \<Rightarrow> bool" where
+  "is_merge_node MergeNode = True" |
+  "is_merge_node LoopBeginNode = True" |
+  "is_merge_node _ = False"
 
 fun is_end_node :: "IRNode \<Rightarrow> bool" where
   "is_end_node EndNode = True" |
   "is_end_node LoopEndNode = True" |
-  "is_end_node LoopExit = True" | (* maybe? *)
-  "is_end_node ReturnNode = True" | (* maybe? *)
   "is_end_node _ = False"
 
 fun is_phi_node :: "IRNode \<Rightarrow> bool" where
@@ -168,9 +164,7 @@ fun store_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Righta
     Some class \<Rightarrow> 
 *)
 
-(* We obviously don't actually want a locale but helps group WIP things *)
-locale Phi
-begin
+(*
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 primrec find_index :: "('a => bool) => 'a list => nat" where
 "find_index _ [] = 0" |
@@ -178,19 +172,23 @@ primrec find_index :: "('a => bool) => 'a list => nat" where
 
 definition index_list :: "'a list => 'a => nat" where
 "index_list xs = (\<lambda>a. find_index (\<lambda>x. x=a) xs)"
+*)
 
-fun philist :: "EvalNode \<Rightarrow> ID list" where
-  "philist (n, node, s) = (if (is_begin_node node)
-      then (filter 
-            (\<lambda>x.(is_phi_node (get_node x s)))
-            (sorted_list_of_set (g_usages (s_graph s) n)))
+fun philist :: "EvalNode \<Rightarrow> EvalNode list" where
+  "philist (n, node, s) = (if (is_merge_node node)
+      then 
+        (map (\<lambda>x. (x, (get_node x s), s))
+          (filter (\<lambda>x.(is_phi_node (get_node x s)))
+            (sorted_list_of_set (g_usages (s_graph s) n))))
       else [])"
 
+(*
 fun ntharg :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalNode" where
   "ntharg (n, node, s) k = input n s k"
 
 fun index :: "EvalNode \<Rightarrow> EvalNode \<Rightarrow> nat" where
   "index (n, node, s) (n', node', s') = index_list (g_inputs (s_graph s) n) n'"
+*)
 
 fun set_pred :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalState" where
   "set_pred (p, node, s) i = (let preds = (s_flow s) in
@@ -200,15 +198,12 @@ fun find_pred :: "EvalNode \<Rightarrow> EvalNode" where
   "find_pred (n, node, s) = (let p = ((s_flow s) n) in
     (p, (get_node p s), s))"
 
-fun phi_input :: "EvalNode \<Rightarrow> ID" where
+fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
   "phi_input (n, node, s) = (
     let merge = (get_input n s 0) in (
     let i = ((s_flow s) merge) in
-    (get_input n s (i + 1))))"
-
-end
-interpretation t: Phi
-  done
+    let input = (get_input n s (i + 1)) in
+    (input, (get_node input s), s)))"
 
 inductive
   eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
@@ -255,25 +250,24 @@ inductive
   StoreFieldNode: "(n, StoreFieldNode field, s) \<mapsto> (s, UndefVal)" |
 *)
 
-  BeginNodes: "\<lbrakk>is_begin_node node;
-                phis = (Phi.philist (n, node, s))\<rbrakk> 
+(* Inductive is very unhappy about this, can longer prove
+  MergeNodes: "\<lbrakk>is_merge_node node;
+                phis = (philist (n, node, s));
+                phi' = {p \<in> (set phis) . ((phi_input p) \<mapsto> (_, v))}\<rbrakk> 
                 \<Longrightarrow> (n, node, s) \<mapsto> (s, UndefVal)" |
+*)
 
-(* Something about this makes the example program eval
-   very unhappy
+(* I _think_ the (successor n s i) = whatever makes the set 
+  comprehension of eval understandably unhappy
   EndNodes: "\<lbrakk>is_end_node node;
               merge = (usage n s 0);
               (successor n s i) = merge\<rbrakk> 
               \<Longrightarrow> (n, node, s) \<mapsto> 
-    ((Phi.set_pred merge i), UndefVal)" |
+    ((set_pred merge i), UndefVal)" |
 *)
 
   PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)"
 
-(*
-  "eval_all [] (state, value) (state, value)" |
-  "eval_all (x # xs) (state, value) (eval_all xs (eval (x, (get_node x state), state)))" |
-*)
 
 (* Format as inference rules *)
 text \<open>@{thm[mode=Rule] (sub, prem 2) eval.induct} {\sc StartNode}\<close>
@@ -281,8 +275,8 @@ text \<open>@{thm[mode=Rule] (sub, prem 2) eval.induct} {\sc StartNode}\<close>
 text \<open>@{thm[mode=Axiom] (sub, prem 3) eval.induct} {\sc ParameterNode}\<close>
 text \<open>@{thm[mode=Axiom] (sub, prem 4) eval.induct} {\sc ConstantNode}\<close>
 
-text \<open>@{thm[mode=Rule] (sub, prem 5) eval.induct} {\sc AddNode}\<close>
-text \<open>@{thm[mode=Rule] (sub, prem 6) eval.induct} {\sc SubNode}\<close>
+text \<open>@{thm[mode=Rule] (sub, prem 5) eval.induct} {\sc UnaryNode}\<close>
+text \<open>@{thm[mode=Rule] (sub, prem 6) eval.induct} {\sc BinaryNode}\<close>
 
 text \<open>@{thm[mode=Rule] (sub, prem 7) eval.induct} {\sc IfNodeTrue}\<close>
 text \<open>@{thm[mode=Rule] (sub, prem 8) eval.induct} {\sc IfNodeFalse}\<close>

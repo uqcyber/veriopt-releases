@@ -302,4 +302,7 @@ definition eg4 :: IRGraph where
 
 value "evalGraph eg4 [IntegerValue 117]"
 
+export_code evalGraph in Scala module_name Compiler
+
+
 end

@@ -166,7 +166,7 @@ fun store_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Righta
     Some class \<Rightarrow> 
 *)
 
-(*
+
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 primrec find_index :: "('a => bool) => 'a list => nat" where
 "find_index _ [] = 0" |
@@ -174,7 +174,7 @@ primrec find_index :: "('a => bool) => 'a list => nat" where
 
 definition index_list :: "'a list => 'a => nat" where
 "index_list xs = (\<lambda>a. find_index (\<lambda>x. x=a) xs)"
-*)
+
 
 fun philist :: "EvalNode \<Rightarrow> EvalNode list" where
   "philist (n, node, s) = (if (is_merge_node node)
@@ -187,10 +187,11 @@ fun philist :: "EvalNode \<Rightarrow> EvalNode list" where
 (*
 fun ntharg :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalNode" where
   "ntharg (n, node, s) k = input n s k"
-
-fun index :: "EvalNode \<Rightarrow> EvalNode \<Rightarrow> nat" where
-  "index (n, node, s) (n', node', s') = index_list (g_inputs (s_graph s) n) n'"
 *)
+
+fun input_index :: "EvalNode \<Rightarrow> EvalNode \<Rightarrow> nat" where
+  "input_index (n, node, s) (n', node', s') = index_list (g_inputs (s_graph s) n) n'"
+
 
 fun set_pred :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalState" where
   "set_pred (p, node, s) i = (let preds = (s_flow s) in
@@ -207,9 +208,18 @@ fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
     let input = (get_input n s (i + 1)) in
     (input, (get_node input s), s)))"
 
+fun phi_index :: "EvalNode \<Rightarrow> nat" where
+  "phi_index (n, node, s) = (input_index (n, node, s) (usage n s 0))"
+
 inductive
-  eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)
+  eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)(* and
+  eval_all :: "EvalNode list \<Rightarrow> Value list \<Rightarrow> bool" ("_\<longmapsto>_" 55)*)
   where
+
+(*
+  "[] \<longmapsto> []" |
+  "\<lbrakk>x \<mapsto> (s' v); xs \<longmapsto> vs\<rbrakk> \<Longrightarrow> (x # xs) \<longmapsto> (v # vs)" |
+*)
 
   StartNode: "\<lbrakk>(successor num s 0) \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
@@ -252,23 +262,23 @@ inductive
   StoreFieldNode: "(n, StoreFieldNode field, s) \<mapsto> (s, UndefVal)" |
 *)
 
-(* Inductive is very unhappy about this, can longer prove
+(*
   MergeNodes: "\<lbrakk>is_merge_node node;
-                phis = (philist (n, node, s));
-                phi' = {p \<in> (set phis) . ((phi_input p) \<mapsto> (_, v))}\<rbrakk> 
+                (philist (n, node, s)) \<longmapsto> vs\<rbrakk> 
                 \<Longrightarrow> (n, node, s) \<mapsto> (s, UndefVal)" |
 *)
 
-(* I _think_ the (successor n s i) = whatever makes the set 
-  comprehension of eval understandably unhappy
   EndNodes: "\<lbrakk>is_end_node node;
               merge = (usage n s 0);
-              (successor n s i) = merge\<rbrakk> 
+              i = (phi_index (n, node, s))\<rbrakk> 
               \<Longrightarrow> (n, node, s) \<mapsto> 
     ((set_pred merge i), UndefVal)" |
-*)
+
 
   PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)"
+
+
+code_pred eval .
 
 
 (* Format as inference rules *)
@@ -294,7 +304,7 @@ definition ex_graph :: IRGraph where
     (add_node 3 ReturnNode [2] []
     (add_node 2 AddNode [1, 1] []
     (add_node 1 (ParameterNode 5) [] []
-    (add_node 0 StartNode [] [2]
+    (add_node 0 StartNode [] [3]
     empty_graph))))"
 lemma "wff_graph ex_graph"
   unfolding ex_graph_def by simp
@@ -336,8 +346,6 @@ definition ex_graph3 :: IRGraph where
     ReturnNode [1] [];)
   "
 
-code_pred eval .
-
 (* Currently causes a wellsortedness error which is resolved by removing
  * all IRNode constructors which have parameters e.g (ParameterNode i)
  * Specifically it is unhappy as nat \<Rightarrow> IRNode is not a sort equal
@@ -351,6 +359,14 @@ code_pred eval .
  * Note: "code_pred eval ." is required to generate code equations from
  * inductive rules
  *)
+
+
+schematic_goal ex: "(0, StartNode, (new_state ex_graph)) \<mapsto> (?s, ?v)"
+  apply (rule StartNode)
+  using g_successors_def g_nodes_def
+  using ex_graph_def
+  apply auto
+  sorry
 
 
 values "{(s, v). (0, StartNode, (new_state ex_graph)) \<mapsto> (s, v)}"

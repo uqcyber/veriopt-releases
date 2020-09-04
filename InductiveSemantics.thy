@@ -212,14 +212,14 @@ fun phi_index :: "EvalNode \<Rightarrow> nat" where
   "phi_index (n, node, s) = (input_index (n, node, s) (usage n s 0))"
 
 inductive
-  eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55)(* and
-  eval_all :: "EvalNode list \<Rightarrow> Value list \<Rightarrow> bool" ("_\<longmapsto>_" 55)*)
+  eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55) and
+  eval_all :: "EvalNode list \<Rightarrow> Value list \<Rightarrow> bool" ("_\<longmapsto>_" 55)
   where
 
-(*
+
   "[] \<longmapsto> []" |
-  "\<lbrakk>x \<mapsto> (s' v); xs \<longmapsto> vs\<rbrakk> \<Longrightarrow> (x # xs) \<longmapsto> (v # vs)" |
-*)
+  "\<lbrakk>x \<mapsto> (s', v); xs \<longmapsto> vs\<rbrakk> \<Longrightarrow> (x # xs) \<longmapsto> (v # vs)" |
+
 
   StartNode: "\<lbrakk>(successor num s 0) \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
@@ -262,11 +262,11 @@ inductive
   StoreFieldNode: "(n, StoreFieldNode field, s) \<mapsto> (s, UndefVal)" |
 *)
 
-(*
+
   MergeNodes: "\<lbrakk>is_merge_node node;
                 (philist (n, node, s)) \<longmapsto> vs\<rbrakk> 
                 \<Longrightarrow> (n, node, s) \<mapsto> (s, UndefVal)" |
-*)
+
 
   EndNodes: "\<lbrakk>is_end_node node;
               merge = (usage n s 0);
@@ -279,6 +279,7 @@ inductive
 
 
 code_pred eval .
+code_pred eval_all .
 
 
 (* Format as inference rules *)
@@ -359,15 +360,6 @@ definition ex_graph3 :: IRGraph where
  * Note: "code_pred eval ." is required to generate code equations from
  * inductive rules
  *)
-
-
-schematic_goal ex: "(0, StartNode, (new_state ex_graph)) \<mapsto> (?s, ?v)"
-  apply (rule StartNode)
-  using g_successors_def g_nodes_def
-  using ex_graph_def
-  apply auto
-  sorry
-
 
 values "{(s, v). (0, StartNode, (new_state ex_graph)) \<mapsto> (s, v)}"
 

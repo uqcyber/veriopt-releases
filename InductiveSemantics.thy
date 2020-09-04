@@ -211,6 +211,16 @@ fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
 fun phi_index :: "EvalNode \<Rightarrow> nat" where
   "phi_index (n, node, s) = (input_index (n, node, s) (usage n s 0))"
 
+fun map_phi :: "EvalState \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> EvalState" where
+  "map_phi s n v = (update_s_phi (\<lambda>_. (update_state (s_phi s) n v)) s)"
+
+fun set_phis :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> Value list \<Rightarrow> EvalState" where
+  "set_phis s [] [] = s" |
+  "set_phis s ((x, _, _) # xs) (v # vs) = (set_phis (map_phi s x v) xs vs)" |
+  "set_phis s [] (v # vs) = s" |
+  "set_phis s (x # xs) [] = s"
+ 
+
 inductive
   eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55) and
   eval_all :: "EvalNode list \<Rightarrow> Value list \<Rightarrow> bool" ("_\<longmapsto>_" 55)
@@ -248,34 +258,40 @@ inductive
                  \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
 
   ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
-              \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)" |
+                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)" |
 
 (* WIP *)
-
+(*
   NewInstanceNode: "(n, NewInstanceNode cname, s) \<mapsto> ((add_instance s n), UndefVal)" |
 
   LoadFieldNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk>
                   \<Longrightarrow> (n, LoadFieldNode field, s) 
                       \<mapsto> (s1, (lookup_field s1 (get_input n s 0) field))" |
-
+*)
 (*
   StoreFieldNode: "(n, StoreFieldNode field, s) \<mapsto> (s, UndefVal)" |
 *)
 
 
   MergeNodes: "\<lbrakk>is_merge_node node;
-                (philist (n, node, s)) \<longmapsto> vs\<rbrakk> 
-                \<Longrightarrow> (n, node, s) \<mapsto> (s, UndefVal)" |
+                phis = (philist (n, node, s));
+                (philist (n, node, s)) \<longmapsto> vs;
+                (successor n (set_phis s phis vs)  0) \<mapsto> succ\<rbrakk> 
+                \<Longrightarrow> (n, node, s) \<mapsto> succ" |
 
 
   EndNodes: "\<lbrakk>is_end_node node;
-              merge = (usage n s 0);
-              i = (phi_index (n, node, s))\<rbrakk> 
-              \<Longrightarrow> (n, node, s) \<mapsto> 
-    ((set_pred merge i), UndefVal)" |
+              (merge, _, _) = (usage n s 0);
+              merge_node = (get_node merge s);
+              i = (phi_index (n, node, s));
+              (merge, merge_node, (set_pred (merge, merge_node, s) i)) \<mapsto> succ\<rbrakk> 
+              \<Longrightarrow> (n, node, s) \<mapsto> succ" |
 
 
-  PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)"
+  PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)" |
+
+  BeginNode: "\<lbrakk>(successor n s 0) \<mapsto> succ\<rbrakk>
+               \<Longrightarrow> (n, BeginNode, s) \<mapsto> succ"
 
 
 code_pred eval .
@@ -322,6 +338,25 @@ definition ex_graph2 :: IRGraph where
 lemma "wff_graph ex_graph2"
   unfolding ex_graph2_def by simp
 
+definition eg3 :: IRGraph where
+  "eg3 =
+    (add_node 12 ReturnNode [11] []
+    (add_node 11 PhiNode [10,9,7] []
+    (add_node 10 MergeNode [5,6] [12]
+    (add_node 9 AddNode [7,8] []
+    (add_node 8 (ParameterNode 2) [] []
+    (add_node 7 (ParameterNode 1) [] []
+    (add_node 6 EndNode [] []
+    (add_node 5 EndNode [] []
+    (add_node 4 BeginNode [] [6]
+    (add_node 3 BeginNode [] [5]
+    (add_node 2 IfNode [1] [3,4] 
+    (add_node 1 (ParameterNode 0) [] []
+    (add_node 0 StartNode [] [2]
+    empty_graph)))))))))))))"
+lemma "wff_graph eg3"
+  unfolding eg3_def by simp
+
 datatype GraphBuilder = 
   GraphBuilder |
   AddNode (gb_node_id: "nat") (gb_graph: "IRGraph")
@@ -366,5 +401,8 @@ values "{(s, v). (0, StartNode, (new_state ex_graph)) \<mapsto> (s, v)}"
 values "{(s, v). (0, StartNode, (new_state ex_graph2)) \<mapsto> (s, v)}"
 
 values "{(s, v). (0, StartNode, (new_state ex_graph3)) \<mapsto> (s, v)}"
+
+values "{(s, v). (0, StartNode, (new_state eg3)) \<mapsto> (s, v)}"
+values "{(s, v). (0, StartNode, (new_state eg3)) \<mapsto> (s, v)}"
 
 end

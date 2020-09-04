@@ -1,4 +1,6 @@
-theory AbsGraph 
+section \<open>Abstract graph\<close>
+
+theory AbsGraph
 imports GraalIR1_fromID
 begin
 

@@ -1,4 +1,6 @@
-theory InductiveSemantics 
+section \<open>Inductive semantics of nodes\<close>
+
+theory InductiveSemantics
   imports
     "AbsGraph"
     "HOL-Library.Datatype_Records"

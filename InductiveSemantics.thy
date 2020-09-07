@@ -112,6 +112,8 @@ fun is_binary_node :: "IRNode \<Rightarrow> bool" where
   "is_binary_node AndNode = True" |
   "is_binary_node OrNode = True" |
   "is_binary_node XorNode = True" |
+  "is_binary_node IntegerLessThanNode = True" |
+  "is_binary_node IntegerEqualsNode = True" |
   "is_binary_node _ = False"
 
 fun is_merge_node :: "IRNode \<Rightarrow> bool" where
@@ -176,30 +178,20 @@ definition index_list :: "'a list => 'a => nat" where
 "index_list xs = (\<lambda>a. find_index (\<lambda>x. x=a) xs)"
 
 
-fun philist :: "EvalNode \<Rightarrow> EvalNode list" where
-  "philist (n, node, s) = (if (is_merge_node node)
+fun phi_list :: "EvalNode \<Rightarrow> EvalNode list" where
+  "phi_list (n, node, s) = (if (is_merge_node node)
       then 
         (map (\<lambda>x. (x, (get_node x s), s))
           (filter (\<lambda>x.(is_phi_node (get_node x s)))
             (sorted_list_of_set (g_usages (s_graph s) n))))
       else [])"
 
-(*
-fun ntharg :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalNode" where
-  "ntharg (n, node, s) k = input n s k"
-*)
-
 fun input_index :: "EvalState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
   "input_index s n n' = index_list (g_inputs (s_graph s) n) n'"
-
 
 fun update_flow :: "EvalState \<Rightarrow> ID \<Rightarrow> nat \<Rightarrow> EvalState" where
   "update_flow s p i = (let preds = (s_flow s) in
     (update_s_flow (\<lambda>_. (update_state preds p i)) s))"
-
-fun find_pred :: "EvalNode \<Rightarrow> EvalNode" where
-  "find_pred (n, node, s) = (let p = ((s_flow s) n) in
-    (p, (get_node p s), s))"
 
 fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
   "phi_input (n, node, s) = (
@@ -211,12 +203,12 @@ fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
 fun phi_input_list :: "EvalNode list \<Rightarrow> EvalNode list" where
   "phi_input_list nodes = (map (\<lambda>x. (phi_input x)) nodes)"
 
-fun map_phi :: "EvalState \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> EvalState" where
-  "map_phi s n v = (update_s_phi (\<lambda>_. (update_state (s_phi s) n v)) s)"
+fun update_phi :: "EvalState \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> EvalState" where
+  "update_phi s n v = (update_s_phi (\<lambda>_. (update_state (s_phi s) n v)) s)"
 
 fun set_phis :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> Value list \<Rightarrow> EvalState" where
   "set_phis s [] [] = s" |
-  "set_phis s ((x, _, _) # xs) (v # vs) = (set_phis (map_phi s x v) xs vs)" |
+  "set_phis s ((x, _, _) # xs) (v # vs) = (set_phis (update_phi s x v) xs vs)" |
   "set_phis s [] (v # vs) = s" |
   "set_phis s (x # xs) [] = s"
 
@@ -273,7 +265,7 @@ inductive
 
 
   MergeNodes: "\<lbrakk>is_merge_node node;
-                phis = (philist (n, node, s));
+                phis = (phi_list (n, node, s));
                 inputs = (phi_input_list phis);
                 inputs \<longmapsto> vs;
                 (successor n (set_phis s phis vs)  0) \<mapsto> succ\<rbrakk> 
@@ -357,21 +349,44 @@ definition eg3 :: IRGraph where
 lemma "wff_graph eg3"
   unfolding eg3_def by simp
 
-value "usage 5 (new_state eg3 []) 0"
-value "usage 6 (new_state eg3 []) 0"
-value "input_index (new_state eg3 []) 10 5"
-value "input_index (new_state eg3 []) 10 6"
+notepad begin 
+  have "input_index (new_state eg3 []) 10 5 = 0" by eval
+  have "input_index (new_state eg3 []) 10 6 = 1" by eval
+  have "(s_flow (update_flow (new_state eg3 []) 10 0)) 10 = 0" by eval
+  have "(s_flow (update_flow (new_state eg3 []) 10 1)) 10 = 1" by eval
+  have "input_index (new_state eg3 []) 11 10 = 0" by eval
+  have "input_index (new_state eg3 []) 11 9 = 1" by eval
+  have "input_index (new_state eg3 []) 11 7 = 2" by eval
+  have "input_index (new_state eg3 []) 11 20 = 3" by eval
+end
 
-value "(s_flow (update_flow (new_state eg3 []) 10 0)) 10"
-value "(s_flow (update_flow (new_state eg3 []) 10 1)) 10"
+value "phi_input (11, PhiNode, (new_state eg3 []))"
+value "phi_input (11, PhiNode, (update_flow (new_state eg3 []) 10 0))"
+value "phi_input (11, PhiNode, (update_flow (new_state eg3 []) 10 1))"
 
-value "input_index (new_state eg3 []) 11 10"
-value "input_index (new_state eg3 []) 11 9"
-value "input_index (new_state eg3 []) 11 7"
-value "input_index (new_state eg3 []) 11 20"
+value "usage 5 (new_state eg3 []) 0" (* (10, MergeNode, ...) *)
+value "usage 6 (new_state eg3 []) 0" (* (10, MergeNode, ...) *)
 
-value "philist (10, MergeNode, (new_state eg3 []))"
-values "{v. [(11, PhiNode, (new_state eg3 []))] \<longmapsto> v}"
+value "phi_list (10, MergeNode, (new_state eg3 []))" (* [(11, PhiNode, ...)] *)
+
+definition eg4 :: IRGraph where
+  "eg4 =
+    (add_node 14 (ParameterNode 0) [] []
+    (add_node 13 ReturnNode [2] []
+    (add_node 12 EndNode [] [13]
+    (add_node 11 BeginNode [] [12]
+    (add_node 10 LoopEndNode [7] []
+    (add_node 9 BeginNode [] [10]
+    (add_node 8 IfNode [3] [9,11]
+    (add_node 7 LoopBeginNode [1] [8]
+    (add_node 6 (ConstantNode 4) [] []
+    (add_node 5 (ConstantNode 0) [] []
+    (add_node 4 AddNode [2,6] []
+    (add_node 3 IntegerLessThanNode [2,14] []
+    (add_node 2 PhiNode [7,5,4] [] 
+    (add_node 1 EndNode [] []
+    (add_node 0 StartNode [] [1]
+    empty_graph)))))))))))))))"
 
 datatype GraphBuilder = 
   GraphBuilder |
@@ -419,5 +434,7 @@ values "{(s, v). (0, StartNode, (new_state ex_graph2 [])) \<mapsto> (s, v)}"
 values "{(s, v). (0, StartNode, (new_state ex_graph3 [])) \<mapsto> (s, v)}"
 
 values "{(s, v). (0, StartNode, (new_state eg3 [IntVal 0, IntVal 20, IntVal 100])) \<mapsto> (s, v)}"
+
+values "{(s, v). (0, StartNode, (new_state eg4 [IntVal 0, IntVal 20, IntVal 100])) \<mapsto> (s, v)}"
 
 end

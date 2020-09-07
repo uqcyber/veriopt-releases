@@ -220,7 +220,6 @@ fun set_phis :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> Value list 
   "set_phis s [] (v # vs) = s" |
   "set_phis s (x # xs) [] = s"
 
-
 inductive
   eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55) and
   eval_all :: "EvalNode list \<Rightarrow> Value list \<Rightarrow> bool" ("_\<longmapsto>_" 55)
@@ -234,7 +233,7 @@ inductive
   StartNode: "\<lbrakk>(successor num s 0) \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
 
-  ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, (IntVal i))" |
+  ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, (nth (s_params s) (nat i)))" |
 
   ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
 
@@ -314,14 +313,14 @@ text \<open>@{thm[mode=Rule] (sub, prem 8) eval.induct} {\sc IfNodeFalse}\<close
 text \<open>@{thm[mode=Rule] (sub, prem 9) eval.induct} {\sc ReturnNode}\<close>
 
 (* Example graph evaluation *)
-fun new_state :: "IRGraph \<Rightarrow> EvalState" where
-  "new_state graph = (EvalState graph (\<lambda> x. UndefVal) [] (\<lambda> x. UndefVal) Map.empty (\<lambda> x. 0))"
+fun new_state :: "IRGraph \<Rightarrow> Value list \<Rightarrow> EvalState" where
+  "new_state graph params = (EvalState graph (\<lambda> x. UndefVal) params (\<lambda> x. UndefVal) Map.empty (\<lambda> x. 0))"
 
 definition ex_graph :: IRGraph where
   "ex_graph =
     (add_node 3 ReturnNode [2] []
     (add_node 2 AddNode [1, 1] []
-    (add_node 1 (ParameterNode 5) [] []
+    (add_node 1 (ParameterNode 0) [] []
     (add_node 0 StartNode [] [3]
     empty_graph))))"
 lemma "wff_graph ex_graph"
@@ -358,21 +357,21 @@ definition eg3 :: IRGraph where
 lemma "wff_graph eg3"
   unfolding eg3_def by simp
 
-value "usage 5 (new_state eg3) 0"
-value "usage 6 (new_state eg3) 0"
-value "input_index (new_state eg3) 10 5"
-value "input_index (new_state eg3) 10 6"
+value "usage 5 (new_state eg3 []) 0"
+value "usage 6 (new_state eg3 []) 0"
+value "input_index (new_state eg3 []) 10 5"
+value "input_index (new_state eg3 []) 10 6"
 
-value "(s_flow (update_flow (new_state eg3) 10 0)) 10"
-value "(s_flow (update_flow (new_state eg3) 10 1)) 10"
+value "(s_flow (update_flow (new_state eg3 []) 10 0)) 10"
+value "(s_flow (update_flow (new_state eg3 []) 10 1)) 10"
 
-value "input_index (new_state eg3) 11 10"
-value "input_index (new_state eg3) 11 9"
-value "input_index (new_state eg3) 11 7"
-value "input_index (new_state eg3) 11 20"
+value "input_index (new_state eg3 []) 11 10"
+value "input_index (new_state eg3 []) 11 9"
+value "input_index (new_state eg3 []) 11 7"
+value "input_index (new_state eg3 []) 11 20"
 
-value "philist (10, MergeNode, (new_state eg3))"
-values "{v. [(11, PhiNode, (new_state eg3))] \<longmapsto> v}"
+value "philist (10, MergeNode, (new_state eg3 []))"
+values "{v. [(11, PhiNode, (new_state eg3 []))] \<longmapsto> v}"
 
 datatype GraphBuilder = 
   GraphBuilder |
@@ -413,12 +412,12 @@ definition ex_graph3 :: IRGraph where
  * inductive rules
  *)
 
-values "{(s, v). (0, StartNode, (new_state ex_graph)) \<mapsto> (s, v)}"
+values "{(s, v). (0, StartNode, (new_state ex_graph [IntVal 5])) \<mapsto> (s, v)}"
 
-values "{(s, v). (0, StartNode, (new_state ex_graph2)) \<mapsto> (s, v)}"
+values "{(s, v). (0, StartNode, (new_state ex_graph2 [])) \<mapsto> (s, v)}"
 
-values "{(s, v). (0, StartNode, (new_state ex_graph3)) \<mapsto> (s, v)}"
+values "{(s, v). (0, StartNode, (new_state ex_graph3 [])) \<mapsto> (s, v)}"
 
-values "{(s, v). (0, StartNode, (new_state eg3)) \<mapsto> (s, v)}"
+values "{(s, v). (0, StartNode, (new_state eg3 [IntVal 0, IntVal 20, IntVal 100])) \<mapsto> (s, v)}"
 
 end

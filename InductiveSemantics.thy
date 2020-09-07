@@ -189,13 +189,13 @@ fun ntharg :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalNode" where
   "ntharg (n, node, s) k = input n s k"
 *)
 
-fun input_index :: "EvalNode \<Rightarrow> EvalNode \<Rightarrow> nat" where
-  "input_index (n, node, s) (n', node', s') = index_list (g_inputs (s_graph s) n) n'"
+fun input_index :: "EvalState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
+  "input_index s n n' = index_list (g_inputs (s_graph s) n) n'"
 
 
-fun set_pred :: "EvalNode \<Rightarrow> nat \<Rightarrow> EvalState" where
-  "set_pred (p, node, s) i = (let preds = (s_flow s) in
-    (update_s_flow (\<lambda>_. (update_state preds i p)) s))"
+fun update_flow :: "EvalState \<Rightarrow> ID \<Rightarrow> nat \<Rightarrow> EvalState" where
+  "update_flow s p i = (let preds = (s_flow s) in
+    (update_s_flow (\<lambda>_. (update_state preds p i)) s))"
 
 fun find_pred :: "EvalNode \<Rightarrow> EvalNode" where
   "find_pred (n, node, s) = (let p = ((s_flow s) n) in
@@ -208,8 +208,8 @@ fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
     let input = (get_input n s (i + 1)) in
     (input, (get_node input s), s)))"
 
-fun phi_index :: "EvalNode \<Rightarrow> nat" where
-  "phi_index (n, node, s) = (input_index (n, node, s) (usage n s 0))"
+fun phi_input_list :: "EvalNode list \<Rightarrow> EvalNode list" where
+  "phi_input_list nodes = (map (\<lambda>x. (phi_input x)) nodes)"
 
 fun map_phi :: "EvalState \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> EvalState" where
   "map_phi s n v = (update_s_phi (\<lambda>_. (update_state (s_phi s) n v)) s)"
@@ -219,7 +219,7 @@ fun set_phis :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> Value list 
   "set_phis s ((x, _, _) # xs) (v # vs) = (set_phis (map_phi s x v) xs vs)" |
   "set_phis s [] (v # vs) = s" |
   "set_phis s (x # xs) [] = s"
- 
+
 
 inductive
   eval :: "EvalNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_\<mapsto>_" 55) and
@@ -275,16 +275,17 @@ inductive
 
   MergeNodes: "\<lbrakk>is_merge_node node;
                 phis = (philist (n, node, s));
-                (philist (n, node, s)) \<longmapsto> vs;
+                inputs = (phi_input_list phis);
+                inputs \<longmapsto> vs;
                 (successor n (set_phis s phis vs)  0) \<mapsto> succ\<rbrakk> 
                 \<Longrightarrow> (n, node, s) \<mapsto> succ" |
 
 
   EndNodes: "\<lbrakk>is_end_node node;
-              (merge, _, _) = (usage n s 0);
-              merge_node = (get_node merge s);
-              i = (phi_index (n, node, s));
-              (merge, merge_node, (set_pred (merge, merge_node, s) i)) \<mapsto> succ\<rbrakk> 
+              (merge, merge_node, _) = (usage n s 0);
+              i = (input_index s merge n);
+              s' = (update_flow s merge i);
+              (merge, merge_node, s') \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (n, node, s) \<mapsto> succ" |
 
 
@@ -357,6 +358,22 @@ definition eg3 :: IRGraph where
 lemma "wff_graph eg3"
   unfolding eg3_def by simp
 
+value "usage 5 (new_state eg3) 0"
+value "usage 6 (new_state eg3) 0"
+value "input_index (new_state eg3) 10 5"
+value "input_index (new_state eg3) 10 6"
+
+value "(s_flow (update_flow (new_state eg3) 10 0)) 10"
+value "(s_flow (update_flow (new_state eg3) 10 1)) 10"
+
+value "input_index (new_state eg3) 11 10"
+value "input_index (new_state eg3) 11 9"
+value "input_index (new_state eg3) 11 7"
+value "input_index (new_state eg3) 11 20"
+
+value "philist (10, MergeNode, (new_state eg3))"
+values "{v. [(11, PhiNode, (new_state eg3))] \<longmapsto> v}"
+
 datatype GraphBuilder = 
   GraphBuilder |
   AddNode (gb_node_id: "nat") (gb_graph: "IRGraph")
@@ -402,7 +419,6 @@ values "{(s, v). (0, StartNode, (new_state ex_graph2)) \<mapsto> (s, v)}"
 
 values "{(s, v). (0, StartNode, (new_state ex_graph3)) \<mapsto> (s, v)}"
 
-values "{(s, v). (0, StartNode, (new_state eg3)) \<mapsto> (s, v)}"
 values "{(s, v). (0, StartNode, (new_state eg3)) \<mapsto> (s, v)}"
 
 end

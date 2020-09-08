@@ -5,7 +5,6 @@ theory InductiveSemantics
     "AbsGraph"
     "HOL-Library.Datatype_Records"
     "HOL-Library.LaTeXsugar"
-    (*"HOL-Library.OptionalSugar"*)
 begin
 
 type_synonym field_name = string
@@ -17,23 +16,21 @@ datatype Value =
 datatype EvalState = 
   EvalState 
     (s_graph: "IRGraph")
-    (s_phi: "ID \<Rightarrow> Value")
     (s_params: "Value list")
-    (s_scope: "string \<Rightarrow> Value")
-    (s_heap: "ID \<rightharpoonup> (field_name \<rightharpoonup> Value)")
+    (s_phi: "ID \<Rightarrow> Value")
     (s_flow: "ID \<Rightarrow> nat")
-
-type_synonym EvalNode = "ID \<times> IRNode \<times> EvalState"
 
 (* Adds the ability to update fields of datatype without making it a record *)
 local_setup \<open>Datatype_Records.mk_update_defs \<^type_name>\<open>EvalState\<close>\<close>
+
+type_synonym EvalNode = "ID \<times> IRNode \<times> EvalState"
 
 (* Get the type of node for a node id in an eval state *)
 fun get_node :: "ID \<Rightarrow> EvalState \<Rightarrow> IRNode" where
   "get_node n state = ((g_nodes (s_graph state)) n)"
 
 fun get_input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where 
-  "get_input n state i = (nth (g_inputs (s_graph state) n) i)"
+  "get_input n state i = ((g_inputs (s_graph state) n)!i)"
 
 (* Get the nth input edge of a node id in an eval state *)
 fun input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode" where
@@ -42,7 +39,7 @@ fun input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNod
     (next_id, (get_node next_id state), state))"
 
 fun get_successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where
-  "get_successor n state i = (nth (g_successors (s_graph state) n) i)"
+  "get_successor n state i = ((g_successors (s_graph state) n)!i)"
 
 (* Get the nth successor edge of a node id in an eval state *)
 fun successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode" where
@@ -52,7 +49,7 @@ fun successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> Eva
 
 fun get_usage :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where
   "get_usage nid state i =
-    (nth (sorted_list_of_set (g_usages (s_graph state) nid)) i)"
+    ((sorted_list_of_set (g_usages (s_graph state) nid))!i)"
 
 (* Get the nth usage edge of a node id in an eval state *)
 fun usage :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode"  where
@@ -136,45 +133,14 @@ in the function f', passing a results in b, passing
 any other parameter, x, results in f(x)
 *)
 fun update_state :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> ('a \<Rightarrow> 'b)" where
-  "update_state scope ident val = (\<lambda> x. (if x = ident then val else (scope x)))"
-
-(* Update the scope to map a new string to a value *)
-fun add_value :: "EvalState \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> EvalState" 
-  ("_[[_\<rightarrow>_]]" 55)
-  where
-  "add_value state ident val = 
-    (let scope = (s_scope state) in
-    update_s_scope (\<lambda>_. (update_state scope ident val)) state)"
-
-(* Update the heap to map a new id to an empty map *)
-fun add_instance :: "EvalState \<Rightarrow> ID \<Rightarrow> EvalState"
-where
-  "add_instance state node =
-    (let heap = (s_heap state) in
-    update_s_heap (\<lambda>_. (heap(node\<mapsto>Map.empty))) state)"
-
-(* Lookup a field_name in a node id *)
-fun lookup_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Rightarrow> Value" where
-  "lookup_field state n field = (case ((s_heap state) n) of 
-    None \<Rightarrow> UndefVal |
-    Some class \<Rightarrow> (case (class field) of
-      None \<Rightarrow> UndefVal |
-      Some val \<Rightarrow> val))"
-
-(*
-fun store_field :: "EvalState \<Rightarrow> ID \<Rightarrow> field_name \<Rightarrow> Value \<Rightarrow> EvalState" where
-  "store_field state n field val = (case ((s_heap state) n) of
-    None \<Rightarrow> state |
-    Some class \<Rightarrow> 
-*)
-
+  "update_state state ident val = (\<lambda> x. (if x = ident then val else (state x)))"
 
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
-primrec find_index :: "('a => bool) => 'a list => nat" where
+primrec find_index :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> nat" where
 "find_index _ [] = 0" |
 "find_index P (x#xs) = (if P x then 0 else find_index P xs + 1)"
 
-definition index_list :: "'a list => 'a => nat" where
+definition index_list :: "'a list \<Rightarrow> 'a \<Rightarrow> nat" where
 "index_list xs = (\<lambda>a. find_index (\<lambda>x. x=a) xs)"
 
 
@@ -225,7 +191,7 @@ inductive
   StartNode: "\<lbrakk>(successor num s 0) \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
 
-  ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, (nth (s_params s) (nat i)))" |
+  ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, ((s_params s)!(nat i)))" |
 
   ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
 
@@ -249,21 +215,12 @@ inductive
                  \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
 
   ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
-                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1[[''RETURN''\<rightarrow>v1]], v1)" |
+                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1, v1)" |
 
 (* WIP *)
-(*
-  NewInstanceNode: "(n, NewInstanceNode cname, s) \<mapsto> ((add_instance s n), UndefVal)" |
-
-  LoadFieldNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk>
-                  \<Longrightarrow> (n, LoadFieldNode field, s) 
-                      \<mapsto> (s1, (lookup_field s1 (get_input n s 0) field))" |
-*)
-(*
-  StoreFieldNode: "(n, StoreFieldNode field, s) \<mapsto> (s, UndefVal)" |
-*)
-
-
+  
+  (* Solution to the eval_all but the evalution gives up :(
+   * \<forall> i. i < length inputs \<longrightarrow> (\<exists> s' . (inputs!i \<mapsto> (s',vs!i))); *)
   MergeNodes: "\<lbrakk>is_merge_node node;
                 phis = (phi_list (n, node, s));
                 inputs = (phi_input_list phis);
@@ -286,27 +243,15 @@ inductive
                \<Longrightarrow> (n, BeginNode, s) \<mapsto> succ"
 
 
+instance IRNode :: equal by standard
+
 code_pred eval .
 code_pred eval_all .
 
 
-(* Format as inference rules *)
-text \<open>@{thm[mode=Rule] (sub, prem 2) eval.induct} {\sc StartNode}\<close>
-
-text \<open>@{thm[mode=Axiom] (sub, prem 3) eval.induct} {\sc ParameterNode}\<close>
-text \<open>@{thm[mode=Axiom] (sub, prem 4) eval.induct} {\sc ConstantNode}\<close>
-
-text \<open>@{thm[mode=Rule] (sub, prem 5) eval.induct} {\sc UnaryNode}\<close>
-text \<open>@{thm[mode=Rule] (sub, prem 6) eval.induct} {\sc BinaryNode}\<close>
-
-text \<open>@{thm[mode=Rule] (sub, prem 7) eval.induct} {\sc IfNodeTrue}\<close>
-text \<open>@{thm[mode=Rule] (sub, prem 8) eval.induct} {\sc IfNodeFalse}\<close>
-
-text \<open>@{thm[mode=Rule] (sub, prem 9) eval.induct} {\sc ReturnNode}\<close>
-
 (* Example graph evaluation *)
 fun new_state :: "IRGraph \<Rightarrow> Value list \<Rightarrow> EvalState" where
-  "new_state graph params = (EvalState graph (\<lambda> x. UndefVal) params (\<lambda> x. UndefVal) Map.empty (\<lambda> x. 0))"
+  "new_state graph params = (EvalState graph params (\<lambda> x. UndefVal) (\<lambda> x. 0))"
 
 definition ex_graph :: IRGraph where
   "ex_graph =
@@ -434,6 +379,8 @@ values "{(s, v). (0, StartNode, (new_state ex_graph2 [])) \<mapsto> (s, v)}"
 values "{(s, v). (0, StartNode, (new_state ex_graph3 [])) \<mapsto> (s, v)}"
 
 values "{(s, v). (0, StartNode, (new_state eg3 [IntVal 0, IntVal 20, IntVal 100])) \<mapsto> (s, v)}"
+
+export_code eval in SML
 
 values "{(s, v). (0, StartNode, (new_state eg4 [IntVal 0, IntVal 20, IntVal 100])) \<mapsto> (s, v)}"
 

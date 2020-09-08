@@ -27,10 +27,11 @@ type_synonym EvalNode = "ID \<times> IRNode \<times> EvalState"
 
 (* Get the type of node for a node id in an eval state *)
 fun get_node :: "ID \<Rightarrow> EvalState \<Rightarrow> IRNode" where
-  "get_node n state = ((g_nodes (s_graph state)) n)"
+  "get_node nid state = ((g_nodes (s_graph state)) nid)"
+
 
 fun get_input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where 
-  "get_input n state i = ((g_inputs (s_graph state) n)!i)"
+  "get_input nid state i = ((g_inputs (s_graph state) nid)!i)"
 
 (* Get the nth input edge of a node id in an eval state *)
 fun input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode" where
@@ -38,14 +39,16 @@ fun input :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNod
     (let next_id = (get_input nid state i) in
     (next_id, (get_node next_id state), state))"
 
+
 fun get_successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where
-  "get_successor n state i = ((g_successors (s_graph state) n)!i)"
+  "get_successor nid state i = ((g_successors (s_graph state) nid)!i)"
 
 (* Get the nth successor edge of a node id in an eval state *)
 fun successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode" where
   "successor nid state i =
     (let next_id = (get_successor nid state 0) in
     (next_id, (get_node next_id state), state))"
+
 
 fun get_usage :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> ID" where
   "get_usage nid state i =
@@ -132,16 +135,13 @@ update_state f a b = f'
 in the function f', passing a results in b, passing
 any other parameter, x, results in f(x)
 *)
-fun update_state :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a \<Rightarrow> 'b \<Rightarrow> ('a \<Rightarrow> 'b)" where
-  "update_state state ident val = (\<lambda> x. (if x = ident then val else (state x)))"
+fun update_state :: "'a \<Rightarrow> 'b \<Rightarrow> ('a \<Rightarrow> 'b) \<Rightarrow> ('a \<Rightarrow> 'b)" where
+  "update_state ident val state = (\<lambda> x. (if x = ident then val else (state x)))"
 
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
-primrec find_index :: "('a \<Rightarrow> bool) \<Rightarrow> 'a list \<Rightarrow> nat" where
-"find_index _ [] = 0" |
-"find_index P (x#xs) = (if P x then 0 else find_index P xs + 1)"
-
-definition index_list :: "'a list \<Rightarrow> 'a \<Rightarrow> nat" where
-"index_list xs = (\<lambda>a. find_index (\<lambda>x. x=a) xs)"
+fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
+  "find_index _ [] = 0" |
+  "find_index val (x # xs) = (if (x=val) then 0 else find_index val xs + 1)"
 
 
 fun phi_list :: "EvalNode \<Rightarrow> EvalNode list" where
@@ -153,11 +153,11 @@ fun phi_list :: "EvalNode \<Rightarrow> EvalNode list" where
       else [])"
 
 fun input_index :: "EvalState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
-  "input_index s n n' = index_list (g_inputs (s_graph s) n) n'"
+  "input_index s n n' = find_index n' (g_inputs (s_graph s) n)"
 
-fun update_flow :: "EvalState \<Rightarrow> ID \<Rightarrow> nat \<Rightarrow> EvalState" where
-  "update_flow s p i = (let preds = (s_flow s) in
-    (update_s_flow (\<lambda>_. (update_state preds p i)) s))"
+fun update_flow :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> EvalState" where
+  "update_flow nid i s = (let preds = (s_flow s) in
+    (update_s_flow (\<lambda>_. (update_state nid i preds)) s))"
 
 fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
   "phi_input (n, node, s) = (
@@ -169,12 +169,12 @@ fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
 fun phi_input_list :: "EvalNode list \<Rightarrow> EvalNode list" where
   "phi_input_list nodes = (map (\<lambda>x. (phi_input x)) nodes)"
 
-fun update_phi :: "EvalState \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> EvalState" where
-  "update_phi s n v = (update_s_phi (\<lambda>_. (update_state (s_phi s) n v)) s)"
+fun update_phi :: "ID \<Rightarrow> Value \<Rightarrow> EvalState \<Rightarrow> EvalState" where
+  "update_phi nid val s = (update_s_phi (\<lambda>_. (update_state nid val (s_phi s))) s)"
 
 fun set_phis :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> Value list \<Rightarrow> EvalState" where
   "set_phis s [] [] = s" |
-  "set_phis s ((x, _, _) # xs) (v # vs) = (set_phis (update_phi s x v) xs vs)" |
+  "set_phis s ((x, _, _) # xs) (v # vs) = (set_phis (update_phi x v s) xs vs)" |
   "set_phis s [] (v # vs) = s" |
   "set_phis s (x # xs) [] = s"
 
@@ -189,15 +189,15 @@ inductive
 
 
   StartNode: "\<lbrakk>(successor num s 0) \<mapsto> succ\<rbrakk> 
-              \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
+               \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
 
   ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, ((s_params s)!(nat i)))" |
 
   ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
 
   UnaryNode: "\<lbrakk>is_unary_node node;
-              (input num s 0) \<mapsto> (s1, v1)\<rbrakk> 
-              \<Longrightarrow> (num, node, s) \<mapsto> (s1, (unary_expr node v1))" |
+               (input num s 0) \<mapsto> (s1, v1)\<rbrakk> 
+               \<Longrightarrow> (num, node, s) \<mapsto> (s1, (unary_expr node v1))" |
 
   BinaryNode: "\<lbrakk>is_binary_node node;
                 (input num s 0) \<mapsto> (s1, v1);
@@ -232,7 +232,7 @@ inductive
   EndNodes: "\<lbrakk>is_end_node node;
               (merge, merge_node, _) = (usage n s 0);
               i = (input_index s merge n);
-              s' = (update_flow s merge i);
+              s' = (update_flow merge i s);
               (merge, merge_node, s') \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (n, node, s) \<mapsto> succ" |
 
@@ -242,8 +242,6 @@ inductive
   BeginNode: "\<lbrakk>(successor n s 0) \<mapsto> succ\<rbrakk>
                \<Longrightarrow> (n, BeginNode, s) \<mapsto> succ"
 
-
-instance IRNode :: equal by standard
 
 code_pred eval .
 code_pred eval_all .
@@ -306,8 +304,8 @@ notepad begin
 end
 
 value "phi_input (11, PhiNode, (new_state eg3 []))"
-value "phi_input (11, PhiNode, (update_flow (new_state eg3 []) 10 0))"
-value "phi_input (11, PhiNode, (update_flow (new_state eg3 []) 10 1))"
+value "phi_input (11, PhiNode, (update_flow 10 0 (new_state eg3 [])))"
+value "phi_input (11, PhiNode, (update_flow 10 1 (new_state eg3 [])))"
 
 value "usage 5 (new_state eg3 []) 0" (* (10, MergeNode, ...) *)
 value "usage 6 (new_state eg3 []) 0" (* (10, MergeNode, ...) *)
@@ -333,31 +331,6 @@ definition eg4 :: IRGraph where
     (add_node 0 StartNode [] [1]
     empty_graph)))))))))))))))"
 
-datatype GraphBuilder = 
-  GraphBuilder |
-  AddNode (gb_node_id: "nat") (gb_graph: "IRGraph")
-
-fun build :: "GraphBuilder \<Rightarrow> IRNode \<Rightarrow> nat list \<Rightarrow> nat list \<Rightarrow> GraphBuilder" ("_ _ _ _;")
-  where
-  "build GraphBuilder n i s = AddNode 0 (add_node 0 n i s empty_graph)" |
-  "build (AddNode nid graph) n i s = (AddNode (nid + 1) (add_node (nid + 1) n i s graph))"
-
-fun unpack :: "GraphBuilder \<Rightarrow> IRGraph" where
-  "unpack GraphBuilder = empty_graph" |
-  "unpack (AddNode nid graph) = graph"
-
-definition ex_graph3 :: IRGraph where
-  "ex_graph3 =            
-  unpack
-  (GraphBuilder
-    StartNode [] [3];
-    (ConstantNode 1) [] [];
-    (ConstantNode 30) [] [];
-    IfNode [1] [4, 5];
-    ReturnNode [2] [];
-    ReturnNode [1] [];)
-  "
-
 (* Currently causes a wellsortedness error which is resolved by removing
  * all IRNode constructors which have parameters e.g (ParameterNode i)
  * Specifically it is unhappy as nat \<Rightarrow> IRNode is not a sort equal
@@ -375,8 +348,6 @@ definition ex_graph3 :: IRGraph where
 values "{(s, v). (0, StartNode, (new_state ex_graph [IntVal 5])) \<mapsto> (s, v)}"
 
 values "{(s, v). (0, StartNode, (new_state ex_graph2 [])) \<mapsto> (s, v)}"
-
-values "{(s, v). (0, StartNode, (new_state ex_graph3 [])) \<mapsto> (s, v)}"
 
 values "{(s, v). (0, StartNode, (new_state eg3 [IntVal 0, IntVal 20, IntVal 100])) \<mapsto> (s, v)}"
 

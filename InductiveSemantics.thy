@@ -18,7 +18,6 @@ datatype EvalState =
     (s_graph: "IRGraph")
     (s_params: "Value list")
     (s_phi: "ID \<Rightarrow> Value")
-    (s_flow: "ID \<Rightarrow> nat")
 
 (* Adds the ability to update fields of datatype without making it a record *)
 local_setup \<open>Datatype_Records.mk_update_defs \<^type_name>\<open>EvalState\<close>\<close>
@@ -46,7 +45,7 @@ fun get_successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow>
 (* Get the nth successor edge of a node id in an eval state *)
 fun successor :: "ID \<Rightarrow> EvalState \<Rightarrow> nat \<Rightarrow> EvalNode" where
   "successor nid state i =
-    (let next_id = (get_successor nid state 0) in
+    (let next_id = (get_successor nid state i) in
     (next_id, (get_node next_id state), state))"
 
 
@@ -95,40 +94,19 @@ fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow>
   "binary_expr IntegerEqualsNode (IntVal x) (IntVal y) = (bool_to_val (x = y))" |
   "binary_expr _ _ _ = UndefVal"
 
-(*
-  ====
-  Funtions to filter different types of nodes
-  ====
-*)
-fun is_unary_node :: "IRNode \<Rightarrow> bool" where
-  "is_unary_node AbsNode = True" |
-  "is_unary_node NegateNode = True" |
-  "is_unary_node _ = False"
+definition unary_nodes :: "IRNode set" where
+  "unary_nodes = {AbsNode, NegateNode}"
 
-fun is_binary_node :: "IRNode \<Rightarrow> bool" where
-  "is_binary_node AddNode = True" |
-  "is_binary_node SubNode = True" |
-  "is_binary_node MulNode = True" |
-  "is_binary_node AndNode = True" |
-  "is_binary_node OrNode = True" |
-  "is_binary_node XorNode = True" |
-  "is_binary_node IntegerLessThanNode = True" |
-  "is_binary_node IntegerEqualsNode = True" |
-  "is_binary_node _ = False"
+definition binary_nodes :: "IRNode set" where
+  "binary_nodes = {AddNode, SubNode, MulNode, AndNode, 
+                   OrNode, XorNode, IntegerLessThanNode,
+                   IntegerEqualsNode}"
 
-fun is_merge_node :: "IRNode \<Rightarrow> bool" where
-  "is_merge_node MergeNode = True" |
-  "is_merge_node LoopBeginNode = True" |
-  "is_merge_node _ = False"
+definition merge_nodes :: "IRNode set" where
+  "merge_nodes = {MergeNode, LoopBeginNode}"
 
-fun is_end_node :: "IRNode \<Rightarrow> bool" where
-  "is_end_node EndNode = True" |
-  "is_end_node LoopEndNode = True" |
-  "is_end_node _ = False"
-
-fun is_phi_node :: "IRNode \<Rightarrow> bool" where
-  "is_phi_node PhiNode = True" |
-  "is_phi_node _ = False"
+definition end_nodes :: "IRNode set" where
+  "end_nodes = {EndNode, LoopEndNode}"
 
 (* 
 update_state f a b = f'
@@ -145,29 +123,16 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
 
 
 fun phi_list :: "EvalNode \<Rightarrow> EvalNode list" where
-  "phi_list (n, node, s) = (if (is_merge_node node)
-      then 
-        (map (\<lambda>x. (x, (get_node x s), s))
-          (filter (\<lambda>x.(is_phi_node (get_node x s)))
-            (sorted_list_of_set (g_usages (s_graph s) n))))
-      else [])"
+  "phi_list (n, node, s) = 
+      (map (\<lambda>x. (x, (get_node x s), s))
+        (filter (\<lambda>x.((get_node x s) = PhiNode))
+          (sorted_list_of_set (g_usages (s_graph s) n))))"
 
 fun input_index :: "EvalState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
   "input_index s n n' = find_index n' (g_inputs (s_graph s) n)"
 
-fun update_flow :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> EvalState" where
-  "update_flow nid i s = (let preds = (s_flow s) in
-    (update_s_flow (\<lambda>_. (update_state nid i preds)) s))"
-
-fun phi_input :: "EvalNode \<Rightarrow> EvalNode" where
-  "phi_input (n, node, s) = (
-    let merge = (get_input n s 0) in (
-    let i = ((s_flow s) merge) in
-    let input = (get_input n s (i + 1)) in
-    (input, (get_node input s), s)))"
-
-fun phi_input_list :: "EvalNode list \<Rightarrow> EvalNode list" where
-  "phi_input_list nodes = (map (\<lambda>x. (phi_input x)) nodes)"
+fun phi_inputs :: "nat \<Rightarrow> EvalState \<Rightarrow> EvalNode list \<Rightarrow> EvalNode list" where
+  "phi_inputs i s nodes = (map (\<lambda>(n, _, s). (input n s (i + 1))) nodes)"
 
 fun update_phi :: "ID \<Rightarrow> Value \<Rightarrow> EvalState \<Rightarrow> EvalState" where
   "update_phi nid val s = (update_s_phi (\<lambda>_. (update_state nid val (s_phi s))) s)"
@@ -195,11 +160,11 @@ inductive
 
   ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
 
-  UnaryNode: "\<lbrakk>is_unary_node node;
+  UnaryNode: "\<lbrakk>node \<in> unary_nodes;
                (input num s 0) \<mapsto> (s1, v1)\<rbrakk> 
                \<Longrightarrow> (num, node, s) \<mapsto> (s1, (unary_expr node v1))" |
 
-  BinaryNode: "\<lbrakk>is_binary_node node;
+  BinaryNode: "\<lbrakk>node \<in> binary_nodes;
                 (input num s 0) \<mapsto> (s1, v1);
                 (input num s1 1) \<mapsto> (s2, v2)\<rbrakk> 
                 \<Longrightarrow> (num, node, s) \<mapsto> (s2, (binary_expr node v1 v2))" |
@@ -216,23 +181,24 @@ inductive
 
   ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
                 \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1, v1)" |
-
-(* WIP *)
   
-  (* Solution to the eval_all but the evalution gives up :(
-   * \<forall> i. i < length inputs \<longrightarrow> (\<exists> s' . (inputs!i \<mapsto> (s',vs!i))); *)
-  MergeNodes: "\<lbrakk>is_merge_node node;
-                phis = (phi_list (n, node, s));
-                inputs = (phi_input_list phis);
-                inputs \<longmapsto> vs;
-                (successor n (set_phis s phis vs)  0) \<mapsto> succ\<rbrakk> 
+  MergeNodes: "\<lbrakk>node \<in> merge_nodes;
+                (successor n s 0) \<mapsto> succ\<rbrakk> 
                 \<Longrightarrow> (n, node, s) \<mapsto> succ" |
 
+  (* Solution to the eval_all but the evalution gives up :(
+   * \<forall> i. i < length inputs \<longrightarrow> (\<exists> s' . (inputs!i \<mapsto> (s',vs!i))); *)
+  EndNodes: "\<lbrakk>node \<in> end_nodes;
 
-  EndNodes: "\<lbrakk>is_end_node node;
               (merge, merge_node, _) = (usage n s 0);
               i = (input_index s merge n);
-              s' = (update_flow merge i s);
+
+              phis = (phi_list (merge, merge_node, s));
+              inputs = (phi_inputs i s phis);
+              inputs \<longmapsto> vs;
+              
+              s' = (set_phis s phis vs);
+              
               (merge, merge_node, s') \<mapsto> succ\<rbrakk> 
               \<Longrightarrow> (n, node, s) \<mapsto> succ" |
 
@@ -249,7 +215,7 @@ code_pred eval_all .
 
 (* Example graph evaluation *)
 fun new_state :: "IRGraph \<Rightarrow> Value list \<Rightarrow> EvalState" where
-  "new_state graph params = (EvalState graph params (\<lambda> x. UndefVal) (\<lambda> x. 0))"
+  "new_state graph params = (EvalState graph params (\<lambda> x. UndefVal))"
 
 definition ex_graph :: IRGraph where
   "ex_graph =
@@ -295,17 +261,11 @@ lemma "wff_graph eg3"
 notepad begin 
   have "input_index (new_state eg3 []) 10 5 = 0" by eval
   have "input_index (new_state eg3 []) 10 6 = 1" by eval
-  have "(s_flow (update_flow (new_state eg3 []) 10 0)) 10 = 0" by eval
-  have "(s_flow (update_flow (new_state eg3 []) 10 1)) 10 = 1" by eval
   have "input_index (new_state eg3 []) 11 10 = 0" by eval
   have "input_index (new_state eg3 []) 11 9 = 1" by eval
   have "input_index (new_state eg3 []) 11 7 = 2" by eval
   have "input_index (new_state eg3 []) 11 20 = 3" by eval
 end
-
-value "phi_input (11, PhiNode, (new_state eg3 []))"
-value "phi_input (11, PhiNode, (update_flow 10 0 (new_state eg3 [])))"
-value "phi_input (11, PhiNode, (update_flow 10 1 (new_state eg3 [])))"
 
 value "usage 5 (new_state eg3 []) 0" (* (10, MergeNode, ...) *)
 value "usage 6 (new_state eg3 []) 0" (* (10, MergeNode, ...) *)

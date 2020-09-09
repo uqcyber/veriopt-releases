@@ -7,8 +7,6 @@ theory InductiveSemantics
     "HOL-Library.LaTeXsugar"
 begin
 
-type_synonym field_name = string
-
 datatype Value =
   UndefVal |
   IntVal int
@@ -153,60 +151,72 @@ inductive
   "\<lbrakk>x \<mapsto> (s', v); xs \<longmapsto> vs\<rbrakk> \<Longrightarrow> (x # xs) \<longmapsto> (v # vs)" |
 
 
-  StartNode: "\<lbrakk>(successor num s 0) \<mapsto> succ\<rbrakk> 
-               \<Longrightarrow> (num, StartNode, s) \<mapsto> succ" |
+  StartNode:
+  "\<lbrakk>(successor nid s 0) \<mapsto> succ\<rbrakk> 
+    \<Longrightarrow> (nid, StartNode, s) \<mapsto> succ" |
 
-  ParameterNode: "(num, (ParameterNode i), s) \<mapsto> (s, ((s_params s)!(nat i)))" |
+  BeginNode: 
+  "\<lbrakk>(successor nid s 0) \<mapsto> succ\<rbrakk>
+    \<Longrightarrow> (nid, BeginNode, s) \<mapsto> succ" |
 
-  ConstantNode: "(num, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
+  MergeNodes:
+  "\<lbrakk>node \<in> merge_nodes;
+    (successor nid s 0) \<mapsto> succ\<rbrakk> 
+    \<Longrightarrow> (nid, node, s) \<mapsto> succ" |
 
-  UnaryNode: "\<lbrakk>node \<in> unary_nodes;
-               (input num s 0) \<mapsto> (s1, v1)\<rbrakk> 
-               \<Longrightarrow> (num, node, s) \<mapsto> (s1, (unary_expr node v1))" |
+  ParameterNode:
+  "(nid, (ParameterNode i), s) \<mapsto> (s, ((s_params s)!(nat i)))" |
 
-  BinaryNode: "\<lbrakk>node \<in> binary_nodes;
-                (input num s 0) \<mapsto> (s1, v1);
-                (input num s1 1) \<mapsto> (s2, v2)\<rbrakk> 
-                \<Longrightarrow> (num, node, s) \<mapsto> (s2, (binary_expr node v1 v2))" |
+  ConstantNode:
+  "(nid, (ConstantNode c), s) \<mapsto> (s, (IntVal c))" |
 
-  IfNodeTrue: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
-                (val_to_bool v1);
-                (successor num s1 0) \<mapsto> s2\<rbrakk> 
-                \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
+  UnaryNode:
+  "\<lbrakk>node \<in> unary_nodes;
+    (input nid s 0) \<mapsto> (s', v)\<rbrakk> 
+    \<Longrightarrow> (nid, node, s) \<mapsto> (s', (unary_expr node v))" |
 
-  IfNodeFalse: "\<lbrakk>(input num s 0) \<mapsto> (s1, v1);
-                 (\<not>(val_to_bool v1));
-                 (successor num s1 1) \<mapsto> s2\<rbrakk> 
-                 \<Longrightarrow> (num, IfNode, s) \<mapsto> s2" |
+  BinaryNode:
+  "\<lbrakk>node \<in> binary_nodes;
+    (input nid s 0) \<mapsto> (s', v1);
+    (input nid s' 1) \<mapsto> (s'', v2)\<rbrakk> 
+    \<Longrightarrow> (nid, node, s) \<mapsto> (s'', (binary_expr node v1 v2))" |
 
-  ReturnNode: "\<lbrakk>(input n s 0) \<mapsto> (s1, v1)\<rbrakk> 
-                \<Longrightarrow> (n, ReturnNode, s) \<mapsto> (s1, v1)" |
-  
-  MergeNodes: "\<lbrakk>node \<in> merge_nodes;
-                (successor n s 0) \<mapsto> succ\<rbrakk> 
-                \<Longrightarrow> (n, node, s) \<mapsto> succ" |
+  IfNodeTrue:
+  "\<lbrakk>(input nid s 0) \<mapsto> (s', cond);
+    (val_to_bool cond);
+    (successor nid s' 0) \<mapsto> s''\<rbrakk> 
+    \<Longrightarrow> (nid, IfNode, s) \<mapsto> s''" |
+
+  IfNodeFalse:
+  "\<lbrakk>(input nid s 0) \<mapsto> (s', cond);
+    (\<not>(val_to_bool cond));
+    (successor nid s' 1) \<mapsto> s''\<rbrakk> 
+    \<Longrightarrow> (nid, IfNode, s) \<mapsto> s''" |
+
+  ReturnNode:
+  "\<lbrakk>(input nid s 0) \<mapsto> (s', v)\<rbrakk> 
+    \<Longrightarrow> (nid, ReturnNode, s) \<mapsto> (s', v)" |
+ 
 
   (* Solution to the eval_all but the evalution gives up :(
    * \<forall> i. i < length inputs \<longrightarrow> (\<exists> s' . (inputs!i \<mapsto> (s',vs!i))); *)
-  EndNodes: "\<lbrakk>node \<in> end_nodes;
+  EndNodes:
+  "\<lbrakk>node \<in> end_nodes;
 
-              (merge, merge_node, _) = (usage n s 0);
-              i = (input_index s merge n);
+    (merge, merge_node, _) = (usage nid s 0);
+    i = (input_index s merge nid);
 
-              phis = (phi_list (merge, merge_node, s));
-              inputs = (phi_inputs i s phis);
-              inputs \<longmapsto> vs;
-              
-              s' = (set_phis s phis vs);
-              
-              (merge, merge_node, s') \<mapsto> succ\<rbrakk> 
-              \<Longrightarrow> (n, node, s) \<mapsto> succ" |
+    phis = (phi_list (merge, merge_node, s));
+    inputs = (phi_inputs i s phis);
+    inputs \<longmapsto> vs;
 
+    s' = (set_phis s phis vs);
 
-  PhiNode: "(n, PhiNode, s) \<mapsto> (s, (s_phi s) n)" |
+    (merge, merge_node, s') \<mapsto> succ\<rbrakk> 
+    \<Longrightarrow> (nid, node, s) \<mapsto> succ" |
 
-  BeginNode: "\<lbrakk>(successor n s 0) \<mapsto> succ\<rbrakk>
-               \<Longrightarrow> (n, BeginNode, s) \<mapsto> succ"
+  PhiNode:
+  "(nid, PhiNode, s) \<mapsto> (s, (s_phi s) nid)"
 
 
 code_pred eval .

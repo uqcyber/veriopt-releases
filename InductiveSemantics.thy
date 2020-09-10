@@ -257,12 +257,25 @@ end
  * inductive rules
  *)
 
+inductive eval_graph :: "IRGraph \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> ID \<times> MapState \<Rightarrow> bool" where
+  "\<lbrakk>g node m \<mapsto> (next, m');
+    next = 0\<rbrakk> \<Longrightarrow> eval_graph g node m (next, m')" |
+
+  "\<lbrakk>g node m \<mapsto> (next, m');
+    next \<noteq> 0;
+    eval_graph g (next, get_graph_node next g) m' (next', m'')\<rbrakk> \<Longrightarrow> eval_graph g node m (next', m'')"
+
+code_pred "eval_graph" .
+
 (* IntVal 10 *)
 values "{(n, map m [0]) |n m. double_param_graph (0, StartNode) double_param_map \<mapsto> (n, m)}"
+values "{map m [0] |n m. eval_graph double_param_graph (0, StartNode) double_param_map (n, m)}"
 
 (* IntVal 20 *)
 values "{(n, map m [0]) |n m. simple_if_graph (0, StartNode) simple_if_map \<mapsto> (n, m)}"
+values "{map m [0] |n m. eval_graph simple_if_graph (0, StartNode) simple_if_map (n, m)}"
 (* IntVal 120 *)
 values "{(n, map m [0]) |n m. simple_if_graph (0, StartNode) (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100]) \<mapsto> (n, m)}"
+values "{map m [0] |n m. eval_graph simple_if_graph (0, StartNode) (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100]) (n, m)}"
 
 end

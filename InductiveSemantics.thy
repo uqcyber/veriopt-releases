@@ -107,7 +107,7 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
 
 
 inductive
-  eval :: "IRGraph \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> MapState \<Rightarrow> bool" ("_ _ _\<mapsto>_" 55) and
+  eval :: "IRGraph \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> ID \<times> MapState \<Rightarrow> bool" ("_ _ _\<mapsto>_" 55) and
   eval_exp :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<times> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ _\<rightarrow>_" 55) and
   eval_all :: "IRGraph \<Rightarrow> (ID \<times> IRNode) list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
   for g
@@ -162,7 +162,7 @@ inductive
 
   ReturnNode:
   "\<lbrakk>g m (input nid 0 g) \<rightarrow> v\<rbrakk> 
-    \<Longrightarrow> g (nid, ReturnNode) m \<mapsto> m(0 := v)" |
+    \<Longrightarrow> g (nid, ReturnNode) m \<mapsto> (0, m(0 := v))" |
  
 
   (* Solution to the eval_all but the evalution gives up :(
@@ -265,11 +265,11 @@ end
  *)
 
 (* IntVal 10 *)
-values "{map m [0] |m. double_param_graph (0, StartNode) double_param_map \<mapsto> m}"
+values "{(n, map m [0]) |n m. double_param_graph (0, StartNode) double_param_map \<mapsto> (n, m)}"
 
 (* IntVal 20 *)
-values "{map m [0] |m. simple_if_graph (0, StartNode) simple_if_map \<mapsto> m}"
+values "{(n, map m [0]) |n m. simple_if_graph (0, StartNode) simple_if_map \<mapsto> (n, m)}"
 (* IntVal 120 *)
-values "{map m [0] |m. simple_if_graph (0, StartNode) (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100]) \<mapsto> m}"
+values "{(n, map m [0]) |n m. simple_if_graph (0, StartNode) (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100]) \<mapsto> (n, m)}"
 
 end

@@ -17,6 +17,8 @@ datatype EvalState =
     (s_params: "Value list")
     (s_phi: "ID \<Rightarrow> Value")
 
+type_synonym MapState = "ID \<Rightarrow> Value"
+
 (* Adds the ability to update fields of datatype without making it a record *)
 local_setup \<open>Datatype_Records.mk_update_defs \<^type_name>\<open>EvalState\<close>\<close>
 
@@ -121,71 +123,68 @@ fun input_old :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> ID 
 fun phi_inputs :: "nat \<Rightarrow> EvalState \<Rightarrow> EvalNode list \<Rightarrow> EvalNode list" where
   "phi_inputs i s nodes = (map (\<lambda>(n, _, s). (input_old n (i + 1) s)) nodes)"
 
-fun update_phi :: "ID \<Rightarrow> Value \<Rightarrow> EvalState \<Rightarrow> EvalState" where
-  "update_phi nid val s = (update_s_phi (\<lambda>_. ((s_phi s)(nid := val))) s)"
-
-fun set_phis :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> Value list \<Rightarrow> EvalState" where
-  "set_phis s [] [] = s" |
-  "set_phis s ((x, _, _) # xs) (v # vs) = (set_phis (update_phi x v s) xs vs)" |
-  "set_phis s [] (v # vs) = s" |
-  "set_phis s (x # xs) [] = s"
+fun set_phis :: "MapState \<Rightarrow> EvalNode list \<Rightarrow> Value list \<Rightarrow> MapState" where
+  "set_phis m [] [] = m" |
+  "set_phis m ((x, _, _) # xs) (v # vs) = (set_phis (m(x := v)) xs vs)" |
+  "set_phis m [] (v # vs) = m" |
+  "set_phis m (x # xs) [] = m"
 
 inductive
-  eval :: "EvalState \<Rightarrow> ID \<times> IRNode \<Rightarrow> EvalState \<times> Value \<Rightarrow> bool" ("_ _\<mapsto>_" 55) and
-  eval_all :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> Value list \<Rightarrow> bool" ("_ _\<longmapsto>_" 55)
+  eval :: "EvalState \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> MapState \<times> Value \<Rightarrow> bool" ("_ _ _\<mapsto>_" 55) and
+  eval_all :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
   for s
   where
 
 
-  "s [] \<longmapsto> []" |
-  "\<lbrakk>s (nid, node) \<mapsto> (s', v); s xs \<longmapsto> vs\<rbrakk> \<Longrightarrow> s ((nid, node, _) # xs) \<longmapsto> (v # vs)" |
+  "s [] m \<longmapsto> []" |
+  "\<lbrakk>s (nid, node) m \<mapsto> (m', v); s xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> s ((nid, node, _) # xs) m \<longmapsto> (v # vs)" |
 
 
   StartNode:
-  "\<lbrakk>s (successor nid 0 s) \<mapsto> succ\<rbrakk> 
-    \<Longrightarrow> s (nid, StartNode) \<mapsto> succ" |
+  "\<lbrakk>s (successor nid 0 s) m \<mapsto> succ\<rbrakk> 
+    \<Longrightarrow> s (nid, StartNode) m \<mapsto> succ" |
 
   BeginNode: 
-  "\<lbrakk>s (successor nid 0 s) \<mapsto> succ\<rbrakk>
-    \<Longrightarrow> s (nid, BeginNode) \<mapsto> succ" |
+  "\<lbrakk>s (successor nid 0 s) m \<mapsto> succ\<rbrakk>
+    \<Longrightarrow> s (nid, BeginNode) m \<mapsto> succ" |
 
   MergeNodes:
   "\<lbrakk>node \<in> merge_nodes;
-    s (successor nid 0 s) \<mapsto> succ\<rbrakk> 
-    \<Longrightarrow> s (nid, node) \<mapsto> succ" |
+    s (successor nid 0 s) m \<mapsto> succ\<rbrakk> 
+    \<Longrightarrow> s (nid, node) m \<mapsto> succ" |
 
   ParameterNode:
-  "s (nid, (ParameterNode i)) \<mapsto> (s, ((s_params s)!(nat i)))" |
+  "s (nid, (ParameterNode i)) m \<mapsto> (m, ((s_params s)!(nat i)))" |
 
   ConstantNode:
-  "s (nid, (ConstantNode c)) \<mapsto> (s, (IntVal c))" |
+  "s (nid, (ConstantNode c)) m \<mapsto> (m, (IntVal c))" |
 
   UnaryNode:
   "\<lbrakk>node \<in> unary_nodes;
-    s (input nid 0 s) \<mapsto> (s', v)\<rbrakk> 
-    \<Longrightarrow> s (nid, node) \<mapsto> (s', (unary_expr node v))" |
+    s (input nid 0 s) m \<mapsto> (m', v)\<rbrakk> 
+    \<Longrightarrow> s (nid, node) m \<mapsto> (m', (unary_expr node v))" |
 
   BinaryNode:
   "\<lbrakk>node \<in> binary_nodes;
-    s (input nid 0 s) \<mapsto> (s', v1);
-    s (input nid 1 s') \<mapsto> (s'', v2)\<rbrakk> 
-    \<Longrightarrow> s (nid, node) \<mapsto> (s'', (binary_expr node v1 v2))" |
+    s (input nid 0 s) m \<mapsto> (m', v1);
+    s (input nid 1 s) m \<mapsto> (m'', v2)\<rbrakk> 
+    \<Longrightarrow> s (nid, node) m \<mapsto> (m'', (binary_expr node v1 v2))" |
 
   IfNodeTrue:
-  "\<lbrakk>s (input nid 0 s) \<mapsto> (s', cond);
+  "\<lbrakk>s (input nid 0 s) m \<mapsto> (m', cond);
     (val_to_bool cond);
-    s (successor nid 0 s') \<mapsto> s''\<rbrakk> 
-    \<Longrightarrow> s (nid, IfNode) \<mapsto> s''" |
+    s (successor nid 0 s) m \<mapsto> m''\<rbrakk> 
+    \<Longrightarrow> s (nid, IfNode) m \<mapsto> m''" |
 
   IfNodeFalse:
-  "\<lbrakk>s (input nid 0 s) \<mapsto> (s', cond);
+  "\<lbrakk>s (input nid 0 s) m \<mapsto> (m', cond);
     (\<not>(val_to_bool cond));
-    s (successor nid 1 s') \<mapsto> s''\<rbrakk> 
-    \<Longrightarrow> s (nid, IfNode) \<mapsto> s''" |
+    s (successor nid 1 s) m \<mapsto> m''\<rbrakk> 
+    \<Longrightarrow> s (nid, IfNode) m \<mapsto> m''" |
 
   ReturnNode:
-  "\<lbrakk>s (input nid 0 s) \<mapsto> (s', v)\<rbrakk> 
-    \<Longrightarrow> s (nid, ReturnNode) \<mapsto> (s', v)" |
+  "\<lbrakk>s (input nid 0 s) m \<mapsto> (m', v)\<rbrakk> 
+    \<Longrightarrow> s (nid, ReturnNode) m \<mapsto> (m', v)" |
  
 
   (* Solution to the eval_all but the evalution gives up :(
@@ -198,15 +197,15 @@ inductive
 
     phis = (phi_list (merge, merge_node, s));
     inputs = (phi_inputs i s phis);
-    s inputs \<longmapsto> vs;
+    s inputs m \<longmapsto> vs;
 
-    s' = (set_phis s phis vs);
+    m' = (set_phis m phis vs);
 
-    s (merge, merge_node) \<mapsto> succ\<rbrakk> 
-    \<Longrightarrow> s (nid, node) \<mapsto> succ" |
+    s (merge, merge_node) m' \<mapsto> succ\<rbrakk> 
+    \<Longrightarrow> s (nid, node) m \<mapsto> succ" |
 
   PhiNode:
-  "s (nid, PhiNode) \<mapsto> (s, (s_phi s) nid)"
+  "s (nid, PhiNode) m \<mapsto> (m, m nid)"
 
 
 code_pred eval .
@@ -275,12 +274,15 @@ value "phi_list (10, MergeNode, (new_state simple_if_graph []))" (* [(11, PhiNod
  * inductive rules
  *)
 
+definition initial_mapping :: "ID \<Rightarrow> Value" where
+  "initial_mapping = (\<lambda> x . UndefVal)"
+
 (* IntVal 10 *)
-values "{(s, v). (new_state double_param_graph [IntVal 5]) (0, StartNode) \<mapsto> (s, v)}"
+values "{(s, v). (new_state double_param_graph [IntVal 5]) (0, StartNode) initial_mapping \<mapsto> (s, v)}"
 
 (* IntVal 20 *)
-values "{(s, v). (new_state simple_if_graph [IntVal 0, IntVal 20, IntVal 100]) (0, StartNode) \<mapsto> (s, v)}"
+values "{(s, v). (new_state simple_if_graph [IntVal 0, IntVal 20, IntVal 100]) (0, StartNode) initial_mapping \<mapsto> (s, v)}"
 (* IntVal 120 *)
-values "{(s, v). (new_state simple_if_graph [IntVal 1, IntVal 20, IntVal 100]) (0, StartNode) \<mapsto> (s, v)}"
+values "{(s, v). (new_state simple_if_graph [IntVal 1, IntVal 20, IntVal 100]) (0, StartNode) initial_mapping  \<mapsto> (s, v)}"
 
 end

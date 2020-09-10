@@ -14,28 +14,23 @@ datatype Value =
 
 type_synonym MapState = "ID \<Rightarrow> Value"
 
-fun get_graph_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRNode" where
-  "get_graph_node nid g = (g_nodes g) nid"
+fun node_type :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRNode" where
+  "node_type nid g = (g_nodes g) nid"
 
 fun to_node_pair :: "ID \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode)" where
-  "to_node_pair nid g = (nid, (get_graph_node nid g))"
+  "to_node_pair nid g = (nid, (node_type nid g))"
 
 fun get_input :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where 
   "get_input nid i g = ((g_inputs g nid)!i)"
 fun input :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode)" where
   "input nid i g = (to_node_pair (get_input nid i g) g)"
 
-fun get_successor :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
-  "get_successor nid i g = ((g_successors g nid)!i)"
-fun successor :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID \<times> IRNode" where
-  "successor nid i g = (to_node_pair (get_successor nid i g) g)"
+fun successor :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
+  "successor nid i g = ((g_successors g nid)!i)"
 
-fun get_usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
-  "get_usage nid i g =
+fun usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
+  "usage nid i g =
     ((sorted_list_of_set (g_usages g nid))!i)"
-fun usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID \<times> IRNode"  where
-  "usage nid i g = (to_node_pair (get_usage nid i g) g)"
-
 
 
 fun val_to_bool :: "Value \<Rightarrow> bool" where
@@ -90,7 +85,7 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
 
 fun phi_list :: "ID \<Rightarrow> IRGraph \<Rightarrow> ID list" where
   "phi_list nid g = 
-    (filter (\<lambda>x.((get_graph_node x g)=PhiNode))
+    (filter (\<lambda>x.((node_type x g)=PhiNode))
       (sorted_list_of_set (g_usages g nid)))"
 
 fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
@@ -109,6 +104,7 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
 inductive
   eval :: "IRGraph \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> ID \<times> MapState \<Rightarrow> bool" ("_ _ _\<mapsto>_" 55) and
   eval_exp :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<times> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ _\<rightarrow>_" 55) and
+
   eval_all :: "IRGraph \<Rightarrow> (ID \<times> IRNode) list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
   for g
   where
@@ -118,15 +114,9 @@ inductive
   "\<lbrakk>g m (nid, node) \<rightarrow> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g ((nid, node) # xs) m \<longmapsto> (v # vs)" |
 
 
-  StartNode:
-  "g (nid, StartNode) m \<mapsto> ((get_successor nid 0 g), m)" |
-
-  BeginNode: 
-  "g (nid, BeginNode) m \<mapsto> ((get_successor nid 0 g), m)" |
-
-  MergeNodes:
-  "\<lbrakk>node \<in> merge_nodes\<rbrakk> 
-    \<Longrightarrow> g (nid, node) m \<mapsto> ((get_successor nid 0 g), m)" |
+  SequentialNodes:
+  "\<lbrakk>node \<in> {StartNode, BeginNode} \<union> merge_nodes\<rbrakk> 
+    \<Longrightarrow> g (nid, node) m \<mapsto> ((successor nid 0 g), m)" |
 
   ParameterNode:
   "g m (nid, (ParameterNode i)) \<rightarrow> (m nid)" |
@@ -148,12 +138,12 @@ inductive
   IfNodeTrue:
   "\<lbrakk>g m (input nid 0 g) \<rightarrow> cond;
     (val_to_bool cond)\<rbrakk> 
-    \<Longrightarrow> g (nid, IfNode) m \<mapsto> ((get_successor nid 0 g), m)" |
+    \<Longrightarrow> g (nid, IfNode) m \<mapsto> ((successor nid 0 g), m)" |
 
   IfNodeFalse:
   "\<lbrakk>g m (input nid 0 g) \<rightarrow> cond;
     (\<not>(val_to_bool cond))\<rbrakk> 
-    \<Longrightarrow> g (nid, IfNode) m \<mapsto> ((get_successor nid 1 g), m)" |
+    \<Longrightarrow> g (nid, IfNode) m \<mapsto> ((successor nid 1 g), m)" |
 
   ReturnNode:
   "\<lbrakk>g m (input nid 0 g) \<rightarrow> v\<rbrakk> 
@@ -165,7 +155,7 @@ inductive
   EndNodes:
   "\<lbrakk>node \<in> end_nodes;
 
-    (merge, merge_node) = (usage nid 0 g);
+    merge = (usage nid 0 g);
     i = (input_index g merge nid);
 
     phis = (phi_list merge g);
@@ -237,8 +227,8 @@ notepad begin
   have "input_index simple_if_graph 11 9 = 1" by eval
   have "input_index simple_if_graph 11 7 = 2" by eval
   have "input_index simple_if_graph 11 20 = 3" by eval
-  have "usage 5 0 simple_if_graph = (10, MergeNode)" by eval
-  have "usage 6 0 simple_if_graph = (10, MergeNode)" by eval
+  have "usage 5 0 simple_if_graph = 10" by eval
+  have "usage 6 0 simple_if_graph = 10" by eval
   have "phi_list 10 simple_if_graph = [11]" by eval
 end
 
@@ -263,7 +253,7 @@ inductive eval_graph :: "IRGraph \<Rightarrow> ID \<times> IRNode \<Rightarrow> 
 
   "\<lbrakk>g node m \<mapsto> (next, m');
     next \<noteq> 0;
-    eval_graph g (next, get_graph_node next g) m' (next', m'')\<rbrakk> \<Longrightarrow> eval_graph g node m (next', m'')"
+    eval_graph g (next, node_type next g) m' (next', m'')\<rbrakk> \<Longrightarrow> eval_graph g node m (next', m'')"
 
 code_pred "eval_graph" .
 

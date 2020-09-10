@@ -3,19 +3,16 @@ section \<open>Inductive semantics of nodes\<close>
 theory InductiveSemantics
   imports
     "AbsGraph"
-    "HOL-Library.Datatype_Records"
-    "HOL-Library.LaTeXsugar"
+    "HOL-Word.More_Word"
 begin
+
+type_synonym int32 = "32 word"
 
 datatype Value =
   UndefVal |
-  IntVal int
-
+  IntVal int32
 
 type_synonym MapState = "ID \<Rightarrow> Value"
-
-(* Adds the ability to update fields of datatype without making it a record *)
-
 
 fun get_graph_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRNode" where
   "get_graph_node nid g = (g_nodes g) nid"
@@ -33,7 +30,6 @@ fun get_successor :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> I
 fun successor :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID \<times> IRNode" where
   "successor nid i g = (to_node_pair (get_successor nid i g) g)"
 
-
 fun get_usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
   "get_usage nid i g =
     ((sorted_list_of_set (g_usages g nid))!i)"
@@ -41,11 +37,7 @@ fun usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID \<time
   "usage nid i g = (to_node_pair (get_usage nid i g) g)"
 
 
-(*
-   ====
-   Functions to aid evaluating expressions
-   ====
-*)
+
 fun val_to_bool :: "Value \<Rightarrow> bool" where
   "val_to_bool (IntVal x) = (if x = 0 then False else True)" |
   "val_to_bool (UndefVal) = False"
@@ -62,7 +54,7 @@ fun unary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value" where
 fun binary_bool_expr :: "IRNode \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> Value" where
   "binary_bool_expr AndNode x y = (bool_to_val (x \<and> y))" |
   "binary_bool_expr OrNode x y = (bool_to_val (x \<or> y))" |
-  "binary_bool_expr XorNode x y = (bool_to_val ((x \<or> y) \<and> \<not>(x \<and> y)))" |
+  "binary_bool_expr XorNode x y = (bool_to_val (x \<noteq> y))" |
   "binary_bool_expr _ _ _ = UndefVal"
 
 fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
@@ -142,7 +134,7 @@ inductive
   "g m (nid, (ParameterNode i)) \<rightarrow> (m nid)" |
 
   ConstantNode:
-  "g m (nid, (ConstantNode c)) \<rightarrow> (IntVal c)" |
+  "g m (nid, (ConstantNode c)) \<rightarrow> (IntVal (word_of_int c))" |
 
   UnaryNode:
   "\<lbrakk>node \<in> unary_nodes;

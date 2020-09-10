@@ -155,7 +155,7 @@ inductive
     \<Longrightarrow> g (nid, node) m \<mapsto> succ" |
 
   ParameterNode:
-  "g m (nid, (ParameterNode i)) \<rightarrow> (s_params g)!(nat i)" |
+  "g m (nid, (ParameterNode i)) \<rightarrow> (m nid)" |
 
   ConstantNode:
   "g m (nid, (ConstantNode c)) \<rightarrow> (IntVal c)" |
@@ -214,8 +214,19 @@ code_pred eval_all .
 
 
 (* Example graph evaluation *)
-fun new_state :: "IRGraph \<Rightarrow> Value list \<Rightarrow> EvalState" where
-  "new_state graph params = (EvalState graph params (\<lambda> x. UndefVal))"
+fun new_map_i :: "IRGraph \<Rightarrow> Value list \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> MapState" where
+  "new_map_i g ps [] m = m" |
+  "new_map_i g ps (nid # xs) m = (let m' = (new_map_i g ps xs m) in 
+   (case ((g_nodes g) nid) of 
+    (ParameterNode i) \<Rightarrow> m'(nid := (ps!(nat i))) |
+    _ \<Rightarrow> m'))"
+
+fun new_map :: "IRGraph \<Rightarrow> Value list \<Rightarrow> MapState" where
+  "new_map graph params = new_map_i graph params 
+    (sorted_list_of_set (g_ids graph)) (\<lambda> x . UndefVal)"
+
+fun new_state :: "IRGraph \<Rightarrow> MapState \<Rightarrow> EvalState" where
+  "new_state graph m = (EvalState graph [] m)"
 
 definition double_param_graph :: IRGraph where
   "double_param_graph =
@@ -226,6 +237,12 @@ definition double_param_graph :: IRGraph where
     empty_graph))))"
 lemma "wff_graph double_param_graph"
   unfolding double_param_graph_def by simp
+
+definition double_param_map :: "MapState" where
+  "double_param_map = new_map double_param_graph [IntVal 5]"
+
+definition double_param_state :: "EvalState" where
+  "double_param_state = new_state double_param_graph double_param_map"
 
 definition simple_if_graph :: IRGraph where
   "simple_if_graph =
@@ -246,19 +263,25 @@ definition simple_if_graph :: IRGraph where
 lemma "wff_graph simple_if_graph"
   unfolding simple_if_graph_def by simp
 
+definition simple_if_map :: "MapState" where
+  "simple_if_map = new_map simple_if_graph [IntVal 0, IntVal 20, IntVal 100]"
+
+definition simple_if_state :: "EvalState" where
+  "simple_if_state = new_state simple_if_graph simple_if_map"
+
 notepad begin 
-  have "input_index (new_state simple_if_graph []) 10 5 = 0" by eval
-  have "input_index (new_state simple_if_graph []) 10 6 = 1" by eval
-  have "input_index (new_state simple_if_graph []) 11 10 = 0" by eval
-  have "input_index (new_state simple_if_graph []) 11 9 = 1" by eval
-  have "input_index (new_state simple_if_graph []) 11 7 = 2" by eval
-  have "input_index (new_state simple_if_graph []) 11 20 = 3" by eval
+  have "input_index simple_if_state 10 5 = 0" by eval
+  have "input_index simple_if_state 10 6 = 1" by eval
+  have "input_index simple_if_state 11 10 = 0" by eval
+  have "input_index simple_if_state 11 9 = 1" by eval
+  have "input_index simple_if_state 11 7 = 2" by eval
+  have "input_index simple_if_state 11 20 = 3" by eval
 end
 
-value "usage 5 0 (new_state simple_if_graph [])" (* (10, MergeNode, ...) *)
-value "usage 6 0 (new_state simple_if_graph [])" (* (10, MergeNode, ...) *)
+value "usage 5 0 simple_if_state" (* (10, MergeNode, ...) *)
+value "usage 6 0 simple_if_state" (* (10, MergeNode, ...) *)
 
-value "phi_list (10, MergeNode, (new_state simple_if_graph []))" (* [(11, PhiNode, ...)] *)
+value "phi_list (10, MergeNode, simple_if_state)" (* [(11, PhiNode, ...)] *)
 
 
 (* Currently causes a wellsortedness error which is resolved by removing
@@ -279,11 +302,11 @@ definition initial_mapping :: "ID \<Rightarrow> Value" where
   "initial_mapping = (\<lambda> x . UndefVal)"
 
 (* IntVal 10 *)
-values "{(s, v). (new_state double_param_graph [IntVal 5]) (0, StartNode) initial_mapping \<mapsto> (s, v)}"
+values "{(s, v). double_param_state (0, StartNode) double_param_map \<mapsto> (s, v)}"
 
 (* IntVal 20 *)
-values "{(s, v). (new_state simple_if_graph [IntVal 0, IntVal 20, IntVal 100]) (0, StartNode) initial_mapping \<mapsto> (s, v)}"
+values "{(s, v). simple_if_state (0, StartNode) simple_if_map \<mapsto> (s, v)}"
 (* IntVal 120 *)
-values "{(s, v). (new_state simple_if_graph [IntVal 1, IntVal 20, IntVal 100]) (0, StartNode) initial_mapping  \<mapsto> (s, v)}"
+values "{(s, v). simple_if_state (0, StartNode) (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100])  \<mapsto> (s, v)}"
 
 end

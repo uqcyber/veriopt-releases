@@ -119,17 +119,14 @@ inductive
 
 
   StartNode:
-  "\<lbrakk>g (successor nid 0 g) m \<mapsto> succ\<rbrakk> 
-    \<Longrightarrow> g (nid, StartNode) m \<mapsto> succ" |
+  "g (nid, StartNode) m \<mapsto> ((get_successor nid 0 g), m)" |
 
   BeginNode: 
-  "\<lbrakk>g (successor nid 0 g) m \<mapsto> succ\<rbrakk>
-    \<Longrightarrow> g (nid, BeginNode) m \<mapsto> succ" |
+  "g (nid, BeginNode) m \<mapsto> ((get_successor nid 0 g), m)" |
 
   MergeNodes:
-  "\<lbrakk>node \<in> merge_nodes;
-    g (successor nid 0 g) m \<mapsto> succ\<rbrakk> 
-    \<Longrightarrow> g (nid, node) m \<mapsto> succ" |
+  "\<lbrakk>node \<in> merge_nodes\<rbrakk> 
+    \<Longrightarrow> g (nid, node) m \<mapsto> ((get_successor nid 0 g), m)" |
 
   ParameterNode:
   "g m (nid, (ParameterNode i)) \<rightarrow> (m nid)" |
@@ -150,15 +147,13 @@ inductive
 
   IfNodeTrue:
   "\<lbrakk>g m (input nid 0 g) \<rightarrow> cond;
-    (val_to_bool cond);
-    g (successor nid 0 g) m \<mapsto> m'\<rbrakk> 
-    \<Longrightarrow> g (nid, IfNode) m \<mapsto> m'" |
+    (val_to_bool cond)\<rbrakk> 
+    \<Longrightarrow> g (nid, IfNode) m \<mapsto> ((get_successor nid 0 g), m)" |
 
   IfNodeFalse:
   "\<lbrakk>g m (input nid 0 g) \<rightarrow> cond;
-    (\<not>(val_to_bool cond));
-    g (successor nid 1 g) m \<mapsto> m'\<rbrakk> 
-    \<Longrightarrow> g (nid, IfNode) m \<mapsto> m'" |
+    (\<not>(val_to_bool cond))\<rbrakk> 
+    \<Longrightarrow> g (nid, IfNode) m \<mapsto> ((get_successor nid 1 g), m)" |
 
   ReturnNode:
   "\<lbrakk>g m (input nid 0 g) \<rightarrow> v\<rbrakk> 
@@ -177,10 +172,8 @@ inductive
     inputs = (phi_inputs i g phis);
     g inputs m \<longmapsto> vs;
 
-    m' = (set_phis phis vs m);
-
-    g (merge, merge_node) m' \<mapsto> succ\<rbrakk> 
-    \<Longrightarrow> g (nid, node) m \<mapsto> succ" |
+    m' = (set_phis phis vs m)\<rbrakk> 
+    \<Longrightarrow> g (nid, node) m \<mapsto> (merge, m')" |
 
   PhiNode:
   "g m (nid, PhiNode) \<rightarrow> m nid"

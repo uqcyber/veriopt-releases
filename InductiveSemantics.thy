@@ -11,44 +11,35 @@ datatype Value =
   UndefVal |
   IntVal int
 
-datatype EvalState = 
-  EvalState 
-    (s_graph: "IRGraph")
-    (s_params: "Value list")
-    (s_phi: "ID \<Rightarrow> Value")
 
 type_synonym MapState = "ID \<Rightarrow> Value"
 
 (* Adds the ability to update fields of datatype without making it a record *)
-local_setup \<open>Datatype_Records.mk_update_defs \<^type_name>\<open>EvalState\<close>\<close>
 
-type_synonym EvalNode = "ID \<times> IRNode \<times> EvalState"
 
-(* Get the type of node for a node id in an eval state *)
-fun get_node :: "ID \<Rightarrow> EvalState \<Rightarrow> IRNode" where
-  "get_node nid s = ((g_nodes (s_graph s)) nid)"
+fun get_graph_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRNode" where
+  "get_graph_node nid g = (g_nodes g) nid"
 
-fun to_eval_node :: "ID \<Rightarrow> EvalState \<Rightarrow> EvalNode" where
-  "to_eval_node nid s = (nid, (get_node nid s), s)"
+fun to_node_pair :: "ID \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode)" where
+  "to_node_pair nid g = (nid, (get_graph_node nid g))"
 
-fun to_eval_node_new :: "ID \<Rightarrow> EvalState \<Rightarrow> (ID \<times> IRNode)" where
-  "to_eval_node_new nid s = (nid, (get_node nid s))"
+fun get_input :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where 
+  "get_input nid i g = ((g_inputs g nid)!i)"
+fun input :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode)" where
+  "input nid i g = (to_node_pair (get_input nid i g) g)"
 
-fun get_input :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> ID" where 
-  "get_input nid i s = ((g_inputs (s_graph s) nid)!i)"
-fun input :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> ID \<times> IRNode" where
-  "input nid i s = (to_eval_node_new (get_input nid i s) s)"
+fun get_successor :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
+  "get_successor nid i g = ((g_successors g nid)!i)"
+fun successor :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID \<times> IRNode" where
+  "successor nid i g = (to_node_pair (get_successor nid i g) g)"
 
-fun get_successor :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> ID" where
-  "get_successor nid i s = ((g_successors (s_graph s) nid)!i)"
-fun successor :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> ID \<times> IRNode" where
-  "successor nid i s = (to_eval_node_new (get_successor nid i s) s)"
 
-fun get_usage :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> ID" where
-  "get_usage nid i s =
-    ((sorted_list_of_set (g_usages (s_graph s) nid))!i)"
-fun usage :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> EvalNode"  where
-  "usage nid i s = (to_eval_node (get_usage nid i s) s)"
+fun get_usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
+  "get_usage nid i g =
+    ((sorted_list_of_set (g_usages g nid))!i)"
+fun usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID \<times> IRNode"  where
+  "usage nid i g = (to_node_pair (get_usage nid i g) g)"
+
 
 (*
    ====
@@ -105,40 +96,33 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index val (x # xs) = (if (x=val) then 0 else find_index val xs + 1)"
 
 
-fun phi_list :: "EvalNode \<Rightarrow> EvalNode list" where
-  "phi_list (n, node, s) = 
-      (map (\<lambda>x. (x, (get_node x s), s))
-        (filter (\<lambda>x.((get_node x s)=PhiNode))
-          (sorted_list_of_set (g_usages (s_graph s) n))))"
+fun phi_list :: "ID \<Rightarrow> IRGraph \<Rightarrow> ID list" where
+  "phi_list nid g = 
+    (filter (\<lambda>x.((get_graph_node x g)=PhiNode))
+      (sorted_list_of_set (g_usages g nid)))"
 
-fun input_index :: "EvalState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
-  "input_index s n n' = find_index n' (g_inputs (s_graph s) n)"
+fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
+  "input_index g n n' = find_index n' (g_inputs g n)"
 
-(* TODO: Deprecate *)
-fun get_input_old :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> ID" where 
-  "get_input_old nid i s = ((g_inputs (s_graph s) nid)!i)"
-fun input_old :: "ID \<Rightarrow> nat \<Rightarrow> EvalState \<Rightarrow> ID \<times> IRNode \<times> EvalState" where
-  "input_old nid i s = (to_eval_node (get_input nid i s) s)"
+fun phi_inputs :: "nat \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> (ID \<times> IRNode) list" where
+  "phi_inputs i g nodes = (map (\<lambda>n. (input n (i + 1) g)) nodes)"
 
-fun phi_inputs :: "nat \<Rightarrow> EvalState \<Rightarrow> EvalNode list \<Rightarrow> EvalNode list" where
-  "phi_inputs i s nodes = (map (\<lambda>(n, _, s). (input_old n (i + 1) s)) nodes)"
-
-fun set_phis :: "MapState \<Rightarrow> EvalNode list \<Rightarrow> Value list \<Rightarrow> MapState" where
-  "set_phis m [] [] = m" |
-  "set_phis m ((x, _, _) # xs) (v # vs) = (set_phis (m(x := v)) xs vs)" |
-  "set_phis m [] (v # vs) = m" |
-  "set_phis m (x # xs) [] = m"
+fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
+  "set_phis [] [] m = m" |
+  "set_phis (nid # xs) (v # vs) m = (set_phis xs vs (m(nid := v)))" |
+  "set_phis [] (v # vs) m = m" |
+  "set_phis (x # xs) [] m = m"
 
 inductive
-  eval :: "EvalState \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> MapState \<times> Value \<Rightarrow> bool" ("_ _ _\<mapsto>_" 55) and
-  eval_exp :: "EvalState \<Rightarrow> MapState \<Rightarrow> ID \<times> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ _\<rightarrow>_" 55) and
-  eval_all :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
+  eval :: "IRGraph \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> MapState \<times> Value \<Rightarrow> bool" ("_ _ _\<mapsto>_" 55) and
+  eval_exp :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<times> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ _\<rightarrow>_" 55) and
+  eval_all :: "IRGraph \<Rightarrow> (ID \<times> IRNode) list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
   for g
   where
 
 
   "g [] m \<longmapsto> []" |
-  "\<lbrakk>g m (nid, node) \<rightarrow> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g ((nid, node, _) # xs) m \<longmapsto> (v # vs)" |
+  "\<lbrakk>g m (nid, node) \<rightarrow> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g ((nid, node) # xs) m \<longmapsto> (v # vs)" |
 
 
   StartNode:
@@ -193,14 +177,14 @@ inductive
   EndNodes:
   "\<lbrakk>node \<in> end_nodes;
 
-    (merge, merge_node, _) = (usage nid 0 g);
+    (merge, merge_node) = (usage nid 0 g);
     i = (input_index g merge nid);
 
-    phis = (phi_list (merge, merge_node, g));
+    phis = (phi_list merge g);
     inputs = (phi_inputs i g phis);
     g inputs m \<longmapsto> vs;
 
-    m' = (set_phis m phis vs);
+    m' = (set_phis phis vs m);
 
     g (merge, merge_node) m' \<mapsto> succ\<rbrakk> 
     \<Longrightarrow> g (nid, node) m \<mapsto> succ" |
@@ -225,9 +209,6 @@ fun new_map :: "IRGraph \<Rightarrow> Value list \<Rightarrow> MapState" where
   "new_map graph params = new_map_i graph params 
     (sorted_list_of_set (g_ids graph)) (\<lambda> x . UndefVal)"
 
-fun new_state :: "IRGraph \<Rightarrow> MapState \<Rightarrow> EvalState" where
-  "new_state graph m = (EvalState graph [] m)"
-
 definition double_param_graph :: IRGraph where
   "double_param_graph =
     (add_node 3 ReturnNode [2] []
@@ -240,9 +221,6 @@ lemma "wff_graph double_param_graph"
 
 definition double_param_map :: "MapState" where
   "double_param_map = new_map double_param_graph [IntVal 5]"
-
-definition double_param_state :: "EvalState" where
-  "double_param_state = new_state double_param_graph double_param_map"
 
 definition simple_if_graph :: IRGraph where
   "simple_if_graph =
@@ -266,22 +244,17 @@ lemma "wff_graph simple_if_graph"
 definition simple_if_map :: "MapState" where
   "simple_if_map = new_map simple_if_graph [IntVal 0, IntVal 20, IntVal 100]"
 
-definition simple_if_state :: "EvalState" where
-  "simple_if_state = new_state simple_if_graph simple_if_map"
-
 notepad begin 
-  have "input_index simple_if_state 10 5 = 0" by eval
-  have "input_index simple_if_state 10 6 = 1" by eval
-  have "input_index simple_if_state 11 10 = 0" by eval
-  have "input_index simple_if_state 11 9 = 1" by eval
-  have "input_index simple_if_state 11 7 = 2" by eval
-  have "input_index simple_if_state 11 20 = 3" by eval
+  have "input_index simple_if_graph 10 5 = 0" by eval
+  have "input_index simple_if_graph 10 6 = 1" by eval
+  have "input_index simple_if_graph 11 10 = 0" by eval
+  have "input_index simple_if_graph 11 9 = 1" by eval
+  have "input_index simple_if_graph 11 7 = 2" by eval
+  have "input_index simple_if_graph 11 20 = 3" by eval
+  have "usage 5 0 simple_if_graph = (10, MergeNode)" by eval
+  have "usage 6 0 simple_if_graph = (10, MergeNode)" by eval
+  have "phi_list 10 simple_if_graph = [11]" by eval
 end
-
-value "usage 5 0 simple_if_state" (* (10, MergeNode, ...) *)
-value "usage 6 0 simple_if_state" (* (10, MergeNode, ...) *)
-
-value "phi_list (10, MergeNode, simple_if_state)" (* [(11, PhiNode, ...)] *)
 
 
 (* Currently causes a wellsortedness error which is resolved by removing
@@ -298,15 +271,12 @@ value "phi_list (10, MergeNode, simple_if_state)" (* [(11, PhiNode, ...)] *)
  * inductive rules
  *)
 
-definition initial_mapping :: "ID \<Rightarrow> Value" where
-  "initial_mapping = (\<lambda> x . UndefVal)"
-
 (* IntVal 10 *)
-values "{(s, v). double_param_state (0, StartNode) double_param_map \<mapsto> (s, v)}"
+values "{(s, v). double_param_graph (0, StartNode) double_param_map \<mapsto> (s, v)}"
 
 (* IntVal 20 *)
-values "{(s, v). simple_if_state (0, StartNode) simple_if_map \<mapsto> (s, v)}"
+values "{(s, v). simple_if_graph (0, StartNode) simple_if_map \<mapsto> (s, v)}"
 (* IntVal 120 *)
-values "{(s, v). simple_if_state (0, StartNode) (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100])  \<mapsto> (s, v)}"
+values "{(s, v). simple_if_graph (0, StartNode) (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100])  \<mapsto> (s, v)}"
 
 end

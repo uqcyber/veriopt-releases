@@ -131,13 +131,14 @@ fun set_phis :: "MapState \<Rightarrow> EvalNode list \<Rightarrow> Value list \
 
 inductive
   eval :: "EvalState \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> MapState \<times> Value \<Rightarrow> bool" ("_ _ _\<mapsto>_" 55) and
+  eval_exp :: "EvalState \<Rightarrow> MapState \<Rightarrow> ID \<times> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ _\<rightarrow>_" 55) and
   eval_all :: "EvalState \<Rightarrow> EvalNode list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
   for s
   where
 
 
   "s [] m \<longmapsto> []" |
-  "\<lbrakk>s (nid, node) m \<mapsto> (m', v); s xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> s ((nid, node, _) # xs) m \<longmapsto> (v # vs)" |
+  "\<lbrakk>s m (nid, node) \<rightarrow> v; s xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> s ((nid, node, _) # xs) m \<longmapsto> (v # vs)" |
 
 
   StartNode:
@@ -154,37 +155,37 @@ inductive
     \<Longrightarrow> s (nid, node) m \<mapsto> succ" |
 
   ParameterNode:
-  "s (nid, (ParameterNode i)) m \<mapsto> (m, ((s_params s)!(nat i)))" |
+  "s m (nid, (ParameterNode i)) \<rightarrow> (s_params s)!(nat i)" |
 
   ConstantNode:
-  "s (nid, (ConstantNode c)) m \<mapsto> (m, (IntVal c))" |
+  "s m (nid, (ConstantNode c)) \<rightarrow> (IntVal c)" |
 
   UnaryNode:
   "\<lbrakk>node \<in> unary_nodes;
-    s (input nid 0 s) m \<mapsto> (m', v)\<rbrakk> 
-    \<Longrightarrow> s (nid, node) m \<mapsto> (m', (unary_expr node v))" |
+    s m (input nid 0 s) \<rightarrow> v\<rbrakk> 
+    \<Longrightarrow> s m (nid, node) \<rightarrow> (unary_expr node v)" |
 
   BinaryNode:
   "\<lbrakk>node \<in> binary_nodes;
-    s (input nid 0 s) m \<mapsto> (m', v1);
-    s (input nid 1 s) m \<mapsto> (m'', v2)\<rbrakk> 
-    \<Longrightarrow> s (nid, node) m \<mapsto> (m'', (binary_expr node v1 v2))" |
+    s m (input nid 0 s) \<rightarrow> v1;
+    s m (input nid 1 s) \<rightarrow> v2\<rbrakk> 
+    \<Longrightarrow> s m (nid, node) \<rightarrow> (binary_expr node v1 v2)" |
 
   IfNodeTrue:
-  "\<lbrakk>s (input nid 0 s) m \<mapsto> (m', cond);
+  "\<lbrakk>s m (input nid 0 s) \<rightarrow> cond;
     (val_to_bool cond);
-    s (successor nid 0 s) m \<mapsto> m''\<rbrakk> 
-    \<Longrightarrow> s (nid, IfNode) m \<mapsto> m''" |
+    s (successor nid 0 s) m \<mapsto> m'\<rbrakk> 
+    \<Longrightarrow> s (nid, IfNode) m \<mapsto> m'" |
 
   IfNodeFalse:
-  "\<lbrakk>s (input nid 0 s) m \<mapsto> (m', cond);
+  "\<lbrakk>s m (input nid 0 s) \<rightarrow> cond;
     (\<not>(val_to_bool cond));
-    s (successor nid 1 s) m \<mapsto> m''\<rbrakk> 
-    \<Longrightarrow> s (nid, IfNode) m \<mapsto> m''" |
+    s (successor nid 1 s) m \<mapsto> m'\<rbrakk> 
+    \<Longrightarrow> s (nid, IfNode) m \<mapsto> m'" |
 
   ReturnNode:
-  "\<lbrakk>s (input nid 0 s) m \<mapsto> (m', v)\<rbrakk> 
-    \<Longrightarrow> s (nid, ReturnNode) m \<mapsto> (m', v)" |
+  "\<lbrakk>s m (input nid 0 s) \<rightarrow> v\<rbrakk> 
+    \<Longrightarrow> s (nid, ReturnNode) m \<mapsto> (m, v)" |
  
 
   (* Solution to the eval_all but the evalution gives up :(
@@ -205,7 +206,7 @@ inductive
     \<Longrightarrow> s (nid, node) m \<mapsto> succ" |
 
   PhiNode:
-  "s (nid, PhiNode) m \<mapsto> (m, m nid)"
+  "s m (nid, PhiNode) \<rightarrow> m nid"
 
 
 code_pred eval .

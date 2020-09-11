@@ -21,9 +21,9 @@ begin
 type_synonym ID = "nat"
 
 datatype (discs_sels) IRNode = 
-  CallNode
+  CallNode (startNode: ID)
   | ConstantNode (intValue: int)  (* TODO: should be string *)
-  | ParameterNode (index: int)    (* TODO: can index be nat? *)
+  | ParameterNode (index: nat)    (* TODO: can index be nat? *)
   | PhiNode  (* TODO: subclasses GuardPhiNode, ValuePhiNode, MemoryPhiNode *)
   | AddNode
   | SubNode
@@ -73,6 +73,26 @@ type_synonym InputEdges = "ID \<Rightarrow> ID list"
 (* Here is the main Graal data structure - an entire IR Graph.
    Note that we *name* each component - like a record.
 *)
+
+datatype Node = N
+  (n_kind : IRNode)
+  (n_inputs : "ID list")
+  (n_successors : "ID list")
+
+type_synonym Graph = "ID \<Rightarrow> Node" (* should be a partial function *)
+
+fun kind :: "Graph \<Rightarrow> ID \<Rightarrow> IRNode" where
+  "kind g nid = n_kind(g nid)"
+
+fun inp :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "inp g nid = n_inputs(g nid)"
+
+fun usagex :: "Graph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "usagex g nid = { nid' .  nid \<in> set(inp g nid')}"
+
+fun succ :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "succ g nid = n_successors(g nid)"
+
 datatype IRGraph =
   Graph
     (g_ids: "ID set")

@@ -1,8 +1,9 @@
-session semantics = "HOL-Library" +
+session semantics = "HOL-Word" +
   options [document = pdf, document_output = "output", quick_and_dirty, show_question_marks = false]
-  theories
-    GraalIR1_fromID
+  theories [document = false]
     AbsGraph
+    GraalIR1_fromID
+  theories
     InductiveSemantics
   document_files
     "root.tex"

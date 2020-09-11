@@ -33,9 +33,8 @@ fun usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
     ((sorted_list_of_set (g_usages g nid))!i)"
 
 
-fun val_to_bool :: "Value \<Rightarrow> bool" where
-  "val_to_bool (IntVal x) = (if x = 0 then False else True)" |
-  "val_to_bool (UndefVal) = False"
+fun val_to_bool :: "int32 \<Rightarrow> bool" where
+  "val_to_bool x = (if x = 0 then False else True)" 
 
 fun bool_to_val :: "bool \<Rightarrow> Value" where
   "bool_to_val True = (IntVal 1)" |
@@ -43,7 +42,8 @@ fun bool_to_val :: "bool \<Rightarrow> Value" where
 
 fun unary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_expr AbsNode (IntVal x) = (IntVal (if (x < 0) then -x else x))" |
-  "unary_expr NegateNode x = (bool_to_val (\<not>(val_to_bool x)))" |
+  "unary_expr NegateNode (IntVal x) = (IntVal (uminus x))" |
+  "unary_expr LogicNegationNode (IntVal x) = (bool_to_val (\<not>(val_to_bool x)))" |
   "unary_expr _ _ = UndefVal"
 
 fun binary_bool_expr :: "IRNode \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> Value" where
@@ -56,9 +56,9 @@ fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow>
   "binary_expr AddNode (IntVal x) (IntVal y) = (IntVal (x + y))" |
   "binary_expr SubNode (IntVal x) (IntVal y) = (IntVal (x - y))" |
   "binary_expr MulNode (IntVal x) (IntVal y) = (IntVal (x * y))" |
-  "binary_expr AndNode x y = (binary_bool_expr AddNode (val_to_bool x) (val_to_bool y))" |
-  "binary_expr OrNode x y = (binary_bool_expr OrNode (val_to_bool x) (val_to_bool y))" |
-  "binary_expr XorNode x y = (binary_bool_expr XorNode (val_to_bool x) (val_to_bool y))" |
+  "binary_expr AndNode (IntVal x) (IntVal y) = (IntVal (x AND y))" |
+  "binary_expr OrNode (IntVal x) (IntVal y) = (IntVal (x OR y))" |
+  "binary_expr XorNode (IntVal x) (IntVal y) = (IntVal (x XOR y))" |
   "binary_expr IntegerLessThanNode (IntVal x) (IntVal y) = (bool_to_val (x < y))" |
   "binary_expr IntegerEqualsNode (IntVal x) (IntVal y) = (bool_to_val (x = y))" |
   "binary_expr _ _ _ = UndefVal"
@@ -83,16 +83,16 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index val (x # xs) = (if (x=val) then 0 else find_index val xs + 1)"
 
 
-fun phi_list :: "ID \<Rightarrow> IRGraph \<Rightarrow> ID list" where
-  "phi_list nid g = 
-    (filter (\<lambda>x.((node_type x g)=PhiNode))
-      (sorted_list_of_set (g_usages g nid)))"
+fun phi_listx :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "phi_listx g nid = 
+    (filter (\<lambda>x.((kind g x)=PhiNode))
+      (sorted_list_of_set (usagex g nid)))"
 
 fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
   "input_index g n n' = find_index n' (g_inputs g n)"
 
-fun phi_inputs :: "nat \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> (ID \<times> IRNode) list" where
-  "phi_inputs i g nodes = (map (\<lambda>n. (input n (i + 1) g)) nodes)"
+fun phi_inputsx :: "Graph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
+  "phi_inputsx g i nodes = (map (\<lambda>n. (inp g n)!(i + 1)) nodes)"
 
 fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
   "set_phis [] [] m = m" |
@@ -102,74 +102,87 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
 
 
 inductive
-  eval :: "IRGraph \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> ID \<times> MapState \<Rightarrow> bool" ("_ _ _\<mapsto>_" 55) and
-  eval_exp :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<times> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ _\<rightarrow>_" 55) and
+  step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_ \<turnstile> _\<mapsto>_" 55) and
+  step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<longrightarrow> _" 55) and 
+  eval_exp :: "Graph \<Rightarrow>  ID \<times> MapState \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<rightarrow>_" 55) and
 
-  eval_all :: "IRGraph \<Rightarrow> (ID \<times> IRNode) list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
+  eval_all :: "Graph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
   for g
   where
 
 
   "g [] m \<longmapsto> []" |
-  "\<lbrakk>g m (nid, node) \<rightarrow> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g ((nid, node) # xs) m \<longmapsto> (v # vs)" |
+  "\<lbrakk>g (nid, m) \<rightarrow> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)" |
+  "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (nid', m')\<rbrakk> \<Longrightarrow> g \<turnstile> (nid, m) # xs \<longrightarrow> (nid', m') # xs" |
 
+  CallNodeStep:
+  "\<lbrakk>kind g nid = CallNode start\<rbrakk>
+   \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, (\<lambda>id. UndefVal))#(nid,m)#xs" |
 
-  SequentialNodes:
-  "\<lbrakk>node \<in> {StartNode, BeginNode} \<union> merge_nodes\<rbrakk> 
-    \<Longrightarrow> g (nid, node) m \<mapsto> ((successor nid 0 g), m)" |
-
-  ParameterNode:
-  "g m (nid, (ParameterNode i)) \<rightarrow> (m nid)" |
-
-  ConstantNode:
-  "g m (nid, (ConstantNode c)) \<rightarrow> (IntVal (word_of_int c))" |
-
-  UnaryNode:
-  "\<lbrakk>node \<in> unary_nodes;
-    g m (input nid 0 g) \<rightarrow> v\<rbrakk> 
-    \<Longrightarrow> g m (nid, node) \<rightarrow> (unary_expr node v)" |
-
-  BinaryNode:
-  "\<lbrakk>node \<in> binary_nodes;
-    g m (input nid 0 g) \<rightarrow> v1;
-    g m (input nid 1 g) \<rightarrow> v2\<rbrakk> 
-    \<Longrightarrow> g m (nid, node) \<rightarrow> (binary_expr node v1 v2)" |
-
-  IfNodeTrue:
-  "\<lbrakk>g m (input nid 0 g) \<rightarrow> cond;
-    (val_to_bool cond)\<rbrakk> 
-    \<Longrightarrow> g (nid, IfNode) m \<mapsto> ((successor nid 0 g), m)" |
-
-  IfNodeFalse:
-  "\<lbrakk>g m (input nid 0 g) \<rightarrow> cond;
-    (\<not>(val_to_bool cond))\<rbrakk> 
-    \<Longrightarrow> g (nid, IfNode) m \<mapsto> ((successor nid 1 g), m)" |
+  CallNodeEval:
+  "\<lbrakk>kind g nid = CallNode start\<rbrakk>
+  \<Longrightarrow> g (nid, m) \<rightarrow> m nid" |
 
   ReturnNode:
-  "\<lbrakk>g m (input nid 0 g) \<rightarrow> v\<rbrakk> 
-    \<Longrightarrow> g (nid, ReturnNode) m \<mapsto> (0, m(0 := v))" |
- 
+  "\<lbrakk>kind g nid = ReturnNode;
+    g ((inp g nid)!0, m) \<rightarrow> v;
+    m' = m(call_nid := v)
+    \<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs" |
+    
+  SequentialNode:
+  "\<lbrakk>node = kind g nid;
+    node \<in> {StartNode, BeginNode} \<union> merge_nodes\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> ((succ g nid)!0, m)" |
+
+  ParameterNode:
+  "\<lbrakk>kind g nid = ParameterNode i\<rbrakk>
+  \<Longrightarrow> g (nid, m) \<rightarrow> (m nid)" |
+
+  ConstantNode:
+  "\<lbrakk>kind g nid = ConstantNode c\<rbrakk>
+  \<Longrightarrow> g (nid, m) \<rightarrow> (IntVal (word_of_int c))" |
+
+  UnaryNode:
+  "\<lbrakk>node = kind g nid;
+    node \<in> unary_nodes;
+    g ((inp g nid)!0, m) \<rightarrow> v\<rbrakk> 
+    \<Longrightarrow> g (nid, m) \<rightarrow> (unary_expr node v)" |
+
+  BinaryNode:
+  "\<lbrakk>node = kind g nid;
+    node \<in> binary_nodes;
+    g ((inp g nid)!0, m) \<rightarrow> v1;
+    g ((inp g nid)!1, m) \<rightarrow> v2\<rbrakk> 
+    \<Longrightarrow> g (nid, m) \<rightarrow> (binary_expr node v1 v2)" |
+
+  IfNode:
+  "\<lbrakk>kind g nid = IfNode;
+    g ((inp g nid)!0, m) \<rightarrow> (IntVal cond)\<rbrakk>
+   \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> ((succ g nid)!(if val_to_bool cond then 0 else 1), m)" | 
 
   (* Solution to the eval_all but the evalution gives up :(
    * \<forall> i. i < length inputs \<longrightarrow> (\<exists> s' . (inputs!i \<mapsto> (s',vs!i))); *)
   EndNodes:
-  "\<lbrakk>node \<in> end_nodes;
+  "\<lbrakk>node = kind g nid;
+    node \<in> end_nodes;
+    kind g merge = MergeNode;
 
-    merge = (usage nid 0 g);
-    i = (input_index g merge nid);
+    (inp g merge)!i = nid;
 
-    phis = (phi_list merge g);
-    inputs = (phi_inputs i g phis);
+    phis = (phi_listx g merge);
+    inputs = (phi_inputsx g i phis);
     g inputs m \<longmapsto> vs;
 
     m' = (set_phis phis vs m)\<rbrakk> 
-    \<Longrightarrow> g (nid, node) m \<mapsto> (merge, m')" |
+    \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> (merge, m')" |
 
   PhiNode:
-  "g m (nid, PhiNode) \<rightarrow> m nid"
+  "\<lbrakk>kind g nid = PhiNode\<rbrakk>
+   \<Longrightarrow>  g (nid, m) \<rightarrow> m nid"
 
 
-code_pred eval .
+code_pred step .
 code_pred eval_all .
 
 
@@ -178,7 +191,7 @@ fun new_map_i :: "IRGraph \<Rightarrow> Value list \<Rightarrow> ID list \<Right
   "new_map_i g ps [] m = m" |
   "new_map_i g ps (nid # xs) m = (let m' = (new_map_i g ps xs m) in 
    (case ((g_nodes g) nid) of 
-    (ParameterNode i) \<Rightarrow> m'(nid := (ps!(nat i))) |
+    (ParameterNode i) \<Rightarrow> m'(nid := (ps!i)) |
     _ \<Rightarrow> m'))"
 
 fun new_map :: "IRGraph \<Rightarrow> Value list \<Rightarrow> MapState" where
@@ -229,7 +242,7 @@ notepad begin
   have "input_index simple_if_graph 11 20 = 3" by eval
   have "usage 5 0 simple_if_graph = 10" by eval
   have "usage 6 0 simple_if_graph = 10" by eval
-  have "phi_list 10 simple_if_graph = [11]" by eval
+  have "phi_listx simple_if_graph 10 = [11]" by eval
 end
 
 
@@ -247,13 +260,13 @@ end
  * inductive rules
  *)
 
-inductive eval_graph :: "IRGraph \<Rightarrow> ID \<times> IRNode \<Rightarrow> MapState \<Rightarrow> ID \<times> MapState \<Rightarrow> bool" where
-  "\<lbrakk>g node m \<mapsto> (next, m');
-    next = 0\<rbrakk> \<Longrightarrow> eval_graph g node m (next, m')" |
+inductive eval_graph :: "Graph \<Rightarrow> ID \<times> MapState \<Rightarrow> ID \<times> MapState \<Rightarrow> bool" where
+  "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (next, m');
+    next = 0\<rbrakk> \<Longrightarrow> eval_graph g (nid, m) (next, m')" |
 
-  "\<lbrakk>g node m \<mapsto> (next, m');
+  "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (next, m');
     next \<noteq> 0;
-    eval_graph g (next, node_type next g) m' (next', m'')\<rbrakk> \<Longrightarrow> eval_graph g node m (next', m'')"
+    eval_graph g (next, m') (next', m'')\<rbrakk> \<Longrightarrow> eval_graph g (nid, m) (next', m'')"
 
 code_pred "eval_graph" .
 

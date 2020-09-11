@@ -14,24 +14,6 @@ datatype Value =
 
 type_synonym MapState = "ID \<Rightarrow> Value"
 
-fun node_type :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRNode" where
-  "node_type nid g = (g_nodes g) nid"
-
-fun to_node_pair :: "ID \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode)" where
-  "to_node_pair nid g = (nid, (node_type nid g))"
-
-fun get_input :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where 
-  "get_input nid i g = ((g_inputs g nid)!i)"
-fun input :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode)" where
-  "input nid i g = (to_node_pair (get_input nid i g) g)"
-
-fun successor :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
-  "successor nid i g = ((g_successors g nid)!i)"
-
-fun usage :: "ID \<Rightarrow> nat \<Rightarrow> IRGraph \<Rightarrow> ID" where
-  "usage nid i g =
-    ((sorted_list_of_set (g_usages g nid))!i)"
-
 
 fun val_to_bool :: "int32 \<Rightarrow> bool" where
   "val_to_bool x = (if x = 0 then False else True)" 
@@ -45,12 +27,6 @@ fun unary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_expr NegateNode (IntVal x) = (IntVal (uminus x))" |
   "unary_expr LogicNegationNode (IntVal x) = (bool_to_val (\<not>(val_to_bool x)))" |
   "unary_expr _ _ = UndefVal"
-
-fun binary_bool_expr :: "IRNode \<Rightarrow> bool \<Rightarrow> bool \<Rightarrow> Value" where
-  "binary_bool_expr AndNode x y = (bool_to_val (x \<and> y))" |
-  "binary_bool_expr OrNode x y = (bool_to_val (x \<or> y))" |
-  "binary_bool_expr XorNode x y = (bool_to_val (x \<noteq> y))" |
-  "binary_bool_expr _ _ _ = UndefVal"
 
 fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "binary_expr AddNode (IntVal x) (IntVal y) = (IntVal (x + y))" |
@@ -83,16 +59,16 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index val (x # xs) = (if (x=val) then 0 else find_index val xs + 1)"
 
 
-fun phi_listx :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "phi_listx g nid = 
+fun phi_list :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "phi_list g nid = 
     (filter (\<lambda>x.((kind g x)=PhiNode))
       (sorted_list_of_set (usagex g nid)))"
 
 fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
   "input_index g n n' = find_index n' (g_inputs g n)"
 
-fun phi_inputsx :: "Graph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
-  "phi_inputsx g i nodes = (map (\<lambda>n. (inp g n)!(i + 1)) nodes)"
+fun phi_inputs :: "Graph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
+  "phi_inputs g i nodes = (map (\<lambda>n. (inp g n)!(i + 1)) nodes)"
 
 fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
   "set_phis [] [] m = m" |
@@ -100,11 +76,14 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
 
+fun inpu :: "Graph \<Rightarrow> ID \<Rightarrow> nat \<Rightarrow> ID" where
+  "inpu g nid i = (inp g nid)!i"
+
 
 inductive
   step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_ \<turnstile> _\<mapsto>_" 55) and
   step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<longrightarrow> _" 55) and 
-  eval_exp :: "Graph \<Rightarrow>  ID \<times> MapState \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<rightarrow>_" 55) and
+  eval_exp :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<rightarrow>_" 55) and
 
   eval_all :: "Graph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
   for g
@@ -119,17 +98,24 @@ inductive
   "\<lbrakk>kind g nid = CallNode start\<rbrakk>
    \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, (\<lambda>id. UndefVal))#(nid,m)#xs" |
 
+
   CallNodeEval:
   "\<lbrakk>kind g nid = CallNode start\<rbrakk>
   \<Longrightarrow> g (nid, m) \<rightarrow> m nid" |
 
+(*
   ReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<rightarrow> v;
     m' = m(call_nid := v)
     \<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs" |
-    
+*)
+  ReturnNode:
+  "\<lbrakk>kind g nid = ReturnNode;
+    g ((inp g nid)!0, m) \<rightarrow> v\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> (0, m(0 := v))" |
+
   SequentialNode:
   "\<lbrakk>node = kind g nid;
     node \<in> {StartNode, BeginNode} \<union> merge_nodes\<rbrakk> 
@@ -144,25 +130,25 @@ inductive
   \<Longrightarrow> g (nid, m) \<rightarrow> (IntVal (word_of_int c))" |
 
   UnaryNode:
-  "\<lbrakk>node = kind g nid;
-    node \<in> unary_nodes;
+  "\<lbrakk>kind g nid \<in> unary_nodes;
     g ((inp g nid)!0, m) \<rightarrow> v\<rbrakk> 
-    \<Longrightarrow> g (nid, m) \<rightarrow> (unary_expr node v)" |
+    \<Longrightarrow> g (nid, m) \<rightarrow> (unary_expr (kind g nid) v)" |
 
   BinaryNode:
-  "\<lbrakk>node = kind g nid;
-    node \<in> binary_nodes;
-    g ((inp g nid)!0, m) \<rightarrow> v1;
-    g ((inp g nid)!1, m) \<rightarrow> v2\<rbrakk> 
-    \<Longrightarrow> g (nid, m) \<rightarrow> (binary_expr node v1 v2)" |
+  "\<lbrakk>
+    kind g nid \<in> binary_nodes;
+    g (inpu g nid 0, m) \<rightarrow> v1;
+    g (inpu g nid 1, m) \<rightarrow> v2\<rbrakk> 
+    \<Longrightarrow> g (nid, m) \<rightarrow> (binary_expr (kind g nid) v1 v2)" |
 
   IfNode:
   "\<lbrakk>kind g nid = IfNode;
     g ((inp g nid)!0, m) \<rightarrow> (IntVal cond)\<rbrakk>
-   \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> ((succ g nid)!(if val_to_bool cond then 0 else 1), m)" | 
+   \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> ((succ g nid)!(if val_to_bool cond then 0 else 1), m)"  
 
   (* Solution to the eval_all but the evalution gives up :(
    * \<forall> i. i < length inputs \<longrightarrow> (\<exists> s' . (inputs!i \<mapsto> (s',vs!i))); *)
+(*
   EndNodes:
   "\<lbrakk>node = kind g nid;
     node \<in> end_nodes;
@@ -170,8 +156,8 @@ inductive
 
     (inp g merge)!i = nid;
 
-    phis = (phi_listx g merge);
-    inputs = (phi_inputsx g i phis);
+    phis = (phi_list g merge);
+    inputs = (phi_inputs g i phis);
     g inputs m \<longmapsto> vs;
 
     m' = (set_phis phis vs m)\<rbrakk> 
@@ -180,9 +166,11 @@ inductive
   PhiNode:
   "\<lbrakk>kind g nid = PhiNode\<rbrakk>
    \<Longrightarrow>  g (nid, m) \<rightarrow> m nid"
-
+*)
 
 code_pred step .
+code_pred step_top .
+code_pred eval_exp .
 code_pred eval_all .
 
 
@@ -197,6 +185,19 @@ fun new_map_i :: "IRGraph \<Rightarrow> Value list \<Rightarrow> ID list \<Right
 fun new_map :: "IRGraph \<Rightarrow> Value list \<Rightarrow> MapState" where
   "new_map graph params = new_map_i graph params 
     (sorted_list_of_set (g_ids graph)) (\<lambda> x . UndefVal)"
+
+
+definition simple_return_graph :: IRGraph where
+  "simple_return_graph =
+    (add_node 2 ReturnNode [1] []
+    (add_node 1 (ConstantNode 42) [] []
+    (add_node 0 StartNode [] [2]
+    empty_graph)))"
+lemma "wff_graph simple_return_graph"
+  unfolding simple_return_graph_def by simp
+
+definition simple_return_map :: "MapState" where
+  "simple_return_map = new_map simple_return_graph []"
 
 definition double_param_graph :: IRGraph where
   "double_param_graph =
@@ -233,6 +234,14 @@ lemma "wff_graph simple_if_graph"
 definition simple_if_map :: "MapState" where
   "simple_if_map = new_map simple_if_graph [IntVal 0, IntVal 20, IntVal 100]"
 
+fun ir_to_graph_i :: "IRGraph \<Rightarrow> ID list \<Rightarrow> Graph \<Rightarrow> Graph" where
+  "ir_to_graph_i ir [] g = g" |
+  "ir_to_graph_i ir (n # ns) g = (ir_to_graph_i ir ns g)(n := (N (g_nodes ir n) (g_inputs ir n) (g_successors ir n)))"
+
+fun ir_to_graph :: "IRGraph \<Rightarrow> Graph" where
+  "ir_to_graph g = ir_to_graph_i g 
+      (sorted_list_of_set (g_ids g)) (\<lambda>x . (N StartNode [] []))"
+
 notepad begin 
   have "input_index simple_if_graph 10 5 = 0" by eval
   have "input_index simple_if_graph 10 6 = 1" by eval
@@ -240,25 +249,9 @@ notepad begin
   have "input_index simple_if_graph 11 9 = 1" by eval
   have "input_index simple_if_graph 11 7 = 2" by eval
   have "input_index simple_if_graph 11 20 = 3" by eval
-  have "usage 5 0 simple_if_graph = 10" by eval
-  have "usage 6 0 simple_if_graph = 10" by eval
-  have "phi_listx simple_if_graph 10 = [11]" by eval
+  have "phi_list (ir_to_graph simple_if_graph) 10 = [11]" by eval
 end
 
-
-(* Currently causes a wellsortedness error which is resolved by removing
- * all IRNode constructors which have parameters e.g (ParameterNode i)
- * Specifically it is unhappy as nat \<Rightarrow> IRNode is not a sort equal
- * cause nat is not of sort enum
- * 
- * export_code eval in Scala module_name Compiler
- *
- * Code generated when removing the offending IRNode constructors is
- * available in the code_gen folder.
- * 
- * Note: "code_pred eval ." is required to generate code equations from
- * inductive rules
- *)
 
 inductive eval_graph :: "Graph \<Rightarrow> ID \<times> MapState \<Rightarrow> ID \<times> MapState \<Rightarrow> bool" where
   "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (next, m');
@@ -271,11 +264,26 @@ inductive eval_graph :: "Graph \<Rightarrow> ID \<times> MapState \<Rightarrow> 
 code_pred "eval_graph" .
 
 (* IntVal 10 *)
-values "{(n, map m [0]) |n m. double_param_graph (0, StartNode) double_param_map \<mapsto> (n, m)}"
-values "{map m [0] |n m. eval_graph double_param_graph (0, StartNode) double_param_map (n, m)}"
+definition simple_return :: "Graph" where
+  "simple_return = (ir_to_graph simple_return_graph)"
+values "{(n, map m [0]) |n m. simple_return \<turnstile> (0, simple_return_map) \<mapsto> (n, m)}"
+values "{(n, map m [0]) |n m. simple_return \<turnstile> (2, simple_return_map) \<mapsto> (n, m)}"
+value "(inp simple_return 2)!0"
+values "{v |v. simple_return (1, simple_return_map) \<rightarrow> v}"
 
+values "{map m [0] |n m. eval_graph simple_return (0, double_param_map) (n, m)}"
+
+definition double_param :: "Graph" where
+  "double_param = (ir_to_graph double_param_graph)"
+values "{(n, map m [0]) |n m. double_param \<turnstile> (0, double_param_map) \<mapsto> (n, m)}"
+values "{(n, map m [0]) |n m. double_param \<turnstile> (3, double_param_map) \<mapsto> (n, m)}"
+
+values "{map m [0] |n m. eval_graph double_param (0, double_param_map) (n, m)}"
+
+definition simple_if :: "Graph" where
+  "simple_if = (ir_to_graph simple_if_graph)"
 (* IntVal 20 *)
-values "{(n, map m [0]) |n m. simple_if_graph (0, StartNode) simple_if_map \<mapsto> (n, m)}"
+values "{(n, map m [0]) |n m. simple_if \<turnstile> (0, simple_if_map) \<mapsto> (n, m)}"
 values "{map m [0] |n m. eval_graph simple_if_graph (0, StartNode) simple_if_map (n, m)}"
 (* IntVal 120 *)
 values "{(n, map m [0]) |n m. simple_if_graph (0, StartNode) (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100]) \<mapsto> (n, m)}"

@@ -75,40 +75,77 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
 
+fun set_params :: "Graph \<Rightarrow> ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
+  "set_params g [] vs m = m" |
+  "set_params g (nid # xs) vs m = (let m' = (set_params g xs vs m) in 
+   (case (kind g nid) of 
+    (ParameterNode i) \<Rightarrow> m'(nid := (vs!i)) |
+    _ \<Rightarrow> m'))"
+
 
 fun usage :: "Graph \<Rightarrow> ID \<Rightarrow> nat \<Rightarrow> ID" where
   "usage g nid i = (sorted_list_of_set (usagex g nid))!i"
 
 
 inductive
-  step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_ \<turnstile> _\<mapsto>_" 55) and
-  step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<longrightarrow> _" 55) and 
-  eval_exp :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<rightarrow>_" 55) and
-
+  eval :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<rightarrow>_" 55) and
   eval_all :: "Graph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
   for g
   where
 
+  CallNodeEval:
+  "\<lbrakk>kind g nid = CallNode start\<rbrakk>
+    \<Longrightarrow> g (nid, m) \<rightarrow> m nid" |
+
+  ParameterNode:
+  "\<lbrakk>kind g nid = ParameterNode i\<rbrakk>
+    \<Longrightarrow> g (nid, m) \<rightarrow> m nid" |
+
+  PhiNode:
+  "\<lbrakk>kind g nid = PhiNode\<rbrakk>
+    \<Longrightarrow>  g (nid, m) \<rightarrow> m nid" |
+
+  ConstantNode:
+  "\<lbrakk>kind g nid = ConstantNode c\<rbrakk>
+    \<Longrightarrow> g (nid, m) \<rightarrow> (IntVal (word_of_int c))" |
+
+  UnaryNode:
+  "\<lbrakk>kind g nid \<in> unary_nodes;
+    g ((inp g nid)!0, m) \<rightarrow> v\<rbrakk> 
+    \<Longrightarrow> g (nid, m) \<rightarrow> (unary_expr (kind g nid) v)" |
+
+  BinaryNode:
+  "\<lbrakk>kind g nid \<in> binary_nodes;
+    g ((inp g nid)!0, m) \<rightarrow> v1;
+    g ((inp g nid)!1, m) \<rightarrow> v2\<rbrakk> 
+    \<Longrightarrow> g (nid, m) \<rightarrow> (binary_expr (kind g nid) v1 v2)" |
 
   "g [] m \<longmapsto> []" |
-  "\<lbrakk>g (nid, m) \<rightarrow> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)" |
+  "\<lbrakk>g (nid, m) \<rightarrow> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)"
 
+code_pred eval .
+code_pred eval_all .
+  
+
+inductive
+  step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_ \<turnstile> _\<mapsto>_" 55) and
+  step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<longrightarrow> _" 55) 
+  for g
+  where
 
   "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (nid', m')\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m) # xs \<longrightarrow> (nid', m') # xs" |
 
   CallNodeStep:
-  "\<lbrakk>kind g nid = CallNode start\<rbrakk>
-   \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m)#(nid,m)#xs" |
-
-  CallNodeEval:
-  "\<lbrakk>kind g nid = CallNode start\<rbrakk>
-  \<Longrightarrow> g (nid, m) \<rightarrow> m nid" |
+  "\<lbrakk>kind g nid = CallNode start;
+    g (inp g nid) m \<longmapsto> vs;
+    m' = (set_params g (sorted_list_of_set (fset (fmdom g))) vs m)\<rbrakk>
+    \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m')#(nid,m)#xs" |
 
   ReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<rightarrow> v;
-    m' = m(call_nid := v)\<rbrakk> 
+    m' = call_m(call_nid := v)\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs" |
 
   ExitReturnNode:
@@ -122,29 +159,10 @@ inductive
     node \<in> {StartNode, BeginNode} \<union> merge_nodes\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> ((succ g nid)!0, m)" |
 
-  ParameterNode:
-  "\<lbrakk>kind g nid = ParameterNode i\<rbrakk>
-  \<Longrightarrow> g (nid, m) \<rightarrow> (m nid)" |
-
-  ConstantNode:
-  "\<lbrakk>kind g nid = ConstantNode c\<rbrakk>
-  \<Longrightarrow> g (nid, m) \<rightarrow> (IntVal (word_of_int c))" |
-
-  UnaryNode:
-  "\<lbrakk>kind g nid \<in> unary_nodes;
-    g ((inp g nid)!0, m) \<rightarrow> v\<rbrakk> 
-    \<Longrightarrow> g (nid, m) \<rightarrow> (unary_expr (kind g nid) v)" |
-
-  BinaryNode:
-  "\<lbrakk>kind g nid \<in> binary_nodes;
-    g ((inp g nid)!0, m) \<rightarrow> v1;
-    g ((inp g nid)!1, m) \<rightarrow> v2\<rbrakk> 
-    \<Longrightarrow> g (nid, m) \<rightarrow> (binary_expr (kind g nid) v1 v2)" |
-
   IfNode:
   "\<lbrakk>kind g nid = IfNode;
     g ((inp g nid)!0, m) \<rightarrow> (IntVal cond)\<rbrakk>
-   \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> ((succ g nid)!(if val_to_bool cond then 0 else 1), m)" |  
+    \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> ((succ g nid)!(if val_to_bool cond then 0 else 1), m)" |  
 
   (* Solution to the eval_all but the evalution gives up :(
    * \<forall> i. i < length inputs \<longrightarrow> (\<exists> s' . (inputs!i \<mapsto> (s',vs!i))); *)
@@ -162,17 +180,11 @@ inductive
     g inputs m \<longmapsto> vs;
 
     m' = (set_phis phis vs m)\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> (merge, m')" |
-
-  PhiNode:
-  "\<lbrakk>kind g nid = PhiNode\<rbrakk>
-   \<Longrightarrow>  g (nid, m) \<rightarrow> m nid"
+    \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> (merge, m')"
 
 
 code_pred step .
 code_pred step_top .
-code_pred eval_exp .
-code_pred eval_all .
 
 fun ir_to_graph_i :: "IRGraph \<Rightarrow> ID list \<Rightarrow> Graph \<Rightarrow> Graph" where
   "ir_to_graph_i ir [] g = g" |
@@ -263,6 +275,31 @@ definition simple_call_map :: "MapState" where
 definition simple_call :: "Graph" where
   "simple_call = (ir_to_graph simple_call_graph)"
 
+definition factorial_graph :: IRGraph where
+  "factorial_graph =
+    (add_node 14 ReturnNode [13] []
+    (add_node 13 (CallNode 1) [12] [14]
+    (add_node 12 (ConstantNode 5) [] []
+    (add_node 11 ReturnNode [10] []
+    (add_node 10 MulNode [2,9] []
+    (add_node 9 (CallNode 1) [8] [11]
+    (add_node 8 SubNode [2,7] []
+    (add_node 7 (ConstantNode 1) [] []
+    (add_node 6 ReturnNode [2] []
+    (add_node 5 IfNode [4] [6,9]
+    (add_node 4 IntegerEqualsNode [2,3] []
+    (add_node 3 (ConstantNode 1) [] []
+    (add_node 2 (ParameterNode 0) [] []
+    (add_node 1 StartNode [] [5]
+    (add_node 0 StartNode [] [13]
+    empty_graph)))))))))))))))"
+lemma "wff_graph factorial_graph"
+  unfolding factorial_graph_def by simp
+definition factorial_map :: "MapState" where
+  "factorial_map = new_map factorial_graph []"
+definition factorial :: "Graph" where
+  "factorial = (ir_to_graph factorial_graph)"
+
 notepad begin 
   have "input_index simple_if 10 5 = 0" by eval
   have "input_index simple_if 10 6 = 1" by eval
@@ -285,6 +322,18 @@ inductive exec :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow>
     length s' = 0\<rbrakk>
     \<Longrightarrow> exec g s s"
 code_pred "exec" .
+
+inductive exec_debug :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> nat \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<longrightarrow>*_* _")
+  where
+  "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
+    n > 0;
+    exec_debug g s' (n - 1) s''\<rbrakk> 
+    \<Longrightarrow> exec_debug g s n s''" |
+
+  "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
+    n = 0\<rbrakk>
+    \<Longrightarrow> exec_debug g s n s"
+code_pred "exec_debug" .
 
 (* NB: The starting state is duplicated causing the program to be executed twice
        The reason for this is that the top step of ReturnNode empties
@@ -315,5 +364,53 @@ values "{map m [0] |n m. eval_graph simple_if (0, (new_map simple_if_graph [IntV
 (* Simple Call *)
 (* IntVal 24 *)
 values "{map m [0] |n m. eval_graph simple_call (0, simple_call_map) (n, m)}"
+
+(* Factorial *)
+values "{snd (s!0) 2 |s. factorial \<turnstile> [(0, factorial_map)] \<longrightarrow>*6* s}"
+
+
+values "{s |s. factorial \<turnstile> [(0, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(13, factorial_map)] \<longrightarrow> s}"
+definition factorial_map' :: "MapState" where
+  "factorial_map' = set_params factorial 
+    (sorted_list_of_set (fset (fmdom factorial)))
+    [IntVal 5] factorial_map"
+values "{s |s. factorial \<turnstile> [(1, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(5, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+definition factorial_map'' :: "MapState" where
+  "factorial_map'' = set_params factorial 
+    (sorted_list_of_set (fset (fmdom factorial)))
+    [IntVal 4] factorial_map'"
+values "{s |s. factorial \<turnstile> [(1, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(5, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+definition factorial_map''' :: "MapState" where
+  "factorial_map''' = set_params factorial 
+    (sorted_list_of_set (fset (fmdom factorial)))
+    [IntVal 3] factorial_map''"
+values "{s |s. factorial \<turnstile> [(1, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(5, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+definition factorial_map'''' :: "MapState" where
+  "factorial_map'''' = set_params factorial 
+    (sorted_list_of_set (fset (fmdom factorial)))
+    [IntVal 2] factorial_map'''"
+values "{s |s. factorial \<turnstile> [(1, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(5, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(9, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+definition factorial_map''''' :: "MapState" where
+  "factorial_map''''' = set_params factorial 
+    (sorted_list_of_set (fset (fmdom factorial)))
+    [IntVal 1] factorial_map'''"
+values "{s |s. factorial \<turnstile> [(9, factorial_map'''''),(9, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(1, factorial_map'''''),(9, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(5, factorial_map'''''),(9, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+
+values "{s |s. factorial \<turnstile> [(6, factorial_map'''''),(9, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+values "{s |s. factorial \<turnstile> [(6, factorial_map'''''),(9, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
+
+
+values "{map m [0] |n m. eval_graph factorial (0, factorial_map) (n, m)}"
 
 end

@@ -58,7 +58,6 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
   "find_index val (x # xs) = (if (x=val) then 0 else find_index val xs + 1)"
 
-
 fun phi_list :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
   "phi_list g nid = 
     (filter (\<lambda>x.((kind g x)=PhiNode))
@@ -94,29 +93,29 @@ inductive
   "g [] m \<longmapsto> []" |
   "\<lbrakk>g (nid, m) \<rightarrow> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)" |
 
-  "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (nid', m')\<rbrakk> \<Longrightarrow> g \<turnstile> (nid, m) # xs \<longrightarrow> (nid', m') # xs" |
+
+  "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (nid', m')\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m) # xs \<longrightarrow> (nid', m') # xs" |
 
   CallNodeStep:
   "\<lbrakk>kind g nid = CallNode start\<rbrakk>
-   \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, (\<lambda>id. UndefVal))#(nid,m)#xs" |
-
+   \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m)#(nid,m)#xs" |
 
   CallNodeEval:
   "\<lbrakk>kind g nid = CallNode start\<rbrakk>
   \<Longrightarrow> g (nid, m) \<rightarrow> m nid" |
 
-(*
   ReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<rightarrow> v;
-    m' = m(call_nid := v)
-    \<rbrakk> 
+    m' = m(call_nid := v)\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs" |
-*)
-  ReturnNode:
+
+  ExitReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
-    g ((inp g nid)!0, m) \<rightarrow> v\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m) \<mapsto> (0, m(0 := v))" |
+    g ((inp g nid)!0, m) \<rightarrow> v;
+    m' = m(nid := v)\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []" |
 
   SequentialNode:
   "\<lbrakk>node = kind g nid;
@@ -137,8 +136,7 @@ inductive
     \<Longrightarrow> g (nid, m) \<rightarrow> (unary_expr (kind g nid) v)" |
 
   BinaryNode:
-  "\<lbrakk>
-    kind g nid \<in> binary_nodes;
+  "\<lbrakk>kind g nid \<in> binary_nodes;
     g ((inp g nid)!0, m) \<rightarrow> v1;
     g ((inp g nid)!1, m) \<rightarrow> v2\<rbrakk> 
     \<Longrightarrow> g (nid, m) \<rightarrow> (binary_expr (kind g nid) v1 v2)" |
@@ -205,10 +203,8 @@ definition simple_return_graph :: IRGraph where
     empty_graph)))"
 lemma "wff_graph simple_return_graph"
   unfolding simple_return_graph_def by simp
-
 definition simple_return_map :: "MapState" where
   "simple_return_map = new_map simple_return_graph []"
-
 definition simple_return :: "Graph" where
   "simple_return = (ir_to_graph simple_return_graph)"
 
@@ -221,10 +217,8 @@ definition double_param_graph :: IRGraph where
     empty_graph))))"
 lemma "wff_graph double_param_graph"
   unfolding double_param_graph_def by simp
-
 definition double_param_map :: "MapState" where
   "double_param_map = new_map double_param_graph [IntVal 5]"
-
 definition double_param :: "Graph" where
   "double_param = (ir_to_graph double_param_graph)"
 
@@ -246,12 +240,28 @@ definition simple_if_graph :: IRGraph where
     empty_graph)))))))))))))"
 lemma "wff_graph simple_if_graph"
   unfolding simple_if_graph_def by simp
-
 definition simple_if_map :: "MapState" where
   "simple_if_map = new_map simple_if_graph [IntVal 0, IntVal 20, IntVal 100]"
-
 definition simple_if :: "Graph" where
   "simple_if = (ir_to_graph simple_if_graph)"
+
+definition simple_call_graph :: IRGraph where
+  "simple_call_graph =
+    (add_node 7 ReturnNode [6] []
+    (add_node 6 AddNode [1, 5] []
+    (add_node 5 (CallNode 2) [] [7]
+    (add_node 4 ReturnNode [3] []
+    (add_node 3 (ConstantNode 12) [] []
+    (add_node 2 StartNode [] [4]
+    (add_node 1 (CallNode 2) [] [5]
+    (add_node 0 StartNode [] [1]
+    empty_graph))))))))"
+lemma "wff_graph simple_call_graph"
+  unfolding simple_call_graph_def by simp
+definition simple_call_map :: "MapState" where
+  "simple_call_map = new_map simple_call_graph []"
+definition simple_call :: "Graph" where
+  "simple_call = (ir_to_graph simple_call_graph)"
 
 notepad begin 
   have "input_index simple_if 10 5 = 0" by eval
@@ -264,44 +274,46 @@ notepad begin
 end
 
 
-inductive eval_graph :: "Graph \<Rightarrow> ID \<times> MapState \<Rightarrow> ID \<times> MapState \<Rightarrow> bool" where
-  "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (next, m');
-    next = 0\<rbrakk> \<Longrightarrow> eval_graph g (nid, m) (next, m')" |
+inductive exec :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<rightarrow>* _")
+  where
+  "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
+    length s' \<noteq> 0;
+    exec g s' s''\<rbrakk> 
+    \<Longrightarrow> exec g s s''" |
 
-  "\<lbrakk>g \<turnstile> (nid, m) \<mapsto> (next, m');
-    next \<noteq> 0;
-    eval_graph g (next, m') (next', m'')\<rbrakk> \<Longrightarrow> eval_graph g (nid, m) (next', m'')"
+  "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
+    length s' = 0\<rbrakk>
+    \<Longrightarrow> exec g s s"
+code_pred "exec" .
 
+(* NB: The starting state is duplicated causing the program to be executed twice
+       The reason for this is that the top step of ReturnNode empties
+       the state list to signal completion, this means we can't access the state
+
+   Discuss ways to fix this
+ *)
+inductive eval_graph :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" where
+  "\<lbrakk>g \<turnstile> [start, start] \<rightarrow>* (end # xs)\<rbrakk>
+    \<Longrightarrow> eval_graph g start end"
 code_pred "eval_graph" .
 
 
 (* Simple Return *)
-values "{(n, map m [0]) |n m. simple_return \<turnstile> (0, simple_return_map) \<mapsto> (n, m)}"
-values "{(n, map m [0]) |n m. simple_return \<turnstile> (2, simple_return_map) \<mapsto> (n, m)}"
-value "(inp simple_return 2)!0"
-values "{v |v. simple_return (1, simple_return_map) \<rightarrow> v}"
-
 (* IntVal 42 *)
 values "{map m [0] |n m. eval_graph simple_return (0, double_param_map) (n, m)}"
 
 (* Double Param *)
-values "{(n, map m [0]) |n m. double_param \<turnstile> (0, double_param_map) \<mapsto> (n, m)}"
-values "{(n, map m [0]) |n m. double_param \<turnstile> (3, double_param_map) \<mapsto> (n, m)}"
-
 (* IntVal 10 *)
 values "{map m [0] |n m. eval_graph double_param (0, double_param_map) (n, m)}"
 
 (* Simple If *)
 (* IntVal 20 *)
-values "{(n, map m [0]) |n m. simple_if \<turnstile> (0, simple_if_map) \<mapsto> (n, m)}"
-values "{(n, map m [0]) |n m. simple_if \<turnstile> (2, simple_if_map) \<mapsto> (n, m)}"
-values "{(n, map m [0]) |n m. simple_if \<turnstile> (4, simple_if_map) \<mapsto> (n, m)}"
-values "{(n, map m [0]) |n m. simple_if \<turnstile> (6, simple_if_map) \<mapsto> (n, m)}"
-
-
 values "{map m [0] |n m. eval_graph simple_if (0, simple_if_map) (n, m)}"
 (* IntVal 120 *)
-values "{(n, map m [0]) |n m. simple_if \<turnstile> (0, (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100])) \<mapsto> (n, m)}"
 values "{map m [0] |n m. eval_graph simple_if (0, (new_map simple_if_graph [IntVal 1, IntVal 20, IntVal 100])) (n, m)}"
+
+(* Simple Call *)
+(* IntVal 24 *)
+values "{map m [0] |n m. eval_graph simple_call (0, simple_call_map) (n, m)}"
 
 end

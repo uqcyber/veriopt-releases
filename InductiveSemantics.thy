@@ -300,6 +300,34 @@ definition factorial_map :: "MapState" where
 definition factorial :: "Graph" where
   "factorial = (ir_to_graph factorial_graph)"
 
+definition fib_graph :: IRGraph where
+  "fib_graph =
+    (add_node 17 ReturnNode [16] []
+    (add_node 16 (CallNode 1) [15] [17]
+    (add_node 15 (ConstantNode 8) [] []
+    (add_node 14 ReturnNode [13] []
+    (add_node 13 AddNode [11,12] []
+    (add_node 12 (CallNode 1) [10] [14]
+    (add_node 11 (CallNode 1) [9] [12]
+    (add_node 10 SubNode [2,8] []
+    (add_node 9 SubNode [2,7] []
+    (add_node 8 (ConstantNode 2) [] []
+    (add_node 7 (ConstantNode 1) [] []
+    (add_node 6 ReturnNode [2] []
+    (add_node 5 IfNode [4] [6,11]
+    (add_node 4 IntegerLessThanNode [2,3] []
+    (add_node 3 (ConstantNode 2) [] []
+    (add_node 2 (ParameterNode 0) [] []
+    (add_node 1 StartNode [] [5]
+    (add_node 0 StartNode [] [16]
+    empty_graph))))))))))))))))))"
+lemma "wff_graph fib_graph"
+  unfolding fib_graph_def by simp
+definition fib_map :: "MapState" where
+  "fib_map = new_map fib_graph []"
+definition fib :: "Graph" where
+  "fib = (ir_to_graph fib_graph)"
+
 notepad begin 
   have "input_index simple_if 10 5 = 0" by eval
   have "input_index simple_if 10 6 = 1" by eval
@@ -410,7 +438,10 @@ values "{s |s. factorial \<turnstile> [(5, factorial_map'''''),(9, factorial_map
 values "{s |s. factorial \<turnstile> [(6, factorial_map'''''),(9, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
 values "{s |s. factorial \<turnstile> [(6, factorial_map'''''),(9, factorial_map''''),(9, factorial_map'''),(9, factorial_map''),(9, factorial_map'),(13, factorial_map)] \<longrightarrow> s}"
 
-
+(* IntVal 120 *)
 values "{map m [0] |n m. eval_graph factorial (0, factorial_map) (n, m)}"
+
+(* IntVal 21 *)
+values "{map m [0] |n m. eval_graph fib (0, fib_map) (n, m)}"
 
 end

@@ -88,8 +88,7 @@ fun any_usage :: "Graph \<Rightarrow> ID \<Rightarrow> ID" where
 
 
 inductive
-  eval :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<mapsto>_" 55) and
-  eval_all :: "Graph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
+  eval :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<mapsto>_" 55)
   for g
   where
 
@@ -118,41 +117,24 @@ inductive
   "\<lbrakk>kind g nid \<in> binary_nodes;
     g ((inp g nid)!0, m) \<mapsto> v1;
     g ((inp g nid)!1, m) \<mapsto> v2\<rbrakk> 
-    \<Longrightarrow> g (nid, m) \<mapsto> (binary_expr (kind g nid) v1 v2)" |
+    \<Longrightarrow> g (nid, m) \<mapsto> (binary_expr (kind g nid) v1 v2)"
 
+code_pred eval .
+
+inductive
+  eval_all :: "Graph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
+  for g
+  where
   "g [] m \<longmapsto> []" |
   "\<lbrakk>g (nid, m) \<mapsto> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)"
 
-code_pred eval .
 code_pred eval_all .
-  
+
 
 inductive
-  step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_ \<turnstile> _\<rightarrow>_" 55) and
-  step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_\<turnstile>_\<longrightarrow>_" 55) 
+  step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_ \<turnstile> _\<rightarrow>_" 55)
   for g
   where
-
-  "\<lbrakk>g \<turnstile> (nid, m) \<rightarrow> (nid', m')\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m) # xs \<longrightarrow> (nid', m') # xs" |
-
-  CallNodeStep:
-  "\<lbrakk>kind g nid = CallNode start;
-    g (inp g nid) m \<longmapsto> vs;
-    m' = (set_params g (sorted_list_of_set (graph_nodes g)) vs m)\<rbrakk>
-    \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m')#(nid,m)#xs" |
-
-  ReturnNode:
-  "\<lbrakk>kind g nid = ReturnNode;
-    g ((inp g nid)!0, m) \<mapsto> v;
-    m' = call_m(call_nid := v)\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs" |
-
-  ExitReturnNode:
-  "\<lbrakk>kind g nid = ReturnNode;
-    g ((inp g nid)!0, m) \<mapsto> v;
-    m' = m(nid := v)\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []" |
 
   SequentialNode:
   "\<lbrakk>node = kind g nid;
@@ -182,9 +164,37 @@ inductive
     m' = (set_phis phis vs m)\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (merge, m')"
 
-
 code_pred step .
+
+
+inductive
+  step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_\<turnstile>_\<longrightarrow>_" 55) 
+  for g
+  where
+
+  "\<lbrakk>g \<turnstile> (nid, m) \<rightarrow> (nid', m')\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m) # xs \<longrightarrow> (nid', m') # xs" |
+
+  CallNodeStep:
+  "\<lbrakk>kind g nid = CallNode start;
+    g (inp g nid) m \<longmapsto> vs;
+    m' = (set_params g (sorted_list_of_set (graph_nodes g)) vs m)\<rbrakk>
+    \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m')#(nid,m)#xs" |
+
+  ReturnNode:
+  "\<lbrakk>kind g nid = ReturnNode;
+    g ((inp g nid)!0, m) \<mapsto> v;
+    m' = call_m(call_nid := v)\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs" |
+
+  ExitReturnNode:
+  "\<lbrakk>kind g nid = ReturnNode;
+    g ((inp g nid)!0, m) \<mapsto> v;
+    m' = m(nid := v)\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []"
+
 code_pred step_top .
+
 
 fun new_map :: "Graph \<Rightarrow> Value list \<Rightarrow> MapState" where
   "new_map g params = set_params g (sorted_list_of_set (graph_nodes g))

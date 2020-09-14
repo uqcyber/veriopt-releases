@@ -25,7 +25,7 @@ type_synonym ID = "nat"
 datatype (discs_sels) IRNode = 
   CallNode (startNode: ID)
   | ConstantNode (intValue: int)  (* TODO: should be string *)
-  | ParameterNode (index: nat)    (* TODO: can index be nat? *)
+  | ParameterNode (index: nat)
   | PhiNode  (* TODO: subclasses GuardPhiNode, ValuePhiNode, MemoryPhiNode *)
   | AddNode
   | SubNode
@@ -85,23 +85,23 @@ datatype Node = N
 
 type_synonym Graph = "(ID, Node) fmap"
 
-definition DummyNode :: "Node" where
-  "DummyNode = N NoNode [] []"
+definition EmptyNode :: "Node" where
+  "EmptyNode = N NoNode [] []"
 
 fun graph_nodes :: "Graph \<Rightarrow> ID set" where
   "graph_nodes g = fset (fmdom g)"
 
 fun kind :: "Graph \<Rightarrow> ID \<Rightarrow> IRNode" where
-  "kind g nid = n_kind(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> DummyNode)"
+  "kind g nid = n_kind(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> EmptyNode)"
 
 fun inp :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "inp g nid = n_inputs(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> DummyNode)"
+  "inp g nid = n_inputs(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> EmptyNode)"
 
 fun usages :: "Graph \<Rightarrow> ID \<Rightarrow> ID set" where
   "usages g nid = fset (ffilter (\<lambda> nid' . nid \<in> set(inp g nid')) (fmdom g))"
 
 fun succ :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "succ g nid = n_successors(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> DummyNode)"
+  "succ g nid = n_successors(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> EmptyNode)"
 
 datatype IRGraph =
   Graph

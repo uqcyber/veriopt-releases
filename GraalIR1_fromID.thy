@@ -1,7 +1,9 @@
 section \<open>GraalVM graph representation\<close>
 
 theory GraalIR1_fromID
-imports Main
+  imports 
+    Main
+    "HOL-Library.Finite_Map"
 begin
 
 (* This is a theory of GraalVM IR graphs that uses numbered nodes.
@@ -56,6 +58,8 @@ datatype (discs_sels) IRNode =
   | LoadStaticFieldNode string string (* class name, field name *)
   | StoreStaticFieldNode string string (* class name, field name *)
   | FrameStateNode (* effectively unused *)
+
+  | NoNode (* to not cause too much pain when switching to partial *)
   (* and hundreds of other Node subclasses!... *)
 
 (* Next we may want a predicate for each subclass.
@@ -79,19 +83,25 @@ datatype Node = N
   (n_inputs : "ID list")
   (n_successors : "ID list")
 
-type_synonym Graph = "ID \<Rightarrow> Node" (* should be a partial function *)
+type_synonym Graph = "(ID, Node) fmap"
+
+definition DummyNode :: "Node" where
+  "DummyNode = N NoNode [] []"
+
+fun graph_nodes :: "Graph \<Rightarrow> ID set" where
+  "graph_nodes g = fset (fmdom g)"
 
 fun kind :: "Graph \<Rightarrow> ID \<Rightarrow> IRNode" where
-  "kind g nid = n_kind(g nid)"
+  "kind g nid = n_kind(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> DummyNode)"
 
 fun inp :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "inp g nid = n_inputs(g nid)"
+  "inp g nid = n_inputs(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> DummyNode)"
 
-fun usagex :: "Graph \<Rightarrow> ID \<Rightarrow> ID set" where
-  "usagex g nid = { nid' .  nid \<in> set(inp g nid')}"
+fun usages :: "Graph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "usages g nid = fset (ffilter (\<lambda> nid' . nid \<in> set(inp g nid')) (fmdom g))"
 
 fun succ :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "succ g nid = n_successors(g nid)"
+  "succ g nid = n_successors(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> DummyNode)"
 
 datatype IRGraph =
   Graph

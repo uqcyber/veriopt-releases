@@ -87,6 +87,7 @@ fun any_usage :: "Graph \<Rightarrow> ID \<Rightarrow> ID" where
   "any_usage g nid = (sorted_list_of_set (usages g nid))!0"
 
 
+text_raw \<open>\snip{expression_semantics}{\<close>
 inductive
   eval :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<mapsto>_" 55)
   for g
@@ -118,6 +119,7 @@ inductive
     g ((inp g nid)!0, m) \<mapsto> v1;
     g ((inp g nid)!1, m) \<mapsto> v2\<rbrakk> 
     \<Longrightarrow> g (nid, m) \<mapsto> (binary_expr (kind g nid) v1 v2)"
+text_raw \<open>}%endsnip\<close>
 
 code_pred eval .
 

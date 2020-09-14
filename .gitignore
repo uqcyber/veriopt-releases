@@ -1,4 +1,5 @@
 *.thy#
 *.thy~
+*~
 extern/*
 output/*

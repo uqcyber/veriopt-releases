@@ -141,6 +141,30 @@ lemma "wff_graph loop_graph"
 definition loop :: "Graph" where
   "loop = (ir_to_graph loop_graph)"
 
+definition sum_graph :: IRGraph where
+  "sum_graph =
+    (add_node 15 ReturnNode [10] []
+    (add_node 14 LoopEndNode [] []
+    (add_node 13 BeginNode [] [14]
+    (add_node 12 IfNode [11] [13,15]
+    (add_node 11 IntegerLessThanNode [7,6] []
+    (add_node 10 AddNode [8,7] []
+    (add_node 9 AddNode [7,5] []
+    (add_node 8 PhiNode [3,4,10] []
+    (add_node 7 PhiNode [3,4,9] []
+    (add_node 6 (ParameterNode 0) [] []
+    (add_node 5 (ConstantNode 1) [] []
+    (add_node 4 (ConstantNode 0) [] []
+    (add_node 3 LoopBeginNode [2,14] [12]
+    (add_node 2 EndNode [] []
+    (add_node 1 BeginNode [] [2]
+    (add_node 0 StartNode [] [1]
+    empty_graph))))))))))))))))"
+lemma "wff_graph sum_graph"
+  unfolding sum_graph_def by simp
+definition sum :: "Graph" where
+  "sum = (ir_to_graph sum_graph)"
+
 (* NB: The starting state is duplicated causing the program to be executed twice
        The reason for this is that the top step of ReturnNode empties
        the state list to signal completion, this means we can't access the state
@@ -226,5 +250,18 @@ values "{m 0 |n m. (loop \<diamondop> [IntVal 2]) (n, m)}"
 values "{m 0 |n m. (loop \<diamondop> [IntVal 5]) (n, m)}"
 (* IntVal 10 *)
 values "{m 0 |n m. (loop \<diamondop> [IntVal 10]) (n, m)}"
+
+
+(* Sum *)
+(* IntVal 1 *)
+values "{m 0 |n m. (sum \<diamondop> [IntVal 1]) (n, m)}"
+(* IntVal 3 *)
+values "{m 0 |n m. (sum \<diamondop> [IntVal 2]) (n, m)}"
+(* IntVal 15 *)
+values "{m 0 |n m. (sum \<diamondop> [IntVal 5]) (n, m)}"
+(* IntVal 28 *)
+values "{m 0 |n m. (sum \<diamondop> [IntVal 7]) (n, m)}"
+(* IntVal 210 *)
+values "{m 0 |n m. (sum \<diamondop> [IntVal 20]) (n, m)}"
 
 end

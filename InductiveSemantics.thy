@@ -202,7 +202,7 @@ inductive exec :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow>
     \<Longrightarrow> exec g s s"
 code_pred "exec" .
 
-inductive exec_debug :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> nat \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<longrightarrow>*_* _")
+inductive exec_debug :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> nat \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<rightarrow>*_* _")
   where
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
     n > 0;

@@ -173,95 +173,95 @@ definition sum :: "Graph" where
  *)
 inductive eval_graph :: "Graph \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_\<diamondop>_")
   where
-  "\<lbrakk>state = new_map g params;
+  "\<lbrakk>state = new_map ps;
     g \<turnstile> [(0, state), (0, state)] \<longrightarrow>* (end # xs)\<rbrakk>
-    \<Longrightarrow> eval_graph g params end"
+    \<Longrightarrow> eval_graph g ps end"
 code_pred "eval_graph" .
 
 
 (* Simple Return *)
 (* IntVal 42 *)
-values "{m 0 |n m. (simple_return \<diamondop> []) (n, m)}"
+values "{val m 0 |n m. (simple_return \<diamondop> []) (n, m)}"
 
 (* Double Param *)
 (* IntVal 10 *)
-values "{m 0 |n m. (double_param \<diamondop> [IntVal 5]) (n, m)}"
+values "{val m 0 |n m. (double_param \<diamondop> [IntVal 5]) (n, m)}"
 (* IntVal 50 *)
-values "{m 0 |n m. (double_param \<diamondop> [IntVal 25]) (n, m)}"
+values "{val m 0 |n m. (double_param \<diamondop> [IntVal 25]) (n, m)}"
 (* IntVal 256 *)
-values "{m 0 |n m. (double_param \<diamondop> [IntVal 128]) (n, m)}"
+values "{val m 0 |n m. (double_param \<diamondop> [IntVal 128]) (n, m)}"
 (* IntVal 198 *)
-values "{m 0 |n m. (double_param \<diamondop> [IntVal 99]) (n, m)}"
+values "{val m 0 |n m. (double_param \<diamondop> [IntVal 99]) (n, m)}"
 
 (* Simple If *)
 (* IntVal 20 *)
-values "{m 0 |n m. (simple_if \<diamondop> [IntVal 0, IntVal 20, IntVal 100]) (n, m)}"
+values "{val m 0 |n m. (simple_if \<diamondop> [IntVal 0, IntVal 20, IntVal 100]) (n, m)}"
 (* IntVal 120 *)
-values "{m 0 |n m. (simple_if \<diamondop> [IntVal 1, IntVal 20, IntVal 100]) (n, m)}"
+values "{val m 0 |n m. (simple_if \<diamondop> [IntVal 1, IntVal 20, IntVal 100]) (n, m)}"
 
 (* Simple Call *)
 (* IntVal 24 *)
-values "{m 0 |n m. (simple_call \<diamondop> []) (n, m)}"
+values "{val m 0 |n m. (simple_call \<diamondop> []) (n, m)}"
 
 (* Factorial *)
 (* IntVal 1 *)
-values "{m 0 |n m. (factorial \<diamondop> [IntVal 1]) (n, m)}"
+values "{val m 0 |n m. (factorial \<diamondop> [IntVal 1]) (n, m)}"
 (* IntVal 2 *)
-values "{m 0 |n m. (factorial \<diamondop> [IntVal 2]) (n, m)}"
+values "{val m 0 |n m. (factorial \<diamondop> [IntVal 2]) (n, m)}"
 (* IntVal 6 *)
-values "{m 0 |n m. (factorial \<diamondop> [IntVal 3]) (n, m)}"
+values "{val m 0 |n m. (factorial \<diamondop> [IntVal 3]) (n, m)}"
 (* IntVal 24 *)
-values "{m 0 |n m. (factorial \<diamondop> [IntVal 4]) (n, m)}"
+values "{val m 0 |n m. (factorial \<diamondop> [IntVal 4]) (n, m)}"
 (* IntVal 120 *)
-values "{m 0 |n m. (factorial \<diamondop> [IntVal 5]) (n, m)}"
+values "{val m 0 |n m. (factorial \<diamondop> [IntVal 5]) (n, m)}"
 (* IntVal 720 *)
-values "{m 0 |n m. (factorial \<diamondop> [IntVal 6]) (n, m)}"
+values "{val m 0 |n m. (factorial \<diamondop> [IntVal 6]) (n, m)}"
 (* IntVal 5040 *)
-values "{m 0 |n m. (factorial \<diamondop> [IntVal 7]) (n, m)}"
+values "{val m 0 |n m. (factorial \<diamondop> [IntVal 7]) (n, m)}"
 
 (* Fibonacci *)
 (* IntVal 0 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 0]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 0]) (n, m)}"
 (* IntVal 1 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 1]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 1]) (n, m)}"
 (* IntVal 1 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 2]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 2]) (n, m)}"
 (* IntVal 2 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 3]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 3]) (n, m)}"
 (* IntVal 3 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 4]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 4]) (n, m)}"
 (* IntVal 5 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 5]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 5]) (n, m)}"
 (* IntVal 8 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 6]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 6]) (n, m)}"
 (* IntVal 13 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 7]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 7]) (n, m)}"
 (* IntVal 21 *)
-values "{m 0 |n m. (fib \<diamondop> [IntVal 8]) (n, m)}"
+values "{val m 0 |n m. (fib \<diamondop> [IntVal 8]) (n, m)}"
 
 (* Loop *)
 (* IntVal 0 *)
-values "{m 0 |n m. (loop \<diamondop> [IntVal 0]) (n, m)}"
+values "{val m 0 |n m. (loop \<diamondop> [IntVal 0]) (n, m)}"
 (* IntVal 1 *)
-values "{m 0 |n m. (loop \<diamondop> [IntVal 1]) (n, m)}"
+values "{val m 0 |n m. (loop \<diamondop> [IntVal 1]) (n, m)}"
 (* IntVal 2 *)
-values "{m 0 |n m. (loop \<diamondop> [IntVal 2]) (n, m)}"
+values "{val m 0 |n m. (loop \<diamondop> [IntVal 2]) (n, m)}"
 (* IntVal 5 *)
-values "{m 0 |n m. (loop \<diamondop> [IntVal 5]) (n, m)}"
+values "{val m 0 |n m. (loop \<diamondop> [IntVal 5]) (n, m)}"
 (* IntVal 10 *)
-values "{m 0 |n m. (loop \<diamondop> [IntVal 10]) (n, m)}"
+values "{val m 0 |n m. (loop \<diamondop> [IntVal 10]) (n, m)}"
 
 
 (* Sum *)
 (* IntVal 1 *)
-values "{m 0 |n m. (sum \<diamondop> [IntVal 1]) (n, m)}"
+values "{val m 0 |n m. (sum \<diamondop> [IntVal 1]) (n, m)}"
 (* IntVal 3 *)
-values "{m 0 |n m. (sum \<diamondop> [IntVal 2]) (n, m)}"
+values "{val m 0 |n m. (sum \<diamondop> [IntVal 2]) (n, m)}"
 (* IntVal 15 *)
-values "{m 0 |n m. (sum \<diamondop> [IntVal 5]) (n, m)}"
+values "{val m 0 |n m. (sum \<diamondop> [IntVal 5]) (n, m)}"
 (* IntVal 28 *)
-values "{m 0 |n m. (sum \<diamondop> [IntVal 7]) (n, m)}"
+values "{val m 0 |n m. (sum \<diamondop> [IntVal 7]) (n, m)}"
 (* IntVal 210 *)
-values "{m 0 |n m. (sum \<diamondop> [IntVal 20]) (n, m)}"
+values "{val m 0 |n m. (sum \<diamondop> [IntVal 20]) (n, m)}"
 
 end

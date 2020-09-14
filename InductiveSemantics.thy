@@ -12,20 +12,40 @@ datatype Value =
   UndefVal |
   IntVal int32
 
-type_synonym MapState = "ID \<Rightarrow> Value"
+datatype MapState =
+  MapState
+    (m_values: "ID \<Rightarrow> Value")
+    (m_params: "Value list")
+
+definition new_map_state :: "MapState" where
+  "new_map_state = MapState (\<lambda>x. UndefVal) []"
+
+fun m_val :: "MapState \<Rightarrow> ID \<Rightarrow> Value" where
+  "m_val m nid = (m_values m) nid"
+
+fun m_set :: "ID \<Rightarrow> Value \<Rightarrow> MapState \<Rightarrow> MapState" where
+  "m_set nid v (MapState m p) = MapState (m(nid := v)) p"
+
+fun m_param :: "Graph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> Value" where
+  "m_param g m nid = (case (kind g nid) of
+    (ParameterNode i) \<Rightarrow> (m_params m)!i |
+    _ \<Rightarrow> UndefVal)"
+
+fun set_params :: "MapState \<Rightarrow> Value list \<Rightarrow> MapState" where
+  "set_params (MapState m p) vs = MapState m vs"
 
 
 fun val_to_bool :: "int32 \<Rightarrow> bool" where
   "val_to_bool x = (if x = 0 then False else True)" 
 
-fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal 1)" |
-  "bool_to_val False = (IntVal 0)"
+fun bool_to_m_val :: "bool \<Rightarrow> Value" where
+  "bool_to_m_val True = (IntVal 1)" |
+  "bool_to_m_val False = (IntVal 0)"
 
 fun unary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_expr AbsNode (IntVal x) = (IntVal (if (x < 0) then -x else x))" |
   "unary_expr NegateNode (IntVal x) = (IntVal (uminus x))" |
-  "unary_expr LogicNegationNode (IntVal x) = (bool_to_val (\<not>(val_to_bool x)))" |
+  "unary_expr LogicNegationNode (IntVal x) = (bool_to_m_val (\<not>(val_to_bool x)))" |
   "unary_expr _ _ = UndefVal"
 
 fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
@@ -35,8 +55,8 @@ fun binary_expr :: "IRNode \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow>
   "binary_expr AndNode (IntVal x) (IntVal y) = (IntVal (x AND y))" |
   "binary_expr OrNode (IntVal x) (IntVal y) = (IntVal (x OR y))" |
   "binary_expr XorNode (IntVal x) (IntVal y) = (IntVal (x XOR y))" |
-  "binary_expr IntegerLessThanNode (IntVal x) (IntVal y) = (bool_to_val (x < y))" |
-  "binary_expr IntegerEqualsNode (IntVal x) (IntVal y) = (bool_to_val (x = y))" |
+  "binary_expr IntegerLessThanNode (IntVal x) (IntVal y) = (bool_to_m_val (x < y))" |
+  "binary_expr IntegerEqualsNode (IntVal x) (IntVal y) = (bool_to_m_val (x = y))" |
   "binary_expr _ _ _ = UndefVal"
 
 definition unary_nodes :: "IRNode set" where
@@ -56,7 +76,7 @@ definition end_nodes :: "IRNode set" where
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
-  "find_index val (x # xs) = (if (x=val) then 0 else find_index val xs + 1)"
+  "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
 
 fun phi_list :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
   "phi_list g nid = 
@@ -71,16 +91,9 @@ fun phi_inputs :: "Graph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> I
 
 fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
   "set_phis [] [] m = m" |
-  "set_phis (nid # xs) (v # vs) m = (set_phis xs vs (m(nid := v)))" |
+  "set_phis (nid # xs) (v # vs) m = (set_phis xs vs (m_set nid v m))" |
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
-
-fun set_params :: "Graph \<Rightarrow> ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
-  "set_params g [] vs m = m" |
-  "set_params g (nid # xs) vs m = (let m' = (set_params g xs vs m) in 
-   (case (kind g nid) of 
-    (ParameterNode i) \<Rightarrow> m'(nid := (vs!i)) |
-    _ \<Rightarrow> m'))"
 
 
 fun any_usage :: "Graph \<Rightarrow> ID \<Rightarrow> ID" where
@@ -95,15 +108,15 @@ inductive
 
   CallNodeEval:
   "\<lbrakk>kind g nid = CallNode start\<rbrakk>
-    \<Longrightarrow> g (nid, m) \<mapsto> m nid" |
+    \<Longrightarrow> g (nid, m) \<mapsto> m_val m nid" |
 
   ParameterNode:
   "\<lbrakk>kind g nid = ParameterNode i\<rbrakk>
-    \<Longrightarrow> g (nid, m) \<mapsto> m nid" |
+    \<Longrightarrow> g (nid, m) \<mapsto> m_param g m nid" |
 
   PhiNode:
   "\<lbrakk>kind g nid = PhiNode\<rbrakk>
-    \<Longrightarrow>  g (nid, m) \<mapsto> m nid" |
+    \<Longrightarrow>  g (nid, m) \<mapsto> m_val m nid" |
 
   ConstantNode:
   "\<lbrakk>kind g nid = ConstantNode c\<rbrakk>
@@ -133,6 +146,7 @@ inductive
 code_pred eval_all .
 
 
+text_raw \<open>\snip{step_semantics}{\<close>
 inductive
   step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_ \<turnstile> _\<rightarrow>_" 55)
   for g
@@ -165,10 +179,11 @@ inductive
 
     m' = (set_phis phis vs m)\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (merge, m')"
+text_raw \<open>}%endsnip\<close>
 
 code_pred step .
 
-
+text_raw \<open>\snip{top_step_semantics}{\<close>
 inductive
   step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_\<turnstile>_\<longrightarrow>_" 55) 
   for g
@@ -180,27 +195,27 @@ inductive
   CallNodeStep:
   "\<lbrakk>kind g nid = CallNode start;
     g (inp g nid) m \<longmapsto> vs;
-    m' = (set_params g (sorted_list_of_set (graph_nodes g)) vs m)\<rbrakk>
+    m' = (set_params m vs)\<rbrakk>
     \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m')#(nid,m)#xs" |
 
   ReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<mapsto> v;
-    m' = call_m(call_nid := v)\<rbrakk> 
+    m' = m_set call_nid v call_m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs" |
 
   ExitReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<mapsto> v;
-    m' = m(nid := v)\<rbrakk> 
+    m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []"
+text_raw \<open>}%endsnip\<close>
 
 code_pred step_top .
 
 
-fun new_map :: "Graph \<Rightarrow> Value list \<Rightarrow> MapState" where
-  "new_map g params = set_params g (sorted_list_of_set (graph_nodes g))
-      params (\<lambda> x . UndefVal)"
+fun new_map :: "Value list \<Rightarrow> MapState" where
+  "new_map ps = set_params new_map_state ps"
 
 inductive exec :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<longrightarrow>* _")
   where

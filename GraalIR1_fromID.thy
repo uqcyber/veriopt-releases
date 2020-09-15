@@ -77,13 +77,14 @@ type_synonym InputEdges = "ID \<Rightarrow> ID list"
 (* Here is the main Graal data structure - an entire IR Graph.
    Note that we *name* each component - like a record.
 *)
-
+text_raw \<open>\snip{graphdef}{\<close>
 datatype Node = N
   (n_kind : IRNode)
   (n_inputs : "ID list")
   (n_successors : "ID list")
 
 type_synonym Graph = "(ID, Node) fmap"
+text_raw \<open>}%endsnip\<close>
 
 definition EmptyNode :: "Node" where
   "EmptyNode = N NoNode [] []"

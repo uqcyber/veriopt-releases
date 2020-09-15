@@ -102,9 +102,9 @@ fun any_usage :: "Graph \<Rightarrow> ID \<Rightarrow> ID" where
 
 text_raw \<open>\snip{expression_semantics}{\<close>
 inductive
-  eval :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Value \<Rightarrow> bool" (" _ _\<mapsto>_" 55)
-  for g
-  where
+  eval :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Value \<Rightarrow> bool"
+  (" _ _\<mapsto>_" 55)
+  for g where
 
   CallNodeEval:
   "\<lbrakk>kind g nid = CallNode start\<rbrakk>
@@ -137,9 +137,9 @@ text_raw \<open>}%endsnip\<close>
 code_pred eval .
 
 inductive
-  eval_all :: "Graph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool" ("_ _ _\<longmapsto>_" 55)
-  for g
-  where
+  eval_all :: "Graph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool"
+  ("_ _ _\<longmapsto>_" 55)
+  for g where
   "g [] m \<longmapsto> []" |
   "\<lbrakk>g (nid, m) \<mapsto> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)"
 
@@ -148,9 +148,9 @@ code_pred eval_all .
 
 text_raw \<open>\snip{step_semantics}{\<close>
 inductive
-  step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_ \<turnstile> _\<rightarrow>_" 55)
-  for g
-  where
+  step :: "Graph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool"
+  ("_ \<turnstile> _\<rightarrow>_" 55)
+  for g where
 
   SequentialNode:
   "\<lbrakk>node = kind g nid;
@@ -159,11 +159,9 @@ inductive
 
   IfNode:
   "\<lbrakk>kind g nid = IfNode;
-    g ((inp g nid)!0, m) \<mapsto> (IntVal cond)\<rbrakk>
-    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> ((succ g nid)!(if val_to_bool cond then 0 else 1), m)" |  
-
-  (* Solution to the eval_all but the evalution gives up :(
-   * \<forall> i. i < length inputs \<longrightarrow> (\<exists> s' . (inputs!i \<mapsto> (s',vs!i))); *)
+    g ((inp g nid)!0, m) \<mapsto> (IntVal cond);
+    succ_edge = (if val_to_bool cond then 0 else 1)\<rbrakk>
+    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> ((succ g nid)!succ_edge, m)" |  
 
   EndNodes:
   "\<lbrakk>kind g nid \<in> end_nodes;
@@ -185,9 +183,9 @@ code_pred step .
 
 text_raw \<open>\snip{top_step_semantics}{\<close>
 inductive
-  step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_\<turnstile>_\<longrightarrow>_" 55) 
-  for g
-  where
+  step_top :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
+  ("_\<turnstile>_\<longrightarrow>_" 55) 
+  for g where
 
   "\<lbrakk>g \<turnstile> (nid, m) \<rightarrow> (nid', m')\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m) # xs \<longrightarrow> (nid', m') # xs" |
@@ -217,7 +215,8 @@ code_pred step_top .
 fun new_map :: "Value list \<Rightarrow> MapState" where
   "new_map ps = set_params new_map_state ps"
 
-inductive exec :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<longrightarrow>* _")
+inductive exec :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
+  ("_ \<turnstile> _ \<longrightarrow>* _")
   where
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
     length s' \<noteq> 0;
@@ -229,7 +228,8 @@ inductive exec :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow>
     \<Longrightarrow> exec g s s"
 code_pred "exec" .
 
-inductive exec_debug :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> nat \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool" ("_ \<turnstile> _ \<rightarrow>*_* _")
+inductive exec_debug :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> nat \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
+  ("_ \<turnstile> _ \<rightarrow>*_* _")
   where
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
     n > 0;

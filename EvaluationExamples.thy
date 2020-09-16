@@ -264,4 +264,93 @@ values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 7]) (n, m)}"
 (* IntVal 210 *)
 values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 20]) (n, m)}"
 
+
+(* Examples generated from Java code *)
+definition real_fact_graph :: IRGraph where
+"real_fact_graph = 
+ (add_node 0 StartNode [2] [5]
+ (add_node 1 (ParameterNode 0) [] []
+ (add_node 2 FrameState [1] []
+ (add_node 3 (ConstantNode 1) [] []
+ (add_node 5 EndNode [] []
+ (add_node 6 LoopBeginNode [5, 21] [17, 21]
+ (add_node 7 ValuePhiNode [6, 1, 20] []
+ (add_node 8 ValuePhiNode [6, 3, 18] []
+ (add_node 9 FrameState [7, 8] []
+ (add_node 10 (ConstantNode 2) [] []
+ (add_node 11 IntegerLessThanNode [7, 10] []
+ (add_node 12 BeginNode [] [21]
+ (add_node 14 LoopExitNode [16, 6] [22]
+ (add_node 15 ValueProxyNode [14, 8] []
+ (add_node 16 FrameState [15] []
+ (add_node 17 IfNode [11] [14, 12]
+ (add_node 18 MulNode [7, 8] []
+ (add_node 19 (ConstantNode (-1)) [] []
+ (add_node 20 AddNode [7, 19] []
+ (add_node 21 LoopEndNode [] []
+ (add_node 22 ReturnNode [15] []
+ empty_graph)))))))))))))))))))))"
+lemma "wff_graph real_fact_graph"
+  unfolding real_fact_graph_def by simp
+definition real_fact :: "Graph" where
+  "real_fact = (ir_to_graph real_fact_graph)"
+
+(* IntVal 1 *)
+values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 1]) (n, m)}"
+(* IntVal 2 *)
+values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 2]) (n, m)}"
+(* IntVal 6 *)
+values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 3]) (n, m)}"
+(* IntVal 24 *)
+values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 4]) (n, m)}"
+(* IntVal 120 *)
+values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 5]) (n, m)}"
+(* IntVal 720 *)
+values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 6]) (n, m)}"
+(* IntVal 5040 *)
+values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 7]) (n, m)}"
+
+definition real_fib_graph :: IRGraph where
+"real_fib_graph = 
+ (add_node 0 StartNode [2] [8]
+ (add_node 1 (ParameterNode 0) [] []
+ (add_node 2 FrameState [1] []
+ (add_node 3 (ConstantNode 1) [] []
+ (add_node 4 (ConstantNode 2) [] []
+ (add_node 5 IntegerLessThanNode [1, 4] []
+ (add_node 6 BeginNode [] [13]
+ (add_node 7 BeginNode [] [9]
+ (add_node 8 IfNode [5] [7, 6]
+ (add_node 9 ReturnNode [1] []
+ (add_node 10 (ConstantNode (-1)) [] []
+ (add_node 11 AddNode [1, 10] []
+ (add_node 13 (CallNode 0) [11] [18]
+ (add_node 14 FrameState [1, 13] []
+ (add_node 15 (ConstantNode (-2)) [] []
+ (add_node 16 AddNode [1, 15] []
+ (add_node 18 (CallNode 0) [16] [21]
+ (add_node 19 FrameState [13, 18] []
+ (add_node 20 AddNode [13, 18] []
+ (add_node 21 ReturnNode [20] []
+ empty_graph))))))))))))))))))))"
+lemma "wff_graph real_fib_graph"
+  unfolding real_fib_graph_def by simp
+definition real_fib :: "Graph" where
+  "real_fib = (ir_to_graph real_fib_graph)"
+
+(* IntVal 1 *)
+values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 1]) (n, m)}"
+(* IntVal 1 *)
+values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 2]) (n, m)}"
+(* IntVal 2 *)
+values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 3]) (n, m)}"
+(* IntVal 3 *)
+values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 4]) (n, m)}"
+(* IntVal 5 *)
+values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 5]) (n, m)}"
+(* IntVal 8 *)
+values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 6]) (n, m)}"
+(* IntVal 13 *)
+values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 7]) (n, m)}"
+
 end

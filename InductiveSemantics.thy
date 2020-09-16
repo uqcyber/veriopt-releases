@@ -67,11 +67,19 @@ definition binary_nodes :: "IRNode set" where
                    OrNode, XorNode, IntegerLessThanNode,
                    IntegerEqualsNode}"
 
+definition phi_nodes :: "IRNode set" where
+  "phi_nodes = {PhiNode, ValuePhiNode}"
+
 definition merge_nodes :: "IRNode set" where
   "merge_nodes = {MergeNode, LoopBeginNode}"
 
 definition end_nodes :: "IRNode set" where
   "end_nodes = {EndNode, LoopEndNode}"
+
+definition sequential_nodes :: "IRNode set" where
+  "sequential_nodes = {StartNode, BeginNode, 
+                       LoopBeginNode, LoopExitNode}
+                      \<union> merge_nodes"
 
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
@@ -80,7 +88,7 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
 
 fun phi_list :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
   "phi_list g nid = 
-    (filter (\<lambda>x.((kind g x)=PhiNode))
+    (filter (\<lambda>x.((kind g x)\<in>phi_nodes))
       (sorted_list_of_set (usages g nid)))"
 
 fun input_index :: "Graph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
@@ -115,12 +123,17 @@ inductive
     \<Longrightarrow> g (nid, m) \<mapsto> m_param g m nid" |
 
   PhiNode:
-  "\<lbrakk>kind g nid = PhiNode\<rbrakk>
+  "\<lbrakk>kind g nid \<in> phi_nodes\<rbrakk>
     \<Longrightarrow>  g (nid, m) \<mapsto> m_val m nid" |
 
   ConstantNode:
   "\<lbrakk>kind g nid = ConstantNode c\<rbrakk>
     \<Longrightarrow> g (nid, m) \<mapsto> (IntVal (word_of_int c))" |
+
+  ValueProxyNode:
+  "\<lbrakk>kind g nid = ValueProxyNode;
+    g ((inp g nid)!1, m) \<mapsto> v\<rbrakk>
+    \<Longrightarrow> g (nid, m) \<mapsto> v" |
 
   UnaryNode:
   "\<lbrakk>kind g nid \<in> unary_nodes;
@@ -154,7 +167,7 @@ inductive
 
   SequentialNode:
   "\<lbrakk>node = kind g nid;
-    node \<in> {StartNode, BeginNode} \<union> merge_nodes\<rbrakk> 
+    node \<in> sequential_nodes\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> ((succ g nid)!0, m)" |
 
   IfNode:

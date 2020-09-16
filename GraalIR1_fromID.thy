@@ -26,7 +26,9 @@ datatype (discs_sels) IRNode =
   CallNode (startNode: ID)
   | ConstantNode (intValue: int)  (* TODO: should be string *)
   | ParameterNode (index: nat)
-  | PhiNode  (* TODO: subclasses GuardPhiNode, ValuePhiNode, MemoryPhiNode *)
+  | PhiNode  (* TODO: subclasses GuardPhiNode, MemoryPhiNode *)
+  | ValuePhiNode
+  | ValueProxyNode
   | AddNode
   | SubNode
   | MulNode
@@ -38,6 +40,7 @@ datatype (discs_sels) IRNode =
   | BeginNode  (* TODO: all the BeginStateSplitNode subclasses (inc. StartNode) *)
   | StartNode
   | LoopEndNode
+  | LoopExitNode
   | MergeNode
   | ReturnNode
   | EndNode
@@ -58,6 +61,7 @@ datatype (discs_sels) IRNode =
   | LoadStaticFieldNode string string (* class name, field name *)
   | StoreStaticFieldNode string string (* class name, field name *)
   | FrameStateNode (* effectively unused *)
+  | FrameState
 
   | NoNode (* to not cause too much pain when switching to partial *)
   (* and hundreds of other Node subclasses!... *)

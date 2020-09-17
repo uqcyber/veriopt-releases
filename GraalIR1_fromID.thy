@@ -102,6 +102,7 @@ fun kind :: "Graph \<Rightarrow> ID \<Rightarrow> IRNode" where
 fun inp :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
   "inp g nid = n_inputs(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> EmptyNode)"
 
+(* TODO: have a relation form of this, so can take transitive closure *)
 fun usages :: "Graph \<Rightarrow> ID \<Rightarrow> ID set" where
   "usages g nid = fset (ffilter (\<lambda> nid' . nid \<in> set(inp g nid')) (fmdom g))"
 

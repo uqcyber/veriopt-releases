@@ -81,6 +81,10 @@ definition sequential_nodes :: "IRNode set" where
                        LoopBeginNode, LoopExitNode}
                       \<union> merge_nodes"
 
+lemma "AddNode \<in> binary_nodes"
+  unfolding binary_nodes_def by simp
+
+lemma "AddNode \<in> binary_nodes" apply simp
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
@@ -115,20 +119,24 @@ inductive
   for g where
 
   CallNodeEval:
-  "\<lbrakk>kind g nid = CallNode start\<rbrakk>
-    \<Longrightarrow> g (nid, m) \<mapsto> m_val m nid" |
+  "\<lbrakk>kind g nid = CallNode start;
+    val = m_val m nid\<rbrakk>
+    \<Longrightarrow> g (nid, m) \<mapsto> val" |
 
   ParameterNode:
-  "\<lbrakk>kind g nid = ParameterNode i\<rbrakk>
-    \<Longrightarrow> g (nid, m) \<mapsto> m_param g m nid" |
+  "\<lbrakk>kind g nid = ParameterNode i;
+    val = m_param g m nid\<rbrakk>
+    \<Longrightarrow> g (nid, m) \<mapsto> val" |
 
   PhiNode:
-  "\<lbrakk>kind g nid \<in> phi_nodes\<rbrakk>
-    \<Longrightarrow>  g (nid, m) \<mapsto> m_val m nid" |
+  "\<lbrakk>kind g nid \<in> phi_nodes;
+    val = m_val m nid\<rbrakk>
+    \<Longrightarrow>  g (nid, m) \<mapsto> val" |
 
   ConstantNode:
-  "\<lbrakk>kind g nid = ConstantNode c\<rbrakk>
-    \<Longrightarrow> g (nid, m) \<mapsto> (IntVal (word_of_int c))" |
+  "\<lbrakk>kind g nid = ConstantNode c;
+    val = (IntVal (word_of_int c))\<rbrakk>
+    \<Longrightarrow> g (nid, m) \<mapsto> val" |
 
   ValueProxyNode:
   "\<lbrakk>kind g nid = ValueProxyNode;
@@ -137,14 +145,16 @@ inductive
 
   UnaryNode:
   "\<lbrakk>kind g nid \<in> unary_nodes;
-    g ((inp g nid)!0, m) \<mapsto> v\<rbrakk> 
-    \<Longrightarrow> g (nid, m) \<mapsto> (unary_expr (kind g nid) v)" |
+    g ((inp g nid)!0, m) \<mapsto> v;
+    val = (unary_expr (kind g nid) v)\<rbrakk>
+    \<Longrightarrow> g (nid, m) \<mapsto> val" |
 
   BinaryNode:
   "\<lbrakk>kind g nid \<in> binary_nodes;
     g ((inp g nid)!0, m) \<mapsto> v1;
-    g ((inp g nid)!1, m) \<mapsto> v2\<rbrakk> 
-    \<Longrightarrow> g (nid, m) \<mapsto> (binary_expr (kind g nid) v1 v2)"
+    g ((inp g nid)!1, m) \<mapsto> v2;
+    val = binary_expr (kind g nid) v1 v2\<rbrakk> 
+    \<Longrightarrow> g (nid, m) \<mapsto> val"
 text_raw \<open>}%endsnip\<close>
 
 code_pred eval .
@@ -167,14 +177,16 @@ inductive
 
   SequentialNode:
   "\<lbrakk>node = kind g nid;
-    node \<in> sequential_nodes\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> ((succ g nid)!0, m)" |
+    node \<in> sequential_nodes;
+    next = (succ g nid)!0\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (next, m)" |
 
   IfNode:
   "\<lbrakk>kind g nid = IfNode;
     g ((inp g nid)!0, m) \<mapsto> (IntVal cond);
-    succ_edge = (if val_to_bool cond then 0 else 1)\<rbrakk>
-    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> ((succ g nid)!succ_edge, m)" |  
+    succ_edge = (if val_to_bool cond then 0 else 1);
+    next = (succ g nid)!succ_edge\<rbrakk>
+    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (next, m)" |  
 
   EndNodes:
   "\<lbrakk>kind g nid \<in> end_nodes;

@@ -124,7 +124,7 @@ inductive
 
   ParameterNode:
   "\<lbrakk>kind g nid = ParameterNode i;
-    val = m_param g m nid\<rbrakk>
+    val = m_param g m i\<rbrakk>
     \<Longrightarrow> g (nid, m) \<mapsto> val" |
 
   PhiNode:

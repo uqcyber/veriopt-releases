@@ -78,40 +78,100 @@ inductive
   (" _ _ \<turnstile> _ _ \<mapsto> _" 55)
   for g where
 
-  CallNodeEval:
-  "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (CallNode start children) \<mapsto> val" |
+  ConstantNode:
+  "\<lbrakk>val = (IntVal (word_of_int c))\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (ConstantNode c) \<mapsto> val" |
 
-  (* could we use: val = m_params m i? *)
   ParameterNode:
-  "\<lbrakk>val = m_param g m nid\<rbrakk>
+  "\<lbrakk>val = (m_params m)!i\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (ParameterNode i) \<mapsto> val" |
 
   PhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (PhiNode _ _) \<mapsto> val" |
 
-  ConstantNode:
-  "\<lbrakk>val = (IntVal (word_of_int c))\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ConstantNode c) \<mapsto> val" |
+(* ValuePhiNode missing? *)
 
   ValueProxyNode:
   "\<lbrakk>g m \<turnstile> c (kind g c) \<mapsto> v\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (ValueProxyNode _ c) \<mapsto> v" |
 
-(* TODO:
-  UnaryNode:
-  "\<lbrakk>kind g nid \<in> unary_nodes;
-    g ((inp g nid)!0, m) \<mapsto> v;
-    val = (unary_expr (kind g nid) v)\<rbrakk>
-    \<Longrightarrow> g (nid, m) \<mapsto> val" |
-*)
+(* Unary arithmetic operators *)
+(* AbsNode missing - Is absolute value defined on Int32? *)
 
+  NegateNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (NegateNode x) \<mapsto> IntVal(-v)" |
+
+(* Binary arithmetic operators *)
+(* If we have separate rules for each node then we do not need binary_expr *)
   AddNode:
-  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> v1;
-    g m \<turnstile> y (kind g y) \<mapsto> v2;
-    val = binary_expr (kind g nid) v1 v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<mapsto> val"
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(v1+v2)" |
+
+  SubNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (SubNode x y) \<mapsto> IntVal(v1-v2)" |
+
+  MulNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (MulNode x y) \<mapsto> IntVal(v1*v2)" |
+
+(* Binary logical bitwise operators *)
+  AndNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (AndNode x y) \<mapsto> IntVal(v1 AND v2)" |
+
+  OrNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (OrNode x y) \<mapsto> IntVal(v1 OR v2)" |
+
+  XorNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (XorNode x y) \<mapsto> IntVal(v1 XOR v2)" |
+
+(* Comparison operators *)
+
+  IntegerEqualsNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (IntegerEqualsNode x y) \<mapsto> IntVal(bool_to_int(v1 = v2))" |
+
+  IntegerLessThanNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> IntVal(bool_to_int(v1 \<le> v2))" |
+
+(* Other nodes *)
+(* Note that both branches are evaluated but only one is used.
+   This is not an issue as evaluation is total (but may return UnDef) *)
+  ConditionalNode:
+  "\<lbrakk>g m \<turnstile> condition (kind g condition) \<mapsto> IntVal(cond);
+    g m \<turnstile> trueExp (kind g trueExp) \<mapsto> IntVal(trueVal);
+    g m \<turnstile> falseExp (kind g falseExp) \<mapsto> IntVal(falseVal)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (ConditionalNode condition trueExp falseExp) \<mapsto> IntVal(if cond \<noteq> 0 then trueVal else falseVal)" |
+
+(* Note that v2 may evaluate to UnDef but is not used if v1 is true *)
+  ShortCircuitOrNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y xNegated yNegated) \<mapsto> if v1 \<noteq> 0 then IntVal(v1) else IntVal(v2)" |
+
+  LogicNegationNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (LogicNegationNode x ) \<mapsto> IntVal(NOT v2)" |
+
+(* Access the value returned by the most recent call *)
+  CallNodeEval:
+  "\<lbrakk>val = m_val m nid\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (CallNode start children) \<mapsto> val"
+
 
 code_pred eval .
 

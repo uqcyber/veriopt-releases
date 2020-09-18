@@ -56,6 +56,7 @@ datatype (discs_sels) IRNode =
   | IntegerLessThanNode (ir_x:INPUT) (ir_y:INPUT)
   (* others *)
   | ConditionalNode (ir_condition:INPUT_COND) (ir_trueValue:INPUT) (ir_falseValue:INPUT)
+(* Ian thinks xNegated and yNegated are a hack to be avoided *)
   | ShortCircuitOrNode (ir_x:INPUT_COND) (ir_y:INPUT_COND) (ir_xNegated:bool) (ir_yNegated:bool) (* TODO: add field: double shortCircuitProbability; *)
   | LogicNegationNode (ir_value:INPUT_COND)
   (* Control-flow (fixed) nodes

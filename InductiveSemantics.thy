@@ -84,7 +84,6 @@ definition sequential_nodes :: "IRNode set" where
 lemma "AddNode \<in> binary_nodes"
   unfolding binary_nodes_def by simp
 
-lemma "AddNode \<in> binary_nodes" apply simp
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
@@ -218,20 +217,22 @@ inductive
   CallNodeStep:
   "\<lbrakk>kind g nid = CallNode start;
     g (inp g nid) m \<longmapsto> vs;
-    m' = (set_params m vs)\<rbrakk>
+    m' = MapState (\<lambda>x. UndefVal) vs\<rbrakk>
     \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m')#(nid,m)#xs" |
 
   ReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<mapsto> v;
     m' = m_set call_nid v call_m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs" |
+    \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs"
 
+(* |
   ExitReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<mapsto> v;
     m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []"
+*)
 text_raw \<open>}%endsnip\<close>
 
 code_pred step_top .
@@ -244,14 +245,15 @@ inductive exec :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow>
   ("_ \<turnstile> _ \<longrightarrow>* _")
   where
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
-    length s' \<noteq> 0;
     exec g s' s''\<rbrakk> 
-    \<Longrightarrow> exec g s s''" |
-
+    \<Longrightarrow> exec g s s''" 
+(* TODO: this seems to be unnecessary? *)
+  |
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
     length s' = 0\<rbrakk>
     \<Longrightarrow> exec g s s"
 code_pred "exec" .
+
 
 inductive exec_debug :: "Graph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> nat \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
   ("_ \<turnstile> _ \<rightarrow>*_* _")

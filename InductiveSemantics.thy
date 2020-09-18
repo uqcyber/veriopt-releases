@@ -124,7 +124,7 @@ inductive
 
   ParameterNode:
   "\<lbrakk>kind g nid = ParameterNode i;
-    val = m_param g m nid\<rbrakk>
+    val = (m_params m)!i\<rbrakk>
     \<Longrightarrow> g (nid, m) \<mapsto> val" |
 
   PhiNode:
@@ -217,22 +217,23 @@ inductive
   CallNodeStep:
   "\<lbrakk>kind g nid = CallNode start;
     g (inp g nid) m \<longmapsto> vs;
-    m' = MapState (\<lambda>x. UndefVal) vs\<rbrakk>
+    m' =  set_params new_map_state vs\<rbrakk>
     \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m')#(nid,m)#xs" |
 
   ReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<mapsto> v;
-    m' = m_set call_nid v call_m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m)#(call_nid,call_m)#xs \<longrightarrow> ((succ g call_nid)!0,m')#xs"
+    c_m' = m_set c_nid v c_m;
+    c_nid' = (succ g c_nid)!0\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid,m)#(c_nid,c_m)#xs \<longrightarrow> (c_nid',c_m')#xs"
 
-(* |
+ |
   ExitReturnNode:
   "\<lbrakk>kind g nid = ReturnNode;
     g ((inp g nid)!0, m) \<mapsto> v;
     m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []"
-*)
+
 text_raw \<open>}%endsnip\<close>
 
 code_pred step_top .

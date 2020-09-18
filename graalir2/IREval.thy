@@ -90,14 +90,19 @@ inductive
   "\<lbrakk>val = m_val m nid\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (PhiNode _ _) \<mapsto> val" |
 
-(* ValuePhiNode missing? *)
+  ValuePhiNode:
+  "\<lbrakk>val = m_val m nid\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (ValuePhiNode _ _) \<mapsto> val" |
 
   ValueProxyNode:
   "\<lbrakk>g m \<turnstile> c (kind g c) \<mapsto> v\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (ValueProxyNode _ c) \<mapsto> v" |
 
 (* Unary arithmetic operators *)
-(* AbsNode missing - Is absolute value defined on Int32? *)
+
+  AbsNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (AbsNode x) \<mapsto> IntVal(if v<0 then -v else v)" |
 
   NegateNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v)\<rbrakk> 
@@ -161,7 +166,7 @@ inductive
   ShortCircuitOrNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
     g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y xNegated yNegated) \<mapsto> if v1 \<noteq> 0 then IntVal(v1) else IntVal(v2)" |
+    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> if v1 \<noteq> 0 then IntVal(v1) else IntVal(v2)" |
 
   LogicNegationNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1)\<rbrakk> 

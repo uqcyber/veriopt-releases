@@ -38,8 +38,8 @@ datatype (discs_sels) IRNode =
      ----------------------------------------- *)
   ConstantNode (ir_intValue: int)  (* TODO: value should be a Java Constant object *)
   | ParameterNode (ir_index:nat)
-  | PhiNode (ir_merge:INPUT_ASSOC) (ir_values:"INPUT list")
-  | ValuePhiNode (ir_inputs:"INPUT list")
+  | PhiNode (ir_merge:INPUT_ASSOC) (ir_values:"INPUT list") (* not used? *)
+  | ValuePhiNode (ir_merge:INPUT_ASSOC) (ir_inputs:"INPUT list")
   | ValueProxyNode (ir_loopExit:INPUT_ASSOC) (ir_value:INPUT)
   (* UnaryArithmeticNode subclasses *)
   | AbsNode (ir_value:INPUT)
@@ -57,7 +57,7 @@ datatype (discs_sels) IRNode =
   (* others *)
   | ConditionalNode (ir_condition:INPUT_COND) (ir_trueValue:INPUT) (ir_falseValue:INPUT)
 (* Ian thinks xNegated and yNegated are a hack to be avoided *)
-  | ShortCircuitOrNode (ir_x:INPUT_COND) (ir_y:INPUT_COND) (ir_xNegated:bool) (ir_yNegated:bool) (* TODO: add field: double shortCircuitProbability; *)
+  | ShortCircuitOrNode (ir_x:INPUT_COND) (ir_y:INPUT_COND) (* TODO: add? (ir_xNegated:bool) (ir_yNegated:bool)  double shortCircuitProbability; *)
   | LogicNegationNode (ir_value:INPUT_COND)
   (* Control-flow (fixed) nodes
      ------------------ *)
@@ -112,7 +112,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (ConstantNode _) = []" |
   "inputs_of (ParameterNode _) = []" |
   "inputs_of (PhiNode merge vals) = merge # vals" |
-  "inputs_of (ValuePhiNode inputs) = inputs" |
+  "inputs_of (ValuePhiNode merge inputs) = merge # inputs" |
   "inputs_of (ValueProxyNode loopExit val) = [loopExit, val]" |
   "inputs_of (AbsNode val) = [val]" |
   "inputs_of (NegateNode val) = [val]" |
@@ -125,7 +125,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (IntegerEqualsNode x y) = [x, y]" |
   "inputs_of (IntegerLessThanNode x y) = [x, y]" |
   "inputs_of (ConditionalNode condition trueVal falseVal) = [condition, trueVal, falseVal]" |
-  "inputs_of (ShortCircuitOrNode x y xNeg yNeg) = [x, y]" |
+  "inputs_of (ShortCircuitOrNode x y) = [x, y]" |
   "inputs_of (LogicNegationNode val) = [val]" |
   "inputs_of (SwitchNode val _) = [val]" |
   "inputs_of (IfNode condition _ _) = [condition]" |

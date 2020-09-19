@@ -67,7 +67,7 @@ datatype (discs_sels) IRNode =
   | BeginNode (ir_next:SUCC)
   | StartNode (ir_stateAfter:"INPUT_STATE option") (ir_next:SUCC)
   | EndNode
-  | LoopBeginNode (ir_stateAfter:"INPUT_STATE option") (ir_overflowGuard:"INPUT_GUARD option") (ir_ends:"INPUT_ASSOC list") (nxt:SUCC)
+  | LoopBeginNode (ir_stateAfter:"INPUT_STATE option") (ir_overflowGuard:"INPUT_GUARD option") (ir_ends:"INPUT_ASSOC list") (ir_next:SUCC)
   | LoopEndNode (ir_loopBegin:INPUT_ASSOC)
   | LoopExitNode (ir_loopBegin:INPUT_ASSOC) (ir_stateAfter:"INPUT_STATE option") (ir_next:SUCC)
   | MergeNode (ir_stateAfter:"INPUT_STATE option") (ir_ends:"INPUT_ASSOC list") (ir_next:SUCC)
@@ -98,8 +98,25 @@ fun is_BinaryArithNode :: "IRNode \<Rightarrow> bool" where
 
 fun is_PhiNode :: "IRNode \<Rightarrow> bool" where
   "is_PhiNode (PhiNode _ _) = True" |
-  "is_PhiNode (ValuePhiNode _) = True" |
+  "is_PhiNode (ValuePhiNode _ _) = True" |
   "is_PhiNode _ = False"
+
+fun is_merge_node :: "IRNode \<Rightarrow> bool" where
+  "is_merge_node (MergeNode _ _ _) = True" |
+  "is_merge_node (LoopBeginNode _ _ _ _) = True" |
+  "is_merge_node _ = False"
+
+fun is_sequential_node :: "IRNode \<Rightarrow> bool" where
+  "is_sequential_node (StartNode _ _) = True" |
+  "is_sequential_node (BeginNode _) = True" |
+  "is_sequential_node (LoopBeginNode _ _ _ _) = True" |
+  "is_sequential_node (LoopExitNode _ _ _) = True" |
+  "is_sequential_node n = is_merge_node n"
+
+fun is_end_node :: "IRNode \<Rightarrow> bool" where
+  "is_end_node (EndNode) = True" |
+  "is_end_node (LoopEndNode _) = True" |
+  "is_end_node _ = False"
 
 
 (* Surely this must exist already?  I cannot find it in option or list theory. *)
@@ -151,6 +168,23 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
 value "inputs_of (FrameState (Some 3))"
 value "inputs_of (FrameState None)"
 
-(* TODO: successors_of *)
+fun successors_of :: "IRNode \<Rightarrow> ID list" where
+  "successors_of (IfNode _ t f) = [t, f]" |
+  "successors_of (KillingBeginNode nxt) = [nxt]" |
+  "successors_of (BeginNode nxt) = [nxt]" |
+  "successors_of (StartNode _ nxt) = [nxt]" |
+  "successors_of (EndNode) = []" |
+  "successors_of (LoopBeginNode _ _ _ nxt) = [nxt]" |
+  "successors_of (LoopEndNode _) = []" |
+  "successors_of (LoopExitNode _ _ nxt) = [nxt]" |
+  "successors_of (MergeNode _ _ nxt) = [nxt]" |
+  "successors_of (ReturnNode _ _) = []" |
+  "successors_of (CallNode _ children) = children" |
+  "successors_of (NewInstanceNode _ _ nxt) = [nxt]" |
+  "successors_of (LoadFieldNode _ _ nxt) = [nxt]" |
+  "successors_of (StoreFieldNode _ _ _ _ nxt) = [nxt]" |
+  "successors_of (LoadStaticFieldNode _ _ nxt) = [nxt]" |
+  "successors_of (StoreStaticFieldNode _ _ _ nxt) = [nxt]" |
+  "successors_of _ = []"
 end
 

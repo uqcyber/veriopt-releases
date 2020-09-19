@@ -24,10 +24,9 @@ fun kind :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRNode" where
 fun inp :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "inp g nid = inputs_of(kind g nid)"
 
-(* TODO: add succ, once it is defined in IRNodes.thy
-fun succ :: "Graph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "succ g nid = n_successors(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> EmptyNode)"
-*)
+(* Get the successor list of a given node ID. *)
+fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "succ g nid = successors_of(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> NoNode)"
 
 (* Gives a relation between node IDs - between a node and its input nodes. *)
 fun input_edges :: "IRGraph \<Rightarrow> ID rel" where

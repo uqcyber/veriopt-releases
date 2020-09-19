@@ -1,4 +1,4 @@
-section \<open>Inductive semantics of nodes\<close>
+section \<open>Inductive evaluation semantics of floating nodes\<close>
 
 theory IREval
   imports
@@ -95,8 +95,8 @@ inductive
     \<Longrightarrow> g m \<turnstile> nid (ValuePhiNode _ _) \<mapsto> val" |
 
   ValueProxyNode:
-  "\<lbrakk>g m \<turnstile> c (kind g c) \<mapsto> v\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ValueProxyNode _ c) \<mapsto> v" |
+  "\<lbrakk>g m \<turnstile> c (kind g c) \<mapsto> val\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (ValueProxyNode _ c) \<mapsto> val" |
 
 (* Unary arithmetic operators *)
 
@@ -126,6 +126,7 @@ inductive
     \<Longrightarrow> g m \<turnstile> nid (MulNode x y) \<mapsto> IntVal(v1*v2)" |
 
 (* Binary logical bitwise operators *)
+
   AndNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
     g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
@@ -142,56 +143,80 @@ inductive
     \<Longrightarrow> g m \<turnstile> nid (XorNode x y) \<mapsto> IntVal(v1 XOR v2)" |
 
 (* Comparison operators *)
-
+(* NOTE: if we use IntVal(bool_to_int(v1=v2)), then code generation does not work! *)
   IntegerEqualsNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (IntegerEqualsNode x y) \<mapsto> IntVal(bool_to_int(v1 = v2))" |
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2);
+    val = bool_to_m_val(v1 = v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (IntegerEqualsNode x y) \<mapsto> val" |
 
   IntegerLessThanNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> IntVal(bool_to_int(v1 \<le> v2))" |
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2);
+    val = bool_to_m_val(v1 \<le> v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val" |
 
 (* Other nodes *)
 (* Note that both branches are evaluated but only one is used.
    This is not an issue as evaluation is total (but may return UnDef) *)
+
   ConditionalNode:
   "\<lbrakk>g m \<turnstile> condition (kind g condition) \<mapsto> IntVal(cond);
     g m \<turnstile> trueExp (kind g trueExp) \<mapsto> IntVal(trueVal);
-    g m \<turnstile> falseExp (kind g falseExp) \<mapsto> IntVal(falseVal)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (ConditionalNode condition trueExp falseExp) \<mapsto> IntVal(if cond \<noteq> 0 then trueVal else falseVal)" |
+    g m \<turnstile> falseExp (kind g falseExp) \<mapsto> IntVal(falseVal);
+    val = IntVal(if cond \<noteq> 0 then trueVal else falseVal)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (ConditionalNode condition trueExp falseExp) \<mapsto> val" |
 
 (* Note that v2 may evaluate to UnDef but is not used if v1 is true *)
+
   ShortCircuitOrNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> if v1 \<noteq> 0 then IntVal(v1) else IntVal(v2)" |
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2);
+    val = (if v1 \<noteq> 0 then IntVal(v1) else IntVal(v2))\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> val" |
 
   LogicNegationNode:
-  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (LogicNegationNode x ) \<mapsto> IntVal(NOT v2)" |
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    val = IntVal(NOT v1)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (LogicNegationNode x ) \<mapsto> val" |
 
 (* Access the value returned by the most recent call *)
   CallNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (CallNode start children) \<mapsto> val"
 
+code_pred [show_modes] eval .
 
-code_pred eval .
 
-definition m0 :: MapState where
-  "m0 = set_params new_map_state [IntVal 3]"
+inductive
+  eval_all :: "IRGraph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool"
+  ("_ _ _\<longmapsto>_" 55)
+  for g where
+  "g [] m \<longmapsto> []" |
+  "\<lbrakk>g m \<turnstile> nid (kind g nid) \<mapsto> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)"
 
-inductive eval_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool" ("_\<diamondop>_")
+code_pred [show_modes] eval_all .
+
+
+(* Test the eval predicates. *)
+inductive eval_graph :: "(IRGraph \<times> ID) \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool" ("_\<diamondop>_")
   where
   "\<lbrakk>state = new_map ps;
-    g state \<turnstile> 0 (kind g 0) \<mapsto> val\<rbrakk>
-    \<Longrightarrow> eval_graph g ps val"
+    g state \<turnstile> nid (kind g nid) \<mapsto> val\<rbrakk>
+    \<Longrightarrow> eval_graph (g, nid) ps val"
 
-code_pred "eval_graph" .
+code_pred [show_modes] "eval_graph" .
 
-values "{x. x \<in> {2} \<and> (eg2_sq \<diamondop> [IntVal 5]) (IntVal 0)}"
+(* 5*5 \<Rightarrow> 25 *)
+values "{v. ((eg2_sq, 4) \<diamondop> [IntVal 5]) v}"
+
+
+(* Try proving 'inverted rules' for eval.
+lemma "evalAddNode" : "g m \<turnstile> nid (AddNode x y) \<mapsto> val \<Longrightarrow>
+  (\<exists> v1. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v1) \<and>
+    (\<exists> v2. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v2) \<and>
+       val = IntVal(v1 + v2)))"
+*)
 
 end
 

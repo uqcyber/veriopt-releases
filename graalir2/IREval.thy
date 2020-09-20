@@ -199,16 +199,16 @@ code_pred [show_modes] eval_all .
 
 
 (* Test the eval predicates. *)
-inductive eval_graph :: "(IRGraph \<times> ID) \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool" ("_\<diamondop>_")
+inductive eval_graph :: "IRGraph \<Rightarrow> ID \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
   where
   "\<lbrakk>state = new_map ps;
     g state \<turnstile> nid (kind g nid) \<mapsto> val\<rbrakk>
-    \<Longrightarrow> eval_graph (g, nid) ps val"
+    \<Longrightarrow> eval_graph g nid ps val"
 
 code_pred [show_modes] "eval_graph" .
 
 (* 5*5 \<Rightarrow> 25 *)
-values "{v. ((eg2_sq, 4) \<diamondop> [IntVal 5]) v}"
+values "{v. eval_graph eg2_sq 4 [IntVal 5] v}"
 
 
 (* Try proving 'inverted rules' for eval.

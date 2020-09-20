@@ -7,8 +7,7 @@ begin
 
 
 text_raw \<open>\snip{step_semantics}{\<close>
-inductive
-  step :: "IRGraph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool"
+inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool"
   ("_ \<turnstile> _\<rightarrow>_" 55)
   for g where
 
@@ -44,8 +43,7 @@ code_pred [show_modes] step .
 
 
 text_raw \<open>\snip{top_step_semantics}{\<close>
-inductive
-  step_top :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
+inductive step_top :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
   ("_\<turnstile>_\<longrightarrow>_" 55) 
   for g where
 

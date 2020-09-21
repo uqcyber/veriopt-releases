@@ -112,7 +112,7 @@ inductive
 (* If we have separate rules for each node then we do not need binary_expr *)
   AddNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(v1+v2)" |
 
   SubNode:
@@ -178,7 +178,7 @@ inductive
   LogicNegationNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
     val = IntVal(NOT v1)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (LogicNegationNode x ) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> nid (LogicNegationNode x) \<mapsto> val" |
 
 (* Access the value returned by the most recent call *)
   CallNodeEval:
@@ -217,12 +217,247 @@ code_pred [show_modes] "eval_graph" .
 values "{v. eval_graph eg2_sq 4 [IntVal 5] v}"
 
 
-(* Try proving 'inverted rules' for eval.
+fun is_misc_floating_node :: "IRNode \<Rightarrow> bool" where
+  "is_misc_floating_node (ConstantNode c) = True" |
+  "is_misc_floating_node (ParameterNode i) = True" |
+  "is_misc_floating_node (ValueProxyNode loopExit c) = True" |
+  "is_misc_floating_node (ConditionalNode c t f) = True" |
+  "is_misc_floating_node (ShortCircuitOrNode x y) = True" |
+  "is_misc_floating_node (LogicNegationNode x) = True" |
+  "is_misc_floating_node (CallNode start args children) = True" |
+  "is_misc_floating_node (RefNode x) = True" |
+  "is_misc_floating_node _ = False"
+
+(* All the kinds of nodes that eval can handle. *)
+fun is_floating_node :: "IRNode \<Rightarrow> bool" where
+  "is_floating_node n = (
+    is_BinaryArithNode n \<or>
+    is_UnaryArithNode n \<or>
+    is_CompareNode n \<or>
+    is_PhiNode n \<or>
+    is_misc_floating_node n
+  )"
+
+
+inductive_cases ConstantNodeE[elim!]:
+  "g m \<turnstile> nid (ConstantNode c) \<mapsto> val"
+thm ConstantNodeE
+
+inductive_cases ParameterNodeE[elim!]:
+  "g m \<turnstile> nid (ParameterNode i) \<mapsto> val"
+thm ParameterNodeE
+
+inductive_cases PhiNodeE[elim!]:
+  "g m \<turnstile> nid (PhiNode merge vals) \<mapsto> val"
+thm PhiNodeE
+
+inductive_cases ValuePhiNodeE[elim!]:
+  "g m \<turnstile> nid (ValuePhiNode merge vals) \<mapsto> val"
+thm ValuePhiNodeE
+
+inductive_cases ValueProxyNodeE[elim!]:
+  "g m \<turnstile> nid (ValueProxyNode loopExit c) \<mapsto> val"
+thm ValueProxyNodeE
+
+inductive_cases AbsNodeE[elim!]:
+  "g m \<turnstile> nid (AbsNode x) \<mapsto> val"
+thm AbsNodeE
+
+inductive_cases NegateNodeE[elim!]:
+  "g m \<turnstile> nid (NegateNode x) \<mapsto> val"
+thm NegateNodeE
+
+inductive_cases AddNodeE[elim!]:
+  "g m \<turnstile> nid (AddNode x y) \<mapsto> val"
+thm AddNodeE
+
+inductive_cases SubNodeE[elim!]:
+  "g m \<turnstile> nid (SubNode x y) \<mapsto> val"
+thm SubNodeE
+
+inductive_cases MulNodeE[elim!]:
+  "g m \<turnstile> nid (MulNode x y) \<mapsto> val"
+thm MulNodeE
+
+inductive_cases AndNodeE[elim!]:
+  "g m \<turnstile> nid (AndNode x y) \<mapsto> val"
+thm AndNodeE
+
+inductive_cases OrNodeE[elim!]:
+  "g m \<turnstile> nid (OrNode x y) \<mapsto> val"
+thm OrNodeE
+
+inductive_cases XorNodeE[elim!]:
+  "g m \<turnstile> nid (XorNode x y) \<mapsto> val"
+thm XorNodeE
+
+inductive_cases IntegerEqualsNodeE[elim!]:
+  "g m \<turnstile> nid (IntegerEqualsNode x y) \<mapsto> val"
+thm MulNodeE
+
+inductive_cases IntegerLessThanNodeE[elim!]:
+  "g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val"
+thm IntegerLessThanNodeE
+
+inductive_cases ConditionalNodeE[elim!]:
+  "g m \<turnstile> nid (ConditionalNode condition trueExp falseExp) \<mapsto> val"
+thm ConditionalNodeE
+
+inductive_cases ShortCircuitOrNodeE[elim!]:
+  "g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> val"
+thm ShortCircuitOrNodeE
+
+inductive_cases LogicNegationNodeE[elim!]:
+  "g m \<turnstile> nid (LogicNegationNode x) \<mapsto> val"
+thm LogicNegationNodeE
+
+inductive_cases CallNodeE[elim!]:
+  "g m \<turnstile> nid (CallNode start args children) \<mapsto> val"
+thm CallNodeE
+
+inductive_cases RefNodeE[elim!]:
+  "g m \<turnstile> nid (RefNode x) \<mapsto> val"
+thm RefNodeE
+
+(* It is also useful to define these inverse rules for the
+  *missing* eval cases, so that we can prove they are never true.
+  E.g. see lemma notEvalIfNode.
+*)
+inductive_cases IfNodeE[elim!]:
+  "g m \<turnstile> nid (IfNode c t f) \<mapsto> val"
+
+lemma notEvalIfNode: "\<not>(g m \<turnstile> nid (IfNode c t f) \<mapsto> val)"
+  by auto
+
+inductive_cases SwitchNodeE[elim!]:
+  "g m \<turnstile> nid (SwitchNode v sucs) \<mapsto> val"
+
+inductive_cases KillingBeginNodeE[elim!]:
+  "g m \<turnstile> nid (KillingBeginNode nxt) \<mapsto> val"
+
+inductive_cases BeginNodeE[elim!]:
+  "g m \<turnstile> nid (BeginNode nxt) \<mapsto> val"
+
+inductive_cases StartNodeE[elim!]:
+  "g m \<turnstile> nid (StartNode after nxt) \<mapsto> val"
+
+inductive_cases EndNodeE[elim!]:
+  "g m \<turnstile> nid (EndNode) \<mapsto> val"
+
+inductive_cases LoopBeginNodeE[elim!]:
+  "g m \<turnstile> nid (LoopBeginNode after ovr ends nxt) \<mapsto> val"
+
+inductive_cases LoopEndNodeE[elim!]:
+  "g m \<turnstile> nid (LoopEndNode begin) \<mapsto> val"
+
+inductive_cases LoopExitNodeE[elim!]:
+  "g m \<turnstile> nid (LoopExitNode begin after nxt) \<mapsto> val"
+
+inductive_cases MergeNodeE[elim!]:
+  "g m \<turnstile> nid (MergeNode after ends nxt) \<mapsto> val"
+
+inductive_cases ReturnNodeE[elim!]:
+  "g m \<turnstile> nid (ReturnNode result mem) \<mapsto> val"
+
+inductive_cases NewInstanceNodeE[elim!]:
+  "g m \<turnstile> nid (NewInstanceNode clazz before nxt) \<mapsto> val"
+
+inductive_cases LoadFieldNodeE[elim!]:
+  "g m \<turnstile> nid (LoadFieldNode field obj nxt) \<mapsto> val"
+
+inductive_cases StoreFieldNodeE[elim!]:
+  "g m \<turnstile> nid (StoreFieldNode field obj v after nxt) \<mapsto> val"
+
+inductive_cases LoadStaticFieldNodeE[elim!]:
+  "g m \<turnstile> nid (LoadStaticFieldNode field clazz nxt) \<mapsto> val"
+
+inductive_cases StoreStaticFieldNodeE[elim!]:
+  "g m \<turnstile> nid (StoreStaticFieldNode field clazz v nxt) \<mapsto> val"
+
+inductive_cases FrameStateE[elim!]:
+  "g m \<turnstile> nid (FrameState outer vals) \<mapsto> val"
+
+inductive_cases NoNodeE[elim!]:
+  "g m \<turnstile> nid (NoNode) \<mapsto> val"
+
+
+(* Try proving 'inverted rules' for eval. *)
 lemma "evalAddNode" : "g m \<turnstile> nid (AddNode x y) \<mapsto> val \<Longrightarrow>
   (\<exists> v1. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v1) \<and>
     (\<exists> v2. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v2) \<and>
        val = IntVal(v1 + v2)))"
+  using AddNodeE by auto
+
+(* Prove that eval only works on floating nodes. *)
+lemma "evalFloating":
+  assumes v:"g m \<turnstile> nid node \<mapsto> val"
+  shows "is_floating_node node"
+  using v apply (induct node)
+                      apply auto
+  done
+
+
+(* eval never sees NoNode *)
+lemma good_kind: "g m \<turnstile> x (kind g x) \<mapsto> val \<Longrightarrow> kind g x \<noteq> NoNode"
+  using NoNodeE by auto
+  
+(* eval never sees NoNode?  Alternative form? *)
+lemma good_kind2:
+  "(g m \<turnstile> nid (case fmlookup g nid of
+     None \<Rightarrow> NoNode |
+     Some n \<Rightarrow> n)
+   \<mapsto> val) \<Longrightarrow>
+  kind g x \<noteq> NoNode"
+  using good_kind NoNodeE sorry 
+  
+
+(* We might like to prove the reverse too? But that
+   would require lots of graph and MapState invariants.
+lemma "floatingEval":
+  assumes "is_floating_node node"
+  assumes "very well formed graph:  g"
+  assumes "mapstate m has all necessary params and values!"
+  shows v:"g m \<turnstile> nid node \<mapsto> val"
 *)
 
+
+
+(* A top-level goal: eval is deterministic. *)
+(*
+theorem "evalDet":
+  assumes wff: "wff_graph g"
+  shows "g m \<turnstile> nid node \<mapsto> val1 \<Longrightarrow>
+   g m \<turnstile> nid node \<mapsto> val2 \<Longrightarrow>
+  val1 = val2"
+  apply (induction rule: "eval.induct")
+  apply (simp del: kind.simps) 
+*)
+
+(* TODO?
+  apply (elim ConstantNodeE; simp)
+  apply (elim ParameterNodeE; simp)
+  apply (elim PhiNodeE; simp)
+  apply (elim ValuePhiNodeE; simp)
+  apply (elim ValueProxyNodeE; simp)
+  apply (elim AbsNodeE; auto)
+  apply (elim NegateNodeE; auto)
+  apply (elim AddNodeE; auto)
+  apply (elim SubNodeE; auto)
+  apply (elim MulNodeE; auto)
+  apply (elim AndNodeE; auto)
+  apply (elim OrNodeE; auto)
+  apply (elim XorNodeE; auto)
+  apply (elim MulNodeE; auto)
+  apply (elim IntegerLessThanNodeE; auto)
+  apply (elim ConditionalNodeE; auto)
+  apply (elim ShortCircuitOrNodeE; auto)
+  apply (elim LogicNegationNodeE; auto)
+  apply (elim CallNodeE; auto)
+  apply (elim RefNodeE; auto)
+
+  apply (elim ConstantNodeE; auto)
+                      apply (elim ParameterNodeE; auto)
+  apply elim_tac
+*)
 end
 

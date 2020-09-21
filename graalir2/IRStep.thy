@@ -51,8 +51,8 @@ inductive step_top :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Right
     \<Longrightarrow> g \<turnstile> (nid, m) # xs \<longrightarrow> (nid', m') # xs" |
 
   CallNodeStep:
-  "\<lbrakk>kind g nid = (CallNode start _);
-    g (inp g nid) m \<longmapsto> vs;
+  "\<lbrakk>kind g nid = (CallNode start args _);
+    g args m \<longmapsto> vs;
     m' =  set_params new_map_state vs\<rbrakk>
     \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m')#(nid,m)#xs" |
 
@@ -101,14 +101,8 @@ inductive exec_debug :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rig
 code_pred [show_modes] "exec_debug" .
 
 
-
-definition call_eg2 :: IRGraph where
-  "call_eg2 = fmupd 10 (CallNode 0 []) eg2_sq"
-
 definition p3:: MapState where
   "p3 = new_map [IntVal 3]"
-
-value "inp call_eg2 10"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{m_val (snd (hd res)) 0 | res. eg2_sq \<turnstile> [(0, p3), (0, p3)] \<rightarrow>*2* res}"

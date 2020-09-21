@@ -74,14 +74,15 @@ datatype (discs_sels) IRNode =
   | LoopExitNode (ir_loopBegin:INPUT_ASSOC) (ir_stateAfter:"INPUT_STATE option") (ir_next:SUCC)
   | MergeNode (ir_stateAfter:"INPUT_STATE option") (ir_ends:"INPUT_ASSOC list") (ir_next:SUCC)
   | ReturnNode (ir_result:"INPUT option") (ir_memoryMap:"INPUT_EXT option")
-  | CallNode (ir_startNode:INPUT) (ir_children:"SUCC list")
+    (* NB. CallNode here includes CallTargetNode. *)
+  | CallNode (ir_startNode:INPUT) (ir_arguments:"INPUT list") (ir_children:"SUCC list")
   | NewInstanceNode (ir_className:string) (ir_stateBefore:INPUT_STATE) (ir_next:SUCC)
   | LoadFieldNode (ir_field:string) (ir_object:INPUT) (ir_next:SUCC)
   | StoreFieldNode (ir_field:string) (ir_object:INPUT) (ir_value:INPUT) (ir_stateAfter:"INPUT_STATE option") (ir_next:SUCC)
     (* these next two are special cases of Load/Store where isStatic() is true. *)
   | LoadStaticFieldNode (ir_field:string) (ir_clazz:string) (ir_next:SUCC)
   | StoreStaticFieldNode (ir_field:string) (ir_clazz:string) (ir_value:INPUT) (ir_next:SUCC)
-  | FrameState (ir_outerFrameState:"INPUT_STATE option") (* TODO: add values, monitorIds, virtualObjectMappings? *)
+  | FrameState (ir_outerFrameState:"INPUT_STATE option") (ir_values:"INPUT list") (* TODO: add monitorIds, virtualObjectMappings? *)
   | RefNode (ir_ref:ID) (* Proxy for another node *)
   (* Dummy node to not cause too much pain when switching to partial *)
   | NoNode 
@@ -158,19 +159,19 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (LoopExitNode loopBegin after _) = [loopBegin] @ opt_to_list after" |
   "inputs_of (MergeNode after ends _) = opt_to_list after @ ends" |
   "inputs_of (ReturnNode result mem) = opt_to_list result @ opt_to_list mem" |
-  "inputs_of (CallNode startNode _) = [startNode]" |
+  "inputs_of (CallNode startNode args _) = [startNode] @ args" |
   "inputs_of (NewInstanceNode _ before _) = [before]" |
   "inputs_of (LoadFieldNode _ object _) = [object]" |
   "inputs_of (StoreFieldNode _ object val after _) = [object, val] @ opt_to_list after" |
   "inputs_of (LoadStaticFieldNode _ _ _) = []" |
   "inputs_of (StoreStaticFieldNode _ _ val _) = [val]" |
-  "inputs_of (FrameState ofs) =  opt_to_list ofs" |
+  "inputs_of (FrameState ofs vals) =  opt_to_list ofs @ vals" |
   "inputs_of (RefNode x) = [x]" |
   "inputs_of NoNode = []"
 
 
-value "inputs_of (FrameState (Some 3))"
-value "inputs_of (FrameState None)"
+value "inputs_of (FrameState (Some 3) [5,7])"
+value "inputs_of (FrameState None [])"
 
 fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (IfNode _ t f) = [t, f]" |
@@ -183,7 +184,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (LoopExitNode _ _ nxt) = [nxt]" |
   "successors_of (MergeNode _ _ nxt) = [nxt]" |
   "successors_of (ReturnNode _ _) = []" |
-  "successors_of (CallNode _ children) = children" |
+  "successors_of (CallNode _ _ children) = children" |
   "successors_of (NewInstanceNode _ _ nxt) = [nxt]" |
   "successors_of (LoadFieldNode _ _ nxt) = [nxt]" |
   "successors_of (StoreFieldNode _ _ _ _ nxt) = [nxt]" |

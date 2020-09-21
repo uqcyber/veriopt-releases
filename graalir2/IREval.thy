@@ -153,7 +153,7 @@ inductive
   IntegerLessThanNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
     g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2);
-    val = bool_to_m_val(v1 \<le> v2)\<rbrakk> 
+    val = bool_to_m_val(v1 < v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val" |
 
 (* Other nodes *)
@@ -183,7 +183,7 @@ inductive
 (* Access the value returned by the most recent call *)
   CallNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (CallNode start children) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> nid (CallNode start args children) \<mapsto> val" |
 
   RefNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> val\<rbrakk>
@@ -197,7 +197,9 @@ inductive
   ("_ _ _\<longmapsto>_" 55)
   for g where
   "g [] m \<longmapsto> []" |
-  "\<lbrakk>g m \<turnstile> nid (kind g nid) \<mapsto> v; g xs m \<longmapsto> vs\<rbrakk> \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)"
+  "\<lbrakk>g m \<turnstile> nid (kind g nid) \<mapsto> v;
+    g xs m \<longmapsto> vs\<rbrakk>
+   \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)"
 
 code_pred [show_modes] eval_all .
 

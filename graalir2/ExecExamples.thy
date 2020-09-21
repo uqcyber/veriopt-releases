@@ -76,24 +76,24 @@ definition factorial_graph :: IRGraph where
 *)
 (* TODO: fix up CallNode s! *)
 definition fib :: IRGraph where
-  "fib_graph =
-    (add_node 16 (ReturnNode (Some 15) None)x
+  "fib =
+    (add_node 16 (ReturnNode (Some 15) None)
     (add_node 15 (CallNode 1 [2] [16])
-    (add_node 14 (ReturnNode (Some 13) None)x
-    (add_node 13 (AddNode 11 12)x
+    (add_node 14 (ReturnNode (Some 13) None)
+    (add_node 13 (AddNode 11 12)
     (add_node 12 (CallNode 1 [10] [14])
     (add_node 11 (CallNode 1 [9] [12])
-    (add_node 10 (SubNode 2 8)x
-    (add_node 9 (SubNode 2 7)x
-    (add_node 8 (ConstantNode 2)x
-    (add_node 7 (ConstantNode 1)x
-    (add_node 6 (ReturnNode (Some 2) None)x
-    (add_node 5 (IfNode 4 6 11)x
-    (add_node 4 (IntegerLessThanNode 2 3)x
-    (add_node 3 (ConstantNode 2)x
-    (add_node 2 (ParameterNode 0)x
-    (add_node 1 (StartNode None 5)x
-    (add_node 0 (StartNode None 15)x
+    (add_node 10 (SubNode 2 8)
+    (add_node 9 (SubNode 2 7)
+    (add_node 8 (ConstantNode 2)
+    (add_node 7 (ConstantNode 1)
+    (add_node 6 (ReturnNode (Some 2) None)
+    (add_node 5 (IfNode 4 6 11)
+    (add_node 4 (IntegerLessThanNode 2 3)
+    (add_node 3 (ConstantNode 2)
+    (add_node 2 (ParameterNode 0)
+    (add_node 1 (StartNode None 5)
+    (add_node 0 (StartNode None 15)
     empty_graph)))))))))))))))))"
 (*
 definition loop_graph :: IRGraph where
@@ -282,33 +282,29 @@ values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 6]) (n, m)}"
 (* IntVal 5040 *)
 values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 7]) (n, m)}"
 
-definition real_fib_graph :: IRGraph where
-"real_fib_graph = 
- (add_node 0 StartNode [2] [8]
- (add_node 1 (ParameterNode 0) [] []
- (add_node 2 FrameState [1] []
- (add_node 3 (ConstantNode 1) [] []
- (add_node 4 (ConstantNode 2) [] []
- (add_node 5 IntegerLessThanNode [1, 4] []
- (add_node 6 BeginNode [] [13]
- (add_node 7 BeginNode [] [9]
- (add_node 8 IfNode [5] [7, 6]
- (add_node 9 ReturnNode [1] []
- (add_node 10 (ConstantNode (-1)) [] []
- (add_node 11 AddNode [1, 10] []
- (add_node 13 (CallNode 0) [11] [18]
- (add_node 14 FrameState [1, 13] []
- (add_node 15 (ConstantNode (-2)) [] []
- (add_node 16 AddNode [1, 15] []
- (add_node 18 (CallNode 0) [16] [21]
- (add_node 19 FrameState [13, 18] []
- (add_node 20 AddNode [13, 18] []
- (add_node 21 ReturnNode [20] []
+definition real_fib :: IRGraph where
+"real_fib = 
+ (add_node 0 (StartNode (Some 2) 8)
+ (add_node 1 (ParameterNode 0)
+ (add_node 2 (FrameState None [1])
+ (add_node 3 (ConstantNode 1)
+ (add_node 4 (ConstantNode 2)
+ (add_node 5 (IntegerLessThanNode 1 4)
+ (add_node 6 (BeginNode 13)
+ (add_node 7 (BeginNode 9)
+ (add_node 8 (IfNode 5 7 6)
+ (add_node 9 (ReturnNode (Some 1) None)
+ (add_node 10 (ConstantNode (-1))
+ (add_node 11 (AddNode 1 10)
+ (add_node 13 (CallNode 0 [11] [18])
+ (add_node 14 (FrameState None [1, 13])
+ (add_node 15 (ConstantNode (-2))
+ (add_node 16 (AddNode 1 15)
+ (add_node 18 (CallNode 0 [16] [21])
+ (add_node 19 (FrameState None [13, 18])
+ (add_node 20 (AddNode 13 18)
+ (add_node 21 (ReturnNode (Some 20) None)
  empty_graph))))))))))))))))))))"
-lemma "wff_graph real_fib_graph"
-  unfolding real_fib_graph_def by simp
-definition real_fib :: "Graph" where
-  "real_fib = (ir_to_graph real_fib_graph)"
 
 (* IntVal 1 *)
 values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 1]) (n, m)}"

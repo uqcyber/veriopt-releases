@@ -73,21 +73,21 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
    and use 'nitpick' to find the bad n.
 *)
 
-(* TODO: add these closure invariants once we have an inputs/successors relations.
+(* graph closure invariants *)
 fun has_good_inputs :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "has_good_inputs n (Graph ids nodes inputs successors) = (set(inputs n) \<subseteq> ids)"
+  "has_good_inputs n g = list_all (\<lambda>i. i |\<in>| fmdom g) (inputs_of (kind g n))"
 
 fun has_good_successors :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "has_good_successors n (Graph ids nodes inputs successors) = (set(successors n) \<subseteq> ids)"
-*)
+  "has_good_successors n g = list_all (\<lambda>i. i |\<in>| fmdom g) (successors_of (kind g n))"
 
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph g = (
-    g \<noteq> fmempty \<longrightarrow> is_StartNode (kind g 0)
+    (g \<noteq> fmempty \<longrightarrow> is_StartNode (kind g 0)) \<and>
+    (\<forall> n. n |\<in>| fmdom g \<longrightarrow> has_good_inputs n g) \<and>
+    (\<forall> n. n |\<in>| fmdom g \<longrightarrow> has_good_successors n g) \<and>
+    (\<forall> n. n |\<in>| fmdom g \<longrightarrow> kind g n \<noteq> NoNode)
    )"
-(* TODO: add these other invariants:
-    (\<forall> n. n \<in> ids \<longrightarrow> has_good_inputs n (Graph ids nodes inputs successors)) \<and>
-    (\<forall> n. n \<in> ids \<longrightarrow> has_good_successors n (Graph ids nodes inputs successors)) \<and>
+(* TODO: add these other invariants?
     (\<forall> n. n \<notin> ids \<longrightarrow> nodes n = StartNode) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> successors n = []) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> inputs n = []) \<and>
@@ -95,6 +95,13 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   )
   "
 *)
+
+lemma wff_kind [simp]:
+  assumes "wff_graph g"
+  assumes "n |\<in>| fmdom g"
+  shows "kind g n \<noteq> NoNode"
+  using assms by auto
+
 
 definition empty_graph:: IRGraph where
   "empty_graph = fmempty"

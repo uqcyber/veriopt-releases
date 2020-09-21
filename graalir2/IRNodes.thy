@@ -100,6 +100,16 @@ fun is_BinaryArithNode :: "IRNode \<Rightarrow> bool" where
   "is_BinaryArithNode (XorNode _ _) = True" |
   "is_BinaryArithNode _ = False"
 
+fun is_UnaryArithNode :: "IRNode \<Rightarrow> bool" where
+  "is_UnaryArithNode (AbsNode _) = True" |
+  "is_UnaryArithNode (NegateNode _) = True" |
+  "is_UnaryArithNode _ = False"
+
+fun is_CompareNode :: "IRNode \<Rightarrow> bool" where
+  "is_CompareNode (IntegerEqualsNode x y) = True" |
+  "is_CompareNode (IntegerLessThanNode x y) = True" |
+  "is_CompareNode _ = False"
+
 fun is_PhiNode :: "IRNode \<Rightarrow> bool" where
   "is_PhiNode (PhiNode _ _) = True" |
   "is_PhiNode (ValuePhiNode _ _) = True" |

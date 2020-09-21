@@ -3,6 +3,7 @@ section \<open>GraalVM graph representation\<close>
 theory IRNodes
   imports 
     Main
+    "HOL-Word.More_Word"
 begin
 
 (* This is a theory of GraalVM IR graphs that uses numbered nodes,
@@ -19,6 +20,7 @@ begin
    SUCC instead of ID for control-flow successor edges.
    Optional edges are handled as "INPUT option" etc. 
 *)
+type_synonym int32 = "32 word"
 type_synonym ID = "nat"
 type_synonym INPUT = "ID"   (* InputType.Value is the default *)
 type_synonym INPUT_ASSOC = "ID" (* InputType.Association *)
@@ -36,7 +38,7 @@ type_synonym SUCC = "ID"
 datatype (discs_sels) IRNode =
   (* FloatingNode subclasses (with no successors)
      ----------------------------------------- *)
-  ConstantNode (ir_intValue: int)  (* TODO: value should be a Java Constant object *)
+  ConstantNode (ir_intValue: int32)  (* TODO: value should be a Java Constant object *)
   | ParameterNode (ir_index:nat)
   | PhiNode (ir_merge:INPUT_ASSOC) (ir_values:"INPUT list") (* not used? *)
   | ValuePhiNode (ir_merge:INPUT_ASSOC) (ir_inputs:"INPUT list")
@@ -80,6 +82,7 @@ datatype (discs_sels) IRNode =
   | LoadStaticFieldNode (ir_field:string) (ir_clazz:string) (ir_next:SUCC)
   | StoreStaticFieldNode (ir_field:string) (ir_clazz:string) (ir_value:INPUT) (ir_next:SUCC)
   | FrameState (ir_outerFrameState:"INPUT_STATE option") (* TODO: add values, monitorIds, virtualObjectMappings? *)
+  | RefNode (ir_ref:ID) (* Proxy for another node *)
   (* Dummy node to not cause too much pain when switching to partial *)
   | NoNode 
   (* and hundreds of other Node subclasses!... *)
@@ -162,6 +165,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (LoadStaticFieldNode _ _ _) = []" |
   "inputs_of (StoreStaticFieldNode _ _ val _) = [val]" |
   "inputs_of (FrameState ofs) =  opt_to_list ofs" |
+  "inputs_of (RefNode x) = [x]" |
   "inputs_of NoNode = []"
 
 

@@ -79,7 +79,7 @@ inductive
   for g where
 
   ConstantNode:
-  "\<lbrakk>val = (IntVal (word_of_int c))\<rbrakk>
+  "\<lbrakk>val = (IntVal c)\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (ConstantNode c) \<mapsto> val" |
 
   ParameterNode:
@@ -183,7 +183,11 @@ inductive
 (* Access the value returned by the most recent call *)
   CallNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (CallNode start children) \<mapsto> val"
+    \<Longrightarrow> g m \<turnstile> nid (CallNode start children) \<mapsto> val" |
+
+  RefNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> val\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
 
 code_pred [show_modes] eval .
 

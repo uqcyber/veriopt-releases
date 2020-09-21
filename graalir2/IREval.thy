@@ -72,7 +72,6 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
 fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID" where
   "any_usage g nid = (sorted_list_of_set (usages g nid))!0"
 
-
 inductive
   eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool"
   (" _ _ \<turnstile> _ _ \<mapsto> _" 55)
@@ -189,6 +188,49 @@ inductive
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
 
+(* Duplication data evaluation with illustrative cases for paper *)
+text_raw \<open>\snip{ExpressionSemantics}{\<close>
+inductive
+  data_eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool"
+  (" _ _ \<turnstile> _ _ \<longmapsto> _" 55)
+  for g where
+
+  ConstantNode:
+  "\<lbrakk>val = (IntVal c)\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (ConstantNode c) \<longmapsto> val" |
+
+  ParameterNode:
+  "\<lbrakk>val = (m_params m)!i\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (ParameterNode i) \<longmapsto> val" |
+
+  PhiNode:
+  "\<lbrakk>val = m_val m nid\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (PhiNode _ _) \<longmapsto> val" |
+
+  NegateNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<longmapsto> IntVal(v)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (NegateNode x) \<longmapsto> IntVal(-v)" |
+
+  AddNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<longmapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<longmapsto> IntVal(v2)\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<longmapsto> IntVal(v1+v2)" |
+
+  ShortCircuitOrNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<longmapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<longmapsto> IntVal(v2);
+    val = (if v1 \<noteq> 0 then IntVal(v1) else IntVal(v2))\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<longmapsto> val" |
+
+  CallNodeEval:
+  "\<lbrakk>val = m_val m nid\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (CallNode start args children) \<longmapsto> val" |
+
+  RefNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<longmapsto> val\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<longmapsto> val" 
+text_raw \<open>}%endsnip\<close>
+
 code_pred [show_modes] eval .
 
 
@@ -237,7 +279,6 @@ fun is_floating_node :: "IRNode \<Rightarrow> bool" where
     is_PhiNode n \<or>
     is_misc_floating_node n
   )"
-
 
 inductive_cases ConstantNodeE[elim!]:
   "g m \<turnstile> nid (ConstantNode c) \<mapsto> val"

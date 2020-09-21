@@ -75,7 +75,7 @@ datatype (discs_sels) IRNode =
   | MergeNode (ir_stateAfter:"INPUT_STATE option") (ir_ends:"INPUT_ASSOC list") (ir_next:SUCC)
   | ReturnNode (ir_result:"INPUT option") (ir_memoryMap:"INPUT_EXT option")
     (* NB. CallNode here includes CallTargetNode. *)
-  | CallNode (ir_startNode:INPUT) (ir_arguments:"INPUT list") (ir_children:"SUCC list")
+  | CallNode (ir_startNode:INPUT) (ir_arguments:"INPUT list") (ir_succ:"SUCC list")
   | NewInstanceNode (ir_className:string) (ir_stateBefore:INPUT_STATE) (ir_next:SUCC)
   | LoadFieldNode (ir_field:string) (ir_object:INPUT) (ir_next:SUCC)
   | StoreFieldNode (ir_field:string) (ir_object:INPUT) (ir_value:INPUT) (ir_stateAfter:"INPUT_STATE option") (ir_next:SUCC)
@@ -194,7 +194,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (LoopExitNode _ _ nxt) = [nxt]" |
   "successors_of (MergeNode _ _ nxt) = [nxt]" |
   "successors_of (ReturnNode _ _) = []" |
-  "successors_of (CallNode _ _ children) = children" |
+  "successors_of (CallNode _ _ succ) = succ" |
   "successors_of (NewInstanceNode _ _ nxt) = [nxt]" |
   "successors_of (LoadFieldNode _ _ nxt) = [nxt]" |
   "successors_of (StoreFieldNode _ _ _ _ nxt) = [nxt]" |

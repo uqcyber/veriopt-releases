@@ -464,41 +464,31 @@ lemma "floatingEval":
 
 
 (* A top-level goal: eval is deterministic. *)
-(*
 theorem "evalDet":
-  assumes wff: "wff_graph g"
-  shows "g m \<turnstile> nid node \<mapsto> val1 \<Longrightarrow>
-   g m \<turnstile> nid node \<mapsto> val2 \<Longrightarrow>
-  val1 = val2"
+  shows "(g m \<turnstile> nid node \<mapsto> val1) \<Longrightarrow>
+   (\<forall> val2. ((g m \<turnstile> nid node \<mapsto> val2) \<longrightarrow> val1 = val2))"
   apply (induction rule: "eval.induct")
-  apply (simp del: kind.simps) 
-*)
+                     apply (rule allI; rule impI; elim ConstantNodeE; auto)
+                    apply (rule allI; rule impI; elim ParameterNodeE; auto)
+                   apply (rule allI; rule impI; elim PhiNodeE; auto)
+                  apply (rule allI; rule impI; elim ValuePhiNodeE; auto)
+                 apply (rule allI; rule impI; elim ValueProxyNodeE; auto)
+                apply (rule allI; rule impI; elim AbsNodeE; auto)
+               apply (rule allI; rule impI; elim NegateNodeE; auto)
+              apply (rule allI; rule impI; elim AddNodeE; auto)
+             apply (rule allI; rule impI; elim SubNodeE; auto)
+            apply (rule allI; rule impI; elim MulNodeE; auto)
+           apply (rule allI; rule impI; elim AndNodeE; auto)
+          apply (rule allI; rule impI; elim OrNodeE; auto)
+         apply (rule allI; rule impI; elim XorNodeE; auto)
+        apply (rule allI; rule impI; elim IntegerEqualsNodeE; auto)
+       apply (rule allI; rule impI; elim IntegerLessThanNodeE; auto)
+      apply (rule allI; rule impI; elim ConditionalNodeE; auto)
+     apply (rule allI; rule impI; elim ShortCircuitOrNodeE; auto)
+    apply (rule allI; rule impI; elim LogicNegationNodeE; auto)
+   apply (rule allI; rule impI; elim CallNodeE; auto)
+  apply (rule allI; rule impI; elim RefNodeE; auto)
+  done
 
-(* TODO?
-  apply (elim ConstantNodeE; simp)
-  apply (elim ParameterNodeE; simp)
-  apply (elim PhiNodeE; simp)
-  apply (elim ValuePhiNodeE; simp)
-  apply (elim ValueProxyNodeE; simp)
-  apply (elim AbsNodeE; auto)
-  apply (elim NegateNodeE; auto)
-  apply (elim AddNodeE; auto)
-  apply (elim SubNodeE; auto)
-  apply (elim MulNodeE; auto)
-  apply (elim AndNodeE; auto)
-  apply (elim OrNodeE; auto)
-  apply (elim XorNodeE; auto)
-  apply (elim MulNodeE; auto)
-  apply (elim IntegerLessThanNodeE; auto)
-  apply (elim ConditionalNodeE; auto)
-  apply (elim ShortCircuitOrNodeE; auto)
-  apply (elim LogicNegationNodeE; auto)
-  apply (elim CallNodeE; auto)
-  apply (elim RefNodeE; auto)
-
-  apply (elim ConstantNodeE; auto)
-                      apply (elim ParameterNodeE; auto)
-  apply elim_tac
-*)
 end
 

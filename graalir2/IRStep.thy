@@ -25,12 +25,10 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (I
 
   EndNodes:
   "\<lbrakk>is_end_node(kind g nid);
-
     merge = any_usage g nid;
     is_merge_node(kind g merge);
 
     i = input_index g merge nid;
-
     phis = (phi_list g merge);
     inputs = (phi_inputs g i phis);
     g inputs m \<longmapsto> vs;

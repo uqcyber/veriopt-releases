@@ -191,8 +191,7 @@ inductive
 (* Duplication data evaluation with illustrative cases for paper *)
 text_raw \<open>\snip{ExpressionSemantics}{\<close>
 inductive
-  data_eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool"
-  (" _ _ \<turnstile> _ _ \<longmapsto> _" 55)
+  data_eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" (" _ _ \<turnstile> _ _ \<longmapsto> _" 55)
   for g where
 
   ConstantNode:

@@ -19,7 +19,9 @@ fun graph_nodes :: "IRGraph \<Rightarrow> ID set" where
 text_raw \<open>\snip{helpers}{\<close>
 (* Look up a given ID in the graph and return the whole node. *)
 fun kind :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRNode" where
-  "kind g nid = (case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> NoNode)"
+  "kind g nid = (case fmlookup g nid of 
+                 Some n \<Rightarrow> n | 
+                 None \<Rightarrow> NoNode)"
 (* Get the inputs list of a given node ID. *)
 fun inp :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "inp g nid = inputs_of(kind g nid)"

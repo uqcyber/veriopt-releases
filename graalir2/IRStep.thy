@@ -31,7 +31,7 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (I
     i = input_index g merge nid;
     phis = (phi_list g merge);
     inputs = (phi_inputs g i phis);
-    g inputs m \<longmapsto> vs;
+    g m inputs \<longmapsto> vs;
 
     m' = (set_phis phis vs m)\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (merge, m')" |
@@ -54,7 +54,7 @@ inductive step_top :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Right
 
   CallNodeStep:
   "\<lbrakk>kind g nid = (CallNode start args _);
-    g args m \<longmapsto> vs;
+    g m args \<longmapsto> vs;
     m' =  set_params new_map_state vs\<rbrakk>
     \<Longrightarrow> g \<turnstile> (nid, m)#xs \<longrightarrow> (start, m')#(nid,m)#xs" |
 
@@ -65,13 +65,22 @@ inductive step_top :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Right
     c_nid' = (succ g c_nid)!0\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid,m)#(c_nid,c_m)#xs \<longrightarrow> (c_nid',c_m')#xs" |
 
+  ReturnNodeVoid:
+  "\<lbrakk>kind g nid = (ReturnNode None _);
+    c_nid' = (succ g c_nid)!0\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid,m)#(c_nid,c_m)#xs \<longrightarrow> (c_nid',c_m)#xs"
+
+
+text_raw \<open>}%endsnip\<close>
+
+(*
+
   ExitReturnNode:
   "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
     g m \<turnstile> expr (kind g expr) \<mapsto> v;
     m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []"
-
-text_raw \<open>}%endsnip\<close>
+*)
 
 code_pred [show_modes] step_top .
 

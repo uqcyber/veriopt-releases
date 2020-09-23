@@ -55,30 +55,29 @@ text_raw \<open>}%endsnip\<close>
 
 text_raw \<open>\snip{AddNodeCreate}{\<close>
 lemma add_node_create:
-  assumes xn: "xn = kind g x"
-  assumes yn: "yn = kind g y"
-  assumes xv: "g m \<turnstile> x xn \<mapsto> IntVal(xv)"
-  assumes yv: "g m \<turnstile> y yn \<mapsto> IntVal(yv)"
-  shows "(g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)) \<and>
-  (g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv))"
+  assumes xv: "g m \<turnstile> x (kind g x) \<mapsto> IntVal(xv)"
+  assumes yv: "g m \<turnstile> y (kind g y) \<mapsto> IntVal(yv)"
+  shows 
+    "(g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)) \<and>
+     (g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv))"
 text_raw \<open>}%endsnip\<close>
 proof -
   have ae: "g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)"
-    using eval_add_node xn yn xv yv by blast
+    using eval_add_node xv yv by blast
   have refx: "g m \<turnstile> zx (RefNode x) \<mapsto> IntVal xv"
-    using eval.RefNode xn xv by blast 
+    using eval.RefNode xv by blast 
   have refy: "g m \<turnstile> zy (RefNode y) \<mapsto> IntVal yv"
-    using eval.RefNode yn yv by blast 
+    using eval.RefNode yv by blast 
   have ce: "g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv)"
   proof (cases "kind g x  = ConstantNode xvv")
     case xvvn: True
     have xvv: "xvv = xv" 
-      using ConstantNode evalDet xn xv eval.ConstantNode xvvn by fastforce 
+      using ConstantNode evalDet xv eval.ConstantNode xvvn by fastforce 
     thus ?thesis 
     proof (cases "kind g y = ConstantNode yvv")
       case True
       have yvv: "yvv = yv"
-        using ConstantNode evalDet yn yv eval.ConstantNode True by fastforce
+        using ConstantNode evalDet yv eval.ConstantNode True by fastforce
       then show ?thesis
       proof -
         have xvv_yvv: "g m \<turnstile> nid (ConstantNode (xvv+yvv)) \<mapsto> IntVal(xv+yv)"
@@ -103,7 +102,7 @@ proof -
           then show ?thesis
             sorry
         qed
-        then show ?thesis using cv2 ae xvv yn yv eval.RefNode by auto
+        then show ?thesis using cv2 ae xvv yv eval.RefNode by auto
       qed
     qed
   next
@@ -112,11 +111,11 @@ proof -
     proof (cases "kind g y = ConstantNode yvv")
       case True
       have yvv: "yvv = yv"
-        using ConstantNode True evalDet yn yv eval.ConstantNode by fastforce 
+        using ConstantNode True evalDet yv eval.ConstantNode by fastforce 
       have cv3: "create_add g x y = (if yvv = 0 then RefNode x else AddNode x y)"
         using xnotconst True
         sorry
-      then show ?thesis using cv3 ae yvv xn xv eval.RefNode by auto
+      then show ?thesis using cv3 ae yvv xv eval.RefNode by auto
     next 
       case False
       have cv4: "create_add g x y = AddNode x y"
@@ -199,7 +198,7 @@ proof -
 
 text_raw \<open>\snip{IfNodeCreate}{\<close>
 lemma if_node_create:
-  assumes cv_wf: "g m \<turnstile> cond (kind g cond) \<mapsto> IntVal cv"
+  assumes cv: "g m \<turnstile> cond (kind g cond) \<mapsto> IntVal cv"
   assumes fresh: "nid |\<notin>| fmdom g" 
   assumes gif: "gif = fmupd nid (IfNode cond tb fb) g"
   assumes gcreate: "gcreate = fmupd nid (create_if g cond tb fb) g"
@@ -236,9 +235,9 @@ next
   show ?thesis
   proof -
     have if_kind: "kind gif cond = kind g cond"
-      using gif fresh cv_wf by auto 
+      using gif fresh cv by auto 
     have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> IntVal cv"
-      using if_kind cv_wf fresh  sorry
+      using if_kind cv fresh  sorry
     have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (if val_to_bool cv then tb else fb,m)"
       using not_const eval.ConstantNode gif fresh  sorry
     have create_step: "gcreate \<turnstile> (nid,m) \<rightarrow> (if val_to_bool cv then tb else fb,m)"

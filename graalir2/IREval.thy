@@ -73,8 +73,7 @@ fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID" where
   "any_usage g nid = (sorted_list_of_set (usages g nid))!0"
 
 inductive
-  eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool"
-  (" _ _ \<turnstile> _ _ \<mapsto> _" 55)
+  eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" (" _ _ \<turnstile> _ _ \<mapsto> _" 55)
   for g where
 
   ConstantNode:
@@ -171,7 +170,7 @@ inductive
   ShortCircuitOrNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
     g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2);
-    val = (if v1 \<noteq> 0 then IntVal(v1) else IntVal(v2))\<rbrakk> 
+    val = IntVal(if v1 \<noteq> 0 then v1 else v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> val" |
 
   LogicNegationNode:
@@ -192,56 +191,56 @@ inductive
 text_raw \<open>\snip{ExpressionSemantics}{\<close>
 inductive
   data_eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool"
-  (" _ _ \<turnstile> _ _ \<longmapsto> _" 55)
+  (" _ _ \<turnstile> _ _ \<hookrightarrow> _" 55)
   for g where
 
   ConstantNode:
   "\<lbrakk>val = (IntVal c)\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ConstantNode c) \<longmapsto> val" |
+    \<Longrightarrow> g m \<turnstile> nid (ConstantNode c) \<hookrightarrow> val" |
 
   ParameterNode:
   "\<lbrakk>val = (m_params m)!i\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ParameterNode i) \<longmapsto> val" |
+    \<Longrightarrow> g m \<turnstile> nid (ParameterNode i) \<hookrightarrow> val" |
 
   PhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (PhiNode _ _) \<longmapsto> val" |
+    \<Longrightarrow> g m \<turnstile> nid (PhiNode _ _) \<hookrightarrow> val" |
 
   NegateNode:
-  "\<lbrakk>g m \<turnstile> x (kind g x) \<longmapsto> IntVal(v)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (NegateNode x) \<longmapsto> IntVal(-v)" |
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> IntVal(v)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (NegateNode x) \<hookrightarrow> IntVal(-v)" |
 
   AddNode:
-  "\<lbrakk>g m \<turnstile> x (kind g x) \<longmapsto> IntVal(v1);
-    g m \<turnstile> y (kind g y) \<longmapsto> IntVal(v2)\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<longmapsto> IntVal(v1+v2)" |
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<hookrightarrow> IntVal(v2)\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<hookrightarrow> IntVal(v1+v2)" |
 
   ShortCircuitOrNode:
-  "\<lbrakk>g m \<turnstile> x (kind g x) \<longmapsto> IntVal(v1);
-    g m \<turnstile> y (kind g y) \<longmapsto> IntVal(v2);
-    val = (if v1 \<noteq> 0 then IntVal(v1) else IntVal(v2))\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<longmapsto> val" |
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<hookrightarrow> IntVal(v2);
+    val = IntVal(if v1 \<noteq> 0 then v1 else v2)\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<hookrightarrow> val" |
 
   CallNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (CallNode start args children) \<longmapsto> val" |
+    \<Longrightarrow> g m \<turnstile> nid (CallNode start args children) \<hookrightarrow> val" |
 
   RefNode:
-  "\<lbrakk>g m \<turnstile> x (kind g x) \<longmapsto> val\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<longmapsto> val" 
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> val\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<hookrightarrow> val" 
 text_raw \<open>}%endsnip\<close>
 
 code_pred [show_modes] eval .
 
 
 inductive
-  eval_all :: "IRGraph \<Rightarrow> ID list \<Rightarrow> MapState \<Rightarrow> Value list \<Rightarrow> bool"
+  eval_all :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID list \<Rightarrow> Value list \<Rightarrow> bool"
   ("_ _ _\<longmapsto>_" 55)
   for g where
-  "g [] m \<longmapsto> []" |
+  "g m [] \<longmapsto> []" |
   "\<lbrakk>g m \<turnstile> nid (kind g nid) \<mapsto> v;
-    g xs m \<longmapsto> vs\<rbrakk>
-   \<Longrightarrow> g (nid # xs) m \<longmapsto> (v # vs)"
+    g m xs \<longmapsto> vs\<rbrakk>
+   \<Longrightarrow> g m (nid # xs) \<longmapsto> (v # vs)"
 
 code_pred [show_modes] eval_all .
 

@@ -464,7 +464,7 @@ lemma "floatingEval":
 
 (* A top-level goal: eval is deterministic. *)
 theorem "evalDet":
-  shows "(g m \<turnstile> nid node \<mapsto> val1) \<Longrightarrow>
+   "(g m \<turnstile> nid node \<mapsto> val1) \<Longrightarrow>
    (\<forall> val2. ((g m \<turnstile> nid node \<mapsto> val2) \<longrightarrow> val1 = val2))"
   apply (induction rule: "eval.induct")
                      apply (rule allI; rule impI; elim ConstantNodeE; auto)

@@ -70,8 +70,8 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
    and use 'nitpick' to find the bad n.
 *)
 
-text_raw \<open>\snip{graphinvar}{\<close>
 (* graph closure invariants *)
+text_raw \<open>\snip{graphinvar}{\<close>
 fun has_good_inputs :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "has_good_inputs n g = list_all (\<lambda>i. i |\<in>| fmdom g) (inputs_of (kind g n))"
 

@@ -64,7 +64,7 @@ lemma add_node_create:
   assumes det: "\<forall>g m x n v1 v2. 
     (g m \<turnstile> x n \<mapsto> v1) \<and> (g m \<turnstile> x n \<mapsto> v2) \<longrightarrow> v1 = v2"
   shows "(g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)) \<and>
-         (g m \<turnstile> nid (create_add_node g x y) \<mapsto> IntVal(xv+yv))"
+  (g m \<turnstile> nid (create_add_node g x y) \<mapsto> IntVal(xv+yv))"
 text_raw \<open>}%endsnip\<close>
 proof -
   have ae: "g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)"
@@ -134,19 +134,20 @@ proof -
 qed
 
 text_raw \<open>\snip{CreateIfNode}{\<close>
-fun create_if_node :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where 
-  "create_if_node g cond tBranch fBranch = 
+fun create_if_node :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode"
+  where 
+  "create_if_node g cond tb fb = 
     (case kind g cond of 
       ConstantNode condv \<Rightarrow> 
-        RefNode (if val_to_bool then tBranch else fBranch) |
-      _ \<Rightarrow> (if tBranch = fBranch then
-              RefNode tBranch
+        RefNode (if (val_to_bool condv) then tb else fb) |
+      _ \<Rightarrow> (if tb = fb then
+              RefNode tb
             else 
-              IfNode cond tBranch fBranch)
+              IfNode cond tb fb)
     )"
 text_raw \<open>}%endsnip\<close>
 
-text_raw \<open>\snip{Stutter}\<close>
+text_raw \<open>\snip{Stutter}{\<close>
 inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ \<turnstile> _ \<leadsto> _" 55)
   for g where
 
@@ -160,6 +161,46 @@ inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarro
    \<Longrightarrow> g m \<turnstile> nid \<leadsto> nid'"
 text_raw \<open>}%endsnip\<close>
 
+inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool"
+  for g where
+
+  "\<lbrakk>fmlookup g nid = Some n;
+    inputs_of n = ls;
+    nid' \<in> list_to_set ls\<rbrakk>
+    \<Longrightarrow> eval_uses g nid nid'" |
+
+  "\<lbrakk>eval_uses g nid nid';
+    eval_uses g nid' nid''\<rbrakk>
+    \<Longrightarrow> eval_uses g nid nid''"
+
+lemma eval_independent:
+  assumes "\<not>(eval_uses g1 nid nid')"
+  assumes g2: "g2 = fmupd nid' n g1"
+  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  assumes v2: "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2"
+  shows "v1 = v2"
+  sorry
+
+(*
+lemma eval_independent:
+  assumes fresh: "nid' |\<notin>| fmdom g1"
+  assumes g2: "g2 = fmupd nid' n g1"
+  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  assumes v2: "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2"
+  shows "v1 = v2"
+proof -
+  have eq_kind: "kind g1 nid = kind g2 nid"
+    using fresh g2 v1 by auto
+  have uses: "eval_uses g1 nid = eval_uses g2 nid"
+
+  have uses_g1: "eval_uses g1 nid nid' \<longrightarrow> nid' |\<in>| fmdom g1"
+
+  have uses_g2: "eval_uses g2 nid nid' \<longrightarrow> nid' |\<in>| fmdom g1"
+
+  show ?thesis
+  proof (induction "kind g1 nid")
+*)
+
 text_raw \<open>\snip{IfNodeCreate}{\<close>
 lemma if_node_create:
   assumes cv_wf: "g m \<turnstile> cond (kind g cond) \<mapsto> IntVal cv"
@@ -168,30 +209,50 @@ lemma if_node_create:
   assumes gcreate: "gcreate = fmupd nid (create_if_node g cond tb fb) g"
   assumes det: "\<forall>g m x n v1 v2. 
     (g m \<turnstile> x n \<mapsto> v1) \<and> (g m \<turnstile> x n \<mapsto> v2) \<longrightarrow> v1 = v2"
-  shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> (gcreate m \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> 
+                (gcreate m \<turnstile> nid \<leadsto> nid')"
 text_raw \<open>}%endsnip\<close>
-proof (cases "kind g cond = ConstantNode condv")
-  case cond_const: True
+
+proof (cases "kind g cond = ConstantNode val")
+  case True
   show ?thesis
-  proof (cases "val_to_bool condv")
-    case True
-    have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (tb,m)"
+  proof -
+    have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> IntVal val"
+      using True eval.ConstantNode gif fresh by auto 
+    have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (if val_to_bool val then tb else fb,m)"
     proof -
       have if_kind: "kind gif nid = IfNode cond tb fb"
-        by (simp add: gif)
-      have if_cv: "gif m \<turnstile> cond (kind g cond) \<mapsto> IntVal condv"
-        using cond_const eval.ConstantNode by simp 
-      have if_tb: "tb = (if val_to_bool condv then tb else fb)"
-        using if_kind if_cv cond_const True cv_wf by auto 
-      show ?thesis using step.IfNode if_kind if_cv if_tb 
-        apply auto
-        by (metis cond_const eval_const_node fmdom_notD fmupd_lookup fresh gif good_kind kind.simps option.simps(4))
-
-
-        then show ?thesis
+        by (simp add: gif) 
+      show ?thesis using step.IfNode if_kind if_cv 
+        by blast
+    qed
+    have create_step: "gcreate \<turnstile> (nid,m) \<rightarrow> (if val_to_bool val then tb else fb,m)"
+    proof -
+      have create_kind: "kind gcreate nid = create_if_node g cond tb fb"
+        using gcreate by simp
+      have create_fun: "create_if_node g cond tb fb = RefNode (if val_to_bool val then tb else fb)"
+        using True create_kind by simp 
+      show ?thesis using step.RefNode create_kind create_fun if_cv 
+        by simp
+    qed
+    show ?thesis using Step create_step if_step by blast
+  qed
+next
+  case not_const: False
+  show ?thesis
   proof -
-
-
+    have if_kind: "kind gif cond = kind g cond"
+      using gif fresh cv_wf by auto 
+    have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> IntVal cv"
+      using if_kind cv_wf fresh  sorry
+    have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (if val_to_bool cv then tb else fb,m)"
+      using not_const eval.ConstantNode gif fresh  sorry
+    have create_step: "gcreate \<turnstile> (nid,m) \<rightarrow> (if val_to_bool cv then tb else fb,m)"
+      sorry
+    show ?thesis
+      using Step create_step if_step by blast
+  qed
+qed
 
 (*
 (cases "kind g y")

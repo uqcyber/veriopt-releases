@@ -191,7 +191,8 @@ inductive
 (* Duplication data evaluation with illustrative cases for paper *)
 text_raw \<open>\snip{ExpressionSemantics}{\<close>
 inductive
-  data_eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" (" _ _ \<turnstile> _ _ \<longmapsto> _" 55)
+  data_eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool"
+  (" _ _ \<turnstile> _ _ \<longmapsto> _" 55)
   for g where
 
   ConstantNode:
@@ -447,9 +448,8 @@ lemma good_kind2:
      None \<Rightarrow> NoNode |
      Some n \<Rightarrow> n)
    \<mapsto> val) \<Longrightarrow>
-  kind g x \<noteq> NoNode"
-  using good_kind NoNodeE sorry 
-  
+  kind g nid \<noteq> NoNode"
+  using good_kind NoNodeE by simp 
 
 (* We might like to prove the reverse too? But that
    would require lots of graph and MapState invariants.

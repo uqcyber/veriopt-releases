@@ -1,11 +1,13 @@
 theory Canonicalization
-  imports IREval
+  imports 
+    IREval
+    IRStep
 begin
-
+(*
 declare [[show_types]]
 declare [[show_sorts]]
 declare [[show_consts]]
-
+*)
 lemma eval_const_node:
   assumes xn: "kind g x = ConstantNode xv"
   shows "g m \<turnstile> x (kind g x) \<mapsto> (IntVal xv)"
@@ -130,6 +132,66 @@ proof -
   thus ?thesis
     using ae by blast
 qed
+
+text_raw \<open>\snip{CreateIfNode}{\<close>
+fun create_if_node :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where 
+  "create_if_node g cond tBranch fBranch = 
+    (case kind g cond of 
+      ConstantNode condv \<Rightarrow> 
+        RefNode (if val_to_bool then tBranch else fBranch) |
+      _ \<Rightarrow> (if tBranch = fBranch then
+              RefNode tBranch
+            else 
+              IfNode cond tBranch fBranch)
+    )"
+text_raw \<open>}%endsnip\<close>
+
+text_raw \<open>\snip{Stutter}\<close>
+inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ \<turnstile> _ \<leadsto> _" 55)
+  for g where
+
+  Step:
+  "\<lbrakk>g \<turnstile> (nid,m) \<rightarrow> (nid',m)\<rbrakk>
+   \<Longrightarrow> g m \<turnstile> nid \<leadsto> nid'" |
+
+  Transitive:
+  "\<lbrakk>g \<turnstile> (nid,m) \<rightarrow> (nid'',m);
+    g m \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
+   \<Longrightarrow> g m \<turnstile> nid \<leadsto> nid'"
+text_raw \<open>}%endsnip\<close>
+
+text_raw \<open>\snip{IfNodeCreate}{\<close>
+lemma if_node_create:
+  assumes cv_wf: "g m \<turnstile> cond (kind g cond) \<mapsto> IntVal cv"
+  assumes fresh: "nid |\<notin>| fmdom g" 
+  assumes gif: "gif = fmupd nid (IfNode cond tb fb) g"
+  assumes gcreate: "gcreate = fmupd nid (create_if_node g cond tb fb) g"
+  assumes det: "\<forall>g m x n v1 v2. 
+    (g m \<turnstile> x n \<mapsto> v1) \<and> (g m \<turnstile> x n \<mapsto> v2) \<longrightarrow> v1 = v2"
+  shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> (gcreate m \<turnstile> nid \<leadsto> nid')"
+text_raw \<open>}%endsnip\<close>
+proof (cases "kind g cond = ConstantNode condv")
+  case cond_const: True
+  show ?thesis
+  proof (cases "val_to_bool condv")
+    case True
+    have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (tb,m)"
+    proof -
+      have if_kind: "kind gif nid = IfNode cond tb fb"
+        by (simp add: gif)
+      have if_cv: "gif m \<turnstile> cond (kind g cond) \<mapsto> IntVal condv"
+        using cond_const eval.ConstantNode by simp 
+      have if_tb: "tb = (if val_to_bool condv then tb else fb)"
+        using if_kind if_cv cond_const True cv_wf by auto 
+      show ?thesis using step.IfNode if_kind if_cv if_tb 
+        apply auto
+        by (metis cond_const eval_const_node fmdom_notD fmupd_lookup fresh gif good_kind kind.simps option.simps(4))
+
+
+        then show ?thesis
+  proof -
+
+
 
 (*
 (cases "kind g y")

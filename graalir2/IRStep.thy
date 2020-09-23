@@ -34,7 +34,11 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (I
     g inputs m \<longmapsto> vs;
 
     m' = (set_phis phis vs m)\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (merge, m')"
+    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (merge, m')" |
+
+  RefNode:
+    "kind g nid = RefNode nid'
+    \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (nid', m)"
 text_raw \<open>}%endsnip\<close>
 
 code_pred [show_modes] step .

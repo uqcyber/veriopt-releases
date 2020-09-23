@@ -238,34 +238,32 @@ values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 20]) (n, m)}"
 
 
 (* Examples generated from Java code *)
-definition real_fact_graph :: IRGraph where
-"real_fact_graph = 
- (add_node 0 StartNode [2] [5]
- (add_node 1 (ParameterNode 0) [] []
- (add_node 2 FrameState [1] []
- (add_node 3 (ConstantNode 1) [] []
- (add_node 5 EndNode [] []
- (add_node 6 LoopBeginNode [5, 21] [17, 21]
- (add_node 7 ValuePhiNode [6, 1, 20] []
- (add_node 8 ValuePhiNode [6, 3, 18] []
- (add_node 9 FrameState [7, 8] []
- (add_node 10 (ConstantNode 2) [] []
- (add_node 11 IntegerLessThanNode [7, 10] []
- (add_node 12 BeginNode [] [21]
- (add_node 14 LoopExitNode [16, 6] [22]
- (add_node 15 ValueProxyNode [14, 8] []
- (add_node 16 FrameState [15] []
- (add_node 17 IfNode [11] [14, 12]
- (add_node 18 MulNode [7, 8] []
- (add_node 19 (ConstantNode (-1)) [] []
- (add_node 20 AddNode [7, 19] []
- (add_node 21 LoopEndNode [] []
- (add_node 22 ReturnNode [15] []
+definition real_fact :: IRGraph where
+"real_fact = 
+ (add_node 0 (StartNode (Some 2) 5)
+ (add_node 1 (ParameterNode 0)
+ (add_node 2 (FrameState None [1])
+ (add_node 3 (ConstantNode (1))
+ (add_node 5 (EndNode)
+ (add_node 6 (LoopBeginNode None None [5, 21] 17)
+ (add_node 7 (ValuePhiNode 6 [1, 20])
+ (add_node 8 (ValuePhiNode 6 [3, 18])
+ (add_node 9 (FrameState None [7, 8])
+ (add_node 10 (ConstantNode (2))
+ (add_node 11 (IntegerLessThanNode 7 10)
+ (add_node 12 (BeginNode 21)
+ (add_node 14 (LoopExitNode 16 None 22)
+ (add_node 15 (ValueProxyNode 14 8)
+ (add_node 16 (FrameState None [15])
+ (add_node 17 (IfNode 11 14 12)
+ (add_node 18 (MulNode 7 8)
+ (add_node 19 (ConstantNode (-1))
+ (add_node 20 (AddNode 7 19)
+ (add_node 21 (LoopEndNode 12)
+ (add_node 22 (ReturnNode (Some 15) None)
  empty_graph)))))))))))))))))))))"
-lemma "wff_graph real_fact_graph"
-  unfolding real_fact_graph_def by simp
-definition real_fact :: "Graph" where
-  "real_fact = (ir_to_graph real_fact_graph)"
+lemma "wff_graph real_fact"
+  unfolding real_fact_def by simp
 
 (* IntVal 1 *)
 values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 1]) (n, m)}"

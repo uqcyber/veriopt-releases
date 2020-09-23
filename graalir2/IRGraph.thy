@@ -16,31 +16,28 @@ text_raw \<open>}%endsnip\<close>
 fun graph_nodes :: "IRGraph \<Rightarrow> ID set" where
   "graph_nodes g = fset (fmdom g)"
 
+text_raw \<open>\snip{helpers}{\<close>
 (* Look up a given ID in the graph and return the whole node. *)
 fun kind :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRNode" where
   "kind g nid = (case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> NoNode)"
-
 (* Get the inputs list of a given node ID. *)
 fun inp :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "inp g nid = inputs_of(kind g nid)"
-
-(* Get the successor list of a given node ID. *)
-fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "succ g nid = successors_of(case fmlookup g nid of Some n \<Rightarrow> n | None \<Rightarrow> NoNode)"
-
 (* Gives a relation between node IDs - between a node and its input nodes. *)
 fun input_edges :: "IRGraph \<Rightarrow> ID rel" where
   "input_edges g = (\<Union> i\<in>fset(fmdom g). {(i,j)|j. j \<in> fset(fset_of_list (inputs_of (kind g i)))})"
-(* or this definition (but it cannot generate code):
-  "input_edges g = {(i,j). i \<in> fset(fmdom g) \<and> j \<in> set (inputs_of (kind g i))}"
-*)
-
 (* Find all the nodes in the graph that have nid as an input. *)
 fun usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "usages g nid = {j. j \<in> graph_nodes g \<and> (j,nid) \<in> input_edges g}"
-(* WAS:
+text_raw \<open>}%endsnip\<close>
+(* usages WAS:
   "usages g nid = fset (ffilter (\<lambda> nid' . nid \<in> set(inp g nid')) (fmdom g))"
 *)
+
+
+(* Get the successor list of a given node ID. *)
+fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "succ g nid = successors_of(kind g nid)"
 
 
 
@@ -73,6 +70,7 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
    and use 'nitpick' to find the bad n.
 *)
 
+text_raw \<open>\snip{graphinvar}{\<close>
 (* graph closure invariants *)
 fun has_good_inputs :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "has_good_inputs n g = list_all (\<lambda>i. i |\<in>| fmdom g) (inputs_of (kind g n))"
@@ -87,6 +85,7 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
     (\<forall> n. n |\<in>| fmdom g \<longrightarrow> has_good_successors n g) \<and>
     (\<forall> n. n |\<in>| fmdom g \<longrightarrow> kind g n \<noteq> NoNode)
    )"
+text_raw \<open>}%endsnip\<close>
 (* TODO: add these other invariants?
     (\<forall> n. n \<notin> ids \<longrightarrow> nodes n = StartNode) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> successors n = []) \<and>

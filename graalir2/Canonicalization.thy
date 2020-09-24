@@ -64,56 +64,61 @@ text_raw \<open>}%endsnip\<close>
 proof -
   have ae: "g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)"
     using eval_add_node xv yv by blast
-  have refx: "g m \<turnstile> zx (RefNode x) \<mapsto> IntVal xv"
+  have refx: "\<forall>zx. (g m \<turnstile> zx (RefNode x) \<mapsto> IntVal xv)"
     using eval.RefNode xv by blast 
-  have refy: "g m \<turnstile> zy (RefNode y) \<mapsto> IntVal yv"
+  have refy: "\<forall>zy. (g m \<turnstile> zy (RefNode y) \<mapsto> IntVal yv)"
     using eval.RefNode yv by blast 
   have ce: "g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv)"
-  proof (cases "kind g x  = ConstantNode xvv")
+  proof (cases "\<exists>xvv. kind g x  = ConstantNode xvv")
     case xvvn: True
-    have xvv: "xvv = xv" 
-      using ConstantNode evalDet xv eval.ConstantNode xvvn by fastforce 
+    have xvv: "kind g x = ConstantNode xv" 
+      using ConstantNode evalDet xv eval.ConstantNode xvvn by fastforce
+    have cv1: "create_add g x y = 
+                (case kind g y of
+                 ConstantNode yvv \<Rightarrow> ConstantNode (xv+yvv) | 
+                 _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
+                )"
+      using xvv create_add.simps sorry
     thus ?thesis 
-    proof (cases "kind g y = ConstantNode yvv")
+    proof (cases "\<exists>yvv. kind g y = ConstantNode yvv")
       case True
-      have yvv: "yvv = yv"
+        have yvv: "kind g y = ConstantNode yv"
         using ConstantNode evalDet yv eval.ConstantNode True by fastforce
       then show ?thesis
       proof -
-        have xvv_yvv: "g m \<turnstile> nid (ConstantNode (xvv+yvv)) \<mapsto> IntVal(xv+yv)"
-          by (simp add: eval.ConstantNode xvv yvv) 
-        have c_xvv_yvv: "create_add g x y = ConstantNode (xvv+yvv)" 
-          using xvvn True by simp  
+        have c_xvv_yvv: "create_add g x y = ConstantNode (xv+yv)" 
+          using xvv yvv by simp 
         have cv1: "g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv)"
-          using c_xvv_yvv xvv_yvv by simp
+          using c_xvv_yvv eval.ConstantNode by auto
         then show ?thesis by blast 
       qed
     next
-      case False
+      case not_const_y:False
       then show ?thesis
       proof -
-        have cv2: "create_add g x y = (if xvv = 0 then RefNode y else AddNode x y)"
-        proof (cases "xvv = 0")
+        have cv2: "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
+          using xvvn not_const_y xvv by simp
+        then show ?thesis
+        proof (cases "xv = 0")
           case True
-          then show ?thesis 
-            sorry
+          then show ?thesis using xvvn xvv not_const_y True cv2 refy by auto 
         next
           case False
-          then show ?thesis
-            sorry
+          have cvff: "create_add g x y = AddNode x y"
+            using False cv2 by auto
+          then show ?thesis using xvvn not_const_y False ae by simp
         qed
-        then show ?thesis using cv2 ae xvv yv eval.RefNode by auto
       qed
     qed
   next
     case xnotconst: False
-    thus ?thesis 
-    proof (cases "kind g y = ConstantNode yvv")
+    then show ?thesis 
+    proof (cases "\<exists>yvv. kind g y = ConstantNode yvv")
       case True
-      have yvv: "yvv = yv"
-        using ConstantNode True evalDet yv eval.ConstantNode by fastforce 
-      have cv3: "create_add g x y = (if yvv = 0 then RefNode x else AddNode x y)"
-        using xnotconst True
+      have yvv: "kind g y = ConstantNode yv"
+        using ConstantNode evalDet yv eval.ConstantNode True by fastforce 
+      have cv3: "create_add g x y = (if yv = 0 then RefNode x else AddNode x y)"
+        using xnotconst True 
         sorry
       then show ?thesis using cv3 ae yvv xv eval.RefNode by auto
     next 

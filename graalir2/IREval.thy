@@ -188,7 +188,7 @@ inductive
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
 
 (* Duplication data evaluation with illustrative cases for paper *)
-text_raw \<open>\snip{ExpressionSemantics}{\<close>
+text_raw \<open>\Snip{ExpressionSemantics}%\<close>
 inductive
   data_eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool"
   (" _ _ \<turnstile> _ _ \<hookrightarrow> _" 55)
@@ -228,7 +228,7 @@ inductive
   RefNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<hookrightarrow> val" 
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 
 code_pred [show_modes] eval .
 

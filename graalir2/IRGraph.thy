@@ -8,15 +8,15 @@ theory IRGraph
 begin
 
 (* This theory defines the main Graal data structure - an entire IR Graph. *)
-text_raw \<open>\snip{graphdef}{\<close>
+text_raw \<open>\Snip{graphdef}%\<close>
 type_synonym IRGraph = "(ID, IRNode) fmap"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 
 (* Get ALL the IDs in the graph. *)
 fun graph_nodes :: "IRGraph \<Rightarrow> ID set" where
   "graph_nodes g = fset (fmdom g)"
 
-text_raw \<open>\snip{helpers}{\<close>
+text_raw \<open>\Snip{helpers}%\<close>
 (* Look up a given ID in the graph and return the whole node. *)
 fun kind :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRNode" where
   "kind g nid = (case fmlookup g nid of 
@@ -31,7 +31,7 @@ fun input_edges :: "IRGraph \<Rightarrow> ID rel" where
 (* Find all the nodes in the graph that have nid as an input. *)
 fun usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "usages g nid = {j. j \<in> graph_nodes g \<and> (j,nid) \<in> input_edges g}"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 (* usages WAS:
   "usages g nid = fset (ffilter (\<lambda> nid' . nid \<in> set(inp g nid')) (fmdom g))"
 *)
@@ -73,7 +73,7 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
 *)
 
 (* graph closure invariants *)
-text_raw \<open>\snip{graphinvar}{\<close>
+text_raw \<open>\Snip{graphinvar}%\<close>
 fun has_good_inputs :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "has_good_inputs n g = list_all (\<lambda>i. i |\<in>| fmdom g) (inputs_of (kind g n))"
 
@@ -87,7 +87,7 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
     (\<forall> n. n |\<in>| fmdom g \<longrightarrow> has_good_successors n g) \<and>
     (\<forall> n. n |\<in>| fmdom g \<longrightarrow> kind g n \<noteq> NoNode)
    )"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 (* TODO: add these other invariants?
     (\<forall> n. n \<notin> ids \<longrightarrow> nodes n = StartNode) \<and>
     (\<forall> n. n \<notin> ids \<longrightarrow> successors n = []) \<and>

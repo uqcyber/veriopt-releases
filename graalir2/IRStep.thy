@@ -6,7 +6,7 @@ theory IRStep
 begin
 
 
-text_raw \<open>\snip{StepSemantics}{\<close>
+text_raw \<open>\Snip{StepSemantics}%\<close>
 inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool"
   ("_ \<turnstile> _\<rightarrow>_" 55)
   for g where
@@ -39,12 +39,12 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (I
   RefNode:
     "kind g nid = RefNode nid'
     \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (nid', m)"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 
 code_pred [show_modes] step .
 
 
-text_raw \<open>\snip{TopStepSemantics}{\<close>
+text_raw \<open>\Snip{TopStepSemantics}%\<close>
 inductive step_top :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
   ("_\<turnstile>_\<longrightarrow>_" 55) 
   for g where
@@ -71,7 +71,7 @@ inductive step_top :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Right
     \<Longrightarrow> g \<turnstile> (nid,m)#(c_nid,c_m)#xs \<longrightarrow> (c_nid',c_m)#xs"
 
 
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 
 (*
 

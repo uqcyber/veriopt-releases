@@ -1,3 +1,5 @@
+section \<open>Canonicalization optimisation transformations\<close>
+
 theory Canonicalization
   imports 
     IREval
@@ -36,7 +38,7 @@ proof -
     using ew ez by blast
 qed
 
-text_raw \<open>\snip{CreateAddNode}{\<close>
+text_raw \<open>\Snip{CreateAddNode}%\<close>
 fun create_add :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where 
   "create_add g x y = 
     (case kind g x of 
@@ -51,16 +53,16 @@ fun create_add :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNod
             _ \<Rightarrow> AddNode x y
            )
     )"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 
-text_raw \<open>\snip{AddNodeCreate}{\<close>
+text_raw \<open>\Snip{AddNodeCreate}%\<close>
 lemma add_node_create:
   assumes xv: "g m \<turnstile> x (kind g x) \<mapsto> IntVal(xv)"
   assumes yv: "g m \<turnstile> y (kind g y) \<mapsto> IntVal(yv)"
   shows 
     "(g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)) \<and>
      (g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv))"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 proof -
   have ae: "g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)"
     using eval_add_node xv yv by blast
@@ -78,7 +80,7 @@ proof -
                  ConstantNode yvv \<Rightarrow> ConstantNode (xv+yvv) | 
                  _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
                 )"
-      using xvv create_add.simps sorry
+      using xvv by simp
     thus ?thesis 
     proof (cases "\<exists>yvv. kind g y = ConstantNode yvv")
       case True
@@ -94,20 +96,24 @@ proof -
       qed
     next
       case not_const_y:False
+      have not_const: "\<forall>yvv. kind g y \<noteq> ConstantNode yvv"
+        using not_const_y by blast
+      have cv_case: "(case kind g y of
+                 ConstantNode yvv \<Rightarrow> ConstantNode (xv+yvv) | 
+                 _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
+                ) = (if xv = 0 then RefNode y else AddNode x y)"
+        using not_const sorry
+      have cv2: "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
+          using cv1 xvvn not_const_y xvv cv_case by simp
       then show ?thesis
-      proof -
-        have cv2: "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
-          using xvvn not_const_y xvv by simp
-        then show ?thesis
-        proof (cases "xv = 0")
-          case True
-          then show ?thesis using xvvn xvv not_const_y True cv2 refy by auto 
-        next
-          case False
-          have cvff: "create_add g x y = AddNode x y"
-            using False cv2 by auto
-          then show ?thesis using xvvn not_const_y False ae by simp
-        qed
+      proof (cases "xv = 0")
+        case True
+        then show ?thesis using xvvn xvv not_const_y True cv2 refy by auto 
+      next
+        case False
+        have cvff: "create_add g x y = AddNode x y"
+          using False cv2 by auto
+        then show ?thesis using xvvn not_const_y False ae by simp
       qed
     qed
   next
@@ -133,7 +139,7 @@ proof -
     using ae by blast
 qed
 
-text_raw \<open>\snip{CreateIfNode}{\<close>
+text_raw \<open>\Snip{CreateIfNode}%\<close>
 fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode"
   where 
   "create_if g cond tb fb = 
@@ -145,9 +151,9 @@ fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<R
             else 
               IfNode cond tb fb)
     )"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 
-text_raw \<open>\snip{Stutter}{\<close>
+text_raw \<open>\Snip{Stutter}%\<close>
 inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ \<turnstile> _ \<leadsto> _" 55)
   for g where
 
@@ -159,7 +165,7 @@ inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarro
   "\<lbrakk>g \<turnstile> (nid,m) \<rightarrow> (nid'',m);
     g m \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
    \<Longrightarrow> g m \<turnstile> nid \<leadsto> nid'"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 
 inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool"
   for g where
@@ -201,7 +207,7 @@ proof -
   proof (induction "kind g1 nid")
 *)
 
-text_raw \<open>\snip{IfNodeCreate}{\<close>
+text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
   assumes cv: "g m \<turnstile> cond (kind g cond) \<mapsto> IntVal cv"
   assumes fresh: "nid |\<notin>| fmdom g" 
@@ -209,7 +215,7 @@ lemma if_node_create:
   assumes gcreate: "gcreate = fmupd nid (create_if g cond tb fb) g"
   shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> 
                 (gcreate m \<turnstile> nid \<leadsto> nid')"
-text_raw \<open>}%endsnip\<close>
+text_raw \<open>\EndSnip\<close>
 
 proof (cases "kind g cond = ConstantNode val")
   case True

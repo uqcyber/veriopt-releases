@@ -1,5 +1,7 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{isabelle,isabellesym}
+\usepackage{amssymb}
+% \usepackage{mathpartir}
 
 % further packages required for unusual symbols (see also
 % isabellesym.sty), use only when needed
@@ -32,13 +34,15 @@
 % for uniform font size
 %\renewcommand{\isastyle}{\isastyleminor}
 
-\newcommand{\DefineSnippet}[2]{#2}
+% display anything in a snip without any markup
+%\providecommand{\snip}[2]{#2}%endsnip
+\newcommand{\Snip}[1]{\isanewline\isanewline}
+\newcommand{\EndSnip}{\isanewline\isanewline}
 
 
 \begin{document}
 
-\title{Verifying Semantics Preservation of Optimisation Passes}
-\author{Brae Webb}
+\title{GraalIR Semantics}
 \maketitle
 
 \tableofcontents

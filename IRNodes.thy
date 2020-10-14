@@ -34,7 +34,7 @@ type_synonym SUCC = "ID"
    Field names are generally the same, but prefixed with "ir_"
    (because selector names have global scope in Isabelle, and 
     never being able to use 'x' or 'y' again would be unacceptable).
-*)
+
 datatype (discs_sels) IRNode =
   (* FloatingNode subclasses (with no successors)
      ----------------------------------------- *)
@@ -87,6 +87,71 @@ datatype (discs_sels) IRNode =
   (* Dummy node to not cause too much pain when switching to partial *)
   | NoNode 
   (* and hundreds of other Node subclasses!... *)
+*)
+
+datatype (discs_sels) IRNode =
+  AbstractNewObjectNode (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | BeginNode (ir_next: "SUCC") 
+  | IntegerLessThanNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | NegateNode (ir_value: "INPUT") 
+  | AbstractBeginNode (ir_next: "SUCC") 
+  | DeoptimizingFixedWithNextNode (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | LogicNegationNode (ir_value: "INPUT_COND") 
+  | FloatingNode 
+  | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | SubNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | NewArrayNode (ir_length: "INPUT") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | EndNode 
+  | SwitchNode (ir_value: "INPUT") (ir_successors: "SUCC list") 
+  | LoopBeginNode (ir_ends: "INPUT_ASSOC list") (ir_overflowGuard_opt: "INPUT_GUARD option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | ParameterNode (ir_index: nat) 
+  | ValuePhiNode (ir_values: "INPUT list") (ir_merge: "INPUT_ASSOC") 
+  | MergeNode (ir_ends: "INPUT_ASSOC list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | AccessFieldNode (ir_next: "SUCC") 
+  | BeginStateSplitNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | LoadFieldNode (ir_field: string) (ir_next: "SUCC") 
+  | NotNode (ir_value: "INPUT") 
+  | DynamicNewArrayNode (ir_length: "INPUT") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | AbstractMergeNode (ir_ends: "INPUT_ASSOC list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | UnaryNode (ir_value: "INPUT") 
+  | AndNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | AbsNode (ir_value: "INPUT") 
+  | FrameState (ir_monitorIds: "INPUT_ASSOC list") (ir_outerFrameState_opt: "INPUT_STATE option") (ir_values_opt: "INPUT option list") (ir_virtualObjectMappings_opt: "INPUT_STATE option list") 
+  | IfNode (ir_condition: "INPUT_COND") (ir_trueSuccessor: "SUCC") (ir_falseSuccessor: "SUCC") 
+  | FixedNode 
+  | UnaryArithmeticNode (ir_value: "INPUT") 
+  | NewInstanceNode (ir_instanceClass: string) (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | AbstractEndNode 
+  | ValueProxyNode (ir_value: "INPUT") (ir_loopExit: "INPUT_ASSOC") 
+  | AddNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | OrNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | MulNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | AbstractNewArrayNode (ir_length: "INPUT") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | PhiNode (ir_merge: "INPUT_ASSOC") 
+  | BinaryArithmeticNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | ProxyNode (ir_loopExit: "INPUT_ASSOC") 
+  | ValueNode 
+  | StoreFieldNode (ir_field: string) (ir_value: "INPUT") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | ControlSplitNode 
+  | AbstractLocalNode 
+  | XorNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
+  | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
+  | KillingBeginNode (ir_next: "SUCC") 
+  | ConditionalNode (ir_condition: "INPUT_COND") (ir_trueValue: "INPUT") (ir_falseValue: "INPUT") 
+  | IntegerEqualsNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | LoopExitNode (ir_loopBegin: "INPUT_ASSOC") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | LoopEndNode (ir_loopBegin: "INPUT_ASSOC") 
+  | ConstantNode (ir_intValue: int32) 
+  | FixedWithNextNode (ir_next: "SUCC") 
+  | BinaryNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | NoNode
+
+  (* Manually added *)
+  | CallNode (ir_startNode:INPUT) (ir_arguments:"INPUT list") (ir_succ:"SUCC list")
+  | RefNode (ir_ref:ID)
+  | LoadStaticFieldNode (ir_field:string) (ir_clazz:string) (ir_next:SUCC)
+  | StoreStaticFieldNode (ir_field:string) (ir_clazz:string) (ir_value:INPUT) (ir_next:SUCC)
 
 (* Next we may want a predicate for some abstract subclasses?
    The '(discs_sels)' above automatically generates (is_StartNode _) etc.
@@ -111,7 +176,7 @@ fun is_CompareNode :: "IRNode \<Rightarrow> bool" where
   "is_CompareNode _ = False"
 
 fun is_PhiNode :: "IRNode \<Rightarrow> bool" where
-  "is_PhiNode (PhiNode _ _) = True" |
+  "is_PhiNode (PhiNode _) = True" |
   "is_PhiNode (ValuePhiNode _ _) = True" |
   "is_PhiNode _ = False"
 
@@ -139,68 +204,129 @@ fun opt_to_list :: "'a option \<Rightarrow> 'a list" where
   "opt_to_list None = []" |
   "opt_to_list (Some v) = [v]"
 
+fun opt_list_to_list :: "'a option list \<Rightarrow> 'a list" where
+  "opt_list_to_list [] = []" |
+  "opt_list_to_list (x # xs) = (opt_to_list x) @ (opt_list_to_list xs)"
+
 (* We also define a generic 'inputs_of' for all kinds of nodes. *)
 fun inputs_of :: "IRNode \<Rightarrow> ID list" where
-  "inputs_of (ConstantNode _) = []" |
-  "inputs_of (ParameterNode _) = []" |
-  "inputs_of (PhiNode merge vals) = merge # vals" |
-  "inputs_of (ValuePhiNode merge inputs) = merge # inputs" |
-  "inputs_of (ValueProxyNode loopExit val) = [loopExit, val]" |
-  "inputs_of (AbsNode val) = [val]" |
-  "inputs_of (NegateNode val) = [val]" |
-  "inputs_of (AddNode x y) = [x, y]" |
   "inputs_of (SubNode x y) = [x, y]" |
-  "inputs_of (MulNode x y) = [x, y]" |
-  "inputs_of (AndNode x y) = [x, y]" |
-  "inputs_of (OrNode  x y) = [x, y]" |
-  "inputs_of (XorNode x y) = [x, y]" |
-  "inputs_of (IntegerEqualsNode x y) = [x, y]" |
-  "inputs_of (IntegerLessThanNode x y) = [x, y]" |
-  "inputs_of (ConditionalNode condition trueVal falseVal) = [condition, trueVal, falseVal]" |
-  "inputs_of (ShortCircuitOrNode x y) = [x, y]" |
-  "inputs_of (LogicNegationNode val) = [val]" |
-  "inputs_of (SwitchNode val _) = [val]" |
-  "inputs_of (IfNode condition _ _) = [condition]" |
-  "inputs_of (KillingBeginNode _) = []" |
-  "inputs_of (BeginNode _) = []" |
-  "inputs_of (StartNode after _) = opt_to_list after" |
-  "inputs_of (EndNode) = []" |
-  "inputs_of (LoopBeginNode after over ends _) = opt_to_list after @ opt_to_list over @ ends" |
+  "inputs_of (KillingBeginNode next) = []" |
+  "inputs_of (AbsNode value) = [value]" |
+  "inputs_of (AbstractMergeNode ends stateAfter next) = ends @ (opt_to_list stateAfter)" |
+  "inputs_of (LoopExitNode loopBegin stateAfter next) = [loopBegin] @ (opt_to_list stateAfter)" |
   "inputs_of (LoopEndNode loopBegin) = [loopBegin]" |
-  "inputs_of (LoopExitNode loopBegin after _) = [loopBegin] @ opt_to_list after" |
-  "inputs_of (MergeNode after ends _) = opt_to_list after @ ends" |
-  "inputs_of (ReturnNode result mem) = opt_to_list result @ opt_to_list mem" |
-  "inputs_of (CallNode startNode args _) = [startNode] @ args" |
-  "inputs_of (NewInstanceNode _ before _) = [before]" |
-  "inputs_of (LoadFieldNode _ object _) = [object]" |
-  "inputs_of (StoreFieldNode _ object val after _) = [object, val] @ opt_to_list after" |
-  "inputs_of (LoadStaticFieldNode _ _ _) = []" |
-  "inputs_of (StoreStaticFieldNode _ _ val _) = [val]" |
-  "inputs_of (FrameState ofs vals) =  opt_to_list ofs @ vals" |
-  "inputs_of (RefNode x) = [x]" |
-  "inputs_of NoNode = []"
+  "inputs_of (LoopBeginNode ends overflowGuard stateAfter next) = ends @ (opt_to_list overflowGuard) @ (opt_to_list stateAfter)" |
+  "inputs_of (LoadFieldNode field next) = []" |
+  "inputs_of (UnaryArithmeticNode value) = [value]" |
+  "inputs_of (OrNode x y) = [x, y]" |
+  "inputs_of (AbstractNewArrayNode length0 stateBefore next) = [length0] @ (opt_to_list stateBefore)" |
+  "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
+  "inputs_of (ShortCircuitOrNode x y) = [x, y]" |
+  "inputs_of (BinaryArithmeticNode x y) = [x, y]" |
+  "inputs_of (DeoptimizingFixedWithNextNode stateBefore next) = (opt_to_list stateBefore)" |
+  "inputs_of (BeginNode next) = []" |
+  "inputs_of (UnaryNode value) = [value]" |
+  "inputs_of (IfNode condition trueSuccessor falseSuccessor) = [condition]" |
+  "inputs_of (NewInstanceNode instanceClass stateBefore next) = (opt_to_list stateBefore)" |
+  "inputs_of (BinaryNode x y) = [x, y]" |
+  "inputs_of (BeginStateSplitNode stateAfter next) = (opt_to_list stateAfter)" |
+  "inputs_of (XorNode x y) = [x, y]" |
+  "inputs_of (AddNode x y) = [x, y]" |
+  "inputs_of (StoreFieldNode field value stateAfter next) = [value] @ (opt_to_list stateAfter)" |
+  "inputs_of (EndNode) = []" |
+  "inputs_of (NegateNode value) = [value]" |
+  "inputs_of (NotNode value) = [value]" |
+  "inputs_of (PhiNode merge) = [merge]" |
+  "inputs_of (ConditionalNode condition trueValue falseValue) = [condition, trueValue, falseValue]" |
+  "inputs_of (FloatingNode) = []" |
+  "inputs_of (FixedNode) = []" |
+  "inputs_of (NewArrayNode length0 stateBefore next) = [length0] @ (opt_to_list stateBefore)" |
+  "inputs_of (ValuePhiNode values merge) = [merge] @ values" |
+  "inputs_of (DynamicNewArrayNode length0 stateBefore next) = [length0] @ (opt_to_list stateBefore)" |
+  "inputs_of (AndNode x y) = [x, y]" |
+  "inputs_of (ConstantNode intValue) = []" |
+  "inputs_of (MulNode x y) = [x, y]" |
+  "inputs_of (ProxyNode loopExit) = [loopExit]" |
+  "inputs_of (AbstractLocalNode) = []" |
+  "inputs_of (IntegerEqualsNode x y) = [x, y]" |
+  "inputs_of (MergeNode ends stateAfter next) = ends @ (opt_to_list stateAfter)" |
+  "inputs_of (StartNode stateAfter next) = (opt_to_list stateAfter)" |
+  "inputs_of (ValueNode) = []" |
+  "inputs_of (FrameState monitorIds outerFrameState values virtualObjectMappings) = monitorIds @ (opt_to_list outerFrameState) @ (opt_list_to_list values) @ (opt_list_to_list virtualObjectMappings)" |
+  "inputs_of (FixedWithNextNode next) = []" |
+  "inputs_of (AccessFieldNode next) = []" |
+  "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
+  "inputs_of (AbstractNewObjectNode stateBefore next) = (opt_to_list stateBefore)" |
+  "inputs_of (AbstractBeginNode next) = []" |
+  "inputs_of (LogicNegationNode value) = [value]" |
+  "inputs_of (IntegerLessThanNode x y) = [x, y]" |
+  "inputs_of (SwitchNode value successors) = [value]" |
+  "inputs_of (AbstractEndNode) = []" |
+  "inputs_of (ParameterNode index) = []" |
+  "inputs_of (ControlSplitNode) = []" |
+  "inputs_of _ = []"
 
-
-value "inputs_of (FrameState (Some 3) [5,7])"
-value "inputs_of (FrameState None [])"
+value "inputs_of (FrameState [4] (Some 3) [Some 5, Some 7] [])"
+value "inputs_of (FrameState [4] None [Some 7] [None, Some 3])"
 
 fun successors_of :: "IRNode \<Rightarrow> ID list" where
-  "successors_of (IfNode _ t f) = [t, f]" |
-  "successors_of (KillingBeginNode nxt) = [nxt]" |
-  "successors_of (BeginNode nxt) = [nxt]" |
-  "successors_of (StartNode _ nxt) = [nxt]" |
+  "successors_of (SubNode x y) = []" |
+  "successors_of (KillingBeginNode next) = [next]" |
+  "successors_of (AbsNode value) = []" |
+  "successors_of (AbstractMergeNode ends stateAfter next) = [next]" |
+  "successors_of (LoopExitNode loopBegin stateAfter next) = [next]" |
+  "successors_of (LoopEndNode loopBegin) = []" |
+  "successors_of (LoopBeginNode ends overflowGuard stateAfter next) = [next]" |
+  "successors_of (LoadFieldNode field next) = [next]" |
+  "successors_of (UnaryArithmeticNode value) = []" |
+  "successors_of (OrNode x y) = []" |
+  "successors_of (AbstractNewArrayNode length0 stateBefore next) = [next]" |
+  "successors_of (ValueProxyNode value loopExit) = []" |
+  "successors_of (ShortCircuitOrNode x y) = []" |
+  "successors_of (BinaryArithmeticNode x y) = []" |
+  "successors_of (DeoptimizingFixedWithNextNode stateBefore next) = [next]" |
+  "successors_of (BeginNode next) = [next]" |
+  "successors_of (UnaryNode value) = []" |
+  "successors_of (IfNode condition trueSuccessor falseSuccessor) = [trueSuccessor, falseSuccessor]" |
+  "successors_of (NewInstanceNode instanceClass stateBefore next) = [next]" |
+  "successors_of (BinaryNode x y) = []" |
+  "successors_of (BeginStateSplitNode stateAfter next) = [next]" |
+  "successors_of (XorNode x y) = []" |
+  "successors_of (AddNode x y) = []" |
+  "successors_of (StoreFieldNode field value stateAfter next) = [next]" |
   "successors_of (EndNode) = []" |
-  "successors_of (LoopBeginNode _ _ _ nxt) = [nxt]" |
-  "successors_of (LoopEndNode _) = []" |
-  "successors_of (LoopExitNode _ _ nxt) = [nxt]" |
-  "successors_of (MergeNode _ _ nxt) = [nxt]" |
-  "successors_of (ReturnNode _ _) = []" |
-  "successors_of (CallNode _ _ succ) = succ" |
-  "successors_of (NewInstanceNode _ _ nxt) = [nxt]" |
-  "successors_of (LoadFieldNode _ _ nxt) = [nxt]" |
-  "successors_of (StoreFieldNode _ _ _ _ nxt) = [nxt]" |
-  "successors_of (LoadStaticFieldNode _ _ nxt) = [nxt]" |
-  "successors_of (StoreStaticFieldNode _ _ _ nxt) = [nxt]" |
+  "successors_of (NegateNode value) = []" |
+  "successors_of (NotNode value) = []" |
+  "successors_of (PhiNode merge) = []" |
+  "successors_of (ConditionalNode condition trueValue falseValue) = []" |
+  "successors_of (FloatingNode) = []" |
+  "successors_of (FixedNode) = []" |
+  "successors_of (NewArrayNode length0 stateBefore next) = [next]" |
+  "successors_of (ValuePhiNode values merge) = []" |
+  "successors_of (DynamicNewArrayNode length0 stateBefore next) = [next]" |
+  "successors_of (AndNode x y) = []" |
+  "successors_of (ConstantNode intValue) = []" |
+  "successors_of (MulNode x y) = []" |
+  "successors_of (ProxyNode loopExit) = []" |
+  "successors_of (AbstractLocalNode) = []" |
+  "successors_of (IntegerEqualsNode x y) = []" |
+  "successors_of (MergeNode ends stateAfter next) = [next]" |
+  "successors_of (StartNode stateAfter next) = [next]" |
+  "successors_of (ValueNode) = []" |
+  "successors_of (FrameState monitorIds outerFrameState values virtualObjectMappings) = []" |
+  "successors_of (FixedWithNextNode next) = [next]" |
+  "successors_of (AccessFieldNode next) = [next]" |
+  "successors_of (ReturnNode result memoryMap) = []" |
+  "successors_of (AbstractNewObjectNode stateBefore next) = [next]" |
+  "successors_of (AbstractBeginNode next) = [next]" |
+  "successors_of (LogicNegationNode value) = []" |
+  "successors_of (IntegerLessThanNode x y) = []" |
+  "successors_of (SwitchNode value successors) = successors" |
+  "successors_of (AbstractEndNode) = []" |
+  "successors_of (ParameterNode index) = []" |
+  "successors_of (ControlSplitNode) = []" |
   "successors_of _ = []"
+
 end
 

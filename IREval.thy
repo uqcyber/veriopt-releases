@@ -86,7 +86,7 @@ inductive
 
   PhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (PhiNode _ _) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> nid (PhiNode _) \<mapsto> val" |
 
   ValuePhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
@@ -202,9 +202,9 @@ inductive
   "\<lbrakk>val = (m_params m)!i\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (ParameterNode i) \<hookrightarrow> val" |
 
-  PhiNode:
+  ValuePhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (PhiNode _ _) \<hookrightarrow> val" |
+    \<Longrightarrow> g m \<turnstile> nid (ValuePhiNode _ _) \<hookrightarrow> val" |
 
   NegateNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> IntVal(v)\<rbrakk> 
@@ -288,7 +288,7 @@ inductive_cases ParameterNodeE[elim!]:
 thm ParameterNodeE
 
 inductive_cases PhiNodeE[elim!]:
-  "g m \<turnstile> nid (PhiNode merge vals) \<mapsto> val"
+  "g m \<turnstile> nid (PhiNode merge) \<mapsto> val"
 thm PhiNodeE
 
 inductive_cases ValuePhiNodeE[elim!]:
@@ -369,53 +369,119 @@ inductive_cases IfNodeE[elim!]:
 lemma notEvalIfNode: "\<not>(g m \<turnstile> nid (IfNode c t f) \<mapsto> val)"
   by auto
 
-inductive_cases SwitchNodeE[elim!]:
-  "g m \<turnstile> nid (SwitchNode v sucs) \<mapsto> val"
-
-inductive_cases KillingBeginNodeE[elim!]:
-  "g m \<turnstile> nid (KillingBeginNode nxt) \<mapsto> val"
+inductive_cases AbstractNewObjectNodeE[elim!]:
+  "g m \<turnstile> nid (AbstractNewObjectNode stateBefore next) \<mapsto> val"
 
 inductive_cases BeginNodeE[elim!]:
-  "g m \<turnstile> nid (BeginNode nxt) \<mapsto> val"
+  "g m \<turnstile> nid (BeginNode next) \<mapsto> val"
+
+inductive_cases AbstractBeginNodeE[elim!]:
+  "g m \<turnstile> nid (AbstractBeginNode next) \<mapsto> val"
+
+inductive_cases DeoptimizingFixedWithNextNodeE[elim!]:
+  "g m \<turnstile> nid (DeoptimizingFixedWithNextNode stateBefore next) \<mapsto> val"
+
+inductive_cases FloatingNodeE[elim!]:
+  "g m \<turnstile> nid (FloatingNode) \<mapsto> val"
 
 inductive_cases StartNodeE[elim!]:
-  "g m \<turnstile> nid (StartNode after nxt) \<mapsto> val"
+  "g m \<turnstile> nid (StartNode stateAfter next) \<mapsto> val"
+
+inductive_cases NewArrayNodeE[elim!]:
+  "g m \<turnstile> nid (NewArrayNode length0 stateBefore next) \<mapsto> val"
 
 inductive_cases EndNodeE[elim!]:
   "g m \<turnstile> nid (EndNode) \<mapsto> val"
 
+inductive_cases SwitchNodeE[elim!]:
+  "g m \<turnstile> nid (SwitchNode value successors) \<mapsto> val"
+
 inductive_cases LoopBeginNodeE[elim!]:
-  "g m \<turnstile> nid (LoopBeginNode after ovr ends nxt) \<mapsto> val"
-
-inductive_cases LoopEndNodeE[elim!]:
-  "g m \<turnstile> nid (LoopEndNode begin) \<mapsto> val"
-
-inductive_cases LoopExitNodeE[elim!]:
-  "g m \<turnstile> nid (LoopExitNode begin after nxt) \<mapsto> val"
+  "g m \<turnstile> nid (LoopBeginNode ends overflowGuard stateAfter next) \<mapsto> val"
 
 inductive_cases MergeNodeE[elim!]:
-  "g m \<turnstile> nid (MergeNode after ends nxt) \<mapsto> val"
+  "g m \<turnstile> nid (MergeNode ends stateAfter next) \<mapsto> val"
 
-inductive_cases ReturnNodeE[elim!]:
-  "g m \<turnstile> nid (ReturnNode result mem) \<mapsto> val"
+inductive_cases AccessFieldNodeE[elim!]:
+  "g m \<turnstile> nid (AccessFieldNode next) \<mapsto> val"
 
-inductive_cases NewInstanceNodeE[elim!]:
-  "g m \<turnstile> nid (NewInstanceNode clazz before nxt) \<mapsto> val"
+inductive_cases BeginStateSplitNodeE[elim!]:
+  "g m \<turnstile> nid (BeginStateSplitNode stateAfter next) \<mapsto> val"
 
 inductive_cases LoadFieldNodeE[elim!]:
-  "g m \<turnstile> nid (LoadFieldNode field obj nxt) \<mapsto> val"
-
-inductive_cases StoreFieldNodeE[elim!]:
-  "g m \<turnstile> nid (StoreFieldNode field obj v after nxt) \<mapsto> val"
+  "g m \<turnstile> nid (LoadFieldNode field next) \<mapsto> val"
 
 inductive_cases LoadStaticFieldNodeE[elim!]:
-  "g m \<turnstile> nid (LoadStaticFieldNode field clazz nxt) \<mapsto> val"
+  "g m \<turnstile> nid (LoadStaticFieldNode field class next) \<mapsto> val"
 
-inductive_cases StoreStaticFieldNodeE[elim!]:
-  "g m \<turnstile> nid (StoreStaticFieldNode field clazz v nxt) \<mapsto> val"
+inductive_cases NotNodeE[elim!]:
+  "g m \<turnstile> nid (NotNode value) \<mapsto> val"
+
+inductive_cases DynamicNewArrayNodeE[elim!]:
+  "g m \<turnstile> nid (DynamicNewArrayNode length0 stateBefore next) \<mapsto> val"
+
+inductive_cases AbstractMergeNodeE[elim!]:
+  "g m \<turnstile> nid (AbstractMergeNode ends stateAfter next) \<mapsto> val"
+
+inductive_cases UnaryNodeE[elim!]:
+  "g m \<turnstile> nid (UnaryNode value) \<mapsto> val"
 
 inductive_cases FrameStateE[elim!]:
-  "g m \<turnstile> nid (FrameState outer vals) \<mapsto> val"
+  "g m \<turnstile> nid (FrameState monitorIds outerFrameState values virtualObjectMappings) \<mapsto> val"
+
+inductive_cases FixedNodeE[elim!]:
+  "g m \<turnstile> nid (FixedNode) \<mapsto> val"
+
+inductive_cases UnaryArithmeticNodeE[elim!]:
+  "g m \<turnstile> nid (UnaryArithmeticNode value) \<mapsto> val"
+
+inductive_cases NewInstanceNodeE[elim!]:
+  "g m \<turnstile> nid (NewInstanceNode instanceClass stateBefore next) \<mapsto> val"
+
+inductive_cases AbstractEndNodeE[elim!]:
+  "g m \<turnstile> nid (AbstractEndNode) \<mapsto> val"
+
+inductive_cases AbstractNewArrayNodeE[elim!]:
+  "g m \<turnstile> nid (AbstractNewArrayNode length0 stateBefore next) \<mapsto> val"
+
+inductive_cases BinaryArithmeticNodeE[elim!]:
+  "g m \<turnstile> nid (BinaryArithmeticNode x y) \<mapsto> val"
+
+inductive_cases ProxyNodeE[elim!]:
+  "g m \<turnstile> nid (ProxyNode loopExit) \<mapsto> val"
+
+inductive_cases ValueNodeE[elim!]:
+  "g m \<turnstile> nid (ValueNode) \<mapsto> val"
+
+inductive_cases StoreFieldNodeE[elim!]:
+  "g m \<turnstile> nid (StoreFieldNode field value stateAfter next) \<mapsto> val"
+
+inductive_cases StoreStaticFieldNodeE[elim!]:
+  "g m \<turnstile> nid (StoreStaticFieldNode field class value next) \<mapsto> val"
+
+inductive_cases ControlSplitNodeE[elim!]:
+  "g m \<turnstile> nid (ControlSplitNode) \<mapsto> val"
+
+inductive_cases AbstractLocalNodeE[elim!]:
+  "g m \<turnstile> nid (AbstractLocalNode) \<mapsto> val"
+
+inductive_cases ReturnNodeE[elim!]:
+  "g m \<turnstile> nid (ReturnNode result memoryMap) \<mapsto> val"
+
+inductive_cases KillingBeginNodeE[elim!]:
+  "g m \<turnstile> nid (KillingBeginNode next) \<mapsto> val"
+
+inductive_cases LoopExitNodeE[elim!]:
+  "g m \<turnstile> nid (LoopExitNode loopBegin stateAfter next) \<mapsto> val"
+
+inductive_cases LoopEndNodeE[elim!]:
+  "g m \<turnstile> nid (LoopEndNode loopBegin) \<mapsto> val"
+
+inductive_cases FixedWithNextNodeE[elim!]:
+  "g m \<turnstile> nid (FixedWithNextNode next) \<mapsto> val"
+
+inductive_cases BinaryNodeE[elim!]:
+  "g m \<turnstile> nid (BinaryNode x y) \<mapsto> val"
 
 inductive_cases NoNodeE[elim!]:
   "g m \<turnstile> nid (NoNode) \<mapsto> val"

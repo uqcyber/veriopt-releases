@@ -49,8 +49,8 @@ values "{m_val m 0 |n m. (double_param \<diamondop> [IntVal 99]) (n, m)}"
 definition simple_if :: IRGraph where
   "simple_if =
     (add_node 12 (ReturnNode (Some 11) None)
-    (add_node 11 (PhiNode 10 [9,7])
-    (add_node 10 (MergeNode None [5,6] 12)
+    (add_node 11 (ValuePhiNode [9,7] 10)
+    (add_node 10 (MergeNode [5,6] None 12)
     (add_node 9 (AddNode 7 8)
     (add_node 8 (ParameterNode 2)
     (add_node 7 (ParameterNode 1)
@@ -91,11 +91,11 @@ definition loop :: IRGraph where
     (add_node 10 (IfNode 9 11 13)
     (add_node 9 (IntegerLessThanNode 7 6)
     (add_node 8 (AddNode 7 5)
-    (add_node 7 (PhiNode 3 [4,8])
+    (add_node 7 (ValuePhiNode [4,8] 3)
     (add_node 6 (ParameterNode 0)
     (add_node 5 (ConstantNode 1)
     (add_node 4 (ConstantNode 0)
-    (add_node 3 (LoopBeginNode None None [2,12] 10)
+    (add_node 3 (LoopBeginNode [2,12] None None 10)
     (add_node 2 (EndNode)
     (add_node 1 (BeginNode 2)
     (add_node 0 (StartNode None 1)
@@ -121,12 +121,12 @@ definition sum :: IRGraph where
     (add_node 11 (IntegerLessThanNode 7 6)
     (add_node 10 (AddNode 8 7)
     (add_node 9 (AddNode 7 5)
-    (add_node 8 (PhiNode 3 [4,10])
-    (add_node 7 (PhiNode 3 [4,9])
+    (add_node 8 (ValuePhiNode [4,10] 3)
+    (add_node 7 (ValuePhiNode [4,9] 3)
     (add_node 6 (ParameterNode 0)
     (add_node 5 (ConstantNode 1)
     (add_node 4 (ConstantNode 0)
-    (add_node 3 (LoopBeginNode None None [2,14] 12)
+    (add_node 3 (LoopBeginNode [2,14] None None 12)
     (add_node 2 (EndNode)
     (add_node 1 (BeginNode 2)
     (add_node 0 (StartNode None 1)
@@ -144,7 +144,10 @@ values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 7]) (n, m)}"
 values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 20]) (n, m)}"
 
 
+(* TODO: fix seafoam generation *)
 (* Examples generated from Java code *)
+
+(*
 definition real_fact :: IRGraph where
 "real_fact = 
  (add_node 0 (StartNode (Some 2) 5)
@@ -225,5 +228,6 @@ values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 5]) (n, m)}"
 values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 6]) (n, m)}"
 (* IntVal 13 *)
 values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 7]) (n, m)}"
+*)
 
 end

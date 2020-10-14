@@ -5,132 +5,6 @@ theory ExecExamples
     IRStep
 begin
 
-definition simple_return :: IRGraph where
-  "simple_return =
-    (add_node 2 (ReturnNode (Some 1) None)
-    (add_node 1 (ConstantNode 42)
-    (add_node 0 (StartNode None 2)
-    empty_graph)))"
-
-(*
-definition double_param_graph :: IRGraph where
-  "double_param_graph =
-    (add_node 3 ReturnNode [2] []
-    (add_node 2 AddNode [1, 1] []
-    (add_node 1 (ParameterNode 0) [] []
-    (add_node 0 (StartNode None 3)
-    empty_graph))))"
-
-definition simple_if_graph :: IRGraph where
-  "simple_if_graph =
-    (add_node 12 ReturnNode [11] []
-    (add_node 11 PhiNode [10,9,7] []
-    (add_node 10 MergeNode [5,6] [12]
-    (add_node 9 AddNode [7,8] []
-    (add_node 8 (ParameterNode 2) [] []
-    (add_node 7 (ParameterNode 1) [] []
-    (add_node 6 EndNode [] []
-    (add_node 5 EndNode [] []
-    (add_node 4 BeginNode [] [6]
-    (add_node 3 BeginNode [] [5]
-    (add_node 2 IfNode [1] [3,4] 
-    (add_node 1 (ParameterNode 0) [] []
-    (add_node 0 StartNode [] [2]
-    empty_graph)))))))))))))"
-
-definition simple_call_graph :: IRGraph where
-  "simple_call_graph =
-    (add_node 7 ReturnNode [6] []
-    (add_node 6 AddNode [1, 5] []
-    (add_node 5 (CallNode 2) [] [7]
-    (add_node 4 ReturnNode [3] []
-    (add_node 3 (ConstantNode 12) [] []
-    (add_node 2 StartNode [] [4]
-    (add_node 1 (CallNode 2) [] [5]
-    (add_node 0 StartNode [] [1]
-    empty_graph))))))))"
-
-definition factorial_graph :: IRGraph where
-  "factorial_graph =
-    (add_node 13 ReturnNode [12] []
-    (add_node 12 (CallNode 1) [2] [13]
-    (add_node 11 ReturnNode [10] []
-    (add_node 10 MulNode [2,9] []
-    (add_node 9 (CallNode 1) [8] [11]
-    (add_node 8 SubNode [2,7] []
-    (add_node 7 (ConstantNode 1) [] []
-    (add_node 6 ReturnNode [2] []
-    (add_node 5 IfNode [4] [6,9]
-    (add_node 4 IntegerEqualsNode [2,3] []
-    (add_node 3 (ConstantNode 1) [] []
-    (add_node 2 (ParameterNode 0) [] []
-    (add_node 1 StartNode [] [5]
-    (add_node 0 StartNode [] [12]
-    empty_graph))))))))))))))"
-*)
-(* TODO: fix up CallNode s! *)
-definition fib :: IRGraph where
-  "fib =
-    (add_node 16 (ReturnNode (Some 15) None)
-    (add_node 15 (CallNode 1 [2] [16])
-    (add_node 14 (ReturnNode (Some 13) None)
-    (add_node 13 (AddNode 11 12)
-    (add_node 12 (CallNode 1 [10] [14])
-    (add_node 11 (CallNode 1 [9] [12])
-    (add_node 10 (SubNode 2 8)
-    (add_node 9 (SubNode 2 7)
-    (add_node 8 (ConstantNode 2)
-    (add_node 7 (ConstantNode 1)
-    (add_node 6 (ReturnNode (Some 2) None)
-    (add_node 5 (IfNode 4 6 11)
-    (add_node 4 (IntegerLessThanNode 2 3)
-    (add_node 3 (ConstantNode 2)
-    (add_node 2 (ParameterNode 0)
-    (add_node 1 (StartNode None 5)
-    (add_node 0 (StartNode None 15)
-    empty_graph)))))))))))))))))"
-(*
-definition loop_graph :: IRGraph where
-  "loop_graph =
-    (add_node 13 ReturnNode [7] []
-    (add_node 12 LoopEndNode [] []
-    (add_node 11 BeginNode [] [12]
-    (add_node 10 IfNode [9] [11,13]
-    (add_node 9 IntegerLessThanNode [7,6] []
-    (add_node 8 AddNode [7,5] []
-    (add_node 7 PhiNode [3,4,8] []
-    (add_node 6 (ParameterNode 0) [] []
-    (add_node 5 (ConstantNode 1) [] []
-    (add_node 4 (ConstantNode 0) [] []
-    (add_node 3 LoopBeginNode [2,12] [10]
-    (add_node 2 EndNode [] []
-    (add_node 1 BeginNode [] [2]
-    (add_node 0 StartNode [] [1]
-    empty_graph))))))))))))))"
-
-definition sum_graph :: IRGraph where
-  "sum_graph =
-    (add_node 15 ReturnNode [10] []
-    (add_node 14 LoopEndNode [] []
-    (add_node 13 BeginNode [] [14]
-    (add_node 12 IfNode [11] [13,15]
-    (add_node 11 IntegerLessThanNode [7,6] []
-    (add_node 10 AddNode [8,7] []
-    (add_node 9 AddNode [7,5] []
-    (add_node 8 PhiNode [3,4,10] []
-    (add_node 7 PhiNode [3,4,9] []
-    (add_node 6 (ParameterNode 0) [] []
-    (add_node 5 (ConstantNode 1) [] []
-    (add_node 4 (ConstantNode 0) [] []
-    (add_node 3 LoopBeginNode [2,14] [12]
-    (add_node 2 EndNode [] []
-    (add_node 1 BeginNode [] [2]
-    (add_node 0 StartNode [] [1]
-    empty_graph))))))))))))))))"
-*)
-
-
-
 (* NB: The starting state is duplicated causing the program to be executed twice
        The reason for this is that the top step of ReturnNode empties
        the state list to signal completion, this means we can't access the state
@@ -145,11 +19,24 @@ inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<ti
 code_pred [show_modes] "exec_graph" .
 
 
-(* Simple Return *)
+definition simple_return :: IRGraph where
+  "simple_return =
+    (add_node 2 (ReturnNode (Some 1) None)
+    (add_node 1 (ConstantNode 42)
+    (add_node 0 (StartNode None 2)
+    empty_graph)))"
+
 (* IntVal 42 *)
 values "{m_val m 0 |n m. (simple_return \<diamondop> []) (n, m)}"
 
-(* Double Param *)
+definition double_param :: IRGraph where
+  "double_param =
+    (add_node 3 (ReturnNode (Some 2) None)
+    (add_node 2 (AddNode 1 1)
+    (add_node 1 (ParameterNode 0)
+    (add_node 0 (StartNode None 3)
+    empty_graph))))"
+
 (* IntVal 10 *)
 values "{m_val m 0 |n m. (double_param \<diamondop> [IntVal 5]) (n, m)}"
 (* IntVal 50 *)
@@ -159,53 +46,61 @@ values "{m_val m 0 |n m. (double_param \<diamondop> [IntVal 128]) (n, m)}"
 (* IntVal 198 *)
 values "{m_val m 0 |n m. (double_param \<diamondop> [IntVal 99]) (n, m)}"
 
-(* Simple If *)
+definition simple_if :: IRGraph where
+  "simple_if =
+    (add_node 12 (ReturnNode (Some 11) None)
+    (add_node 11 (PhiNode 10 [9,7])
+    (add_node 10 (MergeNode None [5,6] 12)
+    (add_node 9 (AddNode 7 8)
+    (add_node 8 (ParameterNode 2)
+    (add_node 7 (ParameterNode 1)
+    (add_node 6 (EndNode)
+    (add_node 5 (EndNode)
+    (add_node 4 (BeginNode 6)
+    (add_node 3 (BeginNode 5)
+    (add_node 2 (IfNode 1 3 4) 
+    (add_node 1 (ParameterNode 0)
+    (add_node 0 (StartNode None 2)
+    empty_graph)))))))))))))"
+
 (* IntVal 20 *)
 values "{m_val m 0 |n m. (simple_if \<diamondop> [IntVal 0, IntVal 20, IntVal 100]) (n, m)}"
 (* IntVal 120 *)
 values "{m_val m 0 |n m. (simple_if \<diamondop> [IntVal 1, IntVal 20, IntVal 100]) (n, m)}"
 
-(* Simple Call *)
+definition simple_call :: IRGraph where
+  "simple_call =
+    (add_node 7 (ReturnNode (Some 6) None)
+    (add_node 6 (AddNode 1 5)
+    (add_node 5 (CallNode 2 [] [7])
+    (add_node 4 (ReturnNode (Some 3) None)
+    (add_node 3 (ConstantNode 12)
+    (add_node 2 (StartNode None 4)
+    (add_node 1 (CallNode 2 [] [5])
+    (add_node 0 (StartNode None 1)
+    empty_graph))))))))"
+
 (* IntVal 24 *)
 values "{m_val m 0 |n m. (simple_call \<diamondop> []) (n, m)}"
 
-(* Factorial *)
-(* IntVal 1 *)
-values "{m_val m 0 |n m. (factorial \<diamondop> [IntVal 1]) (n, m)}"
-(* IntVal 2 *)
-values "{m_val m 0 |n m. (factorial \<diamondop> [IntVal 2]) (n, m)}"
-(* IntVal 6 *)
-values "{m_val m 0 |n m. (factorial \<diamondop> [IntVal 3]) (n, m)}"
-(* IntVal 24 *)
-values "{m_val m 0 |n m. (factorial \<diamondop> [IntVal 4]) (n, m)}"
-(* IntVal 120 *)
-values "{m_val m 0 |n m. (factorial \<diamondop> [IntVal 5]) (n, m)}"
-(* IntVal 720 *)
-values "{m_val m 0 |n m. (factorial \<diamondop> [IntVal 6]) (n, m)}"
-(* IntVal 5040 *)
-values "{m_val m 0 |n m. (factorial \<diamondop> [IntVal 7]) (n, m)}"
+definition loop :: IRGraph where
+  "loop =
+    (add_node 13 (ReturnNode (Some 7) None)
+    (add_node 12 (LoopEndNode 11)
+    (add_node 11 (BeginNode 12)
+    (add_node 10 (IfNode 9 11 13)
+    (add_node 9 (IntegerLessThanNode 7 6)
+    (add_node 8 (AddNode 7 5)
+    (add_node 7 (PhiNode 3 [4,8])
+    (add_node 6 (ParameterNode 0)
+    (add_node 5 (ConstantNode 1)
+    (add_node 4 (ConstantNode 0)
+    (add_node 3 (LoopBeginNode None None [2,12] 10)
+    (add_node 2 (EndNode)
+    (add_node 1 (BeginNode 2)
+    (add_node 0 (StartNode None 1)
+    empty_graph))))))))))))))"
 
-(* Fibonacci *)
-(* IntVal 0 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 0]) (n, m)}"
-(* IntVal 1 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 1]) (n, m)}"
-(* IntVal 1 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 2]) (n, m)}"
-(* IntVal 2 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 3]) (n, m)}"
-(* IntVal 3 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 4]) (n, m)}"
-(* IntVal 5 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 5]) (n, m)}"
-(* IntVal 8 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 6]) (n, m)}"
-(* IntVal 13 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 7]) (n, m)}"
-(* IntVal 21 *)
-values "{m_val m 0 |n m. (fib \<diamondop> [IntVal 8]) (n, m)}"
-
-(* Loop *)
 (* IntVal 0 *)
 values "{m_val m 0 |n m. (loop \<diamondop> [IntVal 0]) (n, m)}"
 (* IntVal 1 *)
@@ -217,8 +112,26 @@ values "{m_val m 0 |n m. (loop \<diamondop> [IntVal 5]) (n, m)}"
 (* IntVal 10 *)
 values "{m_val m 0 |n m. (loop \<diamondop> [IntVal 10]) (n, m)}"
 
+definition sum :: IRGraph where
+  "sum =
+    (add_node 15 (ReturnNode (Some 10) None)
+    (add_node 14 (LoopEndNode 13)
+    (add_node 13 (BeginNode 14)
+    (add_node 12 (IfNode 11 13 15)
+    (add_node 11 (IntegerLessThanNode 7 6)
+    (add_node 10 (AddNode 8 7)
+    (add_node 9 (AddNode 7 5)
+    (add_node 8 (PhiNode 3 [4,10])
+    (add_node 7 (PhiNode 3 [4,9])
+    (add_node 6 (ParameterNode 0)
+    (add_node 5 (ConstantNode 1)
+    (add_node 4 (ConstantNode 0)
+    (add_node 3 (LoopBeginNode None None [2,14] 12)
+    (add_node 2 (EndNode)
+    (add_node 1 (BeginNode 2)
+    (add_node 0 (StartNode None 1)
+    empty_graph))))))))))))))))"
 
-(* Sum *)
 (* IntVal 1 *)
 values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 1]) (n, m)}"
 (* IntVal 3 *)

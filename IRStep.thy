@@ -89,13 +89,14 @@ inductive exec :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarro
   ("_ \<turnstile> _ \<longrightarrow>* _")
   where
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
+    m_val (snd (s'!0)) 0 = UndefVal;
     exec g s' s''\<rbrakk> 
     \<Longrightarrow> exec g s s''" 
-(* TODO: this seems to be unnecessary? *)
+(* TODO: refactor this stopping condition to be more abstract *)
   |
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
-    length s' = 0\<rbrakk>
-    \<Longrightarrow> exec g s s"
+    m_val (snd (s'!0)) 0 \<noteq> UndefVal\<rbrakk>
+    \<Longrightarrow> exec g s s'"
 code_pred [show_modes] "exec" .
 
 

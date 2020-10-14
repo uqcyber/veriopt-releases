@@ -443,7 +443,7 @@ lemma good_kind: "g m \<turnstile> x (kind g x) \<mapsto> val \<Longrightarrow> 
   
 (* eval never sees NoNode?  Alternative form? *)
 lemma good_kind2:
-  "(g m \<turnstile> nid (case fmlookup g nid of
+  "(g m \<turnstile> nid (case snd g nid of
      None \<Rightarrow> NoNode |
      Some n \<Rightarrow> n)
    \<mapsto> val) \<Longrightarrow>

@@ -5,12 +5,6 @@ theory ExecExamples
     IRStep
 begin
 
-definition empty_graph :: IRGraph where
-  "empty_graph = fmap_of_list []"
-
-definition add_node :: "nat \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
-  "add_node = fmupd"
-
 definition simple_return :: IRGraph where
   "simple_return =
     (add_node 2 (ReturnNode (Some 1) None)

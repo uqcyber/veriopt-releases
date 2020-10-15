@@ -9,8 +9,19 @@ begin
 
 (* This theory defines the main Graal data structure - an entire IR Graph. *)
 text_raw \<open>\Snip{graphdef}%\<close>
-type_synonym IRGraph = "(ID fset \<times> (ID \<rightharpoonup> IRNode))"
+type_synonym RealGraph = "(ID fset \<times> (ID \<rightharpoonup> IRNode))"
+
+typedef IRGraph = "{g :: RealGraph . True}"
+  by auto
 text_raw \<open>\EndSnip\<close>
+
+setup_lifting type_definition_IRGraph
+lift_definition fst :: "IRGraph \<Rightarrow> ID fset"
+  is Product_Type.fst .
+
+lift_definition snd :: "IRGraph \<Rightarrow> (ID \<rightharpoonup> IRNode)"
+  is Product_Type.snd .
+
 
 (* Get ALL the IDs in the graph. *)
 fun ids :: "IRGraph \<Rightarrow> ID set" where
@@ -45,9 +56,9 @@ fun is_empty :: "IRGraph \<Rightarrow> bool" where
   "is_empty g = ((ids g = {}) \<and> (snd g = Map.empty))"
 
 definition empty_graph:: IRGraph where
-  "empty_graph = (fset_of_list [], Map.empty)"
+  "empty_graph = Abs_IRGraph (fset_of_list [], Map.empty)"
 
-lemma empty_graph [simp]: "empty_graph = (fset_of_list [], Map.empty)"
+lemma empty_graph [simp]: "empty_graph = Abs_IRGraph (fset_of_list [], Map.empty)"
   by (rule empty_graph_def)
 
 
@@ -112,14 +123,19 @@ lemma wff_kind [simp]:
   using assms by auto
 
 fun irgraph :: "(ID \<times> IRNode) list \<Rightarrow> IRGraph" where
-  "irgraph g = (fset_of_list (map fst g), map_of g)"
+  "irgraph g = Abs_IRGraph (fset_of_list (map prod.fst g), map_of g)"
 
 fun add_node :: "nat \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
-  "add_node nid node g = ((fset_of_list [nid]) |\<union>| (fst g), (snd g)(nid \<mapsto> node))"
+  "add_node nid node g = 
+    Abs_IRGraph (
+      (fset_of_list [nid]) |\<union>| (fst g),
+      (snd g)(nid \<mapsto> node)
+    )"
 
 (* Example 1: empty graph (just a start node) *)
 lemma wff_empty: "wff_graph empty_graph"
-  by simp
+  unfolding empty_graph
+  by (simp add: eq_onp_same_args fst.abs_eq snd.abs_eq)
 
 
 (* Example 2:
@@ -140,9 +156,15 @@ definition eg2_sq :: IRGraph where
     (5, ReturnNode (Some 4) None)
    ]"
 
+
 (* Now check some basic properties of this example. *)
 lemma wff_eg2_sq: "wff_graph eg2_sq"
-  unfolding eg2_sq_def by simp
+  unfolding eg2_sq_def irgraph.simps sorry
+
+code_datatype Abs_IRGraph
+
+lemma [code]: "Rep_IRGraph (Abs_IRGraph m) = m"
+  using Abs_IRGraph_inverse by simp
 
 (* Test the code generation. *)
 value "input_edges eg2_sq"

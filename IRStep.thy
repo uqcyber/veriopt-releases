@@ -89,13 +89,13 @@ inductive exec :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarro
   ("_ \<turnstile> _ \<longrightarrow>* _")
   where
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
-    m_val (snd (s'!0)) 0 = UndefVal;
+    m_val (prod.snd (s'!0)) 0 = UndefVal;
     exec g s' s''\<rbrakk> 
     \<Longrightarrow> exec g s s''" 
 (* TODO: refactor this stopping condition to be more abstract *)
   |
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
-    m_val (snd (s'!0)) 0 \<noteq> UndefVal\<rbrakk>
+    m_val (prod.snd (s'!0)) 0 \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> exec g s s'"
 code_pred [show_modes] "exec" .
 
@@ -117,6 +117,6 @@ definition p3:: MapState where
   "p3 = new_map [IntVal 3]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
-values "{m_val (snd (hd res)) 0 | res. eg2_sq \<turnstile> [(0, p3), (0, p3)] \<rightarrow>*2* res}"
+values "{m_val (prod.snd (hd res)) 0 | res. eg2_sq \<turnstile> [(0, p3), (0, p3)] \<rightarrow>*2* res}"
 end
 

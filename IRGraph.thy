@@ -11,7 +11,7 @@ begin
 text_raw \<open>\Snip{graphdef}%\<close>
 type_synonym RealGraph = "(ID fset \<times> (ID \<rightharpoonup> IRNode))"
 
-typedef IRGraph = "{g :: RealGraph . \<forall>nid. nid |\<in>| fst g \<longrightarrow> snd g nid \<noteq> None }"
+typedef IRGraph = "{g :: RealGraph . True}"
   by auto
 text_raw \<open>\EndSnip\<close>
 
@@ -177,10 +177,8 @@ lemma wff_eg2_sq: "wff_graph eg2_sq"
 
 code_datatype Abs_IRGraph
 
-(*
 lemma [code]: "Rep_IRGraph (Abs_IRGraph m) = m"
   using Abs_IRGraph_inverse by simp
-*)
 
 lemma eg2_sq_inv: 
   "\<forall>nid. nid |\<in>| prod.fst eg2_sq_rep \<longrightarrow> prod.snd eg2_sq_rep nid \<noteq> None"

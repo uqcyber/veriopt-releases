@@ -3,10 +3,18 @@ section \<open>Inductive evaluation semantics of floating nodes\<close>
 theory IREval
   imports
     IRGraph
-    "HOL-Word.More_Word"
 begin
 
-type_synonym int32 = "32 word"
+type_synonym int32 = "int"
+(* To be replaced with More_Word definitions when switched back to 32 word *)
+fun int32_not :: "int32 \<Rightarrow> int32" ("NOT") where
+  "int32_not x = (if (x = 0) then 1 else 0)"
+fun int32_and :: "int32 \<Rightarrow> int32 \<Rightarrow> int32" (infixr "AND" 5) where
+  "int32_and x y = (if ((x \<noteq> 0) \<and> (y \<noteq> 0)) then 1 else 0)"
+fun int32_or :: "int32 \<Rightarrow> int32 \<Rightarrow> int32" (infixr "OR" 5) where
+  "int32_or x y = (if ((x \<noteq> 0) \<or> (y \<noteq> 0)) then 1 else 0)"
+fun int32_xor :: "int32 \<Rightarrow> int32 \<Rightarrow> int32" (infixr "XOR" 5) where
+  "int32_xor x y = ((x OR y) AND (NOT (x AND y)))"
 
 datatype Value =
   UndefVal |

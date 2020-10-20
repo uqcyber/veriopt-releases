@@ -3,7 +3,7 @@ section \<open>GraalVM graph representation\<close>
 theory IRGraph
   imports 
     IRNodes
-    "HOL-Library.Finite_Map"
+    "HOL-Library.FSet"
     "HOL.Relation"
 begin
 

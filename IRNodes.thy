@@ -3,7 +3,6 @@ section \<open>GraalVM graph representation\<close>
 theory IRNodes
   imports 
     Main
-    "HOL-Word.More_Word"
 begin
 
 (* This is a theory of GraalVM IR graphs that uses numbered nodes,
@@ -20,7 +19,7 @@ begin
    SUCC instead of ID for control-flow successor edges.
    Optional edges are handled as "INPUT option" etc. 
 *)
-type_synonym int32 = "32 word"
+type_synonym int32 = "int" (* while working changed from "32 word" *)
 type_synonym ID = "nat"
 type_synonym INPUT = "ID"   (* InputType.Value is the default *)
 type_synonym INPUT_ASSOC = "ID" (* InputType.Association *)

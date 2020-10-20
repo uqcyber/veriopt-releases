@@ -230,7 +230,7 @@ inductive
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<hookrightarrow> val" 
 text_raw \<open>\EndSnip\<close>
 
-code_pred [show_modes] eval .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE) eval .
 
 
 inductive
@@ -242,7 +242,7 @@ inductive
     g m xs \<longmapsto> vs\<rbrakk>
    \<Longrightarrow> g m (nid # xs) \<longmapsto> (v # vs)"
 
-code_pred [show_modes] eval_all .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as eval_allE) eval_all .
 
 
 (* Test the eval predicates. *)
@@ -252,7 +252,7 @@ inductive eval_graph :: "IRGraph \<Rightarrow> ID \<Rightarrow> Value list \<Rig
     g state \<turnstile> nid (kind g nid) \<mapsto> val\<rbrakk>
     \<Longrightarrow> eval_graph g nid ps val"
 
-code_pred [show_modes] "eval_graph" .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) "eval_graph" .
 
 (* 5*5 \<Rightarrow> 25 *)
 values "{v. eval_graph eg2_sq 4 [IntVal 5] v}"

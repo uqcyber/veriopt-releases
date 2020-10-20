@@ -41,7 +41,7 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState) \<Rightarrow> (I
     \<Longrightarrow> g \<turnstile> (nid, m) \<rightarrow> (nid', m)"
 text_raw \<open>\EndSnip\<close>
 
-code_pred [show_modes] step .
+code_pred (modes: i \<Rightarrow> i * i \<Rightarrow> o * o \<Rightarrow> bool) step .
 
 
 text_raw \<open>\Snip{TopStepSemantics}%\<close>
@@ -82,7 +82,7 @@ text_raw \<open>\EndSnip\<close>
     \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []"
 *)
 
-code_pred [show_modes] step_top .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 
 
 inductive exec :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
@@ -97,7 +97,7 @@ inductive exec :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarro
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
     m_val (prod.snd (s'!0)) 0 \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> exec g s s'"
-code_pred [show_modes] "exec" .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) "exec" .
 
 
 inductive exec_debug :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> nat \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
@@ -110,7 +110,7 @@ inductive exec_debug :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rig
 
   "\<lbrakk>n = 0\<rbrakk>
     \<Longrightarrow> exec_debug g s n s"
-code_pred [show_modes] "exec_debug" .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) "exec_debug" .
 
 
 definition p3:: MapState where

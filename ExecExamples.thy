@@ -16,8 +16,7 @@ inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<ti
   "\<lbrakk>state = new_map ps;
     g \<turnstile> [(0, state), (0, state)] \<longrightarrow>* (end # xs)\<rbrakk>
     \<Longrightarrow> exec_graph g ps end"
-code_pred [show_modes] "exec_graph" .
-
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> bool as execE) "exec_graph" .
 
 definition simple_return :: IRGraph where
   "simple_return =

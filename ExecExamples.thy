@@ -11,12 +11,13 @@ begin
 
    Discuss ways to fix this
  *)
-inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_\<diamondop>_")
+inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> ExecLog \<Rightarrow> bool" ("_|_\<leadsto>_|_")
   where
   "\<lbrakk>state = new_map ps;
-    g \<turnstile> [(0, state), (0, state)] \<longrightarrow>* (end # xs)\<rbrakk>
-    \<Longrightarrow> exec_graph g ps end"
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> bool as execE) "exec_graph" .
+    g \<turnstile> [(0, state), (0, state)] | [] \<longrightarrow>* (end # xs) | l\<rbrakk>
+    \<Longrightarrow> exec_graph g ps end l"
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> o \<Rightarrow> bool as execE) "exec_graph" .
+
 
 definition simple_return :: IRGraph where
   "simple_return =
@@ -26,7 +27,9 @@ definition simple_return :: IRGraph where
     empty_graph)))"
 
 (* IntVal 42 *)
-values "{m_val m 0 |n m. (simple_return \<diamondop> []) (n, m)}"
+values "{m_val m 0 |n m l. simple_return | [] \<leadsto> (n, m) | l}"
+
+values "{l | x l . simple_return | [] \<leadsto> x | l}"
 
 definition double_param :: IRGraph where
   "double_param =
@@ -37,13 +40,14 @@ definition double_param :: IRGraph where
     empty_graph))))"
 
 (* IntVal 10 *)
-values "{m_val m 0 |n m. (double_param \<diamondop> [IntVal 5]) (n, m)}"
+values "{m_val m 0 |n m l. double_param | [IntVal 5] \<leadsto> (n, m) | l}"
+values "{l | x l . double_param | [IntVal 5] \<leadsto> x | l}"
 (* IntVal 50 *)
-values "{m_val m 0 |n m. (double_param \<diamondop> [IntVal 25]) (n, m)}"
+values "{m_val m 0 |n m l. double_param | [IntVal 25] \<leadsto> (n, m) | l}"
 (* IntVal 256 *)
-values "{m_val m 0 |n m. (double_param \<diamondop> [IntVal 128]) (n, m)}"
+values "{m_val m 0 |n m l. double_param | [IntVal 128] \<leadsto> (n, m) | l}"
 (* IntVal 198 *)
-values "{m_val m 0 |n m. (double_param \<diamondop> [IntVal 99]) (n, m)}"
+values "{m_val m 0 |n m l. double_param | [IntVal 99] \<leadsto> (n, m) | l}"
 
 definition simple_if :: IRGraph where
   "simple_if =
@@ -63,9 +67,11 @@ definition simple_if :: IRGraph where
     empty_graph)))))))))))))"
 
 (* IntVal 20 *)
-values "{m_val m 0 |n m. (simple_if \<diamondop> [IntVal 0, IntVal 20, IntVal 100]) (n, m)}"
+values "{m_val m 0 |n m l. simple_if | [IntVal 0, IntVal 20, IntVal 100] \<leadsto> (n, m) | l}"
+values "{l | x l . simple_if | [IntVal 0, IntVal 20, IntVal 100] \<leadsto> x | l}"
 (* IntVal 120 *)
-values "{m_val m 0 |n m. (simple_if \<diamondop> [IntVal 1, IntVal 20, IntVal 100]) (n, m)}"
+values "{m_val m 0 |n m l. simple_if | [IntVal 1, IntVal 20, IntVal 100] \<leadsto> (n, m) | l}"
+values "{l | x l . simple_if | [IntVal 1, IntVal 20, IntVal 100] \<leadsto> x | l}"
 
 definition simple_call :: IRGraph where
   "simple_call =
@@ -80,7 +86,7 @@ definition simple_call :: IRGraph where
     empty_graph))))))))"
 
 (* IntVal 24 *)
-values "{m_val m 0 |n m. (simple_call \<diamondop> []) (n, m)}"
+values "{m_val m 0 |n m l. simple_call | [] \<leadsto> (n, m) | l}"
 
 definition loop :: IRGraph where
   "loop =
@@ -101,15 +107,16 @@ definition loop :: IRGraph where
     empty_graph))))))))))))))"
 
 (* IntVal 0 *)
-values "{m_val m 0 |n m. (loop \<diamondop> [IntVal 0]) (n, m)}"
+values "{m_val m 0 |n m l. loop | [IntVal 0] \<leadsto> (n, m) | l}"
 (* IntVal 1 *)
-values "{m_val m 0 |n m. (loop \<diamondop> [IntVal 1]) (n, m)}"
+values "{m_val m 0 |n m l. loop | [IntVal 1] \<leadsto> (n, m) | l}"
 (* IntVal 2 *)
-values "{m_val m 0 |n m. (loop \<diamondop> [IntVal 2]) (n, m)}"
+values "{m_val m 0 |n m l. loop | [IntVal 2] \<leadsto> (n, m) | l}"
 (* IntVal 5 *)
-values "{m_val m 0 |n m. (loop \<diamondop> [IntVal 5]) (n, m)}"
+values "{m_val m 0 |n m l. loop | [IntVal 5] \<leadsto> (n, m) | l}"
 (* IntVal 10 *)
-values "{m_val m 0 |n m. (loop \<diamondop> [IntVal 10]) (n, m)}"
+values "{m_val m 0 |n m l. loop | [IntVal 10] \<leadsto> (n, m) | l}"
+values "{l | x l . loop | [IntVal 10] \<leadsto> x | l}"
 
 definition sum :: IRGraph where
   "sum =
@@ -132,15 +139,15 @@ definition sum :: IRGraph where
     empty_graph))))))))))))))))"
 
 (* IntVal 1 *)
-values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 1]) (n, m)}"
+values "{m_val m 0 |n m l. sum | [IntVal 1] \<leadsto> (n, m) | l}"
 (* IntVal 3 *)
-values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 2]) (n, m)}"
+values "{m_val m 0 |n m l. sum | [IntVal 2] \<leadsto> (n, m) | l}"
 (* IntVal 15 *)
-values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 5]) (n, m)}"
+values "{m_val m 0 |n m l. sum | [IntVal 5] \<leadsto> (n, m) | l}"
 (* IntVal 28 *)
-values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 7]) (n, m)}"
+values "{m_val m 0 |n m l. sum | [IntVal 7] \<leadsto> (n, m) | l}"
 (* IntVal 210 *)
-values "{m_val m 0 |n m. (sum \<diamondop> [IntVal 20]) (n, m)}"
+values "{m_val m 0 |n m l. sum | [IntVal 20] \<leadsto> (n, m) | l}"
 
 
 (* TODO: fix seafoam generation *)

@@ -84,20 +84,26 @@ text_raw \<open>\EndSnip\<close>
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 
+type_synonym ExecLog = "(ID \<times> IRNode) list"
 
-inductive exec :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"
-  ("_ \<turnstile> _ \<longrightarrow>* _")
+
+inductive exec :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> ExecLog \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> ExecLog \<Rightarrow> bool"
+  ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
   where
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
     m_val (prod.snd (s'!0)) 0 = UndefVal;
-    exec g s' s''\<rbrakk> 
-    \<Longrightarrow> exec g s s''" 
+    nid = prod.fst (s!0);
+    l' = (l @ [(nid, (kind g nid))]);
+    exec g s' l' s'' l''\<rbrakk> 
+    \<Longrightarrow> exec g s l s'' l''" 
 (* TODO: refactor this stopping condition to be more abstract *)
   |
   "\<lbrakk>g \<turnstile> s \<longrightarrow> s';
-    m_val (prod.snd (s'!0)) 0 \<noteq> UndefVal\<rbrakk>
-    \<Longrightarrow> exec g s s'"
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) "exec" .
+    m_val (prod.snd (s'!0)) 0 \<noteq> UndefVal;
+    nid = prod.fst (s!0);
+    l' = (l @ [(nid, (kind g nid))])\<rbrakk>
+    \<Longrightarrow> exec g s l s' l'"
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) "exec" .
 
 
 inductive exec_debug :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> nat \<Rightarrow> (ID \<times> MapState) list \<Rightarrow> bool"

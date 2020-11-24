@@ -8,12 +8,25 @@ theory IRGraph
 begin
 
 (* This theory defines the main Graal data structure - an entire IR Graph. *)
-text_raw \<open>\Snip{graphdef}%\<close>
 type_synonym RealGraph = "(ID fset \<times> (ID \<rightharpoonup> IRNode))"
 
-typedef IRGraph = "{g :: RealGraph . True}"
-  by auto
+text_raw \<open>\Snip{graphdef}\<close>
+typedef IRGraph = "{g :: RealGraph 
+                    . (\<forall> n . n |\<in>| fst g \<longleftrightarrow> n \<in> dom (snd g))}"
+  apply auto
+  done
 text_raw \<open>\EndSnip\<close>
+
+fun is_valid :: "RealGraph \<Rightarrow> bool" where
+  "is_valid g = (\<forall> n . n |\<in>| fst g \<longleftrightarrow> n \<in> dom (snd g))"
+
+lemma valid_creation[simp]:
+  assumes "is_valid g"
+  shows "Rep_IRGraph (Abs_IRGraph g) = g"
+  using Abs_IRGraph_inverse assms by auto
+
+(*typedef IRGraph = "{g :: (ID fset \<times> (ID \<rightharpoonup> IRNode)) 
+                    . (\<forall> n . n |\<notin>| fst g \<longrightarrow> n \<notin> dom (snd g))}"*)
 
 setup_lifting type_definition_IRGraph
 lift_definition fst :: "IRGraph \<Rightarrow> ID fset"
@@ -132,6 +145,11 @@ fun add_node :: "nat \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IR
       (snd g)(nid \<mapsto> node)
     )"
 
+lemma add_node_valid[simp]:         
+  assumes "gup = add_node nid k g"
+  shows "is_valid (Rep_IRGraph gup)"
+  using Rep_IRGraph by auto
+
 (* Example 1: empty graph (just a start node) *)
 lemma wff_empty: "wff_graph empty_graph"
   unfolding empty_graph
@@ -160,14 +178,28 @@ definition eg2_sq :: IRGraph where
   "eg2_sq = Abs_IRGraph eg2_sq_rep"
 
 lemma irgraph_dom[simp]: 
-  assumes "\<forall>nid. nid |\<in>| fs \<longrightarrow> fm nid \<noteq> None"
+  assumes "\<forall>nid. nid |\<in>| fs \<longleftrightarrow> fm nid \<noteq> None"
   shows "IRGraph.fst(Abs_IRGraph(fs,fm)) = fs"
-  using Abs_IRGraph_inverse assms fst.rep_eq by auto
+  using Abs_IRGraph_inverse assms fst.rep_eq
+  by (simp add: domIff)
+
+lemma irgraph_dom_x:
+  assumes "nid \<in> ids g"
+  shows "(snd g) nid \<noteq> None"
+  using Rep_IRGraph assms fst.rep_eq snd.rep_eq
+  using notin_fset by fastforce
+
+lemma irgraph_dom_inv:
+  assumes "nid \<notin> ids g"
+  shows "(snd g) nid = None"
+  using Rep_IRGraph assms
+  using fst.rep_eq notin_fset snd.rep_eq by fastforce 
 
 lemma irgraph_rng[simp]: 
-  assumes "\<forall>nid. nid |\<in>| fs \<longrightarrow> fm nid \<noteq> None"
+  assumes "\<forall>nid. nid |\<in>| fs \<longleftrightarrow> fm nid \<noteq> None"
   shows "IRGraph.snd(Abs_IRGraph(fs,fm)) = fm"
-  using Abs_IRGraph_inverse assms snd.rep_eq by auto
+  using Abs_IRGraph_inverse assms snd.rep_eq
+  by (simp add: domIff)
 
 (* Now check some basic properties of this example. *)
 lemma wff_eg2_sq: "wff_graph eg2_sq"
@@ -178,20 +210,20 @@ lemma wff_eg2_sq: "wff_graph eg2_sq"
 code_datatype Abs_IRGraph
 
 lemma [code]: "Rep_IRGraph (Abs_IRGraph m) = m"
-  using Abs_IRGraph_inverse by simp
+  using Abs_IRGraph_inverse sorry
 
 lemma eg2_sq_inv: 
-  "\<forall>nid. nid |\<in>| prod.fst eg2_sq_rep \<longrightarrow> prod.snd eg2_sq_rep nid \<noteq> None"
+  "\<forall>nid. nid |\<in>| prod.fst eg2_sq_rep \<longleftrightarrow> prod.snd eg2_sq_rep nid \<noteq> None"
   unfolding eg2_sq_rep_def irgraph.simps
   apply simp
   done
 
 lemma rep_eg2: "Rep_IRGraph eg2_sq = eg2_sq_rep"
 proof -
-  have "\<forall>n. n |\<in>| prod.fst eg2_sq_rep \<longrightarrow> prod.snd eg2_sq_rep n \<noteq> None"
+  have "\<forall>n. n |\<in>| prod.fst eg2_sq_rep \<longleftrightarrow> prod.snd eg2_sq_rep n \<noteq> None"
     using eg2_sq_inv by fastforce
   then show ?thesis
-    by (simp add: Abs_IRGraph_inverse eg2_sq_def)
+    by (simp add: Abs_IRGraph_inverse domIff eg2_sq_def)
 qed
 
 

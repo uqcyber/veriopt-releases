@@ -189,9 +189,9 @@ text_raw \<open>\EndSnip\<close>
 inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool"
   for g where
 
-  "\<lbrakk>fmlookup g nid = Some n;
+  "\<lbrakk>kind g nid = n;
     inputs_of n = ls;
-    nid' \<in> list_to_set ls\<rbrakk>
+    nid' \<in> set ls\<rbrakk>
     \<Longrightarrow> eval_uses g nid nid'" |
 
   "\<lbrakk>eval_uses g nid nid';
@@ -199,12 +199,18 @@ inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> b
     \<Longrightarrow> eval_uses g nid nid''"
 
 lemma eval_independent:
-  assumes "\<not>(eval_uses g1 nid nid')"
-  assumes g2: "g2 = fmupd nid' n g1"
+  assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"
+  assumes g2: "g2 = add_node nid' n g1"
   assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
   assumes v2: "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2"
   shows "v1 = v2"
-  sorry
+proof -
+  have k: "(kind g1 nid) = (kind g2 nid)"
+    using g2 indep apply (simp add: Abs_IRGraph_inverse snd.rep_eq)
+    using irgraph_dom_x irgraph_rng snd.rep_eq
+    by (smt finsert_iff fun_upd_apply ids.simps irgraph_dom_inv notin_fset option.discI)
+  show ?thesis using k v1 v2 sorry
+qed
 
 (*
 lemma eval_independent:
@@ -226,12 +232,61 @@ proof -
   proof (induction "kind g1 nid")
 *)
 
+lemma kind_uneffected:
+  assumes oldnid: "nid \<in> ids g"
+  assumes newnid: "newnid \<notin> ids g"
+  assumes modg: "modg = add_node newnid anyk g"
+  shows "(kind g nid) = (kind modg nid)"
+proof -
+  have uneq: "nid \<noteq> newnid"
+    using newnid oldnid by blast
+  show ?thesis using uneq modg
+    apply (simp add: Abs_IRGraph_inverse snd.rep_eq)
+    using irgraph_dom
+    by (smt finsert_iff fun_upd_same fun_upd_triv fun_upd_twist ids.simps irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.discI snd.rep_eq)
+qed
+
+lemma not_in_no_val:
+  assumes "nid \<notin> ids g"
+  shows "\<not>(g m \<turnstile> nid (kind g nid) \<mapsto> x)"
+proof -
+  have kind: "(kind g nid) = NoNode"
+    using assms irgraph_dom_inv by auto
+  show ?thesis using kind
+    by auto
+qed
+
+(*
+lemma in_int_val:
+  assumes "nid \<in> ids g"
+  shows "g m \<turnstile> nid (kind g nid) \<mapsto> IntVal x"
+proof -
+  have kind: "(kind g nid) \<noteq> NoNode"
+    using assms irgraph_dom_x kind.simps apply simp
+    sorry
+  show ?thesis using kind sorry
+qed
+*)
+
+lemma add_implies_kind:
+  assumes add: "gup = add_node nid k g"
+  shows "kind gup nid = k"
+proof -
+  have isin: "nid \<in> dom (snd gup)"
+    using add apply simp
+    by (smt domIff dom_fun_upd finsert_iff ids.simps insert_iff irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.discI)
+  show ?thesis using isin add apply simp
+    by (smt finsert_iff fun_upd_apply ids.simps irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.case_eq_if option.discI option.sel)
+qed
+    
+
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
   assumes cv: "g m \<turnstile> cond (kind g cond) \<mapsto> IntVal cv"
-  assumes fresh: "nid |\<notin>| fmdom g" 
-  assumes gif: "gif = fmupd nid (IfNode cond tb fb) g"
-  assumes gcreate: "gcreate = fmupd nid (create_if g cond tb fb) g"
+  assumes fresh: "nid \<notin> ids g" 
+  assumes gif: "gif = add_node nid (IfNode cond tb fb) g"
+  assumes gcreate: "gcreate = add_node nid (create_if g cond tb fb) g"
+  assumes uneffected: "\<not>(eval_uses gif cond nid)"
   shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> 
                 (gcreate m \<turnstile> nid \<leadsto> nid')"
 text_raw \<open>\EndSnip\<close>
@@ -240,19 +295,26 @@ proof (cases "kind g cond = ConstantNode val")
   case True
   show ?thesis
   proof -
+    have cond_exists: "cond \<in> ids g"
+      using not_in_no_val
+      using cv by blast
     have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> IntVal val"
-      using True eval.ConstantNode gif fresh by auto 
+      using True eval.ConstantNode gif fresh
+      using kind_uneffected cond_exists
+      by presburger
     have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (if val_to_bool val then tb else fb,m)"
     proof -
       have if_kind: "kind gif nid = IfNode cond tb fb"
-        by (simp add: gif) 
+        using gif add_implies_kind
+        by blast
       show ?thesis using step.IfNode if_kind if_cv 
         by blast
     qed
     have create_step: "gcreate \<turnstile> (nid,m) \<rightarrow> (if val_to_bool val then tb else fb,m)"
     proof -
       have create_kind: "kind gcreate nid = create_if g cond tb fb"
-        using gcreate by simp
+        using gcreate add_implies_kind
+        by blast
       have create_fun: "create_if g cond tb fb = RefNode (if val_to_bool val then tb else fb)"
         using True create_kind by simp 
       show ?thesis using step.RefNode create_kind create_fun if_cv 
@@ -264,13 +326,26 @@ next
   case not_const: False
   show ?thesis
   proof -
+    have cond_exists: "cond \<in> ids g"
+      using not_in_no_val
+      using cv by blast
+    have cond_unq: "cond \<noteq> nid"
+      using cond_exists fresh by blast
     have if_kind: "kind gif cond = kind g cond"
-      using gif fresh cv by auto 
+      using gif fresh cv
+      using kind_uneffected not_in_no_val by fastforce
     have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> IntVal cv"
-      using if_kind cv fresh  sorry
+      using if_kind eval_independent uneffected fresh
+      sorry
     have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (if val_to_bool cv then tb else fb,m)"
-      using not_const eval.ConstantNode gif fresh  sorry
+      using not_const eval.ConstantNode gif fresh
+      using IfNode add_implies_kind if_cv by auto
+    have if_gcreate_cv: "gcreate m \<turnstile> cond (kind gcreate cond) \<mapsto> IntVal cv"
+      using cv apply auto
+      sorry
     have create_step: "gcreate \<turnstile> (nid,m) \<rightarrow> (if val_to_bool cv then tb else fb,m)"
+      using not_const eval.ConstantNode gcreate fresh
+      using IfNode add_implies_kind if_gcreate_cv
       sorry
     show ?thesis
       using Step create_step if_step by blast

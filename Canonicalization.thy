@@ -102,7 +102,12 @@ proof -
                  ConstantNode yvv \<Rightarrow> ConstantNode (xv+yvv) | 
                  _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
                 ) = (if xv = 0 then RefNode y else AddNode x y)"
-        using not_const sorry
+        apply (simp add: not_const)
+        apply (cases "xv = 0"; auto)
+        apply (cases "case IRGraph.snd g y of None \<Rightarrow> NoNode | Some n \<Rightarrow> n"; auto)
+        using not_const_y apply auto[1]
+        apply (cases "case IRGraph.snd g y of None \<Rightarrow> NoNode | Some n \<Rightarrow> n"; auto)
+        using not_const_y by auto
       have cv2: "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
           using cv1 xvvn not_const_y xvv cv_case by simp
       then show ?thesis
@@ -120,18 +125,32 @@ proof -
     case xnotconst: False
     then show ?thesis 
     proof (cases "\<exists>yvv. kind g y = ConstantNode yvv")
-      case True
+      case yvvn: True
       have yvv: "kind g y = ConstantNode yv"
-        using ConstantNode evalDet yv eval.ConstantNode True by fastforce 
+        using ConstantNode evalDet yv eval.ConstantNode yvvn by fastforce 
       have cv3: "create_add g x y = (if yv = 0 then RefNode x else AddNode x y)"
-        using xnotconst True 
-        sorry
+        using yvv yvvn apply auto
+         apply (cases "case IRGraph.snd g x of None \<Rightarrow> NoNode | Some n \<Rightarrow> n"; auto)
+        using xnotconst apply auto[1]
+        apply (cases "case IRGraph.snd g x of None \<Rightarrow> NoNode | Some n \<Rightarrow> n"; auto)
+        using xnotconst by auto
       then show ?thesis using cv3 ae yvv xv eval.RefNode by auto
     next 
-      case False
+      case ynotconst: False
+      have yvv: "kind g y \<noteq> ConstantNode yv"
+        using ynotconst by simp
+      have xvv: "kind g x \<noteq> ConstantNode xv"
+        using xnotconst by simp
+      have unwrapy: "(case kind g y of 
+              ConstantNode yv \<Rightarrow> if yv = 0 then RefNode x else AddNode x y
+            | _ \<Rightarrow> AddNode x y) = AddNode x y"
+        apply (cases "kind g y"; auto)
+        using ynotconst by auto
       have cv4: "create_add g x y = AddNode x y"
-        using xnotconst False 
-        sorry
+        using xvv yvv unwrapy apply auto
+        apply (cases "kind g x"; auto)
+        using xnotconst apply auto[1]
+        using xnotconst by auto
       thus ?thesis using cv4 ae by simp
     qed
   qed

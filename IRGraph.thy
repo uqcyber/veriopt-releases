@@ -60,6 +60,11 @@ text_raw \<open>\EndSnip\<close>
   "usages g nid = fset (ffilter (\<lambda> nid' . nid \<in> set(inp g nid')) (fmdom g))"
 *)
 
+fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where
+  "successor_edges g = (\<Union> i \<in> ids g. {(i,j)|j . j \<in> fset(fset_of_list (successors_of (kind g i)))})"
+
+fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "predecessors g nid = sorted_list_of_set {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
 
 (* Get the successor list of a given node ID. *)
 fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where

@@ -198,40 +198,6 @@ inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> b
     eval_uses g nid' nid''\<rbrakk>
     \<Longrightarrow> eval_uses g nid nid''"
 
-lemma eval_independent:
-  assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"
-  assumes g2: "g2 = add_node nid' n g1"
-  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
-  assumes v2: "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2"
-  shows "v1 = v2"
-proof -
-  have k: "(kind g1 nid) = (kind g2 nid)"
-    using g2 indep apply (simp add: Abs_IRGraph_inverse snd.rep_eq)
-    using irgraph_dom_x irgraph_rng snd.rep_eq
-    by (smt finsert_iff fun_upd_apply ids.simps irgraph_dom_inv notin_fset option.discI)
-  show ?thesis using k v1 v2 sorry
-qed
-
-(*
-lemma eval_independent:
-  assumes fresh: "nid' |\<notin>| fmdom g1"
-  assumes g2: "g2 = fmupd nid' n g1"
-  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
-  assumes v2: "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2"
-  shows "v1 = v2"
-proof -
-  have eq_kind: "kind g1 nid = kind g2 nid"
-    using fresh g2 v1 by auto
-  have uses: "eval_uses g1 nid = eval_uses g2 nid"
-
-  have uses_g1: "eval_uses g1 nid nid' \<longrightarrow> nid' |\<in>| fmdom g1"
-
-  have uses_g2: "eval_uses g2 nid nid' \<longrightarrow> nid' |\<in>| fmdom g1"
-
-  show ?thesis
-  proof (induction "kind g1 nid")
-*)
-
 lemma kind_uneffected:
   assumes oldnid: "nid \<in> ids g"
   assumes newnid: "newnid \<notin> ids g"
@@ -256,6 +222,86 @@ proof -
     by auto
 qed
 
+lemma add_implies_kind:
+  assumes add: "gup = add_node nid k g"
+  shows "kind gup nid = k"
+proof -
+  have isin: "nid \<in> dom (snd gup)"
+    using add apply simp
+    by (smt domIff dom_fun_upd finsert_iff ids.simps insert_iff irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.discI)
+  show ?thesis using isin add apply simp
+    by (smt finsert_iff fun_upd_apply ids.simps irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.case_eq_if option.discI option.sel)
+qed
+
+lemma eval_independent:
+  assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"
+  assumes not_in: "nid' \<notin> ids g1"
+  assumes g2: "g2 = add_node nid' n g1"
+  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  shows "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v1"
+proof -
+  have nid_in: "nid \<in> ids g1"
+    using not_in_no_val v1 by blast
+  then have k: "(kind g1 nid) = (kind g2 nid)"
+    using kind_uneffected not_in
+    using g2 by blast
+  show ?thesis
+  proof (cases "is_floating_node (kind g2 nid)")
+    case True
+    then show ?thesis
+      apply (cases "kind g2 nid"; auto) sorry
+  next
+    case False
+    then show ?thesis
+      using evalFloating k v1 by fastforce
+  qed
+qed
+
+lemma eval_independent_eq:
+  assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"
+  assumes not_in: "nid' \<notin> ids g1"
+  assumes g2: "g2 = add_node nid' n g1"
+  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  assumes v2: "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2"
+  shows "v1 = v2"
+  using eval_independent 
+  by (meson evalDet g2 indep not_in v1 v2)
+
+lemma indep_implies_value:
+  assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"
+  assumes not_in: "nid' \<notin> ids g1"
+  assumes g2: "g2 = add_node nid' n g1"
+  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  shows "\<exists> v2 . (g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2)"
+proof -
+  obtain v2 where "v2 = v1" by blast
+  have "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2"
+    using \<open>v2 = v1\<close> eval_independent g2 indep not_in v1 by blast
+  then show ?thesis using eval_independent
+    by blast
+qed
+
+(*
+lemma eval_independent:
+  assumes fresh: "nid' |\<notin>| fmdom g1"
+  assumes g2: "g2 = fmupd nid' n g1"
+  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  assumes v2: "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v2"
+  shows "v1 = v2"
+proof -
+  have eq_kind: "kind g1 nid = kind g2 nid"
+    using fresh g2 v1 by auto
+  have uses: "eval_uses g1 nid = eval_uses g2 nid"
+
+  have uses_g1: "eval_uses g1 nid nid' \<longrightarrow> nid' |\<in>| fmdom g1"
+
+  have uses_g2: "eval_uses g2 nid nid' \<longrightarrow> nid' |\<in>| fmdom g1"
+
+  show ?thesis
+  proof (induction "kind g1 nid")
+*)
+
+
 (*
 lemma in_int_val:
   assumes "nid \<in> ids g"
@@ -268,17 +314,11 @@ proof -
 qed
 *)
 
-lemma add_implies_kind:
-  assumes add: "gup = add_node nid k g"
-  shows "kind gup nid = k"
-proof -
-  have isin: "nid \<in> dom (snd gup)"
-    using add apply simp
-    by (smt domIff dom_fun_upd finsert_iff ids.simps insert_iff irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.discI)
-  show ?thesis using isin add apply simp
-    by (smt finsert_iff fun_upd_apply ids.simps irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.case_eq_if option.discI option.sel)
-qed
-    
+lemma we_can_do_this:
+  assumes "\<not>(\<exists> val . kind g nid = ConstantNode val)"
+  shows "(case kind g nid of ConstantNode condv \<Rightarrow> a | _ \<Rightarrow> b) = b"
+  apply (cases "kind g nid"; auto) using assms
+  by simp
 
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
@@ -286,22 +326,24 @@ lemma if_node_create:
   assumes fresh: "nid \<notin> ids g" 
   assumes gif: "gif = add_node nid (IfNode cond tb fb) g"
   assumes gcreate: "gcreate = add_node nid (create_if g cond tb fb) g"
-  assumes uneffected: "\<not>(eval_uses gif cond nid)"
+  assumes indep: "\<not>(eval_uses g cond nid)"
   shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> 
                 (gcreate m \<turnstile> nid \<leadsto> nid')"
 text_raw \<open>\EndSnip\<close>
 
-proof (cases "kind g cond = ConstantNode val")
+proof (cases "\<exists> val . kind g cond = ConstantNode val")
   case True
   show ?thesis
   proof -
+    obtain val where val: "kind g cond = ConstantNode val"
+      using True by blast
     have cond_exists: "cond \<in> ids g"
       using not_in_no_val
       using cv by blast
     have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> IntVal val"
       using True eval.ConstantNode gif fresh
       using kind_uneffected cond_exists
-      by presburger
+      using val by presburger
     have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (if val_to_bool val then tb else fb,m)"
     proof -
       have if_kind: "kind gif nid = IfNode cond tb fb"
@@ -316,7 +358,7 @@ proof (cases "kind g cond = ConstantNode val")
         using gcreate add_implies_kind
         by blast
       have create_fun: "create_if g cond tb fb = RefNode (if val_to_bool val then tb else fb)"
-        using True create_kind by simp 
+        using True create_kind val by simp 
       show ?thesis using step.RefNode create_kind create_fun if_cv 
         by simp
     qed
@@ -324,32 +366,48 @@ proof (cases "kind g cond = ConstantNode val")
   qed
 next
   case not_const: False
-  show ?thesis
+  obtain nid' where "nid' = (if val_to_bool cv then tb else fb)"
+    by blast
+  have nid_eq: "(gif \<turnstile> (nid,m) \<rightarrow> (nid',m)) \<and> (gcreate \<turnstile> (nid,m) \<rightarrow> (nid',m))"
   proof -
-    have cond_exists: "cond \<in> ids g"
-      using not_in_no_val
-      using cv by blast
-    have cond_unq: "cond \<noteq> nid"
-      using cond_exists fresh by blast
-    have if_kind: "kind gif cond = kind g cond"
-      using gif fresh cv
-      using kind_uneffected not_in_no_val by fastforce
-    have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> IntVal cv"
-      using if_kind eval_independent uneffected fresh
-      sorry
-    have if_step: "gif \<turnstile> (nid,m) \<rightarrow> (if val_to_bool cv then tb else fb,m)"
-      using not_const eval.ConstantNode gif fresh
-      using IfNode add_implies_kind if_cv by auto
-    have if_gcreate_cv: "gcreate m \<turnstile> cond (kind gcreate cond) \<mapsto> IntVal cv"
-      using cv apply auto
-      sorry
-    have create_step: "gcreate \<turnstile> (nid,m) \<rightarrow> (if val_to_bool cv then tb else fb,m)"
-      using not_const eval.ConstantNode gcreate fresh
-      using IfNode add_implies_kind if_gcreate_cv
-      sorry
+    have nid': "nid' = (if val_to_bool cv then tb else fb)"
+      by (simp add: \<open>nid' = (if val_to_bool cv then tb else fb)\<close>)
+    have gif_kind: "kind gif nid = IfNode cond tb fb"
+      using add_implies_kind gif
+      by blast
+    have "nid \<noteq> cond"
+      using cv fresh not_in_no_val by blast
+    obtain cv2 where cv2: "gif m \<turnstile> cond (kind gif cond) \<mapsto> cv2" 
+      using indep_implies_value
+      using \<open>nid \<noteq> cond\<close> cv gif indep
+      using fresh by blast
+    then have "IntVal cv = cv2"
+      using indep eval_independent_eq gif cv
+      using \<open>nid \<noteq> cond\<close>
+      using fresh by blast
+    then have eval_gif: "(gif \<turnstile> (nid,m) \<rightarrow> (nid',m))"
+      using step.IfNode gif_kind nid' cv2 by blast
+    have gcreate_kind: "kind gcreate nid = create_if g cond tb fb"
+      using gcreate add_implies_kind
+      by blast
+    have eval_gcreate: "gcreate \<turnstile> (nid,m) \<rightarrow> (nid',m)"
+    proof (cases "tb = fb")
+      case True
+      have "create_if g cond tb fb = RefNode tb"
+        using not_const True by (cases "kind g cond"; auto)
+      then show ?thesis
+        using True gcreate_kind nid' step.RefNode by auto
+    next
+      case False
+      have "create_if g cond tb fb = IfNode cond tb fb"
+        using not_const False by (cases "kind g cond"; auto)
+      then show ?thesis
+        using eval_gif gcreate gif by auto
+    qed
     show ?thesis
-      using Step create_step if_step by blast
+      using eval_gcreate eval_gif by blast
   qed
+  show ?thesis using nid_eq Step by blast
 qed
 
 (*

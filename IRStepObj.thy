@@ -164,5 +164,24 @@ definition p3:: MapState where
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{m_val (prod.snd (hd (prod.fst res))) 0 
         | res. eg2_sq \<turnstile> ([(0, p3), (0, p3)], new_heap) \<rightarrow>*2* res}"
+
+definition field_sq :: FieldName where
+  "field_sq = ''sq''"
+
+definition eg3_store_sq :: RealGraph where
+  "eg3_store_sq = irgraph [
+    (0, StartNode None 4),
+    (1, ParameterNode 0),
+    (3, MulNode 1 1),
+    (4, StoreFieldNode field_sq 3 None 5),
+    (5, ReturnNode (Some 3) None)
+   ]"
+
+definition eg3_sq :: IRGraph where
+  "eg3_sq = Abs_IRGraph eg3_store_sq"
+
+(* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
+values "{prod.snd res field_sq 0
+        | res. eg3_sq \<turnstile> ([(0, p3), (0, p3)], new_heap) \<rightarrow>*3* res}"
 end
 

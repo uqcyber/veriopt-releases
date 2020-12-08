@@ -146,12 +146,24 @@ fun irgraph :: "(ID \<times> IRNode) list \<Rightarrow> RealGraph" where
 fun add_node :: "nat \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "add_node nid node g = 
     Abs_IRGraph (
-      (fset_of_list [nid]) |\<union>| (fst g),
+      (fst g) |\<union>| {|nid|},
       (snd g)(nid \<mapsto> node)
+    )"
+
+fun remove_node :: "nat \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
+  "remove_node nid g =
+    Abs_IRGraph (
+      (fst g) |-| {|nid|},
+      (snd g)(nid := None)
     )"
 
 lemma add_node_valid[simp]:         
   assumes "gup = add_node nid k g"
+  shows "is_valid (Rep_IRGraph gup)"
+  using Rep_IRGraph by auto
+
+lemma remove_node_valid[simp]:
+  assumes "gup = remove_node nid g"
   shows "is_valid (Rep_IRGraph gup)"
   using Rep_IRGraph by auto
 

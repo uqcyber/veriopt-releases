@@ -198,6 +198,35 @@ inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> b
     eval_uses g nid' nid''\<rbrakk>
     \<Longrightarrow> eval_uses g nid nid''"
 
+fun eval_usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "eval_usages g nid = set (filter (eval_uses g nid) (sorted_list_of_set (ids g)))"
+
+lemma eval_usages[simp]:
+  assumes "us = eval_usages g nid"
+  assumes "nid' \<in> ids g"
+  shows "eval_uses g nid nid' \<longleftrightarrow> nid' \<in> us" (is "?P \<longleftrightarrow> ?Q")
+  using assms eval_usages.simps by simp
+
+lemma inputs_are_uses:
+  assumes "nid' \<in> set (inputs_of (kind g nid))"
+  shows "eval_uses g nid nid'"
+  using assms eval_uses.intros(1) by blast
+
+lemma inputs_are_usages:
+  assumes "nid' \<in> set (inputs_of (kind g nid))"
+  assumes "nid' \<in> ids g"
+  shows "nid' \<in> eval_usages g nid"
+  using assms(1) assms(2) eval_usages inputs_are_uses by blast
+
+lemma usage_includes_inputs:
+  assumes "us = eval_usages g nid"
+  assumes "ls = set (inputs_of (kind g nid))"
+  assumes "ls \<subseteq> ids g"
+  shows "ls \<subseteq> us"
+  using inputs_are_usages eval_usages
+  using assms(1) assms(2) assms(3) by blast
+
+
 lemma kind_uneffected:
   assumes oldnid: "nid \<in> ids g"
   assumes newnid: "newnid \<notin> ids g"
@@ -207,6 +236,17 @@ proof -
   have uneq: "nid \<noteq> newnid"
     using newnid oldnid by blast
   show ?thesis using uneq modg
+    apply (simp add: Abs_IRGraph_inverse snd.rep_eq)
+    using irgraph_dom
+    by (smt finsert_iff fun_upd_same fun_upd_triv fun_upd_twist ids.simps irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.discI snd.rep_eq)
+qed
+
+lemma kind_uneffected_uneq:
+  assumes "nid \<noteq> newnid"
+  assumes modg: "modg = add_node newnid anyk g"
+  shows "(kind g nid) = (kind modg nid)"
+proof -
+  show ?thesis using assms modg
     apply (simp add: Abs_IRGraph_inverse snd.rep_eq)
     using irgraph_dom
     by (smt finsert_iff fun_upd_same fun_upd_triv fun_upd_twist ids.simps irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.discI snd.rep_eq)
@@ -233,9 +273,251 @@ proof -
     by (smt finsert_iff fun_upd_apply ids.simps irgraph_dom_inv irgraph_dom_x irgraph_rng notin_fset option.case_eq_if option.discI option.sel)
 qed
 
+fun changes :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "changes nid g1 g2 = ((kind g1 nid) \<noteq> (kind g2 nid))"
+
+lemma add_node_changes:
+  assumes "nid \<notin> ids g1"
+  assumes "n \<noteq> NoNode"
+  assumes "g2 = add_node nid n g1"
+  shows "changes nid g1 g2"
+  using add_implies_kind assms(1) assms(2) assms(3) irgraph_dom_inv by auto
+
+lemma remove_node_effect:
+  assumes "g2 = remove_node nid g1"
+  shows "kind g2 nid = NoNode"
+  using Rep_IRGraph assms fst.rep_eq snd.rep_eq by auto
+
+lemma remove_node_changes:
+  assumes "nid \<in> ids g1"
+  assumes "kind g1 nid \<noteq> NoNode"
+  assumes "g2 = remove_node nid g1"
+  shows "changes nid g1 g2"
+  using assms(2) assms(3) remove_node_effect by auto
+
+lemma kind_floats:
+  assumes "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  shows "is_floating_node (kind g1 nid)"
+  using assms evalFloating by blast
+
+lemma unchanged_implies_unchanged_inputs:
+  assumes "\<forall> nid' \<in> (eval_usages g1 nid) . \<not>(changes nid' g1 g2)"
+  shows "\<forall> nid' \<in> (eval_usages g1 nid) . (\<forall> nid'' \<in> (eval_usages g1 nid') . \<not>(changes nid'' g1 g2))"
+  by (metis assms eval_usages.simps eval_uses.intros(2) filter_set member_filter)
+
+lemma stay_same:
+  assumes "\<not>(changes nid g1 g2)"
+  assumes "\<forall> nid' \<in> (eval_usages g1 nid) . \<not>(changes nid' g1 g2)"
+  assumes "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  shows "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v1" 
+proof -
+  have kind_same: "kind g1 nid = kind g2 nid"
+    using assms(1) by auto
+
+  show ?thesis using assms(3) assms(1) assms(2) kind_same
+proof (induct m nid "kind g1 nid" v1 arbitrary: nid rule: "eval.induct")
+  case const: (ConstantNode val c)
+  then have "kind g2 nid = (ConstantNode c)"
+    using kind_same by presburger
+  then show ?case
+    by (simp add: const.hyps(1) eval.ConstantNode)
+next
+  case param: (ParameterNode val m i nid)
+  show ?case
+    using eval.ParameterNode param.hyps(1) param.hyps(2) param.prems(3) by fastforce
+next
+  case phi: (PhiNode val m nid uu)
+  then have kind: "kind g2 nid = (PhiNode uu)"
+    by presburger
+  then have "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> val"
+    using PhiNode phi.hyps(1) sorry
+  then show ?case
+    using PhiNode kind phi.prems(3) by auto
+next
+  case (ValuePhiNode val m nid uv uw)
+  then have kind: "kind g2 nid = (ValuePhiNode uv uw)"
+    by presburger
+  then have "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> val"
+    sorry
+  then show ?case
+    using ValuePhiNode.prems(3) kind eval.ValuePhiNode by auto
+next
+  case (ValueProxyNode m c val nid u)
+  then have "g2 m \<turnstile> c (kind g2 c) \<mapsto> val"
+    by (smt changes.simps eval_usages.simps eval_uses.intros(2) filter_set inputs_are_usages inputs_of.simps(12) list.set_intros(1) member_filter not_in_no_val set_subset_Cons subsetD)
+  then show ?case
+    by (metis ValueProxyNode.hyps(3) ValueProxyNode.prems(3) eval.ValueProxyNode)
+next
+  case (AbsNode m x v nid)
+  then have "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v"
+    by (metis changes.simps eval_usages.simps eval_uses.intros(2) filter_set inputs_are_usages inputs_of.simps(3) list.set_intros(1) member_filter not_in_no_val)
+  then show ?case
+    using AbsNode.hyps(3) AbsNode.prems(3) eval.AbsNode by fastforce
+next
+  case (NegateNode m x v nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v"
+    by presburger
+  then have "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v"
+    using unchanged_implies_unchanged_inputs assms
+    by (metis NegateNode.hyps(2) NegateNode.hyps(3) NegateNode.prems(2) changes.elims(3) inputs_are_usages inputs_of.simps(26) list.set_intros(1) not_in_no_val)
+  then show ?case
+    using NegateNode.hyps(3) NegateNode.prems(3) eval.NegateNode by fastforce
+next
+  case (AddNode m x v1 y v2 nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    using unchanged_implies_unchanged_inputs
+    by (metis AddNode.hyps(2) AddNode.hyps(5) AddNode.prems(2) changes.elims(3) inputs_are_usages inputs_of.simps(23) list.set_intros(1) not_in_no_val)
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using AddNode.hyps(3) by simp
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    using unchanged_implies_unchanged_inputs
+    by (metis AddNode.hyps(4) AddNode.hyps(5) AddNode.prems(2) changes.simps in_set_member inputs_are_usages inputs_of.simps(23) member_rec(1) not_in_no_val)
+  then show ?case using v1 v2
+    using AddNode.hyps(5) AddNode.prems(3) eval.AddNode by fastforce
+next
+  case (SubNode m x v1 y v2 nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis SubNode.hyps(2) SubNode.hyps(5) SubNode.prems(2) changes.elims(3) inputs_are_usages inputs_of.simps(1) list.set_intros(1) not_in_no_val unchanged_implies_unchanged_inputs)
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using SubNode.hyps(3) by auto
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    by (metis SubNode.hyps(4) SubNode.hyps(5) SubNode.prems(2) changes.simps in_set_member inputs_are_usages inputs_of.simps(1) member_rec(1) not_in_no_val unchanged_implies_unchanged_inputs)
+  then show ?case using v1 v2
+    using SubNode.hyps(5) SubNode.prems(3) eval.SubNode by fastforce
+next
+  case node: (MulNode m x v1 y v2 nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis node.hyps(2) node.hyps(5) node.prems(2) changes.elims(3) inputs_are_usages inputs_of.simps(37) list.set_intros(1) not_in_no_val unchanged_implies_unchanged_inputs)
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using node.hyps(3) by auto
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    by (metis (no_types, lifting) node.hyps(4) node.hyps(5) node.prems(2) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(37) member_filter member_rec(1) not_in_no_val)
+  then show ?case using v1 v2
+    using node.hyps(5) node.prems(3) eval.MulNode by fastforce
+next
+  case node: (AndNode m x v1 y v2 nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis changes.elims(3) inputs_are_usages inputs_of.simps(35) list.set_intros(1) node.hyps(2) node.hyps(5) node.prems(2) not_in_no_val unchanged_implies_unchanged_inputs)
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using node.hyps(3) by auto
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    by (metis (no_types, lifting) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(35) member_filter member_rec(1) node.hyps(4) node.hyps(5) node.prems(2) not_in_no_val)
+  then show ?case using v1 v2
+    using node.hyps(5) node.prems(3) eval.AndNode by fastforce
+next
+  case node: (OrNode m x v1 y v2 nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis changes.elims(3) inputs_are_usages inputs_of.simps(10) list.set_intros(1) node.hyps(2) node.hyps(5) node.prems(2) not_in_no_val unchanged_implies_unchanged_inputs)
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using node.hyps(3) by auto
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    by (metis (no_types, lifting) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(10) member_filter member_rec(1) node.hyps(4) node.hyps(5) node.prems(2) not_in_no_val)
+  then show ?case using v1 v2
+    using node.hyps(5) node.prems(3) eval.OrNode by fastforce
+next
+  case node: (XorNode m x v1 y v2 nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis changes.elims(3) inputs_are_usages inputs_of.simps(22) list.set_intros(1) node.hyps(2) node.hyps(5) node.prems(2) not_in_no_val unchanged_implies_unchanged_inputs)  
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using node.hyps(3) by auto
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    by (metis (no_types, lifting) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(22) member_filter member_rec(1) node.hyps(4) node.hyps(5) node.prems(2) not_in_no_val)
+  then show ?case using v1 v2
+    using node.hyps(5) node.prems(3) eval.XorNode by fastforce
+next
+  case node: (IntegerEqualsNode m x v1 y v2 val nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis changes.elims(3) inputs_are_usages inputs_of.simps(40) list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(2) not_in_no_val unchanged_implies_unchanged_inputs)
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using node.hyps(3) by auto
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    by (metis (no_types, lifting) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(40) member_filter member_rec(1) node.hyps(4) node.hyps(6) node.prems(2) not_in_no_val)
+  then show ?case using v1 v2
+    using IntegerEqualsNode node.hyps(5) node.hyps(6) node.prems(3) by fastforce
+next
+  case node: (IntegerLessThanNode m x v1 y v2 val nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis (no_types, lifting) changes.simps eval_usages.simps eval_uses.intros(2) filter_set inputs_are_usages inputs_of.simps(51) list.set_intros(1) member_filter node.hyps(2) node.hyps(6) node.prems(2) not_in_no_val)
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using node.hyps(3) by auto
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    by (metis (no_types, lifting) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(51) member_filter member_rec(1) node.hyps(4) node.hyps(6) node.prems(2) not_in_no_val)
+  then show ?case using v1 v2
+    using IntegerLessThanNode node.hyps(5) node.hyps(6) node.prems(3) by fastforce
+next
+  case (ConditionalNode m condition cond trueExp trueVal falseExp falseVal val nid)
+  have trueVal: "g2 m \<turnstile> trueExp (kind g2 trueExp) \<mapsto> IntVal(trueVal)"
+    by (metis (no_types, lifting) ConditionalNode.hyps(3) ConditionalNode.hyps(4) ConditionalNode.hyps(8) ConditionalNode.prems(2) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(29) member_filter member_rec(1) not_in_no_val)
+  have falseVal: "g2 m \<turnstile> falseExp (kind g2 falseExp) \<mapsto> IntVal(falseVal)"
+    by (metis (no_types, lifting) ConditionalNode.hyps(5) ConditionalNode.hyps(6) ConditionalNode.hyps(8) ConditionalNode.prems(2) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(29) member_filter member_rec(1) not_in_no_val)
+  have cond: "g2 m \<turnstile> condition (kind g2 condition) \<mapsto> IntVal(cond)"
+    by (metis ConditionalNode.hyps(1) ConditionalNode.hyps(2) ConditionalNode.hyps(8) ConditionalNode.prems(2) changes.simps inputs_are_usages inputs_of.simps(29) list.set_intros(1) not_in_no_val unchanged_implies_unchanged_inputs)
+  have "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> val"
+    using kind_same trueVal falseVal cond
+    using ConditionalNode.hyps(7) ConditionalNode.hyps(8) ConditionalNode.prems(1) eval.ConditionalNode by fastforce
+  then show ?case
+    by blast
+next
+  case node: (ShortCircuitOrNode m x v1 y v2 val nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis changes.elims(3) inputs_are_usages inputs_of.simps(13) list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(2) not_in_no_val unchanged_implies_unchanged_inputs)
+  have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
+    using node.hyps(3) by auto
+  then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+    by (metis (no_types, lifting) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(13) member_filter member_rec(1) node.hyps(4) node.hyps(6) node.prems(2) not_in_no_val)
+  then show ?case using v1 v2
+    using eval.ShortCircuitOrNode node.hyps(5) node.hyps(6) node.prems(3) by fastforce
+next
+  case node: (LogicNegationNode m x v1 val nid)
+  then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+    by blast
+  then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+    by (metis changes.elims(3) inputs_are_usages inputs_of.simps(50) list.set_intros(1) node.hyps(2) node.hyps(4) node.prems(2) not_in_no_val unchanged_implies_unchanged_inputs)
+  then show ?case using v1
+    using LogicNegationNode node.hyps(3) node.hyps(4) node.prems(3) by fastforce
+next
+  case (CallNodeEval val m nid start args children)
+  then show ?case sorry
+next
+  case (RefNode m x val nid)
+  then show ?case
+    by (metis changes.simps eval.RefNode eval_usages.simps eval_uses.intros(2) filter_set inputs_are_usages inputs_of.simps(56) list.set_intros(1) member_filter not_in_no_val)
+qed
+qed
+
+lemma eval_uses_to_changes:
+  assumes "nid \<noteq> nid'"
+  assumes "\<not>(eval_uses g1 nid nid')"
+  assumes "g2 = add_node nid' n g1"
+  shows "\<not>(changes nid g1 g2) \<and> (\<forall> nid' \<in> (eval_usages g1 nid) . \<not>(changes nid' g1 g2))" (is "?P \<and> ?Q")
+proof
+  show ?P
+    using assms(1) assms(3) changes.simps kind_uneffected_uneq by blast
+next
+  show ?Q 
+    by (metis assms(2) assms(3) changes.elims(2) eval_usages.simps filter_set kind_uneffected_uneq member_filter)
+qed
+
 lemma eval_independent:
   assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"
-  assumes not_in: "nid' \<notin> ids g1"
   assumes g2: "g2 = add_node nid' n g1"
   assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
   shows "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v1"
@@ -243,13 +525,13 @@ proof -
   have nid_in: "nid \<in> ids g1"
     using not_in_no_val v1 by blast
   then have k: "(kind g1 nid) = (kind g2 nid)"
-    using kind_uneffected not_in
-    using g2 by blast
+    using g2 indep kind_uneffected_uneq by blast
   show ?thesis
   proof (cases "is_floating_node (kind g2 nid)")
     case True
     then show ?thesis
-      apply (cases "kind g2 nid"; auto) sorry
+      using eval_uses_to_changes indep g2 v1 stay_same
+      by meson
   next
     case False
     then show ?thesis

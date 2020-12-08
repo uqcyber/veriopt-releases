@@ -264,6 +264,9 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (AbstractEndNode) = []" |
   "inputs_of (ParameterNode index) = []" |
   "inputs_of (ControlSplitNode) = []" |
+
+  "inputs_of (RefNode x) = [x]" |
+
   "inputs_of _ = []"
 
 value "inputs_of (FrameState [4] (Some 3) [Some 5, Some 7] [])"

@@ -16,7 +16,7 @@ fun int32_or :: "int32 \<Rightarrow> int32 \<Rightarrow> int32" (infixr "OR" 5) 
 fun int32_xor :: "int32 \<Rightarrow> int32 \<Rightarrow> int32" (infixr "XOR" 5) where
   "int32_xor x y = ((x OR y) AND (NOT (x AND y)))"
 
-type_synonym objref = "int"
+type_synonym objref = "nat option"
 
 datatype Value =
   UndefVal |

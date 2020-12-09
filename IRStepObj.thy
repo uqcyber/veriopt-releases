@@ -56,15 +56,13 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> Heap) \<
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
   LoadFieldNode:
-    "\<lbrakk>kind g nid = (LoadFieldNode f nxt);
-     obj = 0;
+    "\<lbrakk>kind g nid = (LoadFieldNode f obj nxt);
      h_load_field f obj h = v;
      m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   StoreFieldNode:
-    "\<lbrakk>kind g nid = (StoreFieldNode f rhs _ nxt);
-     obj = 0;
+    "\<lbrakk>kind g nid = (StoreFieldNode f rhs _ obj nxt);
      g m \<turnstile> rhs (kind g rhs) \<mapsto> val;
      h' = h_store_field f obj val h;
      m' = m_set nid val m\<rbrakk> 
@@ -173,15 +171,31 @@ definition eg3_store_sq :: RealGraph where
     (0, StartNode None 4),
     (1, ParameterNode 0),
     (3, MulNode 1 1),
-    (4, StoreFieldNode field_sq 3 None 5),
+    (4, StoreFieldNode field_sq 3 None None 5),
     (5, ReturnNode (Some 3) None)
    ]"
 
 definition eg3_sq :: IRGraph where
   "eg3_sq = Abs_IRGraph eg3_store_sq"
 
-(* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
-values "{prod.snd res field_sq 0
+(* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
+values "{prod.snd res field_sq None
         | res. eg3_sq \<turnstile> ([(0, p3), (0, p3)], new_heap) \<rightarrow>*3* res}"
+
+definition eg4_store_sq :: RealGraph where
+  "eg4_store_sq = irgraph [
+    (0, StartNode None 4),
+    (1, ParameterNode 0),
+    (3, MulNode 1 1),
+    (4, StoreFieldNode field_sq 3 None (Some 24) 5),
+    (5, ReturnNode (Some 3) None)
+   ]"
+
+definition eg4_sq :: IRGraph where
+  "eg4_sq = Abs_IRGraph eg4_store_sq"
+
+(* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 24={sq: 9} *)
+values "{prod.snd res field_sq (Some 24)
+        | res. eg4_sq \<turnstile> ([(0, p3), (0, p3)], new_heap) \<rightarrow>*3* res}"
 end
 

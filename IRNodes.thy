@@ -112,10 +112,11 @@ datatype (discs_sels) IRNode =
   | FixedNode 
   | FixedWithNextNode (ir_next: "SUCC") 
   | FloatingNode 
-  | FrameState (ir_monitorIds: "INPUT_ASSOC list") (ir_outerFrameState_opt: "INPUT_STATE option") (ir_values_opt: "INPUT option list") (ir_virtualObjectMappings_opt: "INPUT_STATE option list") 
+  | FrameState (ir_monitorIds: "INPUT_ASSOC list") (ir_outerFrameState_opt: "INPUT_STATE option") (ir_values_opt: "INPUT list option") (ir_virtualObjectMappings_opt: "INPUT_STATE list option") 
   | IfNode (ir_condition: "INPUT_COND") (ir_trueSuccessor: "SUCC") (ir_falseSuccessor: "SUCC") 
   | IntegerEqualsNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | IntegerLessThanNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | InvokeNode (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | KillingBeginNode (ir_next: "SUCC") 
   | LoadFieldNode (ir_field: string) (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | LogicNegationNode (ir_value: "INPUT_COND") 
@@ -123,6 +124,7 @@ datatype (discs_sels) IRNode =
   | LoopEndNode (ir_loopBegin: "INPUT_ASSOC") 
   | LoopExitNode (ir_loopBegin: "INPUT_ASSOC") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | MergeNode (ir_ends: "INPUT_ASSOC list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | MethodCallTargetNode (ir_targetMethod: string) (ir_arguments: "INPUT list") 
   | MulNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | NegateNode (ir_value: "INPUT") 
   | NewArrayNode (ir_length: "INPUT") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -201,9 +203,9 @@ fun opt_to_list :: "'a option \<Rightarrow> 'a list" where
   "opt_to_list None = []" |
   "opt_to_list (Some v) = [v]"
 
-fun opt_list_to_list :: "'a option list \<Rightarrow> 'a list" where
-  "opt_list_to_list [] = []" |
-  "opt_list_to_list (x # xs) = (opt_to_list x) @ (opt_list_to_list xs)"
+fun opt_list_to_list :: "'a list option \<Rightarrow> 'a list" where
+  "opt_list_to_list None = []" |
+  "opt_list_to_list (Some x) = x"
 
 (* We also define a generic 'inputs_of' for all kinds of nodes. *)
 fun inputs_of :: "IRNode \<Rightarrow> ID list" where
@@ -234,6 +236,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (IfNode condition trueSuccessor falseSuccessor) = [condition]" |
   "inputs_of (IntegerEqualsNode x y) = [x, y]" |
   "inputs_of (IntegerLessThanNode x y) = [x, y]" |
+  "inputs_of (InvokeNode callTarget classInit stateDuring stateAfter next) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
   "inputs_of (KillingBeginNode next) = []" |
   "inputs_of (LoadFieldNode field object next) = (opt_to_list object)" |
   "inputs_of (LogicNegationNode value) = [value]" |
@@ -241,6 +244,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (LoopEndNode loopBegin) = [loopBegin]" |
   "inputs_of (LoopExitNode loopBegin stateAfter next) = [loopBegin] @ (opt_to_list stateAfter)" |
   "inputs_of (MergeNode ends stateAfter next) = ends @ (opt_to_list stateAfter)" |
+  "inputs_of (MethodCallTargetNode targetMethod arguments) = arguments" |
   "inputs_of (MulNode x y) = [x, y]" |
   "inputs_of (NegateNode value) = [value]" |
   "inputs_of (NewArrayNode length0 stateBefore next) = [length0] @ (opt_to_list stateBefore)" |
@@ -267,8 +271,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (RefNode ref) = [ref]" |
   "inputs_of (CallNode startNode arguments succ) = [startNode] @ arguments" 
 
-value "inputs_of (FrameState [4] (Some 3) [Some 5, Some 7] [])"
-value "inputs_of (FrameState [4] None [Some 7] [None, Some 3])"
+value "inputs_of (FrameState [4] (Some 3) (Some [5, 7]) None)"
+value "inputs_of (FrameState [4] None (Some [7]) (Some [3]))"
 
 fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (AbsNode value) = []" |
@@ -298,6 +302,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (IfNode condition trueSuccessor falseSuccessor) = [trueSuccessor, falseSuccessor]" |
   "successors_of (IntegerEqualsNode x y) = []" |
   "successors_of (IntegerLessThanNode x y) = []" |
+  "successors_of (InvokeNode callTarget classInit stateDuring stateAfter next) = [next]" |
   "successors_of (KillingBeginNode next) = [next]" |
   "successors_of (LoadFieldNode field object next) = [next]" |
   "successors_of (LogicNegationNode value) = []" |
@@ -305,6 +310,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (LoopEndNode loopBegin) = []" |
   "successors_of (LoopExitNode loopBegin stateAfter next) = [next]" |
   "successors_of (MergeNode ends stateAfter next) = [next]" |
+  "successors_of (MethodCallTargetNode targetMethod arguments) = []" |
   "successors_of (MulNode x y) = []" |
   "successors_of (NegateNode value) = []" |
   "successors_of (NewArrayNode length0 stateBefore next) = [next]" |

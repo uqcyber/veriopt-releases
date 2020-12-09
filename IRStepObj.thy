@@ -86,6 +86,13 @@ inductive step_top :: "IRGraph \<Rightarrow> (ID \<times> MapState) list \<times
     m' = set_params m vs\<rbrakk>
     \<Longrightarrow> g \<turnstile> ((nid,m)#xs, h) \<longrightarrow> ((start,m')#(nid,m)#xs, h)" |
 
+  InvokeNodeStep:
+  "\<lbrakk>kind g nid = (InvokeNode callTarget classInit stateDuring stateAfter next);
+    kind g callTarget = (MethodCallTargetNode targetMethod arguments);
+    g m arguments \<longmapsto> vs;
+    m' = set_params m vs\<rbrakk>
+    \<Longrightarrow> g \<turnstile> ((nid,m)#xs, h) \<longrightarrow> ((0,m')#(nid,m)#xs, h)" |
+
   ReturnNode:
   "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
     g m \<turnstile> expr (kind g expr) \<mapsto> v;

@@ -195,45 +195,56 @@ values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 5]) (n, m)}"
 values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 6]) (n, m)}"
 (* IntVal 5040 *)
 values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 7]) (n, m)}"
-
-definition real_fib :: IRGraph where
-"real_fib = 
- (add_node 0 (StartNode (Some 2) 8)
- (add_node 1 (ParameterNode 0)
- (add_node 2 (FrameState None [1])
- (add_node 3 (ConstantNode 1)
- (add_node 4 (ConstantNode 2)
- (add_node 5 (IntegerLessThanNode 1 4)
- (add_node 6 (BeginNode 13)
- (add_node 7 (BeginNode 9)
- (add_node 8 (IfNode 5 7 6)
- (add_node 9 (ReturnNode (Some 1) None)
- (add_node 10 (ConstantNode (-1))
- (add_node 11 (AddNode 1 10)
- (add_node 13 (CallNode 0 [11] [18])
- (add_node 14 (FrameState None [1, 13])
- (add_node 15 (ConstantNode (-2))
- (add_node 16 (AddNode 1 15)
- (add_node 18 (CallNode 0 [16] [21])
- (add_node 19 (FrameState None [13, 18])
- (add_node 20 (AddNode 13 18)
- (add_node 21 (ReturnNode (Some 20) None)
- empty_graph))))))))))))))))))))"
-
-(* IntVal 1 *)
-values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 1]) (n, m)}"
-(* IntVal 1 *)
-values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 2]) (n, m)}"
-(* IntVal 2 *)
-values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 3]) (n, m)}"
-(* IntVal 3 *)
-values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 4]) (n, m)}"
-(* IntVal 5 *)
-values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 5]) (n, m)}"
-(* IntVal 8 *)
-values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 6]) (n, m)}"
-(* IntVal 13 *)
-values "{m_val m 0 |n m. (real_fib \<diamondop> [IntVal 7]) (n, m)}"
 *)
+
+(* Automatically generated program *)
+definition prog :: "(string, IRGraph) map" where
+"prog = Map.empty
+(''Fib.fib(int)'' \<mapsto> 
+ (add_node 0 (StartNode ((Some 2)) (8))
+ (add_node 1 (ParameterNode (0))
+ (add_node 2 (FrameState ([]) (None) ((Some [1])) (None))
+ (add_node 3 (ConstantNode (1))
+ (add_node 4 (ConstantNode (2))
+ (add_node 5 (IntegerLessThanNode (1) (4))
+ (add_node 6 (BeginNode (13))
+ (add_node 7 (BeginNode (9))
+ (add_node 8 (IfNode (5) (7) (6))
+ (add_node 9 (ReturnNode ((Some 1)) (None))
+ (add_node 10 (ConstantNode (-1))
+ (add_node 11 (AddNode (1) (10))
+ (add_node 12 (MethodCallTargetNode (''Fib.fib(I)I'') ([11]))
+ (add_node 13 (InvokeNode (12) (None) (None) ((Some 14)) (18))
+ (add_node 14 (FrameState ([]) (None) ((Some [1, 13])) (None))
+ (add_node 15 (ConstantNode (-2))
+ (add_node 16 (AddNode (1) (15))
+ (add_node 17 (MethodCallTargetNode (''Fib.fib(I)I'') ([16]))
+ (add_node 18 (InvokeNode (17) (None) (None) ((Some 19)) (21))
+ (add_node 19 (FrameState ([]) (None) ((Some [13, 18])) (None))
+ (add_node 20 (AddNode (13) (18))
+ (add_node 21 (ReturnNode ((Some 20)) (None))
+ empty_graph))))))))))))))))))))))
+)
+"
+
+
+fun unwrap :: "IRGraph option \<Rightarrow> IRGraph" where
+  "unwrap None = empty_graph" |
+  "unwrap (Some g) = g"
+
+(* IntVal 1 *)
+values "{m_val m 0 |n m l. (unwrap (prog(''Fib.fib(int)''))) | [IntVal 1] \<leadsto> (n, m) | l}"
+(* IntVal 1 *)
+values "{m_val m 0 |n m l. (unwrap (prog(''Fib.fib(int)''))) | [IntVal 2] \<leadsto> (n, m) | l}"
+(* IntVal 2 *)
+values "{m_val m 0 |n m l. (unwrap (prog(''Fib.fib(int)''))) | [IntVal 3] \<leadsto> (n, m) | l}"
+(* IntVal 3 *)
+values "{m_val m 0 |n m l. (unwrap (prog(''Fib.fib(int)''))) | [IntVal 4] \<leadsto> (n, m) | l}"
+(* IntVal 5 *)
+values "{m_val m 0 |n m l. (unwrap (prog(''Fib.fib(int)''))) | [IntVal 5] \<leadsto> (n, m) | l}"
+(* IntVal 8 *)
+values "{m_val m 0 |n m l. (unwrap (prog(''Fib.fib(int)''))) | [IntVal 6] \<leadsto> (n, m) | l}"
+(* IntVal 13 *)
+values "{m_val m 0 |n m l. (unwrap (prog(''Fib.fib(int)''))) | [IntVal 7] \<leadsto> (n, m) | l}"
 
 end

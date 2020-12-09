@@ -194,6 +194,10 @@ inductive
   "\<lbrakk>val = m_val m nid\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (CallNode start args children) \<mapsto> val" |
 
+  InvokeNodeEval:
+  "\<lbrakk>val = m_val m nid\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<mapsto> val" |
+
   RefNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
@@ -277,6 +281,7 @@ fun is_misc_floating_node :: "IRNode \<Rightarrow> bool" where
   "is_misc_floating_node (ShortCircuitOrNode x y) = True" |
   "is_misc_floating_node (LogicNegationNode x) = True" |
   "is_misc_floating_node (CallNode start args children) = True" |
+  "is_misc_floating_node (InvokeNode callTarget classInit stateDuring stateAfter next) = True" |
   "is_misc_floating_node (RefNode x) = True" |
   "is_misc_floating_node _ = False"
 
@@ -371,6 +376,9 @@ inductive_cases IntegerEqualsNodeE[elim!]:
 inductive_cases IntegerLessThanNodeE[elim!]:
   "g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val"
 
+inductive_cases InvokeNodeE[elim!]:
+  "g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<mapsto> val"
+
 inductive_cases KillingBeginNodeE[elim!]:
   "g m \<turnstile> nid (KillingBeginNode next) \<mapsto> val"
 
@@ -391,6 +399,9 @@ inductive_cases LoopExitNodeE[elim!]:
 
 inductive_cases MergeNodeE[elim!]:
   "g m \<turnstile> nid (MergeNode ends stateAfter next) \<mapsto> val"
+
+inductive_cases MethodCallTargetNodeE[elim!]:
+  "g m \<turnstile> nid (MethodCallTargetNode targetMethod arguments) \<mapsto> val"
 
 inductive_cases MulNodeE[elim!]:
   "g m \<turnstile> nid (MulNode x y) \<mapsto> val"
@@ -457,7 +468,6 @@ inductive_cases XorNodeE[elim!]:
 
 inductive_cases NoNodeE[elim!]:
   "g m \<turnstile> nid (NoNode) \<mapsto> val"
-
 
 
 inductive_cases RefNodeE[elim!]:
@@ -531,7 +541,9 @@ theorem "evalDet":
      apply (rule allI; rule impI; elim ShortCircuitOrNodeE; auto)
     apply (rule allI; rule impI; elim LogicNegationNodeE; auto)
    apply (rule allI; rule impI; elim CallNodeE; auto)
-  apply (rule allI; rule impI; elim RefNodeE; auto)
+  apply (rule allI; rule impI; elim InvokeNodeE; auto)
+ apply (rule allI; rule impI; elim RefNodeE; auto)
+  
   done
 
 end

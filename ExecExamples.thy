@@ -2,7 +2,7 @@ section \<open>Example program evaluation\<close>
 
 theory ExecExamples
   imports
-    IRStep
+    IRStepObj
 begin
 
 (* NB: The starting state is duplicated causing the program to be executed twice
@@ -14,7 +14,7 @@ begin
 inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> ExecLog \<Rightarrow> bool" ("_|_\<leadsto>_|_")
   where
   "\<lbrakk>state = new_map ps;
-    g \<turnstile> [(0, state), (0, state)] | [] \<longrightarrow>* (end # xs) | l\<rbrakk>
+    g \<turnstile> ([(0, state), (0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
     \<Longrightarrow> exec_graph g ps end l"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> o \<Rightarrow> bool as execE) "exec_graph" .
 

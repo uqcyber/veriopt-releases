@@ -88,6 +88,7 @@ datatype (discs_sels) IRNode =
   (* and hundreds of other Node subclasses!... *)
 *)
 
+(* nodeout: isabelle-datatypes *)
 datatype (discs_sels) IRNode =
   AbsNode (ir_value: "INPUT") 
   | AbstractBeginNode (ir_next: "SUCC") 
@@ -136,6 +137,7 @@ datatype (discs_sels) IRNode =
   | ProxyNode (ir_loopExit: "INPUT_ASSOC") 
   | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
+  | SignedDivNode (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StoreFieldNode (ir_field: string) (ir_value: "INPUT") (ir_stateAfter_opt: "INPUT_STATE option") (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | SubNode (ir_x: "INPUT") (ir_y: "INPUT") 
@@ -147,6 +149,7 @@ datatype (discs_sels) IRNode =
   | ValueProxyNode (ir_value: "INPUT") (ir_loopExit: "INPUT_ASSOC") 
   | XorNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | NoNode
+(* nodeout *)
 
   (* Manually added *)
   | CallNode (ir_startNode:INPUT) (ir_arguments:"INPUT list") (ir_succ:"SUCC list")
@@ -208,6 +211,7 @@ fun opt_list_to_list :: "'a list option \<Rightarrow> 'a list" where
   "opt_list_to_list (Some x) = x"
 
 (* We also define a generic 'inputs_of' for all kinds of nodes. *)
+(* nodeout: isabelle-inputs *)
 fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (AbsNode value) = [value]" |
   "inputs_of (AbstractBeginNode next) = []" |
@@ -256,6 +260,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (ProxyNode loopExit) = [loopExit]" |
   "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
   "inputs_of (ShortCircuitOrNode x y) = [x, y]" |
+  "inputs_of (SignedDivNode x y zeroCheck stateBefore next) = [x, y] @ (opt_to_list zeroCheck) @ (opt_to_list stateBefore)" |
   "inputs_of (StartNode stateAfter next) = (opt_to_list stateAfter)" |
   "inputs_of (StoreFieldNode field value stateAfter object next) = [value] @ (opt_to_list stateAfter) @ (opt_to_list object)" |
   "inputs_of (SubNode x y) = [x, y]" |
@@ -266,7 +271,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (ValuePhiNode values merge) = [merge] @ values" |
   "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
   "inputs_of (XorNode x y) = [x, y]" |
-  "inputs_of (NoNode) = []" |
+  "inputs_of (NoNode) = []"|
+(* nodeout *)
 
   "inputs_of (RefNode ref) = [ref]" |
   "inputs_of (CallNode startNode arguments succ) = [startNode] @ arguments" 
@@ -274,6 +280,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
 value "inputs_of (FrameState [4] (Some 3) (Some [5, 7]) None)"
 value "inputs_of (FrameState [4] None (Some [7]) (Some [3]))"
 
+(* nodeout: isabelle-succs *)
 fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (AbsNode value) = []" |
   "successors_of (AbstractBeginNode next) = [next]" |
@@ -322,6 +329,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (ProxyNode loopExit) = []" |
   "successors_of (ReturnNode result memoryMap) = []" |
   "successors_of (ShortCircuitOrNode x y) = []" |
+  "successors_of (SignedDivNode x y zeroCheck stateBefore next) = [next]" |
   "successors_of (StartNode stateAfter next) = [next]" |
   "successors_of (StoreFieldNode field value stateAfter object next) = [next]" |
   "successors_of (SubNode x y) = []" |
@@ -332,7 +340,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (ValuePhiNode values merge) = []" |
   "successors_of (ValueProxyNode value loopExit) = []" |
   "successors_of (XorNode x y) = []" |
-  "successors_of (NoNode) = []" |
+  "successors_of (NoNode) = []"|
+(* nodeout *)
 
   "successors_of (RefNode ref) = []" |
   "successors_of (CallNode startNode arguments succ) = succ"

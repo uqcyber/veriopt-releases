@@ -295,6 +295,7 @@ fun is_floating_node :: "IRNode \<Rightarrow> bool" where
     is_misc_floating_node n
   )"
 
+(* nodeout: isabelle-inductive-cases *)
 inductive_cases AbsNodeE[elim!]:
   "g m \<turnstile> nid (AbsNode value) \<mapsto> val"
 
@@ -436,6 +437,9 @@ inductive_cases ReturnNodeE[elim!]:
 inductive_cases ShortCircuitOrNodeE[elim!]:
   "g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> val"
 
+inductive_cases SignedDivNodeE[elim!]:
+  "g m \<turnstile> nid (SignedDivNode x y zeroCheck stateBefore next) \<mapsto> val"
+
 inductive_cases StartNodeE[elim!]:
   "g m \<turnstile> nid (StartNode stateAfter next) \<mapsto> val"
 
@@ -468,6 +472,7 @@ inductive_cases XorNodeE[elim!]:
 
 inductive_cases NoNodeE[elim!]:
   "g m \<turnstile> nid (NoNode) \<mapsto> val"
+(* nodeout *)
 
 
 inductive_cases RefNodeE[elim!]:

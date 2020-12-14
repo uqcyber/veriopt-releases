@@ -173,17 +173,17 @@ fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<R
 text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{Stutter}%\<close>
-inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ \<turnstile> _ \<leadsto> _" 55)
-  for g where
+inductive stutter:: "Program \<Rightarrow> Signature \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ \<turnstile> _ \<leadsto> _" 55)
+  for g s m where
 
   Step:
-  "\<lbrakk>g \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)\<rbrakk>
-   \<Longrightarrow> g m \<turnstile> nid \<leadsto> nid'" |
+  "\<lbrakk>(g,s) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)\<rbrakk>
+   \<Longrightarrow> g s m \<turnstile> nid \<leadsto> nid'" |
 
   Transitive:
-  "\<lbrakk>g \<turnstile> (nid,m,heap) \<rightarrow> (nid'',m,heap);
-    g m \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
-   \<Longrightarrow> g m \<turnstile> nid \<leadsto> nid'"
+  "\<lbrakk>(g,s) \<turnstile> (nid,m,heap) \<rightarrow> (nid'',m,heap);
+    g s m \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
+   \<Longrightarrow> g s m \<turnstile> nid \<leadsto> nid'"
 text_raw \<open>\EndSnip\<close>
 
 inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool"
@@ -381,11 +381,11 @@ next
   then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
     by blast
   then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
-    by (metis SubNode.hyps(2) SubNode.hyps(5) SubNode.prems(2) changes.elims(3) inputs_are_usages inputs_of.simps(50) list.set_intros(1) not_in_no_val unchanged_implies_unchanged_inputs)
+    by (metis SubNode.hyps(2) SubNode.hyps(5) SubNode.prems(2) changes.elims(3) inputs_are_usages inputs_of.simps(51) list.set_intros(1) not_in_no_val unchanged_implies_unchanged_inputs)
   have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
     using SubNode.hyps(3) by auto
   then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
-    by (metis SubNode.hyps(4) SubNode.hyps(5) SubNode.prems(2) changes.elims(3) in_mono inputs_are_usages inputs_of.simps(50) list.set_intros(1) not_in_no_val set_subset_Cons unchanged_implies_unchanged_inputs)
+    by (metis SubNode.hyps(4) SubNode.hyps(5) SubNode.prems(2) changes.elims(3) in_mono inputs_are_usages inputs_of.simps(51) list.set_intros(1) not_in_no_val set_subset_Cons unchanged_implies_unchanged_inputs)
   then show ?case using v1 v2
     using SubNode.hyps(5) SubNode.prems(3) eval.SubNode by fastforce
 next
@@ -429,11 +429,11 @@ next
   then have "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
     by blast
   then have v1: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
-    by (metis changes.elims(3) inputs_are_usages inputs_of.simps(57) list.set_intros(1) node.hyps(2) node.hyps(5) node.prems(2) not_in_no_val unchanged_implies_unchanged_inputs)  
+    by (metis changes.elims(3) inputs_are_usages inputs_of.simps(58) list.set_intros(1) node.hyps(2) node.hyps(5) node.prems(2) not_in_no_val unchanged_implies_unchanged_inputs)
   have "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
     using node.hyps(3) by auto
   then have v2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
-    by (metis (no_types, lifting) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of.simps(57) member_filter member_rec(1) node.hyps(4) node.hyps(5) node.prems(2) not_in_no_val)
+    by (metis changes.elims(3) in_mono inputs_are_usages inputs_of.simps(58) list.set_intros(1) node.hyps(4) node.hyps(5) node.prems(2) not_in_no_val set_subset_Cons unchanged_implies_unchanged_inputs)
   then show ?case using v1 v2
     using node.hyps(5) node.prems(3) eval.XorNode by fastforce
 next
@@ -499,9 +499,12 @@ next
 next
   case (RefNode m x val nid)
   then show ?case
-    by (metis changes.simps eval.RefNode eval_usages.simps eval_uses.intros(2) filter_set inputs_are_usages inputs_of.simps(59) list.set_intros(1) member_filter not_in_no_val)
+    by (metis changes.elims(3) eval.RefNode inputs_are_usages inputs_of.simps(60) list.set_intros(1) not_in_no_val unchanged_implies_unchanged_inputs)
 next
   case (InvokeNodeEval val m nid callTarget classInit stateDuring stateAfter nex)
+  then show ?case sorry
+next
+  case (SignedDivNode m x v1 y v2 nid zeroCheck frameState nex)
   then show ?case sorry
 qed
 qed
@@ -610,11 +613,13 @@ lemma if_node_create:
   assumes cv: "g m \<turnstile> cond (kind g cond) \<mapsto> IntVal cv"
   assumes fresh: "nid \<notin> ids g" 
   assumes gif: "gif = add_node nid (IfNode cond tb fb) g"
+  assumes gif_lookup: "gif = gif_prog sig"
   assumes gcreate: "gcreate = add_node nid (create_if g cond tb fb) g"
+  assumes gcreate_lookup: "gcreate = gcreate_prog sig"
   assumes indep: "\<not>(eval_uses g cond nid)"
   fixes heap :: Heap
-  shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> 
-                (gcreate m \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid'. (gif_prog sig m \<turnstile> nid \<leadsto> nid') \<and> 
+                (gcreate_prog sig m \<turnstile> nid \<leadsto> nid')"
 text_raw \<open>\EndSnip\<close>
 proof (cases "\<exists> val . kind g cond = ConstantNode val")
   case True
@@ -629,15 +634,15 @@ proof (cases "\<exists> val . kind g cond = ConstantNode val")
       using True eval.ConstantNode gif fresh
       using kind_uneffected cond_exists
       using val by presburger
-    have if_step: "gif \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
+    have if_step: "(gif_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
     proof -
       have if_kind: "kind gif nid = IfNode cond tb fb"
         using gif add_implies_kind
         by blast
       show ?thesis using step.IfNode if_kind if_cv 
-        by blast
+        by (simp add: gif_lookup)
     qed
-    have create_step: "gcreate \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
+    have create_step: "(gcreate_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
     proof -
       have create_kind: "kind gcreate nid = create_if g cond tb fb"
         using gcreate add_implies_kind
@@ -645,7 +650,7 @@ proof (cases "\<exists> val . kind g cond = ConstantNode val")
       have create_fun: "create_if g cond tb fb = RefNode (if val_to_bool val then tb else fb)"
         using True create_kind val by simp 
       show ?thesis using step.RefNode create_kind create_fun if_cv 
-        by simp
+        by (simp add: gcreate_lookup)
     qed
     show ?thesis using Step create_step if_step by blast
   qed
@@ -653,7 +658,7 @@ next
   case not_const: False
   obtain nid' where "nid' = (if val_to_bool cv then tb else fb)"
     by blast
-  have nid_eq: "(gif \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)) \<and> (gcreate \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
+  have nid_eq: "((gif_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)) \<and> ((gcreate_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
   proof -
     have nid': "nid' = (if val_to_bool cv then tb else fb)"
       by (simp add: \<open>nid' = (if val_to_bool cv then tb else fb)\<close>)
@@ -670,24 +675,27 @@ next
       using indep eval_independent_eq gif cv
       using \<open>nid \<noteq> cond\<close>
       using fresh by blast
-    then have eval_gif: "(gif \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
-      using step.IfNode gif_kind nid' cv2 by blast
+    then have eval_gif: "((gif_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
+      using step.IfNode gif_kind nid' cv2 
+      using gif_lookup by auto
     have gcreate_kind: "kind gcreate nid = create_if g cond tb fb"
       using gcreate add_implies_kind
       by blast
-    have eval_gcreate: "gcreate \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)"
+    have eval_gcreate: "(gcreate_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)"
     proof (cases "tb = fb")
       case True
       have "create_if g cond tb fb = RefNode tb"
         using not_const True by (cases "kind g cond"; auto)
       then show ?thesis
-        using True gcreate_kind nid' step.RefNode by auto
+        using True gcreate_kind nid' step.RefNode
+        by (simp add: gcreate_lookup)
     next
       case False
       have "create_if g cond tb fb = IfNode cond tb fb"
         using not_const False by (cases "kind g cond"; auto)
       then show ?thesis
-        using eval_gif gcreate gif by auto
+        using eval_gif gcreate gif
+        using IfNode \<open>IntVal cv = cv2\<close> cv2 gcreate_lookup gif_kind nid' by auto
     qed
     show ?thesis
       using eval_gcreate eval_gif by blast

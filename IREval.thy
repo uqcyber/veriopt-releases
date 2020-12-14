@@ -80,8 +80,8 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis (x # xs) [] m = m"
 
 
-fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID" where
-  "any_usage g nid = (sorted_list_of_set (usages g nid))!0"
+fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
+  "any_usage g nid = (if ((sorted_list_of_set (usages g nid)) = []) then None else Some ((sorted_list_of_set (usages g nid))!0))"
 
 inductive
   eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" (" _ _ \<turnstile> _ _ \<mapsto> _" 55)
@@ -105,7 +105,7 @@ inductive
 
   ValueProxyNode:
   "\<lbrakk>g m \<turnstile> c (kind g c) \<mapsto> val\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ValueProxyNode _ c) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> nid (ValueProxyNode c _) \<mapsto> val" |
 
 (* Unary arithmetic operators *)
 
@@ -133,6 +133,11 @@ inductive
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
     g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (MulNode x y) \<mapsto> IntVal(v1*v2)" |
+
+  SignedDivNode:
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (SignedDivNode x y zeroCheck frameState next) \<mapsto> IntVal(v1 div v2)" |
 
 (* Binary logical bitwise operators *)
 
@@ -280,6 +285,7 @@ fun is_misc_floating_node :: "IRNode \<Rightarrow> bool" where
   "is_misc_floating_node (ConditionalNode c t f) = True" |
   "is_misc_floating_node (ShortCircuitOrNode x y) = True" |
   "is_misc_floating_node (LogicNegationNode x) = True" |
+  "is_misc_floating_node (SignedDivNode x y g frame next) = True" |
   "is_misc_floating_node (CallNode start args children) = True" |
   "is_misc_floating_node (InvokeNode callTarget classInit stateDuring stateAfter next) = True" |
   "is_misc_floating_node (RefNode x) = True" |
@@ -536,7 +542,8 @@ theorem "evalDet":
                apply (rule allI; rule impI; elim NegateNodeE; auto)
               apply (rule allI; rule impI; elim AddNodeE; auto)
              apply (rule allI; rule impI; elim SubNodeE; auto)
-            apply (rule allI; rule impI; elim MulNodeE; auto)
+             apply (rule allI; rule impI; elim MulNodeE; auto)
+            apply (rule allI; rule impI; elim SignedDivNodeE; auto)
            apply (rule allI; rule impI; elim AndNodeE; auto)
           apply (rule allI; rule impI; elim OrNodeE; auto)
          apply (rule allI; rule impI; elim XorNodeE; auto)

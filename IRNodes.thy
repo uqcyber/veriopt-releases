@@ -192,6 +192,7 @@ fun is_sequential_node :: "IRNode \<Rightarrow> bool" where
   "is_sequential_node (BeginNode _) = True" |
   "is_sequential_node (LoopBeginNode _ _ _ _) = True" |
   "is_sequential_node (LoopExitNode _ _ _) = True" |
+  "is_sequential_node (SignedDivNode _ _ _ _ _) = True" |
 (*  "is_sequential_node (RefNode _) = True" | *)
   "is_sequential_node n = is_merge_node n"
 

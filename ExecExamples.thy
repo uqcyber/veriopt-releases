@@ -305,4 +305,84 @@ definition combs_main where "combs_main = ''Combinations.combinations(I, I)I''"
 values "{m_val m 0 |n m l. combs | combs_main | [IntVal 10, IntVal 6] \<leadsto> (n, m)}"
 
 
+definition native_combs :: "string \<Rightarrow> IRGraph " where
+"native_combs = ((\<lambda>x . empty_graph)
+(''Combinations.fact(I)I'' := 
+ (add_node 0 (StartNode ((Some 2)) (5))
+ (add_node 1 (ParameterNode (0))
+ (add_node 2 (FrameState ([]) (None) ((Some [1])) (None))
+ (add_node 3 (ConstantNode (1))
+ (add_node 5 (EndNode)
+ (add_node 6 (LoopBeginNode ([5, 21]) (None) ((Some 9)) (17))
+ (add_node 7 (ValuePhiNode ([1, 20, 9]) (6))
+ (add_node 8 (ValuePhiNode ([3, 18, 9]) (6))
+ (add_node 9 (FrameState ([]) (None) ((Some [7, 8])) (None))
+ (add_node 10 (ConstantNode (2))
+ (add_node 11 (IntegerLessThanNode (7) (10))
+ (add_node 12 (BeginNode (21))
+ (add_node 14 (LoopExitNode (6) ((Some 16)) (22))
+ (add_node 15 (ValueProxyNode (8) (14))
+ (add_node 16 (FrameState ([]) (None) ((Some [15])) (None))
+ (add_node 17 (IfNode (11) (14) (12))
+ (add_node 18 (MulNode (7) (8))
+ (add_node 19 (ConstantNode (-1))
+ (add_node 20 (AddNode (7) (19))
+ (add_node 21 (LoopEndNode (6))
+ (add_node 22 (ReturnNode ((Some 15)) (None))
+ empty_graph)))))))))))))))))))))
+))
+(''Combinations.combinations(II)I'' := 
+ (add_node 0 (StartNode ((Some 3)) (8))
+ (add_node 1 (ParameterNode (0))
+ (add_node 2 (ParameterNode (1))
+ (add_node 3 (FrameState ([]) (None) ((Some [1, 2])) (None))
+ (add_node 4 (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([1]))
+ (add_node 5 (ExceptionObjectNode ((Some 6)) (14))
+ (add_node 6 (FrameState ([]) (None) ((Some [1, 2, 5])) (None))
+ (add_node 8 (InvokeWithExceptionNode (4) (None) (None) ((Some 9)) (10) (5))
+ (add_node 9 (FrameState ([]) (None) ((Some [1, 2, 8])) (None))
+ (add_node 10 (KillingBeginNode (18))
+ (add_node 11 (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([2]))
+ (add_node 12 (ExceptionObjectNode ((Some 13)) (16))
+ (add_node 13 (FrameState ([]) (None) ((Some [1, 2, 12])) (None))
+ (add_node 14 (EndNode)
+ (add_node 15 (MergeNode ([14, 16, 25, 38]) ((Some 41)) (42))
+ (add_node 16 (EndNode)
+ (add_node 17 (ValuePhiNode ([5, 12, 23, 32, 41]) (15))
+ (add_node 18 (InvokeWithExceptionNode (11) (None) (None) ((Some 19)) (20) (12))
+ (add_node 19 (FrameState ([]) (None) ((Some [1, 2, 8, 18])) (None))
+ (add_node 20 (KillingBeginNode (26))
+ (add_node 21 (SubNode (1) (2))
+ (add_node 22 (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([21]))
+ (add_node 23 (ExceptionObjectNode ((Some 24)) (25))
+ (add_node 24 (FrameState ([]) (None) ((Some [23])) (None))
+ (add_node 25 (EndNode)
+ (add_node 26 (InvokeWithExceptionNode (22) (None) (None) ((Some 27)) (28) (23))
+ (add_node 27 (FrameState ([]) (None) ((Some [8, 18, 26])) (None))
+ (add_node 28 (KillingBeginNode (35))
+ (add_node 29 (MulNode (18) (26))
+ (add_node 30 (ConstantNode (0))
+ (add_node 31 (IntegerEqualsNode (29) (30))
+ (add_node 32 (BytecodeExceptionNode ([]) ((Some 36)) (38))
+ (add_node 33 (BeginNode (39))
+ (add_node 34 (BeginNode (32))
+ (add_node 35 (IfNode (31) (34) (33))
+ (add_node 36 (FrameState ([]) (None) (None) (None))
+ (add_node 38 (EndNode)
+ (add_node 39 (SignedDivNode (8) (29) ((Some 33)) (None) (40))
+ (add_node 40 (ReturnNode ((Some 39)) (None))
+ (add_node 41 (FrameState ([]) (None) ((Some [17])) (None))
+ (add_node 42 (UnwindNode (17))
+ empty_graph)))))))))))))))))))))))))))))))))))))))))
+)
+"
+
+definition native_combs_params where "native_combs_params = new_map [IntVal 3, IntVal 1]"
+definition native_combs_main where "native_combs_main = ''Combinations.combinations(II)I''"
+
+values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 10, IntVal 6] \<leadsto> (n, m)}"
+
+values "{m | m . native_combs \<turnstile> ([(native_combs_main, 0, native_combs_params)], new_heap) \<rightarrow>*37* m}"
+
+
 end

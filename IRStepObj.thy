@@ -110,6 +110,14 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     m' = set_params m vs\<rbrakk>
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
 
+  InvokeWithExceptionNode:
+  "\<lbrakk>g = p_method s p;
+    kind g nid = (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge);
+    kind g callTarget = (SubstrateMethodCallTargetNode targetMethod arguments);
+    g m arguments \<longmapsto> vs;
+    m' = set_params m vs\<rbrakk>
+    \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
+
   ReturnNode:
   "\<lbrakk>g = p_method s p;
     kind g nid = (ReturnNode (Some expr) _);

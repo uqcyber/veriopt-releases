@@ -203,6 +203,10 @@ inductive
   "\<lbrakk>val = m_val m nid\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<mapsto> val" |
 
+  InvokeWithExceptionNodeEval:
+  "\<lbrakk>val = m_val m nid\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val" |
+
   RefNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
@@ -288,6 +292,7 @@ fun is_misc_floating_node :: "IRNode \<Rightarrow> bool" where
   "is_misc_floating_node (SignedDivNode x y g frame next) = True" |
   "is_misc_floating_node (CallNode start args children) = True" |
   "is_misc_floating_node (InvokeNode callTarget classInit stateDuring stateAfter next) = True" |
+  "is_misc_floating_node (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) = True" |
   "is_misc_floating_node (RefNode x) = True" |
   "is_misc_floating_node _ = False"
 
@@ -344,6 +349,9 @@ inductive_cases BinaryArithmeticNodeE[elim!]:
 inductive_cases BinaryNodeE[elim!]:
   "g m \<turnstile> nid (BinaryNode x y) \<mapsto> val"
 
+inductive_cases BytecodeExceptionNodeE[elim!]:
+  "g m \<turnstile> nid (BytecodeExceptionNode arguments stateAfter next) \<mapsto> val"
+
 inductive_cases ConditionalNodeE[elim!]:
   "g m \<turnstile> nid (ConditionalNode condition trueValue falseValue) \<mapsto> val"
 
@@ -361,6 +369,9 @@ inductive_cases DynamicNewArrayNodeE[elim!]:
 
 inductive_cases EndNodeE[elim!]:
   "g m \<turnstile> nid (EndNode) \<mapsto> val"
+
+inductive_cases ExceptionObjectNodeE[elim!]:
+  "g m \<turnstile> nid (ExceptionObjectNode stateAfter next) \<mapsto> val"
 
 inductive_cases FixedNodeE[elim!]:
   "g m \<turnstile> nid (FixedNode) \<mapsto> val"
@@ -385,6 +396,9 @@ inductive_cases IntegerLessThanNodeE[elim!]:
 
 inductive_cases InvokeNodeE[elim!]:
   "g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<mapsto> val"
+
+inductive_cases InvokeWithExceptionNodeE[elim!]:
+  "g m \<turnstile> nid (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val"
 
 inductive_cases KillingBeginNodeE[elim!]:
   "g m \<turnstile> nid (KillingBeginNode next) \<mapsto> val"
@@ -464,6 +478,9 @@ inductive_cases UnaryArithmeticNodeE[elim!]:
 inductive_cases UnaryNodeE[elim!]:
   "g m \<turnstile> nid (UnaryNode value) \<mapsto> val"
 
+inductive_cases UnwindNodeE[elim!]:
+  "g m \<turnstile> nid (UnwindNode exception) \<mapsto> val"
+
 inductive_cases ValueNodeE[elim!]:
   "g m \<turnstile> nid (ValueNode) \<mapsto> val"
 
@@ -486,6 +503,9 @@ inductive_cases RefNodeE[elim!]:
 
 inductive_cases CallNodeE[elim!]:
   "g m \<turnstile> nid (CallNode startNode arguments next) \<mapsto> val"
+
+inductive_cases SubstrateMethodCallTargetNodeE[elim!]:
+  "g m \<turnstile> nid (SubstrateMethodCallTargetNode targetMethod args) \<mapsto> val"
 
 
 (* Try proving 'inverted rules' for eval. *)
@@ -554,7 +574,8 @@ theorem "evalDet":
     apply (rule allI; rule impI; elim LogicNegationNodeE; auto)
    apply (rule allI; rule impI; elim CallNodeE; auto)
   apply (rule allI; rule impI; elim InvokeNodeE; auto)
- apply (rule allI; rule impI; elim RefNodeE; auto)
+ apply (rule allI; rule impI; elim InvokeWithExceptionNodeE; auto)
+apply (rule allI; rule impI; elim RefNodeE; auto)
   
   done
 

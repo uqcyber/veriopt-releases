@@ -385,4 +385,59 @@ values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 10, IntVal
 values "{m | m . native_combs \<turnstile> ([(native_combs_main, 0, native_combs_params)], new_heap) \<rightarrow>*37* m}"
 
 
+definition exceptional_prog :: "string \<Rightarrow> IRGraph " where
+"exceptional_prog = (((\<lambda>x . empty_graph)
+(''Exceptional.main(I)V'' :=
+  (add_node 0 (StartNode ((Some 2)) (3))
+  (add_node 1 (ParameterNode (0))
+  (add_node 2 (SubstrateMethodCallTargetNode (''Exceptional.maybeException(I)V'') ([1]))
+  (add_node 3 (InvokeWithExceptionNode (2) (None) (None) ((Some 14)) (4) (5))
+  (add_node 4 (ReturnNode (None) (None))
+  (add_node 5 (UnwindNode (1))
+  empty_graph))))))
+))
+(''Exceptional.maybeException(I)V'' := 
+ (add_node 0 (StartNode ((Some 2)) (7))
+ (add_node 1 (ParameterNode (0))
+ (add_node 2 (FrameState ([]) (None) ((Some [1])) (None))
+ (add_node 3 (ConstantNode (0))
+ (add_node 4 (IntegerLessThanNode (1) (3))
+ (add_node 5 (BeginNode (21))
+ (add_node 6 (BeginNode (8))
+ (add_node 7 (IfNode (4) (6) (5))
+ (add_node 8 (NewInstanceNode ''IllegalArgumentException'' None 13)
+ (add_node 9 (SubstrateMethodCallTargetNode (''java.lang.IllegalArgumentException.<init>()V'') ([8]))
+ (add_node 10 (ExceptionObjectNode ((Some 11)) (17))
+ (add_node 11 (FrameState ([]) (None) ((Some [10])) (None))
+ (add_node 13 (InvokeWithExceptionNode (9) (None) (None) ((Some 14)) (15) (10))
+ (add_node 14 (FrameState ([]) (None) ((Some [8])) (None))
+ (add_node 15 (KillingBeginNode (19))
+ (add_node 17 (EndNode)
+ (add_node 18 (MergeNode ([17, 19]) ((Some 22)) (23))
+ (add_node 19 (EndNode)
+ (add_node 20 (ValuePhiNode ([10, 8, 22]) (18))
+ (add_node 21 (ReturnNode (None) (None))
+ (add_node 22 (FrameState ([]) (None) ((Some [20])) (None))
+ (add_node 23 (UnwindNode (20))
+ empty_graph))))))))))))))))))))))
+))
+(''java.lang.IllegalArgumentException.<init>()V'' := 
+ (add_node 0 (StartNode ((Some 2)) (2))
+ (add_node 1 (ConstantNode 12)
+ (add_node 2 (ReturnNode (Some 1) (None))
+ empty_graph)))
+)
+"
+
+definition exceptional_params where "exceptional_params = new_map [IntVal (10)]"
+definition exceptional_main where "exceptional_main = ''Exceptional.main(I)V''"
+
+
+values "{m_state m |n m. exceptional_prog | exceptional_main | [IntVal (10)] \<leadsto> (n, m)}"
+values "{m_state m |n m. exceptional_prog | exceptional_main | [IntVal (-10)] \<leadsto> (n, m)}"
+values "{m_state m |n m. exceptional_prog | exceptional_main | [IntVal (0)] \<leadsto> (n, m)}"
+values "{m_state m |n m. exceptional_prog | exceptional_main | [IntVal (-1)] \<leadsto> (n, m)}"
+
+values "{m | m . exceptional_prog \<turnstile> ([(exceptional_main, 0, exceptional_params)], new_heap) \<rightarrow>*5* m}"
+
 end

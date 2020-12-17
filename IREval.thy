@@ -23,19 +23,24 @@ datatype Value =
   IntVal int32 |
   ObjRef objref
 
+datatype ExecutionState =
+  Normal |
+  Exception
+
 datatype MapState =
   MapState
     (m_values: "ID \<Rightarrow> Value")
     (m_params: "Value list")
+    (m_state: "ExecutionState")
 
 definition new_map_state :: "MapState" where
-  "new_map_state = MapState (\<lambda>x. UndefVal) []"
+  "new_map_state = MapState (\<lambda>x. UndefVal) [] Normal"
 
 fun m_val :: "MapState \<Rightarrow> ID \<Rightarrow> Value" where
   "m_val m nid = (m_values m) nid"
 
 fun m_set :: "ID \<Rightarrow> Value \<Rightarrow> MapState \<Rightarrow> MapState" where
-  "m_set nid v (MapState m p) = MapState (m(nid := v)) p"
+  "m_set nid v (MapState m p s) = MapState (m(nid := v)) p s"
 
 fun m_param :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> Value" where
   "m_param g m nid = (case (kind g nid) of
@@ -43,7 +48,10 @@ fun m_param :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> Va
     _ \<Rightarrow> UndefVal)"
 
 fun set_params :: "MapState \<Rightarrow> Value list \<Rightarrow> MapState" where
-  "set_params (MapState m _) vs = MapState m vs"
+  "set_params (MapState m _ s) vs = MapState m vs s"
+
+fun set_state :: "MapState \<Rightarrow> ExecutionState \<Rightarrow> MapState" where
+  "set_state (MapState m p _) s = MapState m p s"
 
 fun new_map :: "Value list \<Rightarrow> MapState" where
   "new_map ps = set_params new_map_state ps"
@@ -207,9 +215,13 @@ inductive
   "\<lbrakk>val = m_val m nid\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val" |
 
+  NewInstanceNode:
+  "g m \<turnstile> nid (NewInstanceNode class stateBefore next) \<mapsto> (ObjRef (Some 0))" |
+
   RefNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
+
 
 (* Duplication data evaluation with illustrative cases for paper *)
 text_raw \<open>\Snip{ExpressionSemantics}%\<close>
@@ -293,6 +305,7 @@ fun is_misc_floating_node :: "IRNode \<Rightarrow> bool" where
   "is_misc_floating_node (CallNode start args children) = True" |
   "is_misc_floating_node (InvokeNode callTarget classInit stateDuring stateAfter next) = True" |
   "is_misc_floating_node (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) = True" |
+  "is_misc_floating_node (NewInstanceNode _ _ _) = True" |
   "is_misc_floating_node (RefNode x) = True" |
   "is_misc_floating_node _ = False"
 
@@ -574,7 +587,8 @@ theorem "evalDet":
     apply (rule allI; rule impI; elim LogicNegationNodeE; auto)
    apply (rule allI; rule impI; elim CallNodeE; auto)
   apply (rule allI; rule impI; elim InvokeNodeE; auto)
- apply (rule allI; rule impI; elim InvokeWithExceptionNodeE; auto)
+    apply (rule allI; rule impI; elim InvokeWithExceptionNodeE; auto)
+ apply (rule allI; rule impI; elim NewInstanceNodeE; auto)
 apply (rule allI; rule impI; elim RefNodeE; auto)
   
   done

@@ -509,6 +509,10 @@ next
 next
   case (InvokeWithExceptionNodeEval val m nid callTarget classInit stateDuring stateAfter nex exceptionEdge)
   then show ?case sorry
+next
+  case (NewInstanceNode m nid clazz stateBefore nex)
+  then show ?case
+    by (metis eval.NewInstanceNode)
 qed
 qed
 

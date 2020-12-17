@@ -129,8 +129,23 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
   ReturnNodeVoid:
   "\<lbrakk>g = p_method s p;
     kind g nid = (ReturnNode None _);
-    c_nid' = (succ g c_nid)!0\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m)#xs, h)"
+    c_m' = m_set c_nid (ObjRef (Some (2048))) c_m;
+    c_nid' = (succ (p_method c_s p) c_nid)!0\<rbrakk> 
+    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
+
+  UnwindNode:
+    "\<lbrakk>g = p_method s p;
+      kind g nid = UnwindNode exception;
+
+      g m \<turnstile> exception (kind g exception) \<mapsto> e;
+
+      c_g = (p_method c_s p);      
+      kind c_g c_nid = (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge);
+
+      c_nid' = exceptionEdge;
+      c_m' = set_state c_m Exception;
+      c_m'' = m_set c_nid e c_m'\<rbrakk>
+    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m'')#xs, h)"
 
 
 text_raw \<open>\EndSnip\<close>
@@ -149,7 +164,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top
 type_synonym ExecLog = "(ID \<times> IRNode) list"
 
 fun has_return :: "MapState \<Rightarrow> bool" where
-  "has_return m = ((m_val m 0) \<noteq> UndefVal)"
+  "has_return m = (((m_val m 0) \<noteq> UndefVal) \<or> ((m_state m) = Exception))"
 
 inductive exec :: "Program 
       \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap

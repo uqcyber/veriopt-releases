@@ -105,11 +105,11 @@ inductive
 
   PhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (PhiNode _) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> _ (PhiNode uu nid) \<mapsto> val" |
 
   ValuePhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ValuePhiNode _ _) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> _ (ValuePhiNode _ _ nid) \<mapsto> val" |
 
   ValueProxyNode:
   "\<lbrakk>g m \<turnstile> c (kind g c) \<mapsto> val\<rbrakk>
@@ -240,7 +240,7 @@ inductive
 
   ValuePhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ValuePhiNode _ _) \<hookrightarrow> val" |
+    \<Longrightarrow> g m \<turnstile> _ (ValuePhiNode _ _ nid) \<hookrightarrow> val" |
 
   NegateNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> IntVal(v)\<rbrakk> 
@@ -459,7 +459,7 @@ inductive_cases ParameterNodeE[elim!]:
   "g m \<turnstile> nid (ParameterNode index) \<mapsto> val"
 
 inductive_cases PhiNodeE[elim!]:
-  "g m \<turnstile> nid (PhiNode merge) \<mapsto> val"
+  "g m \<turnstile> nid0 (PhiNode merge nid) \<mapsto> val"
 
 inductive_cases ProxyNodeE[elim!]:
   "g m \<turnstile> nid (ProxyNode loopExit) \<mapsto> val"
@@ -498,7 +498,7 @@ inductive_cases ValueNodeE[elim!]:
   "g m \<turnstile> nid (ValueNode) \<mapsto> val"
 
 inductive_cases ValuePhiNodeE[elim!]:
-  "g m \<turnstile> nid (ValuePhiNode values merge) \<mapsto> val"
+  "g m \<turnstile> nid0 (ValuePhiNode values merge nid) \<mapsto> val"
 
 inductive_cases ValueProxyNodeE[elim!]:
   "g m \<turnstile> nid (ValueProxyNode value loopExit) \<mapsto> val"

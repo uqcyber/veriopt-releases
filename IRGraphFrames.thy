@@ -457,8 +457,9 @@ Was: (with 'nid' repeated in inductive rule)
     then have "unchanged (eval_usages g1 condition) g1 g2"
       using child_unchanged node.prems(2) by blast
     (* TODO: first prove that  "condition \<in> ids g1" ? *)
-    then have "g2 m \<turnstile> condition (kind g2 condition) \<mapsto> IntVal cond"
-
+    then have cond: "g2 m \<turnstile> condition (kind g2 condition) \<mapsto> IntVal cond"
+      using node
+      by (metis good_kind not_in_g)
 
     (* then the true branch *)
     have "trueExp \<in> set(inp g1 nid)"
@@ -469,14 +470,17 @@ Was: (with 'nid' repeated in inductive rule)
 
     then have trueVal: "g2 m \<turnstile> trueExp (kind g2 trueExp) \<mapsto> IntVal(trueVal)"
       using node.hyps
-      by (metis (no_types, lifting) ConditionalNode.hyps(3) ConditionalNode.hyps(4) ConditionalNode.hyps(8) ConditionalNode.prems(2) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of_ConditionalNode member_filter member_rec(1) not_in_no_val)
-    have falseVal: "g2 m \<turnstile> falseExp (kind g2 falseExp) \<mapsto> IntVal(falseVal)"
-      by (metis (no_types, lifting) ConditionalNode.hyps(5) ConditionalNode.hyps(6) ConditionalNode.hyps(8) ConditionalNode.prems(2) changes.simps eval_usages.simps eval_uses.intros(2) filter_set in_set_member inputs_are_usages inputs_of_ConditionalNode member_filter member_rec(1) not_in_no_val)
-    have cond: "g2 m \<turnstile> condition (kind g2 condition) \<mapsto> IntVal(cond)"
-      by (metis node.hyps(1) node.hyps(2) ConditionalNode.hyps(8) ConditionalNode.prems(2) changes.simps inputs_are_usages inputs_of_ConditionalNode list.set_intros(1) not_in_no_val unchanged_implies_unchanged_inputs)
+      by (metis good_kind not_in_g)
+
+    then have ufalse: "unchanged (eval_usages g1 falseExp) g1 g2"
+      using node.prems(2) child_unchanged
+      by (metis in_mono inp.simps inputs_of.simps(16) list.set_intros(1) node.hyps(8) set_subset_Cons)
+    then have falseVal: "g2 m \<turnstile> falseExp (kind g2 falseExp) \<mapsto> IntVal(falseVal)"
+      using node.hyps by (metis good_kind not_in_g)
+
     have "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> val"
       using kind_same trueVal falseVal cond
-      using ConditionalNode.hyps(7) ConditionalNode.hyps(8) ConditionalNode.prems(1) eval.ConditionalNode by fastforce
+      by (metis ConditionalNode kind_unchanged node.hyps(7) node.hyps(8) node.prems(1) node.prems(2))
     then show ?case
       by blast
 
@@ -486,7 +490,7 @@ Was: (with 'nid' repeated in inductive rule)
   next
     case (RefNode m x val nid)
     then show ?case
-      by (metis changes.elims(3) eval.RefNode inputs_are_usages inputs_of_RefNode list.set_intros(1) not_in_no_val unchanged_implies_unchanged_inputs)
+      by (metis IRNodes.inputs_of_RefNode child_unchanged eval.RefNode good_kind inp.simps kind_unchanged list.set_intros(1) not_in_g)
   next
     case (InvokeNodeEval val m nid callTarget classInit stateDuring stateAfter nex)
     then show ?case sorry
@@ -499,7 +503,7 @@ Was: (with 'nid' repeated in inductive rule)
   next
     case (NewInstanceNode m nid clazz stateBefore nex)
     then show ?case
-      by (metis eval.NewInstanceNode)
+      by (metis eval.NewInstanceNode kind_unchanged)
   qed
 qed
 
@@ -516,6 +520,7 @@ next
     by (metis assms(2) assms(3) changes.elims(2) eval_usages.simps filter_set kind_uneffected_uneq member_filter)
 qed
 
+(*
 lemma eval_independent:
   assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"
   assumes g2: "g2 = add_node nid' n g1"

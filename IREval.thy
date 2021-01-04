@@ -205,11 +205,11 @@ inductive
 (* Access the value returned by the most recent call *)
   InvokeNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> _ (InvokeNode nid callTarget classInit stateDuring stateAfter next) \<mapsto> val" |
 
   InvokeWithExceptionNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> _ (InvokeWithExceptionNode nid callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val" |
 
   NewInstanceNode:
   "g m \<turnstile> nid (NewInstanceNode class stateBefore next) \<mapsto> (ObjRef (Some 0))" |
@@ -255,7 +255,7 @@ inductive
 
   InvokeNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<hookrightarrow> val" |
+    \<Longrightarrow> g m \<turnstile> _ (InvokeNode nid callTarget classInit stateDuring stateAfter next) \<hookrightarrow> val" |
 
   RefNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> val\<rbrakk>
@@ -298,8 +298,8 @@ fun is_misc_floating_node :: "IRNode \<Rightarrow> bool" where
   "is_misc_floating_node (ShortCircuitOrNode x y) = True" |
   "is_misc_floating_node (LogicNegationNode x) = True" |
   "is_misc_floating_node (SignedDivNode x y g frame next) = True" |
-  "is_misc_floating_node (InvokeNode callTarget classInit stateDuring stateAfter next) = True" |
-  "is_misc_floating_node (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) = True" |
+  "is_misc_floating_node (InvokeNode nid callTarget classInit stateDuring stateAfter next) = True" |
+  "is_misc_floating_node (InvokeWithExceptionNode nid callTarget classInit stateDuring stateAfter next exceptionEdge) = True" |
   "is_misc_floating_node (NewInstanceNode _ _ _) = True" |
   "is_misc_floating_node (RefNode x) = True" |
   "is_misc_floating_node _ = False"
@@ -403,10 +403,10 @@ inductive_cases IntegerLessThanNodeE[elim!]:
   "g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val"
 
 inductive_cases InvokeNodeE[elim!]:
-  "g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<mapsto> val"
+  "g m \<turnstile> nid (InvokeNode nid0 callTarget classInit stateDuring stateAfter next) \<mapsto> val"
 
 inductive_cases InvokeWithExceptionNodeE[elim!]:
-  "g m \<turnstile> nid (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val"
+  "g m \<turnstile> nid (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val"
 
 inductive_cases KillingBeginNodeE[elim!]:
   "g m \<turnstile> nid (KillingBeginNode next) \<mapsto> val"

@@ -119,8 +119,8 @@ datatype (discs_sels) IRNode =
   | IfNode (ir_condition: "INPUT_COND") (ir_trueSuccessor: "SUCC") (ir_falseSuccessor: "SUCC") 
   | IntegerEqualsNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | IntegerLessThanNode (ir_x: "INPUT") (ir_y: "INPUT") 
-  | InvokeNode (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | InvokeWithExceptionNode (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") (ir_exceptionEdge: "SUCC") 
+  | InvokeNode (ir_nid: ID) (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | InvokeWithExceptionNode (ir_nid: ID) (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") (ir_exceptionEdge: "SUCC") 
   | KillingBeginNode (ir_next: "SUCC") 
   | LoadFieldNode (ir_field: string) (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | LogicNegationNode (ir_value: "INPUT_COND") 
@@ -249,8 +249,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_IfNode: "inputs_of (IfNode condition trueSuccessor falseSuccessor) = [condition]" |
   inputs_of_IntegerEqualsNode: "inputs_of (IntegerEqualsNode x y) = [x, y]" |
   inputs_of_IntegerLessThanNode: "inputs_of (IntegerLessThanNode x y) = [x, y]" |
-  inputs_of_InvokeNode: "inputs_of (InvokeNode callTarget classInit stateDuring stateAfter next) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
-  inputs_of_InvokeWithExceptionNode: "inputs_of (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
+  inputs_of_InvokeNode: "inputs_of (InvokeNode nid0 callTarget classInit stateDuring stateAfter next) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
+  inputs_of_InvokeWithExceptionNode: "inputs_of (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
   inputs_of_KillingBeginNode: "inputs_of (KillingBeginNode next) = []" |
   inputs_of_LoadFieldNode: "inputs_of (LoadFieldNode field object next) = (opt_to_list object)" |
   inputs_of_LogicNegationNode: "inputs_of (LogicNegationNode value) = [value]" |
@@ -286,7 +286,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
 (* nodeout *)
 
   inputs_of_SubstrateMethodCallTargetNode: "inputs_of (SubstrateMethodCallTargetNode targetMethod args) = args" |
-  inputs_of_RefNode: "inputs_of (RefNode ref) = [ref]" |
+  inputs_of_RefNode: "inputs_of (RefNode ref) = [ref]"
 
 value "inputs_of (FrameState [4] (Some 3) (Some [5, 7]) None)"
 value "inputs_of (FrameState [4] None (Some [7]) (Some [3]))"
@@ -322,8 +322,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_IfNode: "successors_of (IfNode condition trueSuccessor falseSuccessor) = [trueSuccessor, falseSuccessor]" |
   successors_of_IntegerEqualsNode: "successors_of (IntegerEqualsNode x y) = []" |
   successors_of_IntegerLessThanNode: "successors_of (IntegerLessThanNode x y) = []" |
-  successors_of_InvokeNode: "successors_of (InvokeNode callTarget classInit stateDuring stateAfter next) = [next]" |
-  successors_of_InvokeWithExceptionNode: "successors_of (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) = [next, exceptionEdge]" |
+  successors_of_InvokeNode: "successors_of (InvokeNode nid0 callTarget classInit stateDuring stateAfter next) = [next]" |
+  successors_of_InvokeWithExceptionNode: "successors_of (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) = [next, exceptionEdge]" |
   successors_of_KillingBeginNode: "successors_of (KillingBeginNode next) = [next]" |
   successors_of_LoadFieldNode: "successors_of (LoadFieldNode field object next) = [next]" |
   successors_of_LogicNegationNode: "successors_of (LogicNegationNode value) = []" |
@@ -359,7 +359,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
 (* nodeout *)
 
   successors_of_SubstrateMethodCallTargetNode: "successors_of (SubstrateMethodCallTargetNode targetMethod args) = []" |
-  successors_of_RefNode: "successors_of (RefNode ref) = []" |
+  successors_of_RefNode: "successors_of (RefNode ref) = []"
 
 end
 

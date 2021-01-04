@@ -97,7 +97,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
   InvokeNodeStep:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (InvokeNode callTarget classInit stateDuring stateAfter next);
+    kind g nid = (InvokeNode _ callTarget classInit stateDuring stateAfter next);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
     g m arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
@@ -105,7 +105,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
   InvokeWithExceptionNode:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge);
+    kind g nid = (InvokeWithExceptionNode _ callTarget classInit stateDuring stateAfter next exceptionEdge);
     kind g callTarget = (SubstrateMethodCallTargetNode targetMethod arguments);
     g m arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
@@ -133,7 +133,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
       g m \<turnstile> exception (kind g exception) \<mapsto> e;
 
       c_g = (p_method c_s p);      
-      kind c_g c_nid = (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge);
+      kind c_g c_nid = (InvokeWithExceptionNode _ callTarget classInit stateDuring stateAfter next exceptionEdge);
 
       c_nid' = exceptionEdge;
       c_m' = set_state c_m Exception;

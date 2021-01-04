@@ -489,14 +489,21 @@ Was: (with 'nid' repeated in inductive rule)
     then show ?case
       by (metis IRNodes.inputs_of_RefNode child_unchanged eval.RefNode good_kind inp.simps kind_unchanged list.set_intros(1) not_in_g)
   next
-    case (InvokeNodeEval val m nid callTarget classInit stateDuring stateAfter nex)
-    then show ?case sorry
+    case (InvokeNodeEval val m nida _ callTarget classInit stateDuring stateAfter nex)
+    then show ?case
+      by (metis eval.InvokeNodeEval kind_unchanged)
   next
     case (SignedDivNode m x v1 y v2 nid zeroCheck frameState nex)
-    then show ?case sorry
+    from SignedDivNode have x: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
+      by (metis IRNodes.inputs_of_SignedDivNode append_Cons child_unchanged good_kind inp.simps list.set_intros(1) not_in_g)
+    from SignedDivNode have y: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
+      by (metis IRNodes.inputs_of_SignedDivNode append_Cons child_unchanged good_kind inp.simps list.set_intros(1) list.set_intros(2) not_in_g)
+    from x y show ?case
+      by (metis SignedDivNode.hyps(5) SignedDivNode.prems(1) SignedDivNode.prems(2) eval.SignedDivNode kind_unchanged)
   next
-    case (InvokeWithExceptionNodeEval val m nid callTarget classInit stateDuring stateAfter nex exceptionEdge)
-    then show ?case sorry
+    case (InvokeWithExceptionNodeEval val m nida _ callTarget classInit stateDuring stateAfter nex exceptionEdge)
+    then show ?case
+      by (metis eval.InvokeWithExceptionNodeEval kind_unchanged)
   next
     case (NewInstanceNode m nid clazz stateBefore nex)
     then show ?case
@@ -504,19 +511,20 @@ Was: (with 'nid' repeated in inductive rule)
   qed
 qed
 
+
+(*
 lemma eval_uses_to_changes:
-  assumes "nid \<noteq> nid'"
-  assumes "\<not>(eval_uses g1 nid nid')"
+  assumes "nid' \<notin> (eval_usages g1 nid)"
   assumes "g2 = add_node nid' n g1"
-  shows "\<not>(changes nid g1 g2) \<and> (\<forall> nid' \<in> (eval_usages g1 nid) . \<not>(changes nid' g1 g2))" (is "?P \<and> ?Q")
+  shows "unchanged {nid} g1 g2 \<and> (\<forall> nid' \<in> (eval_usages g1 nid) . \<not>(unchanged {nid'} g1 g2))" (is "?P \<and> ?Q")
 proof
   show ?P
-    using assms(1) assms(3) changes.simps kind_uneffected_uneq by blast
+    using assms stay_same sorry
 next
   show ?Q 
-    by (metis assms(2) assms(3) changes.elims(2) eval_usages.simps filter_set kind_uneffected_uneq member_filter)
+    using assms stay_same sorry
 qed
-
+*)
 (*
 lemma eval_independent:
   assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"

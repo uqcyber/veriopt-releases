@@ -136,7 +136,7 @@ datatype (discs_sels) IRNode =
   | NotNode (ir_value: "INPUT") 
   | OrNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | ParameterNode (ir_index: nat) 
-  | PhiNode (ir_merge: "INPUT_ASSOC")(ir_id: "ID") 
+  | PhiNode (ir_nid: ID) (ir_merge: "INPUT_ASSOC") 
   | ProxyNode (ir_loopExit: "INPUT_ASSOC") 
   | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
@@ -149,7 +149,7 @@ datatype (discs_sels) IRNode =
   | UnaryNode (ir_value: "INPUT") 
   | UnwindNode (ir_exception: "INPUT") 
   | ValueNode 
-  | ValuePhiNode (ir_values: "INPUT list") (ir_merge: "INPUT_ASSOC") (ir_id: "ID")
+  | ValuePhiNode (ir_nid: ID) (ir_values: "INPUT list") (ir_merge: "INPUT_ASSOC") 
   | ValueProxyNode (ir_value: "INPUT") (ir_loopExit: "INPUT_ASSOC") 
   | XorNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | NoNode
@@ -267,7 +267,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_NotNode: "inputs_of (NotNode value) = [value]" |
   inputs_of_OrNode: "inputs_of (OrNode x y) = [x, y]" |
   inputs_of_ParameterNode: "inputs_of (ParameterNode index) = []" |
-  inputs_of_PhiNode: "inputs_of (PhiNode merge _) = [merge]" |
+  inputs_of_PhiNode: "inputs_of (PhiNode nid0 merge) = [merge]" |
   inputs_of_ProxyNode: "inputs_of (ProxyNode loopExit) = [loopExit]" |
   inputs_of_ReturnNode: "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
   inputs_of_ShortCircuitOrNode: "inputs_of (ShortCircuitOrNode x y) = [x, y]" |
@@ -280,7 +280,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_UnaryNode: "inputs_of (UnaryNode value) = [value]" |
   inputs_of_UnwindNode: "inputs_of (UnwindNode exception) = [exception]" |
   inputs_of_ValueNode: "inputs_of (ValueNode) = []" |
-  inputs_of_ValuePhiNode: "inputs_of (ValuePhiNode values merge _) = [merge] @ values" |
+  inputs_of_ValuePhiNode: "inputs_of (ValuePhiNode nid0 values merge) = [merge] @ values" |
   inputs_of_ValueProxyNode: "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
   inputs_of_XorNode: "inputs_of (XorNode x y) = [x, y]" |
   inputs_of_NoNode: "inputs_of (NoNode) = []"|
@@ -341,7 +341,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_NotNode: "successors_of (NotNode value) = []" |
   successors_of_OrNode: "successors_of (OrNode x y) = []" |
   successors_of_ParameterNode: "successors_of (ParameterNode index) = []" |
-  successors_of_PhiNode: "successors_of (PhiNode merge _) = []" |
+  successors_of_PhiNode: "successors_of (PhiNode nid0 merge) = []" |
   successors_of_ProxyNode: "successors_of (ProxyNode loopExit) = []" |
   successors_of_ReturnNode: "successors_of (ReturnNode result memoryMap) = []" |
   successors_of_ShortCircuitOrNode: "successors_of (ShortCircuitOrNode x y) = []" |
@@ -354,7 +354,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_UnaryNode: "successors_of (UnaryNode value) = []" |
   successors_of_UnwindNode: "successors_of (UnwindNode exception) = []" |
   successors_of_ValueNode: "successors_of (ValueNode) = []" |
-  successors_of_ValuePhiNode: "successors_of (ValuePhiNode values merge _) = []" |
+  successors_of_ValuePhiNode: "successors_of (ValuePhiNode nid0 values merge) = []" |
   successors_of_ValueProxyNode: "successors_of (ValueProxyNode value loopExit) = []" |
   successors_of_XorNode: "successors_of (XorNode x y) = []" |
   successors_of_NoNode: "successors_of (NoNode) = []"|

@@ -218,7 +218,7 @@ PhiNode:
               "unchanged (eval_usages g1 nid) g1 g2"
               "kind g1 nid = kind g2 nid"
 *)
-    then have kind: "kind g2 nid = (PhiNode uu nida)"
+    then have kind: "kind g2 nid = (PhiNode nida uu)"
       using kind_unchanged by presburger
     then show ?case
       using eval.PhiNode kind PhiNode.hyps(1) by simp
@@ -246,7 +246,7 @@ Was: (with 'nid' repeated in inductive rule)
         "unchanged (eval_usages g1 nid) g1 g2"
         "kind g1 nid = kind g2 nid"
 *)
-    then have kind: "kind g2 nid = (ValuePhiNode ux uy nida)"
+    then have kind: "kind g2 nid = (ValuePhiNode nida ux uy)"
       using kind_unchanged by presburger
     then show ?case
       using eval.ValuePhiNode kind ValuePhiNode.hyps(1) by simp 

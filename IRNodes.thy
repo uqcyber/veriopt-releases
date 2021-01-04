@@ -157,7 +157,6 @@ datatype (discs_sels) IRNode =
 
   (* Manually added *)
   | SubstrateMethodCallTargetNode (ir_targetMethod: string) (ir_arguments: "INPUT list") 
-  | CallNode (ir_startNode:INPUT) (ir_arguments:"INPUT list") (ir_succ:"SUCC list")
   | RefNode (ir_ref:ID)
 
 (* Next we may want a predicate for some abstract subclasses?
@@ -288,7 +287,6 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
 
   inputs_of_SubstrateMethodCallTargetNode: "inputs_of (SubstrateMethodCallTargetNode targetMethod args) = args" |
   inputs_of_RefNode: "inputs_of (RefNode ref) = [ref]" |
-  inputs_of_CallNode: "inputs_of (CallNode startNode arguments succ) = [startNode] @ arguments" 
 
 value "inputs_of (FrameState [4] (Some 3) (Some [5, 7]) None)"
 value "inputs_of (FrameState [4] None (Some [7]) (Some [3]))"
@@ -362,7 +360,6 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
 
   successors_of_SubstrateMethodCallTargetNode: "successors_of (SubstrateMethodCallTargetNode targetMethod args) = []" |
   successors_of_RefNode: "successors_of (RefNode ref) = []" |
-  successors_of_CallNode: "successors_of (CallNode startNode arguments succ) = succ"
 
 end
 

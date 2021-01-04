@@ -95,13 +95,6 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
   "\<lbrakk>(p, s) \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((s,nid',m')#xs, h')" |
 
-  CallNodeStep:
-  "\<lbrakk>g = p_method s p;
-    kind g nid = (CallNode start args _);
-    g m args \<longmapsto> vs;
-    m' = set_params m vs\<rbrakk>
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((s,start,m')#(s,nid,m)#xs, h)" |
-
   InvokeNodeStep:
   "\<lbrakk>g = p_method s p;
     kind g nid = (InvokeNode callTarget classInit stateDuring stateAfter next);

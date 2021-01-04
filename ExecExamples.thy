@@ -73,20 +73,6 @@ values "{l | x l . simple_if | [IntVal 0, IntVal 20, IntVal 100] \<leadsto> x | 
 values "{m_val m 0 |n m l. simple_if | [IntVal 1, IntVal 20, IntVal 100] \<leadsto> (n, m) | l}"
 values "{l | x l . simple_if | [IntVal 1, IntVal 20, IntVal 100] \<leadsto> x | l}"
 
-definition simple_call :: IRGraph where
-  "simple_call =
-    (add_node 7 (ReturnNode (Some 6) None)
-    (add_node 6 (AddNode 1 5)
-    (add_node 5 (CallNode 2 [] [7])
-    (add_node 4 (ReturnNode (Some 3) None)
-    (add_node 3 (ConstantNode 12)
-    (add_node 2 (StartNode None 4)
-    (add_node 1 (CallNode 2 [] [5])
-    (add_node 0 (StartNode None 1)
-    empty_graph))))))))"
-
-(* IntVal 24 *)
-values "{m_val m 0 |n m l. simple_call | [] \<leadsto> (n, m) | l}"
 
 definition loop :: IRGraph where
   "loop =
@@ -149,53 +135,6 @@ values "{m_val m 0 |n m l. sum | [IntVal 7] \<leadsto> (n, m) | l}"
 (* IntVal 210 *)
 values "{m_val m 0 |n m l. sum | [IntVal 20] \<leadsto> (n, m) | l}"
 
-
-(* TODO: fix seafoam generation *)
-(* Examples generated from Java code *)
-
-(*
-definition real_fact :: IRGraph where
-"real_fact = 
- (add_node 0 (StartNode (Some 2) 5)
- (add_node 1 (ParameterNode 0)
- (add_node 2 (FrameState None [1])
- (add_node 3 (ConstantNode (1))
- (add_node 5 (EndNode)
- (add_node 6 (LoopBeginNode None None [5, 21] 17)
- (add_node 7 (ValuePhiNode 6 [1, 20])
- (add_node 8 (ValuePhiNode 6 [3, 18])
- (add_node 9 (FrameState None [7, 8])
- (add_node 10 (ConstantNode (2))
- (add_node 11 (IntegerLessThanNode 7 10)
- (add_node 12 (BeginNode 21)
- (add_node 14 (LoopExitNode 16 None 22)
- (add_node 15 (ValueProxyNode 14 8)
- (add_node 16 (FrameState None [15])
- (add_node 17 (IfNode 11 14 12)
- (add_node 18 (MulNode 7 8)
- (add_node 19 (ConstantNode (-1))
- (add_node 20 (AddNode 7 19)
- (add_node 21 (LoopEndNode 12)
- (add_node 22 (ReturnNode (Some 15) None)
- empty_graph)))))))))))))))))))))"
-lemma "wff_graph real_fact"
-  unfolding real_fact_def by simp
-
-(* IntVal 1 *)
-values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 1]) (n, m)}"
-(* IntVal 2 *)
-values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 2]) (n, m)}"
-(* IntVal 6 *)
-values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 3]) (n, m)}"
-(* IntVal 24 *)
-values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 4]) (n, m)}"
-(* IntVal 120 *)
-values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 5]) (n, m)}"
-(* IntVal 720 *)
-values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 6]) (n, m)}"
-(* IntVal 5040 *)
-values "{m_val m 0 |n m. (real_fact \<diamondop> [IntVal 7]) (n, m)}"
-*)
 
 inductive exec_prog :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_|_|_\<leadsto>_")
   where

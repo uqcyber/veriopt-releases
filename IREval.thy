@@ -203,10 +203,6 @@ inductive
     \<Longrightarrow> g m \<turnstile> nid (LogicNegationNode x) \<mapsto> val" |
 
 (* Access the value returned by the most recent call *)
-  CallNodeEval:
-  "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (CallNode start args children) \<mapsto> val" |
-
   InvokeNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<mapsto> val" |
@@ -257,9 +253,9 @@ inductive
     val = IntVal(if v1 \<noteq> 0 then v1 else v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<hookrightarrow> val" |
 
-  CallNodeEval:
+  InvokeNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (CallNode start args children) \<hookrightarrow> val" |
+    \<Longrightarrow> g m \<turnstile> nid (InvokeNode callTarget classInit stateDuring stateAfter next) \<hookrightarrow> val" |
 
   RefNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<hookrightarrow> val\<rbrakk>
@@ -302,7 +298,6 @@ fun is_misc_floating_node :: "IRNode \<Rightarrow> bool" where
   "is_misc_floating_node (ShortCircuitOrNode x y) = True" |
   "is_misc_floating_node (LogicNegationNode x) = True" |
   "is_misc_floating_node (SignedDivNode x y g frame next) = True" |
-  "is_misc_floating_node (CallNode start args children) = True" |
   "is_misc_floating_node (InvokeNode callTarget classInit stateDuring stateAfter next) = True" |
   "is_misc_floating_node (InvokeWithExceptionNode callTarget classInit stateDuring stateAfter next exceptionEdge) = True" |
   "is_misc_floating_node (NewInstanceNode _ _ _) = True" |
@@ -514,9 +509,6 @@ inductive_cases NoNodeE[elim!]:
 inductive_cases RefNodeE[elim!]:
   "g m \<turnstile> nid (RefNode ref) \<mapsto> val"
 
-inductive_cases CallNodeE[elim!]:
-  "g m \<turnstile> nid (CallNode startNode arguments next) \<mapsto> val"
-
 inductive_cases SubstrateMethodCallTargetNodeE[elim!]:
   "g m \<turnstile> nid (SubstrateMethodCallTargetNode targetMethod args) \<mapsto> val"
 
@@ -585,7 +577,6 @@ theorem "evalDet":
       apply (rule allI; rule impI; elim ConditionalNodeE; auto)
      apply (rule allI; rule impI; elim ShortCircuitOrNodeE; auto)
     apply (rule allI; rule impI; elim LogicNegationNodeE; auto)
-   apply (rule allI; rule impI; elim CallNodeE; auto)
   apply (rule allI; rule impI; elim InvokeNodeE; auto)
     apply (rule allI; rule impI; elim InvokeWithExceptionNodeE; auto)
  apply (rule allI; rule impI; elim NewInstanceNodeE; auto)

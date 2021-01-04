@@ -485,9 +485,6 @@ Was: (with 'nid' repeated in inductive rule)
       by blast
 
   next
-    case (CallNodeEval val m nid start args children)
-    then show ?case sorry
-  next
     case (RefNode m x val nid)
     then show ?case
       by (metis IRNodes.inputs_of_RefNode child_unchanged eval.RefNode good_kind inp.simps kind_unchanged list.set_intros(1) not_in_g)

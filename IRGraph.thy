@@ -42,16 +42,26 @@ fun ids :: "IRGraph \<Rightarrow> ID set" where
 
 text_raw \<open>\Snip{helpers}%\<close>
 (* Look up a given ID in the graph and return the whole node. *)
-fun kind :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRNode" where
-  "kind g nid = (case snd g nid of 
-                 Some n \<Rightarrow> n | 
-                 None \<Rightarrow> NoNode)"
+definition kind :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRNode option" where
+  "kind = snd"
+
+lemma simp_kind_def[simp]:
+  "kind g n = snd g n"
+  by (simp add: kind_def)
+lemma elim_kind_def[simp,elim]: 
+  assumes "x = kind g n"
+  shows "x = snd g n"
+  by (simp add: assms kind_def)
+
 (* Get the inputs list of a given node ID. *)
 fun inp :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "inp g nid = inputs_of(kind g nid)"
+  "inp g nid = (case kind g nid of Some n \<Rightarrow> inputs_of n | None \<Rightarrow> [])"
+(* Get the successor list of a given node ID. *)
+fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "succ g nid = (case kind g nid of Some n \<Rightarrow> successors_of n | None \<Rightarrow> [])"
 (* Gives a relation between node IDs - between a node and its input nodes. *)
 fun input_edges :: "IRGraph \<Rightarrow> ID rel" where
-  "input_edges g = (\<Union> i \<in> ids g. {(i,j)|j. j \<in> fset(fset_of_list (inputs_of (kind g i)))})"
+  "input_edges g = (\<Union> i \<in> ids g. {(i,j)|j. j \<in> fset(fset_of_list (inp g i))})"
 (* Find all the nodes in the graph that have nid as an input. *)
 fun usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "usages g nid = {j. j \<in> ids g \<and> (j,nid) \<in> input_edges g}"
@@ -61,14 +71,10 @@ text_raw \<open>\EndSnip\<close>
 *)
 
 fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where
-  "successor_edges g = (\<Union> i \<in> ids g. {(i,j)|j . j \<in> fset(fset_of_list (successors_of (kind g i)))})"
+  "successor_edges g = (\<Union> i \<in> ids g. {(i,j)|j . j \<in> fset(fset_of_list (succ  g i))})"
 
 fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "predecessors g nid = sorted_list_of_set {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
-
-(* Get the successor list of a given node ID. *)
-fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "succ g nid = successors_of(kind g nid)"
 
 fun is_empty :: "IRGraph \<Rightarrow> bool" where
   "is_empty g = ((ids g = {}) \<and> (snd g = Map.empty))"
@@ -111,17 +117,18 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
 (* graph closure invariants *)
 text_raw \<open>\Snip{graphinvar}%\<close>
 fun has_good_inputs :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "has_good_inputs n g = list_all (\<lambda>i. i \<in> ids g) (inputs_of (kind g n))"
+  "has_good_inputs n g = list_all (\<lambda>i. i \<in> ids g) (inp g n)"
 
 fun has_good_successors :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "has_good_successors n g = list_all (\<lambda>i. i \<in> ids g) (successors_of (kind g n))"
+  "has_good_successors n g = list_all (\<lambda>i. i \<in> ids g) (succ g n)"
 
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph g = (
-    (\<not>(is_empty g) \<longrightarrow> is_StartNode (kind g 0)) \<and>
+    (\<not>(is_empty g) \<longrightarrow> 
+      (case kind g 0 of None \<Rightarrow> False | Some n \<Rightarrow> is_StartNode n)) \<and>
     (\<forall> n. n \<in> ids g \<longrightarrow> has_good_inputs n g) \<and>
     (\<forall> n. n \<in> ids g \<longrightarrow> has_good_successors n g) \<and>
-    (\<forall> n. n \<in> ids g \<longrightarrow> kind g n \<noteq> NoNode))" (* \<and>
+    (\<forall> n. n \<in> ids g \<longrightarrow> kind g n \<noteq> None))" (* \<and>
     (\<forall> n. n \<in> ids g \<longrightarrow> n \<in> dom (snd g))
    )"*)
 text_raw \<open>\EndSnip\<close>
@@ -137,7 +144,7 @@ text_raw \<open>\EndSnip\<close>
 lemma wff_kind [simp]:
   assumes "wff_graph g"
   assumes "n \<in> ids g"
-  shows "kind g n \<noteq> NoNode"
+  shows "kind g n \<noteq> None"
   using assms by auto
 
 fun irgraph :: "(ID \<times> IRNode) list \<Rightarrow> RealGraph" where
@@ -218,11 +225,53 @@ lemma irgraph_rng[simp]:
   using Abs_IRGraph_inverse assms snd.rep_eq
   by (simp add: domIff)
 
+lemma elim_kind[simp]:
+  "n \<in> ids g \<longleftrightarrow> kind g n \<noteq> None"
+  using irgraph_dom_inv irgraph_dom_x kind_def by fastforce
+
+lemma elim_kind_cases[elim!]:
+  "n \<in> ids g \<Longrightarrow> (case kind g n of Some x \<Rightarrow> y | None \<Rightarrow> z) = y"
+  using elim_kind by auto
+
+lemma elim_inp[simp]:
+  assumes "n \<in> ids g"
+  shows "inp g n = inputs_of (the (kind g n))"
+  using assms elim_kind by auto
+
+lemma elim_succ[simp]:
+  assumes "n \<in> ids g"
+  shows "succ g n = successors_of (the (kind g n))"
+  using assms elim_kind by auto
+
+lemma caseE[elim!]:
+  fixes x::"'a option"
+  assumes "case x of Some _ \<Rightarrow> y | None \<Rightarrow> z"
+  assumes "x \<noteq> None"
+  shows "y"
+  using assms(1) assms(2) case_optionE by blast
+
+lemma some_kind:
+  assumes "n \<in> ids g"
+  shows "\<exists> l . kind g n = Some l"
+  using elim_kind
+  using assms kind_def by auto
+
 (* Now check some basic properties of this example. *)
 lemma wff_eg2_sq: "wff_graph eg2_sq"
-  unfolding eg2_sq_def eg2_sq_rep_def  irgraph.simps
-  apply simp 
-  done
+proof -
+  have zi: "0 \<in> ids eg2_sq" by (simp add: eg2_sq_def eg2_sq_rep_def)
+  then have sk: "kind eg2_sq 0 = Some (StartNode None 5)" 
+    using some_kind
+    unfolding eg2_sq_def eg2_sq_rep_def irgraph.simps map_of_def sorry
+  from zi have ne: "\<not>(is_empty eg2_sq)" by auto
+  
+  have "\<forall>n \<in> ids eg2_sq . kind eg2_sq n \<noteq> None"
+    using elim_kind by blast
+  then show ?thesis
+    unfolding eg2_sq_def eg2_sq_rep_def irgraph.simps kind_def elim_kind
+    unfolding IRGraph.wff_graph.simps apply (simp add: caseE)
+    using sk sorry
+qed
 
 code_datatype Abs_IRGraph
 

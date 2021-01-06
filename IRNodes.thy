@@ -152,7 +152,6 @@ datatype (discs_sels) IRNode =
   | ValuePhiNode (ir_nid: ID) (ir_values: "INPUT list") (ir_merge: "INPUT_ASSOC") 
   | ValueProxyNode (ir_value: "INPUT") (ir_loopExit: "INPUT_ASSOC") 
   | XorNode (ir_x: "INPUT") (ir_y: "INPUT") 
-  | NoNode
 (* nodeout *)
 
   (* Manually added *)
@@ -162,6 +161,10 @@ datatype (discs_sels) IRNode =
 (* Next we may want a predicate for some abstract subclasses?
    The '(discs_sels)' above automatically generates (is_StartNode _) etc.
 *)
+fun isType :: "(IRNode \<Rightarrow> bool) \<Rightarrow> IRNode option \<Rightarrow> bool" where
+  "isType nodeType node = (case node of None \<Rightarrow> False | Some n \<Rightarrow> nodeType n)"
+
+
 fun is_BinaryArithNode :: "IRNode \<Rightarrow> bool" where
   "is_BinaryArithNode (AddNode _ _) = True" |
   "is_BinaryArithNode (SubNode _ _) = True" |
@@ -282,7 +285,6 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_ValuePhiNode: "inputs_of (ValuePhiNode nid0 values merge) = [merge] @ values" |
   inputs_of_ValueProxyNode: "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
   inputs_of_XorNode: "inputs_of (XorNode x y) = [x, y]" |
-  inputs_of_NoNode: "inputs_of (NoNode) = []"|
 (* nodeout *)
 
   inputs_of_SubstrateMethodCallTargetNode: "inputs_of (SubstrateMethodCallTargetNode targetMethod args) = args" |
@@ -355,7 +357,6 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_ValuePhiNode: "successors_of (ValuePhiNode nid0 values merge) = []" |
   successors_of_ValueProxyNode: "successors_of (ValueProxyNode value loopExit) = []" |
   successors_of_XorNode: "successors_of (XorNode x y) = []" |
-  successors_of_NoNode: "successors_of (NoNode) = []"|
 (* nodeout *)
 
   successors_of_SubstrateMethodCallTargetNode: "successors_of (SubstrateMethodCallTargetNode targetMethod args) = []" |

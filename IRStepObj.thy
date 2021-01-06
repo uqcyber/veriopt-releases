@@ -36,24 +36,27 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
 
   SequentialNode:
   "\<lbrakk>g = p_method s p;
-    node = kind g nid;
+    Some node = kind g nid;
     is_sequential_node(node);
     next = (succ g nid)!0\<rbrakk> 
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
 
   IfNode:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (IfNode cond true false);
-    g m \<turnstile> cond (kind g cond) \<mapsto> (IntVal val);
+    kind g nid = Some (IfNode cond true false);
+    Some condk = kind g cond;
+    g m \<turnstile> cond condk \<mapsto> (IntVal val);
     next = (if val_to_bool val then true else false)\<rbrakk>
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |  
 
   EndNodes:
   "\<lbrakk>g = p_method s p;
-    is_end_node(kind g nid);
+    Some ek = kind g nid;
+    is_end_node(ek);
     merge_or_none = any_usage g nid;
     merge = the merge_or_none;
-    is_merge_node(kind g merge);
+    Some mk = kind g merge;
+    is_merge_node(mk);
 
     i = input_index g merge nid;
     phis = (phi_list g merge);
@@ -65,20 +68,21 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
 
   RefNode:
     "\<lbrakk>g = p_method s p;
-      kind g nid = RefNode nid'\<rbrakk>
+      kind g nid = Some (RefNode nid')\<rbrakk>
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
   LoadFieldNode:
     "\<lbrakk>g = p_method s p;
-      kind g nid = (LoadFieldNode f obj nxt);
+      kind g nid = Some (LoadFieldNode f obj nxt);
       h_load_field f obj h = v;
       m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   StoreFieldNode:
     "\<lbrakk>g = p_method s p;
-      kind g nid = (StoreFieldNode f rhs _ obj nxt);
-      g m \<turnstile> rhs (kind g rhs) \<mapsto> val;
+      kind g nid = Some (StoreFieldNode f rhs _ obj nxt);
+      Some rhsk = kind g rhs;
+      g m \<turnstile> rhs rhsk \<mapsto> val;
       h' = h_store_field f obj val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')"
@@ -97,43 +101,45 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
   InvokeNodeStep:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (InvokeNode _ callTarget classInit stateDuring stateAfter next);
-    kind g callTarget = (MethodCallTargetNode targetMethod arguments);
+    kind g nid = Some (InvokeNode _ callTarget classInit stateDuring stateAfter next);
+    kind g callTarget = Some (MethodCallTargetNode targetMethod arguments);
     g m arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
 
   InvokeWithExceptionNode:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (InvokeWithExceptionNode _ callTarget classInit stateDuring stateAfter next exceptionEdge);
-    kind g callTarget = (SubstrateMethodCallTargetNode targetMethod arguments);
+    kind g nid = Some (InvokeWithExceptionNode _ callTarget classInit stateDuring stateAfter next exceptionEdge);
+    kind g callTarget = Some (SubstrateMethodCallTargetNode targetMethod arguments);
     g m arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
 
   ReturnNode:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (ReturnNode (Some expr) _);
-    g m \<turnstile> expr (kind g expr) \<mapsto> v;
+    kind g nid = Some (ReturnNode (Some expr) _);
+    Some ek = kind g expr;
+    g m \<turnstile> expr ek \<mapsto> v;
     c_m' = m_set c_nid v c_m;
     c_nid' = (succ (p_method c_s p) c_nid)!0\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
 
   ReturnNodeVoid:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (ReturnNode None _);
+    kind g nid = Some (ReturnNode None _);
     c_m' = m_set c_nid (ObjRef (Some (2048))) c_m;
     c_nid' = (succ (p_method c_s p) c_nid)!0\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
 
   UnwindNode:
     "\<lbrakk>g = p_method s p;
-      kind g nid = UnwindNode exception;
+      kind g nid = Some (UnwindNode exception);
 
-      g m \<turnstile> exception (kind g exception) \<mapsto> e;
+      Some ek = kind g exception;
+      g m \<turnstile> exception ek \<mapsto> e;
 
       c_g = (p_method c_s p);      
-      kind c_g c_nid = (InvokeWithExceptionNode _ callTarget classInit stateDuring stateAfter next exceptionEdge);
+      kind c_g c_nid = Some (InvokeWithExceptionNode _ callTarget classInit stateDuring stateAfter next exceptionEdge);
 
       c_nid' = exceptionEdge;
       c_m' = set_state c_m Exception;
@@ -170,8 +176,9 @@ inductive exec :: "Program
   "\<lbrakk>p \<turnstile> (((s,nid,m)#xs),h) \<longrightarrow> (((s',nid',m')#ys),h');
     \<not>(has_return m');
 
-    g = p_method s p;    
-    l' = (l @ [(nid, (kind g nid))]);
+    g = p_method s p;
+    Some nk = kind g nid;
+    l' = (l @ [(nid, nk)]);
 
     exec p (((s',nid',m')#ys),h') l' next_state l''\<rbrakk> 
     \<Longrightarrow> exec p (((s,nid,m)#xs),h) l next_state l''" 
@@ -181,7 +188,8 @@ inductive exec :: "Program
     has_return m';
 
     g = p_method s p;
-    l' = (l @ [(nid, (kind g nid))])\<rbrakk>
+    Some nk = kind g nid;
+    l' = (l @ [(nid, nk)])\<rbrakk>
     \<Longrightarrow> exec p (((s,nid,m)#xs),h) l (((s',nid',m')#ys),h') l'"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool as Exec) "exec" .
 

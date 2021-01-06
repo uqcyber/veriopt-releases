@@ -67,7 +67,7 @@ lemma eval_usages_self [simp]:
 
 lemma not_in_g [simp]: 
   assumes "nid \<notin> ids g"
-  shows "kind g nid = NoNode"
+  shows "kind g nid = None"
 proof -
   have "nid \<notin> dom (snd g)"
     using assms irgraph_dom_inv by auto
@@ -81,7 +81,7 @@ lemma not_in_g_inp [simp]:
   assumes "nid \<notin> ids g"
   shows "inp g nid = []"
 proof -
-  have "kind g nid = NoNode" using assms not_in_g by auto
+  have "kind g nid = None" using assms not_in_g by auto
   then show ?thesis by auto
 qed
 
@@ -92,11 +92,13 @@ lemma inp_in_g [simp]:
   shows "nid \<in> ids g"
 proof -
   have "inp g nid \<noteq> []"
-    using assms by auto 
-  then have "kind g nid \<noteq> NoNode"
-    by fastforce
+    using assms
+    by (metis empty_iff empty_set)
+  then have "kind g nid \<noteq> None"
+    using not_in_g_inp by fastforce
   then show ?thesis
-    using not_in_g by auto
+    using not_in_g
+    using elim_kind by blast
 qed
 
 
@@ -152,53 +154,62 @@ lemma eval_usages[simp]:
   using assms eval_usages.simps by simp
 
 lemma inputs_are_uses:
-  assumes "nid' \<in> set (inputs_of (kind g nid))"
+  assumes "nid' \<in> set (inp g nid)"
   shows "eval_uses g nid nid'"
-  by (metis assms inp.elims use_inp)
+  by (metis assms use_inp)
 
 lemma inputs_are_usages:
-  assumes "nid' \<in> set (inputs_of (kind g nid))"
+  assumes "nid' \<in> set (inp g nid)"
   assumes "nid' \<in> ids g"
   shows "nid' \<in> eval_usages g nid"
   using assms(1) assms(2) eval_usages inputs_are_uses by blast
 
 lemma usage_includes_inputs:
   assumes "us = eval_usages g nid"
-  assumes "ls = set (inputs_of (kind g nid))"
+  assumes "ls = set (inp g nid)"
   assumes "ls \<subseteq> ids g"
   shows "ls \<subseteq> us"
   using inputs_are_usages eval_usages
   using assms(1) assms(2) assms(3) by blast
 
 lemma kind_floats:
-  assumes "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
-  shows "is_floating_node (kind g1 nid)"
+  assumes "Some k = kind g1 nid"
+  assumes "g1 m \<turnstile> nid k \<mapsto> v1"
+  shows "is_floating_node k"
   using assms evalFloating by blast
 
+lemma elim_inp_set:
+  assumes "Some k = kind g nid"
+  assumes "child \<in> set (inputs_of k)"
+  shows "child \<in> set (inp g nid)"
+  using assms(1) assms(2) by auto
 
 (* Main theorem that we want. *)
 lemma stay_same:
+  assumes "kind g1 nid \<noteq> None"
   assumes nc: "unchanged (eval_usages g1 nid) g1 g2"
-  assumes g1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
+  assumes g1: "g1 m \<turnstile> nid (the (kind g1 nid)) \<mapsto> v1"
   (*assumes "unchanged (eval_usages g1 nid) g1 g2"*)
   shows (* "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1
    \<Longrightarrow> unchanged (eval_usages g1 nid) g1 g2
-   \<Longrightarrow> *) "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v1"
+   \<Longrightarrow> *) "g2 m \<turnstile> nid (the (kind g2 nid)) \<mapsto> v1"
 (* proof (induct rule: "eval.induct") *)
 
 proof -
   have nid: "nid \<in> ids g1"
-    using not_in_g g1 by fastforce
+    using not_in_g g1
+    by (meson assms(1))
   then have "nid \<in> eval_usages g1 nid" 
     using eval_usages_self by blast
   then have kind_same: "kind g1 nid = kind g2 nid"
     using nc node_unchanged by blast 
   show ?thesis using g1 nid nc (* kind_same *)
-  proof (induct m nid "kind g1 nid" v1 arbitrary: nid rule: "eval.induct")
+  proof (induct m nid "the (kind g1 nid)" v1 arbitrary: nid rule: "eval.induct")
     print_cases
     case const: (ConstantNode val c m nid)
-    then have "kind g2 nid = (ConstantNode c)"
-      using kind_unchanged by presburger
+    then have "kind g2 nid = Some (ConstantNode c)"
+      using kind_unchanged
+      by (metis elim_kind option.exhaust_sel)
     then show ?case
       by (simp add: const.hyps(1) eval.ConstantNode)
   next
@@ -218,8 +229,9 @@ PhiNode:
               "unchanged (eval_usages g1 nid) g1 g2"
               "kind g1 nid = kind g2 nid"
 *)
-    then have kind: "kind g2 nid = (PhiNode nida uu)"
-      using kind_unchanged by presburger
+    then have kind: "kind g2 nid = Some (PhiNode nida uu)"
+      using kind_unchanged
+      by (metis elim_kind option.exhaust_sel)
     then show ?case
       using eval.PhiNode kind PhiNode.hyps(1) by simp
   next
@@ -246,12 +258,13 @@ Was: (with 'nid' repeated in inductive rule)
         "unchanged (eval_usages g1 nid) g1 g2"
         "kind g1 nid = kind g2 nid"
 *)
-    then have kind: "kind g2 nid = (ValuePhiNode nida ux uy)"
-      using kind_unchanged by presburger
+    then have kind: "kind g2 nid = Some (ValuePhiNode nida ux uy)"
+      using kind_unchanged
+      by (metis elim_kind option.exhaust_sel)
     then show ?case
       using eval.ValuePhiNode kind ValuePhiNode.hyps(1) by simp 
   next
-    case (ValueProxyNode m child val nida uz nid)
+    case (ValueProxyNode k child m val _ nida uz)
 (*
   ValueProxyNode:
     fix m_ c_ val_ nid_ uz_ nid
@@ -267,29 +280,39 @@ Was: (with 'nid' repeated in inductive rule)
         "nid \<in> ids g1"
         "unchanged (eval_usages g1 nid) g1 g2"
 *)
-    then have "unchanged (eval_usages g1 child) g1 g2"
-      by (metis child_unchanged IRNodes.inputs_of_ValueProxyNode ValueProxyNode.prems(2) inp.simps list.set_intros(1))
-    then have "g2 m \<turnstile> child (kind g2 child) \<mapsto> val"
-      using ValueProxyNode.hyps(2)
-      using ValueProxyNode.hyps(1) good_kind not_in_g by blast  
+    then have unc: "unchanged (eval_usages g1 child) g1 g2"
+      by (metis IRNodes.inputs_of_ValueProxyNode child_unchanged elim_inp list.set_intros(1))
+    then have "g2 m \<turnstile> child (the (kind g2 child)) \<mapsto> val"
+      by (metis ValueProxyNode.hyps(1) ValueProxyNode.hyps(3) elim_kind option.distinct(1) option.sel)
     then show ?case
-      by (metis ValueProxyNode.hyps(3) ValueProxyNode.prems(1) ValueProxyNode.prems(2) eval.ValueProxyNode kind_unchanged)
+      by (metis ValueProxyNode.hyps(1) ValueProxyNode.hyps(4) ValueProxyNode.prems(1) ValueProxyNode.prems(2) unc elim_kind eval.ValueProxyNode kind_unchanged option.discI option.exhaust_sel)
   next
-    case (AbsNode m x v nid)
+    case (AbsNode xk x m v nid)
     then have "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_AbsNode child_unchanged inp.simps list.set_intros(1))
-    then have "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v"
-      using AbsNode.hyps(1) AbsNode.hyps(2) good_kind not_in_g by blast
+      by (metis IRNodes.inputs_of_AbsNode child_unchanged elim_inp list.set_intros(1))
+    then have "g2 m \<turnstile> x (the (kind g2 x)) \<mapsto> IntVal v"
+      using AbsNode.hyps(1) AbsNode.hyps(2) not_in_g
+      by (metis AbsNode.hyps(3) option.distinct(1) option.sel)
     then show ?case
-      by (metis AbsNode.hyps(3) AbsNode.prems(1) AbsNode.prems(2) eval.AbsNode kind_unchanged)
+      by (metis AbsNode.hyps(1) AbsNode.hyps(4) AbsNode.prems(1) AbsNode.prems(2) \<open>unchanged (eval_usages g1 x) g1 g2\<close> elim_kind eval.AbsNode kind_unchanged option.distinct(1) option.sel)
   next
-    case (NegateNode m x v nid)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_NegateNode child_unchanged inp.simps list.set_intros(1))
-    then have x:"g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v"
-      using NegateNode.hyps(1) by blast
+    case Node: (NegateNode xk x m v nid)
+    from inputs_of_NegateNode Node.hyps(1,4) Node.prems(1) 
+    have xinp: "x \<in> set (inp g1 nid)" 
+      using elim_kind by auto
+    then have xin: "x \<in> ids g1" 
+      using Node.hyps(1) not_in_g by force
+    from xinp child_unchanged Node.prems(2)
+      have ux: "unchanged (eval_usages g1 x) g1 g2" by blast
+    have x1:"g1 m \<turnstile> x xk \<mapsto> IntVal v"
+      using Node.hyps(1) Node.hyps(2)
+      by blast
+    have x2: "g2 m \<turnstile> x xk \<mapsto> IntVal v"
+      using kind_unchanged ux xin Node.hyps(1,3)
+      by (metis option.sel)
     then show ?case
-      by (metis NegateNode.hyps(2) NegateNode.hyps(3) NegateNode.prems(2) NoNodeE ux eval.NegateNode kind_unchanged not_in_g)
+      using kind_same Node.hyps(1,4) eval.NegateNode
+      by (metis Node.prems(1) Node.prems(2) kind_unchanged ux xin)
   next
     case node:(AddNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -315,7 +338,7 @@ Was: (with 'nid' repeated in inductive rule)
       using node.hyps(3) by simp
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis SubNode good_kind kind_unchanged not_in_g)
+      by (metis SubNode kind_unchanged not_in_g)
   next
     case node:(MulNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -328,7 +351,7 @@ Was: (with 'nid' repeated in inductive rule)
       using node.hyps(3) by simp
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis MulNode good_kind kind_unchanged not_in_g)
+      by (metis MulNode kind_unchanged not_in_g)
   next
     case node:(AndNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"

@@ -7,43 +7,51 @@ theory IRGraph
     "HOL.Relation"
 begin
 
-(* This theory defines the main Graal data structure - an entire IR Graph. *)
-type_synonym RealGraph = "(ID fset \<times> (ID \<rightharpoonup> IRNode))"
+(* This theory defines the main Graal data structure - an entire IR Graph. 
+type_synonym RealGraph = "(ID fset \<times> (ID \<rightharpoonup> IRNode))" *)
 
 text_raw \<open>\Snip{graphdef}\<close>
-typedef IRGraph = "{g :: RealGraph 
-                    . (\<forall> n . n |\<in>| fst g \<longleftrightarrow> n \<in> dom (snd g))}"
-  apply auto
-  done
+typedef IRGraph = "{g :: ID \<rightharpoonup> IRNode . finite (dom g)}"
+proof -
+  have "finite(dom(Map.empty))" by auto
+  then show ?thesis by blast
+qed
+
 text_raw \<open>\EndSnip\<close>
 
+(*
 fun is_valid :: "RealGraph \<Rightarrow> bool" where
   "is_valid g = (\<forall> n . n |\<in>| fst g \<longleftrightarrow> n \<in> dom (snd g))"
+*)
 
 lemma valid_creation[simp]:
-  assumes "is_valid g"
+  assumes "finite (dom g)"
   shows "Rep_IRGraph (Abs_IRGraph g) = g"
   using Abs_IRGraph_inverse assms by auto
+
 
 (*typedef IRGraph = "{g :: (ID fset \<times> (ID \<rightharpoonup> IRNode)) 
                     . (\<forall> n . n |\<notin>| fst g \<longrightarrow> n \<notin> dom (snd g))}"*)
 
 setup_lifting type_definition_IRGraph
-lift_definition fst :: "IRGraph \<Rightarrow> ID fset"
-  is Product_Type.fst .
 
-lift_definition snd :: "IRGraph \<Rightarrow> (ID \<rightharpoonup> IRNode)"
-  is Product_Type.snd .
+(*
+lift_definition ids :: "IRGraph \<Rightarrow> ID fset"
+  is  .
+*)
 
+lift_definition kind :: "IRGraph \<Rightarrow> (ID \<rightharpoonup> IRNode)"
+  is Rep_IRGraph .
 
 (* Get ALL the IDs in the graph. *)
 fun ids :: "IRGraph \<Rightarrow> ID set" where
-  "ids g = fset (fst g)"
+  "ids g = dom (Rep_IRGraph g)"
 
 text_raw \<open>\Snip{helpers}%\<close>
-(* Look up a given ID in the graph and return the whole node. *)
+(* Look up a given ID in the graph and return the whole node. 
 definition kind :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRNode option" where
   "kind = snd"
+
 
 lemma simp_kind_def[simp]:
   "kind g n = snd g n"
@@ -52,6 +60,7 @@ lemma elim_kind_def[simp,elim]:
   assumes "x = kind g n"
   shows "x = snd g n"
   by (simp add: assms kind_def)
+*)
 
 (* Get the inputs list of a given node ID. *)
 fun inp :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
@@ -77,13 +86,7 @@ fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "predecessors g nid = sorted_list_of_set {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
 
 fun is_empty :: "IRGraph \<Rightarrow> bool" where
-  "is_empty g = ((ids g = {}) \<and> (snd g = Map.empty))"
-
-definition empty_graph:: IRGraph where
-  "empty_graph = Abs_IRGraph (fset_of_list [], Map.empty)"
-
-lemma empty_graph [simp]: "empty_graph = Abs_IRGraph (fset_of_list [], Map.empty)"
-  by (rule empty_graph_def)
+  "is_empty g = ((ids g = {}) \<and> (kind g = Map.empty))"
 
 
 (* First well-formedness predicate for IR graphs.
@@ -124,12 +127,16 @@ fun has_good_successors :: "ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
 
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph g = (
+    0 \<in> ids g \<and> isType is_StartNode (kind g 0) \<and> 
+    (\<forall> n. n \<in> ids g \<longrightarrow> 
+      set (inp g n) \<subseteq> ids g \<and>
+      set (succ g n) \<subseteq> ids g \<and>
+      kind g n \<noteq> None))" (* \<and>
     (\<not>(is_empty g) \<longrightarrow> 
-      (case kind g 0 of None \<Rightarrow> False | Some n \<Rightarrow> is_StartNode n)) \<and>
-    (\<forall> n. n \<in> ids g \<longrightarrow> has_good_inputs n g) \<and>
-    (\<forall> n. n \<in> ids g \<longrightarrow> has_good_successors n g) \<and>
-    (\<forall> n. n \<in> ids g \<longrightarrow> kind g n \<noteq> None))" (* \<and>
+      (case kind g 0 of None \<Rightarrow> False | Some n \<Rightarrow> is_StartNode n)) \<and> 
     (\<forall> n. n \<in> ids g \<longrightarrow> n \<in> dom (snd g))
+      has_good_inputs n g \<and>
+      has_good_successors n g \<and>
    )"*)
 text_raw \<open>\EndSnip\<close>
 (* TODO: add these other invariants?
@@ -145,25 +152,20 @@ lemma wff_kind [simp]:
   assumes "wff_graph g"
   assumes "n \<in> ids g"
   shows "kind g n \<noteq> None"
-  using assms by auto
+  using wff_graph.simps  assms by auto
 
-fun irgraph :: "(ID \<times> IRNode) list \<Rightarrow> RealGraph" where
-  "irgraph g = (fset_of_list (map prod.fst g), map_of g)"
+fun irgraph :: "(ID \<times> IRNode) list \<Rightarrow> (ID \<rightharpoonup> IRNode)" where
+  "irgraph g = map_of g"
 
 fun add_node :: "nat \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "add_node nid node g = 
-    Abs_IRGraph (
-      (fst g) |\<union>| {|nid|},
-      (snd g)(nid \<mapsto> node)
-    )"
+    Abs_IRGraph ((kind g)(nid \<mapsto> node))"
 
 fun remove_node :: "nat \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "remove_node nid g =
-    Abs_IRGraph (
-      (fst g) |-| {|nid|},
-      (snd g)(nid := None)
-    )"
+    Abs_IRGraph ((kind g)(nid := None))"
 
+(*
 lemma add_node_valid[simp]:         
   assumes "gup = add_node nid k g"
   shows "is_valid (Rep_IRGraph gup)"
@@ -173,12 +175,16 @@ lemma remove_node_valid[simp]:
   assumes "gup = remove_node nid g"
   shows "is_valid (Rep_IRGraph gup)"
   using Rep_IRGraph by auto
+*)
+
+definition start_end_graph:: IRGraph where
+  "start_end_graph = Abs_IRGraph (irgraph [(0, StartNode None 1), (1, EndNode)])"
+
 
 (* Example 1: empty graph (just a start node) *)
-lemma wff_empty: "wff_graph empty_graph"
-  unfolding empty_graph
-  by (simp add: eq_onp_same_args fst.abs_eq snd.abs_eq)
-
+lemma wff_empty: "wff_graph start_end_graph"
+  unfolding start_end_graph_def wff_graph.simps ids.simps 
+  by (simp add: eq_onp_same_args kind.abs_eq)
 
 (* Example 2:
   public static int sq(int x) { return x * x; }
@@ -190,7 +196,7 @@ lemma wff_empty: "wff_graph empty_graph"
        V     /
       [5 Return]
 *)
-definition eg2_sq_rep :: RealGraph where
+definition eg2_sq_rep :: "ID \<rightharpoonup> IRNode" where
   "eg2_sq_rep = irgraph [
     (0, StartNode None 5),
     (1, ParameterNode 0),
@@ -201,6 +207,7 @@ definition eg2_sq_rep :: RealGraph where
 definition eg2_sq :: IRGraph where
   "eg2_sq = Abs_IRGraph eg2_sq_rep"
 
+(*
 lemma irgraph_dom[simp]: 
   assumes "\<forall>nid. nid |\<in>| fs \<longleftrightarrow> fm nid \<noteq> None"
   shows "IRGraph.fst(Abs_IRGraph(fs,fm)) = fs"
@@ -209,20 +216,20 @@ lemma irgraph_dom[simp]:
 
 lemma irgraph_dom_x:
   assumes "nid \<in> ids g"
-  shows "(snd g) nid \<noteq> None"
-  using Rep_IRGraph assms fst.rep_eq snd.rep_eq
+  shows "(kind g) nid \<noteq> None"
+  using Rep_IRGraph assms fst.rep_eq kind.rep_eq
   using notin_fset by fastforce
 
 lemma irgraph_dom_inv:
   assumes "nid \<notin> ids g"
-  shows "(snd g) nid = None"
+  shows "(kind g) nid = None"
   using Rep_IRGraph assms
-  using fst.rep_eq notin_fset snd.rep_eq by fastforce 
+  using fst.rep_eq notin_fset kind.rep_eq by fastforce 
 
 lemma irgraph_rng[simp]: 
   assumes "\<forall>nid. nid |\<in>| fs \<longleftrightarrow> fm nid \<noteq> None"
-  shows "IRGraph.snd(Abs_IRGraph(fs,fm)) = fm"
-  using Abs_IRGraph_inverse assms snd.rep_eq
+  shows "IRGraph.kind(Abs_IRGraph(fs,fm)) = fm"
+  using Abs_IRGraph_inverse assms kind.rep_eq
   by (simp add: domIff)
 
 lemma elim_kind[simp]:
@@ -255,23 +262,19 @@ lemma some_kind:
   shows "\<exists> l . kind g n = Some l"
   using elim_kind
   using assms kind_def by auto
+*)
+
+lemma "ids (Abs_IRGraph (irgraph gl)) = dom(map_of gl)"
+  by (simp add: finite_dom_map_of) 
 
 (* Now check some basic properties of this example. *)
 lemma wff_eg2_sq: "wff_graph eg2_sq"
+(*  unfolding wff_graph.simps eg2_sq_def eg2_sq_rep_def *)
 proof -
-  have zi: "0 \<in> ids eg2_sq" by (simp add: eg2_sq_def eg2_sq_rep_def)
-  then have sk: "kind eg2_sq 0 = Some (StartNode None 5)" 
-    using some_kind
-    unfolding eg2_sq_def eg2_sq_rep_def irgraph.simps map_of_def sorry
-  from zi have ne: "\<not>(is_empty eg2_sq)" by auto
-  
-  have "\<forall>n \<in> ids eg2_sq . kind eg2_sq n \<noteq> None"
-    using elim_kind by blast
-  then show ?thesis
-    unfolding eg2_sq_def eg2_sq_rep_def irgraph.simps kind_def elim_kind
-    unfolding IRGraph.wff_graph.simps apply (simp add: caseE)
-    using sk sorry
-qed
+  have "Rep_IRGraph eg2_sq 0 = Some (StartNode None 5)" 
+    by (simp add: eg2_sq_def eg2_sq_rep_def)
+  then show ?thesis apply (auto)
+  apply (simp add: kind.rep_eq)
 
 code_datatype Abs_IRGraph
 

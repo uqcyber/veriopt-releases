@@ -3,9 +3,9 @@ section \<open>Inductive evaluation semantics of floating nodes\<close>
 theory IREval
   imports
     IRGraph
+    "HOL-Library.LaTeXsugar"
 begin
 
-type_synonym int32 = "int"
 (* To be replaced with More_Word definitions when switched back to 32 word *)
 fun int32_not :: "int32 \<Rightarrow> int32" ("NOT") where
   "int32_not x = (if (x = 0) then 1 else 0)"
@@ -60,9 +60,9 @@ fun new_map :: "Value list \<Rightarrow> MapState" where
 fun val_to_bool :: "int32 \<Rightarrow> bool" where
   "val_to_bool val = (if val = 0 then False else True)" 
 
-fun bool_to_m_val :: "bool \<Rightarrow> Value" where
-  "bool_to_m_val True = (IntVal 1)" |
-  "bool_to_m_val False = (IntVal 0)"
+fun bool_to_val :: "bool \<Rightarrow> Value" where
+  "bool_to_val True = (IntVal 1)" |
+  "bool_to_val False = (IntVal 0)"
 
 
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
@@ -87,9 +87,13 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
 
+fun first :: "'a list \<Rightarrow> 'a option" where
+  "first [] = None" |
+  "first xs = Some (hd xs)"
 
 fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
-  "any_usage g nid = (if ((sorted_list_of_set (usages g nid)) = []) then None else Some ((sorted_list_of_set (usages g nid))!0))"
+  "any_usage g nid = first (sorted_list_of_set (usages g nid))"
+
 
 inductive
   eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" (" _ _ \<turnstile> _ _ \<mapsto> _" 55)
@@ -129,7 +133,7 @@ inductive
     \<Longrightarrow> g m \<turnstile> nid (NegateNode x) \<mapsto> IntVal(-v)" |
 
 (* Binary arithmetic operators *)
-(* If we have separate rules for each node then we do not need binary_expr *)
+
   AddNode:
   "\<lbrakk>Some xk = kind g x;
     Some yk = kind g y;
@@ -188,7 +192,7 @@ inductive
     Some yk = kind g y;
     g m \<turnstile> x xk \<mapsto> IntVal(v1);
     g m \<turnstile> y yk \<mapsto> IntVal(v2);
-    val = bool_to_m_val(v1 = v2)\<rbrakk> 
+    val = bool_to_val(v1 = v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (IntegerEqualsNode x y) \<mapsto> val" |
 
   IntegerLessThanNode:
@@ -196,7 +200,7 @@ inductive
     Some yk = kind g y;
     g m \<turnstile> x xk \<mapsto> IntVal(v1);
     g m \<turnstile> y yk \<mapsto> IntVal(v2);
-    val = bool_to_m_val(v1 < v2)\<rbrakk> 
+    val = bool_to_val(v1 < v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val" |
 
 (* Other nodes *)
@@ -246,57 +250,19 @@ inductive
     g m \<turnstile> x xk \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
 
-
-(* Duplication data evaluation with illustrative cases for paper *)
-text_raw \<open>\Snip{ExpressionSemantics}%\<close>
-inductive
-  data_eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool"
-  (" _ _ \<turnstile> _ _ \<hookrightarrow> _" 55)
-  for g where
-
-  ConstantNode:
-  "\<lbrakk>val = (IntVal c)\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ConstantNode c) \<hookrightarrow> val" |
-
-  ParameterNode:
-  "\<lbrakk>val = (m_params m)!i\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (ParameterNode i) \<hookrightarrow> val" |
-
-  ValuePhiNode:
-  "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> _ (ValuePhiNode nid _ _) \<hookrightarrow> val" |
-
-  NegateNode:
-  "\<lbrakk>Some xk = kind g x;
-    g m \<turnstile> x xk \<hookrightarrow> IntVal(v)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (NegateNode x) \<hookrightarrow> IntVal(-v)" |
-
-  AddNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<hookrightarrow> IntVal(v1);
-    g m \<turnstile> y yk \<hookrightarrow> IntVal(v2)\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<hookrightarrow> IntVal(v1+v2)" |
-
-  ShortCircuitOrNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<hookrightarrow> IntVal(v1);
-    g m \<turnstile> y yk \<hookrightarrow> IntVal(v2);
-    val = IntVal(if v1 \<noteq> 0 then v1 else v2)\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<hookrightarrow> val" |
-
-  InvokeNodeEval:
-  "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> _ (InvokeNode nid callTarget classInit stateDuring stateAfter next) \<hookrightarrow> val" |
-
-  RefNode:
-  "\<lbrakk>Some xk = kind g x;
-    g m \<turnstile> x xk \<hookrightarrow> val\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<hookrightarrow> val" 
-text_raw \<open>\EndSnip\<close>
-
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE) eval .
+
+text \<open>Representative induction rules for eval\<close>
+text_raw \<open>\Snip{ExpressionSemantics}%\<close>
+text \<open>@{thm[mode=Rule] eval.ConstantNode [no_vars]} \textsc{ConstantNode}\<close>
+text \<open>@{thm[mode=Rule] eval.ParameterNode [no_vars]} \textsc{ParameterNode}\<close>
+text \<open>@{thm[mode=Rule] eval.ValuePhiNode [no_vars]} \textsc{ValuePhiNode}\<close>
+text \<open>@{thm[mode=Rule] eval.NegateNode [no_vars]} \textsc{NegateNode}\<close>
+text \<open>@{thm[mode=Rule] eval.AddNode [no_vars]} \textsc{AddNode}\<close>
+text \<open>@{thm[mode=Rule] eval.ShortCircuitOrNode [no_vars]} \textsc{ShortCircuitOrNode}\<close>
+text \<open>@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]} \textsc{InvokeNodeEval}\<close>
+text \<open>@{thm[mode=Rule] eval.RefNode [no_vars]} \textsc{RefNode}\<close>
+text_raw \<open>\EndSnip\<close>
 
 
 inductive
@@ -351,198 +317,198 @@ fun is_floating_node :: "IRNode \<Rightarrow> bool" where
   )"
 
 (* nodeout: isabelle-inductive-cases *)
-inductive_cases AbsNodeE[elim!]:
+inductive_cases AbsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AbsNode value) \<mapsto> val"
 
-inductive_cases AbstractBeginNodeE[elim!]:
+inductive_cases AbstractBeginNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AbstractBeginNode next) \<mapsto> val"
 
-inductive_cases AbstractEndNodeE[elim!]:
+inductive_cases AbstractEndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AbstractEndNode) \<mapsto> val"
 
-inductive_cases AbstractLocalNodeE[elim!]:
+inductive_cases AbstractLocalNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AbstractLocalNode) \<mapsto> val"
 
-inductive_cases AbstractMergeNodeE[elim!]:
+inductive_cases AbstractMergeNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AbstractMergeNode ends stateAfter next) \<mapsto> val"
 
-inductive_cases AbstractNewArrayNodeE[elim!]:
+inductive_cases AbstractNewArrayNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AbstractNewArrayNode length0 stateBefore next) \<mapsto> val"
 
-inductive_cases AbstractNewObjectNodeE[elim!]:
+inductive_cases AbstractNewObjectNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AbstractNewObjectNode stateBefore next) \<mapsto> val"
 
-inductive_cases AccessFieldNodeE[elim!]:
+inductive_cases AccessFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AccessFieldNode object next) \<mapsto> val"
 
-inductive_cases AddNodeE[elim!]:
+inductive_cases AddNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AddNode x y) \<mapsto> val"
 
-inductive_cases AndNodeE[elim!]:
+inductive_cases AndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AndNode x y) \<mapsto> val"
 
-inductive_cases BeginNodeE[elim!]:
+inductive_cases BeginNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (BeginNode next) \<mapsto> val"
 
-inductive_cases BeginStateSplitNodeE[elim!]:
+inductive_cases BeginStateSplitNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (BeginStateSplitNode stateAfter next) \<mapsto> val"
 
-inductive_cases BinaryArithmeticNodeE[elim!]:
+inductive_cases BinaryArithmeticNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (BinaryArithmeticNode x y) \<mapsto> val"
 
-inductive_cases BinaryNodeE[elim!]:
+inductive_cases BinaryNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (BinaryNode x y) \<mapsto> val"
 
-inductive_cases BytecodeExceptionNodeE[elim!]:
+inductive_cases BytecodeExceptionNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (BytecodeExceptionNode arguments stateAfter next) \<mapsto> val"
 
-inductive_cases ConditionalNodeE[elim!]:
+inductive_cases ConditionalNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ConditionalNode condition trueValue falseValue) \<mapsto> val"
 
-inductive_cases ConstantNodeE[elim!]:
+inductive_cases ConstantNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ConstantNode intValue) \<mapsto> val"
 
-inductive_cases ControlSplitNodeE[elim!]:
+inductive_cases ControlSplitNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ControlSplitNode) \<mapsto> val"
 
-inductive_cases DeoptimizingFixedWithNextNodeE[elim!]:
+inductive_cases DeoptimizingFixedWithNextNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (DeoptimizingFixedWithNextNode stateBefore next) \<mapsto> val"
 
-inductive_cases DynamicNewArrayNodeE[elim!]:
+inductive_cases DynamicNewArrayNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (DynamicNewArrayNode elementType length0 voidClass stateBefore next) \<mapsto> val"
 
-inductive_cases EndNodeE[elim!]:
+inductive_cases EndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (EndNode) \<mapsto> val"
 
-inductive_cases ExceptionObjectNodeE[elim!]:
+inductive_cases ExceptionObjectNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ExceptionObjectNode stateAfter next) \<mapsto> val"
 
-inductive_cases FixedNodeE[elim!]:
+inductive_cases FixedNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (FixedNode) \<mapsto> val"
 
-inductive_cases FixedWithNextNodeE[elim!]:
+inductive_cases FixedWithNextNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (FixedWithNextNode next) \<mapsto> val"
 
-inductive_cases FloatingNodeE[elim!]:
+inductive_cases FloatingNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (FloatingNode) \<mapsto> val"
 
-inductive_cases FrameStateE[elim!]:
+inductive_cases FrameStateE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (FrameState monitorIds outerFrameState values virtualObjectMappings) \<mapsto> val"
 
-inductive_cases IfNodeE[elim!]:
+inductive_cases IfNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (IfNode condition trueSuccessor falseSuccessor) \<mapsto> val"
 
-inductive_cases IntegerEqualsNodeE[elim!]:
+inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (IntegerEqualsNode x y) \<mapsto> val"
 
-inductive_cases IntegerLessThanNodeE[elim!]:
+inductive_cases IntegerLessThanNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val"
 
-inductive_cases InvokeNodeE[elim!]:
+inductive_cases InvokeNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (InvokeNode nid0 callTarget classInit stateDuring stateAfter next) \<mapsto> val"
 
-inductive_cases InvokeWithExceptionNodeE[elim!]:
+inductive_cases InvokeWithExceptionNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val"
 
-inductive_cases KillingBeginNodeE[elim!]:
+inductive_cases KillingBeginNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (KillingBeginNode next) \<mapsto> val"
 
-inductive_cases LoadFieldNodeE[elim!]:
+inductive_cases LoadFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (LoadFieldNode field object next) \<mapsto> val"
 
-inductive_cases LogicNegationNodeE[elim!]:
+inductive_cases LogicNegationNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (LogicNegationNode value) \<mapsto> val"
 
-inductive_cases LoopBeginNodeE[elim!]:
+inductive_cases LoopBeginNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (LoopBeginNode ends overflowGuard stateAfter next) \<mapsto> val"
 
-inductive_cases LoopEndNodeE[elim!]:
+inductive_cases LoopEndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (LoopEndNode loopBegin) \<mapsto> val"
 
-inductive_cases LoopExitNodeE[elim!]:
+inductive_cases LoopExitNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (LoopExitNode loopBegin stateAfter next) \<mapsto> val"
 
-inductive_cases MergeNodeE[elim!]:
+inductive_cases MergeNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (MergeNode ends stateAfter next) \<mapsto> val"
 
-inductive_cases MethodCallTargetNodeE[elim!]:
+inductive_cases MethodCallTargetNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (MethodCallTargetNode targetMethod arguments) \<mapsto> val"
 
-inductive_cases MulNodeE[elim!]:
+inductive_cases MulNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (MulNode x y) \<mapsto> val"
 
-inductive_cases NegateNodeE[elim!]:
+inductive_cases NegateNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (NegateNode value) \<mapsto> val"
 
-inductive_cases NewArrayNodeE[elim!]:
+inductive_cases NewArrayNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (NewArrayNode length0 stateBefore next) \<mapsto> val"
 
-inductive_cases NewInstanceNodeE[elim!]:
+inductive_cases NewInstanceNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (NewInstanceNode instanceClass stateBefore next) \<mapsto> val"
 
-inductive_cases NotNodeE[elim!]:
+inductive_cases NotNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (NotNode value) \<mapsto> val"
 
-inductive_cases OrNodeE[elim!]:
+inductive_cases OrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (OrNode x y) \<mapsto> val"
 
-inductive_cases ParameterNodeE[elim!]:
+inductive_cases ParameterNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ParameterNode index) \<mapsto> val"
 
-inductive_cases PhiNodeE[elim!]:
+inductive_cases PhiNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (PhiNode nid0 merge) \<mapsto> val"
 
-inductive_cases ProxyNodeE[elim!]:
+inductive_cases ProxyNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ProxyNode loopExit) \<mapsto> val"
 
-inductive_cases ReturnNodeE[elim!]:
+inductive_cases ReturnNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ReturnNode result memoryMap) \<mapsto> val"
 
-inductive_cases ShortCircuitOrNodeE[elim!]:
+inductive_cases ShortCircuitOrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> val"
 
-inductive_cases SignedDivNodeE[elim!]:
+inductive_cases SignedDivNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SignedDivNode x y zeroCheck stateBefore next) \<mapsto> val"
 
-inductive_cases StartNodeE[elim!]:
+inductive_cases StartNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (StartNode stateAfter next) \<mapsto> val"
 
-inductive_cases StoreFieldNodeE[elim!]:
+inductive_cases StoreFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (StoreFieldNode field value stateAfter object next) \<mapsto> val"
 
-inductive_cases SubNodeE[elim!]:
+inductive_cases SubNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SubNode x y) \<mapsto> val"
 
-inductive_cases SwitchNodeE[elim!]:
+inductive_cases SwitchNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SwitchNode value successors) \<mapsto> val"
 
-inductive_cases UnaryArithmeticNodeE[elim!]:
+inductive_cases UnaryArithmeticNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (UnaryArithmeticNode value) \<mapsto> val"
 
-inductive_cases UnaryNodeE[elim!]:
+inductive_cases UnaryNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (UnaryNode value) \<mapsto> val"
 
-inductive_cases UnwindNodeE[elim!]:
+inductive_cases UnwindNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (UnwindNode exception) \<mapsto> val"
 
-inductive_cases ValueNodeE[elim!]:
+inductive_cases ValueNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ValueNode) \<mapsto> val"
 
-inductive_cases ValuePhiNodeE[elim!]:
+inductive_cases ValuePhiNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ValuePhiNode nid0 values merge) \<mapsto> val"
 
-inductive_cases ValueProxyNodeE[elim!]:
+inductive_cases ValueProxyNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ValueProxyNode value loopExit) \<mapsto> val"
 
-inductive_cases XorNodeE[elim!]:
+inductive_cases XorNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (XorNode x y) \<mapsto> val"
 (* nodeout *)
 
 
-inductive_cases RefNodeE[elim!]:
+inductive_cases RefNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (RefNode ref) \<mapsto> val"
 
-inductive_cases SubstrateMethodCallTargetNodeE[elim!]:
+inductive_cases SubstrateMethodCallTargetNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SubstrateMethodCallTargetNode targetMethod args) \<mapsto> val"
 
 
@@ -556,41 +522,12 @@ lemma "evalAddNode" : "g m \<turnstile> nid (AddNode x y) \<mapsto> val \<Longri
 
 (* Prove that eval only works on floating nodes. *)
 lemma "evalFloating":
-  assumes v:"g m \<turnstile> nid node \<mapsto> val"
+  assumes "g m \<turnstile> nid node \<mapsto> val"
   shows "is_floating_node node"
-  using v apply (induct node)
-                      apply auto
-  done
+  using assms by (induct node; auto)
 
 
-(* eval never sees NoNode *)
-(* No longer makes sense? *)
-(*
-lemma good_kind: "g m \<turnstile> x (the (kind g x)) \<mapsto> val \<Longrightarrow> kind g x \<noteq> None"
-  using option.sel
-  
-(* eval never sees NoNode?  Alternative form? *)
-lemma good_kind2:
-  "(g m \<turnstile> nid (case snd g nid of
-     None \<Rightarrow> NoNode |
-     Some n \<Rightarrow> n)
-   \<mapsto> val) \<Longrightarrow>
-  kind g nid \<noteq> NoNode"
-  using good_kind NoNodeE by simp 
-*)
-
-(* We might like to prove the reverse too? But that
-   would require lots of graph and MapState invariants.
-lemma "floatingEval":
-  assumes "is_floating_node node"
-  assumes "very well formed graph:  g"
-  assumes "mapstate m has all necessary params and values!"
-  shows v:"g m \<turnstile> nid node \<mapsto> val"
-*)
-
-(* A top-level goal: eval is deterministic. *)
-
-
+text \<open>A top-level goal: eval is deterministic.\<close>
 theorem "evalDet":
    "(g m \<turnstile> nid node \<mapsto> val1) \<Longrightarrow>
    (\<forall> val2. ((g m \<turnstile> nid node \<mapsto> val2) \<longrightarrow> val1 = val2))"

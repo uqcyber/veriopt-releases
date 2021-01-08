@@ -1,25 +1,37 @@
-section \<open>GraalVM graph representation\<close>
+section \<open>GraalVM Nodes\<close>
 
 theory IRNodes
   imports 
     Main
 begin
 
-(* This is a theory of GraalVM IR graphs that uses numbered nodes,
-   but where each kind of node defines (and names) its own
-   input and successor edges.
+text \<open>
+The GraalVM IR is represented using a graph data structure.
+Here we define the nodes that are contained within the graph.
+Each node represents a Node subclass in the GraalVM compiler,
+the node classes have annotated fields to indicate input and successor edges.
 
-   This implies many of the invariants that were needed before.
-*)
+We represent these classes with each IRNode constructor explicitly labelling
+a reference to the node IDs that it stores as inputs and successors.
 
-(* To identify each Node, we use a simple natural number index.
-   Zero is always the start node in a graph.
-   For human readability, within nodes we write 
-   INPUT (or special case thereof) instead of ID for input edges, and
-   SUCC instead of ID for control-flow successor edges.
-   Optional edges are handled as "INPUT option" etc. 
-*)
-type_synonym int32 = "int" (* while working changed from "32 word" *)
+The inputs\_of and successors\_of functions partition those labelled references
+into input edges and successor edges of a node.
+
+To identify each Node, we use a simple natural number index.
+Zero is always the start node in a graph.
+For human readability, within nodes we write 
+INPUT (or special case thereof) instead of ID for input edges, and
+SUCC instead of ID for control-flow successor edges.
+Optional edges are handled as "INPUT option" etc.
+\<close>
+
+text \<open>
+int32 is normally defined as "32 word" but to speed up computation during
+theory development we set it to simply int
+\<close>
+type_synonym int32 = "int"
+
+subsection "Node Types"
 type_synonym ID = "nat"
 type_synonym INPUT = "ID"   (* InputType.Value is the default *)
 type_synonym INPUT_ASSOC = "ID" (* InputType.Association *)
@@ -28,65 +40,6 @@ type_synonym INPUT_GUARD = "ID" (* InputType.Guard *)
 type_synonym INPUT_COND = "ID"  (* InputType.Condition *)
 type_synonym INPUT_EXT = "ID"  (* InputType.Extension *)
 type_synonym SUCC = "ID"
-
-(* These IR nodes are roughly based on the leaf Graal Java classes.
-   Field names are generally the same, but prefixed with "ir_"
-   (because selector names have global scope in Isabelle, and 
-    never being able to use 'x' or 'y' again would be unacceptable).
-
-datatype (discs_sels) IRNode =
-  (* FloatingNode subclasses (with no successors)
-     ----------------------------------------- *)
-  ConstantNode (ir_intValue: int32)  (* TODO: value should be a Java Constant object *)
-  | ParameterNode (ir_index:nat)
-  | PhiNode (ir_merge:INPUT_ASSOC) (ir_values:"INPUT list") (* not used? *)
-  | ValuePhiNode (ir_merge:INPUT_ASSOC) (ir_inputs:"INPUT list")
-  | ValueProxyNode (ir_loopExit:INPUT_ASSOC) (ir_value:INPUT)
-  (* UnaryArithmeticNode subclasses *)
-  | AbsNode (ir_value:INPUT)
-  | NegateNode (ir_value:INPUT)
-  (* BinaryArithmeticNode subclasses *)
-  | AddNode (ir_x:INPUT) (ir_y:INPUT)
-  | SubNode (ir_x:INPUT) (ir_y:INPUT)
-  | MulNode (ir_x:INPUT) (ir_y:INPUT)
-  | AndNode (ir_x:INPUT) (ir_y:INPUT)
-  | OrNode  (ir_x:INPUT) (ir_y:INPUT)
-  | XorNode (ir_x:INPUT) (ir_y:INPUT)
-  (* CompareNode subclasses *)
-  | IntegerEqualsNode (ir_x:INPUT) (ir_y:INPUT)
-  | IntegerLessThanNode (ir_x:INPUT) (ir_y:INPUT)
-  (* others *)
-  | ConditionalNode (ir_condition:INPUT_COND) (ir_trueValue:INPUT) (ir_falseValue:INPUT)
-(* Ian thinks xNegated and yNegated are a hack to be avoided *)
-  | ShortCircuitOrNode (ir_x:INPUT_COND) (ir_y:INPUT_COND) (* TODO: add? (ir_xNegated:bool) (ir_yNegated:bool)  double shortCircuitProbability; *)
-  | LogicNegationNode (ir_value:INPUT_COND)
-  (* Control-flow (fixed) nodes
-     ------------------ *)
-  | SwitchNode (ir_value:INPUT) (ir_successors:"SUCC list")
-  | IfNode (ir_condition:INPUT_COND) (ir_trueSuccessor:SUCC) (ir_falseSuccessor:SUCC) (* TODO: add field: double trueSuccessorProbability; *)
-  | KillingBeginNode (ir_next:SUCC)
-  | BeginNode (ir_next:SUCC)
-  | StartNode (ir_stateAfter:"INPUT_STATE option") (ir_next:SUCC)
-  | EndNode
-  | LoopBeginNode (ir_stateAfter:"INPUT_STATE option") (ir_overflowGuard:"INPUT_GUARD option") (ir_ends:"INPUT_ASSOC list") (ir_next:SUCC)
-  | LoopEndNode (ir_loopBegin:INPUT_ASSOC)
-  | LoopExitNode (ir_loopBegin:INPUT_ASSOC) (ir_stateAfter:"INPUT_STATE option") (ir_next:SUCC)
-  | MergeNode (ir_stateAfter:"INPUT_STATE option") (ir_ends:"INPUT_ASSOC list") (ir_next:SUCC)
-  | ReturnNode (ir_result:"INPUT option") (ir_memoryMap:"INPUT_EXT option")
-    (* NB. CallNode here includes CallTargetNode. *)
-  | CallNode (ir_startNode:INPUT) (ir_arguments:"INPUT list") (ir_succ:"SUCC list")
-  | NewInstanceNode (ir_className:string) (ir_stateBefore:INPUT_STATE) (ir_next:SUCC)
-  | LoadFieldNode (ir_field:string) (ir_object:INPUT) (ir_next:SUCC)
-  | StoreFieldNode (ir_field:string) (ir_object:INPUT) (ir_value:INPUT) (ir_stateAfter:"INPUT_STATE option") (ir_next:SUCC)
-    (* these next two are special cases of Load/Store where isStatic() is true. *)
-  | LoadStaticFieldNode (ir_field:string) (ir_clazz:string) (ir_next:SUCC)
-  | StoreStaticFieldNode (ir_field:string) (ir_clazz:string) (ir_value:INPUT) (ir_next:SUCC)
-  | FrameState (ir_outerFrameState:"INPUT_STATE option") (ir_values:"INPUT list") (* TODO: add monitorIds, virtualObjectMappings? *)
-  | RefNode (ir_ref:ID) (* Proxy for another node *)
-  (* Dummy node to not cause too much pain when switching to partial *)
-  | NoNode 
-  (* and hundreds of other Node subclasses!... *)
-*)
 
 (* nodeout: isabelle-datatypes *)
 datatype (discs_sels) IRNode =
@@ -158,13 +111,15 @@ datatype (discs_sels) IRNode =
   | SubstrateMethodCallTargetNode (ir_targetMethod: string) (ir_arguments: "INPUT list") 
   | RefNode (ir_ref:ID)
 
-(* Next we may want a predicate for some abstract subclasses?
-   The '(discs_sels)' above automatically generates (is_StartNode _) etc.
-*)
+(* The '(discs_sels)' above automatically generates (is_StartNode _) etc.*)
+
+
+text \<open>isType is used to compose a type selector function for a possibly empty IRNode\<close>
 fun isType :: "(IRNode \<Rightarrow> bool) \<Rightarrow> IRNode option \<Rightarrow> bool" where
   "isType nodeType node = (case node of None \<Rightarrow> False | Some n \<Rightarrow> nodeType n)"
 
 
+text \<open>Class inheritance functions to determine if a node is extended from another\<close>
 fun is_BinaryArithNode :: "IRNode \<Rightarrow> bool" where
   "is_BinaryArithNode (AddNode _ _) = True" |
   "is_BinaryArithNode (SubNode _ _) = True" |
@@ -220,7 +175,7 @@ fun opt_list_to_list :: "'a list option \<Rightarrow> 'a list" where
   "opt_list_to_list None = []" |
   "opt_list_to_list (Some x) = x"
 
-(* We also define a generic 'inputs_of' for all kinds of nodes. *)
+text \<open>inputs\_of and successors\_of partition the node edges into input or successor edges\<close>
 (* nodeout: isabelle-inputs *)
 fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_AbsNode: "inputs_of (AbsNode value) = [value]" |
@@ -290,9 +245,6 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_SubstrateMethodCallTargetNode: "inputs_of (SubstrateMethodCallTargetNode targetMethod args) = args" |
   inputs_of_RefNode: "inputs_of (RefNode ref) = [ref]"
 
-value "inputs_of (FrameState [4] (Some 3) (Some [5, 7]) None)"
-value "inputs_of (FrameState [4] None (Some [7]) (Some [3]))"
-
 (* nodeout: isabelle-succs *)
 fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_AbsNode: "successors_of (AbsNode value) = []" |
@@ -361,6 +313,22 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
 
   successors_of_SubstrateMethodCallTargetNode: "successors_of (SubstrateMethodCallTargetNode targetMethod args) = []" |
   successors_of_RefNode: "successors_of (RefNode ref) = []"
+
+
+
+
+lemma "inputs_of (FrameState x (Some y) (Some z) None) = x @ [y] @ z"
+  unfolding inputs_of_FrameState by simp
+lemma "successors_of (FrameState x (Some y) (Some z) None) = []"
+  unfolding inputs_of_FrameState by simp
+
+lemma "inputs_of (IfNode c t f) = [c]"
+  unfolding inputs_of_IfNode by simp
+lemma "successors_of (IfNode c t f) = [t, f]"
+  unfolding successors_of_IfNode by simp
+
+lemma "inputs_of (EndNode) = [] \<and> successors_of (EndNode) = []"
+  unfolding inputs_of_EndNode successors_of_EndNode by simp
 
 end
 

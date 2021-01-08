@@ -4,6 +4,7 @@ theory IRGraph
   imports 
     IRNodes
     "HOL-Library.FSet"
+    "HOL-Library.Finite_Map"
     "HOL.Relation"
 begin
 
@@ -16,7 +17,6 @@ proof -
   have "finite(dom(Map.empty))" by auto
   then show ?thesis by blast
 qed
-
 text_raw \<open>\EndSnip\<close>
 
 (*
@@ -35,17 +35,22 @@ lemma valid_creation[simp]:
 
 setup_lifting type_definition_IRGraph
 
-(*
-lift_definition ids :: "IRGraph \<Rightarrow> ID fset"
-  is  .
-*)
+lift_definition ids :: "IRGraph \<Rightarrow> ID set"
+  is Map.dom .
+
+lift_definition irgraph :: "(ID \<times> IRNode) list \<Rightarrow> IRGraph"
+  is map_of
+  by (simp add: finite_dom_map_of)
 
 lift_definition kind :: "IRGraph \<Rightarrow> (ID \<rightharpoonup> IRNode)"
   is Rep_IRGraph .
 
+lemma irgraph[code]: "ids (irgraph m) = set (map fst m)"
+  by transfer (simp add: dom_map_of_conv_image_fst ids.rep_eq irgraph.rep_eq)
+
 (* Get ALL the IDs in the graph. *)
-fun ids :: "IRGraph \<Rightarrow> ID set" where
-  "ids g = dom (Rep_IRGraph g)"
+(*fun ids :: "IRGraph \<Rightarrow> ID set" where
+  "ids g = dom (Rep_IRGraph g)"*)
 
 text_raw \<open>\Snip{helpers}%\<close>
 (* Look up a given ID in the graph and return the whole node. 
@@ -61,6 +66,9 @@ lemma elim_kind_def[simp,elim]:
   shows "x = snd g n"
   by (simp add: assms kind_def)
 *)
+
+lemma [simp]: "finite (ids g)"
+  using Rep_IRGraph ids.rep_eq by auto
 
 (* Get the inputs list of a given node ID. *)
 fun inp :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
@@ -154,8 +162,8 @@ lemma wff_kind [simp]:
   shows "kind g n \<noteq> None"
   using wff_graph.simps  assms by auto
 
-fun irgraph :: "(ID \<times> IRNode) list \<Rightarrow> (ID \<rightharpoonup> IRNode)" where
-  "irgraph g = map_of g"
+(*fun irgraph :: "(ID \<times> IRNode) list \<Rightarrow> (ID \<rightharpoonup> IRNode)" where
+  "irgraph g = map_of g"*)
 
 fun add_node :: "nat \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "add_node nid node g = 
@@ -177,14 +185,23 @@ lemma remove_node_valid[simp]:
   using Rep_IRGraph by auto
 *)
 
+lemma [simp]: "finite (ids (irgraph g))" by (simp add: finite_dom_map_of)
+
+lemma [simp]: "finite (dom g) \<longrightarrow> ids (Abs_IRGraph g) = dom g" using ids.rep_eq by simp
+
+lemma [simp]: "finite (dom g) \<longrightarrow> kind (Abs_IRGraph g) = g" using kind.abs_eq by simp
+
+lemma [simp]: "ids (irgraph g) = set (map fst g)" using irgraph by auto
+
+lemma [simp]: "kind (irgraph g) = map_of g" using irgraph.rep_eq kind.transfer by auto
+
+
+(* Example 1: empty graph (just a start and end node) *)
 definition start_end_graph:: IRGraph where
-  "start_end_graph = Abs_IRGraph (irgraph [(0, StartNode None 1), (1, EndNode)])"
+  "start_end_graph = irgraph [(0, StartNode None 1), (1, EndNode)]"
 
-
-(* Example 1: empty graph (just a start node) *)
 lemma wff_empty: "wff_graph start_end_graph"
-  unfolding start_end_graph_def wff_graph.simps ids.simps 
-  by (simp add: eq_onp_same_args kind.abs_eq)
+  unfolding start_end_graph_def wff_graph.simps by simp
 
 (* Example 2:
   public static int sq(int x) { return x * x; }
@@ -196,105 +213,43 @@ lemma wff_empty: "wff_graph start_end_graph"
        V     /
       [5 Return]
 *)
-definition eg2_sq_rep :: "ID \<rightharpoonup> IRNode" where
-  "eg2_sq_rep = irgraph [
+definition eg2_sq :: "IRGraph" where
+  "eg2_sq = irgraph [
     (0, StartNode None 5),
     (1, ParameterNode 0),
     (4, MulNode 1 1),
     (5, ReturnNode (Some 4) None)
    ]"
 
-definition eg2_sq :: IRGraph where
-  "eg2_sq = Abs_IRGraph eg2_sq_rep"
+lemma ids_some: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> None"
+  using ids.rep_eq kind_def by auto
 
-(*
-lemma irgraph_dom[simp]: 
-  assumes "\<forall>nid. nid |\<in>| fs \<longleftrightarrow> fm nid \<noteq> None"
-  shows "IRGraph.fst(Abs_IRGraph(fs,fm)) = fs"
-  using Abs_IRGraph_inverse assms fst.rep_eq
-  by (simp add: domIff)
-
-lemma irgraph_dom_x:
-  assumes "nid \<in> ids g"
-  shows "(kind g) nid \<noteq> None"
-  using Rep_IRGraph assms fst.rep_eq kind.rep_eq
-  using notin_fset by fastforce
-
-lemma irgraph_dom_inv:
-  assumes "nid \<notin> ids g"
-  shows "(kind g) nid = None"
-  using Rep_IRGraph assms
-  using fst.rep_eq notin_fset kind.rep_eq by fastforce 
-
-lemma irgraph_rng[simp]: 
-  assumes "\<forall>nid. nid |\<in>| fs \<longleftrightarrow> fm nid \<noteq> None"
-  shows "IRGraph.kind(Abs_IRGraph(fs,fm)) = fm"
-  using Abs_IRGraph_inverse assms kind.rep_eq
-  by (simp add: domIff)
-
-lemma elim_kind[simp]:
-  "n \<in> ids g \<longleftrightarrow> kind g n \<noteq> None"
-  using irgraph_dom_inv irgraph_dom_x kind_def by fastforce
-
-lemma elim_kind_cases[elim!]:
-  "n \<in> ids g \<Longrightarrow> (case kind g n of Some x \<Rightarrow> y | None \<Rightarrow> z) = y"
-  using elim_kind by auto
-
-lemma elim_inp[simp]:
-  assumes "n \<in> ids g"
-  shows "inp g n = inputs_of (the (kind g n))"
-  using assms elim_kind by auto
-
-lemma elim_succ[simp]:
-  assumes "n \<in> ids g"
-  shows "succ g n = successors_of (the (kind g n))"
-  using assms elim_kind by auto
-
-lemma caseE[elim!]:
-  fixes x::"'a option"
-  assumes "case x of Some _ \<Rightarrow> y | None \<Rightarrow> z"
-  assumes "x \<noteq> None"
-  shows "y"
-  using assms(1) assms(2) case_optionE by blast
-
-lemma some_kind:
-  assumes "n \<in> ids g"
-  shows "\<exists> l . kind g n = Some l"
-  using elim_kind
-  using assms kind_def by auto
-*)
-
-lemma "ids (Abs_IRGraph (irgraph gl)) = dom(map_of gl)"
-  by (simp add: finite_dom_map_of) 
 
 (* Now check some basic properties of this example. *)
 lemma wff_eg2_sq: "wff_graph eg2_sq"
-(*  unfolding wff_graph.simps eg2_sq_def eg2_sq_rep_def *)
+  unfolding eg2_sq_def wff_graph.simps by simp
+  
+(*
 proof -
-  have "Rep_IRGraph eg2_sq 0 = Some (StartNode None 5)" 
-    by (simp add: eg2_sq_def eg2_sq_rep_def)
-  then show ?thesis apply (auto)
-  apply (simp add: kind.rep_eq)
-
-code_datatype Abs_IRGraph
-
-lemma [code]: "Rep_IRGraph (Abs_IRGraph m) = m"
-  using Abs_IRGraph_inverse sorry
-
-lemma eg2_sq_inv: 
-  "\<forall>nid. nid |\<in>| prod.fst eg2_sq_rep \<longleftrightarrow> prod.snd eg2_sq_rep nid \<noteq> None"
-  unfolding eg2_sq_rep_def irgraph.simps
-  apply simp
-  done
-
-lemma rep_eg2: "Rep_IRGraph eg2_sq = eg2_sq_rep"
-proof -
-  have "\<forall>n. n |\<in>| prod.fst eg2_sq_rep \<longleftrightarrow> prod.snd eg2_sq_rep n \<noteq> None"
-    using eg2_sq_inv by fastforce
-  then show ?thesis
-    by (simp add: Abs_IRGraph_inverse domIff eg2_sq_def)
+  have wff_0: "0 \<in> ids eg2_sq"
+    unfolding eg2_sq_def eg2_sq_rep_def esy_ids by simp
+  have wff_1: "kind eg2_sq 0 = Some (StartNode None 5)" 
+    unfolding eg2_sq_def eg2_sq_rep_def esy_kind by simp
+  have wff_2: "\<forall> n \<in> ids eg2_sq . set (inp eg2_sq n) \<subseteq> ids eg2_sq"
+    unfolding eg2_sq_def eg2_sq_rep_def esy_ids esy_kind inp.simps by simp
+  have wff_3: "\<forall> n \<in> ids eg2_sq . set (succ eg2_sq n) \<subseteq> ids eg2_sq"
+    unfolding eg2_sq_def eg2_sq_rep_def esy_ids esy_kind succ.simps by simp
+  have wff_4: "\<forall> n \<in> ids eg2_sq . kind eg2_sq n \<noteq> None"
+    using ids_some by simp
+  from wff_0 wff_1 wff_2 wff_3 wff_4 show ?thesis unfolding wff_graph.simps by simp
 qed
+*)
 
+code_datatype Abs_IRGraph irgraph
+
+lemma [code]: "(Rep_IRGraph (irgraph m)) = map_of m"
+  using Abs_IRGraph_inverse
+  by (simp add: irgraph.rep_eq)
 
 (* Test the code generation. *)
 value "input_edges eg2_sq"

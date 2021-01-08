@@ -15,12 +15,12 @@ begin
 
 fun unchanged :: "ID set \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "unchanged ns g1 g2 = (\<forall> n . n \<in> ns \<longrightarrow> 
-    (n \<in> ids g1 \<and> n \<in> ids g2 \<and> snd g1 n = snd g2 n))"
+    (n \<in> ids g1 \<and> n \<in> ids g2 \<and> kind g1 n = kind g2 n))"
 
 (* This allows new nodes to be added to g2, but only ns can change. *)
 fun changeonly :: "ID set \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "changeonly ns g1 g2 = (\<forall> n . n \<in> ids g1 \<and> n \<notin> ns \<longrightarrow> 
-    (n \<in> ids g1 \<and> n \<in> ids g2 \<and> snd g1 n = snd g2 n))"
+    (n \<in> ids g1 \<and> n \<in> ids g2 \<and> kind g1 n = kind g2 n))"
 
 lemma node_unchanged [simp]:
   assumes "unchanged ns g1 g2"
@@ -33,7 +33,8 @@ lemma other_node_unchanged [simp]:
   assumes "nid \<in> ids g1"
   assumes "nid \<notin> ns"
   shows "kind g1 nid = kind g2 nid"
-  using assms by auto
+  using assms
+  using changeonly.simps by blast
 
 
 subsection \<open>Some notation for input nodes used\<close>
@@ -68,21 +69,14 @@ lemma eval_usages_self [simp]:
 lemma not_in_g [simp]: 
   assumes "nid \<notin> ids g"
   shows "kind g nid = None"
-proof -
-  have "nid \<notin> dom (snd g)"
-    using assms irgraph_dom_inv by auto
-  then have "snd g nid = None"
-    by auto
-  then show ?thesis
-    by auto
-qed
+  using assms ids_some by blast
 
 lemma not_in_g_inp [simp]: 
   assumes "nid \<notin> ids g"
   shows "inp g nid = []"
 proof -
-  have "kind g nid = None" using assms not_in_g by auto
-  then show ?thesis by auto
+  have k: "kind g nid = None" using assms not_in_g by blast
+  then show ?thesis by (simp add: k)
 qed
 
 (* Node inputs are not necessarily in ids g (unless wff_graph g).
@@ -95,10 +89,11 @@ proof -
     using assms
     by (metis empty_iff empty_set)
   then have "kind g nid \<noteq> None"
-    using not_in_g_inp by fastforce
+    using not_in_g_inp
+    using ids_some by blast
   then show ?thesis
     using not_in_g
-    using elim_kind by blast
+    by metis
 qed
 
 
@@ -108,7 +103,8 @@ lemma kind_unchanged:
   shows "kind g1 nid = kind g2 nid"
 proof -
   show ?thesis
-    using assms eval_usages_self by auto
+    using assms eval_usages_self
+    using unchanged.simps by blast
 qed
 
 lemma child_unchanged:
@@ -151,7 +147,8 @@ lemma eval_usages[simp]:
   assumes "us = eval_usages g nid"
   assumes "nid' \<in> ids g"
   shows "eval_uses g nid nid' \<longleftrightarrow> nid' \<in> us" (is "?P \<longleftrightarrow> ?Q")
-  using assms eval_usages.simps by simp
+  using assms eval_usages.simps
+  by (metis eval_usages_self filter_set member_filter)
 
 lemma inputs_are_uses:
   assumes "nid' \<in> set (inp g nid)"
@@ -182,7 +179,8 @@ lemma elim_inp_set:
   assumes "Some k = kind g nid"
   assumes "child \<in> set (inputs_of k)"
   shows "child \<in> set (inp g nid)"
-  using assms(1) assms(2) by auto
+  using assms(1) assms(2)
+  by (metis inp.simps option.simps(5))
 
 (* Main theorem that we want. *)
 lemma stay_same:
@@ -209,7 +207,7 @@ proof -
     case const: (ConstantNode val c m nid)
     then have "kind g2 nid = Some (ConstantNode c)"
       using kind_unchanged
-      by (metis elim_kind option.exhaust_sel)
+      by (metis ids_some option.exhaust_sel)
     then show ?case
       by (simp add: const.hyps(1) eval.ConstantNode)
   next
@@ -260,7 +258,7 @@ Was: (with 'nid' repeated in inductive rule)
 *)
     then have kind: "kind g2 nid = Some (ValuePhiNode nida ux uy)"
       using kind_unchanged
-      by (metis elim_kind option.exhaust_sel)
+      by (metis option.exhaust_sel)
     then show ?case
       using eval.ValuePhiNode kind ValuePhiNode.hyps(1) by simp 
   next
@@ -299,7 +297,7 @@ Was: (with 'nid' repeated in inductive rule)
     case Node: (NegateNode xk x m v nid)
     from inputs_of_NegateNode Node.hyps(1,4) Node.prems(1) 
     have xinp: "x \<in> set (inp g1 nid)" 
-      using elim_kind by auto
+      by auto
     then have xin: "x \<in> ids g1" 
       using Node.hyps(1) not_in_g by force
     from xinp child_unchanged Node.prems(2)

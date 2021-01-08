@@ -221,8 +221,8 @@ values "{m_val (prod.snd (prod.snd (hd (prod.fst res)))) 0
 definition field_sq :: FieldName where
   "field_sq = ''sq''"
 
-definition eg3_store_sq :: RealGraph where
-  "eg3_store_sq = irgraph [
+definition eg3_sq :: IRGraph where
+  "eg3_sq = irgraph [
     (0, StartNode None 4),
     (1, ParameterNode 0),
     (3, MulNode 1 1),
@@ -230,24 +230,18 @@ definition eg3_store_sq :: RealGraph where
     (5, ReturnNode (Some 3) None)
    ]"
 
-definition eg3_sq :: IRGraph where
-  "eg3_sq = Abs_IRGraph eg3_store_sq"
-
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
 values "{(prod.snd res) field_sq None
         | res. (\<lambda>x. eg3_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
 
-definition eg4_store_sq :: RealGraph where
-  "eg4_store_sq = irgraph [
+definition eg4_sq :: IRGraph where
+  "eg4_sq = irgraph [
     (0, StartNode None 4),
     (1, ParameterNode 0),
     (3, MulNode 1 1),
     (4, StoreFieldNode field_sq 3 None (Some 24) 5),
     (5, ReturnNode (Some 3) None)
    ]"
-
-definition eg4_sq :: IRGraph where
-  "eg4_sq = Abs_IRGraph eg4_store_sq"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 24={sq: 9} *)
 values "{(prod.snd res) field_sq (Some 24)

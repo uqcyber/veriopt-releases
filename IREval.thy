@@ -552,7 +552,7 @@ lemma "evalAddNode" : "g m \<turnstile> nid (AddNode x y) \<mapsto> val \<Longri
     (\<exists> v2. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v2) \<and>
        val = IntVal(v1 + v2)))"
   using AddNodeE
-  by (metis kind_def option.sel)
+  by (metis option.sel)
 
 (* Prove that eval only works on floating nodes. *)
 lemma "evalFloating":
@@ -598,8 +598,7 @@ theorem "evalDet":
                      apply (rule allI; rule impI; elim ConstantNodeE; auto)
                     apply (rule allI; rule impI; elim ParameterNodeE; auto)
                    apply (rule allI; rule impI; elim PhiNodeE; auto)
-                     apply (rule allI; rule impI; elim ValuePhiNodeE; auto) sorry
-(*
+                     apply (rule allI; rule impI; elim ValuePhiNodeE; auto)
                  apply (rule allI; rule impI; elim ValueProxyNodeE; metis option.inject)
                 apply (rule allI; rule impI; elim AbsNodeE; metis Value.inject(1) option.inject)
                apply (rule allI; rule impI; elim NegateNodeE; metis Value.inject(1) option.inject)
@@ -622,6 +621,6 @@ theorem "evalDet":
 apply (rule allI; rule impI; elim RefNodeE; metis option.inject)
   
   done
-*)
+
 end
 

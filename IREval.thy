@@ -116,90 +116,69 @@ inductive
     \<Longrightarrow> g m \<turnstile> _ (ValuePhiNode nid _ _) \<mapsto> val" |
 
   ValueProxyNode:
-  "\<lbrakk>Some ck = kind g c;
-    g m \<turnstile> c ck \<mapsto> val\<rbrakk>
+  "\<lbrakk>g m \<turnstile> c (the (kind g c)) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (ValueProxyNode c _) \<mapsto> val" |
 
 (* Unary arithmetic operators *)
 
   AbsNode:
-  "\<lbrakk>Some xk = kind g x;
-    g m \<turnstile> x xk \<mapsto> IntVal(v)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (AbsNode x) \<mapsto> IntVal(if v<0 then -v else v)" |
 
   NegateNode:
-  "\<lbrakk>Some xk = kind g x;
-    g m \<turnstile> x xk \<mapsto> IntVal(v)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (NegateNode x) \<mapsto> IntVal(-v)" |
 
 (* Binary arithmetic operators *)
 
   AddNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2)\<rbrakk>
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(v1+v2)" |
 
   SubNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (SubNode x y) \<mapsto> IntVal(v1-v2)" |
 
   MulNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (MulNode x y) \<mapsto> IntVal(v1*v2)" |
 
   SignedDivNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g x;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2)\<rbrakk>
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (SignedDivNode x y zeroCheck frameState next) \<mapsto> IntVal(v1 div v2)" |
 
 (* Binary logical bitwise operators *)
 
   AndNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (AndNode x y) \<mapsto> IntVal(v1 AND v2)" |
 
   OrNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (OrNode x y) \<mapsto> IntVal(v1 OR v2)" |
 
   XorNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (XorNode x y) \<mapsto> IntVal(v1 XOR v2)" |
 
 (* Comparison operators *)
 (* NOTE: if we use IntVal(bool_to_int(v1=v2)), then code generation does not work! *)
   IntegerEqualsNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2);
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2);
     val = bool_to_val(v1 = v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (IntegerEqualsNode x y) \<mapsto> val" |
 
   IntegerLessThanNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2);
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2);
     val = bool_to_val(v1 < v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val" |
 
@@ -208,28 +187,22 @@ inductive
    This is not an issue as evaluation is total (but may return UnDef) *)
 
   ConditionalNode:
-  "\<lbrakk>Some condk = kind g condition;
-    Some truek = kind g trueExp;
-    Some falsek = kind g falseExp;
-    g m \<turnstile> condition condk \<mapsto> IntVal(cond);
-    g m \<turnstile> trueExp truek \<mapsto> IntVal(trueVal);
-    g m \<turnstile> falseExp falsek \<mapsto> IntVal(falseVal);
+  "\<lbrakk>g m \<turnstile> condition (the (kind g condition)) \<mapsto> IntVal(cond);
+    g m \<turnstile> trueExp (the (kind g trueExp)) \<mapsto> IntVal(trueVal);
+    g m \<turnstile> falseExp (the (kind g falseExp)) \<mapsto> IntVal(falseVal);
     val = IntVal(if cond \<noteq> 0 then trueVal else falseVal)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (ConditionalNode condition trueExp falseExp) \<mapsto> val" |
 
 (* Note that v2 may evaluate to UnDef but is not used if v1 is true *)
 
   ShortCircuitOrNode:
-  "\<lbrakk>Some xk = kind g x;
-    Some yk = kind g y;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
-    g m \<turnstile> y yk \<mapsto> IntVal(v2);
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2);
     val = IntVal(if v1 \<noteq> 0 then v1 else v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> val" |
 
   LogicNegationNode:
-  "\<lbrakk>Some xk = kind g x;
-    g m \<turnstile> x xk \<mapsto> IntVal(v1);
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
     val = IntVal(NOT v1)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (LogicNegationNode x) \<mapsto> val" |
 
@@ -246,8 +219,7 @@ inductive
   "g m \<turnstile> nid (NewInstanceNode class stateBefore next) \<mapsto> (ObjRef (Some 0))" |
 
   RefNode:
-  "\<lbrakk>Some xk = kind g x;
-    g m \<turnstile> x xk \<mapsto> val\<rbrakk>
+  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE) eval .

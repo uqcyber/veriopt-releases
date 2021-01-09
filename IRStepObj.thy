@@ -36,7 +36,7 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
 
   SequentialNode:
   "\<lbrakk>g = p_method s p;
-    Some node = kind g nid;
+    node = the (kind g nid);
     is_sequential_node(node);
     next = (succ g nid)!0\<rbrakk> 
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
@@ -44,18 +44,18 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
   IfNode:
   "\<lbrakk>g = p_method s p;
     kind g nid = Some (IfNode cond true false);
-    Some condk = kind g cond;
+    condk = the (kind g cond);
     g m \<turnstile> cond condk \<mapsto> (IntVal val);
     next = (if val_to_bool val then true else false)\<rbrakk>
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |  
 
   EndNodes:
   "\<lbrakk>g = p_method s p;
-    Some ek = kind g nid;
+    ek = the (kind g nid);
     is_end_node(ek);
     merge_or_none = any_usage g nid;
     merge = the merge_or_none;
-    Some mk = kind g merge;
+    mk = the (kind g merge);
     is_merge_node(mk);
 
     i = input_index g merge nid;
@@ -81,7 +81,7 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
   StoreFieldNode:
     "\<lbrakk>g = p_method s p;
       kind g nid = Some (StoreFieldNode f rhs _ obj nxt);
-      Some rhsk = kind g rhs;
+      rhsk = the (kind g rhs);
       g m \<turnstile> rhs rhsk \<mapsto> val;
       h' = h_store_field f obj val h;
       m' = m_set nid val m\<rbrakk> 
@@ -118,7 +118,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
   ReturnNode:
   "\<lbrakk>g = p_method s p;
     kind g nid = Some (ReturnNode (Some expr) _);
-    Some ek = kind g expr;
+    ek = the (kind g expr);
     g m \<turnstile> expr ek \<mapsto> v;
     c_m' = m_set c_nid v c_m;
     c_nid' = (succ (p_method c_s p) c_nid)!0\<rbrakk> 
@@ -135,7 +135,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     "\<lbrakk>g = p_method s p;
       kind g nid = Some (UnwindNode exception);
 
-      Some ek = kind g exception;
+      ek = the (kind g exception);
       g m \<turnstile> exception ek \<mapsto> e;
 
       c_g = (p_method c_s p);      

@@ -45,12 +45,7 @@ inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> b
 
   use0: "nid \<in> ids g
     \<Longrightarrow> eval_uses g nid nid" |
-(* WAS:
-  "\<lbrakk>kind g nid = n;
-    inputs_of n = ls;
-    nid' \<in> set ls\<rbrakk>
-    \<Longrightarrow> eval_uses g nid nid'" |
-*)
+
   use_inp: "nid' \<in> set(inp g n)
     \<Longrightarrow> eval_uses g nid nid'" |
 
@@ -58,18 +53,19 @@ inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> b
     eval_uses g nid' nid''\<rbrakk>
     \<Longrightarrow> eval_uses g nid nid''"
 
+
 fun eval_usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
-  "eval_usages g nid = set (filter (eval_uses g nid) (sorted_list_of_set (ids g)))"
+  "eval_usages g nid = {n \<in> dom (Rep_IRGraph g) . eval_uses g nid n}"
 
 lemma eval_usages_self [simp]:
   assumes "nid \<in> ids g"
   shows "nid \<in> eval_usages g nid"
-  using assms eval_usages.simps eval_uses.intros(1) by auto 
+  using assms eval_usages.simps eval_uses.intros(1)
+  by (simp add: ids.rep_eq)
 
 lemma not_in_g [simp]: 
-  assumes "nid \<notin> ids g"
-  shows "kind g nid = None"
-  using assms ids_some by blast
+  "nid \<notin> ids g \<longleftrightarrow> kind g nid = None"
+  using ids_some by blast
 
 lemma not_in_g_inp [simp]: 
   assumes "nid \<notin> ids g"
@@ -78,6 +74,21 @@ proof -
   have k: "kind g nid = None" using assms not_in_g by blast
   then show ?thesis by (simp add: k)
 qed
+
+lemma child_member:
+  assumes "Some n = kind g nid"
+  assumes "List.member (inputs_of n) child"
+  shows "child \<in> set (inp g nid)"
+  unfolding inp.simps using assms
+  by (metis in_set_member option.simps(5)) 
+
+lemma child_member_in:
+  assumes "nid \<in> ids g"
+  assumes "List.member (inputs_of (the (kind g nid))) child"
+  shows "child \<in> set (inp g nid)"
+  unfolding inp.simps using assms
+  by (metis child_member ids_some inp.elims option.exhaust_sel)
+
 
 (* Node inputs are not necessarily in ids g (unless wff_graph g).
    But this is true because 'inp' is defined using 'kind'. *)
@@ -96,6 +107,13 @@ proof -
     by metis
 qed
 
+lemma inp_in_g_wff:
+  assumes "wff_graph g"
+  assumes "n \<in> set (inp g nid)"
+  shows "n \<in> ids g"
+  using assms unfolding wff_graph.simps
+  using inp_in_g by blast
+
 
 lemma kind_unchanged:
   assumes "nid \<in> ids g1"
@@ -111,44 +129,15 @@ lemma child_unchanged:
   assumes "child \<in> set(inp g1 nid)"
   assumes "unchanged (eval_usages g1 nid) g1 g2"
   shows "unchanged (eval_usages g1 child) g1 g2"
-  by (smt assms(1) assms(2) eval_usages.simps filter_set 
-      member_filter unchanged.simps use_inp use_trans)
-
-
-(* Not true for all inputs?
-lemma eval_usages_empty:
-  shows "eval_uses g nid nid \<Longrightarrow> nid \<in> ids g"
-proof (induction rule: "eval_uses.induct")
-  print_cases
-  case use0
-  show ?case by (rule "use0")
-next
-  case use_inp
-  show ?case using inp_in_g by auto
-next
-  case use_trans
-  show ?case by auto
-qed
-*)
-
-
-(*
-lemma eval_usages_refl [simp]:
-  assumes "nid \<in> eval_usages g nid"
-  shows "nid \<in> ids g"
-proof -
-  have evnid: "eval_uses g nid nid"
-    using assms by auto
-  show ?thesis
-    using evnid 
-*)
+  by (smt assms(1) assms(2) eval_usages.simps mem_Collect_eq
+      unchanged.simps use_inp use_trans)
 
 lemma eval_usages[simp]:
   assumes "us = eval_usages g nid"
   assumes "nid' \<in> ids g"
   shows "eval_uses g nid nid' \<longleftrightarrow> nid' \<in> us" (is "?P \<longleftrightarrow> ?Q")
   using assms eval_usages.simps
-  by (metis eval_usages_self filter_set member_filter)
+  by (simp add: ids.rep_eq)
 
 lemma inputs_are_uses:
   assumes "nid' \<in> set (inp g nid)"
@@ -182,17 +171,14 @@ lemma elim_inp_set:
   using assms(1) assms(2)
   by (metis inp.simps option.simps(5))
 
+
 (* Main theorem that we want. *)
-lemma stay_same:
+theorem stay_same:
   assumes "kind g1 nid \<noteq> None"
   assumes nc: "unchanged (eval_usages g1 nid) g1 g2"
   assumes g1: "g1 m \<turnstile> nid (the (kind g1 nid)) \<mapsto> v1"
-  (*assumes "unchanged (eval_usages g1 nid) g1 g2"*)
-  shows (* "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1
-   \<Longrightarrow> unchanged (eval_usages g1 nid) g1 g2
-   \<Longrightarrow> *) "g2 m \<turnstile> nid (the (kind g2 nid)) \<mapsto> v1"
-(* proof (induct rule: "eval.induct") *)
-
+  assumes wff: "wff_graph g1"
+  shows "g2 m \<turnstile> nid (the (kind g2 nid)) \<mapsto> v1"
 proof -
   have nid: "nid \<in> ids g1"
     using not_in_g g1
@@ -205,301 +191,222 @@ proof -
   proof (induct m nid "the (kind g1 nid)" v1 arbitrary: nid rule: "eval.induct")
     print_cases
     case const: (ConstantNode val c m nid)
-    then have "kind g2 nid = Some (ConstantNode c)"
-      using kind_unchanged
-      by (metis ids_some option.exhaust_sel)
-    then show ?case
-      by (simp add: const.hyps(1) eval.ConstantNode)
+    then have "the (kind g2 nid) = ConstantNode c"
+      using kind_unchanged by metis
+    then show ?case using eval.ConstantNode const.hyps(1) by metis
   next
     case param: (ParameterNode val m i nid)
     show ?case
       by (metis eval.ParameterNode kind_unchanged param.hyps(1) param.hyps(2) param.prems(1) param.prems(2))
   next
     case (PhiNode val m nida uv uu nid)
-(*
-PhiNode:
-    fix val_ m_ nid_ uv_ uu_ nid
-    let "?case" = " g2 m_ \<turnstile> nid kind g2 nid \<mapsto> val_"
-    assume hyps : "val_ = m_val m_ nid_"
-                  "PhiNode uu_ nid_ = kind g1 nid"
-      and
-      prems : "nid \<in> ids g1" 
-              "unchanged (eval_usages g1 nid) g1 g2"
-              "kind g1 nid = kind g2 nid"
-*)
-    then have kind: "kind g2 nid = Some (PhiNode nida uu)"
+    then have kind: "the (kind g2 nid) = (PhiNode nida uu)"
       using kind_unchanged
-      by (metis elim_kind option.exhaust_sel)
+      by metis
     then show ?case
-      using eval.PhiNode kind PhiNode.hyps(1) by simp
+      using eval.PhiNode PhiNode.hyps(1)
+      by metis
   next
     case (ValuePhiNode val m nida uw ux uy nid)
-(*
-  ValuePhiNode:
-    fix val_ m_ nid_ uw_ ux_ uy_ nid
-    let "?case" = " g2 m_ \<turnstile> nid kind g2 nid \<mapsto> val_"
-    assume
-      hyps : "val_ = m_val m_ nid_"
-        "ValuePhiNode ux_ uy_ nid_ = kind g1 nid"
-      and
-      prems : "nid \<in> ids g1" "unchanged (eval_usages g1 nid) g1 g2"
-        "kind g1 nid = kind g2 nid"
-
-Was: (with 'nid' repeated in inductive rule)
-    fix val_ m_ nid_ uw_ ux_ nid
-    let "?case" = " g2 m_ \<turnstile> nid kind g2 nid \<mapsto> val_"
-    assume
-      hyps : "val_ = m_val m_ nid_"
-        "ValuePhiNode uw_ ux_ nid_ = kind g1 nid"
-      and
-      prems : "nid \<in> ids g1" 
-        "unchanged (eval_usages g1 nid) g1 g2"
-        "kind g1 nid = kind g2 nid"
-*)
-    then have kind: "kind g2 nid = Some (ValuePhiNode nida ux uy)"
-      using kind_unchanged
-      by (metis option.exhaust_sel)
+    then have kind: "the (kind g2 nid) = ValuePhiNode nida ux uy"
+      using kind_unchanged by metis
     then show ?case
-      using eval.ValuePhiNode kind ValuePhiNode.hyps(1) by simp 
+      using eval.ValuePhiNode kind ValuePhiNode.hyps(1) by metis 
   next
-    case (ValueProxyNode k child m val _ nida uz)
-(*
-  ValueProxyNode:
-    fix m_ c_ val_ nid_ uz_ nid
-    let "?case" = " g2 m_ \<turnstile> nid kind g2 nid \<mapsto> val_"
-    assume
-      hyps : " g1 m_ \<turnstile> c_ kind g1 c_ \<mapsto> val_"
-        "\<And>nid. kind g1 c_ = kind g1 nid \<Longrightarrow>
-                nid \<in> ids g1 \<Longrightarrow>
-                unchanged (eval_usages g1 nid) g1 g2 \<Longrightarrow>
-                 g2 m_ \<turnstile> nid kind g2 nid \<mapsto> val_"
-        "ValueProxyNode c_ uz_ = kind g1 nid"
-      and prems : 
-        "nid \<in> ids g1"
-        "unchanged (eval_usages g1 nid) g1 g2"
-*)
-    then have unc: "unchanged (eval_usages g1 child) g1 g2"
-      by (metis IRNodes.inputs_of_ValueProxyNode child_unchanged elim_inp list.set_intros(1))
+    case (ValueProxyNode m child val _ uz nid)
+    from ValueProxyNode.prems(1) ValueProxyNode.hyps(3)
+    have inp_in: "child \<in> set (inp g1 nid)"
+      using child_member_in inputs_of_ValueProxyNode
+      by (metis member_rec(1))
+    then have cin: "child \<in> ids g1" 
+      using wff inp_in_g_wff by blast
+    from inp_in have unc: "unchanged (eval_usages g1 child) g1 g2"
+      using child_unchanged ValueProxyNode.prems(2) by metis
     then have "g2 m \<turnstile> child (the (kind g2 child)) \<mapsto> val"
-      by (metis ValueProxyNode.hyps(1) ValueProxyNode.hyps(3) elim_kind option.distinct(1) option.sel)
+      using ValueProxyNode.hyps(2) cin
+      by blast
     then show ?case
-      by (metis ValueProxyNode.hyps(1) ValueProxyNode.hyps(4) ValueProxyNode.prems(1) ValueProxyNode.prems(2) unc elim_kind eval.ValueProxyNode kind_unchanged option.discI option.exhaust_sel)
+      by (metis ValueProxyNode.hyps(3) ValueProxyNode.prems(1) ValueProxyNode.prems(2) eval.ValueProxyNode kind_unchanged)
   next
-    case (AbsNode xk x m v nid)
+    case (AbsNode m x v _ nid)
     then have "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_AbsNode child_unchanged elim_inp list.set_intros(1))
+      by (metis child_unchanged elim_inp_set ids_some inputs_of.simps(1) list.set_intros(1) option.exhaust_sel)
     then have "g2 m \<turnstile> x (the (kind g2 x)) \<mapsto> IntVal v"
       using AbsNode.hyps(1) AbsNode.hyps(2) not_in_g
-      by (metis AbsNode.hyps(3) option.distinct(1) option.sel)
+      by (metis AbsNode.hyps(3) AbsNode.prems(1) elim_inp_set ids_some inp_in_g_wff inputs_of.simps(1) list.set_intros(1) option.exhaust_sel wff)
     then show ?case
-      by (metis AbsNode.hyps(1) AbsNode.hyps(4) AbsNode.prems(1) AbsNode.prems(2) \<open>unchanged (eval_usages g1 x) g1 g2\<close> elim_kind eval.AbsNode kind_unchanged option.distinct(1) option.sel)
+      by (metis AbsNode.hyps(3) AbsNode.prems(1) AbsNode.prems(2) eval.AbsNode kind_unchanged)
   next
-    case Node: (NegateNode xk x m v nid)
-    from inputs_of_NegateNode Node.hyps(1,4) Node.prems(1) 
+    case Node: (NegateNode m x v _ nid)
+    from inputs_of_NegateNode Node.hyps(3) Node.prems(1) 
     have xinp: "x \<in> set (inp g1 nid)" 
-      by auto
+      using child_member_in by (metis member_rec(1))
     then have xin: "x \<in> ids g1" 
-      using Node.hyps(1) not_in_g by force
+      using wff inp_in_g_wff by blast
     from xinp child_unchanged Node.prems(2)
       have ux: "unchanged (eval_usages g1 x) g1 g2" by blast
-    have x1:"g1 m \<turnstile> x xk \<mapsto> IntVal v"
+    have x1:"g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v"
       using Node.hyps(1) Node.hyps(2)
       by blast
-    have x2: "g2 m \<turnstile> x xk \<mapsto> IntVal v"
-      using kind_unchanged ux xin Node.hyps(1,3)
-      by (metis option.sel)
+    have x2: "g2 m \<turnstile> x (the (kind g2 x)) \<mapsto> IntVal v"
+      using kind_unchanged ux xin Node.hyps
+      by blast
     then show ?case
-      using kind_same Node.hyps(1,4) eval.NegateNode
+      using kind_same Node.hyps(1,3) eval.NegateNode
       by (metis Node.prems(1) Node.prems(2) kind_unchanged ux xin)
   next
     case node:(AddNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_AddNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_unchanged ids_some inp.simps inputs_of.simps(9) list.set_intros(1) option.exhaust_sel option.simps(5))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
     have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis node.hyps(5) node.prems(2) IRNodes.inputs_of_AddNode child_unchanged inp.simps list.set_intros(1) list.set_intros(2))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+      by (metis IRNodes.inputs_of_AddNode child_member_in child_unchanged member_rec(1) node.hyps(5) node.prems(1) node.prems(2))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis NoNodeE eval.AddNode kind_unchanged not_in_g) 
+      by (metis AddNode ids_some inp.simps inp_in_g_wff inputs_of_AddNode kind_unchanged list.set_intros(1) option.case(2) option.exhaust_sel set_subset_Cons subset_iff wff)
   next
     case node:(SubNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_SubNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_member_in child_unchanged inputs_of_SubNode member_rec(1))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis node.hyps(5) node.prems(2) IRNodes.inputs_of_SubNode child_unchanged inp.simps list.set_intros(1) list.set_intros(2))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
+      by (metis child_member_in child_unchanged inputs_of_SubNode member_rec(1))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis SubNode kind_unchanged not_in_g)
+      by (metis SubNode inp.simps inputs_of_SubNode kind_unchanged list.set_intros(1) option.exhaust_sel option.simps(5) set_subset_Cons subsetD wff wff_graph.elims(2))
   next
     case node:(MulNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_MulNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_member_in child_unchanged inputs_of_MulNode member_rec(1))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis node.hyps(5) node.prems(2) IRNodes.inputs_of_MulNode child_unchanged inp.simps list.set_intros(1) list.set_intros(2))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
+      by (metis child_member_in child_unchanged inputs_of_MulNode member_rec(1))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis MulNode kind_unchanged not_in_g)
+      by (metis MulNode inp.simps inputs_of_MulNode kind_unchanged list.set_intros(1) option.exhaust_sel option.simps(5) set_subset_Cons subsetD wff wff_graph.elims(2))
   next
     case node:(AndNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_AndNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_member_in child_unchanged inputs_of_AndNode member_rec(1))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis node.hyps(5) node.prems(2) IRNodes.inputs_of_AndNode child_unchanged inp.simps list.set_intros(1) list.set_intros(2))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
+      by (metis child_member_in child_unchanged inputs_of_AndNode member_rec(1))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis AndNode NoNodeE kind_unchanged not_in_g)
+      by (metis AndNode inp.simps inputs_of_AndNode kind_unchanged list.set_intros(1) option.exhaust_sel option.simps(5) set_subset_Cons subsetD wff wff_graph.elims(2))
   next
     case node: (OrNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_OrNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_member_in child_unchanged inputs_of_OrNode member_rec(1))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis node.hyps(5) node.prems(2) IRNodes.inputs_of_OrNode child_unchanged inp.simps list.set_intros(1) list.set_intros(2))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
+      by (metis child_member_in child_unchanged inputs_of_OrNode member_rec(1))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis NoNodeE OrNode kind_unchanged not_in_g)
+      by (metis OrNode inp.simps inputs_of_OrNode kind_unchanged list.set_intros(1) option.exhaust_sel option.simps(5) set_subset_Cons subsetD wff wff_graph.elims(2))
   next
     case node: (XorNode m x v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_XorNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_member_in child_unchanged inputs_of_XorNode member_rec(1))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis node.hyps(5) node.prems(2) IRNodes.inputs_of_XorNode child_unchanged inp.simps list.set_intros(1) list.set_intros(2))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
+      by (metis child_member_in child_unchanged inputs_of_XorNode member_rec(1))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis XorNode good_kind kind_unchanged not_in_g)
+      by (metis XorNode inp.simps inputs_of_XorNode kind_unchanged list.set_intros(1) option.exhaust_sel option.simps(5) set_subset_Cons subsetD wff wff_graph.elims(2))
   next
     case node: (IntegerEqualsNode m x v1 y v2 val nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_IntegerEqualsNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_member_in child_unchanged inputs_of_IntegerEqualsNode member_rec(1))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis IRNodes.inputs_of_IntegerEqualsNode child_unchanged inp.simps list.set_intros(1)
-          node.hyps(6) node.prems(2) set_subset_Cons subset_code(1))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
+      by (metis child_member_in child_unchanged inputs_of_IntegerEqualsNode member_rec(1))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis IntegerEqualsNode good_kind kind_unchanged not_in_g)
+      by (metis (full_types) IntegerEqualsNode child_member_in in_set_member inputs_of_IntegerEqualsNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
   next
     case node: (IntegerLessThanNode m x v1 y v2 val nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_IntegerLessThanNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_member_in child_unchanged inputs_of_IntegerLessThanNode member_rec(1))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis IRNodes.inputs_of_IntegerLessThanNode child_unchanged inp.simps list.set_intros(1)
-          node.hyps(6) node.prems(2) set_subset_Cons subset_code(1))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
+      by (metis child_member_in child_unchanged inputs_of_IntegerLessThanNode member_rec(1))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis IntegerLessThanNode good_kind kind_unchanged not_in_g)
+      by (metis (full_types) IntegerLessThanNode child_member_in in_set_member inputs_of_IntegerLessThanNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
   next
     case node: (ShortCircuitOrNode m x v1 y v2 val nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_ShortCircuitOrNode child_unchanged inp.simps list.set_intros(1))
-    then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal v1"
+      by (metis child_member_in child_unchanged inputs_of_ShortCircuitOrNode member_rec(1))
+    then have x: "g1 m \<turnstile> x (the (kind g1 x)) \<mapsto> IntVal v1"
       using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis IRNodes.inputs_of_ShortCircuitOrNode child_unchanged inp.simps list.set_intros(1)
-          node.hyps(6) node.prems(2) set_subset_Cons subset_code(1))
-    have y: "g1 m \<turnstile> y (kind g1 y) \<mapsto> IntVal v2"
-      using node.hyps(3) by simp
+    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
+      by (metis child_member_in child_unchanged inputs_of_ShortCircuitOrNode member_rec(1))
+    have y: "g1 m \<turnstile> y (the (kind g1 y)) \<mapsto> IntVal v2"
+      using node.hyps(3) by blast
+    have x2: "g2 m \<turnstile> x (the (kind g2 x)) \<mapsto> IntVal v1"
+      by (metis inp.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(1) option.exhaust_sel option.simps(5) subsetD ux wff wff_graph.elims(2))
+    have y2: "g2 m \<turnstile> y (the (kind g2 y)) \<mapsto> IntVal v2"
+      by (metis basic_trans_rules(31) inp.simps inputs_of.simps(50) list.set_intros(1) node.hyps(4) node.hyps(6) node.prems(1) option.exhaust_sel option.simps(5) set_subset_Cons uy wff wff_graph.elims(2))
     show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis eval.ShortCircuitOrNode good_kind kind_unchanged not_in_g)
+      using node.hyps node.prems ux x uy y x2 y2
+      by (metis ShortCircuitOrNode kind_unchanged)
   next
     case node: (LogicNegationNode m x v1 val nida nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis IRNodes.inputs_of_LogicNegationNode child_unchanged inp.simps list.set_intros(1))
-    then have x:"g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
-      using node.hyps good_kind not_in_g by blast 
+      by (metis child_member_in child_unchanged inputs_of_LogicNegationNode member_rec(1))
+    then have x:"g2 m \<turnstile> x (the (kind g2 x)) \<mapsto> IntVal v1"
+      by (metis ids_some inp.simps inp_in_g_wff inputs_of.simps(34) list.set_intros(1) node.hyps(2) node.hyps(4) node.prems(1) option.exhaust_sel option.simps(5) wff)
     then show ?case
       by (metis LogicNegationNode kind_unchanged node.hyps(3) node.hyps(4) node.prems(1) node.prems(2))
-
-
-(* updated up to here! 
-   Nb. CallNodeEval still needs callee nid added inside *)
-
-
   next
     case node:(ConditionalNode m condition cond trueExp trueVal falseExp falseVal val nid)
-(*
-  ConditionalNode:
-    fix m_ condition_ cond_ trueExp_ trueVal_ falseExp_ falseVal_ val_ nid_
-      nid
-    let "?case" = " g2 m_ \<turnstile> nid kind g2 nid \<mapsto> val_"
-    assume
-      hyps : " g1 m_ \<turnstile> condition_ kind g1 condition_ \<mapsto> IntVal cond_"
-        "\<And>nid. kind g1 condition_ = kind g1 nid \<Longrightarrow>
-                nid \<in> ids g1 \<Longrightarrow>
-                unchanged (eval_usages g1 nid) g1 g2 \<Longrightarrow>
-                 g2 m_ \<turnstile> nid kind g2 nid \<mapsto> IntVal cond_"
-        " g1 m_ \<turnstile> trueExp_ kind g1 trueExp_ \<mapsto> IntVal trueVal_"
-        "\<And>nid. kind g1 trueExp_ = kind g1 nid \<Longrightarrow>
-                nid \<in> ids g1 \<Longrightarrow>
-                unchanged (eval_usages g1 nid) g1 g2 \<Longrightarrow>
-                 g2 m_ \<turnstile> nid kind g2 nid \<mapsto> IntVal trueVal_"
-        " g1 m_ \<turnstile> falseExp_ kind g1 falseExp_ \<mapsto> IntVal falseVal_"
-        "\<And>nid. kind g1 falseExp_ = kind g1 nid \<Longrightarrow>
-                nid \<in> ids g1 \<Longrightarrow>
-                unchanged (eval_usages g1 nid) g1 g2 \<Longrightarrow>
-                 g2 m_ \<turnstile> nid kind g2 nid \<mapsto> IntVal falseVal_"
-        "val_ = IntVal (if cond_ \<noteq> 0 then trueVal_ else falseVal_)"
-        "ConditionalNode condition_ trueExp_ falseExp_ = kind g1 nid"
-      and prems : "nid \<in> ids g1" "unchanged (eval_usages g1 nid) g1 g2"
-*)
-    (* condition first *)
     have c: "condition \<in> set(inp g1 nid)"
-      by (metis (full_types) IRNodes.inputs_of_ConditionalNode inp.simps list.set_intros(1) node.hyps(8))
+      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
     then have "unchanged (eval_usages g1 condition) g1 g2"
       using child_unchanged node.prems(2) by blast
-    (* TODO: first prove that  "condition \<in> ids g1" ? *)
-    then have cond: "g2 m \<turnstile> condition (kind g2 condition) \<mapsto> IntVal cond"
-      using node
-      by (metis good_kind not_in_g)
+    then have cond: "g2 m \<turnstile> condition (the (kind g2 condition)) \<mapsto> IntVal cond"
+      using node c inp_in_g_wff wff by blast
 
-    (* then the true branch *)
-    have "trueExp \<in> set(inp g1 nid)"
-      by (metis node.hyps(8) IRNodes.inputs_of_ConditionalNode inp.simps list.set_intros(1) list.set_intros(2))
+    have t: "trueExp \<in> set(inp g1 nid)"
+      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
     then have utrue: "unchanged (eval_usages g1 trueExp) g1 g2"
       using node.prems(2) child_unchanged by blast
+    then have trueVal: "g2 m \<turnstile> trueExp (the (kind g2 trueExp)) \<mapsto> IntVal(trueVal)"
+      using node.hyps node t inp_in_g_wff wff by blast
 
-
-    then have trueVal: "g2 m \<turnstile> trueExp (kind g2 trueExp) \<mapsto> IntVal(trueVal)"
-      using node.hyps
-      by (metis good_kind not_in_g)
-
+    have f: "falseExp \<in> set(inp g1 nid)"
+      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
     then have ufalse: "unchanged (eval_usages g1 falseExp) g1 g2"
-      using node.prems(2) child_unchanged
-      by (metis in_mono inp.simps inputs_of.simps(16) list.set_intros(1) node.hyps(8) set_subset_Cons)
-    then have falseVal: "g2 m \<turnstile> falseExp (kind g2 falseExp) \<mapsto> IntVal(falseVal)"
-      using node.hyps by (metis good_kind not_in_g)
+      using node.prems(2) child_unchanged by blast
+    then have falseVal: "g2 m \<turnstile> falseExp (the (kind g2 falseExp)) \<mapsto> IntVal(falseVal)"
+      using node.hyps node f inp_in_g_wff wff by blast
 
-    have "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> val"
+    have "g2 m \<turnstile> nid (the (kind g2 nid)) \<mapsto> val"
       using kind_same trueVal falseVal cond
       by (metis ConditionalNode kind_unchanged node.hyps(7) node.hyps(8) node.prems(1) node.prems(2))
     then show ?case
@@ -507,18 +414,26 @@ Was: (with 'nid' repeated in inductive rule)
 
   next
     case (RefNode m x val nid)
+    have x: "x \<in> set(inp g1 nid)"
+      by (metis IRNodes.inputs_of_RefNode RefNode.hyps(3) RefNode.prems(1) child_member_in member_rec(1))
+    then have ref: "g2 m \<turnstile> x (the (kind g2 x)) \<mapsto> val"
+      using RefNode.hyps(2) RefNode.prems(2) child_unchanged inp_in_g_wff wff by blast
     then show ?case
-      by (metis IRNodes.inputs_of_RefNode child_unchanged eval.RefNode good_kind inp.simps kind_unchanged list.set_intros(1) not_in_g)
+      by (metis RefNode.hyps(3) RefNode.prems(1) RefNode.prems(2) eval.RefNode kind_unchanged)
   next
     case (InvokeNodeEval val m nida _ callTarget classInit stateDuring stateAfter nex)
     then show ?case
       by (metis eval.InvokeNodeEval kind_unchanged)
   next
     case (SignedDivNode m x v1 y v2 nid zeroCheck frameState nex)
-    from SignedDivNode have x: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal v1"
-      by (metis IRNodes.inputs_of_SignedDivNode append_Cons child_unchanged good_kind inp.simps list.set_intros(1) not_in_g)
-    from SignedDivNode have y: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal v2"
-      by (metis IRNodes.inputs_of_SignedDivNode append_Cons child_unchanged good_kind inp.simps list.set_intros(1) list.set_intros(2) not_in_g)
+    have xinp: "x \<in> set(inp g1 nid)"
+      by (metis IRNodes.inputs_of_SignedDivNode SignedDivNode.hyps(5) SignedDivNode.prems(1) append_Cons child_member_in member_rec(1))
+    from xinp have x: "g2 m \<turnstile> x (the (kind g2 x)) \<mapsto> IntVal v1"
+      using SignedDivNode child_unchanged inp_in_g_wff wff by blast
+    have yinp: "y \<in> set(inp g1 nid)"
+      by (metis IRNodes.inputs_of_SignedDivNode SignedDivNode.hyps(5) SignedDivNode.prems(1) append_Cons child_member_in member_rec(1))
+    from yinp have y: "g2 m \<turnstile> y (the (kind g2 y)) \<mapsto> IntVal v2"
+      using SignedDivNode child_unchanged inp_in_g_wff wff by blast
     from x y show ?case
       by (metis SignedDivNode.hyps(5) SignedDivNode.prems(1) SignedDivNode.prems(2) eval.SignedDivNode kind_unchanged)
   next
@@ -531,43 +446,4 @@ Was: (with 'nid' repeated in inductive rule)
       by (metis eval.NewInstanceNode kind_unchanged)
   qed
 qed
-
-
-(*
-lemma eval_uses_to_changes:
-  assumes "nid' \<notin> (eval_usages g1 nid)"
-  assumes "g2 = add_node nid' n g1"
-  shows "unchanged {nid} g1 g2 \<and> (\<forall> nid' \<in> (eval_usages g1 nid) . \<not>(unchanged {nid'} g1 g2))" (is "?P \<and> ?Q")
-proof
-  show ?P
-    using assms stay_same sorry
-next
-  show ?Q 
-    using assms stay_same sorry
-qed
-*)
-(*
-lemma eval_independent:
-  assumes indep: "\<not>(eval_uses g1 nid nid') \<and> nid \<noteq> nid'"
-  assumes g2: "g2 = add_node nid' n g1"
-  assumes v1: "g1 m \<turnstile> nid (kind g1 nid) \<mapsto> v1"
-  shows "g2 m \<turnstile> nid (kind g2 nid) \<mapsto> v1"
-proof -
-  have nid_in: "nid \<in> ids g1"
-    using not_in_no_val v1 by blast
-  then have k: "(kind g1 nid) = (kind g2 nid)"
-    using g2 indep kind_uneffected_uneq by blast
-  show ?thesis
-  proof (cases "is_floating_node (kind g2 nid)")
-    case True
-    then show ?thesis
-      using eval_uses_to_changes indep g2 v1 stay_same
-      by meson
-  next
-    case False
-    then show ?thesis
-      using evalFloating k v1 by fastforce
-  qed
-qed
-*)
 

@@ -483,14 +483,79 @@ inductive_cases RefNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases SubstrateMethodCallTargetNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SubstrateMethodCallTargetNode targetMethod args) \<mapsto> val"
 
+lemmas EvalE = 
+ValueNodeE
+FixedNodeE
+AbstractEndNodeE
+EndNodeE
+LoopEndNodeE
+FixedWithNextNodeE
+AccessFieldNodeE
+LoadFieldNodeE
+StoreFieldNodeE
+DeoptimizingFixedWithNextNodeE
+AbstractNewObjectNodeE
+NewInstanceNodeE
+AbstractNewArrayNodeE
+NewArrayNodeE
+DynamicNewArrayNodeE
+AbstractBeginNodeE
+BeginNodeE
+KillingBeginNodeE
+BeginStateSplitNodeE
+LoopExitNodeE
+AbstractMergeNodeE
+MergeNodeE
+LoopBeginNodeE
+StartNodeE
+ReturnNodeE
+ControlSplitNodeE
+IfNodeE
+SwitchNodeE
+FloatingNodeE
+AbstractLocalNodeE
+ParameterNodeE
+ProxyNodeE
+ValueProxyNodeE
+PhiNodeE
+ValuePhiNodeE
+ConstantNodeE
+ConditionalNodeE
+UnaryNodeE
+UnaryArithmeticNodeE
+NotNodeE
+NegateNodeE
+LogicNegationNodeE
+AbsNodeE
+BinaryNodeE
+BinaryArithmeticNodeE
+AddNodeE
+XorNodeE
+AndNodeE
+SubNodeE
+MulNodeE
+OrNodeE
+ShortCircuitOrNodeE
+IntegerEqualsNodeE
+IntegerLessThanNodeE
+FrameStateE
+MethodCallTargetNodeE
+InvokeNodeE
+SignedDivNodeE
+SubstrateMethodCallTargetNodeE
+ExceptionObjectNodeE
+InvokeWithExceptionNodeE
+BytecodeExceptionNodeE
+UnwindNodeE
+RefNodeE
+
 
 (* Try proving 'inverted rules' for eval. *)
 lemma "evalAddNode" : "g m \<turnstile> nid (AddNode x y) \<mapsto> val \<Longrightarrow>
   (\<exists> v1. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v1) \<and>
     (\<exists> v2. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v2) \<and>
        val = IntVal(v1 + v2)))"
-  using AddNodeE
-  by (metis option.sel)
+  using AddNodeE by auto
 
 (* Prove that eval only works on floating nodes. *)
 lemma "evalFloating":
@@ -504,32 +569,7 @@ theorem "evalDet":
    "(g m \<turnstile> nid node \<mapsto> val1) \<Longrightarrow>
    (\<forall> val2. ((g m \<turnstile> nid node \<mapsto> val2) \<longrightarrow> val1 = val2))"
   apply (induction rule: "eval.induct")
-                     apply (rule allI; rule impI; elim ConstantNodeE; auto)
-                    apply (rule allI; rule impI; elim ParameterNodeE; auto)
-                   apply (rule allI; rule impI; elim PhiNodeE; auto)
-                     apply (rule allI; rule impI; elim ValuePhiNodeE; auto)
-                 apply (rule allI; rule impI; elim ValueProxyNodeE; metis option.inject)
-                apply (rule allI; rule impI; elim AbsNodeE; metis Value.inject(1) option.inject)
-               apply (rule allI; rule impI; elim NegateNodeE; metis Value.inject(1) option.inject)
-              apply (rule allI; rule impI; elim AddNodeE; metis Value.inject(1) option.inject)
-             apply (rule allI; rule impI; elim SubNodeE; metis Value.inject(1) option.inject)
-             apply (rule allI; rule impI; elim MulNodeE; metis Value.inject(1) option.inject)
-            apply (rule allI; rule impI; elim SignedDivNodeE; metis Value.inject(1) option.inject)
-           apply (rule allI; rule impI; elim AndNodeE; smt int32_and.simps Value.inject(1) option.inject)
-          apply (rule allI; rule impI; elim OrNodeE; smt int32_or.simps Value.inject(1) option.inject)
-         apply (rule allI; rule impI; elim XorNodeE)
-  apply (smt Value.inject(1) int32_and.simps int32_not.elims int32_or.simps int32_xor.elims option.inject)
-        apply (rule allI; rule impI; elim IntegerEqualsNodeE; metis Value.inject(1) option.inject)
-       apply (rule allI; rule impI; elim IntegerLessThanNodeE; metis Value.inject(1) option.inject)
-      apply (rule allI; rule impI; elim ConditionalNodeE; metis Value.inject(1) option.inject)
-     apply (rule allI; rule impI; elim ShortCircuitOrNodeE; metis Value.inject(1) option.inject)
-    apply (rule allI; rule impI; elim LogicNegationNodeE; smt int32_not.simps Value.inject(1) option.inject)
-  apply (rule allI; rule impI; elim InvokeNodeE; auto)             
-  apply (rule allI; rule impI; elim InvokeWithExceptionNodeE; auto)
- apply (rule allI; rule impI; elim NewInstanceNodeE; auto)
-apply (rule allI; rule impI; elim RefNodeE; metis option.inject)
-  
-  done
+  by (rule allI; rule impI; elim EvalE; auto)+
 
 end
 

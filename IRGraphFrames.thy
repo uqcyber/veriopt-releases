@@ -22,13 +22,13 @@ fun changeonly :: "ID set \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarr
   "changeonly ns g1 g2 = (\<forall> n . n \<in> ids g1 \<and> n \<notin> ns \<longrightarrow> 
     (n \<in> ids g1 \<and> n \<in> ids g2 \<and> kind g1 n = kind g2 n))"
 
-lemma node_unchanged [simp]:
+lemma node_unchanged:
   assumes "unchanged ns g1 g2"
   assumes "nid \<in> ns"
   shows "kind g1 nid = kind g2 nid"
   using assms by auto
 
-lemma other_node_unchanged [simp]:
+lemma other_node_unchanged:
   assumes "changeonly ns g1 g2"
   assumes "nid \<in> ids g1"
   assumes "nid \<notin> ns"
@@ -57,17 +57,18 @@ inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> b
 fun eval_usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "eval_usages g nid = {n \<in> dom (Rep_IRGraph g) . eval_uses g nid n}"
 
-lemma eval_usages_self [simp]:
+lemma eval_usages_self:
   assumes "nid \<in> ids g"
   shows "nid \<in> eval_usages g nid"
   using assms eval_usages.simps eval_uses.intros(1)
   by (simp add: ids.rep_eq)
 
-lemma not_in_g [simp]: 
-  "nid \<notin> ids g \<longleftrightarrow> kind g nid = None"
-  using ids_some by blast
+lemma not_in_g: 
+  assumes "nid \<notin> ids g"
+  shows "kind g nid = None"
+  using assms ids_some by blast
 
-lemma not_in_g_inp [simp]: 
+lemma not_in_g_inp: 
   assumes "nid \<notin> ids g"
   shows "inp g nid = []"
 proof -
@@ -92,7 +93,7 @@ lemma child_member_in:
 
 (* Node inputs are not necessarily in ids g (unless wff_graph g).
    But this is true because 'inp' is defined using 'kind'. *)
-lemma inp_in_g [simp]: 
+lemma inp_in_g: 
   assumes "n \<in> set (inp g nid)"
   shows "nid \<in> ids g"
 proof -
@@ -132,7 +133,7 @@ lemma child_unchanged:
   by (smt assms(1) assms(2) eval_usages.simps mem_Collect_eq
       unchanged.simps use_inp use_trans)
 
-lemma eval_usages[simp]:
+lemma eval_usages:
   assumes "us = eval_usages g nid"
   assumes "nid' \<in> ids g"
   shows "eval_uses g nid nid' \<longleftrightarrow> nid' \<in> us" (is "?P \<longleftrightarrow> ?Q")
@@ -447,3 +448,4 @@ proof -
   qed
 qed
 
+end

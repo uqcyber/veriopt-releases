@@ -53,6 +53,7 @@ fun create_add :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNod
     )"
 text_raw \<open>\EndSnip\<close>
 
+
 text_raw \<open>\Snip{AddNodeCreate}%\<close>
 lemma add_node_create:
   assumes xv: "g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(xv)"
@@ -60,97 +61,51 @@ lemma add_node_create:
   shows 
     "(g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)) \<and>
      (g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv))"
-text_raw \<open>\EndSnip\<close>
+  (is "?P \<and> ?Q")
+  text_raw \<open>\EndSnip\<close>
 proof -
-  have ae: "g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)"
-    using eval_add_node xv yv by blast
-  have refx: "\<forall>zx. (g m \<turnstile> zx (RefNode x) \<mapsto> IntVal xv)"
-    using eval.RefNode xv by blast 
-  have refy: "\<forall>zy. (g m \<turnstile> zy (RefNode y) \<mapsto> IntVal yv)"
-    using eval.RefNode yv by blast 
-  have ce: "g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv)"
-  proof (cases "\<exists>xvv. kind g x  = Some (ConstantNode xvv)")
-    case xvvn: True
-    have xvv: "kind g x = Some (ConstantNode xv)" 
-      using ConstantNode evalDet xv eval.ConstantNode xvvn by fastforce
-    have cv1: "create_add g x y = 
-                (case the (kind g y) of
-                 ConstantNode yvv \<Rightarrow> ConstantNode (xv+yvv) | 
-                 _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
-                )"
-      using xvv by simp
-    thus ?thesis 
-    proof (cases "\<exists>yvv. the (kind g y) = ConstantNode yvv")
-      case True
-        have yvv: "the (kind g y) = ConstantNode yv"
-        using ConstantNode evalDet yv eval.ConstantNode True by fastforce
-      then show ?thesis
-      proof -
-        have c_xvv_yvv: "create_add g x y = ConstantNode (xv+yv)" 
-          using xvv yvv by simp 
-        have cv1: "g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv)"
-          using c_xvv_yvv eval.ConstantNode by auto
-        then show ?thesis by blast 
-      qed
+  have P: ?P
+    using xv yv eval.AddNode by simp
+  have Q: ?Q
+  proof (cases "\<exists>v. the (kind g x) = ConstantNode v")
+    case xconst: True
+    then show ?thesis
+    proof (cases "\<exists>v. the (kind g y) = ConstantNode v")
+      case yconst: True
+      then show ?thesis unfolding create_add.simps 
+        using xconst eval.ConstantNode xv yv by auto
+
     next
-      case not_const_y:False
-      have not_const: "\<forall>yvv. the (kind g y) \<noteq> ConstantNode yvv"
-        using not_const_y by blast
-      then have cv_case: "(case the (kind g y) of
-                 ConstantNode yvv \<Rightarrow> ConstantNode (xv+yvv) | 
-                 _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
-                ) = (if xv = 0 then RefNode y else AddNode x y)"
-        apply (simp add: not_const)
+      case ynotconst: False
+      have "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
+        using xconst ynotconst create_add.simps sorry
+      then show ?thesis unfolding create_add.simps
         apply (cases "xv = 0"; auto)
-        using not_const_y apply auto[1]
-        using not_const_y sorry
-      have cv2: "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
-          using cv1 xvvn not_const_y xvv cv_case by simp
-      then show ?thesis
-      proof (cases "xv = 0")
-        case True
-        then show ?thesis using xvvn xvv not_const_y True cv2 refy by auto 
-      next
-        case False
-        have cvff: "create_add g x y = AddNode x y"
-          using False cv2 by auto
-        then show ?thesis using xvvn not_const_y False ae by simp
-      qed
+        using eval.RefNode yv apply simp
+        using eval.AddNode xv yv by simp
     qed
   next
     case xnotconst: False
-    then show ?thesis 
-    proof (cases "\<exists>yvv. kind g y = Some (ConstantNode yvv)")
-      case yvvn: True
-      have yvv: "kind g y = Some (ConstantNode yv)"
-        using ConstantNode evalDet yv eval.ConstantNode yvvn by fastforce 
-      have cv3: "create_add g x y = (if yv = 0 then RefNode x else AddNode x y)"
-        using yvv yvvn apply auto
-        using xnotconst apply auto[1]
-        using xnotconst sorry
-      then show ?thesis using cv3 ae yvv xv eval.RefNode by auto
-    next 
+    then show ?thesis
+    proof (cases "\<exists>v. the (kind g y) = ConstantNode v")
+      case yconst: True
+      have "create_add g x y = (if yv = 0 then RefNode x else AddNode x y)"
+        using xnotconst yconst create_add.simps sorry
+      then show ?thesis unfolding create_add.simps 
+        apply (cases "yv = 0"; auto)
+        using eval.RefNode xv apply simp
+        using eval.AddNode xv yv by simp
+    next
       case ynotconst: False
-      have yvv: "kind g y \<noteq> Some (ConstantNode yv)"
-        using ynotconst by simp
-      have xvv: "kind g x \<noteq> Some (ConstantNode xv)"
-        using xnotconst by simp
-      have unwrapy: "(case the (kind g y) of 
-              ConstantNode yv \<Rightarrow> if yv = 0 then RefNode x else AddNode x y
-            | _ \<Rightarrow> AddNode x y) = AddNode x y"
-        apply (cases "the (kind g y)"; auto)
-        using ynotconst sorry
-      have cv4: "create_add g x y = AddNode x y"
-        using xvv yvv unwrapy apply auto
-        apply (cases "kind g x"; auto)
-        using xnotconst apply auto[1]
-        using xnotconst sorry
-      thus ?thesis using cv4 ae by simp
+      have "create_add g x y = AddNode x y"
+        using xnotconst xnotconst create_add.simps sorry
+      then show ?thesis unfolding create_add.simps 
+        using eval.AddNode xv yv by simp
     qed
   qed
-  thus ?thesis
-    using ae by blast
+  from P Q show ?thesis by simp
 qed
+
 
 text_raw \<open>\Snip{CreateIfNode}%\<close>
 fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode"
@@ -207,12 +162,11 @@ proof (cases "\<exists> val . the (kind g cond) = ConstantNode val")
     obtain val where val: "the (kind g cond) = ConstantNode val"
       using True by blast
     have cond_exists: "cond \<in> ids g"
-      using breaking_some
-      using cv by auto
+      using cv sorry
     have if_kind: "kind gif nid = Some (IfNode cond tb fb)"
       using gif add_node_lookup by simp
     have if_cv: "gif m \<turnstile> cond (the (kind gif cond)) \<mapsto> IntVal val"
-      using step.IfNode 
+      using step.IfNode if_kind
       using True eval.ConstantNode gif fresh
       using stay_same cond_exists
       using val sorry
@@ -245,7 +199,7 @@ next
       using add_node_lookup gif
       by blast
     have "nid \<noteq> cond"
-      using cv fresh sorry
+      using cv fresh indep sorry
     obtain cv2 where cv2: "gif m \<turnstile> cond (the (kind gif cond)) \<mapsto> cv2" 
       using \<open>nid \<noteq> cond\<close> cv gif indep
       using fresh sorry

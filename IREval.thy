@@ -263,30 +263,26 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 (* 5*5 \<Rightarrow> 25 *)
 values "{v. eval_graph eg2_sq 4 [IntVal 5] v}"
 
+fun has_control_flow :: "IRNode \<Rightarrow> bool" where
+  "has_control_flow EndNode = True" |
+  "has_control_flow AbstractEndNode = True" |
+  "has_control_flow (LoopEndNode n) = True" |
+  "has_control_flow n = (length (successors_of n) > 0)"
 
-fun is_misc_floating_node :: "IRNode \<Rightarrow> bool" where
-  "is_misc_floating_node (ConstantNode c) = True" |
-  "is_misc_floating_node (ParameterNode i) = True" |
-  "is_misc_floating_node (ValueProxyNode loopExit c) = True" |
-  "is_misc_floating_node (ConditionalNode c t f) = True" |
-  "is_misc_floating_node (ShortCircuitOrNode x y) = True" |
-  "is_misc_floating_node (LogicNegationNode x) = True" |
-  "is_misc_floating_node (SignedDivNode x y g frame next) = True" |
-  "is_misc_floating_node (InvokeNode nid callTarget classInit stateDuring stateAfter next) = True" |
-  "is_misc_floating_node (InvokeWithExceptionNode nid callTarget classInit stateDuring stateAfter next exceptionEdge) = True" |
-  "is_misc_floating_node (NewInstanceNode _ _ _) = True" |
-  "is_misc_floating_node (RefNode x) = True" |
-  "is_misc_floating_node _ = False"
+definition control_nodes :: "IRNode set" where
+  "control_nodes = {n . has_control_flow n}"
 
-(* All the kinds of nodes that eval can handle. *)
 fun is_floating_node :: "IRNode \<Rightarrow> bool" where
-  "is_floating_node n = (
-    is_BinaryArithNode n \<or>
-    is_UnaryArithNode n \<or>
-    is_CompareNode n \<or>
-    is_PhiNode n \<or>
-    is_misc_floating_node n
-  )"
+  "is_floating_node n = (\<not>(has_control_flow n))"
+
+definition floating_nodes :: "IRNode set" where
+  "floating_nodes = {n . is_floating_node n}"
+
+lemma "is_floating_node n \<longleftrightarrow> \<not>(has_control_flow n)"
+  by simp
+
+lemma "n \<in> control_nodes \<longleftrightarrow> n \<notin> floating_nodes"
+  by (simp add: control_nodes_def floating_nodes_def)
 
 (* nodeout: isabelle-inductive-cases *)
 inductive_cases AbsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -557,11 +553,381 @@ lemma "evalAddNode" : "g m \<turnstile> nid (AddNode x y) \<mapsto> val \<Longri
        val = IntVal(v1 + v2)))"
   using AddNodeE by auto
 
-(* Prove that eval only works on floating nodes. *)
-lemma "evalFloating":
-  assumes "g m \<turnstile> nid node \<mapsto> val"
-  shows "is_floating_node node"
-  using assms by (induct node; auto)
+lemma not_floating: "(\<exists>y ys. (successors_of n) = y # ys) \<longrightarrow> \<not>(is_floating_node n)"
+  unfolding is_floating_node.simps
+  by (induct "n"; simp add: neq_Nil_conv)
+
+(*
+This lemma should be provable once we define an eval
+rule for all floating nodes but might be stunted by some
+undefined behaviour at the moment
+*)
+lemma evalFloating:
+  assumes "\<forall>i . List.member (inputs_of (the (kind g nid))) i \<longrightarrow> (\<exists>v. (g m \<turnstile> i (the (kind g i)) \<mapsto> IntVal v))"
+  assumes "is_floating_node (the (kind g nid))"
+  shows "g m \<turnstile> nid (the (kind g nid)) \<mapsto> val"
+proof (induction "the (kind g nid)")
+  case (AbsNode x)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_AbsNode AbsNode
+    by (metis member_rec(1))
+  then have "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> v)"
+    using assms(1) by auto
+  then show ?case using eval.AbsNode AbsNode sorry
+next
+case (AbstractBeginNode x)
+  then show ?case 
+    using assms(2) not_floating successors_of_AbstractBeginNode by metis
+next
+  case AbstractEndNode
+  then show ?case using assms(2)
+    unfolding is_floating_node.simps
+    using has_control_flow.simps(2) by simp
+next
+  case AbstractLocalNode
+  then show ?case sorry
+next
+  case (AbstractMergeNode x1a x2a x3)
+  then show ?case 
+    using assms(2) not_floating successors_of_AbstractMergeNode by metis
+next
+  case (AbstractNewArrayNode x1a x2a x3)
+  then show ?case
+    using assms(2) not_floating successors_of_AbstractNewArrayNode by metis
+next
+  case (AbstractNewObjectNode x1a x2a)
+  then show ?case
+    using assms(2) not_floating successors_of_AbstractNewObjectNode by metis
+next
+  case (AccessFieldNode x1a x2a)
+  then show ?case
+    using assms(2) not_floating successors_of_AccessFieldNode by metis
+next
+  case (AddNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_AddNode AddNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_AddNode AddNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.AddNode AddNode sorry
+next
+  case (AndNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_AndNode AndNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_AndNode AndNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.AndNode AndNode sorry
+next
+  case (BeginNode x)
+  then show ?case
+    using assms(2) not_floating successors_of_BeginNode by metis
+next
+  case (BeginStateSplitNode x1a x2a)
+  then show ?case
+    using assms(2) not_floating successors_of_BeginStateSplitNode by metis
+next
+  case (BinaryArithmeticNode x1a x2a)
+  then show ?case sorry
+next
+  case (BinaryNode x1a x2a)
+  then show ?case sorry
+next
+  case (BytecodeExceptionNode x1a x2a x3)
+  then show ?case
+    using assms(2) not_floating successors_of_BytecodeExceptionNode by metis
+next
+  case (ConditionalNode cond t f)
+  have "List.member (inputs_of (the (kind g nid))) cond"
+    using inputs_of_ConditionalNode ConditionalNode
+    by (metis member_rec(1))
+  then have cond: "\<exists>v. (g m \<turnstile> cond (the (kind g cond)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) t"
+    using inputs_of_ConditionalNode ConditionalNode
+    by (metis member_rec(1))
+  then have t: "\<exists>v. (g m \<turnstile> t (the (kind g t)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) f"
+    using inputs_of_ConditionalNode ConditionalNode
+    by (metis member_rec(1))
+  then have f: "\<exists>v. (g m \<turnstile> f (the (kind g f)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using cond t f eval.ConditionalNode ConditionalNode sorry
+next
+  case (ConstantNode x)
+  then show ?case using eval.ConstantNode sorry
+next
+  case ControlSplitNode
+  then show ?case sorry
+next
+  case (DeoptimizingFixedWithNextNode x1a x2a)
+  then show ?case
+    using assms(2) not_floating successors_of_DeoptimizingFixedWithNextNode by metis
+next
+  case (DynamicNewArrayNode x1a x2a x3 x4 x5)
+  then show ?case
+    using assms(2) not_floating successors_of_DynamicNewArrayNode by metis
+next
+  case EndNode
+  then show ?case using assms(2)
+    unfolding is_floating_node.simps
+    using has_control_flow.simps(2) by simp
+next
+  case (ExceptionObjectNode x1a x2a)
+  then show ?case
+    using assms(2) not_floating successors_of_ExceptionObjectNode by metis
+next
+  case FixedNode
+  then show ?case sorry
+next
+  case (FixedWithNextNode x)
+  then show ?case
+    using assms(2) not_floating successors_of_FixedWithNextNode by metis
+next
+  case FloatingNode
+  then show ?case sorry
+next
+  case (FrameState x1a x2a x3 x4)
+  then show ?case sorry
+next
+  case (IfNode x1a x2a x3)
+  then show ?case
+    using assms(2) not_floating successors_of_IfNode by metis
+next
+  case (IntegerEqualsNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_IntegerEqualsNode IntegerEqualsNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_IntegerEqualsNode IntegerEqualsNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.IntegerEqualsNode IntegerEqualsNode sorry
+next
+  case (IntegerLessThanNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_IntegerLessThanNode IntegerLessThanNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_IntegerLessThanNode IntegerLessThanNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.IntegerLessThanNode IntegerLessThanNode sorry
+next
+  case (InvokeNode x1a x2a x3 x4 x5 x6)
+  then show ?case
+    using assms(2) not_floating successors_of_InvokeNode by metis
+next
+  case (InvokeWithExceptionNode x1a x2a x3 x4 x5 x6 x7)
+  then show ?case
+    using assms(2) not_floating successors_of_InvokeWithExceptionNode by metis
+next
+  case (KillingBeginNode x)
+  then show ?case
+    using assms(2) not_floating successors_of_KillingBeginNode by metis
+next
+  case (LoadFieldNode x1a x2a x3)
+  then show ?case
+    using assms(2) not_floating successors_of_LoadFieldNode by metis
+next
+  case (LogicNegationNode x)
+  then show ?case sorry
+next
+  case (LoopBeginNode x1a x2a x3 x4)
+  then show ?case
+    using assms(2) not_floating successors_of_LoopBeginNode by metis
+next
+  case (LoopEndNode x)
+  then show ?case using assms(2)
+    unfolding is_floating_node.simps
+    using has_control_flow.simps(3) by metis
+next
+  case (LoopExitNode x1a x2a x3)
+  then show ?case
+    using assms(2) not_floating successors_of_LoopExitNode by metis
+next
+  case (MergeNode x1a x2a x3)
+  then show ?case
+    using assms(2) not_floating successors_of_MergeNode by metis
+next
+  case (MethodCallTargetNode x y)
+  show ?thesis sorry
+next
+  case (MulNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_MulNode MulNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_MulNode MulNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.MulNode MulNode sorry
+next
+  case (NegateNode x)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_NegateNode NegateNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x eval.NegateNode NegateNode sorry
+next
+  case (NewArrayNode x1a x2a x3)
+  then show ?case
+    using assms(2) not_floating successors_of_NewArrayNode by metis
+next
+  case (NewInstanceNode x1a x2a x3)
+  then show ?case
+    using assms(2) not_floating successors_of_NewInstanceNode by metis
+next
+  case (NotNode x)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_NotNode NotNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x (*eval.NotNode*) NotNode sorry (* no rule *)
+next
+  case (OrNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_OrNode OrNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_OrNode OrNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.OrNode OrNode sorry
+next
+  case (ParameterNode x)
+  then show ?case using eval.ParameterNode sorry
+next
+  case (PhiNode x1a x2a)
+  then show ?case using eval.PhiNode sorry
+next
+  case (ProxyNode x)
+  then show ?case (*using eval.ProxyNode*) sorry (* no rule *)
+next
+  case (ReturnNode x1a x2a)
+  then show ?case sorry
+next
+  case (ShortCircuitOrNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_ShortCircuitOrNode ShortCircuitOrNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_ShortCircuitOrNode ShortCircuitOrNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.ShortCircuitOrNode ShortCircuitOrNode sorry
+next
+  case (SignedDivNode x1a x2a x3 x4 x5)
+  then show ?case
+    using assms(2) not_floating successors_of_SignedDivNode by metis
+next
+  case (StartNode x1a x2a)
+  then show ?case
+    using assms(2) not_floating successors_of_StartNode by metis
+next
+  case (StoreFieldNode x1a x2a x3 x4 x5)
+  then show ?case
+    using assms(2) not_floating successors_of_StoreFieldNode by metis
+next
+  case (SubNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_SubNode SubNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_SubNode SubNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.SubNode SubNode sorry
+next
+  case (SwitchNode x1a x2a)
+  then show ?case sorry
+next
+  case (UnaryArithmeticNode x)
+  then show ?case sorry
+next
+  case (UnaryNode x)
+  then show ?case sorry
+next
+  case (UnwindNode x)
+  then show ?case sorry
+next
+  case ValueNode
+  then show ?case sorry
+next
+  case (ValuePhiNode x1a x2a x3)
+  then show ?case sorry
+next
+  case (ValueProxyNode c x2a)
+  have "List.member (inputs_of (the (kind g nid))) c"
+    using inputs_of_ValueProxyNode ValueProxyNode
+    by (metis member_rec(1))
+  then have c: "\<exists>v. (g m \<turnstile> c (the (kind g c)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using c eval.ValueProxyNode ValueProxyNode sorry
+next
+  case (XorNode x y)
+  have "List.member (inputs_of (the (kind g nid))) x"
+    using inputs_of_XorNode XorNode
+    by (metis member_rec(1))
+  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  have "List.member (inputs_of (the (kind g nid))) y"
+    using inputs_of_XorNode XorNode
+    by (metis member_rec(1))
+  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+    using assms(1) by auto
+  show ?case
+    using x y eval.XorNode XorNode sorry
+next
+  case (SubstrateMethodCallTargetNode x1a x2a)
+  then show ?case sorry
+next
+  case (RefNode x)
+  then show ?case sorry
+qed
 
 
 text \<open>A top-level goal: eval is deterministic.\<close>

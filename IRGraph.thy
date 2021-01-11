@@ -16,18 +16,67 @@ The finite domain is required to be able to generate code and produce an interpr
 text_raw \<open>\Snip{graphdef}\<close>
 typedef IRGraph = "{g :: ID \<rightharpoonup> IRNode . finite (dom g)}"
 proof -
-  have "finite(dom(Map.empty))" by auto
-  then show ?thesis by blast
+  have "finite(dom(Map.empty)) \<and> ran Map.empty = {}" by auto
+  then show ?thesis
+    by fastforce
 qed
 text_raw \<open>\EndSnip\<close>
 
 setup_lifting type_definition_IRGraph
 
-lift_definition ids :: "IRGraph \<Rightarrow> ID set"
-  is Map.dom .
+definition node_ids :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID set" where
+  "node_ids g = {nid \<in> dom g . g nid \<noteq> (Some NoNode)}"
 
-lift_definition kind :: "IRGraph \<Rightarrow> (ID \<rightharpoonup> IRNode)"
-  is Rep_IRGraph .
+lemma node_ids_imp:
+  "\<nexists>nid . nid \<in> (node_ids g) \<and> g nid = (Some NoNode)"
+  by (simp add: node_ids_def)
+
+lemma node_ids_defs:
+  "node_ids g = dom g - {nid \<in> dom g . g nid = (Some NoNode)}"
+  using node_ids_def by auto
+
+lift_definition ids :: "IRGraph \<Rightarrow> ID set"
+  is node_ids .
+
+definition node_kind :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID \<Rightarrow> IRNode" where
+  "node_kind g nid = (case g nid of None \<Rightarrow> NoNode | Some n \<Rightarrow> n)"
+
+lift_definition kind :: "IRGraph \<Rightarrow> (ID \<Rightarrow> IRNode)"
+  is node_kind .
+
+definition map_upd :: "ID \<Rightarrow> IRNode \<Rightarrow> (ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<rightharpoonup> IRNode)" where
+  "map_upd nid k g = g(nid \<mapsto> k)"
+
+lift_definition add_node :: "ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
+  is map_upd
+  by (simp add: map_upd_def)
+
+definition map_rm :: "ID \<Rightarrow> (ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<rightharpoonup> IRNode)" where
+  "map_rm nid g = g(nid := None)"
+
+lift_definition remove_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
+  is map_rm
+  by (simp add: map_rm_def)
+
+(*
+lemma ran_not_in:
+  "\<forall>x l. (\<nexists>n. n \<in> set l \<and> snd n = x) \<longrightarrow> x \<notin> ran (map_of l)"
+   by (smt map_of_SomeD mem_Collect_eq prod.sel(2) ran_def)
+
+lift_definition irgraph :: "(ID \<times> IRNode) list \<Rightarrow> IRGraph"
+  is drop_no_node
+  by (simp add: ran_not_in finite_dom_map_of)
+*)
+
+lemma ran_not_in:
+  "\<forall>x l. (\<nexists>n. n \<in> set l \<and> snd n = x) \<longrightarrow> x \<notin> ran (map_of l)"
+  by (smt map_of_SomeD mem_Collect_eq prod.sel(2) ran_def)
+
+fun no_node :: "(ID \<times> IRNode) list \<Rightarrow> (ID \<times> IRNode) list" where
+  "no_node g = filter (\<lambda>n. snd n \<noteq> NoNode) g"
+
+fun drop_no_node :: "(ID \<times> IRNode) list \<Rightarrow> ID \<rightharpoonup> IRNode" where
+  "drop_no_node g = map_of (no_node g)"
 
 lift_definition irgraph :: "(ID \<times> IRNode) list \<Rightarrow> IRGraph"
   is map_of
@@ -36,8 +85,12 @@ lift_definition irgraph :: "(ID \<times> IRNode) list \<Rightarrow> IRGraph"
 (* Theories are required for code generation to work *)
 code_datatype irgraph
 
-lemma irgraph[code]: "ids (irgraph m) = set (map fst m)"
-  by transfer (simp add: dom_map_of_conv_image_fst ids.rep_eq irgraph.rep_eq)
+lemma irgraph[code]: "ids (irgraph m) = set (map fst (no_node m))"
+  using dom_map_of_conv_image_fst ids.rep_eq irgraph.rep_eq apply simp
+  using node_ids_def sorry
+  (*
+  by transfer (simp add: node_ids_imp dom_map_of_conv_image_fst ids.rep_eq irgraph.rep_eq)
+  *)
 
 lemma [code]: "(Rep_IRGraph (irgraph m)) = map_of m"
   using Abs_IRGraph_inverse
@@ -47,10 +100,10 @@ lemma [code]: "(Rep_IRGraph (irgraph m)) = map_of m"
 text_raw \<open>\Snip{helpers}%\<close>
 (* Get the inputs list of a given node ID. *)
 fun inp :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "inp g nid = (case kind g nid of Some n \<Rightarrow> inputs_of n | None \<Rightarrow> [])"
+  "inp g nid = (inputs_of (kind g nid))"
 (* Get the successor list of a given node ID. *)
 fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "succ g nid = (case kind g nid of Some n \<Rightarrow> successors_of n | None \<Rightarrow> [])"
+  "succ g nid = (successors_of (kind g nid))"
 (* Gives a relation between node IDs - between a node and its input nodes. *)
 fun input_edges :: "IRGraph \<Rightarrow> ID rel" where
   "input_edges g = (\<Union> i \<in> ids g. {(i,j)|j. j \<in> fset(fset_of_list (inp g i))})"
@@ -65,47 +118,48 @@ fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "predecessors g nid = sorted_list_of_set {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
 
 fun is_empty :: "IRGraph \<Rightarrow> bool" where
-  "is_empty g = ((ids g = {}) \<and> (kind g = Map.empty))"
-
-fun add_node :: "nat \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
-  "add_node nid node g = 
-    Abs_IRGraph ((kind g)(nid \<mapsto> node))"
-
-fun remove_node :: "nat \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
-  "remove_node nid g =
-    Abs_IRGraph ((kind g)(nid := None))"
+  "is_empty g = (ids g = {})"
 text_raw \<open>\EndSnip\<close>
 
 
 text_raw \<open>\Snip{wff_graph}%\<close>
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph g = (
-    0 \<in> ids g \<and> isType is_StartNode (kind g 0) \<and> 
+    0 \<in> ids g \<and> is_StartNode (kind g 0) \<and> 
     (\<forall> n. n \<in> ids g \<longrightarrow> 
       set (inp g n) \<subseteq> ids g \<and>
       set (succ g n) \<subseteq> ids g \<and>
-      kind g n \<noteq> None)
+      kind g n \<noteq> NoNode)
   )"
 text_raw \<open>\EndSnip\<close>
 
-lemma ids_some[simp]: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> None" using ids.rep_eq kind_def by auto
+lemma ids_some[simp]: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> NoNode" 
+  unfolding ids.rep_eq kind_def map_fun_def
+  using domIff node_ids_def node_kind_def by fastforce
 
 lemma valid_creation[simp]:
   "finite (dom g) \<longleftrightarrow> Rep_IRGraph (Abs_IRGraph g) = g"
   using Abs_IRGraph_inverse by (metis Rep_IRGraph mem_Collect_eq)
 
-lemma [simp]: "finite (ids g)" using Rep_IRGraph ids.rep_eq by auto
+lemma [simp]: "finite (ids g)" 
+  using Rep_IRGraph ids.rep_eq node_ids_def by simp
 
-lemma [simp]: "finite (ids (irgraph g))" by (simp add: finite_dom_map_of)
+lemma [simp]: "finite (ids (irgraph g))" 
+  by (simp add: finite_dom_map_of)
 
-lemma [simp]: "finite (dom g) \<longrightarrow> ids (Abs_IRGraph g) = dom g" using ids.rep_eq by simp
+lemma [simp]: "finite (dom g) \<longrightarrow> ids (Abs_IRGraph g) = {nid \<in> dom g . g nid \<noteq> Some NoNode}"
+  using ids.rep_eq node_ids_def by simp
 
-lemma [simp]: "finite (dom g) \<longrightarrow> kind (Abs_IRGraph g) = g" using kind.abs_eq by simp
+lemma [simp]: "finite (dom g) \<longrightarrow> kind (Abs_IRGraph g) = (\<lambda>x . (case g x of None \<Rightarrow> NoNode | Some n \<Rightarrow> n))"
+  using kind.abs_eq node_kind_def
+  by (metis eq_onp_live_step)
 
-lemma [simp]: "ids (irgraph g) = set (map fst g)" using irgraph by auto
+lemma rw_ids[simp]: "ids (irgraph g) = set (map fst (no_node g))" 
+  using irgraph by auto
 
-lemma [simp]: "kind (irgraph g) = map_of g" using irgraph.rep_eq kind.transfer by auto
-
+lemma rw_kind[simp]: "kind (irgraph g) = (\<lambda>nid. (case (map_of g) nid of None \<Rightarrow> NoNode | Some n \<Rightarrow> n))" 
+  using irgraph.rep_eq kind.transfer node_kind_def kind.rep_eq
+  by auto
 
 subsection "Example Graphs"
 text "Example 1: empty graph (just a start and end node)"

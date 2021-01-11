@@ -147,7 +147,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o * o \<Righta
 (* Automatically generated program *)
 definition prog :: "string \<Rightarrow> IRGraph " where
 "prog = (\<lambda>x . start_end_graph)
-(''Fib.fib(int)'' := irgraph [
+(''Fib.fib(I)I'' := irgraph [
  (0, (StartNode ((Some 2)) (8))),
  (1, (ParameterNode (0))),
  (2, (FrameState ([]) (None) ((Some [1])) (None))),
@@ -195,7 +195,7 @@ values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 7] \<leadsto> (n, m)
 
 definition combs :: "string \<Rightarrow> IRGraph " where
 "combs = ((\<lambda>x . start_end_graph)
-(''Combinations.combinations(int, int)'' := irgraph [
+(''Combinations.combinations(I, I)I'' := irgraph [
  (0, (StartNode ((Some 3)) (5))),
  (1, (ParameterNode (0))),
  (2, (ParameterNode (1))),
@@ -214,7 +214,7 @@ definition combs :: "string \<Rightarrow> IRGraph " where
  (15, (SignedDivNode (5) (14) (None) (None) (16))),
  (16, (ReturnNode ((Some 15)) (None)))
 ]))
-(''Combinations.fact(int)'' := irgraph [
+(''Combinations.fact(I)I'' := irgraph [
  (0, (StartNode ((Some 2)) (5))),
  (1, (ParameterNode (0))),
  (2, (FrameState ([]) (None) ((Some [1])) (None))),

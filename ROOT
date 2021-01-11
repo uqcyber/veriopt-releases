@@ -7,7 +7,8 @@ session semantics = "HOL-Library" +
     IRGraph
     IREval
     IRStepObj
-    (*Canonicalization*)
+    IRGraphFrames
+    Canonicalization
   document_files
     "root.tex"
     "mathpartir.sty"

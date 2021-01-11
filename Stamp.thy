@@ -1,5 +1,6 @@
 theory Stamp
-  imports 
+  imports
+    IREval
     "HOL-Word.Word"
     "HOL-Library.Float"
 begin            
@@ -34,6 +35,9 @@ fun unrestricted :: "Stamp \<Rightarrow> Stamp" where
   "unrestricted (ObjectStamp type exactType nonNull alwaysNull) = (ObjectStamp '''' False False False)" |
   "unrestricted _ = IllegalStamp"
 
+fun stamp_unrestricted :: "Stamp \<Rightarrow> bool" where
+  "stamp_unrestricted s = (s = unrestricted s)"
+
 fun empty :: "Stamp \<Rightarrow> Stamp" where
   "empty VoidStamp = VoidStamp" |
   "empty (IntegerStamp bits lower upper) = (IntegerStamp bits (snd (bit_bounds bits)) (fst (bit_bounds bits)))" |
@@ -43,6 +47,10 @@ fun empty :: "Stamp \<Rightarrow> Stamp" where
   "empty (MethodPointersStamp nonNull alwaysNull) = (MethodPointersStamp nonNull alwaysNull)" |
   "empty (ObjectStamp type exactType nonNull alwaysNull) = (ObjectStamp '''' True True False)" |
   "empty stamp = IllegalStamp"
+
+fun stamp_empty :: "Stamp \<Rightarrow> bool" where
+  "stamp_empty (IntegerStamp b lower upper) = (upper < lower)" |
+  "stamp_empty x = False"
 
 fun meet :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "meet VoidStamp VoidStamp = VoidStamp" |
@@ -92,6 +100,10 @@ fun join :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   )" |
   "join s1 s2 = IllegalStamp"
 
+
+fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
+  "valid_value (IntegerStamp b l h) (IntVal x) = (x \<ge> l \<and> x \<le> h)" |
+  "valid_value x y = True"
 
 (* Theories/Lemmas *)
 lemma intstamp_bits_eq_meet:

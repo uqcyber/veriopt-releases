@@ -44,7 +44,7 @@ fun m_set :: "ID \<Rightarrow> Value \<Rightarrow> MapState \<Rightarrow> MapSta
 
 fun m_param :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> Value" where
   "m_param g m nid = (case (kind g nid) of
-    Some (ParameterNode i) \<Rightarrow> (m_params m)!i |
+    (ParameterNode i) \<Rightarrow> (m_params m)!i |
     _ \<Rightarrow> UndefVal)"
 
 fun set_params :: "MapState \<Rightarrow> Value list \<Rightarrow> MapState" where
@@ -72,7 +72,7 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
 
 fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "phi_list g nid = 
-    (filter (\<lambda>x.(isType is_PhiNode (kind g x)))
+    (filter (\<lambda>x.(is_PhiNode (kind g x)))
       (sorted_list_of_set (usages g nid)))"
 
 fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
@@ -116,69 +116,69 @@ inductive
     \<Longrightarrow> g m \<turnstile> _ (ValuePhiNode nid _ _) \<mapsto> val" |
 
   ValueProxyNode:
-  "\<lbrakk>g m \<turnstile> c (the (kind g c)) \<mapsto> val\<rbrakk>
+  "\<lbrakk>g m \<turnstile> c (kind g c) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (ValueProxyNode c _) \<mapsto> val" |
 
 (* Unary arithmetic operators *)
 
   AbsNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (AbsNode x) \<mapsto> IntVal(if v<0 then -v else v)" |
 
   NegateNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (NegateNode x) \<mapsto> IntVal(-v)" |
 
 (* Binary arithmetic operators *)
 
   AddNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk>
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(v1+v2)" |
 
   SubNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (SubNode x y) \<mapsto> IntVal(v1-v2)" |
 
   MulNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (MulNode x y) \<mapsto> IntVal(v1*v2)" |
 
   SignedDivNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk>
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (SignedDivNode x y zeroCheck frameState next) \<mapsto> IntVal(v1 div v2)" |
 
 (* Binary logical bitwise operators *)
 
   AndNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (AndNode x y) \<mapsto> IntVal(v1 AND v2)" |
 
   OrNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (OrNode x y) \<mapsto> IntVal(v1 OR v2)" |
 
   XorNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (XorNode x y) \<mapsto> IntVal(v1 XOR v2)" |
 
 (* Comparison operators *)
 (* NOTE: if we use IntVal(bool_to_int(v1=v2)), then code generation does not work! *)
   IntegerEqualsNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2);
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2);
     val = bool_to_val(v1 = v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (IntegerEqualsNode x y) \<mapsto> val" |
 
   IntegerLessThanNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2);
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2);
     val = bool_to_val(v1 < v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val" |
 
@@ -187,22 +187,22 @@ inductive
    This is not an issue as evaluation is total (but may return UnDef) *)
 
   ConditionalNode:
-  "\<lbrakk>g m \<turnstile> condition (the (kind g condition)) \<mapsto> IntVal(cond);
-    g m \<turnstile> trueExp (the (kind g trueExp)) \<mapsto> IntVal(trueVal);
-    g m \<turnstile> falseExp (the (kind g falseExp)) \<mapsto> IntVal(falseVal);
+  "\<lbrakk>g m \<turnstile> condition (kind g condition) \<mapsto> IntVal(cond);
+    g m \<turnstile> trueExp (kind g trueExp) \<mapsto> IntVal(trueVal);
+    g m \<turnstile> falseExp (kind g falseExp) \<mapsto> IntVal(falseVal);
     val = IntVal(if cond \<noteq> 0 then trueVal else falseVal)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (ConditionalNode condition trueExp falseExp) \<mapsto> val" |
 
 (* Note that v2 may evaluate to UnDef but is not used if v1 is true *)
 
   ShortCircuitOrNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
-    g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal(v2);
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
+    g m \<turnstile> y (kind g y) \<mapsto> IntVal(v2);
     val = IntVal(if v1 \<noteq> 0 then v1 else v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (ShortCircuitOrNode x y) \<mapsto> val" |
 
   LogicNegationNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal(v1);
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> IntVal(v1);
     val = IntVal(NOT v1)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (LogicNegationNode x) \<mapsto> val" |
 
@@ -219,7 +219,7 @@ inductive
   "g m \<turnstile> nid (NewInstanceNode class stateBefore next) \<mapsto> (ObjRef (Some 0))" |
 
   RefNode:
-  "\<lbrakk>g m \<turnstile> x (the (kind g x)) \<mapsto> val\<rbrakk>
+  "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (RefNode x) \<mapsto> val" 
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE) eval .
@@ -242,8 +242,7 @@ inductive
   ("_ _ _\<longmapsto>_" 55)
   for g where
   "g m [] \<longmapsto> []" |
-  "\<lbrakk>Some k = kind g nid;
-    g m \<turnstile> nid k \<mapsto> v;
+  "\<lbrakk>g m \<turnstile> nid (kind g nid) \<mapsto> v;
     g m xs \<longmapsto> vs\<rbrakk>
    \<Longrightarrow> g m (nid # xs) \<longmapsto> (v # vs)"
 
@@ -254,8 +253,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 inductive eval_graph :: "IRGraph \<Rightarrow> ID \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
   where
   "\<lbrakk>state = new_map ps;
-    Some k = kind g nid;
-    g state \<turnstile> nid k \<mapsto> val\<rbrakk>
+    g state \<turnstile> nid (kind g nid) \<mapsto> val\<rbrakk>
     \<Longrightarrow> eval_graph g nid ps val"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) "eval_graph" .
@@ -479,6 +477,10 @@ inductive_cases RefNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases SubstrateMethodCallTargetNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SubstrateMethodCallTargetNode targetMethod args) \<mapsto> val"
 
+inductive_cases NoNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g m \<turnstile> nid (NoNode) \<mapsto> val"
+
+
 lemmas EvalE = 
 ValueNodeE
 FixedNodeE
@@ -544,12 +546,13 @@ InvokeWithExceptionNodeE
 BytecodeExceptionNodeE
 UnwindNodeE
 RefNodeE
+NoNodeE
 
 
 (* Try proving 'inverted rules' for eval. *)
 lemma "evalAddNode" : "g m \<turnstile> nid (AddNode x y) \<mapsto> val \<Longrightarrow>
-  (\<exists> v1. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v1) \<and>
-    (\<exists> v2. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v2) \<and>
+  (\<exists> v1. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v1) \<and>
+    (\<exists> v2. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v2) \<and>
        val = IntVal(v1 + v2)))"
   using AddNodeE by auto
 
@@ -563,15 +566,15 @@ rule for all floating nodes but might be stunted by some
 undefined behaviour at the moment
 *)
 lemma evalFloating:
-  assumes "\<forall>i . List.member (inputs_of (the (kind g nid))) i \<longrightarrow> (\<exists>v. (g m \<turnstile> i (the (kind g i)) \<mapsto> IntVal v))"
-  assumes "is_floating_node (the (kind g nid))"
-  shows "g m \<turnstile> nid (the (kind g nid)) \<mapsto> val"
-proof (induction "the (kind g nid)")
+  assumes "\<forall>i . List.member (inputs_of (kind g nid)) i \<longrightarrow> (\<exists>v. (g m \<turnstile> i (kind g i) \<mapsto> IntVal v))"
+  assumes "is_floating_node (kind g nid)"
+  shows "g m \<turnstile> nid (kind g nid) \<mapsto> val"
+proof (induction "kind g nid")
   case (AbsNode x)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_AbsNode AbsNode
     by (metis member_rec(1))
-  then have "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> v)"
+  then have "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
   then show ?case using eval.AbsNode AbsNode sorry
 next
@@ -604,29 +607,29 @@ next
     using assms(2) not_floating successors_of_AccessFieldNode by metis
 next
   case (AddNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_AddNode AddNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_AddNode AddNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.AddNode AddNode sorry
 next
   case (AndNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_AndNode AndNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_AndNode AndNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.AndNode AndNode sorry
@@ -650,20 +653,20 @@ next
     using assms(2) not_floating successors_of_BytecodeExceptionNode by metis
 next
   case (ConditionalNode cond t f)
-  have "List.member (inputs_of (the (kind g nid))) cond"
+  have "List.member (inputs_of (kind g nid)) cond"
     using inputs_of_ConditionalNode ConditionalNode
     by (metis member_rec(1))
-  then have cond: "\<exists>v. (g m \<turnstile> cond (the (kind g cond)) \<mapsto> IntVal v)"
+  then have cond: "\<exists>v. (g m \<turnstile> cond (kind g cond) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) t"
+  have "List.member (inputs_of (kind g nid)) t"
     using inputs_of_ConditionalNode ConditionalNode
     by (metis member_rec(1))
-  then have t: "\<exists>v. (g m \<turnstile> t (the (kind g t)) \<mapsto> IntVal v)"
+  then have t: "\<exists>v. (g m \<turnstile> t (kind g t) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) f"
+  have "List.member (inputs_of (kind g nid)) f"
     using inputs_of_ConditionalNode ConditionalNode
     by (metis member_rec(1))
-  then have f: "\<exists>v. (g m \<turnstile> f (the (kind g f)) \<mapsto> IntVal v)"
+  then have f: "\<exists>v. (g m \<turnstile> f (kind g f) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using cond t f eval.ConditionalNode ConditionalNode sorry
@@ -709,29 +712,29 @@ next
     using assms(2) not_floating successors_of_IfNode by metis
 next
   case (IntegerEqualsNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_IntegerEqualsNode IntegerEqualsNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_IntegerEqualsNode IntegerEqualsNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.IntegerEqualsNode IntegerEqualsNode sorry
 next
   case (IntegerLessThanNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_IntegerLessThanNode IntegerLessThanNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_IntegerLessThanNode IntegerLessThanNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.IntegerLessThanNode IntegerLessThanNode sorry
@@ -776,24 +779,24 @@ next
   show ?thesis sorry
 next
   case (MulNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_MulNode MulNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_MulNode MulNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.MulNode MulNode sorry
 next
   case (NegateNode x)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_NegateNode NegateNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x eval.NegateNode NegateNode sorry
@@ -807,24 +810,24 @@ next
     using assms(2) not_floating successors_of_NewInstanceNode by metis
 next
   case (NotNode x)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_NotNode NotNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x (*eval.NotNode*) NotNode sorry (* no rule *)
 next
   case (OrNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_OrNode OrNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_OrNode OrNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.OrNode OrNode sorry
@@ -842,15 +845,15 @@ next
   then show ?case sorry
 next
   case (ShortCircuitOrNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_ShortCircuitOrNode ShortCircuitOrNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_ShortCircuitOrNode ShortCircuitOrNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.ShortCircuitOrNode ShortCircuitOrNode sorry
@@ -868,15 +871,15 @@ next
     using assms(2) not_floating successors_of_StoreFieldNode by metis
 next
   case (SubNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_SubNode SubNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_SubNode SubNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.SubNode SubNode sorry
@@ -900,24 +903,24 @@ next
   then show ?case sorry
 next
   case (ValueProxyNode c x2a)
-  have "List.member (inputs_of (the (kind g nid))) c"
+  have "List.member (inputs_of (kind g nid)) c"
     using inputs_of_ValueProxyNode ValueProxyNode
     by (metis member_rec(1))
-  then have c: "\<exists>v. (g m \<turnstile> c (the (kind g c)) \<mapsto> IntVal v)"
+  then have c: "\<exists>v. (g m \<turnstile> c (kind g c) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using c eval.ValueProxyNode ValueProxyNode sorry
 next
   case (XorNode x y)
-  have "List.member (inputs_of (the (kind g nid))) x"
+  have "List.member (inputs_of (kind g nid)) x"
     using inputs_of_XorNode XorNode
     by (metis member_rec(1))
-  then have x: "\<exists>v. (g m \<turnstile> x (the (kind g x)) \<mapsto> IntVal v)"
+  then have x: "\<exists>v. (g m \<turnstile> x (kind g x) \<mapsto> IntVal v)"
     using assms(1) by auto
-  have "List.member (inputs_of (the (kind g nid))) y"
+  have "List.member (inputs_of (kind g nid)) y"
     using inputs_of_XorNode XorNode
     by (metis member_rec(1))
-  then have y: "\<exists>v. (g m \<turnstile> y (the (kind g y)) \<mapsto> IntVal v)"
+  then have y: "\<exists>v. (g m \<turnstile> y (kind g y) \<mapsto> IntVal v)"
     using assms(1) by auto
   show ?case
     using x y eval.XorNode XorNode sorry
@@ -926,6 +929,9 @@ next
   then show ?case sorry
 next
   case (RefNode x)
+  then show ?case sorry
+next
+  case (NoNode)
   then show ?case sorry
 qed
 

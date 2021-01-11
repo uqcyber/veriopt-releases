@@ -159,12 +159,6 @@ lemma usage_includes_inputs:
   using inputs_are_usages eval_usages
   using assms(1) assms(2) assms(3) by blast
 
-lemma kind_floats:
-  assumes "Some k = kind g1 nid"
-  assumes "g1 m \<turnstile> nid k \<mapsto> v1"
-  shows "is_floating_node k"
-  using assms evalFloating by blast
-
 lemma elim_inp_set:
   assumes "Some k = kind g nid"
   assumes "child \<in> set (inputs_of k)"

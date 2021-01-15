@@ -3,6 +3,7 @@ section \<open>GraalVM Graph Representation\<close>
 theory IRGraph
   imports 
     IRNodes
+    Stamp
     "HOL-Library.FSet"
     "HOL.Relation"
 begin
@@ -43,6 +44,12 @@ definition node_kind :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID \<Righta
 
 lift_definition kind :: "IRGraph \<Rightarrow> (ID \<Rightarrow> IRNode)"
   is node_kind .
+
+definition node_stamp :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID \<Rightarrow> Stamp" where
+  "node_stamp g nid = IllegalStamp"
+
+lift_definition stamp :: "IRGraph \<Rightarrow> ID \<Rightarrow> Stamp"
+  is node_stamp .
 
 definition map_upd :: "ID \<Rightarrow> IRNode \<Rightarrow> (ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<rightharpoonup> IRNode)" where
   "map_upd nid k g = g(nid \<mapsto> k)"

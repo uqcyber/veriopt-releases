@@ -2,7 +2,7 @@ section \<open>GraalVM Nodes\<close>
 
 theory IRNodes
   imports 
-    Main
+    Values
 begin
 
 text \<open>
@@ -24,12 +24,6 @@ INPUT (or special case thereof) instead of ID for input edges, and
 SUCC instead of ID for control-flow successor edges.
 Optional edges are handled as "INPUT option" etc.
 \<close>
-
-text \<open>
-int32 is normally defined as "32 word" but to speed up computation during
-theory development we set it to simply int
-\<close>
-type_synonym int32 = "int"
 
 subsection "Node Types"
 type_synonym ID = "nat"
@@ -59,7 +53,7 @@ datatype (discs_sels) IRNode =
   | BinaryNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | BytecodeExceptionNode (ir_arguments: "INPUT list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | ConditionalNode (ir_condition: "INPUT_COND") (ir_trueValue: "INPUT") (ir_falseValue: "INPUT") 
-  | ConstantNode (ir_intValue: int32) 
+  | ConstantNode (ir_intValue: Value) 
   | ControlSplitNode 
   | DeoptimizingFixedWithNextNode (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | DynamicNewArrayNode (ir_elementType: "INPUT") (ir_length: "INPUT") (ir_voidClass_opt: "INPUT option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 

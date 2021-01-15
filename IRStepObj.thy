@@ -45,7 +45,7 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
   "\<lbrakk>g = p_method s p;
     kind g nid = (IfNode cond true false);
     condk = (kind g cond);
-    g m \<turnstile> cond condk \<mapsto> (IntVal val);
+    g m \<turnstile> cond condk \<mapsto> val;
     next = (if val_to_bool val then true else false)\<rbrakk>
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |  
 
@@ -212,7 +212,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 
 
 definition p3:: MapState where
-  "p3 = set_params new_map_state [IntVal 3] "
+  "p3 = set_params new_map_state [IntVal 32 3] "
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{m_val (prod.snd (prod.snd (hd (prod.fst res)))) 0 

@@ -22,7 +22,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> o \<Righta
 definition simple_return :: IRGraph where
   "simple_return = irgraph [
     (2, (ReturnNode (Some 1) None)),
-    (1, (ConstantNode 42)),
+    (1, (ConstantNode (IntVal 32 42))),
     (0, (StartNode None 2))
   ]"
 
@@ -40,14 +40,14 @@ definition double_param :: IRGraph where
   ]"
 
 (* IntVal 10 *)
-values "{m_val m 0 |n m l. double_param | [IntVal 5] \<leadsto> (n, m) | l}"
-values "{l | x l . double_param | [IntVal 5] \<leadsto> x | l}"
+values "{m_val m 0 |n m l. double_param | [IntVal 32 5] \<leadsto> (n, m) | l}"
+values "{l | x l . double_param | [IntVal 32 5] \<leadsto> x | l}"
 (* IntVal 50 *)
-values "{m_val m 0 |n m l. double_param | [IntVal 25] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. double_param | [IntVal 32 25] \<leadsto> (n, m) | l}"
 (* IntVal 256 *)
-values "{m_val m 0 |n m l. double_param | [IntVal 128] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. double_param | [IntVal 32 128] \<leadsto> (n, m) | l}"
 (* IntVal 198 *)
-values "{m_val m 0 |n m l. double_param | [IntVal 99] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. double_param | [IntVal 32 99] \<leadsto> (n, m) | l}"
 
 definition simple_if :: IRGraph where
   "simple_if = irgraph [
@@ -67,11 +67,11 @@ definition simple_if :: IRGraph where
   ]"
 
 (* IntVal 20 *)
-values "{m_val m 0 |n m l. simple_if | [IntVal 0, IntVal 20, IntVal 100] \<leadsto> (n, m) | l}"
-values "{l | x l . simple_if | [IntVal 0, IntVal 20, IntVal 100] \<leadsto> x | l}"
+values "{m_val m 0 |n m l. simple_if | [IntVal 32 0, IntVal 32 20, IntVal 32 100] \<leadsto> (n, m) | l}"
+values "{l | x l . simple_if | [IntVal 32 0, IntVal 32 20, IntVal 32 100] \<leadsto> x | l}"
 (* IntVal 120 *)
-values "{m_val m 0 |n m l. simple_if | [IntVal 1, IntVal 20, IntVal 100] \<leadsto> (n, m) | l}"
-values "{l | x l . simple_if | [IntVal 1, IntVal 20, IntVal 100] \<leadsto> x | l}"
+values "{m_val m 0 |n m l. simple_if | [IntVal 32 1, IntVal 32 20, IntVal 32 100] \<leadsto> (n, m) | l}"
+values "{l | x l . simple_if | [IntVal 32 1, IntVal 32 20, IntVal 32 100] \<leadsto> x | l}"
 
 
 definition loop :: IRGraph where
@@ -84,8 +84,8 @@ definition loop :: IRGraph where
     (8, (AddNode 7 5)),
     (7, (ValuePhiNode 7 [4,8] 3)),
     (6, (ParameterNode 0)),
-    (5, (ConstantNode 1)),
-    (4, (ConstantNode 0)),
+    (5, (ConstantNode (IntVal 32 1))),
+    (4, (ConstantNode (IntVal 32 0))),
     (3, (LoopBeginNode [2,12] None None 10)),
     (2, (EndNode)),
     (1, (BeginNode 2)),
@@ -93,16 +93,16 @@ definition loop :: IRGraph where
   ]"
 
 (* IntVal 0 *)
-values "{m_val m 0 |n m l. loop | [IntVal 0] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. loop | [IntVal 32 0] \<leadsto> (n, m) | l}"
 (* IntVal 1 *)
-values "{m_val m 0 |n m l. loop | [IntVal 1] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. loop | [IntVal 32 1] \<leadsto> (n, m) | l}"
 (* IntVal 2 *)
-values "{m_val m 0 |n m l. loop | [IntVal 2] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. loop | [IntVal 32 2] \<leadsto> (n, m) | l}"
 (* IntVal 5 *)
-values "{m_val m 0 |n m l. loop | [IntVal 5] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. loop | [IntVal 32 5] \<leadsto> (n, m) | l}"
 (* IntVal 10 *)
-values "{m_val m 0 |n m l. loop | [IntVal 10] \<leadsto> (n, m) | l}"
-values "{l | x l . loop | [IntVal 10] \<leadsto> x | l}"
+values "{m_val m 0 |n m l. loop | [IntVal 32 10] \<leadsto> (n, m) | l}"
+values "{l | x l . loop | [IntVal 32 10] \<leadsto> x | l}"
 
 definition sum :: IRGraph where
   "sum = irgraph [
@@ -116,8 +116,8 @@ definition sum :: IRGraph where
     (8, (ValuePhiNode 8 [4,10] 3)),
     (7, (ValuePhiNode 7 [4,9] 3)),
     (6, (ParameterNode 0)),
-    (5, (ConstantNode 1)),
-    (4, (ConstantNode 0)),
+    (5, (ConstantNode (IntVal 32 1))),
+    (4, (ConstantNode (IntVal 32 0))),
     (3, (LoopBeginNode [2,14] None None 12)),
     (2, (EndNode)),
     (1, (BeginNode 2)),
@@ -125,15 +125,15 @@ definition sum :: IRGraph where
   ]"
 
 (* IntVal 1 *)
-values "{m_val m 0 |n m l. sum | [IntVal 1] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. sum | [IntVal 32 1] \<leadsto> (n, m) | l}"
 (* IntVal 3 *)
-values "{m_val m 0 |n m l. sum | [IntVal 2] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. sum | [IntVal 32 2] \<leadsto> (n, m) | l}"
 (* IntVal 15 *)
-values "{m_val m 0 |n m l. sum | [IntVal 5] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. sum | [IntVal 32 5] \<leadsto> (n, m) | l}"
 (* IntVal 28 *)
-values "{m_val m 0 |n m l. sum | [IntVal 7] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. sum | [IntVal 32 7] \<leadsto> (n, m) | l}"
 (* IntVal 210 *)
-values "{m_val m 0 |n m l. sum | [IntVal 20] \<leadsto> (n, m) | l}"
+values "{m_val m 0 |n m l. sum | [IntVal 32 20] \<leadsto> (n, m) | l}"
 
 
 inductive exec_prog :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_|_|_\<leadsto>_")
@@ -151,19 +151,19 @@ definition prog :: "string \<Rightarrow> IRGraph " where
  (0, (StartNode ((Some 2)) (8))),
  (1, (ParameterNode (0))),
  (2, (FrameState ([]) (None) ((Some [1])) (None))),
- (3, (ConstantNode (1))),
- (4, (ConstantNode (2))),
+ (3, (ConstantNode (IntVal 32 (1)))),
+ (4, (ConstantNode (IntVal 32 (2)))),
  (5, (IntegerLessThanNode (1) (4))),
  (6, (BeginNode (13))),
  (7, (BeginNode (9))),
  (8, (IfNode (5) (7) (6))),
  (9, (ReturnNode ((Some 1)) (None))),
- (10, (ConstantNode (-1))),
+ (10, (ConstantNode (IntVal 32 (-1)))),
  (11, (AddNode (1) (10))),
  (12, (MethodCallTargetNode (''Fib.fib(I)I'') ([11]))),
  (13, (InvokeNode (13) (12) (None) (None) ((Some 14)) (18))),
  (14, (FrameState ([]) (None) ((Some [1, 13])) (None))),
- (15, (ConstantNode (-2))),
+ (15, (ConstantNode (IntVal 32 (-2)))),
  (16, (AddNode (1) (15))),
  (17, (MethodCallTargetNode (''Fib.fib(I)I'') ([16]))),
  (18, (InvokeNode (18) (17) (None) (None) ((Some 19)) (21))),
@@ -177,19 +177,19 @@ definition prog :: "string \<Rightarrow> IRGraph " where
 export_code execProgE prog in SML module_name "IRInterpreter" file_prefix "IRInterpreter"
 
 (* IntVal 1 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 1] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 1] \<leadsto> (n, m)}"
 (* IntVal 1 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 2] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 2] \<leadsto> (n, m)}"
 (* IntVal 2 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 3] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 3] \<leadsto> (n, m)}"
 (* IntVal 3 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 4] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 4] \<leadsto> (n, m)}"
 (* IntVal 5 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 5] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 5] \<leadsto> (n, m)}"
 (* IntVal 8 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 6] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 6] \<leadsto> (n, m)}"
 (* IntVal 13 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 7] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 7] \<leadsto> (n, m)}"
 
 
 
@@ -218,13 +218,13 @@ definition combs :: "string \<Rightarrow> IRGraph " where
  (0, (StartNode ((Some 2)) (5))),
  (1, (ParameterNode (0))),
  (2, (FrameState ([]) (None) ((Some [1])) (None))),
- (3, (ConstantNode (1))),
+ (3, (ConstantNode (IntVal 32 (1)))),
  (5, (EndNode)),
- (6, (LoopBeginNode ([5]) (None) ((Some 9)) (17))),
+ (6, (LoopBeginNode ([5, 21]) (None) ((Some 9)) (17))),
  (7, (ValuePhiNode (7) ([1, 20, 9]) (6))),
  (8, (ValuePhiNode (8) ([3, 18, 9]) (6))),
  (9, (FrameState ([]) (None) ((Some [7, 8])) (None))),
- (10, (ConstantNode (2))),
+ (10, (ConstantNode (IntVal 32 (2)))),
  (11, (IntegerLessThanNode (7) (10))),
  (12, (BeginNode (21))),
  (14, (LoopExitNode (6) ((Some 16)) (22))),
@@ -232,7 +232,7 @@ definition combs :: "string \<Rightarrow> IRGraph " where
  (16, (FrameState ([]) (None) ((Some [15])) (None))),
  (17, (IfNode (11) (14) (12))),
  (18, (MulNode (7) (8))),
- (19, (ConstantNode (-1))),
+ (19, (ConstantNode (IntVal 32 (-1)))),
  (20, (AddNode (7) (19))),
  (21, (LoopEndNode (6))),
  (22, (ReturnNode ((Some 15)) (None)))
@@ -240,10 +240,10 @@ definition combs :: "string \<Rightarrow> IRGraph " where
 "
 
 
-definition combs_params where "combs_params = new_map [IntVal 10, IntVal 6]"
+definition combs_params where "combs_params = new_map [IntVal 32 10, IntVal 32 6]"
 definition combs_main where "combs_main = ''Combinations.combinations(I, I)I''"
 
-values "{m_val m 0 |n m l. combs | combs_main | [IntVal 10, IntVal 6] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. combs | combs_main | [IntVal 32 10, IntVal 32 6] \<leadsto> (n, m)}"
 
 values "{l |x h l. combs \<turnstile> ([(combs_main, 0, combs_params), (combs_main, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
 values "{x |x h l. combs \<turnstile> ([(combs_main, 0, combs_params), (combs_main, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
@@ -256,7 +256,7 @@ definition native_combs :: "string \<Rightarrow> IRGraph " where
  (add_node 0 (StartNode ((Some 2)) (5))
  (add_node 1 (ParameterNode (0))
  (add_node 2 (FrameState ([]) (None) ((Some [1])) (None))
- (add_node 3 (ConstantNode (1))
+ (add_node 3 (ConstantNode (IntVal 32 (1)))
  (add_node 5 (EndNode)
  (add_node 6 (LoopBeginNode ([5, 21]) (None) ((Some 9)) (17))
  (add_node 7 (ValuePhiNode (7) ([1, 20, 9]) (6))

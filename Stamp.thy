@@ -1,9 +1,6 @@
 theory Stamp
-  imports
-    IREval
-    "HOL-Word.Word"
-    "HOL-Library.Float"
-begin            
+  imports Values
+begin
 
 fun bit_bounds :: "nat \<Rightarrow> (int \<times> int)" where
   "bit_bounds bits = (((2 ^ bits) div 2) * -1, ((2 ^ bits) div 2) - 1)"
@@ -25,32 +22,33 @@ datatype Stamp =
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
   | IllegalStamp
 
-fun unrestricted :: "Stamp \<Rightarrow> Stamp" where
-  "unrestricted VoidStamp = VoidStamp" |
-  "unrestricted (IntegerStamp bits lower upper) = (IntegerStamp bits (fst (bit_bounds bits)) (snd (bit_bounds bits)))" | 
-  "unrestricted (FloatStamp bits lower upper) = (FloatStamp bits neg_infinity pos_infinity)" | 
-  "unrestricted (KlassPointerStamp nonNull alwaysNull) = (KlassPointerStamp False False)" |
-  "unrestricted (MethodCountersPointerStamp nonNull alwaysNull) = (MethodCountersPointerStamp False False)" |
-  "unrestricted (MethodPointersStamp nonNull alwaysNull) = (MethodPointersStamp False False)" |
-  "unrestricted (ObjectStamp type exactType nonNull alwaysNull) = (ObjectStamp '''' False False False)" |
-  "unrestricted _ = IllegalStamp"
+fun unrestricted_stamp :: "Stamp \<Rightarrow> Stamp" where
+  "unrestricted_stamp VoidStamp = VoidStamp" |
+  "unrestricted_stamp (IntegerStamp bits lower upper) = (IntegerStamp bits (fst (bit_bounds bits)) (snd (bit_bounds bits)))" | 
+  "unrestricted_stamp (FloatStamp bits lower upper) = (FloatStamp bits neg_infinity pos_infinity)" | 
+  "unrestricted_stamp (KlassPointerStamp nonNull alwaysNull) = (KlassPointerStamp False False)" |
+  "unrestricted_stamp (MethodCountersPointerStamp nonNull alwaysNull) = (MethodCountersPointerStamp False False)" |
+  "unrestricted_stamp (MethodPointersStamp nonNull alwaysNull) = (MethodPointersStamp False False)" |
+  "unrestricted_stamp (ObjectStamp type exactType nonNull alwaysNull) = (ObjectStamp '''' False False False)" |
+  "unrestricted_stamp _ = IllegalStamp"
 
-fun stamp_unrestricted :: "Stamp \<Rightarrow> bool" where
-  "stamp_unrestricted s = (s = unrestricted s)"
+fun is_stamp_unrestricted :: "Stamp \<Rightarrow> bool" where
+  "is_stamp_unrestricted s = (s = unrestricted_stamp s)"
 
-fun empty :: "Stamp \<Rightarrow> Stamp" where
-  "empty VoidStamp = VoidStamp" |
-  "empty (IntegerStamp bits lower upper) = (IntegerStamp bits (snd (bit_bounds bits)) (fst (bit_bounds bits)))" |
-  "empty (FloatStamp bits lower upper) = (FloatStamp bits pos_infinity neg_infinity)" |
-  "empty (KlassPointerStamp nonNull alwaysNull) = (KlassPointerStamp nonNull alwaysNull)" |
-  "empty (MethodCountersPointerStamp nonNull alwaysNull) = (MethodCountersPointerStamp nonNull alwaysNull)" |
-  "empty (MethodPointersStamp nonNull alwaysNull) = (MethodPointersStamp nonNull alwaysNull)" |
-  "empty (ObjectStamp type exactType nonNull alwaysNull) = (ObjectStamp '''' True True False)" |
-  "empty stamp = IllegalStamp"
+fun empty_stamp :: "Stamp \<Rightarrow> Stamp" where
+  "empty_stamp VoidStamp = VoidStamp" |
+  "empty_stamp (IntegerStamp bits lower upper) = (IntegerStamp bits (snd (bit_bounds bits)) (fst (bit_bounds bits)))" |
+  "empty_stamp (FloatStamp bits lower upper) = (FloatStamp bits pos_infinity neg_infinity)" |
+  "empty_stamp (KlassPointerStamp nonNull alwaysNull) = (KlassPointerStamp nonNull alwaysNull)" |
+  "empty_stamp (MethodCountersPointerStamp nonNull alwaysNull) = (MethodCountersPointerStamp nonNull alwaysNull)" |
+  "empty_stamp (MethodPointersStamp nonNull alwaysNull) = (MethodPointersStamp nonNull alwaysNull)" |
+  "empty_stamp (ObjectStamp type exactType nonNull alwaysNull) = (ObjectStamp '''' True True False)" |
+  "empty_stamp stamp = IllegalStamp"
 
-fun stamp_empty :: "Stamp \<Rightarrow> bool" where
-  "stamp_empty (IntegerStamp b lower upper) = (upper < lower)" |
-  "stamp_empty x = False"
+fun is_stamp_empty :: "Stamp \<Rightarrow> bool" where
+  "is_stamp_empty (IntegerStamp b lower upper) = (upper < lower)" |
+  "is_stamp_empty (FloatStamp b lower upper) = (upper < lower)" |
+  "is_stamp_empty x = False"
 
 fun meet :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "meet VoidStamp VoidStamp = VoidStamp" |
@@ -85,27 +83,60 @@ fun join :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   )" |
   "join (KlassPointerStamp nn1 an1) (KlassPointerStamp nn2 an2) = (
     if ((nn1 \<or> nn2) \<and> (an1 \<or> an2)) 
-    then (empty (KlassPointerStamp nn1 an1))
+    then (empty_stamp (KlassPointerStamp nn1 an1))
     else (KlassPointerStamp (nn1 \<or> nn2) (an1 \<or> an2))
   )" |
   "join (MethodCountersPointerStamp nn1 an1) (MethodCountersPointerStamp nn2 an2) = (
     if ((nn1 \<or> nn2) \<and> (an1 \<or> an2)) 
-    then (empty (MethodCountersPointerStamp nn1 an1))
+    then (empty_stamp (MethodCountersPointerStamp nn1 an1))
     else (MethodCountersPointerStamp (nn1 \<or> nn2) (an1 \<or> an2))
   )" |
   "join (MethodPointersStamp nn1 an1) (MethodPointersStamp nn2 an2) = (
     if ((nn1 \<or> nn2) \<and> (an1 \<or> an2)) 
-    then (empty (MethodPointersStamp nn1 an1))
+    then (empty_stamp (MethodPointersStamp nn1 an1))
     else (MethodPointersStamp (nn1 \<or> nn2) (an1 \<or> an2))
   )" |
   "join s1 s2 = IllegalStamp"
 
 
+fun stamp_value :: "Stamp \<Rightarrow> UnstampedValue \<Rightarrow> Value" where
+  "stamp_value (IntegerStamp b l h) (UnstampedInt v) = 
+    (if v > h \<or> v < l then UndefVal else IntVal b v)" |
+  "stamp_value (FloatStamp b l h) (UnstampedFloat m e) =
+    (let v = (float_of (m * 2 powr e)) in
+    (if v > h \<or> v < l then UndefVal else FloatVal b v))" |
+  "stamp_value x y = UndefVal"
+
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
-  "valid_value (IntegerStamp b l h) (IntVal x) = (x \<ge> l \<and> x \<le> h)" |
-  "valid_value x y = True"
+  "valid_value (IntegerStamp b1 l h) (IntVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |
+  "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |
+  "valid_value (VoidStamp) (UndefVal) = True" |
+  "valid_value stamp val = False"
+
+definition default_stamp :: "Stamp" where
+  "default_stamp = (unrestricted_stamp (IntegerStamp 32 0 0))"
 
 (* Theories/Lemmas *)
+lemma int_valid_range:
+  assumes "stamp = IntegerStamp bits lower upper"
+  shows "{x . valid_value stamp x} = {(IntVal bits val) | val . val \<in> {lower..upper}}"
+  using assms valid_value.simps apply auto
+  using valid_value.elims(2) by blast
+
+lemma float_valid_range:
+  assumes "stamp = FloatStamp bits lower upper"
+  shows "{x . valid_value stamp x} = {(FloatVal bits val) | val . val \<in> {lower..upper}}"
+  using assms valid_value.simps apply auto
+  using valid_value.simps
+  by (metis less_eq_float.rep_eq valid_value.elims(2))
+
+lemma disjoint_empty:
+  assumes "joined = (join x_stamp y_stamp)"
+  assumes "is_stamp_empty joined"
+  shows "{x . valid_value x_stamp x} \<inter> {y . valid_value y_stamp y} = {}"
+  using assms int_valid_range float_valid_range
+  by (induction "x_stamp"; induction "y_stamp"; auto)
+
 lemma intstamp_bits_eq_meet:
   assumes "(meet (IntegerStamp b1 l1 u1) (IntegerStamp b2 l2 u2)) = (IntegerStamp b3 l3 u3)"
   shows "b1 = b3 \<and> b2 = b3"
@@ -117,12 +148,12 @@ lemma intstamp_bits_eq_join:
   by (metis Stamp.distinct(29) assms join.simps(2))
 
 lemma intstamp_bites_eq_unrestricted:
-  assumes "(unrestricted (IntegerStamp b1 l1 u1)) = (IntegerStamp b2 l2 u2)"
+  assumes "(unrestricted_stamp (IntegerStamp b1 l1 u1)) = (IntegerStamp b2 l2 u2)"
   shows "b1 = b2"
   using assms by auto
 
 lemma intstamp_bits_eq_empty:
-  assumes "(empty (IntegerStamp b1 l1 u1)) = (IntegerStamp b2 l2 u2)"
+  assumes "(empty_stamp (IntegerStamp b1 l1 u1)) = (IntegerStamp b2 l2 u2)"
   shows "b1 = b2"
   using assms by auto
 
@@ -137,29 +168,29 @@ lemma floatstamp_bits_eq_join:
   by (metis Stamp.distinct(42) assms join.simps(3))
 
 lemma floatstamp_bites_eq_unrestricted:
-  assumes "(unrestricted (FloatStamp b1 l1 u1)) = (FloatStamp b2 l2 u2)"
+  assumes "(unrestricted_stamp (FloatStamp b1 l1 u1)) = (FloatStamp b2 l2 u2)"
   shows "b1 = b2"
   using assms by auto
 
 lemma floatstamp_bits_eq_empty:
-  assumes "(empty (FloatStamp b1 l1 u1)) = (FloatStamp b2 l2 u2)"
+  assumes "(empty_stamp (FloatStamp b1 l1 u1)) = (FloatStamp b2 l2 u2)"
   shows "b1 = b2"
   using assms by auto
 
 (* Manual sanity checks *)
 notepad
 begin
-  have "unrestricted (IntegerStamp 8 0 10) = (IntegerStamp 8 (- 128) 127)"
+  have "unrestricted_stamp (IntegerStamp 8 0 10) = (IntegerStamp 8 (- 128) 127)"
     by auto
-  have "unrestricted (IntegerStamp 16 0 10) = (IntegerStamp 16 (- 32768) 32767)"
+  have "unrestricted_stamp (IntegerStamp 16 0 10) = (IntegerStamp 16 (- 32768) 32767)"
     by auto
-  have "unrestricted (IntegerStamp 32 0 10) = (IntegerStamp 32 (- 2147483648) 2147483647)"
+  have "unrestricted_stamp (IntegerStamp 32 0 10) = (IntegerStamp 32 (- 2147483648) 2147483647)"
     by auto
-  have "empty (IntegerStamp 8 0 10) = (IntegerStamp 8 127 (- 128))"
+  have "empty_stamp (IntegerStamp 8 0 10) = (IntegerStamp 8 127 (- 128))"
     by auto
-  have "empty (IntegerStamp 16 0 10) = (IntegerStamp 16 32767 (- 32768))"
+  have "empty_stamp (IntegerStamp 16 0 10) = (IntegerStamp 16 32767 (- 32768))"
     by auto
-  have "empty (IntegerStamp 32 0 10) = (IntegerStamp 32 2147483647 (- 2147483648))"
+  have "empty_stamp (IntegerStamp 32 0 10) = (IntegerStamp 32 2147483647 (- 2147483648))"
     by auto
   have "join (IntegerStamp 32 0 20) (IntegerStamp 32 (-100) 10) = (IntegerStamp 32 0 10)"
     by auto
@@ -169,17 +200,17 @@ end
 
 notepad
 begin
-  have "unrestricted (FloatStamp 8 0 10) = (FloatStamp 8 neg_infinity pos_infinity)"
+  have "unrestricted_stamp (FloatStamp 8 0 10) = (FloatStamp 8 neg_infinity pos_infinity)"
     by auto
-  have "unrestricted (FloatStamp 16 0 10) = (FloatStamp 16 neg_infinity pos_infinity)"
+  have "unrestricted_stamp (FloatStamp 16 0 10) = (FloatStamp 16 neg_infinity pos_infinity)"
     by auto
-  have "unrestricted (FloatStamp 32 0 10) = (FloatStamp 32 neg_infinity pos_infinity)"
+  have "unrestricted_stamp (FloatStamp 32 0 10) = (FloatStamp 32 neg_infinity pos_infinity)"
     by auto
-  have "empty (FloatStamp 8 0 10) = (FloatStamp 8 pos_infinity neg_infinity)"
+  have "empty_stamp (FloatStamp 8 0 10) = (FloatStamp 8 pos_infinity neg_infinity)"
     by auto
-  have "empty (FloatStamp 16 0 10) = (FloatStamp 16 pos_infinity neg_infinity)"
+  have "empty_stamp (FloatStamp 16 0 10) = (FloatStamp 16 pos_infinity neg_infinity)"
     by auto
-  have "empty (FloatStamp 32 0 10) = (FloatStamp 32 pos_infinity neg_infinity)"
+  have "empty_stamp (FloatStamp 32 0 10) = (FloatStamp 32 pos_infinity neg_infinity)"
     by auto
   have "join (FloatStamp 32 0 20) (FloatStamp 32 (-100) 10) = (FloatStamp 32 0 10)"
     by auto

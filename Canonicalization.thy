@@ -9,27 +9,27 @@ begin
 
 lemma eval_const_node:
   assumes xn: "kind g x = (ConstantNode xv)"
-  shows "g m \<turnstile> x (kind g x) \<mapsto> (IntVal xv)"
+  shows "g m \<turnstile> x (kind g x) \<mapsto> xv"
   using xn eval.ConstantNode by simp
 
 lemma eval_add_node: 
-  assumes x: "g m \<turnstile> x (kind g x) \<mapsto> IntVal(xv)"
-  assumes y: "g m \<turnstile> y (kind g y) \<mapsto> IntVal(yv)"
-  shows "g m \<turnstile> z (AddNode x y) \<mapsto> IntVal(xv+yv)"
+  assumes x: "g m \<turnstile> x (kind g x) \<mapsto> IntVal b xv"
+  assumes y: "g m \<turnstile> y (kind g y) \<mapsto> IntVal b yv"
+  shows "g m \<turnstile> z (AddNode x y) \<mapsto> IntVal b (xv+yv)"
   using eval.AddNode x y by blast
 
 lemma add_const_nodes:
-  assumes xn: "kind g x = (ConstantNode xv)"
-  assumes yn: "kind g y = (ConstantNode yv)"
+  assumes xn: "kind g x = (ConstantNode (IntVal b xv))"
+  assumes yn: "kind g y = (ConstantNode (IntVal b yv))"
   assumes zn: "kind g z = (AddNode x y)"
-  assumes wn: "kind g w = (ConstantNode (xv+yv))"
-  assumes ez: "g m \<turnstile> z (kind g z) \<mapsto> (IntVal v1)"
-  assumes ew: "g m \<turnstile> w (kind g w) \<mapsto> (IntVal v2)"
+  assumes wn: "kind g w = (ConstantNode (IntVal b (xv+yv)))"
+  assumes ez: "g m \<turnstile> z (kind g z) \<mapsto> (IntVal b v1)"
+  assumes ew: "g m \<turnstile> w (kind g w) \<mapsto> (IntVal b v2)"
   shows "v1 = v2"
 proof -
-  have zv: "g m \<turnstile> z (kind g z) \<mapsto> IntVal(xv+yv)"
+  have zv: "g m \<turnstile> z (kind g z) \<mapsto> IntVal b (xv+yv)"
     using eval.AddNode eval_const_node xn yn zn by simp
-  have wv: "g m \<turnstile> w (kind g w) \<mapsto> IntVal(xv+yv)"
+  have wv: "g m \<turnstile> w (kind g w) \<mapsto> IntVal b (xv+yv)"
     using eval_const_node wn by auto
   show ?thesis using evalDet zv wv
     using ew ez by blast
@@ -39,13 +39,13 @@ text_raw \<open>\Snip{CreateAddNode}%\<close>
 fun create_add :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where 
   "create_add g x y = 
     (case (kind g x) of 
-      ConstantNode xv \<Rightarrow> 
+      ConstantNode (IntVal b xv) \<Rightarrow> 
         (case (kind g y) of
-          ConstantNode yv \<Rightarrow> ConstantNode (xv+yv) | 
+          ConstantNode (IntVal b yv) \<Rightarrow> ConstantNode (IntVal b (xv+yv)) | 
           _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
         ) |
       _ \<Rightarrow> (case (kind g y) of
-            ConstantNode yv \<Rightarrow> 
+            ConstantNode (IntVal b yv) \<Rightarrow> 
               if yv = 0 then RefNode x else AddNode x y |
             _ \<Rightarrow> AddNode x y
            )
@@ -55,11 +55,11 @@ text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{AddNodeCreate}%\<close>
 lemma add_node_create:
-  assumes xv: "g m \<turnstile> x (kind g x) \<mapsto> IntVal(xv)"
-  assumes yv: "g m \<turnstile> y (kind g y) \<mapsto> IntVal(yv)"
+  assumes xv: "g m \<turnstile> x (kind g x) \<mapsto> IntVal b xv"
+  assumes yv: "g m \<turnstile> y (kind g y) \<mapsto> IntVal b yv"
   shows 
-    "(g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal(xv+yv)) \<and>
-     (g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal(xv+yv))"
+    "(g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal b (xv+yv)) \<and>
+     (g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal b (xv+yv))"
   (is "?P \<and> ?Q")
   text_raw \<open>\EndSnip\<close>
 proof -
@@ -145,7 +145,7 @@ lemma add_node_lookup:
 
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
-  assumes cv: "g m \<turnstile> cond (kind g cond) \<mapsto> IntVal cv"
+  assumes cv: "g m \<turnstile> cond (kind g cond) \<mapsto> cv"
   assumes fresh: "nid \<notin> ids g" 
   assumes gif: "gif = add_node nid (IfNode cond tb fb) g"
   assumes gif_lookup: "gif = gif_prog sig"
@@ -166,7 +166,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using cv sorry
     have if_kind: "kind gif nid = (IfNode cond tb fb)"
       using gif add_node_lookup by simp
-    have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> IntVal val"
+    have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> val"
       using step.IfNode if_kind
       using True eval.ConstantNode gif fresh
       using stay_same cond_exists
@@ -204,7 +204,7 @@ next
     obtain cv2 where cv2: "gif m \<turnstile> cond (kind gif cond) \<mapsto> cv2" 
       using \<open>nid \<noteq> cond\<close> cv gif indep
       using fresh sorry
-    then have "IntVal cv = cv2"
+    then have "cv = cv2"
       using indep gif cv
       using \<open>nid \<noteq> cond\<close>
       using fresh sorry
@@ -228,7 +228,7 @@ next
         using not_const False by (cases "(kind g cond)"; auto)
       then show ?thesis
         using eval_gif gcreate gif
-        using IfNode \<open>IntVal cv = cv2\<close> cv2 gcreate_lookup gif_kind nid' by auto
+        using IfNode \<open>cv = cv2\<close> cv2 gcreate_lookup gif_kind nid' by auto
     qed
     show ?thesis
       using eval_gcreate eval_gif by blast

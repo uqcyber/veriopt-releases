@@ -2,6 +2,7 @@ section \<open>Inductive evaluation semantics of floating nodes\<close>
 
 theory IREval
   imports
+    IRNodeHierarchy
     IRGraph
     "HOL-Library.LaTeXsugar"
 begin
@@ -56,7 +57,7 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
 
 fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "phi_list g nid = 
-    (filter (\<lambda>x.(is_PhiNode (kind g x)))
+    (filter (\<lambda>x.(isPhiNodeType (kind g x)))
       (sorted_list_of_set (usages g nid)))"
 
 fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where

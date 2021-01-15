@@ -52,11 +52,11 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
   EndNodes:
   "\<lbrakk>g = p_method s p;
     ek = (kind g nid);
-    is_end_node(ek);
+    isAbstractEndNodeType ek;
     merge_or_none = any_usage g nid;
     merge = the merge_or_none;
     mk = (kind g merge);
-    is_merge_node(mk);
+    isAbstractMergeNodeType mk;
 
     i = input_index g merge nid;
     phis = (phi_list g merge);

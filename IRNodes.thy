@@ -106,55 +106,6 @@ datatype (discs_sels) IRNode =
   | RefNode (ir_ref:ID)
   | NoNode
 
-(* The '(discs_sels)' above automatically generates (is_StartNode _) etc.*)
-
-
-text \<open>Class inheritance functions to determine if a node is extended from another\<close>
-fun is_BinaryArithNode :: "IRNode \<Rightarrow> bool" where
-  "is_BinaryArithNode (AddNode _ _) = True" |
-  "is_BinaryArithNode (SubNode _ _) = True" |
-  "is_BinaryArithNode (MulNode _ _) = True" |
-  "is_BinaryArithNode (AndNode _ _) = True" |
-  "is_BinaryArithNode (OrNode _ _) = True" |
-  "is_BinaryArithNode (XorNode _ _) = True" |
-  "is_BinaryArithNode _ = False"
-
-fun is_UnaryArithNode :: "IRNode \<Rightarrow> bool" where
-  "is_UnaryArithNode (AbsNode _) = True" |
-  "is_UnaryArithNode (NegateNode _) = True" |
-  "is_UnaryArithNode _ = False"
-
-fun is_CompareNode :: "IRNode \<Rightarrow> bool" where
-  "is_CompareNode (IntegerEqualsNode x y) = True" |
-  "is_CompareNode (IntegerLessThanNode x y) = True" |
-  "is_CompareNode _ = False"
-
-fun is_PhiNode :: "IRNode \<Rightarrow> bool" where
-  "is_PhiNode (PhiNode _ _) = True" |
-  "is_PhiNode (ValuePhiNode _ _ _) = True" |
-  "is_PhiNode _ = False"
-
-fun is_merge_node :: "IRNode \<Rightarrow> bool" where
-  "is_merge_node (MergeNode _ _ _) = True" |
-  "is_merge_node (LoopBeginNode _ _ _ _) = True" |
-  "is_merge_node _ = False"
-
-fun is_sequential_node :: "IRNode \<Rightarrow> bool" where
-  "is_sequential_node (StartNode _ _) = True" |
-  "is_sequential_node (BeginNode _) = True" |
-  "is_sequential_node (KillingBeginNode _) = True" |
-  "is_sequential_node (NewInstanceNode _ _ _) = True" |
-  "is_sequential_node (LoopBeginNode _ _ _ _) = True" |
-  "is_sequential_node (LoopExitNode _ _ _) = True" |
-  "is_sequential_node (SignedDivNode _ _ _ _ _) = True" |
-(*  "is_sequential_node (RefNode _) = True" | *)
-  "is_sequential_node n = is_merge_node n"
-
-fun is_end_node :: "IRNode \<Rightarrow> bool" where
-  "is_end_node (EndNode) = True" |
-  "is_end_node (LoopEndNode _) = True" |
-  "is_end_node _ = False"
-
 
 (* Surely this must exist already?  I cannot find it in option or list theory. *)
 fun opt_to_list :: "'a option \<Rightarrow> 'a list" where

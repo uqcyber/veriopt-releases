@@ -5,33 +5,9 @@ imports IRNodes
 begin
 
 (* Datatype with no parameters don't generate selectors *)
-fun is_AbstractEndNode :: "IRNode \<Rightarrow> bool" where
-  "is_AbstractEndNode AbstractEndNode = True" |
-  "is_AbstractEndNode _ = False"
-
 fun is_EndNode :: "IRNode \<Rightarrow> bool" where
   "is_EndNode EndNode = True" |
   "is_EndNode _ = False"
-
-fun is_ControlSplitNode :: "IRNode \<Rightarrow> bool" where
-  "is_ControlSplitNode ControlSplitNode = True" |
-  "is_ControlSplitNode _ = False"
-
-fun is_FixedNode :: "IRNode \<Rightarrow> bool" where
-  "is_FixedNode FixedNode = True" |
-  "is_FixedNode _ = False"
-
-fun is_AbstractLocalNode :: "IRNode \<Rightarrow> bool" where
-  "is_AbstractLocalNode AbstractLocalNode = True" |
-  "is_AbstractLocalNode _ = False"
-
-fun is_FloatingNode :: "IRNode \<Rightarrow> bool" where
-  "is_FloatingNode FloatingNode = True" |
-  "is_FloatingNode _ = False"
-
-fun is_ValueNode :: "IRNode \<Rightarrow> bool" where
-  "is_ValueNode ValueNode = True" |
-  "is_ValueNode _ = False"
 
 
 text \<open>Class inheritance functions to determine if a node is extended from another\<close>
@@ -40,7 +16,7 @@ fun isAbstractEndNodeType :: "IRNode \<Rightarrow> bool" where
   "isAbstractEndNodeType n = ((is_EndNode n) \<or> (is_LoopEndNode n))" 
 
 fun isControlSplitNodeType :: "IRNode \<Rightarrow> bool" where
-  "isControlSplitNodeType n = ((is_IfNode n) \<or> (is_SwitchNode n))" 
+  "isControlSplitNodeType n = ((is_IfNode n))" 
 
 fun isAbstractMergeNodeType :: "IRNode \<Rightarrow> bool" where
   "isAbstractMergeNodeType n = ((is_LoopBeginNode n) \<or> (is_MergeNode n))" 
@@ -95,9 +71,6 @@ fun isFloatingNodeType :: "IRNode \<Rightarrow> bool" where
 
 fun isValueNodeType :: "IRNode \<Rightarrow> bool" where
   "isValueNodeType n = ((isFixedNodeType n) \<or> (isFloatingNodeType n))" 
-
-fun isNodeType :: "IRNode \<Rightarrow> bool" where
-  "isNodeType n = ((isValueNodeType n))" |
 (* nodeout *)
 
 fun is_sequential_node :: "IRNode \<Rightarrow> bool" where

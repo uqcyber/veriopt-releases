@@ -197,14 +197,6 @@ proof -
     show ?case
       by (metis eval.ParameterNode kind_unchanged param.hyps(1) param.hyps(2) param.prems(1) param.prems(2))
   next
-    case (PhiNode val m nida uv uu nid)
-    then have kind: "(kind g2 nid) = (PhiNode nida uu)"
-      using kind_unchanged
-      by metis
-    then show ?case
-      using eval.PhiNode PhiNode.hyps(1)
-      by metis
-  next
     case (ValuePhiNode val m nida uw ux uy nid)
     then have kind: "(kind g2 nid) = ValuePhiNode nida ux uy"
       using kind_unchanged by metis
@@ -255,7 +247,7 @@ proof -
   next
     case node:(AddNode m x b v1 y v2 nid)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_unchanged inp.simps inputs_of.simps(9) list.set_intros(1))
+      by (metis child_unchanged inp.simps inputs_of_AddNode list.set_intros(1))
     then have x: "g1 m \<turnstile> x (kind g1 x) \<mapsto> IntVal b v1"
       using node.hyps(1) by blast
     have uy: "unchanged (eval_usages g1 y) g1 g2"
@@ -369,7 +361,7 @@ proof -
     have x2: "g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal b v1"
       by (metis inp.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(1) subsetD ux wff wff_graph.elims(2))
     have y2: "g2 m \<turnstile> y (kind g2 y) \<mapsto> IntVal b v2"
-      by (metis basic_trans_rules(31) inp.simps inputs_of.simps(50) list.set_intros(1) node.hyps(4) node.hyps(6) node.prems(1) set_subset_Cons uy wff wff_graph.elims(2))
+      by (metis basic_trans_rules(31) inp.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(4) node.hyps(6) node.prems(1) set_subset_Cons uy wff wff_graph.elims(2))
     show ?case
       using node.hyps node.prems ux x uy y x2 y2
       by (metis ShortCircuitOrNode kind_unchanged)
@@ -378,7 +370,7 @@ proof -
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
       by (metis child_member_in child_unchanged inputs_of_LogicNegationNode member_rec(1))
     then have x:"g2 m \<turnstile> x (kind g2 x) \<mapsto> IntVal b v1"
-      by (metis inp.simps inp_in_g_wff inputs_of.simps(34) list.set_intros(1) node.hyps(2) node.hyps(4) wff)
+      by (metis inp.simps inp_in_g_wff inputs_of_LogicNegationNode list.set_intros(1) node.hyps(2) node.hyps(4) wff)
     then show ?case
       by (metis LogicNegationNode kind_unchanged node.hyps(3) node.hyps(4) node.prems(1) node.prems(2))
   next

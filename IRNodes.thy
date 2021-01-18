@@ -84,7 +84,6 @@ datatype (discs_sels) IRNode =
   (* Manually added *)
   | SubstrateMethodCallTargetNode (ir_targetMethod: string) (ir_arguments: "INPUT list") 
   | RefNode (ir_ref:ID)
-  | NoNode
 
 
 (* Surely this must exist already?  I cannot find it in option or list theory. *)
@@ -185,8 +184,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
 (* nodeout *)
 
   inputs_of_SubstrateMethodCallTargetNode: "inputs_of (SubstrateMethodCallTargetNode targetMethod args) = args" |
-  inputs_of_RefNode: "inputs_of (RefNode ref) = [ref]" |
-  inputs_of_NoNode: "inputs_of (NoNode) = []"
+  inputs_of_RefNode: "inputs_of (RefNode ref) = [ref]"
 
 (* nodeout: isabelle-succs *)
 fun successors_of :: "IRNode \<Rightarrow> ID list" where
@@ -276,9 +274,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
 (* nodeout *)
 
   successors_of_SubstrateMethodCallTargetNode: "successors_of (SubstrateMethodCallTargetNode targetMethod args) = []" |
-  successors_of_RefNode: "successors_of (RefNode ref) = []" |
-  successors_of_NoNode: "successors_of (NoNode) = []"
-
+  successors_of_RefNode: "successors_of (RefNode ref) = []"
 
 
 

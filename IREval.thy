@@ -91,10 +91,6 @@ inductive
   "\<lbrakk>val = (m_params m)!i\<rbrakk>
     \<Longrightarrow> g m \<turnstile> nid (ParameterNode i) \<mapsto> val" |
 
-  PhiNode:
-  "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> _ (PhiNode nid uu) \<mapsto> val" |
-
   ValuePhiNode:
   "\<lbrakk>val = m_val m nid\<rbrakk>
     \<Longrightarrow> g m \<turnstile> _ (ValuePhiNode nid _ _) \<mapsto> val" |
@@ -246,10 +242,8 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 values "{v. eval_graph eg2_sq 4 [IntVal 32 5] v}"
 
 fun has_control_flow :: "IRNode \<Rightarrow> bool" where
-  "has_control_flow EndNode = True" |
-  "has_control_flow AbstractEndNode = True" |
-  "has_control_flow (LoopEndNode n) = True" |
-  "has_control_flow n = (length (successors_of n) > 0)"
+  "has_control_flow n = (isAbstractEndNodeType n
+    \<or> (length (successors_of n) > 0))"
 
 definition control_nodes :: "IRNode set" where
   "control_nodes = {n . has_control_flow n}"
@@ -270,27 +264,6 @@ lemma "n \<in> control_nodes \<longleftrightarrow> n \<notin> floating_nodes"
 inductive_cases AbsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AbsNode value) \<mapsto> val"
 
-inductive_cases AbstractBeginNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (AbstractBeginNode next) \<mapsto> val"
-
-inductive_cases AbstractEndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (AbstractEndNode) \<mapsto> val"
-
-inductive_cases AbstractLocalNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (AbstractLocalNode) \<mapsto> val"
-
-inductive_cases AbstractMergeNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (AbstractMergeNode ends stateAfter next) \<mapsto> val"
-
-inductive_cases AbstractNewArrayNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (AbstractNewArrayNode length0 stateBefore next) \<mapsto> val"
-
-inductive_cases AbstractNewObjectNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (AbstractNewObjectNode stateBefore next) \<mapsto> val"
-
-inductive_cases AccessFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (AccessFieldNode object next) \<mapsto> val"
-
 inductive_cases AddNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (AddNode x y) \<mapsto> val"
 
@@ -300,15 +273,6 @@ inductive_cases AndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases BeginNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (BeginNode next) \<mapsto> val"
 
-inductive_cases BeginStateSplitNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (BeginStateSplitNode stateAfter next) \<mapsto> val"
-
-inductive_cases BinaryArithmeticNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (BinaryArithmeticNode x y) \<mapsto> val"
-
-inductive_cases BinaryNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (BinaryNode x y) \<mapsto> val"
-
 inductive_cases BytecodeExceptionNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (BytecodeExceptionNode arguments stateAfter next) \<mapsto> val"
 
@@ -316,13 +280,7 @@ inductive_cases ConditionalNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ConditionalNode condition trueValue falseValue) \<mapsto> val"
 
 inductive_cases ConstantNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (ConstantNode intValue) \<mapsto> val"
-
-inductive_cases ControlSplitNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (ControlSplitNode) \<mapsto> val"
-
-inductive_cases DeoptimizingFixedWithNextNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (DeoptimizingFixedWithNextNode stateBefore next) \<mapsto> val"
+  "g m \<turnstile> nid (ConstantNode const) \<mapsto> val"
 
 inductive_cases DynamicNewArrayNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (DynamicNewArrayNode elementType length0 voidClass stateBefore next) \<mapsto> val"
@@ -332,15 +290,6 @@ inductive_cases EndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 
 inductive_cases ExceptionObjectNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ExceptionObjectNode stateAfter next) \<mapsto> val"
-
-inductive_cases FixedNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (FixedNode) \<mapsto> val"
-
-inductive_cases FixedWithNextNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (FixedWithNextNode next) \<mapsto> val"
-
-inductive_cases FloatingNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (FloatingNode) \<mapsto> val"
 
 inductive_cases FrameStateE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (FrameState monitorIds outerFrameState values virtualObjectMappings) \<mapsto> val"
@@ -405,12 +354,6 @@ inductive_cases OrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases ParameterNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ParameterNode index) \<mapsto> val"
 
-inductive_cases PhiNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (PhiNode nid0 merge) \<mapsto> val"
-
-inductive_cases ProxyNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (ProxyNode loopExit) \<mapsto> val"
-
 inductive_cases ReturnNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ReturnNode result memoryMap) \<mapsto> val"
 
@@ -429,20 +372,8 @@ inductive_cases StoreFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases SubNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SubNode x y) \<mapsto> val"
 
-inductive_cases SwitchNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (SwitchNode value successors) \<mapsto> val"
-
-inductive_cases UnaryArithmeticNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (UnaryArithmeticNode value) \<mapsto> val"
-
-inductive_cases UnaryNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (UnaryNode value) \<mapsto> val"
-
 inductive_cases UnwindNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (UnwindNode exception) \<mapsto> val"
-
-inductive_cases ValueNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (ValueNode) \<mapsto> val"
 
 inductive_cases ValuePhiNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ValuePhiNode nid0 values merge) \<mapsto> val"
@@ -452,6 +383,9 @@ inductive_cases ValueProxyNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 
 inductive_cases XorNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (XorNode x y) \<mapsto> val"
+
+inductive_cases NoNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g m \<turnstile> nid (NoNode) \<mapsto> val"
 (* nodeout *)
 
 
@@ -461,56 +395,32 @@ inductive_cases RefNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases SubstrateMethodCallTargetNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SubstrateMethodCallTargetNode targetMethod args) \<mapsto> val"
 
-inductive_cases NoNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (NoNode) \<mapsto> val"
-
 
 lemmas EvalE = 
-ValueNodeE
-FixedNodeE
-AbstractEndNodeE
 EndNodeE
 LoopEndNodeE
-FixedWithNextNodeE
-AccessFieldNodeE
 LoadFieldNodeE
 StoreFieldNodeE
-DeoptimizingFixedWithNextNodeE
-AbstractNewObjectNodeE
 NewInstanceNodeE
-AbstractNewArrayNodeE
 NewArrayNodeE
 DynamicNewArrayNodeE
-AbstractBeginNodeE
 BeginNodeE
 KillingBeginNodeE
-BeginStateSplitNodeE
 LoopExitNodeE
-AbstractMergeNodeE
 MergeNodeE
 LoopBeginNodeE
 StartNodeE
 ReturnNodeE
-ControlSplitNodeE
 IfNodeE
-SwitchNodeE
-FloatingNodeE
-AbstractLocalNodeE
 ParameterNodeE
-ProxyNodeE
 ValueProxyNodeE
-PhiNodeE
 ValuePhiNodeE
 ConstantNodeE
 ConditionalNodeE
-UnaryNodeE
-UnaryArithmeticNodeE
 NotNodeE
 NegateNodeE
 LogicNegationNodeE
 AbsNodeE
-BinaryNodeE
-BinaryArithmeticNodeE
 AddNodeE
 XorNodeE
 AndNodeE

@@ -38,30 +38,15 @@ type_synonym SUCC = "ID"
 (* nodeout: isabelle-datatypes *)
 datatype (discs_sels) IRNode =
   AbsNode (ir_value: "INPUT") 
-  | AbstractBeginNode (ir_next: "SUCC") 
-  | AbstractEndNode 
-  | AbstractLocalNode 
-  | AbstractMergeNode (ir_ends: "INPUT_ASSOC list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | AbstractNewArrayNode (ir_length: "INPUT") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | AbstractNewObjectNode (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | AccessFieldNode (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | AddNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | AndNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | BeginNode (ir_next: "SUCC") 
-  | BeginStateSplitNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | BinaryArithmeticNode (ir_x: "INPUT") (ir_y: "INPUT") 
-  | BinaryNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | BytecodeExceptionNode (ir_arguments: "INPUT list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | ConditionalNode (ir_condition: "INPUT_COND") (ir_trueValue: "INPUT") (ir_falseValue: "INPUT") 
-  | ConstantNode (ir_intValue: Value) 
-  | ControlSplitNode 
-  | DeoptimizingFixedWithNextNode (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | ConstantNode (ir_const: Value) 
   | DynamicNewArrayNode (ir_elementType: "INPUT") (ir_length: "INPUT") (ir_voidClass_opt: "INPUT option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | EndNode 
   | ExceptionObjectNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | FixedNode 
-  | FixedWithNextNode (ir_next: "SUCC") 
-  | FloatingNode 
   | FrameState (ir_monitorIds: "INPUT_ASSOC list") (ir_outerFrameState_opt: "INPUT_STATE option") (ir_values_opt: "INPUT list option") (ir_virtualObjectMappings_opt: "INPUT_STATE list option") 
   | IfNode (ir_condition: "INPUT_COND") (ir_trueSuccessor: "SUCC") (ir_falseSuccessor: "SUCC") 
   | IntegerEqualsNode (ir_x: "INPUT") (ir_y: "INPUT") 
@@ -83,22 +68,17 @@ datatype (discs_sels) IRNode =
   | NotNode (ir_value: "INPUT") 
   | OrNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | ParameterNode (ir_index: nat) 
-  | PhiNode (ir_nid: ID) (ir_merge: "INPUT_ASSOC") 
-  | ProxyNode (ir_loopExit: "INPUT_ASSOC") 
   | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
   | SignedDivNode (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StoreFieldNode (ir_field: string) (ir_value: "INPUT") (ir_stateAfter_opt: "INPUT_STATE option") (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | SubNode (ir_x: "INPUT") (ir_y: "INPUT") 
-  | SwitchNode (ir_value: "INPUT") (ir_successors: "SUCC list") 
-  | UnaryArithmeticNode (ir_value: "INPUT") 
-  | UnaryNode (ir_value: "INPUT") 
   | UnwindNode (ir_exception: "INPUT") 
-  | ValueNode 
   | ValuePhiNode (ir_nid: ID) (ir_values: "INPUT list") (ir_merge: "INPUT_ASSOC") 
   | ValueProxyNode (ir_value: "INPUT") (ir_loopExit: "INPUT_ASSOC") 
   | XorNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | NoNode
 (* nodeout *)
 
   (* Manually added *)
@@ -121,54 +101,24 @@ text \<open>inputs\_of and successors\_of partition the node edges into input or
 fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_AbsNode:
   "inputs_of (AbsNode value) = [value]" |
-  inputs_of_AbstractBeginNode:
-  "inputs_of (AbstractBeginNode next) = []" |
-  inputs_of_AbstractEndNode:
-  "inputs_of (AbstractEndNode) = []" |
-  inputs_of_AbstractLocalNode:
-  "inputs_of (AbstractLocalNode) = []" |
-  inputs_of_AbstractMergeNode:
-  "inputs_of (AbstractMergeNode ends stateAfter next) = ends @ (opt_to_list stateAfter)" |
-  inputs_of_AbstractNewArrayNode:
-  "inputs_of (AbstractNewArrayNode length0 stateBefore next) = [length0] @ (opt_to_list stateBefore)" |
-  inputs_of_AbstractNewObjectNode:
-  "inputs_of (AbstractNewObjectNode stateBefore next) = (opt_to_list stateBefore)" |
-  inputs_of_AccessFieldNode:
-  "inputs_of (AccessFieldNode object next) = (opt_to_list object)" |
   inputs_of_AddNode:
   "inputs_of (AddNode x y) = [x, y]" |
   inputs_of_AndNode:
   "inputs_of (AndNode x y) = [x, y]" |
   inputs_of_BeginNode:
   "inputs_of (BeginNode next) = []" |
-  inputs_of_BeginStateSplitNode:
-  "inputs_of (BeginStateSplitNode stateAfter next) = (opt_to_list stateAfter)" |
-  inputs_of_BinaryArithmeticNode:
-  "inputs_of (BinaryArithmeticNode x y) = [x, y]" |
-  inputs_of_BinaryNode:
-  "inputs_of (BinaryNode x y) = [x, y]" |
   inputs_of_BytecodeExceptionNode:
   "inputs_of (BytecodeExceptionNode arguments stateAfter next) = arguments @ (opt_to_list stateAfter)" |
   inputs_of_ConditionalNode:
   "inputs_of (ConditionalNode condition trueValue falseValue) = [condition, trueValue, falseValue]" |
   inputs_of_ConstantNode:
-  "inputs_of (ConstantNode intValue) = []" |
-  inputs_of_ControlSplitNode:
-  "inputs_of (ControlSplitNode) = []" |
-  inputs_of_DeoptimizingFixedWithNextNode:
-  "inputs_of (DeoptimizingFixedWithNextNode stateBefore next) = (opt_to_list stateBefore)" |
+  "inputs_of (ConstantNode const) = []" |
   inputs_of_DynamicNewArrayNode:
   "inputs_of (DynamicNewArrayNode elementType length0 voidClass stateBefore next) = [elementType, length0] @ (opt_to_list voidClass) @ (opt_to_list stateBefore)" |
   inputs_of_EndNode:
   "inputs_of (EndNode) = []" |
   inputs_of_ExceptionObjectNode:
   "inputs_of (ExceptionObjectNode stateAfter next) = (opt_to_list stateAfter)" |
-  inputs_of_FixedNode:
-  "inputs_of (FixedNode) = []" |
-  inputs_of_FixedWithNextNode:
-  "inputs_of (FixedWithNextNode next) = []" |
-  inputs_of_FloatingNode:
-  "inputs_of (FloatingNode) = []" |
   inputs_of_FrameState:
   "inputs_of (FrameState monitorIds outerFrameState values virtualObjectMappings) = monitorIds @ (opt_to_list outerFrameState) @ (opt_list_to_list values) @ (opt_list_to_list virtualObjectMappings)" |
   inputs_of_IfNode:
@@ -211,10 +161,6 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (OrNode x y) = [x, y]" |
   inputs_of_ParameterNode:
   "inputs_of (ParameterNode index) = []" |
-  inputs_of_PhiNode:
-  "inputs_of (PhiNode nid0 merge) = [merge]" |
-  inputs_of_ProxyNode:
-  "inputs_of (ProxyNode loopExit) = [loopExit]" |
   inputs_of_ReturnNode:
   "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
   inputs_of_ShortCircuitOrNode:
@@ -227,22 +173,15 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (StoreFieldNode field value stateAfter object next) = [value] @ (opt_to_list stateAfter) @ (opt_to_list object)" |
   inputs_of_SubNode:
   "inputs_of (SubNode x y) = [x, y]" |
-  inputs_of_SwitchNode:
-  "inputs_of (SwitchNode value successors) = [value]" |
-  inputs_of_UnaryArithmeticNode:
-  "inputs_of (UnaryArithmeticNode value) = [value]" |
-  inputs_of_UnaryNode:
-  "inputs_of (UnaryNode value) = [value]" |
   inputs_of_UnwindNode:
   "inputs_of (UnwindNode exception) = [exception]" |
-  inputs_of_ValueNode:
-  "inputs_of (ValueNode) = []" |
   inputs_of_ValuePhiNode:
   "inputs_of (ValuePhiNode nid0 values merge) = [merge] @ values" |
   inputs_of_ValueProxyNode:
   "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
   inputs_of_XorNode:
   "inputs_of (XorNode x y) = [x, y]" |
+  inputs_of_NoNode: "inputs_of (NoNode) = []"|
 (* nodeout *)
 
   inputs_of_SubstrateMethodCallTargetNode: "inputs_of (SubstrateMethodCallTargetNode targetMethod args) = args" |
@@ -253,54 +192,24 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
 fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_AbsNode:
   "successors_of (AbsNode value) = []" |
-  successors_of_AbstractBeginNode:
-  "successors_of (AbstractBeginNode next) = [next]" |
-  successors_of_AbstractEndNode:
-  "successors_of (AbstractEndNode) = []" |
-  successors_of_AbstractLocalNode:
-  "successors_of (AbstractLocalNode) = []" |
-  successors_of_AbstractMergeNode:
-  "successors_of (AbstractMergeNode ends stateAfter next) = [next]" |
-  successors_of_AbstractNewArrayNode:
-  "successors_of (AbstractNewArrayNode length0 stateBefore next) = [next]" |
-  successors_of_AbstractNewObjectNode:
-  "successors_of (AbstractNewObjectNode stateBefore next) = [next]" |
-  successors_of_AccessFieldNode:
-  "successors_of (AccessFieldNode object next) = [next]" |
   successors_of_AddNode:
   "successors_of (AddNode x y) = []" |
   successors_of_AndNode:
   "successors_of (AndNode x y) = []" |
   successors_of_BeginNode:
   "successors_of (BeginNode next) = [next]" |
-  successors_of_BeginStateSplitNode:
-  "successors_of (BeginStateSplitNode stateAfter next) = [next]" |
-  successors_of_BinaryArithmeticNode:
-  "successors_of (BinaryArithmeticNode x y) = []" |
-  successors_of_BinaryNode:
-  "successors_of (BinaryNode x y) = []" |
   successors_of_BytecodeExceptionNode:
   "successors_of (BytecodeExceptionNode arguments stateAfter next) = [next]" |
   successors_of_ConditionalNode:
   "successors_of (ConditionalNode condition trueValue falseValue) = []" |
   successors_of_ConstantNode:
-  "successors_of (ConstantNode intValue) = []" |
-  successors_of_ControlSplitNode:
-  "successors_of (ControlSplitNode) = []" |
-  successors_of_DeoptimizingFixedWithNextNode:
-  "successors_of (DeoptimizingFixedWithNextNode stateBefore next) = [next]" |
+  "successors_of (ConstantNode const) = []" |
   successors_of_DynamicNewArrayNode:
   "successors_of (DynamicNewArrayNode elementType length0 voidClass stateBefore next) = [next]" |
   successors_of_EndNode:
   "successors_of (EndNode) = []" |
   successors_of_ExceptionObjectNode:
   "successors_of (ExceptionObjectNode stateAfter next) = [next]" |
-  successors_of_FixedNode:
-  "successors_of (FixedNode) = []" |
-  successors_of_FixedWithNextNode:
-  "successors_of (FixedWithNextNode next) = [next]" |
-  successors_of_FloatingNode:
-  "successors_of (FloatingNode) = []" |
   successors_of_FrameState:
   "successors_of (FrameState monitorIds outerFrameState values virtualObjectMappings) = []" |
   successors_of_IfNode:
@@ -343,10 +252,6 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (OrNode x y) = []" |
   successors_of_ParameterNode:
   "successors_of (ParameterNode index) = []" |
-  successors_of_PhiNode:
-  "successors_of (PhiNode nid0 merge) = []" |
-  successors_of_ProxyNode:
-  "successors_of (ProxyNode loopExit) = []" |
   successors_of_ReturnNode:
   "successors_of (ReturnNode result memoryMap) = []" |
   successors_of_ShortCircuitOrNode:
@@ -359,22 +264,15 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (StoreFieldNode field value stateAfter object next) = [next]" |
   successors_of_SubNode:
   "successors_of (SubNode x y) = []" |
-  successors_of_SwitchNode:
-  "successors_of (SwitchNode value successors) = successors" |
-  successors_of_UnaryArithmeticNode:
-  "successors_of (UnaryArithmeticNode value) = []" |
-  successors_of_UnaryNode:
-  "successors_of (UnaryNode value) = []" |
   successors_of_UnwindNode:
   "successors_of (UnwindNode exception) = []" |
-  successors_of_ValueNode:
-  "successors_of (ValueNode) = []" |
   successors_of_ValuePhiNode:
   "successors_of (ValuePhiNode nid0 values merge) = []" |
   successors_of_ValueProxyNode:
   "successors_of (ValueProxyNode value loopExit) = []" |
   successors_of_XorNode:
   "successors_of (XorNode x y) = []" |
+  successors_of_NoNode: "successors_of (NoNode) = []"|
 (* nodeout *)
 
   successors_of_SubstrateMethodCallTargetNode: "successors_of (SubstrateMethodCallTargetNode targetMethod args) = []" |

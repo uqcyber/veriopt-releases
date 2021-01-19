@@ -21,9 +21,9 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> o \<Righta
 
 definition simple_return :: IRGraph where
   "simple_return = irgraph [
-    (2, (ReturnNode (Some 1) None)),
-    (1, (ConstantNode (IntVal 32 42))),
-    (0, (StartNode None 2))
+    (2, (ReturnNode (Some 1) None), default_stamp),
+    (1, (ConstantNode (IntVal 32 42)), default_stamp),
+    (0, (StartNode None 2), VoidStamp)
   ]"
 
 (* IntVal 42 *)
@@ -33,10 +33,10 @@ values "{l | x l . simple_return | [] \<leadsto> x | l}"
 
 definition double_param :: IRGraph where
   "double_param = irgraph [
-    (3, (ReturnNode (Some 2) None)),
-    (2, (AddNode 1 1)),
-    (1, (ParameterNode 0)),
-    (0, (StartNode None 3))
+    (3, (ReturnNode (Some 2) None), default_stamp),
+    (2, (AddNode 1 1), default_stamp),
+    (1, (ParameterNode 0), default_stamp),
+    (0, (StartNode None 3), VoidStamp)
   ]"
 
 (* IntVal 10 *)
@@ -51,19 +51,19 @@ values "{m_val m 0 |n m l. double_param | [IntVal 32 99] \<leadsto> (n, m) | l}"
 
 definition simple_if :: IRGraph where
   "simple_if = irgraph [
-    (12, (ReturnNode (Some 11) None)),
-    (11, (ValuePhiNode 11 [9,7] 10)),
-    (10, (MergeNode [5,6] None 12)),
-    (9, (AddNode 7 8)),
-    (8, (ParameterNode 2)),
-    (7, (ParameterNode 1)),
-    (6, (EndNode)),
-    (5, (EndNode)),
-    (4, (BeginNode 6)),
-    (3, (BeginNode 5)),
-    (2, (IfNode 1 3 4)),
-    (1, (ParameterNode 0)),
-    (0, (StartNode None 2))
+    (12, (ReturnNode (Some 11) None), default_stamp),
+    (11, (ValuePhiNode 11 [9,7] 10), default_stamp),
+    (10, (MergeNode [5,6] None 12), default_stamp),
+    (9, (AddNode 7 8), default_stamp),
+    (8, (ParameterNode 2), default_stamp),
+    (7, (ParameterNode 1), default_stamp),
+    (6, (EndNode), VoidStamp),
+    (5, (EndNode), VoidStamp),
+    (4, (BeginNode 6), VoidStamp),
+    (3, (BeginNode 5), VoidStamp),
+    (2, (IfNode 1 3 4), VoidStamp),
+    (1, (ParameterNode 0), default_stamp),
+    (0, (StartNode None 2), VoidStamp)
   ]"
 
 (* IntVal 20 *)
@@ -76,20 +76,20 @@ values "{l | x l . simple_if | [IntVal 32 1, IntVal 32 20, IntVal 32 100] \<lead
 
 definition loop :: IRGraph where
   "loop = irgraph [
-    (13, (ReturnNode (Some 7) None)),
-    (12, (LoopEndNode 11)),
-    (11, (BeginNode 12)),
-    (10, (IfNode 9 11 13)),
-    (9, (IntegerLessThanNode 7 6)),
-    (8, (AddNode 7 5)),
-    (7, (ValuePhiNode 7 [4,8] 3)),
-    (6, (ParameterNode 0)),
-    (5, (ConstantNode (IntVal 32 1))),
-    (4, (ConstantNode (IntVal 32 0))),
-    (3, (LoopBeginNode [2,12] None None 10)),
-    (2, (EndNode)),
-    (1, (BeginNode 2)),
-    (0, (StartNode None 1))
+    (13, (ReturnNode (Some 7) None), default_stamp),
+    (12, (LoopEndNode 11), VoidStamp),
+    (11, (BeginNode 12), VoidStamp),
+    (10, (IfNode 9 11 13), VoidStamp),
+    (9, (IntegerLessThanNode 7 6), default_stamp),
+    (8, (AddNode 7 5), default_stamp),
+    (7, (ValuePhiNode 7 [4,8] 3), default_stamp),
+    (6, (ParameterNode 0), default_stamp),
+    (5, (ConstantNode (IntVal 32 1)), default_stamp),
+    (4, (ConstantNode (IntVal 32 0)), default_stamp),
+    (3, (LoopBeginNode [2,12] None None 10), VoidStamp),
+    (2, (EndNode), VoidStamp),
+    (1, (BeginNode 2), VoidStamp),
+    (0, (StartNode None 1), VoidStamp)
   ]"
 
 (* IntVal 0 *)
@@ -106,22 +106,22 @@ values "{l | x l . loop | [IntVal 32 10] \<leadsto> x | l}"
 
 definition sum :: IRGraph where
   "sum = irgraph [
-    (15, (ReturnNode (Some 10) None)),
-    (14, (LoopEndNode 13)),
-    (13, (BeginNode 14)),
-    (12, (IfNode 11 13 15)),
-    (11, (IntegerLessThanNode 7 6)),
-    (10, (AddNode 8 7)),
-    (9, (AddNode 7 5)),
-    (8, (ValuePhiNode 8 [4,10] 3)),
-    (7, (ValuePhiNode 7 [4,9] 3)),
-    (6, (ParameterNode 0)),
-    (5, (ConstantNode (IntVal 32 1))),
-    (4, (ConstantNode (IntVal 32 0))),
-    (3, (LoopBeginNode [2,14] None None 12)),
-    (2, (EndNode)),
-    (1, (BeginNode 2)),
-    (0, (StartNode None 1))
+    (15, (ReturnNode (Some 10) None), default_stamp),
+    (14, (LoopEndNode 13), VoidStamp),
+    (13, (BeginNode 14), VoidStamp),
+    (12, (IfNode 11 13 15), VoidStamp),
+    (11, (IntegerLessThanNode 7 6), default_stamp),
+    (10, (AddNode 8 7), default_stamp),
+    (9, (AddNode 7 5), default_stamp),
+    (8, (ValuePhiNode 8 [4,10] 3), default_stamp),
+    (7, (ValuePhiNode 7 [4,9] 3), default_stamp),
+    (6, (ParameterNode 0), default_stamp),
+    (5, (ConstantNode (IntVal 32 1)), default_stamp),
+    (4, (ConstantNode (IntVal 32 0)), default_stamp),
+    (3, (LoopBeginNode [2,14] None None 12), VoidStamp),
+    (2, (EndNode), VoidStamp),
+    (1, (BeginNode 2), VoidStamp),
+    (0, (StartNode None 1), VoidStamp)
   ]"
 
 (* IntVal 1 *)
@@ -148,28 +148,28 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o * o \<Righta
 definition prog :: "string \<Rightarrow> IRGraph " where
 "prog = (\<lambda>x . start_end_graph)
 (''Fib.fib(I)I'' := irgraph [
- (0, (StartNode ((Some 2)) (8))),
- (1, (ParameterNode (0))),
- (2, (FrameState ([]) (None) ((Some [1])) (None))),
- (3, (ConstantNode (IntVal 32 (1)))),
- (4, (ConstantNode (IntVal 32 (2)))),
- (5, (IntegerLessThanNode (1) (4))),
- (6, (BeginNode (13))),
- (7, (BeginNode (9))),
- (8, (IfNode (5) (7) (6))),
- (9, (ReturnNode ((Some 1)) (None))),
- (10, (ConstantNode (IntVal 32 (-1)))),
- (11, (AddNode (1) (10))),
- (12, (MethodCallTargetNode (''Fib.fib(I)I'') ([11]))),
- (13, (InvokeNode (13) (12) (None) (None) ((Some 14)) (18))),
- (14, (FrameState ([]) (None) ((Some [1, 13])) (None))),
- (15, (ConstantNode (IntVal 32 (-2)))),
- (16, (AddNode (1) (15))),
- (17, (MethodCallTargetNode (''Fib.fib(I)I'') ([16]))),
- (18, (InvokeNode (18) (17) (None) (None) ((Some 19)) (21))),
- (19, (FrameState ([]) (None) ((Some [13, 18])) (None))),
- (20, (AddNode (13) (18))),
- (21, (ReturnNode ((Some 20)) (None)))
+ (0, (StartNode ((Some 2)) (8)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (4, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+ (5, (IntegerLessThanNode (1) (4)), VoidStamp),
+ (6, (BeginNode (13)), VoidStamp),
+ (7, (BeginNode (9)), VoidStamp),
+ (8, (IfNode (5) (7) (6)), VoidStamp),
+ (9, (ReturnNode ((Some 1)) (None)), VoidStamp),
+ (10, (ConstantNode (IntVal 32 (-1))), IntegerStamp 32 (-1) (-1)),
+ (11, (AddNode (1) (10)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (12, (MethodCallTargetNode (''Fib.fib(I)I'') ([11])), VoidStamp),
+ (13, (InvokeNode (13) (12) (None) (None) ((Some 14)) (18)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (14, (FrameState ([]) (None) ((Some [1, 13])) (None)), IllegalStamp),
+ (15, (ConstantNode (IntVal 32 (-2))), IntegerStamp 32 (-2) (-2)),
+ (16, (AddNode (1) (15)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (17, (MethodCallTargetNode (''Fib.fib(I)I'') ([16])), VoidStamp),
+ (18, (InvokeNode (18) (17) (None) (None) ((Some 19)) (21)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (19, (FrameState ([]) (None) ((Some [13, 18])) (None)), IllegalStamp),
+ (20, (AddNode (13) (18)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (21, (ReturnNode ((Some 20)) (None)), VoidStamp)
 ])
 "
 
@@ -196,46 +196,46 @@ values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 7] \<leadsto> (n,
 definition combs :: "string \<Rightarrow> IRGraph " where
 "combs = ((\<lambda>x . start_end_graph)
 (''Combinations.combinations(I, I)I'' := irgraph [
- (0, (StartNode ((Some 3)) (5))),
- (1, (ParameterNode (0))),
- (2, (ParameterNode (1))),
- (3, (FrameState ([]) (None) ((Some [1, 2])) (None))),
- (4, (MethodCallTargetNode (''Combinations.fact(I)I'') ([1]))),
- (5, (InvokeNode (5) (4) (None) (None) ((Some 6)) (8))),
- (6, (FrameState ([]) (None) ((Some [1, 2, 5])) (None))),
- (7, (MethodCallTargetNode (''Combinations.fact(I)I'') ([2]))),
- (8, (InvokeNode (8) (7) (None) (None) ((Some 9)) (12))),
- (9, (FrameState ([]) (None) ((Some [1, 2, 5, 8])) (None))),
- (10, (SubNode (1) (2))),
- (11, (MethodCallTargetNode (''Combinations.fact(I)I'') ([10]))),
- (12, (InvokeNode (12) (11) (None) (None) ((Some 13)) (15))),
- (13, (FrameState ([]) (None) ((Some [5, 8, 12])) (None))),
- (14, (MulNode (8) (12))),
- (15, (SignedDivNode (5) (14) (None) (None) (16))),
- (16, (ReturnNode ((Some 15)) (None)))
+ (0, (StartNode ((Some 3)) (5)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (4, (MethodCallTargetNode (''Combinations.fact(I)I'') ([1])), VoidStamp),
+ (5, (InvokeNode (5) (4) (None) (None) ((Some 6)) (8)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (6, (FrameState ([]) (None) ((Some [1, 2, 5])) (None)), IllegalStamp),
+ (7, (MethodCallTargetNode (''Combinations.fact(I)I'') ([2])), VoidStamp),
+ (8, (InvokeNode (8) (7) (None) (None) ((Some 9)) (12)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (9, (FrameState ([]) (None) ((Some [1, 2, 5, 8])) (None)), IllegalStamp),
+ (10, (SubNode (1) (2)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (11, (MethodCallTargetNode (''Combinations.fact(I)I'') ([10])), VoidStamp),
+ (12, (InvokeNode (12) (11) (None) (None) ((Some 13)) (15)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (13, (FrameState ([]) (None) ((Some [5, 8, 12])) (None)), IllegalStamp),
+ (14, (MulNode (8) (12)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (15, (SignedDivNode (5) (14) (None) (None) (16)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (16, (ReturnNode ((Some 15)) (None)), VoidStamp)
 ]))
 (''Combinations.fact(I)I'' := irgraph [
- (0, (StartNode ((Some 2)) (5))),
- (1, (ParameterNode (0))),
- (2, (FrameState ([]) (None) ((Some [1])) (None))),
- (3, (ConstantNode (IntVal 32 (1)))),
- (5, (EndNode)),
- (6, (LoopBeginNode ([5, 21]) (None) ((Some 9)) (17))),
- (7, (ValuePhiNode (7) ([1, 20, 9]) (6))),
- (8, (ValuePhiNode (8) ([3, 18, 9]) (6))),
- (9, (FrameState ([]) (None) ((Some [7, 8])) (None))),
- (10, (ConstantNode (IntVal 32 (2)))),
- (11, (IntegerLessThanNode (7) (10))),
- (12, (BeginNode (21))),
- (14, (LoopExitNode (6) ((Some 16)) (22))),
- (15, (ValueProxyNode (8) (14))),
- (16, (FrameState ([]) (None) ((Some [15])) (None))),
- (17, (IfNode (11) (14) (12))),
- (18, (MulNode (7) (8))),
- (19, (ConstantNode (IntVal 32 (-1)))),
- (20, (AddNode (7) (19))),
- (21, (LoopEndNode (6))),
- (22, (ReturnNode ((Some 15)) (None)))
+ (0, (StartNode ((Some 2)) (5)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (5, (EndNode), VoidStamp),
+ (6, (LoopBeginNode ([5, 21]) (None) ((Some 9)) (17)), VoidStamp),
+ (7, (ValuePhiNode (7) ([1, 20, 9]) (6)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (8, (ValuePhiNode (8) ([3, 18, 9]) (6)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (9, (FrameState ([]) (None) ((Some [7, 8])) (None)), IllegalStamp),
+ (10, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+ (11, (IntegerLessThanNode (7) (10)), VoidStamp),
+ (12, (BeginNode (21)), VoidStamp),
+ (14, (LoopExitNode (6) ((Some 16)) (22)), VoidStamp),
+ (15, (ValueProxyNode (8) (14)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (16, (FrameState ([]) (None) ((Some [15])) (None)), IllegalStamp),
+ (17, (IfNode (11) (14) (12)), VoidStamp),
+ (18, (MulNode (7) (8)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (19, (ConstantNode (IntVal 32 (-1))), IntegerStamp 32 (-1) (-1)),
+ (20, (AddNode (7) (19)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (21, (LoopEndNode (6)), VoidStamp),
+ (22, (ReturnNode ((Some 15)) (None)), VoidStamp)
 ])
 "
 
@@ -251,83 +251,81 @@ values "{m_values (prod.snd (prod.snd (x!0))) 12 |x h l. combs \<turnstile> ([(c
 
 
 definition native_combs :: "string \<Rightarrow> IRGraph " where
-"native_combs = ((\<lambda>x . empty_graph)
-(''Combinations.fact(I)I'' := 
- (add_node 0 (StartNode ((Some 2)) (5))
- (add_node 1 (ParameterNode (0))
- (add_node 2 (FrameState ([]) (None) ((Some [1])) (None))
- (add_node 3 (ConstantNode (IntVal 32 (1)))
- (add_node 5 (EndNode)
- (add_node 6 (LoopBeginNode ([5, 21]) (None) ((Some 9)) (17))
- (add_node 7 (ValuePhiNode (7) ([1, 20, 9]) (6))
- (add_node 8 (ValuePhiNode (8) ([3, 18, 9]) (6))
- (add_node 9 (FrameState ([]) (None) ((Some [7, 8])) (None))
- (add_node 10 (ConstantNode (2))
- (add_node 11 (IntegerLessThanNode (7) (10))
- (add_node 12 (BeginNode (21))
- (add_node 14 (LoopExitNode (6) ((Some 16)) (22))
- (add_node 15 (ValueProxyNode (8) (14))
- (add_node 16 (FrameState ([]) (None) ((Some [15])) (None))
- (add_node 17 (IfNode (11) (14) (12))
- (add_node 18 (MulNode (7) (8))
- (add_node 19 (ConstantNode (-1))
- (add_node 20 (AddNode (7) (19))
- (add_node 21 (LoopEndNode (6))
- (add_node 22 (ReturnNode ((Some 15)) (None))
- empty_graph)))))))))))))))))))))
-))
-(''Combinations.combinations(II)I'' := 
- (add_node 0 (StartNode ((Some 3)) (8))
- (add_node 1 (ParameterNode (0))
- (add_node 2 (ParameterNode (1))
- (add_node 3 (FrameState ([]) (None) ((Some [1, 2])) (None))
- (add_node 4 (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([1]))
- (add_node 5 (ExceptionObjectNode ((Some 6)) (14))
- (add_node 6 (FrameState ([]) (None) ((Some [1, 2, 5])) (None))
- (add_node 8 (InvokeWithExceptionNode (8) (4) (None) (None) ((Some 9)) (10) (5))
- (add_node 9 (FrameState ([]) (None) ((Some [1, 2, 8])) (None))
- (add_node 10 (KillingBeginNode (18))
- (add_node 11 (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([2]))
- (add_node 12 (ExceptionObjectNode ((Some 13)) (16))
- (add_node 13 (FrameState ([]) (None) ((Some [1, 2, 12])) (None))
- (add_node 14 (EndNode)
- (add_node 15 (MergeNode ([14, 16, 25, 38]) ((Some 41)) (42))
- (add_node 16 (EndNode)
- (add_node 17 (ValuePhiNode (17) ([5, 12, 23, 32, 41]) (15))
- (add_node 18 (InvokeWithExceptionNode (18) (11) (None) (None) ((Some 19)) (20) (12))
- (add_node 19 (FrameState ([]) (None) ((Some [1, 2, 8, 18])) (None))
- (add_node 20 (KillingBeginNode (26))
- (add_node 21 (SubNode (1) (2))
- (add_node 22 (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([21]))
- (add_node 23 (ExceptionObjectNode ((Some 24)) (25))
- (add_node 24 (FrameState ([]) (None) ((Some [23])) (None))
- (add_node 25 (EndNode)
- (add_node 26 (InvokeWithExceptionNode (26) (22) (None) (None) ((Some 27)) (28) (23))
- (add_node 27 (FrameState ([]) (None) ((Some [8, 18, 26])) (None))
- (add_node 28 (KillingBeginNode (35))
- (add_node 29 (MulNode (18) (26))
- (add_node 30 (ConstantNode (0))
- (add_node 31 (IntegerEqualsNode (29) (30))
- (add_node 32 (BytecodeExceptionNode ([]) ((Some 36)) (38))
- (add_node 33 (BeginNode (39))
- (add_node 34 (BeginNode (32))
- (add_node 35 (IfNode (31) (34) (33))
- (add_node 36 (FrameState ([]) (None) (None) (None))
- (add_node 38 (EndNode)
- (add_node 39 (SignedDivNode (8) (29) ((Some 33)) (None) (40))
- (add_node 40 (ReturnNode ((Some 39)) (None))
- (add_node 41 (FrameState ([]) (None) ((Some [17])) (None))
- (add_node 42 (UnwindNode (17))
- empty_graph)))))))))))))))))))))))))))))))))))))))))
-)
+"native_combs = ((\<lambda>x . start_end_graph)
+(''Combinations.combinations(II)I'' := irgraph [
+ (0, (StartNode ((Some 3)) (8)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (4, (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([1])), VoidStamp),
+ (5, (ExceptionObjectNode ((Some 6)) (14)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (6, (FrameState ([]) (None) ((Some [1, 2, 5])) (None)), IllegalStamp),
+ (8, (InvokeWithExceptionNode (8) (4) (None) (None) ((Some 9)) (10) (5)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (9, (FrameState ([]) (None) ((Some [1, 2, 8])) (None)), IllegalStamp),
+ (10, (KillingBeginNode (18)), VoidStamp),
+ (11, (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([2])), VoidStamp),
+ (12, (ExceptionObjectNode ((Some 13)) (16)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (13, (FrameState ([]) (None) ((Some [1, 2, 12])) (None)), IllegalStamp),
+ (14, (EndNode), VoidStamp),
+ (15, (MergeNode ([14, 16, 25, 38]) ((Some 41)) (42)), VoidStamp),
+ (16, (EndNode), VoidStamp),
+ (17, (ValuePhiNode (17) ([5, 12, 23, 32, 41]) (15)), ObjectStamp '''' False False False),
+ (18, (InvokeWithExceptionNode (18) (11) (None) (None) ((Some 19)) (20) (12)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (19, (FrameState ([]) (None) ((Some [1, 2, 8, 18])) (None)), IllegalStamp),
+ (20, (KillingBeginNode (26)), VoidStamp),
+ (21, (SubNode (1) (2)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (22, (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([21])), VoidStamp),
+ (23, (ExceptionObjectNode ((Some 24)) (25)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (24, (FrameState ([]) (None) ((Some [23])) (None)), IllegalStamp),
+ (25, (EndNode), VoidStamp),
+ (26, (InvokeWithExceptionNode (26) (22) (None) (None) ((Some 27)) (28) (23)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (27, (FrameState ([]) (None) ((Some [8, 18, 26])) (None)), IllegalStamp),
+ (28, (KillingBeginNode (35)), VoidStamp),
+ (29, (MulNode (18) (26)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (30, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+ (31, (IntegerEqualsNode (29) (30)), VoidStamp),
+ (32, (BytecodeExceptionNode ([]) ((Some 36)) (38)), ObjectStamp ''Ljava/lang/ArithmeticException;'' True True False),
+ (33, (BeginNode (39)), VoidStamp),
+ (34, (BeginNode (32)), VoidStamp),
+ (35, (IfNode (31) (34) (33)), VoidStamp),
+ (36, (FrameState ([]) (None) (None) (None)), IllegalStamp),
+ (38, (EndNode), VoidStamp),
+ (39, (SignedDivNode (8) (29) ((Some 33)) (None) (40)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (40, (ReturnNode ((Some 39)) (None)), VoidStamp),
+ (41, (FrameState ([]) (None) ((Some [17])) (None)), IllegalStamp),
+ (42, (UnwindNode (17)), VoidStamp)
+]))
+(''Combinations.fact(I)I'' := irgraph [
+ (0, (StartNode ((Some 2)) (5)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (5, (EndNode), VoidStamp),
+ (6, (LoopBeginNode ([5,21]) (None) ((Some 9)) (17)), VoidStamp),
+ (7, (ValuePhiNode (7) ([1, 20, 9]) (6)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (8, (ValuePhiNode (8) ([3, 18, 9]) (6)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (9, (FrameState ([]) (None) ((Some [7, 8])) (None)), IllegalStamp),
+ (10, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+ (11, (IntegerLessThanNode (7) (10)), VoidStamp),
+ (12, (BeginNode (21)), VoidStamp),
+ (14, (LoopExitNode (6) ((Some 16)) (22)), VoidStamp),
+ (15, (ValueProxyNode (8) (14)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (16, (FrameState ([]) (None) ((Some [15])) (None)), IllegalStamp),
+ (17, (IfNode (11) (14) (12)), VoidStamp),
+ (18, (MulNode (7) (8)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (19, (ConstantNode (IntVal 32 (-1))), IntegerStamp 32 (-1) (-1)),
+ (20, (AddNode (7) (19)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (21, (LoopEndNode (6)), VoidStamp),
+ (22, (ReturnNode ((Some 15)) (None)), VoidStamp)
+])
 "
 
-definition native_combs_params where "native_combs_params = new_map [IntVal 10, IntVal 6]"
+definition native_combs_params where "native_combs_params = new_map [IntVal 32 10, IntVal 32 6]"
 definition native_combs_main where "native_combs_main = ''Combinations.combinations(II)I''"
 
-values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 10, IntVal 6] \<leadsto> (n, m)}"
+values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 32 10, IntVal 32 6] \<leadsto> (n, m)}"
 
-values "{m | m . native_combs \<turnstile> ([(native_combs_main, 0, native_combs_params)], new_heap) \<rightarrow>*41* m}"
+values "{m | m . native_combs \<turnstile> ([(native_combs_main, 0, native_combs_params)], new_heap) \<rightarrow>*7* m}"
 
 
 definition exceptional_prog :: "string \<Rightarrow> IRGraph " where

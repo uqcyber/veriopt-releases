@@ -396,9 +396,6 @@ inductive_cases NoNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases RefNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (RefNode ref) \<mapsto> val"
 
-inductive_cases SubstrateMethodCallTargetNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (SubstrateMethodCallTargetNode targetMethod args) \<mapsto> val"
-
 
 lemmas EvalE = 
 EndNodeE
@@ -438,7 +435,6 @@ FrameStateE
 MethodCallTargetNodeE
 InvokeNodeE
 SignedDivNodeE
-SubstrateMethodCallTargetNodeE
 ExceptionObjectNodeE
 InvokeWithExceptionNodeE
 BytecodeExceptionNodeE

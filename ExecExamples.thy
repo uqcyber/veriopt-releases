@@ -257,13 +257,13 @@ definition native_combs :: "string \<Rightarrow> IRGraph " where
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
  (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
- (4, (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([1])), VoidStamp),
+ (4, (MethodCallTargetNode (''Combinations.fact(I)I'') ([1])), VoidStamp),
  (5, (ExceptionObjectNode ((Some 6)) (14)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (6, (FrameState ([]) (None) ((Some [1, 2, 5])) (None)), IllegalStamp),
  (8, (InvokeWithExceptionNode (8) (4) (None) (None) ((Some 9)) (10) (5)), IntegerStamp 32 (-2147483648) (2147483647)),
  (9, (FrameState ([]) (None) ((Some [1, 2, 8])) (None)), IllegalStamp),
  (10, (KillingBeginNode (18)), VoidStamp),
- (11, (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([2])), VoidStamp),
+ (11, (MethodCallTargetNode (''Combinations.fact(I)I'') ([2])), VoidStamp),
  (12, (ExceptionObjectNode ((Some 13)) (16)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (13, (FrameState ([]) (None) ((Some [1, 2, 12])) (None)), IllegalStamp),
  (14, (EndNode), VoidStamp),
@@ -274,7 +274,7 @@ definition native_combs :: "string \<Rightarrow> IRGraph " where
  (19, (FrameState ([]) (None) ((Some [1, 2, 8, 18])) (None)), IllegalStamp),
  (20, (KillingBeginNode (26)), VoidStamp),
  (21, (SubNode (1) (2)), IntegerStamp 32 (-2147483648) (2147483647)),
- (22, (SubstrateMethodCallTargetNode (''Combinations.fact(I)I'') ([21])), VoidStamp),
+ (22, (MethodCallTargetNode (''Combinations.fact(I)I'') ([21])), VoidStamp),
  (23, (ExceptionObjectNode ((Some 24)) (25)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (24, (FrameState ([]) (None) ((Some [23])) (None)), IllegalStamp),
  (25, (EndNode), VoidStamp),
@@ -333,7 +333,7 @@ definition exceptional_prog :: "string \<Rightarrow> IRGraph " where
 (''Exceptional.main(I)V'' :=
   (add_node 0 (StartNode ((Some 2)) (3))
   (add_node 1 (ParameterNode (0))
-  (add_node 2 (SubstrateMethodCallTargetNode (''Exceptional.maybeException(I)V'') ([1]))
+  (add_node 2 (MethodCallTargetNode (''Exceptional.maybeException(I)V'') ([1]))
   (add_node 3 (InvokeWithExceptionNode (3) (2) (None) (None) ((Some 14)) (4) (5))
   (add_node 4 (ReturnNode (None) (None))
   (add_node 5 (UnwindNode (1))
@@ -349,7 +349,7 @@ definition exceptional_prog :: "string \<Rightarrow> IRGraph " where
  (add_node 6 (BeginNode (8))
  (add_node 7 (IfNode (4) (6) (5))
  (add_node 8 (NewInstanceNode ''IllegalArgumentException'' None 13)
- (add_node 9 (SubstrateMethodCallTargetNode (''java.lang.IllegalArgumentException.<init>()V'') ([8]))
+ (add_node 9 (MethodCallTargetNode (''java.lang.IllegalArgumentException.<init>()V'') ([8]))
  (add_node 10 (ExceptionObjectNode ((Some 11)) (17))
  (add_node 11 (FrameState ([]) (None) ((Some [10])) (None))
  (add_node 13 (InvokeWithExceptionNode (13) (9) (None) (None) ((Some 14)) (15) (10))

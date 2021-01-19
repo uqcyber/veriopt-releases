@@ -82,7 +82,6 @@ datatype (discs_sels) IRNode =
 (* nodeout *)
 
   (* Manually added *)
-  | SubstrateMethodCallTargetNode (ir_targetMethod: string) (ir_arguments: "INPUT list") 
   | RefNode (ir_ref:ID)
 
 
@@ -183,7 +182,6 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_NoNode: "inputs_of (NoNode) = []"|
 (* nodeout *)
 
-  inputs_of_SubstrateMethodCallTargetNode: "inputs_of (SubstrateMethodCallTargetNode targetMethod args) = args" |
   inputs_of_RefNode: "inputs_of (RefNode ref) = [ref]"
 
 (* nodeout: isabelle-succs *)
@@ -273,7 +271,6 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_NoNode: "successors_of (NoNode) = []"|
 (* nodeout *)
 
-  successors_of_SubstrateMethodCallTargetNode: "successors_of (SubstrateMethodCallTargetNode targetMethod args) = []" |
   successors_of_RefNode: "successors_of (RefNode ref) = []"
 
 

@@ -239,11 +239,11 @@ definition field_sq :: FieldName where
 
 definition eg3_sq :: IRGraph where
   "eg3_sq = irgraph [
-    (0, StartNode None 4),
-    (1, ParameterNode 0),
-    (3, MulNode 1 1),
-    (4, StoreFieldNode field_sq 3 None None 5),
-    (5, ReturnNode (Some 3) None)
+    (0, StartNode None 4, VoidStamp),
+    (1, ParameterNode 0, default_stamp),
+    (3, MulNode 1 1, default_stamp),
+    (4, StoreFieldNode field_sq 3 None None 5, VoidStamp),
+    (5, ReturnNode (Some 3) None, default_stamp)
    ]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
@@ -252,11 +252,11 @@ values "{(prod.snd res) field_sq None
 
 definition eg4_sq :: IRGraph where
   "eg4_sq = irgraph [
-    (0, StartNode None 4),
-    (1, ParameterNode 0),
-    (3, MulNode 1 1),
-    (4, StoreFieldNode field_sq 3 None (Some 24) 5),
-    (5, ReturnNode (Some 3) None)
+    (0, StartNode None 4, VoidStamp),
+    (1, ParameterNode 0, default_stamp),
+    (3, MulNode 1 1, default_stamp),
+    (4, StoreFieldNode field_sq 3 None (Some 24) 5, VoidStamp),
+    (5, ReturnNode (Some 3) None, default_stamp)
    ]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 24={sq: 9} *)

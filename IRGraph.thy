@@ -15,7 +15,7 @@ IRGraph is defined as a partial map with a finite domain.
 The finite domain is required to be able to generate code and produce an interpreter.
 \<close>
 text_raw \<open>\Snip{graphdef}\<close>
-typedef IRGraph = "{g :: ID \<rightharpoonup> IRNode . finite (dom g)}"
+typedef IRGraph = "{g :: ID \<rightharpoonup> (IRNode \<times> Stamp) . finite (dom g)}"
 text_raw \<open>\EndSnip\<close>
 proof -
   have "finite(dom(Map.empty)) \<and> ran Map.empty = {}" by auto
@@ -25,67 +25,61 @@ qed
 
 setup_lifting type_definition_IRGraph
 
-definition node_ids :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID set" where
-  "node_ids g = {nid \<in> dom g . g nid \<noteq> (Some NoNode)}"
+fun has_no_node :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID \<Rightarrow> bool" where
+  "has_no_node g nid = (\<exists>s . g nid = (Some (NoNode, s)))"
+
+definition node_ids :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID set" where
+  "node_ids g = {nid \<in> dom g . \<not>(has_no_node g nid)}"
 
 lemma node_ids_imp:
-  "\<nexists>nid . nid \<in> (node_ids g) \<and> g nid = (Some NoNode)"
-  by (simp add: node_ids_def)
+  "\<nexists>nid . nid \<in> (node_ids g) \<and> has_no_node g nid"
+  by (auto simp: node_ids_def)
 
 lemma node_ids_defs:
-  "node_ids g = dom g - {nid \<in> dom g . g nid = (Some NoNode)}"
+  "node_ids g = dom g - {nid \<in> dom g . has_no_node g nid}"
   using node_ids_def by auto
 
 lift_definition ids :: "IRGraph \<Rightarrow> ID set"
   is node_ids .
 
-definition node_kind :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID \<Rightarrow> IRNode" where
-  "node_kind g nid = (case g nid of None \<Rightarrow> NoNode | Some n \<Rightarrow> n)"
+definition node_kind :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID \<Rightarrow> IRNode" where
+  "node_kind g nid = (case g nid of 
+    None \<Rightarrow> NoNode 
+    | Some n \<Rightarrow> fst n)"
 
 lift_definition kind :: "IRGraph \<Rightarrow> (ID \<Rightarrow> IRNode)"
   is node_kind .
 
-definition node_stamp :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID \<Rightarrow> Stamp" where
-  "node_stamp g nid = IllegalStamp"
+definition node_stamp :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID \<Rightarrow> Stamp" where
+  "node_stamp g nid = (case g nid of 
+    None \<Rightarrow> IllegalStamp 
+    | Some n \<Rightarrow> snd n)"
 
 lift_definition stamp :: "IRGraph \<Rightarrow> ID \<Rightarrow> Stamp"
   is node_stamp .
 
-definition map_upd :: "ID \<Rightarrow> IRNode \<Rightarrow> (ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<rightharpoonup> IRNode)" where
+definition map_upd :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp))" where
   "map_upd nid k g = g(nid \<mapsto> k)"
 
-lift_definition add_node :: "ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
+lift_definition add_node :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
   is map_upd
   by (simp add: map_upd_def)
 
-definition map_rm :: "ID \<Rightarrow> (ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<rightharpoonup> IRNode)" where
+definition map_rm :: "ID \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp))" where
   "map_rm nid g = g(nid := None)"
 
 lift_definition remove_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
   is map_rm
   by (simp add: map_rm_def)
 
-(*
-lemma ran_not_in:
-  "\<forall>x l. (\<nexists>n. n \<in> set l \<and> snd n = x) \<longrightarrow> x \<notin> ran (map_of l)"
-   by (smt map_of_SomeD mem_Collect_eq prod.sel(2) ran_def)
-
-lift_definition irgraph :: "(ID \<times> IRNode) list \<Rightarrow> IRGraph"
-  is drop_no_node
-  by (simp add: ran_not_in finite_dom_map_of)
-*)
-
 lemma ran_not_in:
   "\<forall>x l. (\<nexists>n. n \<in> set l \<and> snd n = x) \<longrightarrow> x \<notin> ran (map_of l)"
   by (smt map_of_SomeD mem_Collect_eq prod.sel(2) ran_def)
 
-fun no_node :: "(ID \<times> IRNode) list \<Rightarrow> (ID \<times> IRNode) list" where
-  "no_node g = filter (\<lambda>n. snd n \<noteq> NoNode) g"
+fun no_node :: "(ID \<times> (IRNode \<times> Stamp)) list \<Rightarrow> (ID \<times> (IRNode \<times> Stamp)) list" where
+  "no_node g = filter (\<lambda>n. fst (snd n) \<noteq> NoNode) g"
 
-fun drop_no_node :: "(ID \<times> IRNode) list \<Rightarrow> ID \<rightharpoonup> IRNode" where
-  "drop_no_node g = map_of (no_node g)"
-
-lift_definition irgraph :: "(ID \<times> IRNode) list \<Rightarrow> IRGraph"
+lift_definition irgraph :: "(ID \<times> (IRNode \<times> Stamp)) list \<Rightarrow> IRGraph"
   is map_of
   by (simp add: finite_dom_map_of)
 
@@ -95,9 +89,6 @@ code_datatype irgraph
 lemma irgraph[code]: "ids (irgraph m) = set (map fst (no_node m))"
   using dom_map_of_conv_image_fst ids.rep_eq irgraph.rep_eq apply simp
   using node_ids_def sorry
-  (*
-  by transfer (simp add: node_ids_imp dom_map_of_conv_image_fst ids.rep_eq irgraph.rep_eq)
-  *)
 
 lemma [code]: "(Rep_IRGraph (irgraph m)) = map_of m"
   using Abs_IRGraph_inverse
@@ -141,8 +132,13 @@ text_raw \<open>\EndSnip\<close>
 
 
 lemma ids_some[simp]: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> NoNode" 
-  unfolding ids.rep_eq kind_def map_fun_def
-  using domIff node_ids_def node_kind_def by fastforce
+proof -
+  have that: "x \<in> ids g \<longrightarrow> kind g x \<noteq> NoNode"
+    using ids.rep_eq kind.rep_eq node_ids_defs node_kind_def by force
+  have "kind g x \<noteq> NoNode \<longrightarrow> x \<in> ids g"
+    by (metis (mono_tags, lifting) domIff fst_conv has_no_node.simps ids.rep_eq kind.rep_eq mem_Collect_eq node_ids_def node_kind_def option.case_eq_if option.sel)
+  from this that show ?thesis by auto
+qed
 
 lemma valid_creation[simp]:
   "finite (dom g) \<longleftrightarrow> Rep_IRGraph (Abs_IRGraph g) = g"
@@ -154,24 +150,36 @@ lemma [simp]: "finite (ids g)"
 lemma [simp]: "finite (ids (irgraph g))" 
   by (simp add: finite_dom_map_of)
 
-lemma [simp]: "finite (dom g) \<longrightarrow> ids (Abs_IRGraph g) = {nid \<in> dom g . g nid \<noteq> Some NoNode}"
+lemma sup: "\<not>(has_no_node g nid) \<and> g nid = Some n \<longrightarrow> fst n \<noteq> NoNode"
+  unfolding has_no_node.simps
+  by (metis eq_fst_iff)
+
+lemma [simp]: "finite (dom g) \<longrightarrow> ids (Abs_IRGraph g) = {nid \<in> dom g . \<not> has_no_node g nid}"
   using ids.rep_eq node_ids_def by simp
 
-lemma [simp]: "finite (dom g) \<longrightarrow> kind (Abs_IRGraph g) = (\<lambda>x . (case g x of None \<Rightarrow> NoNode | Some n \<Rightarrow> n))"
+lemma [simp]: "finite (dom g) \<longrightarrow> kind (Abs_IRGraph g) = (\<lambda>x . (case g x of None \<Rightarrow> NoNode | Some n \<Rightarrow> fst n))"
   using kind.abs_eq node_kind_def
   by (metis eq_onp_live_step)
 
-lemma rw_ids[simp]: "ids (irgraph g) = set (map fst (no_node g))" 
+lemma [simp]: "finite (dom g) \<longrightarrow> stamp (Abs_IRGraph g) = (\<lambda>x . (case g x of None \<Rightarrow> IllegalStamp | Some n \<Rightarrow> snd n))"
+  using stamp.abs_eq node_stamp_def
+  using stamp.rep_eq by auto
+
+lemma [simp]: "ids (irgraph g) = set (map fst (no_node g))" 
   using irgraph by auto
 
-lemma rw_kind[simp]: "kind (irgraph g) = (\<lambda>nid. (case (map_of g) nid of None \<Rightarrow> NoNode | Some n \<Rightarrow> n))" 
+lemma [simp]: "kind (irgraph g) = (\<lambda>nid. (case (map_of g) nid of None \<Rightarrow> NoNode | Some n \<Rightarrow> fst n))" 
   using irgraph.rep_eq kind.transfer node_kind_def kind.rep_eq
+  by auto
+
+lemma [simp]: "stamp (irgraph g) = (\<lambda>nid. (case (map_of g) nid of None \<Rightarrow> IllegalStamp | Some n \<Rightarrow> snd n))" 
+  using irgraph.rep_eq stamp.transfer node_stamp_def stamp.rep_eq
   by auto
 
 subsection "Example Graphs"
 text "Example 1: empty graph (just a start and end node)"
 definition start_end_graph:: IRGraph where
-  "start_end_graph = irgraph [(0, StartNode None 1), (1, EndNode)]"
+  "start_end_graph = irgraph [(0, StartNode None 1, VoidStamp), (1, EndNode, VoidStamp)]"
 
 lemma wff_empty: "wff_graph start_end_graph"
   unfolding start_end_graph_def wff_graph.simps by simp
@@ -188,14 +196,19 @@ text \<open>Example 2:
 \<close>
 definition eg2_sq :: "IRGraph" where
   "eg2_sq = irgraph [
-    (0, StartNode None 5),
-    (1, ParameterNode 0),
-    (4, MulNode 1 1),
-    (5, ReturnNode (Some 4) None)
+    (0, StartNode None 5, VoidStamp),
+    (1, ParameterNode 0, default_stamp),
+    (4, MulNode 1 1, default_stamp),
+    (5, ReturnNode (Some 4) None, default_stamp)
    ]"
 
 lemma wff_eg2_sq: "wff_graph eg2_sq"
   unfolding eg2_sq_def wff_graph.simps by simp
+
+(* TODO: to include the float type (used by stamps) we need
+         a code equation for float_of but it is not clear how
+         to implement this correctly *)
+lemma[code]: "float_of n = 0" sorry
 
 (* Test the code generation. *)
 value "input_edges eg2_sq"

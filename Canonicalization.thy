@@ -121,7 +121,6 @@ fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<R
     )"
 text_raw \<open>\EndSnip\<close>
 
-text_raw \<open>\Snip{Stutter}%\<close>
 inductive stutter:: "Program \<Rightarrow> Signature \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ \<turnstile> _ \<leadsto> _" 55)
   for g s m where
 
@@ -133,6 +132,14 @@ inductive stutter:: "Program \<Rightarrow> Signature \<Rightarrow> MapState \<Ri
   "\<lbrakk>(g,s) \<turnstile> (nid,m,heap) \<rightarrow> (nid'',m,heap);
     g s m \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
    \<Longrightarrow> g s m \<turnstile> nid \<leadsto> nid'"
+
+text_raw \<open>\Snip{Stutter}%\<close>
+text \<open>
+\begin{center}
+@{thm[mode=Rule] stutter.Step [no_vars]}\\[8px]
+@{thm[mode=Rule] stutter.Transitive [no_vars]}
+\end{center}
+\<close>
 text_raw \<open>\EndSnip\<close>
 
 lemma add_node_lookup:

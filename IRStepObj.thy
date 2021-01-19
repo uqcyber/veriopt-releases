@@ -28,8 +28,6 @@ type_synonym Program = "Signature \<Rightarrow> IRGraph"
 fun p_method :: "Signature \<Rightarrow> Program \<Rightarrow> IRGraph" where
   "p_method m p = p m"
 
-
-text_raw \<open>\Snip{StepSemantics}%\<close>
 inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapState \<times> Heap) \<Rightarrow> (ID \<times> MapState \<times> Heap) \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>_" 55)
   where
@@ -86,12 +84,21 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
       h' = h_store_field f obj val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')"
+
+text_raw \<open>\Snip{StepSemantics}%\<close>
+text \<open>
+\begin{center}
+@{thm[mode=Rule] step.IfNode [no_vars]}\\[8px]
+@{thm[mode=Rule] step.EndNodes [no_vars]}\\[8px]
+@{thm[mode=Rule] step.RefNode [no_vars]}\\[8px]
+@{thm[mode=Rule] step.LoadFieldNode [no_vars]}\\[8px]
+@{thm[mode=Rule] step.StoreFieldNode [no_vars]}
+\end{center}
+\<close>
 text_raw \<open>\EndSnip\<close>
 
 code_pred (modes: i * i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
-
-text_raw \<open>\Snip{TopStepSemantics}%\<close>
 inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap \<Rightarrow> bool"
   ("_\<turnstile>_\<longrightarrow>_" 55) 
   for p where
@@ -146,7 +153,16 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
       c_m'' = m_set c_nid e c_m'\<rbrakk>
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m'')#xs, h)"
 
-
+text_raw \<open>\Snip{TopStepSemantics}%\<close>
+text \<open>
+\begin{center}
+@{thm[mode=Rule] step_top.InvokeNodeStep [no_vars]}\\[8px]
+@{thm[mode=Rule] step.EndNodes [no_vars]}\\[8px]
+@{thm[mode=Rule] step.RefNode [no_vars]}\\[8px]
+@{thm[mode=Rule] step.LoadFieldNode [no_vars]}\\[8px]
+@{thm[mode=Rule] step.StoreFieldNode [no_vars]}
+\end{center}
+\<close>
 text_raw \<open>\EndSnip\<close>
 
 (*

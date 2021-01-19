@@ -16,12 +16,12 @@ The finite domain is required to be able to generate code and produce an interpr
 \<close>
 text_raw \<open>\Snip{graphdef}\<close>
 typedef IRGraph = "{g :: ID \<rightharpoonup> IRNode . finite (dom g)}"
+text_raw \<open>\EndSnip\<close>
 proof -
   have "finite(dom(Map.empty)) \<and> ran Map.empty = {}" by auto
   then show ?thesis
     by fastforce
 qed
-text_raw \<open>\EndSnip\<close>
 
 setup_lifting type_definition_IRGraph
 
@@ -128,7 +128,6 @@ fun is_empty :: "IRGraph \<Rightarrow> bool" where
   "is_empty g = (ids g = {})"
 text_raw \<open>\EndSnip\<close>
 
-
 text_raw \<open>\Snip{wff_graph}%\<close>
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph g = (
@@ -139,6 +138,7 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
       kind g n \<noteq> NoNode)
   )"
 text_raw \<open>\EndSnip\<close>
+
 
 lemma ids_some[simp]: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> NoNode" 
   unfolding ids.rep_eq kind_def map_fun_def

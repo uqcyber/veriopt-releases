@@ -206,14 +206,18 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow
 
 text \<open>Representative induction rules for eval\<close>
 text_raw \<open>\Snip{ExpressionSemantics}%\<close>
-text \<open>@{thm[mode=Rule] eval.ConstantNode [no_vars]} \textsc{ConstantNode}\<close>
-text \<open>@{thm[mode=Rule] eval.ParameterNode [no_vars]} \textsc{ParameterNode}\<close>
-text \<open>@{thm[mode=Rule] eval.ValuePhiNode [no_vars]} \textsc{ValuePhiNode}\<close>
-text \<open>@{thm[mode=Rule] eval.NegateNode [no_vars]} \textsc{NegateNode}\<close>
-text \<open>@{thm[mode=Rule] eval.AddNode [no_vars]} \textsc{AddNode}\<close>
-text \<open>@{thm[mode=Rule] eval.ShortCircuitOrNode [no_vars]} \textsc{ShortCircuitOrNode}\<close>
-text \<open>@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]} \textsc{InvokeNodeEval}\<close>
-text \<open>@{thm[mode=Rule] eval.RefNode [no_vars]} \textsc{RefNode}\<close>
+text \<open>
+\begin{center}
+@{thm[mode=Rule] eval.ConstantNode [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.ParameterNode [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.NegateNode [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.AddNode [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.ShortCircuitOrNode [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.RefNode [no_vars]}
+\end{center}
+\<close>
 text_raw \<open>\EndSnip\<close>
 
 

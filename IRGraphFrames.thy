@@ -434,6 +434,27 @@ proof -
     case (NewInstanceNode m nid clazz stateBefore nex)
     then show ?case
       by (metis eval.NewInstanceNode kind_unchanged)
+  next
+    case (IsNullNode m obj ref val)
+    have obj: "obj \<in> set(inp g1 nid)"
+      by (metis IRNodes.inputs_of_IsNullNode IsNullNode.hyps(4) inp.simps list.set_intros(1))
+    then have ref: "g2 m \<turnstile> obj (kind g2 obj) \<mapsto> ObjRef ref"
+      using IsNullNode.hyps(1) IsNullNode.hyps(2) IsNullNode.prems(2) child_unchanged eval_in_ids by blast
+    then show ?case
+      by (metis (full_types) IsNullNode.hyps(3) IsNullNode.hyps(4) IsNullNode.prems(1) IsNullNode.prems(2) eval.IsNullNode kind_unchanged)
+  next
+    case (LoadFieldNode)
+    then show ?case
+      by (metis eval.LoadFieldNode kind_unchanged)
+  next
+    case (PiNode m object val)
+    have object: "object \<in> set(inp g1 nid)"
+      using inputs_of_PiNode inp.simps
+      by (metis PiNode.hyps(3) append_Cons list.set_intros(1))
+    then have ref: "g2 m \<turnstile> object (kind g2 object) \<mapsto> val"
+      using PiNode.hyps(1) PiNode.hyps(2) PiNode.prems(2) child_unchanged eval_in_ids by blast
+    then show ?case
+      by (metis PiNode.hyps(3) PiNode.prems(1) PiNode.prems(2) eval.PiNode kind_unchanged)
   qed
 qed
 

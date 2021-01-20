@@ -176,6 +176,14 @@ lemma [simp]: "stamp (irgraph g) = (\<lambda>nid. (case (map_of g) nid of None \
   using irgraph.rep_eq stamp.transfer node_stamp_def stamp.rep_eq
   by auto
 
+lemma add_node_lookup:
+  "gup = add_node nid (k, s) g \<longrightarrow> kind gup nid = k \<and> stamp gup nid = s"
+  by (simp add: add_node.rep_eq kind.rep_eq map_upd_def node_kind_def node_stamp_def stamp.rep_eq)
+
+lemma remove_node_lookup:
+  "gup = remove_node nid g \<longrightarrow> kind gup nid = NoNode \<and> stamp gup nid = IllegalStamp"
+  by (simp add: kind.rep_eq map_rm_def node_kind_def node_stamp_def remove_node.rep_eq stamp.rep_eq)
+
 subsection "Example Graphs"
 text "Example 1: empty graph (just a start and end node)"
 definition start_end_graph:: IRGraph where

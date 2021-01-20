@@ -142,24 +142,16 @@ text \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
-lemma add_node_lookup:
-  assumes "g' = add_node nid k g"
-  shows "kind g' nid = k"
-  using assms unfolding add_node_def
-  using Rep_IRGraph_inverse kind.transfer
-  using add_node.rep_eq add_node_def kind.rep_eq map_upd_def node_kind_def by auto
-
-
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
   assumes cv: "g m \<turnstile> cond (kind g cond) \<mapsto> cv"
   assumes fresh: "nid \<notin> ids g" 
-  assumes gif: "gif = add_node nid (IfNode cond tb fb) g"
+  assumes gif: "gif = add_node nid ((IfNode cond tb fb), VoidStamp) g"
   assumes gif_lookup: "gif = gif_prog sig"
-  assumes gcreate: "gcreate = add_node nid (create_if g cond tb fb) g"
+  assumes gcreate: "gcreate = add_node nid ((create_if g cond tb fb), VoidStamp) g"
   assumes gcreate_lookup: "gcreate = gcreate_prog sig"
   assumes indep: "\<not>(eval_uses g cond nid)"
-  fixes heap :: Heap
+  fixes heap :: DynamicHeap
   shows "\<exists>nid'. (gif_prog sig m \<turnstile> nid \<leadsto> nid') \<and> 
                 (gcreate_prog sig m \<turnstile> nid \<leadsto> nid')"
 text_raw \<open>\EndSnip\<close>

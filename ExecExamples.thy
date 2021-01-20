@@ -410,12 +410,258 @@ definition simple_obj :: "string \<Rightarrow> IRGraph " where
 ])
 "
 
-definition simple_obj_params where "simple_obj_params = new_map []"
+definition empty_params where "empty_params = new_map []"
+
 definition simple_obj_main where "simple_obj_main = ''SimpleObject.objExample()I''"
 
 values "{m_val m 0 |n m l. simple_obj | simple_obj_main | [] \<leadsto> (n, m)}"
 
-values "{m | m . simple_obj \<turnstile> ([(simple_obj_main, 0, simple_obj_params)], new_heap) \<rightarrow>*21* m}"
+values "{m | m . simple_obj \<turnstile> ([(simple_obj_main, 0, empty_params)], new_heap) \<rightarrow>*21* m}"
+
+
+definition multiple_obj :: "string \<Rightarrow> IRGraph " where
+"multiple_obj = ((\<lambda>x . start_end_graph)
+(''MultipleObject.<init>(I)V'' := irgraph [
+ (0, (StartNode ((Some 3)) (4)), VoidStamp),
+ (1, (ParameterNode (0)), ObjectStamp ''LMultipleObject;'' True True False),
+ (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (4, (StoreFieldNode (4) (''MultipleObject.field'') (2) ((Some 5)) ((Some 1)) (6)), VoidStamp),
+ (5, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (6, (ReturnNode (None) (None)), VoidStamp)
+]))
+(''MultipleObject.objExample()I'' := irgraph [
+ (0, (StartNode ((Some 1)) (2)), VoidStamp),
+ (1, (FrameState ([]) (None) (None) (None)), IllegalStamp),
+ (2, (NewInstanceNode (2) (''MultipleObject'') (None) (8)), ObjectStamp ''LMultipleObject;'' True True False),
+ (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (4, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([2, 3])), VoidStamp),
+ (5, (ExceptionObjectNode ((Some 6)) (16)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (6, (FrameState ([]) (None) ((Some [5])) (None)), IllegalStamp),
+ (8, (InvokeWithExceptionNode (8) (4) (None) (None) ((Some 9)) (10) (5)), VoidStamp),
+ (9, (FrameState ([]) (None) ((Some [2])) (None)), IllegalStamp),
+ (10, (KillingBeginNode (11)), VoidStamp),
+ (11, (NewInstanceNode (11) (''MultipleObject'') (None) (20)), ObjectStamp ''LMultipleObject;'' True True False),
+ (12, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+ (13, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([11, 12])), VoidStamp),
+ (14, (ExceptionObjectNode ((Some 15)) (18)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (15, (FrameState ([]) (None) ((Some [2, 14])) (None)), IllegalStamp),
+ (16, (EndNode), VoidStamp),
+ (17, (MergeNode ([16, 18, 28, 37, 46]) ((Some 60)) (61)), VoidStamp),
+ (18, (EndNode), VoidStamp),
+ (19, (ValuePhiNode (19) ([5, 14, 26, 35, 44, 60]) (17)), ObjectStamp '''' False False False),
+ (20, (InvokeWithExceptionNode (20) (13) (None) (None) ((Some 21)) (22) (14)), VoidStamp),
+ (21, (FrameState ([]) (None) ((Some [2, 11])) (None)), IllegalStamp),
+ (22, (KillingBeginNode (23)), VoidStamp),
+ (23, (NewInstanceNode (23) (''MultipleObject'') (None) (29)), ObjectStamp ''LMultipleObject;'' True True False),
+ (24, (ConstantNode (IntVal 32 (3))), IntegerStamp 32 (3) (3)),
+ (25, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([23, 24])), VoidStamp),
+ (26, (ExceptionObjectNode ((Some 27)) (28)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (27, (FrameState ([]) (None) ((Some [2, 11, 26])) (None)), IllegalStamp),
+ (28, (EndNode), VoidStamp),
+ (29, (InvokeWithExceptionNode (29) (25) (None) (None) ((Some 30)) (31) (26)), VoidStamp),
+ (30, (FrameState ([]) (None) ((Some [2, 11, 23])) (None)), IllegalStamp),
+ (31, (KillingBeginNode (32)), VoidStamp),
+ (32, (NewInstanceNode (32) (''MultipleObject'') (None) (38)), ObjectStamp ''LMultipleObject;'' True True False),
+ (33, (ConstantNode (IntVal 32 (4))), IntegerStamp 32 (4) (4)),
+ (34, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([32, 33])), VoidStamp),
+ (35, (ExceptionObjectNode ((Some 36)) (37)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (36, (FrameState ([]) (None) ((Some [2, 11, 23, 35])) (None)), IllegalStamp),
+ (37, (EndNode), VoidStamp),
+ (38, (InvokeWithExceptionNode (38) (34) (None) (None) ((Some 39)) (40) (35)), VoidStamp),
+ (39, (FrameState ([]) (None) ((Some [2, 11, 23, 32])) (None)), IllegalStamp),
+ (40, (KillingBeginNode (41)), VoidStamp),
+ (41, (NewInstanceNode (41) (''MultipleObject'') (None) (47)), ObjectStamp ''LMultipleObject;'' True True False),
+ (42, (ConstantNode (IntVal 32 (5))), IntegerStamp 32 (5) (5)),
+ (43, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([41, 42])), VoidStamp),
+ (44, (ExceptionObjectNode ((Some 45)) (46)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (45, (FrameState ([]) (None) ((Some [2, 11, 23, 32, 44])) (None)), IllegalStamp),
+ (46, (EndNode), VoidStamp),
+ (47, (InvokeWithExceptionNode (47) (43) (None) (None) ((Some 48)) (49) (44)), VoidStamp),
+ (48, (FrameState ([]) (None) ((Some [2, 11, 23, 32, 41])) (None)), IllegalStamp),
+ (49, (KillingBeginNode (50)), VoidStamp),
+ (50, (LoadFieldNode (50) (''MultipleObject.field'') ((Some 2)) (51)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (51, (LoadFieldNode (51) (''MultipleObject.field'') ((Some 11)) (53)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (52, (MulNode (50) (51)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (53, (LoadFieldNode (53) (''MultipleObject.field'') ((Some 23)) (55)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (54, (MulNode (52) (53)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (55, (LoadFieldNode (55) (''MultipleObject.field'') ((Some 32)) (57)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (56, (MulNode (54) (55)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (57, (LoadFieldNode (57) (''MultipleObject.field'') ((Some 41)) (59)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (58, (MulNode (56) (57)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (59, (ReturnNode ((Some 58)) (None)), VoidStamp),
+ (60, (FrameState ([]) (None) ((Some [19])) (None)), IllegalStamp),
+ (61, (UnwindNode (19)), VoidStamp)
+])
+"
+definition multiple_obj_main where "multiple_obj_main = ''MultipleObject.objExample()I''"
+
+values "{m_val m 0 |n m l. multiple_obj | multiple_obj_main | [] \<leadsto> (n, m)}"
+
+
+definition pass_the_parcel :: "string \<Rightarrow> IRGraph " where
+"pass_the_parcel = (((((\<lambda>x . start_end_graph)
+(''Parcel.fromContents(I)LParcel;'' := irgraph [
+ (0, (StartNode ((Some 2)) (3)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (3, (NewInstanceNode (3) (''Parcel'') (None) (9)), ObjectStamp ''LParcel;'' True True False),
+ (4, (ConstantNode (ObjRef None)), ObjectStamp '''' False False True),
+ (5, (MethodCallTargetNode (''Parcel.<init>(LParcel;)V'') ([3, 4])), VoidStamp),
+ (6, (ExceptionObjectNode ((Some 7)) (15)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (7, (FrameState ([]) (None) ((Some [1, 6])) (None)), IllegalStamp),
+ (9, (InvokeWithExceptionNode (9) (5) (None) (None) ((Some 10)) (11) (6)), VoidStamp),
+ (10, (FrameState ([]) (None) ((Some [1, 3])) (None)), IllegalStamp),
+ (11, (KillingBeginNode (12)), VoidStamp),
+ (12, (StoreFieldNode (12) (''Parcel.contents'') (1) ((Some 13)) ((Some 3)) (14)), VoidStamp),
+ (13, (FrameState ([]) (None) ((Some [1, 3])) (None)), IllegalStamp),
+ (14, (ReturnNode ((Some 3)) (None)), VoidStamp),
+ (15, (UnwindNode (6)), VoidStamp)
+]))
+(''Parcel.<init>(LParcel;)V'' := irgraph [
+ (0, (StartNode ((Some 3)) (5)), VoidStamp),
+ (1, (ParameterNode (0)), ObjectStamp ''LParcel;'' True True False),
+ (2, (ParameterNode (1)), ObjectStamp ''LParcel;'' True False False),
+ (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (4, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+ (5, (StoreFieldNode (5) (''Parcel.contents'') (4) ((Some 6)) ((Some 1)) (7)), VoidStamp),
+ (6, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (7, (StoreFieldNode (7) (''Parcel.wrapping'') (2) ((Some 8)) ((Some 1)) (9)), VoidStamp),
+ (8, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (9, (ReturnNode (None) (None)), VoidStamp)
+]))
+(''PassTheParcel.test(II)I'' := irgraph [
+ (0, (StartNode ((Some 3)) (8)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (4, (MethodCallTargetNode (''PassTheParcel.wrap(II)LParcel;'') ([1, 2])), VoidStamp),
+ (5, (ExceptionObjectNode ((Some 6)) (14)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (6, (FrameState ([]) (None) ((Some [5])) (None)), IllegalStamp),
+ (8, (InvokeWithExceptionNode (8) (4) (None) (None) ((Some 9)) (10) (5)), ObjectStamp ''LParcel;'' True False False),
+ (9, (FrameState ([]) (None) ((Some [8])) (None)), IllegalStamp),
+ (10, (KillingBeginNode (18)), VoidStamp),
+ (11, (MethodCallTargetNode (''PassTheParcel.unwrapAll(LParcel;)LParcel;'') ([8])), VoidStamp),
+ (12, (ExceptionObjectNode ((Some 13)) (16)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (13, (FrameState ([]) (None) ((Some [12])) (None)), IllegalStamp),
+ (14, (EndNode), VoidStamp),
+ (15, (MergeNode ([14, 16, 28]) ((Some 32)) (33)), VoidStamp),
+ (16, (EndNode), VoidStamp),
+ (17, (ValuePhiNode (17) ([5, 12, 22, 32]) (15)), ObjectStamp '''' False False False),
+ (18, (InvokeWithExceptionNode (18) (11) (None) (None) ((Some 19)) (20) (12)), ObjectStamp ''LParcel;'' True False False),
+ (19, (FrameState ([]) (None) ((Some [18])) (None)), IllegalStamp),
+ (20, (KillingBeginNode (25)), VoidStamp),
+ (21, (IsNullNode (18)), VoidStamp),
+ (22, (BytecodeExceptionNode ([]) ((Some 26)) (28)), ObjectStamp ''Ljava/lang/NullPointerException;'' True True False),
+ (23, (BeginNode (30)), VoidStamp),
+ (24, (BeginNode (22)), VoidStamp),
+ (25, (IfNode (21) (24) (23)), VoidStamp),
+ (26, (FrameState ([]) (None) (None) (None)), IllegalStamp),
+ (28, (EndNode), VoidStamp),
+ (29, (PiNode (18) ((Some 23))), ObjectStamp ''LParcel;'' True True False),
+ (30, (LoadFieldNode (30) (''Parcel.contents'') ((Some 29)) (31)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (31, (ReturnNode ((Some 30)) (None)), VoidStamp),
+ (32, (FrameState ([]) (None) ((Some [17])) (None)), IllegalStamp),
+ (33, (UnwindNode (17)), VoidStamp)
+]))
+(''PassTheParcel.unwrapAll(LParcel;)LParcel;'' := irgraph [
+ (0, (StartNode ((Some 2)) (4)), VoidStamp),
+ (1, (ParameterNode (0)), ObjectStamp ''LParcel;'' True False False),
+ (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (4, (EndNode), VoidStamp),
+ (5, (LoopBeginNode ([4, 44]) (None) ((Some 7)) (12)), VoidStamp),
+ (6, (ValuePhiNode (6) ([1, 43, 7, 13, 33]) (5)), ObjectStamp '''' False False False),
+ (7, (FrameState ([]) (None) ((Some [6])) (None)), IllegalStamp),
+ (8, (IsNullNode (6)), VoidStamp),
+ (9, (BytecodeExceptionNode ([]) ((Some 13)) (16)), ObjectStamp ''Ljava/lang/NullPointerException;'' True True False),
+ (10, (BeginNode (20)), VoidStamp),
+ (11, (BeginNode (9)), VoidStamp),
+ (12, (IfNode (8) (11) (10)), VoidStamp),
+ (13, (FrameState ([]) (None) ((Some [6])) (None)), IllegalStamp),
+ (16, (LoopExitNode (5) ((Some 18)) (35)), VoidStamp),
+ (17, (ValueProxyNode (9) (16)), ObjectStamp ''Ljava/lang/NullPointerException;'' True True False),
+ (18, (FrameState ([]) (None) ((Some [17])) (None)), IllegalStamp),
+ (19, (PiNode (6) ((Some 10))), ObjectStamp '''' False True False),
+ (20, (LoadFieldNode (20) (''Parcel.wrapping'') ((Some 19)) (28)), ObjectStamp ''LParcel;'' True False False),
+ (21, (ConstantNode (ObjRef None)), ObjectStamp '''' False False True),
+ (22, (IsNullNode (20)), VoidStamp),
+ (23, (BeginNode (32)), VoidStamp),
+ (25, (LoopExitNode (5) ((Some 27)) (45)), VoidStamp),
+ (26, (ValueProxyNode (6) (25)), ObjectStamp '''' False False False),
+ (27, (FrameState ([]) (None) ((Some [26])) (None)), IllegalStamp),
+ (28, (IfNode (22) (25) (23)), VoidStamp),
+ (29, (BytecodeExceptionNode ([]) ((Some 33)) (38)), ObjectStamp ''Ljava/lang/NullPointerException;'' True True False),
+ (30, (BeginNode (43)), VoidStamp),
+ (31, (BeginNode (29)), VoidStamp),
+ (32, (IfNode (8) (31) (30)), VoidStamp),
+ (33, (FrameState ([]) (None) ((Some [6])) (None)), IllegalStamp),
+ (35, (EndNode), VoidStamp),
+ (36, (MergeNode ([35, 37]) ((Some 46)) (47)), VoidStamp),
+ (37, (EndNode), VoidStamp),
+ (38, (LoopExitNode (5) ((Some 40)) (37)), VoidStamp),
+ (39, (ValueProxyNode (29) (38)), ObjectStamp ''Ljava/lang/NullPointerException;'' True True False),
+ (40, (FrameState ([]) (None) ((Some [39])) (None)), IllegalStamp),
+ (41, (ValuePhiNode (41) ([17, 39, 46]) (36)), ObjectStamp '''' False False False),
+ (42, (PiNode (6) ((Some 30))), ObjectStamp '''' False True False),
+ (43, (LoadFieldNode (43) (''Parcel.wrapping'') ((Some 42)) (44)), ObjectStamp ''LParcel;'' True False False),
+ (44, (LoopEndNode (5)), VoidStamp),
+ (45, (ReturnNode ((Some 26)) (None)), VoidStamp),
+ (46, (FrameState ([]) (None) ((Some [41])) (None)), IllegalStamp),
+ (47, (UnwindNode (41)), VoidStamp)
+]))
+(''PassTheParcel.wrap(II)LParcel;'' := irgraph [
+ (0, (StartNode ((Some 3)) (8)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (4, (MethodCallTargetNode (''Parcel.fromContents(I)LParcel;'') ([1])), VoidStamp),
+ (5, (ExceptionObjectNode ((Some 6)) (29)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (6, (FrameState ([]) (None) ((Some [2, 5])) (None)), IllegalStamp),
+ (8, (InvokeWithExceptionNode (8) (4) (None) (None) ((Some 9)) (10) (5)), ObjectStamp ''LParcel;'' True False False),
+ (9, (FrameState ([]) (None) ((Some [2, 8])) (None)), IllegalStamp),
+ (10, (KillingBeginNode (13)), VoidStamp),
+ (11, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+ (13, (EndNode), VoidStamp),
+ (14, (LoopBeginNode ([13, 41]) (None) ((Some 17)) (24)), VoidStamp),
+ (15, (ValuePhiNode (15) ([8, 25, 17]) (14)), ObjectStamp '''' False False False),
+ (16, (ValuePhiNode (16) ([11, 40, 17, 28, 37]) (14)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (17, (FrameState ([]) (None) ((Some [2, 15, 16])) (None)), IllegalStamp),
+ (18, (IntegerLessThanNode (16) (2)), VoidStamp),
+ (20, (LoopExitNode (14) ((Some 22)) (42)), VoidStamp),
+ (21, (ValueProxyNode (15) (20)), ObjectStamp '''' False False False),
+ (22, (FrameState ([]) (None) ((Some [21])) (None)), IllegalStamp),
+ (23, (BeginNode (25)), VoidStamp),
+ (24, (IfNode (18) (23) (20)), VoidStamp),
+ (25, (NewInstanceNode (25) (''Parcel'') (None) (36)), ObjectStamp ''LParcel;'' True True False),
+ (26, (MethodCallTargetNode (''Parcel.<init>(LParcel;)V'') ([25, 15])), VoidStamp),
+ (27, (ExceptionObjectNode ((Some 28)) (32)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (28, (FrameState ([]) (None) ((Some [2, 16, 27])) (None)), IllegalStamp),
+ (29, (EndNode), VoidStamp),
+ (30, (MergeNode ([29, 31]) ((Some 43)) (44)), VoidStamp),
+ (31, (EndNode), VoidStamp),
+ (32, (LoopExitNode (14) ((Some 34)) (31)), VoidStamp),
+ (33, (ValueProxyNode (27) (32)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (34, (FrameState ([]) (None) ((Some [33])) (None)), IllegalStamp),
+ (35, (ValuePhiNode (35) ([5, 33, 43]) (30)), ObjectStamp '''' False False False),
+ (36, (InvokeWithExceptionNode (36) (26) (None) (None) ((Some 37)) (38) (27)), VoidStamp),
+ (37, (FrameState ([]) (None) ((Some [2, 16, 25])) (None)), IllegalStamp),
+ (38, (KillingBeginNode (41)), VoidStamp),
+ (39, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (40, (AddNode (16) (39)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (41, (LoopEndNode (14)), VoidStamp),
+ (42, (ReturnNode ((Some 21)) (None)), VoidStamp),
+ (43, (FrameState ([]) (None) ((Some [35])) (None)), IllegalStamp),
+ (44, (UnwindNode (35)), VoidStamp)
+])
+"
+
+definition parcel_main where "parcel_main = ''PassTheParcel.test(II)I''"
+
+values "{m_val m 0 |n m l. pass_the_parcel | parcel_main | [IntVal 32 5, IntVal 32 20] \<leadsto> (n, m)}"
+
+definition parcel_params where "parcel_params = new_map [IntVal 32 2, IntVal 32 3]"
+values "{m | m . pass_the_parcel \<turnstile> ([(parcel_main, 0, parcel_params)], new_heap) \<rightarrow>*98* m}"
+
 
 
 definition exceptional_prog :: "string \<Rightarrow> IRGraph " where

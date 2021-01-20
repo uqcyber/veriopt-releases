@@ -201,7 +201,15 @@ inductive
     \<Longrightarrow> g m \<turnstile> _ (InvokeWithExceptionNode nid callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val" |
 
   NewInstanceNode:
-  "g m \<turnstile> nid (NewInstanceNode class stateBefore next) \<mapsto> (ObjRef (Some 0))" |
+  "g m \<turnstile> _ (NewInstanceNode nid class stateBefore next) \<mapsto> m_val m nid" |
+
+  LoadFieldNode:
+  "g m \<turnstile> _ (LoadFieldNode nid _ _ _) \<mapsto> m_val m nid" |
+
+  (*TODO: Unclear how we should handle PiNode yet*)
+  PiNode:
+  "\<lbrakk>g m \<turnstile> object (kind g object) \<mapsto> val\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> _ (PiNode object guard) \<mapsto> val" |
 
   RefNode:
   "\<lbrakk>g m \<turnstile> x (kind g x) \<mapsto> val\<rbrakk>
@@ -325,7 +333,7 @@ inductive_cases KillingBeginNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (KillingBeginNode next) \<mapsto> val"
 
 inductive_cases LoadFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (LoadFieldNode field object next) \<mapsto> val"
+  "g m \<turnstile> nid (LoadFieldNode nid0 field object next) \<mapsto> val"
 
 inductive_cases LogicNegationNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (LogicNegationNode value) \<mapsto> val"
@@ -355,7 +363,7 @@ inductive_cases NewArrayNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (NewArrayNode length0 stateBefore next) \<mapsto> val"
 
 inductive_cases NewInstanceNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (NewInstanceNode instanceClass stateBefore next) \<mapsto> val"
+  "g m \<turnstile> nid (NewInstanceNode nid0 instanceClass stateBefore next) \<mapsto> val"
 
 inductive_cases NotNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (NotNode value) \<mapsto> val"
@@ -382,7 +390,7 @@ inductive_cases StartNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (StartNode stateAfter next) \<mapsto> val"
 
 inductive_cases StoreFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> nid (StoreFieldNode field value stateAfter object next) \<mapsto> val"
+  "g m \<turnstile> nid (StoreFieldNode nid0 field value stateAfter object next) \<mapsto> val"
 
 inductive_cases SubNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (SubNode x y) \<mapsto> val"
@@ -452,6 +460,7 @@ BytecodeExceptionNodeE
 UnwindNodeE
 RefNodeE
 IsNullNodeE
+PiNodeE
 NoNodeE
 
 

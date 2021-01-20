@@ -55,7 +55,7 @@ datatype (discs_sels) IRNode =
   | InvokeWithExceptionNode (ir_nid: ID) (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") (ir_exceptionEdge: "SUCC") 
   | IsNullNode (ir_value: "INPUT") 
   | KillingBeginNode (ir_next: "SUCC") 
-  | LoadFieldNode (ir_field: string) (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
+  | LoadFieldNode (ir_nid: ID) (ir_field: string) (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | LogicNegationNode (ir_value: "INPUT_COND") 
   | LoopBeginNode (ir_ends: "INPUT_ASSOC list") (ir_overflowGuard_opt: "INPUT_GUARD option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | LoopEndNode (ir_loopBegin: "INPUT_ASSOC") 
@@ -65,7 +65,7 @@ datatype (discs_sels) IRNode =
   | MulNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | NegateNode (ir_value: "INPUT") 
   | NewArrayNode (ir_length: "INPUT") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | NewInstanceNode (ir_instanceClass: string) (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | NewInstanceNode (ir_nid: ID) (ir_instanceClass: string) (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | NotNode (ir_value: "INPUT") 
   | OrNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | ParameterNode (ir_index: nat) 
@@ -74,7 +74,7 @@ datatype (discs_sels) IRNode =
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
   | SignedDivNode (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | StoreFieldNode (ir_field: string) (ir_value: "INPUT") (ir_stateAfter_opt: "INPUT_STATE option") (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
+  | StoreFieldNode (ir_nid: ID) (ir_field: string) (ir_value: "INPUT") (ir_stateAfter_opt: "INPUT_STATE option") (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | SubNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | UnwindNode (ir_exception: "INPUT") 
   | ValuePhiNode (ir_nid: ID) (ir_values: "INPUT list") (ir_merge: "INPUT_ASSOC") 
@@ -136,7 +136,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_KillingBeginNode:
   "inputs_of (KillingBeginNode next) = []" |
   inputs_of_LoadFieldNode:
-  "inputs_of (LoadFieldNode field object next) = (opt_to_list object)" |
+  "inputs_of (LoadFieldNode nid0 field object next) = (opt_to_list object)" |
   inputs_of_LogicNegationNode:
   "inputs_of (LogicNegationNode value) = [value]" |
   inputs_of_LoopBeginNode:
@@ -156,7 +156,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_NewArrayNode:
   "inputs_of (NewArrayNode length0 stateBefore next) = [length0] @ (opt_to_list stateBefore)" |
   inputs_of_NewInstanceNode:
-  "inputs_of (NewInstanceNode instanceClass stateBefore next) = (opt_to_list stateBefore)" |
+  "inputs_of (NewInstanceNode nid0 instanceClass stateBefore next) = (opt_to_list stateBefore)" |
   inputs_of_NotNode:
   "inputs_of (NotNode value) = [value]" |
   inputs_of_OrNode:
@@ -174,7 +174,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_StartNode:
   "inputs_of (StartNode stateAfter next) = (opt_to_list stateAfter)" |
   inputs_of_StoreFieldNode:
-  "inputs_of (StoreFieldNode field value stateAfter object next) = [value] @ (opt_to_list stateAfter) @ (opt_to_list object)" |
+  "inputs_of (StoreFieldNode nid0 field value stateAfter object next) = [value] @ (opt_to_list stateAfter) @ (opt_to_list object)" |
   inputs_of_SubNode:
   "inputs_of (SubNode x y) = [x, y]" |
   inputs_of_UnwindNode:
@@ -229,7 +229,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_KillingBeginNode:
   "successors_of (KillingBeginNode next) = [next]" |
   successors_of_LoadFieldNode:
-  "successors_of (LoadFieldNode field object next) = [next]" |
+  "successors_of (LoadFieldNode nid0 field object next) = [next]" |
   successors_of_LogicNegationNode:
   "successors_of (LogicNegationNode value) = []" |
   successors_of_LoopBeginNode:
@@ -249,7 +249,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_NewArrayNode:
   "successors_of (NewArrayNode length0 stateBefore next) = [next]" |
   successors_of_NewInstanceNode:
-  "successors_of (NewInstanceNode instanceClass stateBefore next) = [next]" |
+  "successors_of (NewInstanceNode nid0 instanceClass stateBefore next) = [next]" |
   successors_of_NotNode:
   "successors_of (NotNode value) = []" |
   successors_of_OrNode:
@@ -267,7 +267,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_StartNode:
   "successors_of (StartNode stateAfter next) = [next]" |
   successors_of_StoreFieldNode:
-  "successors_of (StoreFieldNode field value stateAfter object next) = [next]" |
+  "successors_of (StoreFieldNode nid0 field value stateAfter object next) = [next]" |
   successors_of_SubNode:
   "successors_of (SubNode x y) = []" |
   successors_of_UnwindNode:

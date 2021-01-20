@@ -10,15 +10,20 @@ type_synonym FieldName = "string"
 (* We use the H[f][p] heap representation.  See \cite{heap-reps-2011}. *)
 (* TODO: Record volatile fields?  Include class name of field? *)
 type_synonym Heap = "FieldName \<Rightarrow> objref \<Rightarrow> Value"
+type_synonym Free = "nat"
+type_synonym DynamicHeap = "Heap \<times> Free"
 
-definition new_heap :: "Heap" where
-  "new_heap =  (\<lambda>f. \<lambda>p. UndefVal)"
+definition new_heap :: "DynamicHeap" where
+  "new_heap =  ((\<lambda>f. \<lambda>p. UndefVal), 0)"
 
-fun h_load_field :: "FieldName \<Rightarrow> objref \<Rightarrow> Heap \<Rightarrow> Value" where
-  "h_load_field f obj h = h f obj"
+fun h_load_field :: "FieldName \<Rightarrow> objref \<Rightarrow> DynamicHeap \<Rightarrow> Value" where
+  "h_load_field f obj (h, n) = h f obj"
 
-fun h_store_field :: "FieldName \<Rightarrow> objref \<Rightarrow> Value \<Rightarrow> Heap \<Rightarrow> Heap" where
-  "h_store_field f obj v h = h(f := ((h f)(obj := v)))"
+fun h_store_field :: "FieldName \<Rightarrow> objref \<Rightarrow> Value \<Rightarrow> DynamicHeap \<Rightarrow> DynamicHeap" where
+  "h_store_field f obj v (h, n) = (h(f := ((h f)(obj := v))), n)"
+
+fun h_new_inst :: "DynamicHeap \<Rightarrow> DynamicHeap \<times> Value" where
+  "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some (n+1))))"
 
 
 type_synonym Signature = "string"
@@ -28,7 +33,7 @@ type_synonym Program = "Signature \<Rightarrow> IRGraph"
 fun p_method :: "Signature \<Rightarrow> Program \<Rightarrow> IRGraph" where
   "p_method m p = p m"
 
-inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapState \<times> Heap) \<Rightarrow> (ID \<times> MapState \<times> Heap) \<Rightarrow> bool"
+inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>_" 55)
   where
 
@@ -69,19 +74,42 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
       kind g nid = (RefNode nid')\<rbrakk>
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
+  NewInstanceNode:
+    "\<lbrakk>g = p_method s p;
+      kind g nid = (NewInstanceNode nid f obj nxt);
+      (h', ref) = h_new_inst h;
+      m' = m_set nid ref m\<rbrakk> 
+    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
+
   LoadFieldNode:
     "\<lbrakk>g = p_method s p;
-      kind g nid = (LoadFieldNode f obj nxt);
-      h_load_field f obj h = v;
+      kind g nid = (LoadFieldNode nid f (Some obj) nxt);
+      g m \<turnstile> obj (kind g obj) \<mapsto> ObjRef ref;
+      h_load_field f ref h = v;
+      m' = m_set nid v m\<rbrakk> 
+    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+
+  StaticLoadFieldNode:
+    "\<lbrakk>g = p_method s p;
+      kind g nid = (LoadFieldNode nid f None nxt);
+      h_load_field f None h = v;
       m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   StoreFieldNode:
     "\<lbrakk>g = p_method s p;
-      kind g nid = (StoreFieldNode f rhs _ obj nxt);
-      rhsk = (kind g rhs);
-      g m \<turnstile> rhs rhsk \<mapsto> val;
-      h' = h_store_field f obj val h;
+      kind g nid = (StoreFieldNode nid f rhs _ (Some obj) nxt);
+      g m \<turnstile> rhs (kind g rhs) \<mapsto> val;
+      g m \<turnstile> obj (kind g obj) \<mapsto> ObjRef ref;
+      h' = h_store_field f ref val h;
+      m' = m_set nid val m\<rbrakk> 
+    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
+
+  StaticStoreFieldNode:
+    "\<lbrakk>g = p_method s p;
+      kind g nid = (StoreFieldNode nid f rhs _ None nxt);
+      g m \<turnstile> rhs (kind g rhs) \<mapsto> val;
+      h' = h_store_field f None val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')"
 
@@ -99,7 +127,7 @@ text_raw \<open>\EndSnip\<close>
 
 code_pred (modes: i * i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
-inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap \<Rightarrow> bool"
+inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap \<Rightarrow> bool"
   ("_\<turnstile>_\<longrightarrow>_" 55) 
   for p where
 
@@ -165,14 +193,6 @@ text \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
-(*
-
-  ExitReturnNode:
-  "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
-    g m \<turnstile> expr (kind g expr) \<mapsto> v;
-    m' = hs_setval nid v m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m)#[] \<longrightarrow> []"
-*)
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 
@@ -182,9 +202,9 @@ fun has_return :: "MapState \<Rightarrow> bool" where
   "has_return m = (((m_val m 0) \<noteq> UndefVal) \<or> ((m_state m) = Exception))"
 
 inductive exec :: "Program 
-      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap
+      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
       \<Rightarrow> ExecLog 
-      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap
+      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
       \<Rightarrow> ExecLog 
       \<Rightarrow> bool"
   ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
@@ -211,9 +231,9 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 
 
 inductive exec_debug :: "Program
-     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap
+     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
      \<Rightarrow> nat
-     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> Heap
+     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
      \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>*_* _")
   where
@@ -242,12 +262,12 @@ definition eg3_sq :: IRGraph where
     (0, StartNode None 4, VoidStamp),
     (1, ParameterNode 0, default_stamp),
     (3, MulNode 1 1, default_stamp),
-    (4, StoreFieldNode field_sq 3 None None 5, VoidStamp),
+    (4, StoreFieldNode 4 field_sq 3 None None 5, VoidStamp),
     (5, ReturnNode (Some 3) None, default_stamp)
    ]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
-values "{(prod.snd res) field_sq None
+values "{h_load_field field_sq None (prod.snd res)
         | res. (\<lambda>x. eg3_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
 
 definition eg4_sq :: IRGraph where
@@ -255,12 +275,13 @@ definition eg4_sq :: IRGraph where
     (0, StartNode None 4, VoidStamp),
     (1, ParameterNode 0, default_stamp),
     (3, MulNode 1 1, default_stamp),
-    (4, StoreFieldNode field_sq 3 None (Some 24) 5, VoidStamp),
-    (5, ReturnNode (Some 3) None, default_stamp)
+    (4, NewInstanceNode 4 ''obj_class'' None 5, ObjectStamp ''obj_class'' True True True),
+    (5, StoreFieldNode 5 field_sq 3 None (Some 4) 6, VoidStamp),
+    (6, ReturnNode (Some 3) None, default_stamp)
    ]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 24={sq: 9} *)
-values "{(prod.snd res) field_sq (Some 24)
+values "{h_load_field field_sq (Some 1) (prod.snd res)
         | res. (\<lambda>x. eg4_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
 end
 

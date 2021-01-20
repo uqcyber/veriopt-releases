@@ -162,6 +162,11 @@ inductive
     val = bool_to_val(v1 < v2)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> nid (IntegerLessThanNode x y) \<mapsto> val" |
 
+  IsNullNode:
+  "\<lbrakk>g m \<turnstile> obj (kind g obj) \<mapsto> ObjRef ref;
+    val = bool_to_val(ref = None)\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> nid (IsNullNode obj) \<mapsto> val" |
+
 (* Other nodes *)
 (* Note that both branches are evaluated but only one is used.
    This is not an issue as evaluation is total (but may return UnDef) *)
@@ -313,6 +318,9 @@ inductive_cases InvokeNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases InvokeWithExceptionNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val"
 
+inductive_cases IsNullNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g m \<turnstile> nid (IsNullNode value) \<mapsto> val"
+
 inductive_cases KillingBeginNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (KillingBeginNode next) \<mapsto> val"
 
@@ -357,6 +365,9 @@ inductive_cases OrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 
 inductive_cases ParameterNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ParameterNode index) \<mapsto> val"
+
+inductive_cases PiNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g m \<turnstile> nid (PiNode object guard) \<mapsto> val"
 
 inductive_cases ReturnNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> nid (ReturnNode result memoryMap) \<mapsto> val"
@@ -440,6 +451,7 @@ InvokeWithExceptionNodeE
 BytecodeExceptionNodeE
 UnwindNodeE
 RefNodeE
+IsNullNodeE
 NoNodeE
 
 

@@ -328,6 +328,96 @@ values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 32 10, Int
 values "{m | m . native_combs \<turnstile> ([(native_combs_main, 0, native_combs_params)], new_heap) \<rightarrow>*7* m}"
 
 
+definition simple_obj :: "string \<Rightarrow> IRGraph " where
+"simple_obj = (((\<lambda>x . start_end_graph)
+(''SimpleObject.objExample()I'' := irgraph [
+ (0, (StartNode ((Some 1)) (2)), VoidStamp),
+ (1, (FrameState ([]) (None) (None) (None)), IllegalStamp),
+ (2, (NewInstanceNode (''SimpleObject'') (None) (7)), ObjectStamp ''LSimpleObject;'' True True False),
+ (3, (MethodCallTargetNode (''SimpleObject.<init>()V'') ([2])), VoidStamp),
+ (4, (ExceptionObjectNode ((Some 5)) (13)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (5, (FrameState ([]) (None) ((Some [4])) (None)), IllegalStamp),
+ (7, (InvokeWithExceptionNode (7) (3) (None) (None) ((Some 8)) (9) (4)), VoidStamp),
+ (8, (FrameState ([]) (None) ((Some [2])) (None)), IllegalStamp),
+ (9, (KillingBeginNode (17)), VoidStamp),
+ (10, (MethodCallTargetNode (''SimpleObject.assignFields()V'') ([2])), VoidStamp),
+ (11, (ExceptionObjectNode ((Some 12)) (15)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (12, (FrameState ([]) (None) ((Some [2, 11])) (None)), IllegalStamp),
+ (13, (EndNode), VoidStamp),
+ (14, (MergeNode ([13, 15, 28]) ((Some 32)) (33)), VoidStamp),
+ (15, (EndNode), VoidStamp),
+ (16, (ValuePhiNode (16) ([4, 11, 22, 32]) (14)), ObjectStamp '''' False False False),
+ (17, (InvokeWithExceptionNode (17) (10) (None) (None) ((Some 18)) (19) (11)), VoidStamp),
+ (18, (FrameState ([]) (None) ((Some [2])) (None)), IllegalStamp),
+ (19, (KillingBeginNode (20)), VoidStamp),
+ (20, (LoadFieldNode (''SimpleObject.objField'') ((Some 2)) (25)), ObjectStamp ''LSimpleObject;'' True False False),
+ (21, (IsNullNode (20)), VoidStamp),
+ (22, (BytecodeExceptionNode ([]) ((Some 26)) (28)), ObjectStamp ''Ljava/lang/NullPointerException;'' True True False),
+ (23, (BeginNode (30)), VoidStamp),
+ (24, (BeginNode (22)), VoidStamp),
+ (25, (IfNode (21) (24) (23)), VoidStamp),
+ (26, (FrameState ([]) (None) ((Some [2])) (None)), IllegalStamp),
+ (28, (EndNode), VoidStamp),
+ (29, (PiNode (20) ((Some 23))), ObjectStamp ''LSimpleObject;'' True True False),
+ (30, (LoadFieldNode (''SimpleObject.intField'') ((Some 29)) (31)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (31, (ReturnNode ((Some 30)) (None)), VoidStamp),
+ (32, (FrameState ([]) (None) ((Some [16])) (None)), IllegalStamp),
+ (33, (UnwindNode (16)), VoidStamp)
+]))
+(''SimpleObject.assignFields()V'' := irgraph [
+ (0, (StartNode ((Some 2)) (3)), VoidStamp),
+ (1, (ParameterNode (0)), ObjectStamp ''LSimpleObject;'' True True False),
+ (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (3, (NewInstanceNode (''SimpleObject'') (None) (8)), ObjectStamp ''LSimpleObject;'' True True False),
+ (4, (MethodCallTargetNode (''SimpleObject.<init>()V'') ([3])), VoidStamp),
+ (5, (ExceptionObjectNode ((Some 6)) (22)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
+ (6, (FrameState ([]) (None) ((Some [1, 5])) (None)), IllegalStamp),
+ (8, (InvokeWithExceptionNode (8) (4) (None) (None) ((Some 9)) (10) (5)), VoidStamp),
+ (9, (FrameState ([]) (None) ((Some [1, 1, 3])) (None)), IllegalStamp),
+ (10, (KillingBeginNode (11)), VoidStamp),
+ (11, (StoreFieldNode (''SimpleObject.objField'') (3) ((Some 12)) ((Some 1)) (13)), VoidStamp),
+ (12, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (13, (LoadFieldNode (''SimpleObject.objField'') ((Some 1)) (19)), ObjectStamp ''LSimpleObject;'' True False False),
+ (14, (ConstantNode (IntVal 32 (160))), IntegerStamp 32 (160) (160)),
+ (15, (IsNullNode (13)), VoidStamp),
+ (16, (BytecodeExceptionNode ([]) ((Some 20)) (24)), ObjectStamp ''Ljava/lang/NullPointerException;'' True True False),
+ (17, (BeginNode (27)), VoidStamp),
+ (18, (BeginNode (16)), VoidStamp),
+ (19, (IfNode (15) (18) (17)), VoidStamp),
+ (20, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (22, (EndNode), VoidStamp),
+ (23, (MergeNode ([22, 24]) ((Some 30)) (31)), VoidStamp),
+ (24, (EndNode), VoidStamp),
+ (25, (ValuePhiNode (25) ([5, 16, 30]) (23)), ObjectStamp '''' False False False),
+ (26, (PiNode (13) ((Some 17))), ObjectStamp ''LSimpleObject;'' True True False),
+ (27, (StoreFieldNode (''SimpleObject.intField'') (14) ((Some 28)) ((Some 26)) (29)), VoidStamp),
+ (28, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (29, (ReturnNode (None) (None)), VoidStamp),
+ (30, (FrameState ([]) (None) ((Some [25])) (None)), IllegalStamp),
+ (31, (UnwindNode (25)), VoidStamp)
+]))
+(''SimpleObject.<init>()V'' := irgraph [
+ (0, (StartNode ((Some 2)) (4)), VoidStamp),
+ (1, (ParameterNode (0)), ObjectStamp ''LSimpleObject;'' True True False),
+ (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (3, (ConstantNode (IntVal 32 (42))), IntegerStamp 32 (42) (42)),
+ (4, (StoreFieldNode (''SimpleObject.intField'') (3) ((Some 5)) ((Some 1)) (7)), VoidStamp),
+ (5, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (6, (ConstantNode (ObjRef None)), ObjectStamp '''' False False True),
+ (7, (StoreFieldNode (''SimpleObject.objField'') (6) ((Some 8)) ((Some 1)) (9)), VoidStamp),
+ (8, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
+ (9, (ReturnNode (None) (None)), VoidStamp)
+])
+"
+
+definition simple_obj_params where "simple_obj_params = new_map []"
+definition simple_obj_main where "simple_obj_main = ''Combinations.combinations(II)I''"
+
+values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 32 10, IntVal 32 6] \<leadsto> (n, m)}"
+
+values "{m | m . native_combs \<turnstile> ([(native_combs_main, 0, native_combs_params)], new_heap) \<rightarrow>*7* m}"
+
+
 definition exceptional_prog :: "string \<Rightarrow> IRGraph " where
 "exceptional_prog = (((\<lambda>x . empty_graph)
 (''Exceptional.main(I)V'' :=

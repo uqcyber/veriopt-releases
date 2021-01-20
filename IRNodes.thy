@@ -53,6 +53,7 @@ datatype (discs_sels) IRNode =
   | IntegerLessThanNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | InvokeNode (ir_nid: ID) (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | InvokeWithExceptionNode (ir_nid: ID) (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") (ir_exceptionEdge: "SUCC") 
+  | IsNullNode (ir_value: "INPUT") 
   | KillingBeginNode (ir_next: "SUCC") 
   | LoadFieldNode (ir_field: string) (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | LogicNegationNode (ir_value: "INPUT_COND") 
@@ -68,6 +69,7 @@ datatype (discs_sels) IRNode =
   | NotNode (ir_value: "INPUT") 
   | OrNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | ParameterNode (ir_index: nat) 
+  | PiNode (ir_object: "INPUT") (ir_guard_opt: "INPUT_GUARD option") 
   | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
   | SignedDivNode (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -129,6 +131,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (InvokeNode nid0 callTarget classInit stateDuring stateAfter next) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
   inputs_of_InvokeWithExceptionNode:
   "inputs_of (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
+  inputs_of_IsNullNode:
+  "inputs_of (IsNullNode value) = [value]" |
   inputs_of_KillingBeginNode:
   "inputs_of (KillingBeginNode next) = []" |
   inputs_of_LoadFieldNode:
@@ -159,6 +163,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (OrNode x y) = [x, y]" |
   inputs_of_ParameterNode:
   "inputs_of (ParameterNode index) = []" |
+  inputs_of_PiNode:
+  "inputs_of (PiNode object guard) = [object] @ (opt_to_list guard)" |
   inputs_of_ReturnNode:
   "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
   inputs_of_ShortCircuitOrNode:
@@ -218,6 +224,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (InvokeNode nid0 callTarget classInit stateDuring stateAfter next) = [next]" |
   successors_of_InvokeWithExceptionNode:
   "successors_of (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) = [next, exceptionEdge]" |
+  successors_of_IsNullNode:
+  "successors_of (IsNullNode value) = []" |
   successors_of_KillingBeginNode:
   "successors_of (KillingBeginNode next) = [next]" |
   successors_of_LoadFieldNode:
@@ -248,6 +256,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (OrNode x y) = []" |
   successors_of_ParameterNode:
   "successors_of (ParameterNode index) = []" |
+  successors_of_PiNode:
+  "successors_of (PiNode object guard) = []" |
   successors_of_ReturnNode:
   "successors_of (ReturnNode result memoryMap) = []" |
   successors_of_ShortCircuitOrNode:

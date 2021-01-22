@@ -11,6 +11,7 @@ definition pos_infinity :: "float" where
 definition neg_infinity :: "float" where
   "neg_infinity = -pos_infinity"
 
+text_raw \<open>\Snip{Stamp}%\<close>
 datatype Stamp = 
   VoidStamp
   | IntegerStamp (stp_bits: nat) (stpi_lower: int) (stpi_upper: int)
@@ -21,6 +22,7 @@ datatype Stamp =
   | ObjectStamp (stp_type: string) (stp_exactType: bool) (stp_nonNull: bool) (stp_alwaysNull: bool)
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
   | IllegalStamp
+text_raw \<open>\EndSnip\<close>
 
 fun unrestricted_stamp :: "Stamp \<Rightarrow> Stamp" where
   "unrestricted_stamp VoidStamp = VoidStamp" |

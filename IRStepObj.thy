@@ -39,27 +39,22 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
 
   SequentialNode:
   "\<lbrakk>g = p_method s p;
-    node = (kind g nid);
-    is_sequential_node(node);
+    is_sequential_node (kind g nid);
     next = (succ g nid)!0\<rbrakk> 
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
 
   IfNode:
   "\<lbrakk>g = p_method s p;
     kind g nid = (IfNode cond true false);
-    condk = (kind g cond);
-    g m \<turnstile> cond condk \<mapsto> val;
+    g m \<turnstile> cond (kind g cond) \<mapsto> val;
     next = (if val_to_bool val then true else false)\<rbrakk>
     \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |  
 
   EndNodes:
   "\<lbrakk>g = p_method s p;
-    ek = (kind g nid);
-    isAbstractEndNodeType ek;
-    merge_or_none = any_usage g nid;
-    merge = the merge_or_none;
-    mk = (kind g merge);
-    isAbstractMergeNodeType mk;
+    isAbstractEndNodeType (kind g nid);
+    merge = the (any_usage g nid);
+    isAbstractMergeNodeType (kind g merge);
 
     i = input_index g merge nid;
     phis = (phi_list g merge);
@@ -116,6 +111,7 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
 text_raw \<open>\Snip{StepSemantics}%\<close>
 text \<open>
 \begin{center}
+@{thm[mode=Rule] step.SequentialNode [no_vars]}\\[8px]
 @{thm[mode=Rule] step.IfNode [no_vars]}\\[8px]
 @{thm[mode=Rule] step.EndNodes [no_vars]}\\[8px]
 @{thm[mode=Rule] step.RefNode [no_vars]}\\[8px]
@@ -131,12 +127,13 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
   ("_\<turnstile>_\<longrightarrow>_" 55) 
   for p where
 
+  Lift:
   "\<lbrakk>(p, s) \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((s,nid',m')#xs, h')" |
 
   InvokeNodeStep:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (InvokeNode _ callTarget classInit stateDuring stateAfter next);
+    kind g nid = (InvokeNode _ callTarget _ _ _ next);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
     g m arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
@@ -144,7 +141,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
   InvokeWithExceptionNode:
   "\<lbrakk>g = p_method s p;
-    kind g nid = (InvokeWithExceptionNode _ callTarget classInit stateDuring stateAfter next exceptionEdge);
+    kind g nid = (InvokeWithExceptionNode _ callTarget _ _ _ next _);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
     g m arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
@@ -153,8 +150,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
   ReturnNode:
   "\<lbrakk>g = p_method s p;
     kind g nid = (ReturnNode (Some expr) _);
-    ek = (kind g expr);
-    g m \<turnstile> expr ek \<mapsto> v;
+    g m \<turnstile> expr (kind g expr) \<mapsto> v;
     c_m' = m_set c_nid v c_m;
     c_nid' = (succ (p_method c_s p) c_nid)!0\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
@@ -170,11 +166,10 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     "\<lbrakk>g = p_method s p;
       kind g nid = (UnwindNode exception);
 
-      ek = (kind g exception);
-      g m \<turnstile> exception ek \<mapsto> e;
+      g m \<turnstile> exception (kind g exception) \<mapsto> e;
 
       c_g = (p_method c_s p);      
-      kind c_g c_nid = (InvokeWithExceptionNode _ callTarget classInit stateDuring stateAfter next exceptionEdge);
+      kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exceptionEdge);
 
       c_nid' = exceptionEdge;
       c_m' = set_state c_m Exception;
@@ -184,11 +179,11 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 text_raw \<open>\Snip{TopStepSemantics}%\<close>
 text \<open>
 \begin{center}
+@{thm[mode=Rule] step_top.Lift [no_vars]}\\[8px]
 @{thm[mode=Rule] step_top.InvokeNodeStep [no_vars]}\\[8px]
-@{thm[mode=Rule] step.EndNodes [no_vars]}\\[8px]
-@{thm[mode=Rule] step.RefNode [no_vars]}\\[8px]
-@{thm[mode=Rule] step.LoadFieldNode [no_vars]}\\[8px]
-@{thm[mode=Rule] step.StoreFieldNode [no_vars]}
+@{thm[mode=Rule] step_top.InvokeWithExceptionNode [no_vars]}\\[8px]
+@{thm[mode=Rule] step_top.ReturnNode [no_vars]}\\[8px]
+@{thm[mode=Rule] step_top.UnwindNode [no_vars]}
 \end{center}
 \<close>
 text_raw \<open>\EndSnip\<close>

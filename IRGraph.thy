@@ -2,7 +2,7 @@ section \<open>GraalVM Graph Representation\<close>
 
 theory IRGraph
   imports 
-    IRNodes
+    IRNodeHierarchy
     Stamp
     "HOL-Library.FSet"
     "HOL.Relation"
@@ -25,19 +25,12 @@ qed
 
 setup_lifting type_definition_IRGraph
 
+text_raw \<open>\Snip{lifted_helpers}%\<close>
 fun has_no_node :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID \<Rightarrow> bool" where
   "has_no_node g nid = (\<exists>s . g nid = (Some (NoNode, s)))"
 
 definition node_ids :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID set" where
   "node_ids g = {nid \<in> dom g . \<not>(has_no_node g nid)}"
-
-lemma node_ids_imp:
-  "\<nexists>nid . nid \<in> (node_ids g) \<and> has_no_node g nid"
-  by (auto simp: node_ids_def)
-
-lemma node_ids_defs:
-  "node_ids g = dom g - {nid \<in> dom g . has_no_node g nid}"
-  using node_ids_def by auto
 
 lift_definition ids :: "IRGraph \<Rightarrow> ID set"
   is node_ids .
@@ -57,6 +50,15 @@ definition node_stamp :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Right
 
 lift_definition stamp :: "IRGraph \<Rightarrow> ID \<Rightarrow> Stamp"
   is node_stamp .
+text_raw \<open>\EndSnip\<close>
+
+lemma node_ids_imp:
+  "\<nexists>nid . nid \<in> (node_ids g) \<and> has_no_node g nid"
+  by (auto simp: node_ids_def)
+
+lemma node_ids_defs:
+  "node_ids g = dom g - {nid \<in> dom g . has_no_node g nid}"
+  using node_ids_def by auto
 
 definition map_upd :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp))" where
   "map_upd nid k g = g(nid \<mapsto> k)"
@@ -115,9 +117,15 @@ fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where
 fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "predecessors g nid = sorted_list_of_set {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
 
+fun nodes_of :: "IRGraph \<Rightarrow> (IRNode \<Rightarrow> bool) \<Rightarrow> ID set" where
+  "nodes_of g sel = {nid \<in> ids g . sel (kind g nid)}"
+
+fun edge :: "(IRNode \<Rightarrow> 'a) \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> 'a" where
+  "edge sel nid g = sel (kind g nid)"
+text_raw \<open>\EndSnip\<close>
+
 fun is_empty :: "IRGraph \<Rightarrow> bool" where
   "is_empty g = (ids g = {})"
-text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{wff_graph}%\<close>
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
@@ -126,7 +134,12 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
     (\<forall> n. n \<in> ids g \<longrightarrow> 
       set (inp g n) \<subseteq> ids g \<and>
       set (succ g n) \<subseteq> ids g \<and>
-      kind g n \<noteq> NoNode)
+      kind g n \<noteq> NoNode) \<and>
+    (\<forall> n. n \<in> (nodes_of g isPhiNodeType) \<longrightarrow>
+      length (edge ir_values n g)
+       = length (edge ir_ends (edge ir_merge n g) g)) \<and>
+    (\<forall> n. n \<in> (nodes_of g is_IfNode) \<longrightarrow>
+      stamp g (edge ir_condition n g) = IntegerStamp 1 0 1)
   )"
 text_raw \<open>\EndSnip\<close>
 

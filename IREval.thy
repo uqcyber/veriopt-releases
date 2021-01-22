@@ -194,11 +194,11 @@ inductive
 (* Access the value returned by the most recent call *)
   InvokeNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> _ (InvokeNode nid callTarget classInit stateDuring stateAfter next) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> _ (InvokeNode nid _ _ _ _ _) \<mapsto> val" |
 
   InvokeWithExceptionNodeEval:
   "\<lbrakk>val = m_val m nid\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> _ (InvokeWithExceptionNode nid callTarget classInit stateDuring stateAfter next exceptionEdge) \<mapsto> val" |
+    \<Longrightarrow> g m \<turnstile> _ (InvokeWithExceptionNode nid _ _ _ _ _ _) \<mapsto> val" |
 
   NewInstanceNode:
   "g m \<turnstile> _ (NewInstanceNode nid class stateBefore next) \<mapsto> m_val m nid" |
@@ -228,6 +228,7 @@ text \<open>
 @{thm[mode=Rule] eval.AddNode [no_vars]}\\[8px]
 @{thm[mode=Rule] eval.ShortCircuitOrNode [no_vars]}\\[8px]
 @{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.LoadFieldNode [no_vars]}\\[8px]
 @{thm[mode=Rule] eval.RefNode [no_vars]}
 \end{center}
 \<close>

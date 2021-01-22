@@ -5,16 +5,13 @@ theory IRStepObj
     IREval
 begin
 
-type_synonym FieldName = "string"
-
 (* We use the H[f][p] heap representation.  See \cite{heap-reps-2011}. *)
 (* TODO: Record volatile fields?  Include class name of field? *)
+text_raw \<open>\Snip{heapdef}%\<close>
+type_synonym FieldName = "string"
 type_synonym Heap = "FieldName \<Rightarrow> objref \<Rightarrow> Value"
 type_synonym Free = "nat"
 type_synonym DynamicHeap = "Heap \<times> Free"
-
-definition new_heap :: "DynamicHeap" where
-  "new_heap =  ((\<lambda>f. \<lambda>p. UndefVal), 0)"
 
 fun h_load_field :: "FieldName \<Rightarrow> objref \<Rightarrow> DynamicHeap \<Rightarrow> Value" where
   "h_load_field f obj (h, n) = h f obj"
@@ -24,35 +21,36 @@ fun h_store_field :: "FieldName \<Rightarrow> objref \<Rightarrow> Value \<Right
 
 fun h_new_inst :: "DynamicHeap \<Rightarrow> DynamicHeap \<times> Value" where
   "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some (n+1))))"
+text_raw \<open>\EndSnip\<close>
 
+definition new_heap :: "DynamicHeap" where
+  "new_heap =  ((\<lambda>f. \<lambda>p. UndefVal), 0)"
 
+text_raw \<open>\Snip{programdef}%\<close>
 type_synonym Signature = "string"
 type_synonym Program = "Signature \<Rightarrow> IRGraph"
-
+text_raw \<open>\EndSnip\<close>
 
 fun p_method :: "Signature \<Rightarrow> Program \<Rightarrow> IRGraph" where
   "p_method m p = p m"
 
-inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> bool"
+inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>_" 55)
   where
 
   SequentialNode:
-  "\<lbrakk>g = p_method s p;
-    is_sequential_node (kind g nid);
+  "\<lbrakk>is_sequential_node (kind g nid);
     next = (succ g nid)!0\<rbrakk> 
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
 
   IfNode:
-  "\<lbrakk>g = p_method s p;
-    kind g nid = (IfNode cond true false);
+  "\<lbrakk>kind g nid = (IfNode cond true false);
     g m \<turnstile> cond (kind g cond) \<mapsto> val;
     next = (if val_to_bool val then true else false)\<rbrakk>
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |  
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |  
 
   EndNodes:
-  "\<lbrakk>g = p_method s p;
-    isAbstractEndNodeType (kind g nid);
+  "\<lbrakk>isAbstractEndNodeType (kind g nid);
     merge = the (any_usage g nid);
     isAbstractMergeNodeType (kind g merge);
 
@@ -62,51 +60,45 @@ inductive step :: "(Program \<times> Signature) \<Rightarrow> (ID \<times> MapSt
     g m inputs \<longmapsto> vs;
 
     m' = set_phis phis vs m\<rbrakk> 
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
 
   RefNode:
-    "\<lbrakk>g = p_method s p;
-      kind g nid = (RefNode nid')\<rbrakk>
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
+    "\<lbrakk>kind g nid = (RefNode nid')\<rbrakk>
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
   NewInstanceNode:
-    "\<lbrakk>g = p_method s p;
-      kind g nid = (NewInstanceNode nid f obj nxt);
+    "\<lbrakk>kind g nid = (NewInstanceNode nid f obj nxt);
       (h', ref) = h_new_inst h;
       m' = m_set nid ref m\<rbrakk> 
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
 
   LoadFieldNode:
-    "\<lbrakk>g = p_method s p;
-      kind g nid = (LoadFieldNode nid f (Some obj) nxt);
+    "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nxt);
       g m \<turnstile> obj (kind g obj) \<mapsto> ObjRef ref;
       h_load_field f ref h = v;
       m' = m_set nid v m\<rbrakk> 
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   StaticLoadFieldNode:
-    "\<lbrakk>g = p_method s p;
-      kind g nid = (LoadFieldNode nid f None nxt);
+    "\<lbrakk>kind g nid = (LoadFieldNode nid f None nxt);
       h_load_field f None h = v;
       m' = m_set nid v m\<rbrakk> 
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   StoreFieldNode:
-    "\<lbrakk>g = p_method s p;
-      kind g nid = (StoreFieldNode nid f rhs _ (Some obj) nxt);
+    "\<lbrakk>kind g nid = (StoreFieldNode nid f rhs _ (Some obj) nxt);
       g m \<turnstile> rhs (kind g rhs) \<mapsto> val;
       g m \<turnstile> obj (kind g obj) \<mapsto> ObjRef ref;
       h' = h_store_field f ref val h;
       m' = m_set nid val m\<rbrakk> 
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
 
   StaticStoreFieldNode:
-    "\<lbrakk>g = p_method s p;
-      kind g nid = (StoreFieldNode nid f rhs _ None nxt);
+    "\<lbrakk>kind g nid = (StoreFieldNode nid f rhs _ None nxt);
       g m \<turnstile> rhs (kind g rhs) \<mapsto> val;
       h' = h_store_field f None val h;
       m' = m_set nid val m\<rbrakk> 
-    \<Longrightarrow> (p, s) \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')"
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')"
 
 text_raw \<open>\Snip{StepSemantics}%\<close>
 text \<open>
@@ -121,14 +113,15 @@ text \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
-code_pred (modes: i * i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
+code_pred (modes: i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
 inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap \<Rightarrow> bool"
   ("_\<turnstile>_\<longrightarrow>_" 55) 
   for p where
 
   Lift:
-  "\<lbrakk>(p, s) \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
+  "\<lbrakk>g = p_method s p;
+    g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((s,nid',m')#xs, h')" |
 
   InvokeNodeStep:

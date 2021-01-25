@@ -103,12 +103,13 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicH
 text_raw \<open>\Snip{StepSemantics}%\<close>
 text \<open>
 \begin{center}
-@{thm[mode=Rule] step.SequentialNode [no_vars]}\\[8px]
-@{thm[mode=Rule] step.IfNode [no_vars]}\\[8px]
-@{thm[mode=Rule] step.EndNodes [no_vars]}\\[8px]
-@{thm[mode=Rule] step.RefNode [no_vars]}\\[8px]
-@{thm[mode=Rule] step.LoadFieldNode [no_vars]}\\[8px]
-@{thm[mode=Rule] step.StoreFieldNode [no_vars]}
+@{thm[mode=Rule] step.SequentialNode [no_vars]}\induct{step:seq}\\[8px]
+@{thm[mode=Rule] step.IfNode [no_vars]}\induct{step:if}\\[8px]
+@{thm[mode=Rule] step.EndNodes [no_vars]}\induct{step:end}\\[8px]
+@{thm[mode=Rule] step.RefNode [no_vars]}\induct{step:ref}\\[8px]
+@{thm[mode=Rule] step.NewInstanceNode [no_vars]}\induct{step:newinst}\\[8px]
+@{thm[mode=Rule] step.LoadFieldNode [no_vars]}\induct{step:load}\\[8px]
+@{thm[mode=Rule] step.StoreFieldNode [no_vars]}\induct{step:store}
 \end{center}
 \<close>
 text_raw \<open>\EndSnip\<close>
@@ -172,11 +173,11 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 text_raw \<open>\Snip{TopStepSemantics}%\<close>
 text \<open>
 \begin{center}
-@{thm[mode=Rule] step_top.Lift [no_vars]}\\[8px]
-@{thm[mode=Rule] step_top.InvokeNodeStep [no_vars]}\\[8px]
-@{thm[mode=Rule] step_top.InvokeWithExceptionNode [no_vars]}\\[8px]
-@{thm[mode=Rule] step_top.ReturnNode [no_vars]}\\[8px]
-@{thm[mode=Rule] step_top.UnwindNode [no_vars]}
+@{thm[mode=Rule] step_top.Lift [no_vars]}\induct{top:lift}\\[8px]
+@{thm[mode=Rule] step_top.InvokeNodeStep [no_vars]}\induct{top:invoke}\\[8px]
+@{thm[mode=Rule] step_top.InvokeWithExceptionNode [no_vars]}\induct{top:invoke_except}\\[8px]
+@{thm[mode=Rule] step_top.ReturnNode [no_vars]}\induct{top:return}\\[8px]
+@{thm[mode=Rule] step_top.UnwindNode [no_vars]}\induct{top:unwind}
 \end{center}
 \<close>
 text_raw \<open>\EndSnip\<close>

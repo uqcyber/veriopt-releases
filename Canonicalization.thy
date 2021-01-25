@@ -125,11 +125,11 @@ inductive stutter:: "Program \<Rightarrow> Signature \<Rightarrow> MapState \<Ri
   for g s m where
 
   Step:
-  "\<lbrakk>(g,s) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)\<rbrakk>
+  "\<lbrakk>(g s) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)\<rbrakk>
    \<Longrightarrow> g s m \<turnstile> nid \<leadsto> nid'" |
 
   Transitive:
-  "\<lbrakk>(g,s) \<turnstile> (nid,m,heap) \<rightarrow> (nid'',m,heap);
+  "\<lbrakk>(g s) \<turnstile> (nid,m,heap) \<rightarrow> (nid'',m,heap);
     g s m \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
    \<Longrightarrow> g s m \<turnstile> nid \<leadsto> nid'"
 
@@ -170,12 +170,12 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using True eval.ConstantNode gif fresh
       using stay_same cond_exists
       using val sorry
-    have if_step: "(gif_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
+    have if_step: "(gif_prog sig) \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
     proof -
       show ?thesis using step.IfNode if_kind if_cv 
         by (simp add: gif_lookup)
     qed
-    have create_step: "(gcreate_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
+    have create_step: "(gcreate_prog sig) \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
     proof -
       have create_kind: "kind gcreate nid = (create_if g cond tb fb)"
         using gcreate add_node_lookup
@@ -191,7 +191,7 @@ next
   case not_const: False
   obtain nid' where "nid' = (if val_to_bool cv then tb else fb)"
     by blast
-  have nid_eq: "((gif_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)) \<and> ((gcreate_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
+  have nid_eq: "((gif_prog sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)) \<and> ((gcreate_prog sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
   proof -
     have nid': "nid' = (if val_to_bool cv then tb else fb)"
       by (simp add: \<open>nid' = (if val_to_bool cv then tb else fb)\<close>)
@@ -207,13 +207,13 @@ next
       using indep gif cv
       using \<open>nid \<noteq> cond\<close>
       using fresh sorry
-    then have eval_gif: "((gif_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
+    then have eval_gif: "((gif_prog sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
       using step.IfNode gif_kind nid' cv2 
       using gif_lookup by auto
     have gcreate_kind: "kind gcreate nid = (create_if g cond tb fb)"
       using gcreate add_node_lookup
       by blast
-    have eval_gcreate: "(gcreate_prog, sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)"
+    have eval_gcreate: "(gcreate_prog sig) \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)"
     proof (cases "tb = fb")
       case True
       have "create_if g cond tb fb = RefNode tb"
@@ -230,7 +230,7 @@ next
         using IfNode \<open>cv = cv2\<close> cv2 gcreate_lookup gif_kind nid' by auto
     qed
     show ?thesis
-      using eval_gcreate eval_gif by blast
+      using eval_gcreate eval_gif Step by blast
   qed
   show ?thesis using nid_eq Step by blast
 qed

@@ -228,7 +228,7 @@ next
         using IfNode \<open>cv = cv2\<close> cv2 gif_kind nid' by auto
     qed
     show ?thesis
-      using eval_gcreate eval_gif by blast
+      using eval_gcreate eval_gif Step by blast
   qed
   show ?thesis using nid_eq Step by blast
 qed

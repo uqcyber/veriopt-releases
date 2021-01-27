@@ -185,7 +185,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
   inputs_of_XorNode:
   "inputs_of (XorNode x y) = [x, y]" |
-  inputs_of_NoNode: "inputs_of (NoNode) = []"|
+  inputs_of_NoNode: "inputs_of (NoNode) = []" |
 (* nodeout *)
 
   inputs_of_RefNode: "inputs_of (RefNode ref) = [ref]"
@@ -278,7 +278,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (ValueProxyNode value loopExit) = []" |
   successors_of_XorNode:
   "successors_of (XorNode x y) = []" |
-  successors_of_NoNode: "successors_of (NoNode) = []"|
+  successors_of_NoNode: "successors_of (NoNode) = []" |
 (* nodeout *)
 
   successors_of_RefNode: "successors_of (RefNode ref) = []"

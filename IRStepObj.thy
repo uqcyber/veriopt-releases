@@ -20,7 +20,7 @@ fun h_store_field :: "FieldName \<Rightarrow> objref \<Rightarrow> Value \<Right
   "h_store_field f obj v (h, n) = (h(f := ((h f)(obj := v))), n)"
 
 fun h_new_inst :: "DynamicHeap \<Rightarrow> DynamicHeap \<times> Value" where
-  "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some (n+1))))"
+  "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some n)))"
 text_raw \<open>\EndSnip\<close>
 
 definition new_heap :: "DynamicHeap" where

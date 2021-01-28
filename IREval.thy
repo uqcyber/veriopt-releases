@@ -72,7 +72,7 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
 
-text_raw \<open>\Snip{ExpressionSemantics}%\<close>
+text_raw \<open>\Snip{AnyUsage}%\<close>
 fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID" where
   "any_usage g nid = (SOME n. n \<in> (usages g nid))"
 text_raw \<open>\EndSnip\<close>

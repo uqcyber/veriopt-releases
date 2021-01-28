@@ -159,6 +159,7 @@ proof -
         using eval.AddNode xv yv by simp
     next
       case ynotconst: False
+      (* bad proof *)
       let ?x = "ConstantNode (IntVal b xv)"
       let ?a = "case kind g y of ConstantNode (IntVal b yv) \<Rightarrow> ConstantNode (IntVal b (xv + yv))
      | ConstantNode _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
@@ -166,23 +167,20 @@ proof -
       let ?b = "case kind g y of
        ConstantNode (IntVal b yv) \<Rightarrow> if yv = 0 then RefNode x else AddNode x y
        | ConstantNode _ \<Rightarrow> AddNode x y | _ \<Rightarrow> AddNode x y"
-      let ?c = "case kind g y of
-          ConstantNode (IntVal b yv) \<Rightarrow> if yv = 0 then RefNode x else AddNode x y
-          | ConstantNode _ \<Rightarrow> AddNode x y | _ \<Rightarrow> AddNode x y"
-      have bc_eq: "?b = ?c"
-        by blast
       have b_def: "?b = AddNode x y"
-        sorry
-      
-      have "create_add g x y = ?b \<or> create_add g x y = ?c"
+        using ynotconst comeon5
+        by (smt ConstantNodeE IRNode.case_eq_if IRNode.collapse(7) yv)
+      have "create_add g x y = ?b"
         unfolding create_add.simps
         using xnotconst ynotconst
       proof -
-        let ?exp = "(case kind g x of ?x \<Rightarrow> ?a | ConstantNode _ \<Rightarrow> ?b | _ \<Rightarrow> ?c)"
-        show "?exp = ?b \<or> ?exp = ?c" apply auto
-          using comeon5 xnotconst sorry
+        let ?exp = "(case kind g x of ?x \<Rightarrow> ?a | ConstantNode _ \<Rightarrow> ?b | _ \<Rightarrow> ?b)"
+        show "?exp = ?b"
+          using comeon5 xnotconst
+          sorry
 
       qed
+      (* end bad *)
       then have "create_add g x y = AddNode x y"
         by (simp add: b_def)
       then show ?thesis unfolding create_add.simps 

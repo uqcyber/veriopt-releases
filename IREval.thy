@@ -93,8 +93,11 @@ next
   case False
   let ?u = "hd (sorted_list_of_set (usages g nid))"
   have "?u \<in> usages g nid"
+    unfolding sorted_list_of_set_def hd_def
     using False sorry
-  then show ?thesis sorry
+  then show ?thesis
+    unfolding any_usage.simps any_usage_cg.simps
+    sorry
 qed
   
     

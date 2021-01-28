@@ -5,6 +5,8 @@ theory ExecExamples
     IRStepObj
 begin
 
+declare [[ML_source_trace]]
+
 (* NB: The starting state is duplicated causing the program to be executed twice
        The reason for this is that the top step of ReturnNode empties
        the state list to signal completion, this means we can't access the state
@@ -190,9 +192,9 @@ values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 7] \<leadsto> (n,
 
 
 
-definition combs :: "string \<Rightarrow> IRGraph " where
-"combs = ((\<lambda>x . start_end_graph)
-(''Combinations.combinations(I, I)I'' := irgraph [
+definition combs :: Program where
+"combs = Map.empty
+(''Combinations.combinations(I, I)I'' \<mapsto> irgraph [
  (0, (StartNode ((Some 3)) (5)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
@@ -210,8 +212,8 @@ definition combs :: "string \<Rightarrow> IRGraph " where
  (14, (MulNode (8) (12)), IntegerStamp 32 (-2147483648) (2147483647)),
  (15, (SignedDivNode (5) (14) (None) (None) (16)), IntegerStamp 32 (-2147483648) (2147483647)),
  (16, (ReturnNode ((Some 15)) (None)), VoidStamp)
-]))
-(''Combinations.fact(I)I'' := irgraph [
+])
+(''Combinations.fact(I)I'' \<mapsto> irgraph [
  (0, (StartNode ((Some 2)) (5)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
@@ -247,9 +249,9 @@ values "{x |x h l. combs \<turnstile> ([(combs_main, 0, combs_params), (combs_ma
 values "{m_values (prod.snd (prod.snd (x!0))) 12 |x h l. combs \<turnstile> ([(combs_main, 0, combs_params), (combs_main, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
 
 
-definition native_combs :: "string \<Rightarrow> IRGraph " where
-"native_combs = ((\<lambda>x . start_end_graph)
-(''Combinations.combinations(II)I'' := irgraph [
+definition native_combs :: Program where
+"native_combs = Map.empty
+(''Combinations.combinations(II)I'' \<mapsto> irgraph [
  (0, (StartNode ((Some 3)) (8)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
@@ -291,8 +293,8 @@ definition native_combs :: "string \<Rightarrow> IRGraph " where
  (40, (ReturnNode ((Some 39)) (None)), VoidStamp),
  (41, (FrameState ([]) (None) ((Some [17])) (None)), IllegalStamp),
  (42, (UnwindNode (17)), VoidStamp)
-]))
-(''Combinations.fact(I)I'' := irgraph [
+])
+(''Combinations.fact(I)I'' \<mapsto> irgraph [
  (0, (StartNode ((Some 2)) (5)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
@@ -325,9 +327,9 @@ values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 32 10, Int
 values "{m | m . native_combs \<turnstile> ([(native_combs_main, 0, native_combs_params)], new_heap) \<rightarrow>*7* m}"
 
 
-definition simple_obj :: "string \<Rightarrow> IRGraph " where
-"simple_obj = (((\<lambda>x . start_end_graph)
-(''SimpleObject.objExample()I'' := irgraph [
+definition simple_obj :: Program where
+"simple_obj = Map.empty
+(''SimpleObject.objExample()I'' \<mapsto> irgraph [
  (0, (StartNode ((Some 1)) (2)), VoidStamp),
  (1, (FrameState ([]) (None) (None) (None)), IllegalStamp),
  (2, (NewInstanceNode (2) (''SimpleObject'') (None) (7)), ObjectStamp ''LSimpleObject;'' True True False),
@@ -360,8 +362,8 @@ definition simple_obj :: "string \<Rightarrow> IRGraph " where
  (31, (ReturnNode ((Some 30)) (None)), VoidStamp),
  (32, (FrameState ([]) (None) ((Some [16])) (None)), IllegalStamp),
  (33, (UnwindNode (16)), VoidStamp)
-]))
-(''SimpleObject.assignFields()V'' := irgraph [
+])
+(''SimpleObject.assignFields()V'' \<mapsto> irgraph [
  (0, (StartNode ((Some 2)) (3)), VoidStamp),
  (1, (ParameterNode (0)), ObjectStamp ''LSimpleObject;'' True True False),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
@@ -392,8 +394,8 @@ definition simple_obj :: "string \<Rightarrow> IRGraph " where
  (29, (ReturnNode (None) (None)), VoidStamp),
  (30, (FrameState ([]) (None) ((Some [25])) (None)), IllegalStamp),
  (31, (UnwindNode (25)), VoidStamp)
-]))
-(''SimpleObject.<init>()V'' := irgraph [
+])
+(''SimpleObject.<init>()V'' \<mapsto> irgraph [
  (0, (StartNode ((Some 2)) (4)), VoidStamp),
  (1, (ParameterNode (0)), ObjectStamp ''LSimpleObject;'' True True False),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
@@ -416,9 +418,9 @@ values "{m_val m 0 |n m l. simple_obj | simple_obj_main | [] \<leadsto> (n, m)}"
 values "{m | m . simple_obj \<turnstile> ([(simple_obj_main, 0, empty_params)], new_heap) \<rightarrow>*21* m}"
 
 
-definition multiple_obj :: "string \<Rightarrow> IRGraph " where
-"multiple_obj = ((\<lambda>x . start_end_graph)
-(''MultipleObject.<init>(I)V'' := irgraph [
+definition multiple_obj :: Program where
+"multiple_obj = Map.empty
+(''MultipleObject.<init>(I)V'' \<mapsto> irgraph [
  (0, (StartNode ((Some 3)) (4)), VoidStamp),
  (1, (ParameterNode (0)), ObjectStamp ''LMultipleObject;'' True True False),
  (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
@@ -426,8 +428,8 @@ definition multiple_obj :: "string \<Rightarrow> IRGraph " where
  (4, (StoreFieldNode (4) (''MultipleObject.field'') (2) ((Some 5)) ((Some 1)) (6)), VoidStamp),
  (5, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
  (6, (ReturnNode (None) (None)), VoidStamp)
-]))
-(''MultipleObject.objExample()I'' := irgraph [
+])
+(''MultipleObject.objExample()I'' \<mapsto> irgraph [
  (0, (StartNode ((Some 1)) (2)), VoidStamp),
  (1, (FrameState ([]) (None) (None) (None)), IllegalStamp),
  (2, (NewInstanceNode (2) (''MultipleObject'') (None) (8)), ObjectStamp ''LMultipleObject;'' True True False),
@@ -496,9 +498,9 @@ definition multiple_obj_main where "multiple_obj_main = ''MultipleObject.objExam
 values "{m_val m 0 |n m l. multiple_obj | multiple_obj_main | [] \<leadsto> (n, m)}"
 
 
-definition pass_the_parcel :: "string \<Rightarrow> IRGraph " where
-"pass_the_parcel = (((((\<lambda>x . start_end_graph)
-(''Parcel.fromContents(I)LParcel;'' := irgraph [
+definition pass_the_parcel :: Program where
+"pass_the_parcel = Map.empty
+(''Parcel.fromContents(I)LParcel;'' \<mapsto> irgraph [
  (0, (StartNode ((Some 2)) (3)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
@@ -514,8 +516,8 @@ definition pass_the_parcel :: "string \<Rightarrow> IRGraph " where
  (13, (FrameState ([]) (None) ((Some [1, 3])) (None)), IllegalStamp),
  (14, (ReturnNode ((Some 3)) (None)), VoidStamp),
  (15, (UnwindNode (6)), VoidStamp)
-]))
-(''Parcel.<init>(LParcel;)V'' := irgraph [
+])
+(''Parcel.<init>(LParcel;)V'' \<mapsto> irgraph [
  (0, (StartNode ((Some 3)) (5)), VoidStamp),
  (1, (ParameterNode (0)), ObjectStamp ''LParcel;'' True True False),
  (2, (ParameterNode (1)), ObjectStamp ''LParcel;'' True False False),
@@ -526,8 +528,8 @@ definition pass_the_parcel :: "string \<Rightarrow> IRGraph " where
  (7, (StoreFieldNode (7) (''Parcel.wrapping'') (2) ((Some 8)) ((Some 1)) (9)), VoidStamp),
  (8, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
  (9, (ReturnNode (None) (None)), VoidStamp)
-]))
-(''PassTheParcel.test(II)I'' := irgraph [
+])
+(''PassTheParcel.test(II)I'' \<mapsto> irgraph [
  (0, (StartNode ((Some 3)) (8)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
@@ -560,8 +562,8 @@ definition pass_the_parcel :: "string \<Rightarrow> IRGraph " where
  (31, (ReturnNode ((Some 30)) (None)), VoidStamp),
  (32, (FrameState ([]) (None) ((Some [17])) (None)), IllegalStamp),
  (33, (UnwindNode (17)), VoidStamp)
-]))
-(''PassTheParcel.unwrapAll(LParcel;)LParcel;'' := irgraph [
+])
+(''PassTheParcel.unwrapAll(LParcel;)LParcel;'' \<mapsto> irgraph [
  (0, (StartNode ((Some 2)) (4)), VoidStamp),
  (1, (ParameterNode (0)), ObjectStamp ''LParcel;'' True False False),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
@@ -605,8 +607,8 @@ definition pass_the_parcel :: "string \<Rightarrow> IRGraph " where
  (45, (ReturnNode ((Some 26)) (None)), VoidStamp),
  (46, (FrameState ([]) (None) ((Some [41])) (None)), IllegalStamp),
  (47, (UnwindNode (41)), VoidStamp)
-]))
-(''PassTheParcel.wrap(II)LParcel;'' := irgraph [
+])
+(''PassTheParcel.wrap(II)LParcel;'' \<mapsto> irgraph [
  (0, (StartNode ((Some 3)) (8)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),

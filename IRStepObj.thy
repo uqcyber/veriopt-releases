@@ -28,11 +28,22 @@ definition new_heap :: "DynamicHeap" where
 
 text_raw \<open>\Snip{programdef}%\<close>
 type_synonym Signature = "string"
-type_synonym Program = "Signature \<Rightarrow> IRGraph"
+type_synonym Program = "Signature \<rightharpoonup> IRGraph"
 text_raw \<open>\EndSnip\<close>
 
 fun p_method :: "Signature \<Rightarrow> Program \<Rightarrow> IRGraph" where
-  "p_method m p = p m"
+  "p_method m p = (case p m of None \<Rightarrow> start_end_graph | Some g \<Rightarrow> g)"
+
+fun any :: "('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> bool)" (infix "\<bullet>" 20) where
+  "any f g = (\<lambda>x. f x \<or> g x)"
+
+fun wff_program :: "Program \<Rightarrow> bool" where
+  "wff_program p = (\<forall>g \<in> ran p. 
+    wff_graph g \<and>
+    (\<forall> n \<in> (nodes_of g (is_InvokeNode \<bullet> is_InvokeWithExceptionNode)).
+      p_method (edge ir_targetMethod (edge ir_callTarget n g) g) p \<noteq> start_end_graph
+    )
+  )"
 
 inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>_" 55)
@@ -44,14 +55,14 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicH
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
 
   IfNode:
-  "\<lbrakk>kind g nid = (IfNode cond true false);
-    g m \<turnstile> cond (kind g cond) \<mapsto> val;
-    next = (if val_to_bool val then true else false)\<rbrakk>
+  "\<lbrakk>kind g nid = (IfNode cond tb fb);
+    g m \<turnstile> (kind g cond) \<mapsto> val;
+    next = (if val_to_bool val then tb else fb)\<rbrakk>
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |  
 
   EndNodes:
   "\<lbrakk>isAbstractEndNodeType (kind g nid);
-    merge = the (any_usage g nid);
+    merge = any_usage g nid;
     isAbstractMergeNodeType (kind g merge);
 
     i = input_index g merge nid;
@@ -74,7 +85,7 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicH
 
   LoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nxt);
-      g m \<turnstile> obj (kind g obj) \<mapsto> ObjRef ref;
+      g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h_load_field f ref h = v;
       m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
@@ -87,15 +98,15 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicH
 
   StoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f rhs _ (Some obj) nxt);
-      g m \<turnstile> rhs (kind g rhs) \<mapsto> val;
-      g m \<turnstile> obj (kind g obj) \<mapsto> ObjRef ref;
+      g m \<turnstile> (kind g rhs) \<mapsto> val;
+      g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h' = h_store_field f ref val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
 
   StaticStoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f rhs _ None nxt);
-      g m \<turnstile> rhs (kind g rhs) \<mapsto> val;
+      g m \<turnstile> (kind g rhs) \<mapsto> val;
       h' = h_store_field f None val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')"
@@ -144,7 +155,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
   ReturnNode:
   "\<lbrakk>g = p_method s p;
     kind g nid = (ReturnNode (Some expr) _);
-    g m \<turnstile> expr (kind g expr) \<mapsto> v;
+    g m \<turnstile> (kind g expr) \<mapsto> v;
     c_m' = m_set c_nid v c_m;
     c_nid' = (succ (p_method c_s p) c_nid)!0\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
@@ -160,7 +171,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     "\<lbrakk>g = p_method s p;
       kind g nid = (UnwindNode exception);
 
-      g m \<turnstile> exception (kind g exception) \<mapsto> e;
+      g m \<turnstile> (kind g exception) \<mapsto> e;
 
       c_g = (p_method c_s p);      
       kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exceptionEdge);
@@ -241,7 +252,7 @@ definition p3:: MapState where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{m_val (prod.snd (prod.snd (hd (prod.fst res)))) 0 
-        | res. (\<lambda>x . eg2_sq) \<turnstile> ([('''',0, p3), ('''',0, p3)], new_heap) \<rightarrow>*2* res}"
+        | res. (\<lambda>x . Some eg2_sq) \<turnstile> ([('''',0, p3), ('''',0, p3)], new_heap) \<rightarrow>*2* res}"
 
 definition field_sq :: FieldName where
   "field_sq = ''sq''"
@@ -257,7 +268,7 @@ definition eg3_sq :: IRGraph where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
 values "{h_load_field field_sq None (prod.snd res)
-        | res. (\<lambda>x. eg3_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
+        | res. (\<lambda>x. Some eg3_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
 
 definition eg4_sq :: IRGraph where
   "eg4_sq = irgraph [
@@ -269,8 +280,8 @@ definition eg4_sq :: IRGraph where
     (6, ReturnNode (Some 3) None, default_stamp)
    ]"
 
-(* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 24={sq: 9} *)
-values "{h_load_field field_sq (Some 1) (prod.snd res)
-        | res. (\<lambda>x. eg4_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
+(* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
+values "{h_load_field field_sq (Some 0) (prod.snd res)
+        | res. (\<lambda>x. Some eg4_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
 end
 

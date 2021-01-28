@@ -14,7 +14,7 @@ begin
 inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> ExecLog \<Rightarrow> bool" ("_|_\<leadsto>_|_")
   where
   "\<lbrakk>state = new_map ps;
-    (\<lambda>x. g) \<turnstile> ([('''', 0, state), ('''', 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
+    (\<lambda>x. Some g) \<turnstile> ([('''', 0, state), ('''', 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
     \<Longrightarrow> exec_graph g ps (prod.snd end) l"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> o \<Rightarrow> bool as execE) "exec_graph" .
 
@@ -145,9 +145,9 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o * o \<Righta
 
 
 (* Automatically generated program *)
-definition prog :: "string \<Rightarrow> IRGraph " where
-"prog = (\<lambda>x . start_end_graph)
-(''Fib.fib(I)I'' := irgraph [
+definition prog :: Program where
+"prog = Map.empty
+(''Fib.fib(I)I'' \<mapsto> irgraph [
  (0, (StartNode ((Some 2)) (8)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
@@ -172,9 +172,6 @@ definition prog :: "string \<Rightarrow> IRGraph " where
  (21, (ReturnNode ((Some 20)) (None)), VoidStamp)
 ])
 "
-
-
-export_code execProgE prog in SML module_name "IRInterpreter" file_prefix "IRInterpreter"
 
 (* IntVal 1 *)
 values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 1] \<leadsto> (n, m)}"
@@ -661,7 +658,6 @@ values "{m_val m 0 |n m l. pass_the_parcel | parcel_main | [IntVal 32 5, IntVal 
 
 definition parcel_params where "parcel_params = new_map [IntVal 32 2, IntVal 32 3]"
 values "{m | m . pass_the_parcel \<turnstile> ([(parcel_main, 0, parcel_params)], new_heap) \<rightarrow>*98* m}"
-
 
 
 definition exceptional_prog :: "string \<Rightarrow> IRGraph " where

@@ -9,13 +9,13 @@ begin
 
 lemma eval_const_node:
   assumes xn: "kind g x = (ConstantNode xv)"
-  shows "g m \<turnstile> x (kind g x) \<mapsto> xv"
+  shows "g m \<turnstile> (kind g x) \<mapsto> xv"
   using xn eval.ConstantNode by simp
 
 lemma eval_add_node: 
-  assumes x: "g m \<turnstile> x (kind g x) \<mapsto> IntVal b xv"
-  assumes y: "g m \<turnstile> y (kind g y) \<mapsto> IntVal b yv"
-  shows "g m \<turnstile> z (AddNode x y) \<mapsto> IntVal b (xv+yv)"
+  assumes x: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xv"
+  assumes y: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yv"
+  shows "g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (xv+yv)"
   using eval.AddNode x y by blast
 
 lemma add_const_nodes:
@@ -23,13 +23,13 @@ lemma add_const_nodes:
   assumes yn: "kind g y = (ConstantNode (IntVal b yv))"
   assumes zn: "kind g z = (AddNode x y)"
   assumes wn: "kind g w = (ConstantNode (IntVal b (xv+yv)))"
-  assumes ez: "g m \<turnstile> z (kind g z) \<mapsto> (IntVal b v1)"
-  assumes ew: "g m \<turnstile> w (kind g w) \<mapsto> (IntVal b v2)"
+  assumes ez: "g m \<turnstile> (kind g z) \<mapsto> (IntVal b v1)"
+  assumes ew: "g m \<turnstile> (kind g w) \<mapsto> (IntVal b v2)"
   shows "v1 = v2"
 proof -
-  have zv: "g m \<turnstile> z (kind g z) \<mapsto> IntVal b (xv+yv)"
+  have zv: "g m \<turnstile> (kind g z) \<mapsto> IntVal b (xv+yv)"
     using eval.AddNode eval_const_node xn yn zn by simp
-  have wv: "g m \<turnstile> w (kind g w) \<mapsto> IntVal b (xv+yv)"
+  have wv: "g m \<turnstile> (kind g w) \<mapsto> IntVal b (xv+yv)"
     using eval_const_node wn by auto
   show ?thesis using evalDet zv wv
     using ew ez by blast
@@ -52,24 +52,57 @@ fun create_add :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNod
     )"
 text_raw \<open>\EndSnip\<close>
 
+lemma comeon:
+  assumes "\<forall>b v. x \<noteq> ConstantNode (IntVal b v)"
+  shows "(case x of ConstantNode (IntVal _ _) \<Rightarrow> a | _ \<Rightarrow> b) = b"
+  using assms
+  (*by (smt IRNode.case_eq_if IRNode.collapse(7) Value.case_eq_if is_IntVal_def)*)
+  by (smt IRNode.case_eq_if IRNode.sel(59) Value.case_eq_if Value.collapse(1) is_ConstantNode_def)
+
+lemma comeon2:
+  assumes "\<forall>b v. kind g x \<noteq> ConstantNode (IntVal b v)"
+  shows "(case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | _ \<Rightarrow> b) = b"
+  using assms comeon
+  by (simp add: comeon)
+
+lemma comeon3:
+  assumes "\<forall>b v. x \<noteq> ConstantNode (IntVal b v)"
+  assumes "a \<noteq> b \<and> a \<noteq> c"
+  shows "(case x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) \<noteq> a"
+  using assms comeon
+  by (smt IRNode.case_eq_if Value.case_eq_if)
+
+lemma comeon4:
+  assumes "\<forall>b v. kind g x \<noteq> ConstantNode (IntVal b v)"
+  assumes "a \<noteq> b \<and> a \<noteq> c"
+  shows "(case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) \<noteq> a"
+  using assms comeon3
+  by (simp add: comeon3)
+
+lemma comeon5:
+  assumes "\<forall>b v. kind g x \<noteq> ConstantNode (IntVal b v)"
+  shows "(case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) = b
+        \<or> (case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) = c"
+  using assms comeon3
+  by (smt IRNode.case_eq_if Value.case_eq_if)
 
 text_raw \<open>\Snip{AddNodeCreate}%\<close>
 lemma add_node_create:
-  assumes xv: "g m \<turnstile> x (kind g x) \<mapsto> IntVal b xv"
-  assumes yv: "g m \<turnstile> y (kind g y) \<mapsto> IntVal b yv"
+  assumes xv: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xv"
+  assumes yv: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yv"
   shows 
-    "(g m \<turnstile> nid (AddNode x y) \<mapsto> IntVal b (xv+yv)) \<and>
-     (g m \<turnstile> nid (create_add g x y) \<mapsto> IntVal b (xv+yv))"
+    "(g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (xv+yv)) \<and>
+     (g m \<turnstile> (create_add g x y) \<mapsto> IntVal b (xv+yv))"
   (is "?P \<and> ?Q")
   text_raw \<open>\EndSnip\<close>
 proof -
   have P: ?P
     using xv yv eval.AddNode by simp
   have Q: ?Q
-  proof (cases "\<exists>v. (kind g x) = ConstantNode v")
+  proof (cases "\<exists>b v. (kind g x) = ConstantNode (IntVal b v)")
     case xconst: True
     then show ?thesis
-    proof (cases "\<exists>v. (kind g y) = ConstantNode v")
+    proof (cases "\<exists>b v. (kind g y) = ConstantNode (IntVal b v)")
       case yconst: True
       then show ?thesis unfolding create_add.simps 
         using xconst eval.ConstantNode xv yv by auto
@@ -78,7 +111,27 @@ proof -
       case ynotconst: False
       have "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
         unfolding create_add.simps 
-        using xconst ynotconst sorry
+        (* bad proof *)
+        using xconst ynotconst
+        apply (cases "kind g x"; auto)
+        apply (cases "kind g y"; auto)
+        using yv apply auto[1]
+        using xv apply auto[1]
+        using xv apply auto[1]
+        using xv yv apply auto
+      proof -
+        let ?x = "ConstantNode (IntVal b yv)"
+        let ?a = "ConstantNode (IntVal b (xv + yv))"
+        let ?b = "AddNode x y"
+        let ?c = "AddNode x y"
+        have "?a \<noteq> ?b \<and> ?a \<noteq> ?c" by simp 
+        then show "(case kind g y of 
+                ?x \<Rightarrow> ?a
+              | ConstantNode _ \<Rightarrow> ?b | _ \<Rightarrow> ?c) =
+              AddNode x y" using comeon4 ynotconst
+          by (smt ConstantNodeE IRNode.case_eq_if IRNode.collapse(7) yv)
+        (* end bad *)
+      qed
       then show ?thesis unfolding create_add.simps
         apply (cases "xv = 0"; auto)
         using eval.RefNode yv apply simp
@@ -87,18 +140,51 @@ proof -
   next
     case xnotconst: False
     then show ?thesis
-    proof (cases "\<exists>v. (kind g y) = ConstantNode v")
+    proof (cases "\<exists>b v. (kind g y) = ConstantNode (IntVal b v)")
       case yconst: True
+      have yval: "kind g y = ConstantNode (IntVal b yv)"
+        using yv yconst by auto
       have "create_add g x y = (if yv = 0 then RefNode x else AddNode x y)"
-        using xnotconst yconst create_add.simps sorry
+        unfolding create_add.simps
+        (* bad proof *)
+        using yconst yval apply auto
+        apply (cases "kind g x"; auto)
+        using xnotconst xv apply auto[1]
+        apply (cases "kind g x"; auto)
+        using xnotconst xv by auto
+        (* end bad *)
       then show ?thesis unfolding create_add.simps 
         apply (cases "yv = 0"; auto)
         using eval.RefNode xv apply simp
         using eval.AddNode xv yv by simp
     next
       case ynotconst: False
-      have "create_add g x y = AddNode x y"
-        using xnotconst xnotconst create_add.simps sorry
+      let ?x = "ConstantNode (IntVal b xv)"
+      let ?a = "case kind g y of ConstantNode (IntVal b yv) \<Rightarrow> ConstantNode (IntVal b (xv + yv))
+     | ConstantNode _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
+     | _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y"
+      let ?b = "case kind g y of
+       ConstantNode (IntVal b yv) \<Rightarrow> if yv = 0 then RefNode x else AddNode x y
+       | ConstantNode _ \<Rightarrow> AddNode x y | _ \<Rightarrow> AddNode x y"
+      let ?c = "case kind g y of
+          ConstantNode (IntVal b yv) \<Rightarrow> if yv = 0 then RefNode x else AddNode x y
+          | ConstantNode _ \<Rightarrow> AddNode x y | _ \<Rightarrow> AddNode x y"
+      have bc_eq: "?b = ?c"
+        by blast
+      have b_def: "?b = AddNode x y"
+        sorry
+      
+      have "create_add g x y = ?b \<or> create_add g x y = ?c"
+        unfolding create_add.simps
+        using xnotconst ynotconst
+      proof -
+        let ?exp = "(case kind g x of ?x \<Rightarrow> ?a | ConstantNode _ \<Rightarrow> ?b | _ \<Rightarrow> ?c)"
+        show "?exp = ?b \<or> ?exp = ?c" apply auto
+          using comeon5 xnotconst sorry
+
+      qed
+      then have "create_add g x y = AddNode x y"
+        by (simp add: b_def)
       then show ?thesis unfolding create_add.simps 
         using eval.AddNode xv yv by simp
     qed
@@ -144,7 +230,7 @@ text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
-  assumes cv: "g m \<turnstile> cond (kind g cond) \<mapsto> cv"
+  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
   assumes fresh: "nid \<notin> ids g" 
   assumes gif: "gif = add_node nid ((IfNode cond tb fb), VoidStamp) g"
   assumes gcreate: "gcreate = add_node nid ((create_if g cond tb fb), VoidStamp) g"
@@ -163,7 +249,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using cv sorry
     have if_kind: "kind gif nid = (IfNode cond tb fb)"
       using gif add_node_lookup by simp
-    have if_cv: "gif m \<turnstile> cond (kind gif cond) \<mapsto> val"
+    have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
       using step.IfNode if_kind
       using True eval.ConstantNode gif fresh
       using stay_same cond_exists
@@ -198,7 +284,7 @@ next
       by blast
     have "nid \<noteq> cond"
       using cv fresh indep sorry
-    obtain cv2 where cv2: "gif m \<turnstile> cond (kind gif cond) \<mapsto> cv2" 
+    obtain cv2 where cv2: "gif m \<turnstile> (kind gif cond) \<mapsto> cv2" 
       using \<open>nid \<noteq> cond\<close> cv gif indep
       using fresh sorry
     then have "cv = cv2"

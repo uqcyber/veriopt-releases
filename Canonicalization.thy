@@ -229,7 +229,7 @@ lemma add_changed:
   assumes "gup = add_node new k g"
   shows "changeonly {new} g gup"
   using assms unfolding add_node_def changeonly.simps
-  using add_node.rep_eq add_node_def kind.rep_eq map_upd_def node_kind_def by auto
+  using add_node.rep_eq add_node_def kind.rep_eq by auto
 
 lemma disjoint_change:
   assumes "changeonly change g gup"
@@ -280,7 +280,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using True eval.ConstantNode gif fresh
       using stay_same cond_exists
       using val
-      using add_node.rep_eq kind.rep_eq map_upd_def node_kind_def by auto
+      using add_node.rep_eq kind.rep_eq by auto
     have if_step: "gif \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
     proof -
       show ?thesis using step.IfNode if_kind if_cv 

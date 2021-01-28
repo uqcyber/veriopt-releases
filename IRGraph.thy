@@ -26,73 +26,59 @@ qed
 setup_lifting type_definition_IRGraph
 
 text_raw \<open>\Snip{lifted_helpers}%\<close>
-fun has_no_node :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID \<Rightarrow> bool" where
-  "has_no_node g nid = (\<exists>s . g nid = (Some (NoNode, s)))"
-
-definition node_ids :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID set" where
-  "node_ids g = {nid \<in> dom g . \<not>(has_no_node g nid)}"
-
 lift_definition ids :: "IRGraph \<Rightarrow> ID set"
-  is node_ids .
+  is "\<lambda>g. {nid \<in> dom g . \<nexists>s. g nid = (Some (NoNode, s))}" .
 
-definition node_kind :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID \<Rightarrow> IRNode" where
-  "node_kind g nid = (case g nid of 
-    None \<Rightarrow> NoNode 
-    | Some n \<Rightarrow> fst n)"
+fun with_default :: "'c \<Rightarrow> ('b \<Rightarrow> 'c) \<Rightarrow> (('a \<rightharpoonup> 'b) \<Rightarrow> 'a \<Rightarrow> 'c)" where
+  "with_default def conv = (\<lambda>m k.
+    (case m k of None \<Rightarrow> def | Some v \<Rightarrow> conv v))"
 
 lift_definition kind :: "IRGraph \<Rightarrow> (ID \<Rightarrow> IRNode)"
-  is node_kind .
-
-definition node_stamp :: "(ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> ID \<Rightarrow> Stamp" where
-  "node_stamp g nid = (case g nid of 
-    None \<Rightarrow> IllegalStamp 
-    | Some n \<Rightarrow> snd n)"
+  is "with_default NoNode fst" .
 
 lift_definition stamp :: "IRGraph \<Rightarrow> ID \<Rightarrow> Stamp"
-  is node_stamp .
-text_raw \<open>\EndSnip\<close>
-
-lemma node_ids_imp:
-  "\<nexists>nid . nid \<in> (node_ids g) \<and> has_no_node g nid"
-  by (auto simp: node_ids_def)
-
-lemma node_ids_defs:
-  "node_ids g = dom g - {nid \<in> dom g . has_no_node g nid}"
-  using node_ids_def by auto
-
-definition map_upd :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp))" where
-  "map_upd nid k g = g(nid \<mapsto> k)"
+  is "with_default IllegalStamp snd" .
 
 lift_definition add_node :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
-  is map_upd
-  by (simp add: map_upd_def)
-
-definition map_rm :: "ID \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp)) \<Rightarrow> (ID \<rightharpoonup> (IRNode \<times> Stamp))" where
-  "map_rm nid g = g(nid := None)"
+  is "\<lambda>nid k g. g(nid \<mapsto> k)" by simp
 
 lift_definition remove_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
-  is map_rm
-  by (simp add: map_rm_def)
-
-lemma ran_not_in:
-  "\<forall>x l. (\<nexists>n. n \<in> set l \<and> snd n = x) \<longrightarrow> x \<notin> ran (map_of l)"
-  by (smt map_of_SomeD mem_Collect_eq prod.sel(2) ran_def)
+  is "\<lambda>nid g. g(nid := None)" by simp
+text_raw \<open>\EndSnip\<close>
 
 fun no_node :: "(ID \<times> (IRNode \<times> Stamp)) list \<Rightarrow> (ID \<times> (IRNode \<times> Stamp)) list" where
   "no_node g = filter (\<lambda>n. fst (snd n) \<noteq> NoNode) g"
 
 lift_definition irgraph :: "(ID \<times> (IRNode \<times> Stamp)) list \<Rightarrow> IRGraph"
-  is map_of
+  is "map_of \<circ> no_node"
   by (simp add: finite_dom_map_of)
 
 (* Theories are required for code generation to work *)
 code_datatype irgraph
 
-lemma irgraph[code]: "ids (irgraph m) = set (map fst (no_node m))"
-  using dom_map_of_conv_image_fst ids.rep_eq irgraph.rep_eq apply simp
-  using node_ids_def sorry
+fun filter_none where
+  "filter_none g = {nid \<in> dom g . \<nexists>s. g nid = (Some (NoNode, s))}"
 
-lemma [code]: "(Rep_IRGraph (irgraph m)) = map_of m"
+lemma no_node_clears:
+  "res = no_node xs \<longrightarrow> (\<forall>x \<in> set res. fst (snd x) \<noteq> NoNode)"
+  by simp
+
+lemma dom_eq:
+  assumes "\<forall>x \<in> set xs. fst (snd x) \<noteq> NoNode"
+  shows "filter_none (map_of xs) = dom (map_of xs)"
+  unfolding filter_none.simps using assms map_of_SomeD
+  by fastforce
+
+lemma fil_eq:
+  "filter_none (map_of (no_node xs)) = set (map fst (no_node xs))"
+  using no_node_clears
+  by (metis dom_eq dom_map_of_conv_image_fst list.set_map)
+
+lemma irgraph[code]: "ids (irgraph m) = set (map fst (no_node m))"
+  unfolding irgraph_def ids_def using fil_eq
+  by (smt Rep_IRGraph comp_apply eq_onp_same_args filter_none.simps ids.abs_eq ids_def irgraph.abs_eq irgraph.rep_eq irgraph_def mem_Collect_eq)
+
+lemma [code]: "Rep_IRGraph (irgraph m) = map_of (no_node m)"
   using Abs_IRGraph_inverse
   by (simp add: irgraph.rep_eq)
 
@@ -147,9 +133,10 @@ text_raw \<open>\EndSnip\<close>
 lemma ids_some[simp]: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> NoNode" 
 proof -
   have that: "x \<in> ids g \<longrightarrow> kind g x \<noteq> NoNode"
-    using ids.rep_eq kind.rep_eq node_ids_defs node_kind_def by force
+    using ids.rep_eq kind.rep_eq by force
   have "kind g x \<noteq> NoNode \<longrightarrow> x \<in> ids g"
-    by (metis (mono_tags, lifting) domIff fst_conv has_no_node.simps ids.rep_eq kind.rep_eq mem_Collect_eq node_ids_def node_kind_def option.case_eq_if option.sel)
+    unfolding with_default.simps kind_def ids_def
+    by (cases "Rep_IRGraph g x = None"; auto)
   from this that show ?thesis by auto
 qed
 
@@ -158,44 +145,36 @@ lemma valid_creation[simp]:
   using Abs_IRGraph_inverse by (metis Rep_IRGraph mem_Collect_eq)
 
 lemma [simp]: "finite (ids g)" 
-  using Rep_IRGraph ids.rep_eq node_ids_def by simp
+  using Rep_IRGraph ids.rep_eq by simp
 
 lemma [simp]: "finite (ids (irgraph g))" 
   by (simp add: finite_dom_map_of)
 
-lemma sup: "\<not>(has_no_node g nid) \<and> g nid = Some n \<longrightarrow> fst n \<noteq> NoNode"
-  unfolding has_no_node.simps
-  by (metis eq_fst_iff)
-
-lemma [simp]: "finite (dom g) \<longrightarrow> ids (Abs_IRGraph g) = {nid \<in> dom g . \<not> has_no_node g nid}"
-  using ids.rep_eq node_ids_def by simp
+lemma [simp]: "finite (dom g) \<longrightarrow> ids (Abs_IRGraph g) = {nid \<in> dom g . \<nexists>s. g nid = Some (NoNode, s)}"
+  using ids.rep_eq by simp
 
 lemma [simp]: "finite (dom g) \<longrightarrow> kind (Abs_IRGraph g) = (\<lambda>x . (case g x of None \<Rightarrow> NoNode | Some n \<Rightarrow> fst n))"
-  using kind.abs_eq node_kind_def
-  by (metis eq_onp_live_step)
+  by (simp add: kind.rep_eq)
 
 lemma [simp]: "finite (dom g) \<longrightarrow> stamp (Abs_IRGraph g) = (\<lambda>x . (case g x of None \<Rightarrow> IllegalStamp | Some n \<Rightarrow> snd n))"
-  using stamp.abs_eq node_stamp_def
-  using stamp.rep_eq by auto
+  using stamp.abs_eq stamp.rep_eq by auto
 
 lemma [simp]: "ids (irgraph g) = set (map fst (no_node g))" 
   using irgraph by auto
 
-lemma [simp]: "kind (irgraph g) = (\<lambda>nid. (case (map_of g) nid of None \<Rightarrow> NoNode | Some n \<Rightarrow> fst n))" 
-  using irgraph.rep_eq kind.transfer node_kind_def kind.rep_eq
-  by auto
+lemma [simp]: "kind (irgraph g) = (\<lambda>nid. (case (map_of (no_node g)) nid of None \<Rightarrow> NoNode | Some n \<Rightarrow> fst n))" 
+  using irgraph.rep_eq kind.transfer kind.rep_eq by auto
 
-lemma [simp]: "stamp (irgraph g) = (\<lambda>nid. (case (map_of g) nid of None \<Rightarrow> IllegalStamp | Some n \<Rightarrow> snd n))" 
-  using irgraph.rep_eq stamp.transfer node_stamp_def stamp.rep_eq
-  by auto
+lemma [simp]: "stamp (irgraph g) = (\<lambda>nid. (case (map_of (no_node g)) nid of None \<Rightarrow> IllegalStamp | Some n \<Rightarrow> snd n))" 
+  using irgraph.rep_eq stamp.transfer stamp.rep_eq by auto
 
 lemma add_node_lookup:
   "gup = add_node nid (k, s) g \<longrightarrow> kind gup nid = k \<and> stamp gup nid = s"
-  by (simp add: add_node.rep_eq kind.rep_eq map_upd_def node_kind_def node_stamp_def stamp.rep_eq)
+  by (simp add: add_node.rep_eq kind.rep_eq stamp.rep_eq)
 
 lemma remove_node_lookup:
   "gup = remove_node nid g \<longrightarrow> kind gup nid = NoNode \<and> stamp gup nid = IllegalStamp"
-  by (simp add: kind.rep_eq map_rm_def node_kind_def node_stamp_def remove_node.rep_eq stamp.rep_eq)
+  by (simp add: kind.rep_eq remove_node.rep_eq stamp.rep_eq)
 
 subsection "Example Graphs"
 text "Example 1: empty graph (just a start and end node)"

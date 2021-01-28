@@ -177,8 +177,7 @@ proof -
         let ?exp = "(case kind g x of ?x \<Rightarrow> ?a | ConstantNode _ \<Rightarrow> ?b | _ \<Rightarrow> ?b)"
         show "?exp = ?b"
           using comeon5 xnotconst
-          sorry
-
+          by (smt ConstantNodeE IRNode.case_eq_if is_ConstantNode_def xv)
       qed
       (* end bad *)
       then have "create_add g x y = AddNode x y"

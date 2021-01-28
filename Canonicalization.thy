@@ -225,6 +225,34 @@ text \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
+lemma add_changed:
+  assumes "gup = add_node new k g"
+  shows "changeonly {new} g gup"
+  using assms unfolding add_node_def changeonly.simps
+  using add_node.rep_eq add_node_def kind.rep_eq map_upd_def node_kind_def by auto
+
+lemma disjoint_change:
+  assumes "changeonly change g gup"
+  assumes "nochange = ids g - change"
+  shows "unchanged nochange g gup"
+  using assms unfolding changeonly.simps unchanged.simps
+  by blast
+
+lemma add_node_unchanged:
+  assumes "new \<notin> ids g"
+  assumes "nid \<in> ids g"
+  assumes "gup = add_node new k g"
+  assumes "wff_graph g"
+  shows "unchanged (eval_usages g nid) g gup"
+proof -
+  have "new \<notin> (eval_usages g nid)" using assms
+    using eval_usages.simps by blast
+  then have "changeonly {new} g gup"
+    using assms add_changed by blast
+  then show ?thesis using assms add_node_def disjoint_change
+    using Diff_insert_absorb by auto
+qed
+
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
   assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
@@ -232,6 +260,7 @@ lemma if_node_create:
   assumes gif: "gif = add_node nid ((IfNode cond tb fb), VoidStamp) g"
   assumes gcreate: "gcreate = add_node nid ((create_if g cond tb fb), VoidStamp) g"
   assumes indep: "\<not>(eval_uses g cond nid)"
+  assumes wff: "wff_graph g"
   fixes heap :: DynamicHeap
   shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> 
                 (gcreate m \<turnstile> nid \<leadsto> nid')"
@@ -243,14 +272,15 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
     obtain val where val: "(kind g cond) = ConstantNode val"
       using True by blast
     have cond_exists: "cond \<in> ids g"
-      using cv sorry
+      using cv eval_in_ids by auto
     have if_kind: "kind gif nid = (IfNode cond tb fb)"
       using gif add_node_lookup by simp
     have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
       using step.IfNode if_kind
       using True eval.ConstantNode gif fresh
       using stay_same cond_exists
-      using val sorry
+      using val
+      using add_node.rep_eq kind.rep_eq map_upd_def node_kind_def by auto
     have if_step: "gif \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
     proof -
       show ?thesis using step.IfNode if_kind if_cv 
@@ -279,15 +309,19 @@ next
     have gif_kind: "kind gif nid = (IfNode cond tb fb)"
       using add_node_lookup gif
       by blast
-    have "nid \<noteq> cond"
-      using cv fresh indep sorry
-    obtain cv2 where cv2: "gif m \<turnstile> (kind gif cond) \<mapsto> cv2" 
-      using \<open>nid \<noteq> cond\<close> cv gif indep
-      using fresh sorry
+    then have "nid \<noteq> cond"
+      using cv fresh indep
+      using eval_in_ids by blast
+    have "unchanged (eval_usages g cond) g gif"
+      using gif add_node_unchanged
+      using cv eval_in_ids fresh wff by blast
+    then obtain cv2 where cv2: "gif m \<turnstile> (kind gif cond) \<mapsto> cv2" 
+      using cv gif wff stay_same by blast
     then have "cv = cv2"
       using indep gif cv
       using \<open>nid \<noteq> cond\<close>
-      using fresh sorry
+      using fresh
+      using \<open>unchanged (eval_usages g cond) g gif\<close> evalDet stay_same wff by blast
     then have eval_gif: "(gif \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
       using step.IfNode gif_kind nid' cv2 
       by auto

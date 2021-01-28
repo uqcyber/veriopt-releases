@@ -114,8 +114,8 @@ fun usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
 fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where
   "successor_edges g = (\<Union> i \<in> ids g. {(i,j)|j . j \<in> fset(fset_of_list (succ  g i))})"
 
-fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "predecessors g nid = sorted_list_of_set {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
+fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "predecessors g nid = {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
 
 fun nodes_of :: "IRGraph \<Rightarrow> (IRNode \<Rightarrow> bool) \<Rightarrow> ID set" where
   "nodes_of g sel = {nid \<in> ids g . sel (kind g nid)}"

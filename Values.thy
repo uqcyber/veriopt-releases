@@ -2,6 +2,7 @@ theory Values
   imports
     "HOL-Word.Word"
     "HOL-Library.Float"
+    "HOL-Library.LaTeXsugar"
 begin
 
 type_synonym objref = "nat option"

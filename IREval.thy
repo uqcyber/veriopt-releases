@@ -4,7 +4,6 @@ theory IREval
   imports
     IRNodeHierarchy
     IRGraph
-    "HOL-Library.LaTeXsugar"
 begin
 
 datatype ExecutionState =
@@ -103,7 +102,7 @@ qed
     
 
 inductive
-  eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" (" _ _ \<turnstile> _ \<mapsto> _" 55)
+  eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ \<turnstile> _ \<mapsto> _" 55)
   for g where
 
   ConstantNode:
@@ -256,15 +255,26 @@ text_raw \<open>\EndSnip\<close>
 
 inductive
   eval_all :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID list \<Rightarrow> Value list \<Rightarrow> bool"
-  ("_ _ _\<longmapsto>_" 55)
+  ("_ _ \<turnstile> _ \<longmapsto> _" 55)
   for g where
-  "g m [] \<longmapsto> []" |
+  Base:
+  "g m \<turnstile> [] \<longmapsto> []" |
+
+  Transitive:
   "\<lbrakk>g m \<turnstile> (kind g nid) \<mapsto> v;
-    g m xs \<longmapsto> vs\<rbrakk>
-   \<Longrightarrow> g m (nid # xs) \<longmapsto> (v # vs)"
+    g m \<turnstile> xs \<longmapsto> vs\<rbrakk>
+   \<Longrightarrow> g m \<turnstile> (nid # xs) \<longmapsto> (v # vs)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as eval_allE) eval_all .
 
+text_raw \<open>\Snip{EvalAll}%\<close>
+text \<open>
+\begin{center}
+@{thm[mode=Rule] eval_all.Base [no_vars]}\\[8px]
+@{thm[mode=Rule] eval_all.Transitive [no_vars]}
+\end{center}
+\<close>
+text_raw \<open>\EndSnip\<close>
 
 (* Test the eval predicates. *)
 inductive eval_graph :: "IRGraph \<Rightarrow> ID \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"

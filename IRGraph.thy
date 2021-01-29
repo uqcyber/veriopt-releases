@@ -123,9 +123,7 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
       kind g n \<noteq> NoNode) \<and>
     (\<forall> n. n \<in> (nodes_of g isPhiNodeType) \<longrightarrow>
       length (edge ir_values n g)
-       = length (edge ir_ends (edge ir_merge n g) g)) \<and>
-    (\<forall> n. n \<in> (nodes_of g is_IfNode) \<longrightarrow>
-      stamp g (edge ir_condition n g) = IntegerStamp 1 0 1)
+       = length (edge ir_ends (edge ir_merge n g) g))
   )"
 text_raw \<open>\EndSnip\<close>
 

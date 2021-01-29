@@ -31,22 +31,8 @@ type_synonym Signature = "string"
 type_synonym Program = "Signature \<rightharpoonup> IRGraph"
 text_raw \<open>\EndSnip\<close>
 
-fun p_method :: "Signature \<Rightarrow> Program \<Rightarrow> IRGraph" where
-  "p_method m p = (case p m of None \<Rightarrow> start_end_graph | Some g \<Rightarrow> g)"
-
-fun any :: "('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> bool) \<Rightarrow> ('a \<Rightarrow> bool)" (infix "\<bullet>" 20) where
-  "any f g = (\<lambda>x. f x \<or> g x)"
-
-fun wff_program :: "Program \<Rightarrow> bool" where
-  "wff_program p = (\<forall>g \<in> ran p. 
-    wff_graph g \<and>
-    (\<forall> n \<in> (nodes_of g (is_InvokeNode \<bullet> is_InvokeWithExceptionNode)).
-      p_method (edge ir_targetMethod (edge ir_callTarget n g) g) p \<noteq> start_end_graph
-    )
-  )"
-
 inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> bool"
-  ("_\<turnstile>_\<rightarrow>_" 55)
+  ("_ \<turnstile> _ \<rightarrow> _" 55)
   where
 
   SequentialNode:
@@ -68,7 +54,7 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicH
     i = input_index g merge nid;
     phis = (phi_list g merge);
     inputs = (phi_inputs g i phis);
-    g m inputs \<longmapsto> vs;
+    g m \<turnstile> inputs \<longmapsto> vs;
 
     m' = set_phis phis vs m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
@@ -97,16 +83,16 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicH
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   StoreFieldNode:
-    "\<lbrakk>kind g nid = (StoreFieldNode nid f rhs _ (Some obj) nxt);
-      g m \<turnstile> (kind g rhs) \<mapsto> val;
+    "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ (Some obj) nxt);
+      g m \<turnstile> (kind g newval) \<mapsto> val;
       g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h' = h_store_field f ref val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
 
   StaticStoreFieldNode:
-    "\<lbrakk>kind g nid = (StoreFieldNode nid f rhs _ None nxt);
-      g m \<turnstile> (kind g rhs) \<mapsto> val;
+    "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ None nxt);
+      g m \<turnstile> (kind g newval) \<mapsto> val;
       h' = h_store_field f None val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')"
@@ -128,58 +114,61 @@ text_raw \<open>\EndSnip\<close>
 code_pred (modes: i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
 inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap \<Rightarrow> bool"
-  ("_\<turnstile>_\<longrightarrow>_" 55) 
+  ("_ \<turnstile> _ \<longrightarrow> _" 55) 
   for p where
 
   Lift:
-  "\<lbrakk>g = p_method s p;
+  "\<lbrakk>Some g = p s;
     g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((s,nid',m')#xs, h')" |
 
   InvokeNodeStep:
-  "\<lbrakk>g = p_method s p;
+  "\<lbrakk>Some g = p s;
     kind g nid = (InvokeNode _ callTarget _ _ _ next);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
-    g m arguments \<longmapsto> vs;
+    g m \<turnstile> arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
 
   InvokeWithExceptionNode:
-  "\<lbrakk>g = p_method s p;
+  "\<lbrakk>Some g = p s;
     kind g nid = (InvokeWithExceptionNode _ callTarget _ _ _ next _);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
-    g m arguments \<longmapsto> vs;
+    g m \<turnstile> arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
 
   ReturnNode:
-  "\<lbrakk>g = p_method s p;
+  "\<lbrakk>Some g = p s;
     kind g nid = (ReturnNode (Some expr) _);
     g m \<turnstile> (kind g expr) \<mapsto> v;
+
+    Some c_g = p c_s;
     c_m' = m_set c_nid v c_m;
-    c_nid' = (succ (p_method c_s p) c_nid)!0\<rbrakk> 
+    c_nid' = (succ c_g c_nid)!0\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
 
   ReturnNodeVoid:
-  "\<lbrakk>g = p_method s p;
+  "\<lbrakk>Some g = p s;
     kind g nid = (ReturnNode None _);
+    Some c_g = p c_s;
     c_m' = m_set c_nid (ObjRef (Some (2048))) c_m;
-    c_nid' = (succ (p_method c_s p) c_nid)!0\<rbrakk> 
+    
+    c_nid' = (succ c_g c_nid)!0\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
 
   UnwindNode:
-    "\<lbrakk>g = p_method s p;
-      kind g nid = (UnwindNode exception);
+  "\<lbrakk>Some g = p s;
+    kind g nid = (UnwindNode exception);
 
-      g m \<turnstile> (kind g exception) \<mapsto> e;
+    g m \<turnstile> (kind g exception) \<mapsto> e;
 
-      c_g = (p_method c_s p);      
-      kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exceptionEdge);
+    Some c_g = (p c_s);      
+    kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exceptionEdge);
 
-      c_nid' = exceptionEdge;
-      c_m' = set_state c_m Exception;
-      c_m'' = m_set c_nid e c_m'\<rbrakk>
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m'')#xs, h)"
+    c_m' = set_state c_m Exception;
+    c_m'' = m_set c_nid e c_m'\<rbrakk>
+  \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,exceptionEdge,c_m'')#xs, h)"
 
 text_raw \<open>\Snip{TopStepSemantics}%\<close>
 text \<open>
@@ -212,7 +201,7 @@ inductive exec :: "Program
   "\<lbrakk>p \<turnstile> (((s,nid,m)#xs),h) \<longrightarrow> (((s',nid',m')#ys),h');
     \<not>(has_return m');
 
-    g = p_method s p;
+    Some g = p s;
     nk = kind g nid;
     l' = (l @ [(nid, nk)]);
 
@@ -223,7 +212,7 @@ inductive exec :: "Program
   "\<lbrakk>p \<turnstile> (((s,nid,m)#xs),h) \<longrightarrow> (((s',nid',m')#ys),h');
     has_return m';
 
-    g = p_method s p;
+    Some g = p s;
     nk = kind g nid;
     l' = (l @ [(nid, nk)])\<rbrakk>
     \<Longrightarrow> exec p (((s,nid,m)#xs),h) l (((s',nid',m')#ys),h') l'"

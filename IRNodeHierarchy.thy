@@ -116,6 +116,99 @@ fun isValueNodeType :: "IRNode \<Rightarrow> bool" where
 
 fun isNodeType :: "IRNode \<Rightarrow> bool" where
   "isNodeType n = ((isValueNodeType n) \<or> (isVirtualStateType n))"
+
+fun is_MemoryKill :: "IRNode \<Rightarrow> bool" where
+  "is_MemoryKill n = ((isAbstractMemoryCheckpointType n))"
+
+fun is_NarrowableArithmeticNode :: "IRNode \<Rightarrow> bool" where
+  "is_NarrowableArithmeticNode n = ((is_AbsNode n) \<or> (is_AddNode n) \<or> (is_AndNode n) \<or> (is_MulNode n) \<or> (is_NegateNode n) \<or> (is_NotNode n) \<or> (is_OrNode n) \<or> (is_SubNode n) \<or> (is_XorNode n))"
+
+fun is_AnchoringNode :: "IRNode \<Rightarrow> bool" where
+  "is_AnchoringNode n = ((isAbstractBeginNodeType n))"
+
+fun is_DeoptBefore :: "IRNode \<Rightarrow> bool" where
+  "is_DeoptBefore n = ((isDeoptimizingFixedWithNextNodeType n))"
+
+fun is_IndirectCanonicalization :: "IRNode \<Rightarrow> bool" where
+  "is_IndirectCanonicalization n = ((isLogicNodeType n))"
+
+fun is_IterableNodeType :: "IRNode \<Rightarrow> bool" where
+  "is_IterableNodeType n = ((isAbstractBeginNodeType n) \<or> (isAbstractMergeNodeType n) \<or> (is_FrameState n) \<or> (is_IfNode n) \<or> (isIntegerDivRemNodeType n) \<or> (is_InvokeWithExceptionNode n) \<or> (is_LoopBeginNode n) \<or> (is_LoopExitNode n) \<or> (is_MethodCallTargetNode n) \<or> (is_ParameterNode n) \<or> (is_ReturnNode n) \<or> (is_ShortCircuitOrNode n))"
+
+fun is_Invoke :: "IRNode \<Rightarrow> bool" where
+  "is_Invoke n = ((is_InvokeNode n) \<or> (is_InvokeWithExceptionNode n))"
+
+fun is_Proxy :: "IRNode \<Rightarrow> bool" where
+  "is_Proxy n = ((isProxyNodeType n))"
+
+fun is_ValueProxy :: "IRNode \<Rightarrow> bool" where
+  "is_ValueProxy n = ((is_PiNode n) \<or> (is_ValueProxyNode n))"
+
+fun is_ValueNodeInterface :: "IRNode \<Rightarrow> bool" where
+  "is_ValueNodeInterface n = ((isValueNodeType n))"
+
+fun is_ArrayLengthProvider :: "IRNode \<Rightarrow> bool" where
+  "is_ArrayLengthProvider n = ((isAbstractNewArrayNodeType n) \<or> (is_ConstantNode n))"
+
+fun is_StampInverter :: "IRNode \<Rightarrow> bool" where
+  "is_StampInverter n = ((is_NegateNode n) \<or> (is_NotNode n))"
+
+fun is_GuardingNode :: "IRNode \<Rightarrow> bool" where
+  "is_GuardingNode n = ((isAbstractBeginNodeType n))"
+
+fun is_SingleMemoryKill :: "IRNode \<Rightarrow> bool" where
+  "is_SingleMemoryKill n = ((is_BytecodeExceptionNode n) \<or> (is_ExceptionObjectNode n) \<or> (is_InvokeNode n) \<or> (is_InvokeWithExceptionNode n) \<or> (is_KillingBeginNode n) \<or> (is_StartNode n))"
+
+fun is_LIRLowerable :: "IRNode \<Rightarrow> bool" where
+  "is_LIRLowerable n = ((isAbstractBeginNodeType n) \<or> (isAbstractEndNodeType n) \<or> (isAbstractMergeNodeType n) \<or> (isBinaryOpLogicNodeType n) \<or> (isCallTargetNodeType n) \<or> (is_ConditionalNode n) \<or> (is_ConstantNode n) \<or> (is_IfNode n) \<or> (is_InvokeNode n) \<or> (is_InvokeWithExceptionNode n) \<or> (is_IsNullNode n) \<or> (is_LoopBeginNode n) \<or> (is_PiNode n) \<or> (is_ReturnNode n) \<or> (is_SignedDivNode n) \<or> (isUnaryOpLogicNodeType n) \<or> (is_UnwindNode n))"
+
+fun is_GuardedNode :: "IRNode \<Rightarrow> bool" where
+  "is_GuardedNode n = ((isFloatingGuardedNodeType n))"
+
+fun is_ArithmeticLIRLowerable :: "IRNode \<Rightarrow> bool" where
+  "is_ArithmeticLIRLowerable n = ((is_AbsNode n) \<or> (isBinaryArithmeticNodeType n) \<or> (is_NotNode n) \<or> (isUnaryArithmeticNodeType n))"
+
+fun is_SwitchFoldable :: "IRNode \<Rightarrow> bool" where
+  "is_SwitchFoldable n = ((is_IfNode n))"
+
+fun is_VirtualizableAllocation :: "IRNode \<Rightarrow> bool" where
+  "is_VirtualizableAllocation n = ((is_NewArrayNode n) \<or> (is_NewInstanceNode n))"
+
+fun is_Unary :: "IRNode \<Rightarrow> bool" where
+  "is_Unary n = ((is_LoadFieldNode n) \<or> (is_LogicNegationNode n) \<or> (isUnaryNodeType n) \<or> (isUnaryOpLogicNodeType n))"
+
+fun is_FixedNodeInterface :: "IRNode \<Rightarrow> bool" where
+  "is_FixedNodeInterface n = ((isFixedNodeType n))"
+
+fun is_BinaryCommutative :: "IRNode \<Rightarrow> bool" where
+  "is_BinaryCommutative n = ((is_AddNode n) \<or> (is_AndNode n) \<or> (is_IntegerEqualsNode n) \<or> (is_MulNode n) \<or> (is_OrNode n) \<or> (is_XorNode n))"
+
+fun is_Canonicalizable :: "IRNode \<Rightarrow> bool" where
+  "is_Canonicalizable n = ((is_BytecodeExceptionNode n) \<or> (is_ConditionalNode n) \<or> (is_DynamicNewArrayNode n) \<or> (isPhiNodeType n) \<or> (is_PiNode n) \<or> (isProxyNodeType n) \<or> (is_StoreFieldNode n) \<or> (is_ValueProxyNode n))"
+
+fun is_UncheckedInterfaceProvider :: "IRNode \<Rightarrow> bool" where
+  "is_UncheckedInterfaceProvider n = ((is_InvokeNode n) \<or> (is_InvokeWithExceptionNode n) \<or> (is_LoadFieldNode n) \<or> (is_ParameterNode n))"
+
+fun is_Binary :: "IRNode \<Rightarrow> bool" where
+  "is_Binary n = ((isBinaryArithmeticNodeType n) \<or> (isBinaryNodeType n) \<or> (isBinaryOpLogicNodeType n) \<or> (isCompareNodeType n) \<or> (isFixedBinaryNodeType n) \<or> (is_ShortCircuitOrNode n))"
+
+fun is_ArithmeticOperation :: "IRNode \<Rightarrow> bool" where
+  "is_ArithmeticOperation n = ((isBinaryArithmeticNodeType n) \<or> (isUnaryArithmeticNodeType n))"
+
+fun is_ValueNumberable :: "IRNode \<Rightarrow> bool" where
+  "is_ValueNumberable n = ((isFloatingNodeType n) \<or> (isProxyNodeType n))"
+
+fun is_Lowerable :: "IRNode \<Rightarrow> bool" where
+  "is_Lowerable n = ((isAbstractNewObjectNodeType n) \<or> (isAccessFieldNodeType n) \<or> (is_BytecodeExceptionNode n) \<or> (is_ExceptionObjectNode n) \<or> (isIntegerDivRemNodeType n) \<or> (is_UnwindNode n))"
+
+fun is_Virtualizable :: "IRNode \<Rightarrow> bool" where
+  "is_Virtualizable n = ((is_IsNullNode n) \<or> (is_LoadFieldNode n) \<or> (is_PiNode n) \<or> (is_StoreFieldNode n) \<or> (is_ValueProxyNode n))"
+
+fun is_Simplifiable :: "IRNode \<Rightarrow> bool" where
+  "is_Simplifiable n = ((isAbstractMergeNodeType n) \<or> (is_BeginNode n) \<or> (is_IfNode n) \<or> (is_LoopExitNode n) \<or> (is_MethodCallTargetNode n) \<or> (is_NewArrayNode n))"
+
+fun is_StateSplit :: "IRNode \<Rightarrow> bool" where
+  "is_StateSplit n = ((isAbstractStateSplitType n) \<or> (isBeginStateSplitNodeType n) \<or> (is_StoreFieldNode n))"
 (* nodeout *)
 
 fun is_sequential_node :: "IRNode \<Rightarrow> bool" where

@@ -124,16 +124,11 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
   InvokeNodeStep:
   "\<lbrakk>Some g = p s;
-    kind g nid = (InvokeNode _ callTarget _ _ _ next);
-    kind g callTarget = (MethodCallTargetNode targetMethod arguments);
-    g m \<turnstile> arguments \<longmapsto> vs;
-    m' = set_params m vs\<rbrakk>
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
+    is_Invoke (kind g nid);
 
-  InvokeWithExceptionNode:
-  "\<lbrakk>Some g = p s;
-    kind g nid = (InvokeWithExceptionNode _ callTarget _ _ _ next _);
+    callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
+
     g m \<turnstile> arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
@@ -175,7 +170,6 @@ text \<open>
 \begin{center}
 @{thm[mode=Rule] step_top.Lift [no_vars]}\induct{top:lift}\\[8px]
 @{thm[mode=Rule] step_top.InvokeNodeStep [no_vars]}\induct{top:invoke}\\[8px]
-@{thm[mode=Rule] step_top.InvokeWithExceptionNode [no_vars]}\induct{top:invoke_except}\\[8px]
 @{thm[mode=Rule] step_top.ReturnNode [no_vars]}\induct{top:return}\\[8px]
 @{thm[mode=Rule] step_top.UnwindNode [no_vars]}\induct{top:unwind}
 \end{center}

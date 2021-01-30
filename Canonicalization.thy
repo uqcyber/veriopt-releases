@@ -204,17 +204,17 @@ fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<R
     )"
 text_raw \<open>\EndSnip\<close>
 
-inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ \<turnstile> _ \<leadsto> _" 55)
-  for g m where
+inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> DynamicHeap \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ \<turnstile> _ \<leadsto> _" 55)
+  for g m h where
 
   Step:
-  "\<lbrakk>g \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)\<rbrakk>
-   \<Longrightarrow> g m \<turnstile> nid \<leadsto> nid'" |
+  "\<lbrakk>g \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)\<rbrakk>
+   \<Longrightarrow> g m h \<turnstile> nid \<leadsto> nid'" |
 
   Transitive:
-  "\<lbrakk>g \<turnstile> (nid,m,heap) \<rightarrow> (nid'',m,heap);
-    g m \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
-   \<Longrightarrow> g m \<turnstile> nid \<leadsto> nid'"
+  "\<lbrakk>g \<turnstile> (nid,m,h) \<rightarrow> (nid'',m,h);
+    g m h \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
+   \<Longrightarrow> g m h \<turnstile> nid \<leadsto> nid'"
 
 text_raw \<open>\Snip{Stutter}%\<close>
 text \<open>
@@ -261,9 +261,8 @@ lemma if_node_create:
   assumes gcreate: "gcreate = add_node nid ((create_if g cond tb fb), VoidStamp) g"
   assumes indep: "\<not>(eval_uses g cond nid)"
   assumes wff: "wff_graph g"
-  fixes heap :: DynamicHeap
-  shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> 
-                (gcreate m \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid'. (gif m h \<turnstile> nid \<leadsto> nid') \<and> 
+                (gcreate m h \<turnstile> nid \<leadsto> nid')"
 text_raw \<open>\EndSnip\<close>
 proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
   case True
@@ -281,12 +280,12 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using stay_same cond_exists
       using val
       using add_node.rep_eq kind.rep_eq by auto
-    have if_step: "gif \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
+    have if_step: "gif \<turnstile> (nid,m,h) \<rightarrow> (if val_to_bool val then tb else fb,m,h)"
     proof -
       show ?thesis using step.IfNode if_kind if_cv 
         by (simp)
     qed
-    have create_step: "gcreate \<turnstile> (nid,m,heap) \<rightarrow> (if val_to_bool val then tb else fb,m,heap)"
+    have create_step: "gcreate \<turnstile> (nid,m,h) \<rightarrow> (if val_to_bool val then tb else fb,m,h)"
     proof -
       have create_kind: "kind gcreate nid = (create_if g cond tb fb)"
         using gcreate add_node_lookup
@@ -302,7 +301,7 @@ next
   case not_const: False
   obtain nid' where "nid' = (if val_to_bool cv then tb else fb)"
     by blast
-  have nid_eq: "(gif \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)) \<and> (gcreate \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
+  have nid_eq: "(gif \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)) \<and> (gcreate \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h))"
   proof -
     have nid': "nid' = (if val_to_bool cv then tb else fb)"
       by (simp add: \<open>nid' = (if val_to_bool cv then tb else fb)\<close>)
@@ -322,13 +321,13 @@ next
       using \<open>nid \<noteq> cond\<close>
       using fresh
       using \<open>unchanged (eval_usages g cond) g gif\<close> evalDet stay_same wff by blast
-    then have eval_gif: "(gif \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap))"
+    then have eval_gif: "(gif \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h))"
       using step.IfNode gif_kind nid' cv2 
       by auto
     have gcreate_kind: "kind gcreate nid = (create_if g cond tb fb)"
       using gcreate add_node_lookup
       by blast
-    have eval_gcreate: "gcreate \<turnstile> (nid,m,heap) \<rightarrow> (nid',m,heap)"
+    have eval_gcreate: "gcreate \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
     proof (cases "tb = fb")
       case True
       have "create_if g cond tb fb = RefNode tb"

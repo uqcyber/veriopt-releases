@@ -4,6 +4,7 @@ theory Canonicalization
   imports 
     IRGraphFrames
     IRStepObj
+    ConditionalElimination
 begin
 
 
@@ -253,14 +254,49 @@ proof -
     using Diff_insert_absorb by auto
 qed
 
+lemma eval_uses_imp:
+  "((nid' \<in> ids g \<and> nid = nid')
+    \<or> nid' \<in> set (inp g nid)
+    \<or> (\<exists>nid'' . eval_uses g nid nid'' \<and> eval_uses g nid'' nid'))
+    \<longleftrightarrow> eval_uses g nid nid'"
+  using use0 use_inp use_trans
+  by (meson eval_uses.simps)
+
+lemma wff_use_ids:
+  assumes "wff_graph g"
+  assumes "nid \<in> ids g"
+  assumes "eval_uses g nid nid'"
+  shows "nid' \<in> ids g"
+  sorry
+
+lemma no_external_use:
+  assumes "wff_graph g"
+  assumes "nid' \<notin> ids g"
+  assumes "nid \<in> ids g"
+  shows "\<not>(eval_uses g nid nid')"
+proof -
+  have 0: "nid \<noteq> nid'"
+    using assms by blast
+  have inp: "nid' \<notin> set (inp g nid)"
+    using assms
+    using inp_in_g_wff by blast
+  have rec_0: "\<nexists>n . n \<in> ids g \<and> n = nid'"
+    using assms by blast
+  have rec_inp: "\<nexists>n . n \<in> ids g \<and> n \<in> set (inp g nid')"
+    using assms(2) inp_in_g by blast
+  have rec: "\<nexists>nid'' . eval_uses g nid nid'' \<and> eval_uses g nid'' nid'"
+    using wff_use_ids assms(1) assms(2) assms(3) by blast
+  from inp 0 rec show ?thesis 
+    using eval_uses_imp by blast
+qed
+
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
+  assumes wff: "wff_graph g"
   assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
-  assumes fresh: "nid \<notin> ids g" 
+  assumes fresh: "nid \<notin> ids g"
   assumes gif: "gif = add_node nid ((IfNode cond tb fb), VoidStamp) g"
   assumes gcreate: "gcreate = add_node nid ((create_if g cond tb fb), VoidStamp) g"
-  assumes indep: "\<not>(eval_uses g cond nid)"
-  assumes wff: "wff_graph g"
   shows "\<exists>nid'. (gif m h \<turnstile> nid \<leadsto> nid') \<and> 
                 (gcreate m h \<turnstile> nid \<leadsto> nid')"
 text_raw \<open>\EndSnip\<close>
@@ -303,6 +339,9 @@ next
     by blast
   have nid_eq: "(gif \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)) \<and> (gcreate \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h))"
   proof -
+    have indep: "\<not>(eval_uses g cond nid)"
+      using no_external_use
+      using cv eval_in_ids fresh wff by blast
     have nid': "nid' = (if val_to_bool cv then tb else fb)"
       by (simp add: \<open>nid' = (if val_to_bool cv then tb else fb)\<close>)
     have gif_kind: "kind gif nid = (IfNode cond tb fb)"
@@ -348,6 +387,17 @@ next
   qed
   show ?thesis using nid_eq Step by blast
 qed
+
+(*
+lemma if_stamp_fold:
+  assumes wff: "wff_graph g \<and> wff_stamps g"
+  assumes cond_kind: "kind g cond = (IntegerEqualsNode x y)"
+  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
+  assumes emp: "is_stamp_empty (join (stamp g x) (stamp g y))"
+
+  shows "\<exists>nid'. (gif m \<turnstile> nid \<leadsto> nid') \<and> 
+                (gcreate m \<turnstile> nid \<leadsto> nid')"
+*)
 
 
 end

@@ -120,7 +120,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
   Lift:
   "\<lbrakk>Some g = p s;
     g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((s,nid',m')#xs, h')" |
+    \<Longrightarrow> p \<turnstile> ((s,nid,m)#stk, h) \<longrightarrow> ((s,nid',m')#stk, h')" |
 
   InvokeNodeStep:
   "\<lbrakk>Some g = p s;
@@ -131,7 +131,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
     g m \<turnstile> arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#xs, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#xs, h)" |
+    \<Longrightarrow> p \<turnstile> ((s,nid,m)#stk, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#stk, h)" |
 
   ReturnNode:
   "\<lbrakk>Some g = p s;
@@ -141,7 +141,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     Some c_g = p c_s;
     c_m' = m_set c_nid v c_m;
     c_nid' = (succ c_g c_nid)!0\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
+    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,c_nid',c_m')#stk, h)" |
 
   ReturnNodeVoid:
   "\<lbrakk>Some g = p s;
@@ -150,7 +150,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     c_m' = m_set c_nid (ObjRef (Some (2048))) c_m;
     
     c_nid' = (succ c_g c_nid)!0\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,c_nid',c_m')#xs, h)" |
+    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,c_nid',c_m')#stk, h)" |
 
   UnwindNode:
   "\<lbrakk>Some g = p s;
@@ -163,7 +163,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
     c_m' = set_state c_m Exception;
     c_m'' = m_set c_nid e c_m'\<rbrakk>
-  \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#xs, h) \<longrightarrow> ((c_s,exceptionEdge,c_m'')#xs, h)"
+  \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,exceptionEdge,c_m'')#stk, h)"
 
 text_raw \<open>\Snip{TopStepSemantics}%\<close>
 text \<open>

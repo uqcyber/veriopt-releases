@@ -14,10 +14,10 @@ type_synonym Free = "nat"
 type_synonym DynamicHeap = "Heap \<times> Free"
 
 fun h_load_field :: "FieldName \<Rightarrow> objref \<Rightarrow> DynamicHeap \<Rightarrow> Value" where
-  "h_load_field f obj (h, n) = h f obj"
+  "h_load_field f r (h, n) = h f r"
 
 fun h_store_field :: "FieldName \<Rightarrow> objref \<Rightarrow> Value \<Rightarrow> DynamicHeap \<Rightarrow> DynamicHeap" where
-  "h_store_field f obj v (h, n) = (h(f := ((h f)(obj := v))), n)"
+  "h_store_field f r v (h, n) = (h(f := ((h f)(r := v))), n)"
 
 fun h_new_inst :: "DynamicHeap \<Rightarrow> DynamicHeap \<times> Value" where
   "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some n)))"

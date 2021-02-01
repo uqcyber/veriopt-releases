@@ -244,7 +244,6 @@ text \<open>
 @{thm[mode=Rule] eval.ValuePhiNode [no_vars]}\induct{eval:phi}\\[8px]
 @{thm[mode=Rule] eval.NegateNode [no_vars]}\induct{eval:neg}\\[8px]
 @{thm[mode=Rule] eval.AddNode [no_vars]}\induct{eval:add}\\[8px]
-@{thm[mode=Rule] eval.ShortCircuitOrNode [no_vars]}\induct{eval:shortor}\\[8px]
 @{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}\induct{eval:invoke}\\[8px]
 @{thm[mode=Rule] eval.LoadFieldNode [no_vars]}\induct{eval:load}\\[8px]
 @{thm[mode=Rule] eval.RefNode [no_vars]}\induct{eval:ref}

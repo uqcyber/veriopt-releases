@@ -159,11 +159,11 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     g m \<turnstile> (kind g exception) \<mapsto> e;
 
     Some c_g = (p c_s);      
-    kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exceptionEdge);
+    kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 
     c_m' = set_state c_m Exception;
     c_m'' = m_set c_nid e c_m'\<rbrakk>
-  \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,exceptionEdge,c_m'')#stk, h)"
+  \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,exEdge,c_m'')#stk, h)"
 
 text_raw \<open>\Snip{TopStepSemantics}%\<close>
 text \<open>

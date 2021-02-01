@@ -267,7 +267,18 @@ lemma wff_use_ids:
   assumes "nid \<in> ids g"
   assumes "eval_uses g nid nid'"
   shows "nid' \<in> ids g"
-  sorry
+  using assms(3)
+proof (induction rule: eval_uses.induct)
+  case use0
+  then show ?case by simp
+next
+  case use_inp
+  then show ?case
+    using assms(1) inp_in_g_wff by blast
+next
+  case use_trans
+  then show ?case by blast
+qed
 
 lemma no_external_use:
   assumes "wff_graph g"
@@ -297,8 +308,7 @@ lemma if_node_create:
   assumes fresh: "nid \<notin> ids g"
   assumes gif: "gif = add_node nid ((IfNode cond tb fb), VoidStamp) g"
   assumes gcreate: "gcreate = add_node nid ((create_if g cond tb fb), VoidStamp) g"
-  shows "\<exists>nid'. (gif m h \<turnstile> nid \<leadsto> nid') \<and> 
-                (gcreate m h \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid'. (gif m h \<turnstile> nid \<leadsto> nid') \<and> (gcreate m h \<turnstile> nid \<leadsto> nid')"
 text_raw \<open>\EndSnip\<close>
 proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
   case True

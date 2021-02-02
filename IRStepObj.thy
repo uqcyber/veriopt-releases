@@ -161,9 +161,8 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     Some c_g = (p c_s);      
     kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 
-    c_m' = set_state c_m Exception;
-    c_m'' = m_set c_nid e c_m'\<rbrakk>
-  \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,exEdge,c_m'')#stk, h)"
+    c_m' = m_set c_nid e c_m\<rbrakk>
+  \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,exEdge,c_m')#stk, h)"
 
 text_raw \<open>\Snip{TopStepSemantics}%\<close>
 text \<open>
@@ -182,7 +181,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top
 type_synonym ExecLog = "(ID \<times> IRNode) list"
 
 fun has_return :: "MapState \<Rightarrow> bool" where
-  "has_return m = (((m_val m 0) \<noteq> UndefVal) \<or> ((m_state m) = Exception))"
+  "has_return m = ((m_val m 0) \<noteq> UndefVal)"
 
 inductive exec :: "Program 
       \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
@@ -231,7 +230,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 
 
 definition p3:: MapState where
-  "p3 = set_params new_map_state [IntVal 32 3] "
+  "p3 = set_params new_map_state [IntVal 32 3]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{m_val (prod.snd (prod.snd (hd (prod.fst res)))) 0 

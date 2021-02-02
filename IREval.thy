@@ -6,24 +6,19 @@ theory IREval
     IRGraph
 begin
 
-datatype ExecutionState =
-  Normal |
-  Exception
-
 datatype MapState =
   MapState
     (m_values: "ID \<Rightarrow> Value")
     (m_params: "Value list")
-    (m_state: "ExecutionState")
 
 definition new_map_state :: "MapState" where
-  "new_map_state = MapState (\<lambda>x. UndefVal) [] Normal"
+  "new_map_state = MapState (\<lambda>x. UndefVal) []"
 
 fun m_val :: "MapState \<Rightarrow> ID \<Rightarrow> Value" where
   "m_val m nid = (m_values m) nid"
 
 fun m_set :: "ID \<Rightarrow> Value \<Rightarrow> MapState \<Rightarrow> MapState" where
-  "m_set nid v (MapState m p s) = MapState (m(nid := v)) p s"
+  "m_set nid v (MapState m p) = MapState (m(nid := v)) p"
 
 fun m_param :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> Value" where
   "m_param g m nid = (case (kind g nid) of
@@ -31,10 +26,7 @@ fun m_param :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> Va
     _ \<Rightarrow> UndefVal)"
 
 fun set_params :: "MapState \<Rightarrow> Value list \<Rightarrow> MapState" where
-  "set_params (MapState m _ s) vs = MapState m vs s"
-
-fun set_state :: "MapState \<Rightarrow> ExecutionState \<Rightarrow> MapState" where
-  "set_state (MapState m p _) s = MapState m p s"
+  "set_params (MapState m _) vs = MapState m vs"
 
 fun new_map :: "Value list \<Rightarrow> MapState" where
   "new_map ps = set_params new_map_state ps"
@@ -71,35 +63,8 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
 
-text_raw \<open>\Snip{AnyUsage}%\<close>
 fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID" where
-  "any_usage g nid = (SOME n. n \<in> (usages g nid))"
-text_raw \<open>\EndSnip\<close>
-
-fun first :: "'a list \<Rightarrow> 'a option" where
-  "first [] = None" |
-  "first xs = Some (hd xs)"
-
-fun any_usage_cg :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID" where
-  "any_usage_cg g nid = hd (sorted_list_of_set (usages g nid))"
-
-lemma any_usage_def[code]:
-  "any_usage g nid = any_usage_cg g nid"
-proof (cases "usages g nid = {}")
-  case True
-  then show ?thesis sorry
-next
-  case False
-  let ?u = "hd (sorted_list_of_set (usages g nid))"
-  have "?u \<in> usages g nid"
-    unfolding sorted_list_of_set_def hd_def
-    using False sorry
-  then show ?thesis
-    unfolding any_usage.simps any_usage_cg.simps
-    sorry
-qed
-  
-    
+  "any_usage g nid = hd (sorted_list_of_set (usages g nid))"
 
 inductive
   eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ \<turnstile> _ \<mapsto> _" 55)

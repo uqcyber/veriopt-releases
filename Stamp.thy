@@ -101,14 +101,6 @@ fun join :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "join s1 s2 = IllegalStamp"
 
 
-fun stamp_value :: "Stamp \<Rightarrow> UnstampedValue \<Rightarrow> Value" where
-  "stamp_value (IntegerStamp b l h) (UnstampedInt v) = 
-    (if v > h \<or> v < l then UndefVal else IntVal b v)" |
-  "stamp_value (FloatStamp b l h) (UnstampedFloat m e) =
-    (let v = (float_of (m * 2 powr e)) in
-    (if v > h \<or> v < l then UndefVal else FloatVal b v))" |
-  "stamp_value x y = UndefVal"
-
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
   "valid_value (IntegerStamp b1 l h) (IntVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |
   "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |

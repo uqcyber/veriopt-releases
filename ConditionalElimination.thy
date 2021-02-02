@@ -5,7 +5,7 @@ begin
 
 fun wff_stamps :: "IRGraph \<Rightarrow> bool" where
   "wff_stamps g = (\<forall> n \<in> ids g . 
-    (\<forall> v m . (g m \<turnstile> (kind g n) \<mapsto> v) \<and> valid_value (stamp g n) v))"
+    (\<forall> v m . (g m \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (stamp g n) v))"
 
 lemma join_unequal:
   assumes "joined = (join x_stamp y_stamp)"
@@ -20,7 +20,7 @@ lemma foldBinaryOpLogicJoin:
   assumes "is_stamp_empty (join (stamp g x) (stamp g y))"
   shows "v = IntVal 1 0"
   using assms eval.IntegerEqualsNode join_unequal
-  by fastforce
+  by (smt IntegerEqualsNodeE NoNodeE bool_to_val.simps(2) ids_some wff_stamps.simps)
 
 (*
 lemma rewriteBinaryOpLogicJoin:

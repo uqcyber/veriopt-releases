@@ -23,9 +23,20 @@ proof -
     by fastforce
 qed
 
+text_raw \<open>\Snip{graphdefnostamp}
+@{bold \<open>typedef\<close>} @{term[source] \<open>IRGraph = {g :: ID \<rightharpoonup> IRNode . finite (dom g)}\<close>}
+\EndSnip\<close>
+
 setup_lifting type_definition_IRGraph
 
-text_raw \<open>\Snip{lifted_helpers}%\<close>
+text_raw \<open>\Snip{fake_lifted_helpers}\<close>
+fun ids_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID set" where
+  "ids_fake g = {nid \<in> dom g . g nid \<noteq> (Some NoNode)}"
+
+fun kind_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<Rightarrow> IRNode)" where
+  "kind_fake g = (\<lambda>nid. (case g nid of None \<Rightarrow> NoNode | Some v \<Rightarrow> v))"
+text_raw \<open>\EndSnip\<close>
+
 lift_definition ids :: "IRGraph \<Rightarrow> ID set"
   is "\<lambda>g. {nid \<in> dom g . \<nexists>s. g nid = (Some (NoNode, s))}" .
 
@@ -44,7 +55,6 @@ lift_definition add_node :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarr
 
 lift_definition remove_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
   is "\<lambda>nid g. g(nid := None)" by simp
-text_raw \<open>\EndSnip\<close>
 
 fun no_node :: "(ID \<times> (IRNode \<times> Stamp)) list \<Rightarrow> (ID \<times> (IRNode \<times> Stamp)) list" where
   "no_node g = filter (\<lambda>n. fst (snd n) \<noteq> NoNode) g"

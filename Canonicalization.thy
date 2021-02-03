@@ -94,9 +94,10 @@ lemma add_node_create:
   shows 
     "(g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (xv+yv)) \<and>
      (g m \<turnstile> (create_add g x y) \<mapsto> IntVal b (xv+yv))"
-  (is "?P \<and> ?Q")
-  text_raw \<open>\EndSnip\<close>
+text_raw \<open>\EndSnip\<close>
 proof -
+  let ?P = "(g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (xv+yv))"
+  let ?Q = "(g m \<turnstile> (create_add g x y) \<mapsto> IntVal b (xv+yv))"
   have P: ?P
     using xv yv eval.AddNode by simp
   have Q: ?Q
@@ -301,104 +302,6 @@ proof -
     using eval_uses_imp by blast
 qed
 
-text_raw \<open>\Snip{IfNodeCreate}%\<close>
-lemma if_node_create:
-  assumes wff: "wff_graph g"
-  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
-  assumes fresh: "nid \<notin> ids g"
-  assumes gif: "gif = add_node nid ((IfNode cond tb fb), VoidStamp) g"
-  assumes gcreate: "gcreate = add_node nid ((create_if g cond tb fb), VoidStamp) g"
-  shows "\<exists>nid'. (gif m h \<turnstile> nid \<leadsto> nid') \<and> (gcreate m h \<turnstile> nid \<leadsto> nid')"
-text_raw \<open>\EndSnip\<close>
-proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
-  case True
-  show ?thesis
-  proof -
-    obtain val where val: "(kind g cond) = ConstantNode val"
-      using True by blast
-    have cond_exists: "cond \<in> ids g"
-      using cv eval_in_ids by auto
-    have if_kind: "kind gif nid = (IfNode cond tb fb)"
-      using gif add_node_lookup by simp
-    have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
-      using step.IfNode if_kind
-      using True eval.ConstantNode gif fresh
-      using stay_same cond_exists
-      using val
-      using add_node.rep_eq kind.rep_eq by auto
-    have if_step: "gif \<turnstile> (nid,m,h) \<rightarrow> (if val_to_bool val then tb else fb,m,h)"
-    proof -
-      show ?thesis using step.IfNode if_kind if_cv 
-        by (simp)
-    qed
-    have create_step: "gcreate \<turnstile> (nid,m,h) \<rightarrow> (if val_to_bool val then tb else fb,m,h)"
-    proof -
-      have create_kind: "kind gcreate nid = (create_if g cond tb fb)"
-        using gcreate add_node_lookup
-        by blast
-      have create_fun: "create_if g cond tb fb = RefNode (if val_to_bool val then tb else fb)"
-        using True create_kind val by simp 
-      show ?thesis using step.RefNode create_kind create_fun if_cv 
-        by (simp)
-    qed
-    show ?thesis using Step create_step if_step by blast
-  qed
-next
-  case not_const: False
-  obtain nid' where "nid' = (if val_to_bool cv then tb else fb)"
-    by blast
-  have nid_eq: "(gif \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)) \<and> (gcreate \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h))"
-  proof -
-    have indep: "\<not>(eval_uses g cond nid)"
-      using no_external_use
-      using cv eval_in_ids fresh wff by blast
-    have nid': "nid' = (if val_to_bool cv then tb else fb)"
-      by (simp add: \<open>nid' = (if val_to_bool cv then tb else fb)\<close>)
-    have gif_kind: "kind gif nid = (IfNode cond tb fb)"
-      using add_node_lookup gif
-      by blast
-    then have "nid \<noteq> cond"
-      using cv fresh indep
-      using eval_in_ids by blast
-    have "unchanged (eval_usages g cond) g gif"
-      using gif add_node_unchanged
-      using cv eval_in_ids fresh wff by blast
-    then obtain cv2 where cv2: "gif m \<turnstile> (kind gif cond) \<mapsto> cv2" 
-      using cv gif wff stay_same by blast
-    then have "cv = cv2"
-      using indep gif cv
-      using \<open>nid \<noteq> cond\<close>
-      using fresh
-      using \<open>unchanged (eval_usages g cond) g gif\<close> evalDet stay_same wff by blast
-    then have eval_gif: "(gif \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h))"
-      using step.IfNode gif_kind nid' cv2 
-      by auto
-    have gcreate_kind: "kind gcreate nid = (create_if g cond tb fb)"
-      using gcreate add_node_lookup
-      by blast
-    have eval_gcreate: "gcreate \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
-    proof (cases "tb = fb")
-      case True
-      have "create_if g cond tb fb = RefNode tb"
-        using not_const True by (cases "(kind g cond)"; auto)
-      then show ?thesis
-        using True gcreate_kind nid' step.RefNode
-        by (simp)
-    next
-      case False
-      have "create_if g cond tb fb = IfNode cond tb fb"
-        using not_const False by (cases "(kind g cond)"; auto)
-      then show ?thesis
-        using eval_gif gcreate gif
-        using IfNode \<open>cv = cv2\<close> cv2 gif_kind nid' by auto
-    qed
-    show ?thesis
-      using eval_gcreate eval_gif Step by blast
-  qed
-  show ?thesis using nid_eq Step by blast
-qed
-
-
 lemma if_stamp_fold:
   assumes wff: "wff_graph g \<and> wff_stamps g"
 
@@ -434,6 +337,118 @@ proof -
   show ?thesis using P Q using Step by blast
 qed
 
+(* The following function definition and lemmas designed to hide stamps
+   from the definition of if_node_create for the ITP paper which does
+   not include stamps *)
+fun add_node_fake :: "ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
+  "add_node_fake nid k g = add_node nid (k, VoidStamp) g"
+lemma add_node_lookup_fake:
+  "gup = add_node_fake nid k g \<longrightarrow> kind gup nid = k"
+  using add_node_lookup by auto
+lemma add_node_unchanged_fake:
+  assumes "new \<notin> ids g"
+  assumes "nid \<in> ids g"
+  assumes "gup = add_node_fake new k g"
+  assumes "wff_graph g"
+  shows "unchanged (eval_usages g nid) g gup"
+  using add_node_fake.simps add_node_unchanged assms by blast
 
+
+text_raw \<open>\Snip{IfNodeCreate}%\<close>
+lemma if_node_create:
+  assumes wff: "wff_graph g"
+  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
+  assumes fresh: "nid \<notin> ids g"
+  assumes gif: "gif = add_node_fake nid (IfNode cond tb fb) g"
+  assumes gcreate: "gcreate = add_node_fake nid (create_if g cond tb fb) g"
+  shows "\<exists>nid'. (gif m h \<turnstile> nid \<leadsto> nid') \<and> (gcreate m h \<turnstile> nid \<leadsto> nid')"
+text_raw \<open>\EndSnip\<close>
+proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
+  case True
+  show ?thesis
+  proof -
+    obtain val where val: "(kind g cond) = ConstantNode val"
+      using True by blast
+    have cond_exists: "cond \<in> ids g"
+      using cv eval_in_ids by auto
+    have if_kind: "kind gif nid = (IfNode cond tb fb)"
+      using gif add_node_lookup by simp
+    have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
+      using step.IfNode if_kind
+      using True eval.ConstantNode gif fresh
+      using stay_same cond_exists
+      using val
+      using add_node.rep_eq kind.rep_eq by auto
+    have if_step: "gif \<turnstile> (nid,m,h) \<rightarrow> (if val_to_bool val then tb else fb,m,h)"
+    proof -
+      show ?thesis using step.IfNode if_kind if_cv 
+        by (simp)
+    qed
+    have create_step: "gcreate \<turnstile> (nid,m,h) \<rightarrow> (if val_to_bool val then tb else fb,m,h)"
+    proof -
+      have create_kind: "kind gcreate nid = (create_if g cond tb fb)"
+        using gcreate add_node_lookup_fake
+        by blast
+      have create_fun: "create_if g cond tb fb = RefNode (if val_to_bool val then tb else fb)"
+        using True create_kind val by simp 
+      show ?thesis using step.RefNode create_kind create_fun if_cv 
+        by (simp)
+    qed
+    show ?thesis using Step create_step if_step by blast
+  qed
+next
+  case not_const: False
+  obtain nid' where "nid' = (if val_to_bool cv then tb else fb)"
+    by blast
+  have nid_eq: "(gif \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)) \<and> (gcreate \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h))"
+  proof -
+    have indep: "\<not>(eval_uses g cond nid)"
+      using no_external_use
+      using cv eval_in_ids fresh wff by blast
+    have nid': "nid' = (if val_to_bool cv then tb else fb)"
+      by (simp add: \<open>nid' = (if val_to_bool cv then tb else fb)\<close>)
+    have gif_kind: "kind gif nid = (IfNode cond tb fb)"
+      using add_node_lookup_fake gif
+      by blast
+    then have "nid \<noteq> cond"
+      using cv fresh indep
+      using eval_in_ids by blast
+    have "unchanged (eval_usages g cond) g gif"
+      using gif add_node_unchanged_fake
+      using cv eval_in_ids fresh wff by blast
+    then obtain cv2 where cv2: "gif m \<turnstile> (kind gif cond) \<mapsto> cv2" 
+      using cv gif wff stay_same by blast
+    then have "cv = cv2"
+      using indep gif cv
+      using \<open>nid \<noteq> cond\<close>
+      using fresh
+      using \<open>unchanged (eval_usages g cond) g gif\<close> evalDet stay_same wff by blast
+    then have eval_gif: "(gif \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h))"
+      using step.IfNode gif_kind nid' cv2 
+      by auto
+    have gcreate_kind: "kind gcreate nid = (create_if g cond tb fb)"
+      using gcreate add_node_lookup_fake
+      by blast
+    have eval_gcreate: "gcreate \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
+    proof (cases "tb = fb")
+      case True
+      have "create_if g cond tb fb = RefNode tb"
+        using not_const True by (cases "(kind g cond)"; auto)
+      then show ?thesis
+        using True gcreate_kind nid' step.RefNode
+        by (simp)
+    next
+      case False
+      have "create_if g cond tb fb = IfNode cond tb fb"
+        using not_const False by (cases "(kind g cond)"; auto)
+      then show ?thesis
+        using eval_gif gcreate gif
+        using IfNode \<open>cv = cv2\<close> cv2 gif_kind nid' by auto
+    qed
+    show ?thesis
+      using eval_gcreate eval_gif Step by blast
+  qed
+  show ?thesis using nid_eq Step by blast
+qed
 
 end

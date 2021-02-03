@@ -204,14 +204,14 @@ text \<open>Representative induction rules for eval\<close>
 text_raw \<open>\Snip{ExpressionSemantics}%\<close>
 text \<open>
 \begin{center}
-@{thm[mode=Rule] eval.ConstantNode [no_vars]}\induct{eval:const}\\[8px]
-@{thm[mode=Rule] eval.ParameterNode [no_vars]}\induct{eval:param}\\[8px]
-@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}\induct{eval:phi}\\[8px]
-@{thm[mode=Rule] eval.NegateNode [no_vars]}\induct{eval:neg}\\[8px]
-@{thm[mode=Rule] eval.AddNode [no_vars]}\induct{eval:add}\\[8px]
-@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}\induct{eval:invoke}\\[8px]
-@{thm[mode=Rule] eval.LoadFieldNode [no_vars]}\induct{eval:load}\\[8px]
-@{thm[mode=Rule] eval.RefNode [no_vars]}\induct{eval:ref}
+\induct{@{thm[mode=Rule] eval.ConstantNode [no_vars]}}{eval:const}
+\induct{@{thm[mode=Rule] eval.ParameterNode [no_vars]}}{eval:param}
+\induct{@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}}{eval:phi}
+\induct{@{thm[mode=Rule] eval.NegateNode [no_vars]}}{eval:neg}
+\induct{@{thm[mode=Rule] eval.AddNode [no_vars]}}{eval:add}
+\induct{@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}}{eval:invoke}
+\induct{@{thm[mode=Rule] eval.LoadFieldNode [no_vars]}}{eval:load}
+\induct{@{thm[mode=Rule] eval.RefNode [no_vars]}}{eval:ref}
 \end{center}
 \<close>
 text_raw \<open>\EndSnip\<close>

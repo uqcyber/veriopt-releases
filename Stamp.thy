@@ -101,6 +101,11 @@ fun join :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "join s1 s2 = IllegalStamp"
 
 
+fun asConstant :: "Stamp \<Rightarrow> Value" where
+  "asConstant (IntegerStamp b l h) = (if l = h then IntVal b l else UndefVal)" |
+  "asConstant _ = UndefVal"
+
+
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
   "valid_value (IntegerStamp b1 l h) (IntVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |
   "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |

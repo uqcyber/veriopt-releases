@@ -1,7 +1,7 @@
 section \<open>GraalVM Nodes\<close>
 
 theory IRNodes
-  imports 
+  imports
     Values
 begin
 

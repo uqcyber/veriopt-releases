@@ -56,6 +56,9 @@ lift_definition add_node :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarr
 lift_definition remove_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
   is "\<lambda>nid g. g(nid := None)" by simp
 
+lift_definition replace_node :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
+  is "\<lambda>nid k g. g(nid \<mapsto> k)" by simp
+
 fun no_node :: "(ID \<times> (IRNode \<times> Stamp)) list \<Rightarrow> (ID \<times> (IRNode \<times> Stamp)) list" where
   "no_node g = filter (\<lambda>n. fst (snd n) \<noteq> NoNode) g"
 
@@ -183,6 +186,14 @@ lemma add_node_lookup:
 lemma remove_node_lookup:
   "gup = remove_node nid g \<longrightarrow> kind gup nid = NoNode \<and> stamp gup nid = IllegalStamp"
   by (simp add: kind.rep_eq remove_node.rep_eq stamp.rep_eq)
+
+lemma replace_node_lookup[simp]:
+  "gup = replace_node nid (k, s) g \<longrightarrow> kind gup nid = k \<and> stamp gup nid = s"
+  by (simp add: replace_node.rep_eq kind.rep_eq stamp.rep_eq)
+
+lemma replace_node_unchanged:
+  "gup = replace_node nid (k, s) g \<longrightarrow> (\<forall> n \<in> (ids g - {nid}) . kind g n = kind gup n)" 
+  by (simp add: kind.rep_eq replace_node.rep_eq)
 
 subsection "Example Graphs"
 text "Example 1: empty graph (just a start and end node)"

@@ -5,6 +5,7 @@ theory Canonicalization
     IRGraphFrames
     IRStepObj
     ConditionalElimination
+    Stuttering
 begin
 
 
@@ -206,26 +207,7 @@ fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<R
     )"
 text_raw \<open>\EndSnip\<close>
 
-inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> DynamicHeap \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ \<turnstile> _ \<leadsto> _" 55)
-  for g m h where
 
-  Step:
-  "\<lbrakk>g \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)\<rbrakk>
-   \<Longrightarrow> g m h \<turnstile> nid \<leadsto> nid'" |
-
-  Transitive:
-  "\<lbrakk>g \<turnstile> (nid,m,h) \<rightarrow> (nid'',m,h);
-    g m h \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
-   \<Longrightarrow> g m h \<turnstile> nid \<leadsto> nid'"
-
-text_raw \<open>\Snip{Stutter}%\<close>
-text \<open>
-\begin{center}
-@{thm[mode=Rule] stutter.Step [no_vars]}\\[8px]
-@{thm[mode=Rule] stutter.Transitive [no_vars]}
-\end{center}
-\<close>
-text_raw \<open>\EndSnip\<close>
 
 lemma add_changed:
   assumes "gup = add_node new k g"
@@ -323,7 +305,7 @@ proof -
     then have condgif: "gif m \<turnstile> (kind gif cond) \<mapsto> cv"
       by (metis add_node_unchanged cv eval_in_ids fresh gif kind_unchanged stay_same wff)
     then have "\<not>(val_to_bool cv)"
-      using foldBinaryOpLogicJoin
+      using tryFoldIntegerEqualsAlwaysDistinct alwaysDistinct.simps
       by (metis condkind cv emp val_to_bool.simps(1) wff)
     then show ?thesis
       using step.IfNode ifkind condgif by presburger

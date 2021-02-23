@@ -23,29 +23,22 @@ lemma implies_true_valid:
   assumes "imp = KnownTrue"
   assumes "g m \<turnstile> x \<mapsto> v1"
   assumes "g m \<turnstile> y \<mapsto> v2"
-  shows "v1 = v2"
+  shows "val_to_bool v1 \<longrightarrow> val_to_bool v2"
 proof -
   have "g \<turnstile> x & y \<hookrightarrow> imp"
     using assms(1) assms(2) condition_implies.cases by blast
-then show ?thesis proof (induct x y imp rule: implies.induct)
+
+then show ?thesis
+using assms proof (induct x y imp rule: implies.induct)
   case (1 x y)
-  have "imp = KnownFalse"
-    sorry
-  then show ?case
-    using assms(2) by blast
+  then show ?case by simp
 next
   case (2 x y)
-  have "imp = KnownFalse"
-    sorry
-  then show ?case
-    using assms(2) by blast
+  then show ?case by simp
 next
   case (3 x1)
-  have "x = x1 \<and> y = x1"
-    sorry
-  then have "x = y" by simp
   then show ?case using evalDet
-    using assms(3) assms(4) by auto
+    using assms(3) assms(4) by blast
 qed
 qed
 
@@ -55,31 +48,51 @@ lemma implies_false_valid:
   assumes "imp = KnownFalse"
   assumes "g m \<turnstile> x \<mapsto> v1"
   assumes "g m \<turnstile> y \<mapsto> v2"
-  shows "v1 \<noteq> v2"
+  shows "val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2)"
 proof -
   have "g \<turnstile> x & y \<hookrightarrow> imp"
     using assms(2) assms(3) condition_implies.cases by blast
-then show ?thesis proof (induct x y imp rule: implies.induct)
-  case (1 xv yv)
-  have x: "x = (IntegerEqualsNode xv yv)"
-    sorry
-  have y: "y = (IntegerLessThanNode xv yv)"
-    sorry
-  obtain xval where "g m \<turnstile> kind g xv \<mapsto> xval"
-    using assms(4) x by blast
-  obtain yval where "g m \<turnstile> kind g yv \<mapsto> yval"
-    using assms(5) y by blast
-  have "g m \<turnstile> (IntegerEqualsNode xv yv) \<mapsto> bool_to_val(xval = yval)"
+
+then show ?thesis
+using assms proof (induct x y imp rule: implies.induct)
+  case (1 x y)
+  obtain b xval where xval: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xval"
+    using "1.prems"(4) by blast
+  then obtain yval where yval: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yval"
+    using "1.prems"(4)
+    using evalDet by blast
+  have eqeval: "g m \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
     using eval.IntegerEqualsNode
-    by (smt IntegerEqualsNodeE \<open>g m \<turnstile> kind g xv \<mapsto> xval\<close> \<open>g m \<turnstile> kind g yv \<mapsto> yval\<close> assms(4) evalDet x)
+    using xval yval by blast
+  have lesseval: "g m \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
+    using eval.IntegerLessThanNode
+    using xval yval by blast
+  have "xval = yval \<longrightarrow> \<not>(xval < yval)"
+    by blast
   then show ?case
-    using eval.IntegerEqualsNode eval.IntegerLessThanNode sorry
+    using eqeval lesseval
+    by (metis (full_types) "1.prems"(4) "1.prems"(5) bool_to_val.simps(2) evalDet val_to_bool.simps(1))
 next
   case (2 x y)
-  then show ?case sorry
+    obtain b xval where xval: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xval"
+    using "2.prems"(4) by blast
+  then obtain yval where yval: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yval"
+    using "2.prems"(4)
+    using evalDet by blast
+  have eqeval: "g m \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
+    using eval.IntegerEqualsNode
+    using xval yval by blast
+  have lesseval: "g m \<turnstile> (IntegerLessThanNode y x) \<mapsto> bool_to_val(yval < xval)"
+    using eval.IntegerLessThanNode
+    using xval yval by blast
+  have "xval = yval \<longrightarrow> \<not>(yval < xval)"
+    by blast
+  then show ?case
+    using eqeval lesseval
+    by (metis (full_types) "2.prems"(4) "2.prems"(5) bool_to_val.simps(2) evalDet val_to_bool.simps(1))
 next
   case (3 x1)
-  then show ?case sorry
+  then show ?case by simp
 qed
 qed
 

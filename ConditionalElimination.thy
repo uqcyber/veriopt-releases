@@ -8,10 +8,10 @@ datatype TriState = Unknown | KnownTrue | KnownFalse
 
 inductive implies :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> TriState \<Rightarrow> bool"
   ("_ \<turnstile> _ & _ \<hookrightarrow> _") for g where
-  "g \<turnstile> (IntegerEqualsNode x y) & (IntegerLessThanNode x y) \<hookrightarrow> KnownFalse" |
-  "g \<turnstile> (IntegerEqualsNode x y) & (IntegerLessThanNode y x) \<hookrightarrow> KnownFalse" |
+  eq_imp_less: "g \<turnstile> (IntegerEqualsNode x y) & (IntegerLessThanNode x y) \<hookrightarrow> KnownFalse" |
+  eq_imp_less_rev: "g \<turnstile> (IntegerEqualsNode x y) & (IntegerLessThanNode y x) \<hookrightarrow> KnownFalse" |
 
-  "g \<turnstile> x & x \<hookrightarrow> KnownTrue"
+  x_imp_x: "g \<turnstile> x & x \<hookrightarrow> KnownTrue"
 
 inductive condition_implies :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> TriState \<Rightarrow> bool"
   ("_ \<turnstile> _ & _ \<rightharpoonup> _") for g where
@@ -30,13 +30,13 @@ proof -
 
 then show ?thesis
 using assms proof (induct x y imp rule: implies.induct)
-  case (1 x y)
+  case (eq_imp_less x y)
   then show ?case by simp
 next
-  case (2 x y)
+  case (eq_imp_less_rev x y)
   then show ?case by simp
 next
-  case (3 x1)
+  case (x_imp_x x1)
   then show ?case using evalDet
     using assms(3) assms(4) by blast
 qed
@@ -55,11 +55,11 @@ proof -
 
 then show ?thesis
 using assms proof (induct x y imp rule: implies.induct)
-  case (1 x y)
+  case (eq_imp_less x y)
   obtain b xval where xval: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xval"
-    using "1.prems"(4) by blast
+    using eq_imp_less.prems(4) by blast
   then obtain yval where yval: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yval"
-    using "1.prems"(4)
+    using eq_imp_less.prems(4)
     using evalDet by blast
   have eqeval: "g m \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
     using eval.IntegerEqualsNode
@@ -71,13 +71,13 @@ using assms proof (induct x y imp rule: implies.induct)
     by blast
   then show ?case
     using eqeval lesseval
-    by (metis (full_types) "1.prems"(4) "1.prems"(5) bool_to_val.simps(2) evalDet val_to_bool.simps(1))
+    by (metis (full_types) "eq_imp_less.prems"(4) "eq_imp_less.prems"(5) bool_to_val.simps(2) evalDet val_to_bool.simps(1))
 next
-  case (2 x y)
+  case (eq_imp_less_rev x y)
     obtain b xval where xval: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xval"
-    using "2.prems"(4) by blast
+    using eq_imp_less_rev.prems(4) by blast
   then obtain yval where yval: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yval"
-    using "2.prems"(4)
+    using eq_imp_less_rev.prems(4)
     using evalDet by blast
   have eqeval: "g m \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
     using eval.IntegerEqualsNode
@@ -89,9 +89,9 @@ next
     by blast
   then show ?case
     using eqeval lesseval
-    by (metis (full_types) "2.prems"(4) "2.prems"(5) bool_to_val.simps(2) evalDet val_to_bool.simps(1))
+    by (metis (full_types) eq_imp_less_rev.prems(4) eq_imp_less_rev.prems(5) bool_to_val.simps(2) evalDet val_to_bool.simps(1))
 next
-  case (3 x1)
+  case (x_imp_x x1)
   then show ?case by simp
 qed
 qed

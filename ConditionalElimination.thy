@@ -2,6 +2,7 @@ theory ConditionalElimination
   imports
     IREval
     Stuttering
+    CFG
 begin
 
 datatype TriState = Unknown | KnownTrue | KnownFalse
@@ -284,5 +285,83 @@ proof -
   from g1step g2step show ?thesis
     using Step by blast
 qed
+
+lemma replace_if_t:
+  assumes "kind g nid = IfNode cond tb fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> bool"
+  assumes "val_to_bool bool"
+  assumes g': "g' = replace_usages nid tb g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+proof -
+  have g1step: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    by (meson IfNode assms(1) assms(2) assms(3))
+  have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    using g' unfolding replace_usages.simps
+    by (simp add: step.RefNode)
+  from g1step g2step show ?thesis
+    using Step by blast
+qed
+
+lemma replace_if_f:
+  assumes "kind g nid = IfNode cond tb fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> bool"
+  assumes "\<not>(val_to_bool bool)"
+  assumes g': "g' = replace_usages nid fb g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+proof -
+  have g1step: "g \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
+    by (meson IfNode assms(1) assms(2) assms(3))
+  have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
+    using g' unfolding replace_usages.simps
+    by (simp add: step.RefNode)
+  from g1step g2step show ?thesis
+    using Step by blast
+qed
+
+(*
+lemma
+  assumes "p \<turnstile> ([(f_s, f_nid, f_m)], h) | [] \<longrightarrow>* ((l_s, l_nid, l_m) # stk, h') | trace"
+  assumes "(s, n, m) \<in> set trace"
+  assumes "Some g = p s"
+  assumes "kind g n = IfNode cond tb fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> val"
+  assumes "val_to_bool val"
+  shows "(s, tb, m) \<in> set trace"
+  using step.IfNode exec.induct assms
+
+
+lemma
+  assumes "p \<turnstile> ([(f_s, f_nid, f_m)], h) | [] \<longrightarrow>* ((l_s, l_nid, l_m) # stk, h') | trace"
+  assumes "(s, n, m) \<in> set trace"
+  assumes "Some g = p s"
+  assumes "predecessors g n = {ifnode}"
+  assumes "kind g ifnode = IfNode cond n fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> val"
+  shows "val_to_bool val"
+  sorry
+
+
+lemma
+  assumes "g \<turnstile> ifblock >> blockOf g nid"
+  assumes "end_kind ifblock = IfNode cond1 tb1 fb1"
+  assumes "kind g nid = IfNode cond2 tb2 fb2"
+  assumes "g \<turnstile> (kind g cond1) & (kind g cond2) \<rightharpoonup> KnownTrue"
+
+  (* hack to avoid reconsidering negated support *)
+assumes "g m \<turnstile> kind g cond1 \<mapsto> bool"
+assumes "val_to_bool bool"
+
+assumes "g m \<turnstile> kind g cond2 \<mapsto> condval"
+
+  assumes g': "g' = replace_usages nid tb2 g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+proof -
+  have "val_to_bool condval"
+    using assms
+    using implies_true_valid by blast
+  then show ?thesis using assms replace_if_t
+    by blast
+qed
+*)
 
 end

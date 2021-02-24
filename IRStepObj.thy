@@ -178,25 +178,23 @@ text_raw \<open>\EndSnip\<close>
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 
-type_synonym ExecLog = "(ID \<times> IRNode) list"
+type_synonym Trace = "(Signature \<times> ID \<times> MapState) list"
 
 fun has_return :: "MapState \<Rightarrow> bool" where
   "has_return m = ((m_val m 0) \<noteq> UndefVal)"
 
 inductive exec :: "Program 
       \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
-      \<Rightarrow> ExecLog 
+      \<Rightarrow> Trace 
       \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
-      \<Rightarrow> ExecLog 
+      \<Rightarrow> Trace 
       \<Rightarrow> bool"
   ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
   where
   "\<lbrakk>p \<turnstile> (((s,nid,m)#xs),h) \<longrightarrow> (((s',nid',m')#ys),h');
     \<not>(has_return m');
 
-    Some g = p s;
-    nk = kind g nid;
-    l' = (l @ [(nid, nk)]);
+    l' = (l @ [(s, nid,m)]);
 
     exec p (((s',nid',m')#ys),h') l' next_state l''\<rbrakk> 
     \<Longrightarrow> exec p (((s,nid,m)#xs),h) l next_state l''" 
@@ -205,9 +203,7 @@ inductive exec :: "Program
   "\<lbrakk>p \<turnstile> (((s,nid,m)#xs),h) \<longrightarrow> (((s',nid',m')#ys),h');
     has_return m';
 
-    Some g = p s;
-    nk = kind g nid;
-    l' = (l @ [(nid, nk)])\<rbrakk>
+    l' = (l @ [(s,nid,m)])\<rbrakk>
     \<Longrightarrow> exec p (((s,nid,m)#xs),h) l (((s',nid',m')#ys),h') l'"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool as Exec) "exec" .
 

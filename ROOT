@@ -1,4 +1,4 @@
-session semantics = "HOL-Word" +
+session semantics = "HOL-Library" +
   description
     "GraalIR Semantics"
   options [document = pdf, document_output = "output", quick_and_dirty, show_question_marks = false]

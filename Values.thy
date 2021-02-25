@@ -1,6 +1,6 @@
 theory Values
   imports
-    "HOL-Word.Word"
+    "HOL-Library.Word"
     "HOL-Library.Float"
     "HOL-Library.LaTeXsugar"
 begin

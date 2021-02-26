@@ -319,6 +319,130 @@ proof -
 qed
 
 (*
+inductive conditions :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode list \<Rightarrow> bool" where
+  "\<lbrakk>kind g nid = IfNode cond tb fb;
+    nid' = tb\<rbrakk>
+   \<Longrightarrow> conditions g nid nid' [kind g cond]" |
+  "\<lbrakk>kind g nid = IfNode cond tb fb;
+    nid' = fb\<rbrakk>
+   \<Longrightarrow> conditions g nid nid' [NegateNode cond]" |
+  "\<lbrakk>\<not>(is_IfNode (kind g nid))\<rbrakk>
+   \<Longrightarrow> conditions g nid nid' []"
+*)
+
+fun conditions :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode list" where
+  "conditions g nid nid' = (case kind g nid of
+  IfNode cond tb fb \<Rightarrow> 
+    (if (nid' = tb) then [kind g cond] else
+    (if (nid' = fb) then [NegateNode cond] else []))
+  | _ \<Rightarrow> [])"
+
+inductive exec_logic :: "IRGraph 
+      \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap)
+      \<Rightarrow> IRNode list
+      \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap)
+      \<Rightarrow> IRNode list
+      \<Rightarrow> bool"
+  ("_ \<turnstile> _ > _ \<longrightarrow>* _ > _")
+  for g
+  where
+  "\<lbrakk>g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h');
+
+    conds = conditions g nid nid';
+
+    cs' = conds @ cs;
+
+    g \<turnstile> (nid',m',h') > cs' \<longrightarrow>* next_state > cs''\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid,m,h) > cs \<longrightarrow>* next_state > cs''" |
+
+  "g \<turnstile> (nid,m,h) > cs \<longrightarrow>* (nid,m,h) > cs"
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) exec_logic .
+
+
+definition simple_if :: IRGraph where
+  "simple_if = irgraph [
+    (12, (ReturnNode (Some 11) None), default_stamp),
+    (11, (ValuePhiNode 11 [9,7] 10), default_stamp),
+    (10, (MergeNode [5,6] None 12), default_stamp),
+    (9, (AddNode 7 8), default_stamp),
+    (8, (ParameterNode 2), default_stamp),
+    (7, (ParameterNode 1), default_stamp),
+    (6, (EndNode), VoidStamp),
+    (5, (EndNode), VoidStamp),
+    (4, (BeginNode 6), VoidStamp),
+    (3, (BeginNode 5), VoidStamp),
+    (2, (IfNode 1 3 4), VoidStamp),
+    (1, (ParameterNode 0), default_stamp),
+    (0, (StartNode None 2), VoidStamp)
+  ]"
+
+definition loop :: IRGraph where
+  "loop = irgraph [
+    (13, (ReturnNode (Some 7) None), default_stamp),
+    (12, (LoopEndNode 11), VoidStamp),
+    (11, (BeginNode 12), VoidStamp),
+    (10, (IfNode 9 11 13), VoidStamp),
+    (9, (IntegerLessThanNode 7 6), default_stamp),
+    (8, (AddNode 7 5), default_stamp),
+    (7, (ValuePhiNode 7 [4,8] 3), default_stamp),
+    (6, (ParameterNode 0), default_stamp),
+    (5, (ConstantNode (IntVal 32 1)), default_stamp),
+    (4, (ConstantNode (IntVal 32 0)), default_stamp),
+    (3, (LoopBeginNode [2,12] None None 10), VoidStamp),
+    (2, (EndNode), VoidStamp),
+    (1, (BeginNode 2), VoidStamp),
+    (0, (StartNode None 1), VoidStamp)
+  ]"
+
+values "{cs' | s' cs' . simple_if \<turnstile> 
+(0, new_map [IntVal 32 0, IntVal 32 1, IntVal 32 2], new_heap) > [] \<longrightarrow>* s' > cs'}"
+values "{cs' | s' cs' . loop \<turnstile> 
+(0, new_map [IntVal 32 0], new_heap) > [] \<longrightarrow>* s' > cs'}"
+values "{cs' | s' cs' . loop \<turnstile> 
+(0, new_map [IntVal 32 2], new_heap) > [] \<longrightarrow>* s' > cs'}"
+
+lemma
+  assumes "g \<turnstile> (nid, m, h) > cs \<longrightarrow>* (nid', m', h') > cs'"
+  assumes "kind g nid = IfNode cond tb fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> val"
+  assumes "val_to_bool val"
+  shows "kind g cond \<in> set cs'"
+  sorry
+
+(*
+lemma
+  assumes "p \<turnstile> ((f_s, f_nid, f_m) # f_stk, f_h) | f_trace \<longrightarrow>* ((l_s, l_nid, l_m) # l_stk, l_h) | (f_trace @ trace)"
+  assumes "(s, nid, m) \<in> set trace"
+  shows "\<exists>xs h xs' h' s' nid' m'. (p \<turnstile> (((s, nid, m)#xs), h) \<longrightarrow> (((s', nid', m')#xs'),h'))"
+  using assms 
+proof (induct "((f_s, f_nid, f_m) # f_stk, f_h)" f_trace "((l_s, l_nid, l_m) # l_stk, l_h)" "(f_trace @ trace)" rule: "exec.induct")
+  case (1 s' nid' m' ys h' l' l)
+  then have "set l \<subset> set l'"
+    sorry
+  from 1 have "set l \<subseteq> set (f_trace @ trace)"
+    sorry
+  have "set [(f_s, f_nid, f_m)] \<subseteq> set trace"
+    sledgehammer
+  from 1 show ?case sorry
+next
+  case (2 l)
+  have "(s, nid, m) = (f_s, f_nid, f_m)"
+    using "2.hyps"(3) "2.prems" by auto
+  then show ?case using "2.hyps"(1)
+    by blast
+qed
+  case (1 p s nid m xs h s' nid' m' ys h' l' l next_state l'')
+  then show ?case
+    by simp
+next
+  case (2 p s nid m xs h s' nid' m' ys h' l' l)
+  then have "l = f_trace"
+    sledgehammer
+  then have "trace = [(s, nid, m)]"
+    using assms sorry
+  then show ?case sorry
+qed
+
 lemma
   assumes "p \<turnstile> ([(f_s, f_nid, f_m)], h) | [] \<longrightarrow>* ((l_s, l_nid, l_m) # stk, h') | trace"
   assumes "(s, n, m) \<in> set trace"
@@ -329,7 +453,6 @@ lemma
   shows "(s, tb, m) \<in> set trace"
   using step.IfNode exec.induct assms
 
-
 lemma
   assumes "p \<turnstile> ([(f_s, f_nid, f_m)], h) | [] \<longrightarrow>* ((l_s, l_nid, l_m) # stk, h') | trace"
   assumes "(s, n, m) \<in> set trace"
@@ -339,7 +462,7 @@ lemma
   assumes "g m \<turnstile> kind g cond \<mapsto> val"
   shows "val_to_bool val"
   sorry
-
+*)
 
 lemma
   assumes "g \<turnstile> ifblock >> blockOf g nid"
@@ -362,6 +485,6 @@ proof -
   then show ?thesis using assms replace_if_t
     by blast
 qed
-*)
+
 
 end

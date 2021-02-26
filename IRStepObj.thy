@@ -190,6 +190,7 @@ inductive exec :: "Program
       \<Rightarrow> Trace 
       \<Rightarrow> bool"
   ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
+  for p
   where
   "\<lbrakk>p \<turnstile> (((s,nid,m)#xs),h) \<longrightarrow> (((s',nid',m')#ys),h');
     \<not>(has_return m');

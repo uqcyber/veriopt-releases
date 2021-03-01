@@ -477,5 +477,12 @@ theorem "evalDet":
   apply (induction rule: "eval.induct")
   by (rule allI; rule impI; elim EvalE; auto)+
 
+theorem "evalAllDet":
+   "(g m \<turnstile> nodes \<longmapsto> vals1) \<Longrightarrow>
+   (\<forall> vals2. ((g m \<turnstile> nodes \<longmapsto> vals2) \<longrightarrow> vals1 = vals2))"
+  apply (induction rule: "eval_all.induct")
+  using eval_all.cases apply blast
+  by (metis evalDet eval_all.cases list.discI list.inject)
+
 end
 

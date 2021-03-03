@@ -26,15 +26,15 @@ datatype Value  =
   FloatVal (v_bits: nat) (v_float: float) |
   ObjRef objref
 
-
-fun no_overflow_n :: "nat \<Rightarrow> int \<Rightarrow> bool" where
-  "no_overflow_n b val = ((-(2^(b-1)) \<le> val) \<and> (val < (2^(b-1))))"
+(* Check that a signed int value does not overflow b bits. *)
+fun fits_into_n :: "nat \<Rightarrow> int \<Rightarrow> bool" where
+  "fits_into_n b val = ((-(2^(b-1)) \<le> val) \<and> (val < (2^(b-1))))"
 
 fun wff_value :: "Value \<Rightarrow> bool" where
   "wff_value (IntVal b v) = 
     (b \<in> {1,8,16,32,64} \<and>
     (b = 1 \<longrightarrow> (v = 0 \<or> v = 1)) \<and>
-    (b > 1 \<longrightarrow> no_overflow_n b v))" |
+    (b > 1 \<longrightarrow> fits_into_n b v))" |
   "wff_value _ = True"
 
 (* boolean values *)
@@ -50,8 +50,18 @@ value "(-7::int) mod (4::int)"   (* gives 1.  Whereas Java gives -3. *)
 lemma wff_byte__neg129: "i < -128 \<longrightarrow> \<not> (wff_value (IntVal 8 i))" by simp
 lemma wff_byte__neg: "-128 \<le> i \<and> i < 0 \<longrightarrow> wff_value (IntVal 8 i)" by simp
 lemma wff_byte_0: "wff_value (IntVal 8 0)" by simp
-lemma wff_byte_127: "0 < i \<and> i < 128 \<longrightarrow> wff_value (IntVal 8 i)" by simp
+lemma wff_byte_pos: "0 < i \<and> i < 128 \<longrightarrow> wff_value (IntVal 8 i)" by simp
 lemma wff_byte_128: "i \<ge> 128 \<longrightarrow> \<not> (wff_value (IntVal 8 i))" by simp
 
 value "sint(word_of_int (1) :: int1)"
+
+(* Corresponds to JVM iadd and ladd instructions. *)
+fun add_intval :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "add_intval (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32 
+       then (IntVal 32 (sint((word_of_int v1 :: int32) + (word_of_int v2 :: int32))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))" 
+
+value "add_intval (IntVal 32 (2^31-1)) (IntVal 32 (2^31-1))"  (* gives: IntVal 32 (-2) *)
+value "add_intval (IntVal 64 (2^31-1)) (IntVal 32 (2^31-1))"  (* gives: IntVal 64 4294967294 *)
 end

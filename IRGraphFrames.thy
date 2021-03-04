@@ -245,40 +245,40 @@ proof -
       using kind_same Node.hyps(1,3) eval.NegateNode
       by (metis Node.prems(1) Node.prems(2) kind_unchanged ux xin)
   next
-    case node:(AddNode m x b v1 y v2 nid)
+    case node:(AddNode m x v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
       by (metis child_unchanged inp.simps inputs_of_AddNode list.set_intros(1))
-    then have x: "g1 m \<turnstile> (kind g1 x) \<mapsto> IntVal b v1"
+    then have x: "g1 m \<turnstile> (kind g1 x) \<mapsto> v1"
       using node.hyps(1) by blast
     have uy: "unchanged (eval_usages g1 y) g1 g2"
       by (metis IRNodes.inputs_of_AddNode child_member_in child_unchanged member_rec(1) node.hyps(5) node.prems(1) node.prems(2))
-    have y: "g1 m \<turnstile> (kind g1 y) \<mapsto> IntVal b v2"
+    have y: "g1 m \<turnstile> (kind g1 y) \<mapsto> v2"
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
       by (metis AddNode inp.simps inp_in_g_wff inputs_of_AddNode kind_unchanged list.set_intros(1) set_subset_Cons subset_iff wff)
   next
-    case node:(SubNode m x b v1 y v2)
+    case node:(SubNode m x v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
       by (metis child_member_in child_unchanged inputs_of_SubNode member_rec(1))
-    then have x: "g1 m \<turnstile> (kind g1 x) \<mapsto> IntVal b v1"
+    then have x: "g1 m \<turnstile> (kind g1 x) \<mapsto> v1"
       using node.hyps(1) by blast
     from node have uy: "unchanged (eval_usages g1 y) g1 g2"
       by (metis child_member_in child_unchanged inputs_of_SubNode member_rec(1))
-    have y: "g1 m \<turnstile> (kind g1 y) \<mapsto> IntVal b v2"
+    have y: "g1 m \<turnstile> (kind g1 y) \<mapsto> v2"
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
       by (metis SubNode inp.simps inputs_of_SubNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
   next
-    case node:(MulNode m x b v1 y v2)
+    case node:(MulNode m x v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
       by (metis child_member_in child_unchanged inputs_of_MulNode member_rec(1))
-    then have x: "g1 m \<turnstile> (kind g1 x) \<mapsto> IntVal b v1"
+    then have x: "g1 m \<turnstile> (kind g1 x) \<mapsto> v1"
       using node.hyps(1) by blast
     from node have uy: "unchanged (eval_usages g1 y) g1 g2"
       by (metis child_member_in child_unchanged inputs_of_MulNode member_rec(1))
-    have y: "g1 m \<turnstile> (kind g1 y) \<mapsto> IntVal b v2"
+    have y: "g1 m \<turnstile> (kind g1 y) \<mapsto> v2"
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y

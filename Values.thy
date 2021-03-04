@@ -56,12 +56,35 @@ lemma wff_byte_128: "i \<ge> 128 \<longrightarrow> \<not> (wff_value (IntVal 8 i
 value "sint(word_of_int (1) :: int1)"
 
 (* Corresponds to JVM iadd and ladd instructions. *)
-fun add_intval :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "add_intval (IntVal b1 v1) (IntVal b2 v2) = 
+fun intval_add :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_add (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32 
        then (IntVal 32 (sint((word_of_int v1 :: int32) + (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))" 
+       else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))" |
+  "intval_add _ _ = UndefVal"
 
-value "add_intval (IntVal 32 (2^31-1)) (IntVal 32 (2^31-1))"  (* gives: IntVal 32 (-2) *)
-value "add_intval (IntVal 64 (2^31-1)) (IntVal 32 (2^31-1))"  (* gives: IntVal 64 4294967294 *)
+code_deps intval_add  (* view dependency graph of code definitions *)
+code_thms intval_add  (* print all code definitions used by intval_add *)
+
+value "intval_add (IntVal 32 (2^31-1)) (IntVal 32 (2^31-1))"  (* gives: IntVal 32 (-2) *)
+value "intval_add (IntVal 64 (2^31-1)) (IntVal 32 (2^31-1))"  (* gives: IntVal 64 4294967294 *)
+
+(* Corresponds to JVM isub and lsub instructions. *)
+fun intval_sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_sub (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32 
+       then (IntVal 32 (sint((word_of_int v1 :: int32) - (word_of_int v2 :: int32))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) - (word_of_int v2 :: int64)))))" |
+  "intval_sub _ _ = UndefVal"
+
+
+(* Corresponds to JVM imul and lmul instructions. *)
+(* TODO: fix this to determine int/long result size better *)
+fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_mul (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32
+       then (IntVal 32 (sint((word_of_int v1 :: int32) * (word_of_int v2 :: int32))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) * (word_of_int v2 :: int64)))))" |
+  "intval_mul _ _ = UndefVal"
+
 end

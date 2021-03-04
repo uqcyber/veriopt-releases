@@ -96,19 +96,19 @@ inductive
 (* Binary arithmetic operators *)
 
   AddNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (v1+v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> (AddNode x y) \<mapsto> intval_add v1 v2" |
 
   SubNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (SubNode x y) \<mapsto> IntVal b (v1-v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (SubNode x y) \<mapsto> intval_sub v1 v2" |
 
   MulNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (MulNode x y) \<mapsto> IntVal b (v1*v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (MulNode x y) \<mapsto> intval_mul v1 v2" |
 
 (* TODO: this should be control-flow *)
   SignedDivNode:
@@ -460,9 +460,9 @@ NoNodeE
 
 (* Try proving 'inverted rules' for eval. *)
 lemma "evalAddNode" : "g m \<turnstile> (AddNode x y) \<mapsto> val \<Longrightarrow>
-  (\<exists> b v1. (g m \<turnstile> (kind g x) \<mapsto> IntVal b v1) \<and>
-    (\<exists> v2. (g m \<turnstile> (kind g y) \<mapsto> IntVal b v2) \<and>
-       val = IntVal b (v1 + v2)))"
+  (\<exists> v1. (g m \<turnstile> (kind g x) \<mapsto> v1) \<and>
+    (\<exists> v2. (g m \<turnstile> (kind g y) \<mapsto> v2) \<and>
+       val = intval_add v1 v2))"
   using AddNodeE by auto
 
 lemma not_floating: "(\<exists>y ys. (successors_of n) = y # ys) \<longrightarrow> \<not>(is_floating_node n)"

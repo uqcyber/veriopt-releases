@@ -87,4 +87,11 @@ fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
        else (IntVal 64 (sint((word_of_int v1 :: int64) * (word_of_int v2 :: int64)))))" |
   "intval_mul _ _ = UndefVal"
 
+fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_div (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32
+       then (IntVal 32 (sint((word_of_int v1 :: int32) div (word_of_int v2 :: int32))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) div (word_of_int v2 :: int64)))))" |
+  "intval_div _ _ = UndefVal"
+
 end

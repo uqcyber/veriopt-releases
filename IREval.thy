@@ -114,7 +114,7 @@ inductive
   SignedDivNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
     g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> (SignedDivNode x y zeroCheck frameState next) \<mapsto> IntVal b (v1 div v2)" |
+    \<Longrightarrow> g m \<turnstile> (SignedDivNode x y zeroCheck frameState next) \<mapsto> intval_div b v1 v2" |
 
 (* Binary logical bitwise operators *)
 

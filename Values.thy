@@ -11,6 +11,7 @@ datatype Value  =
   UndefVal |
   IntVal (v_bits: int) (v_int: int) |
   FloatVal (v_bits: int) (v_float: float) |
-  ObjRef objref
+  ObjRef objref |
+  ObjStr string
 
 end

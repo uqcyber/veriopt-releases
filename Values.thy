@@ -91,11 +91,11 @@ fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_div (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (v1 sdiv v2))
-       else (IntVal 64 (v1 sdiv v2)))" |
+       then (IntVal 32 (sint((word_of_int(v1 sdiv v2) :: int32))))
+       else (IntVal 64 (sint((word_of_int(v1 sdiv v2) :: int64)))))" |
   "intval_div _ _ = UndefVal"
 
-(* unsuccessful try at a generic binary operator:
+(* unsuccessful try at a bitwise generic binary operator:
 fun intval_binary :: "('a word \<Rightarrow> 'a word \<Rightarrow> 'a word) \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_binary op (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
@@ -104,7 +104,6 @@ fun intval_binary :: "('a word \<Rightarrow> 'a word \<Rightarrow> 'a word) \<Ri
   "intval_binary _ _ _ = UndefVal"
 *)
 
-
 fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_and (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
@@ -112,14 +111,12 @@ fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
        else (IntVal 64 (sint((word_of_int v1 :: int64) AND (word_of_int v2 :: int64)))))" |
   "intval_and _ _ = UndefVal"
 
-
 fun intval_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_or (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int v1 :: int32) OR (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) OR (word_of_int v2 :: int64)))))" |
   "intval_or _ _ = UndefVal"
-
 
 fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_xor (IntVal b1 v1) (IntVal b2 v2) = 

@@ -1,6 +1,7 @@
 theory Values
   imports
     "HOL-Library.Word"
+    "HOL-Library.Signed_Division"
     "HOL-Library.Float"
     "HOL-Library.LaTeXsugar"
 begin
@@ -79,7 +80,6 @@ fun intval_sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 
 
 (* Corresponds to JVM imul and lmul instructions. *)
-(* TODO: fix this to determine int/long result size better *)
 fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_mul (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
@@ -87,11 +87,44 @@ fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
        else (IntVal 64 (sint((word_of_int v1 :: int64) * (word_of_int v2 :: int64)))))" |
   "intval_mul _ _ = UndefVal"
 
+(* Java division rounds towards 0. *)
 fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_div (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (sint((word_of_int v1 :: int32) div (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) div (word_of_int v2 :: int64)))))" |
+       then (IntVal 32 (v1 sdiv v2))
+       else (IntVal 64 (v1 sdiv v2)))" |
   "intval_div _ _ = UndefVal"
 
+(* unsuccessful try at a generic binary operator:
+fun intval_binary :: "('a word \<Rightarrow> 'a word \<Rightarrow> 'a word) \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_binary op (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32
+       then (IntVal 32 (sint(op (word_of_int v1 :: 32 word) (word_of_int v2 :: 32 word))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))" |
+  "intval_binary _ _ _ = UndefVal"
+*)
+
+
+fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_and (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32
+       then (IntVal 32 (sint((word_of_int v1 :: int32) AND (word_of_int v2 :: int32))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) AND (word_of_int v2 :: int64)))))" |
+  "intval_and _ _ = UndefVal"
+
+
+fun intval_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_or (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32
+       then (IntVal 32 (sint((word_of_int v1 :: int32) OR (word_of_int v2 :: int32))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) OR (word_of_int v2 :: int64)))))" |
+  "intval_or _ _ = UndefVal"
+
+
+fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_xor (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32
+       then (IntVal 32 (sint((word_of_int v1 :: int32) XOR (word_of_int v2 :: int32))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) XOR (word_of_int v2 :: int64)))))" |
+  "intval_xor _ _ = UndefVal"
 end

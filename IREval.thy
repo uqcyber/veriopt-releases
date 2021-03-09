@@ -112,26 +112,26 @@ inductive
 
 (* TODO: this should be control-flow *)
   SignedDivNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> (SignedDivNode x y zeroCheck frameState next) \<mapsto> intval_div b v1 v2" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> (SignedDivNode x y zeroCheck frameState next) \<mapsto> intval_div v1 v2" |
 
 (* Binary logical bitwise operators *)
 
   AndNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (AndNode x y) \<mapsto> IntVal b (v1 AND v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (AndNode x y) \<mapsto> intval_and  v1 v2" |
 
   OrNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (OrNode x y) \<mapsto> IntVal b (v1 OR v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (OrNode x y) \<mapsto> intval_or v1 v2" |
 
   XorNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (XorNode x y) \<mapsto> IntVal b (v1 XOR v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (XorNode x y) \<mapsto> intval_xor v1 v2" |
 
 (* Comparison operators *)
 (* NOTE: if we use IntVal(bool_to_int(v1=v2)), then code generation does not work! *)

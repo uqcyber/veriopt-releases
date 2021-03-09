@@ -337,6 +337,7 @@ fun conditions :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNod
     (if (nid' = fb) then [NegateNode cond] else []))
   | _ \<Rightarrow> [])"
 
+
 inductive exec_logic :: "IRGraph 
       \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap)
       \<Rightarrow> IRNode list
@@ -355,7 +356,8 @@ inductive exec_logic :: "IRGraph
     g \<turnstile> (nid',m',h') > cs' \<longrightarrow>* next_state > cs''\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid,m,h) > cs \<longrightarrow>* next_state > cs''" |
 
-  "g \<turnstile> (nid,m,h) > cs \<longrightarrow>* (nid,m,h) > cs"
+  "\<lbrakk>\<not>(\<exists>nid' m' h' . (g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h')))\<rbrakk>
+   \<Longrightarrow> g \<turnstile> (nid,m,h) > cs \<longrightarrow>* (nid,m,h) > cs"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) exec_logic .
 
 
@@ -394,6 +396,7 @@ definition loop :: IRGraph where
     (0, (StartNode None 1), VoidStamp)
   ]"
 
+(*
 values "{cs' | s' cs' . simple_if \<turnstile> 
 (0, new_map [IntVal 32 0, IntVal 32 1, IntVal 32 2], new_heap) > [] \<longrightarrow>* s' > cs'}"
 values "{cs' | s' cs' . loop \<turnstile> 
@@ -401,12 +404,88 @@ values "{cs' | s' cs' . loop \<turnstile>
 values "{cs' | s' cs' . loop \<turnstile> 
 (0, new_map [IntVal 32 2], new_heap) > [] \<longrightarrow>* s' > cs'}"
 
+values "{t' | s' t' . simple_if \<turnstile> 
+(0, new_map [IntVal 32 0, IntVal 32 1, IntVal 32 2], new_heap) # [] \<longrightarrow>* s' # t'}"
+*)
+
+lemma conds_subset:
+  assumes "g \<turnstile> (nid, m, h) > cs \<longrightarrow>* (nid', m', h') > cs'"
+  shows "set cs \<subseteq> set cs'"
+  using assms apply (induct rule: exec_logic.induct)
+   apply (metis append_eq_appendI in_set_conv_decomp_last subset_code(1))
+  by simp
+
 lemma
   assumes "g \<turnstile> (nid, m, h) > cs \<longrightarrow>* (nid', m', h') > cs'"
   assumes "kind g nid = IfNode cond tb fb"
   assumes "g m \<turnstile> kind g cond \<mapsto> val"
   assumes "val_to_bool val"
   shows "kind g cond \<in> set cs'"
+  using assms
+proof (induct "(nid, m, h)" cs "(nid', m', h')" cs' rule: "exec_logic.induct")
+  case (1 nid' m' h' conds cs' cs cs'')
+   have step: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+     using IfNode assms(2) assms(3) assms(4) by presburger
+   then have "nid' = tb"
+     using stepDet
+     by (meson "1.hyps"(1) Pair_inject)
+  have conds: "[kind g cond] = conditions g nid tb"
+    using conditions.simps assms(2) by simp
+  then have "conds = [kind g cond]"
+    using "1.hyps"(2)
+    using \<open>nid' = tb\<close> by presburger
+  then have "kind g cond \<in> set cs'"
+    using assms
+    by (simp add: "1.hyps"(3) \<open>conds = [kind g cond]\<close>)
+  have "set cs' \<subseteq> set cs''"
+    using conds_subset
+    using "1.hyps"(4) by auto
+  then show ?case
+    using \<open>kind g cond \<in> set cs'\<close> by auto
+next
+  case (2 cs)
+  have step: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    using IfNode assms(2) assms(3) assms(4) by presburger
+  then show ?case using assms
+    using "2.hyps"(1) by blast
+qed
+
+
+inductive_cases StepE[elim!]:
+  "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
+
+
+lemma
+  assumes "g \<turnstile> (if1, m, h) \<rightarrow> (if2, m', h')"
+  assumes "kind g if1 = IfNode cond1 if2 fb1"
+  assumes "kind g if2 = IfNode cond2 tb2 fb2"
+
+  assumes "g \<turnstile> kind g cond1 & kind g cond2 \<rightharpoonup> KnownTrue"
+
+  assumes g': "g' = replace_usages if2 tb2 g"
+  shows "\<exists>nid' .(g m h \<turnstile> if1 \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> if1 \<leadsto> nid')"
+proof -
+  have "\<exists>val . (g m \<turnstile> kind g cond1 \<mapsto> val)"
+    using StepE 
+      assms(1,2) step.IfNode
+    sorry
+  then show ?thesis sorry
+qed
+
+
+lemma
+  assumes "g \<turnstile> (nid, m, h) > cs \<longrightarrow>* (nid'', m'', h'') > cs''"
+  assumes "g \<turnstile> (nid'', m'', h'') \<rightarrow> (nid', m', h')"
+
+  assumes "cond1 \<in> set cs"
+  assumes "kind g nid'' = IfNode cond2 tb fb"
+  assumes "g \<turnstile> cond1 & (kind g cond2) \<rightharpoonup> KnownTrue"
+  
+  assumes "g m \<turnstile> cond1 \<mapsto> val"
+  assumes "val_to_bool val"
+
+  assumes g': "g' = replace_usages nid'' tb2 g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid'' \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid'' \<leadsto> nid')"
   sorry
 
 (*

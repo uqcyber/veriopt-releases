@@ -316,7 +316,7 @@ proof -
       using gfb add_node_lookup by blast
     then show ?thesis using step.RefNode by simp
   qed
-  show ?thesis using P Q using Step by blast
+  show ?thesis using P Q using Step by meson
 qed
 
 (* The following function definition and lemmas designed to hide stamps
@@ -376,7 +376,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       show ?thesis using step.RefNode create_kind create_fun if_cv 
         by (simp)
     qed
-    show ?thesis using Step create_step if_step by blast
+    show ?thesis using Step create_step if_step by meson
   qed
 next
   case not_const: False
@@ -430,7 +430,7 @@ next
     show ?thesis
       using eval_gcreate eval_gif Step by blast
   qed
-  show ?thesis using nid_eq Step by blast
+  show ?thesis using nid_eq Step by meson
 qed
 
 end

@@ -95,6 +95,15 @@ fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
        else (IntVal 64 (sint((word_of_int(v1 sdiv v2) :: int64)))))" |
   "intval_div _ _ = UndefVal"
 
+(* Java % is a modulo operator that can give negative results, since div rounds towards 0. *)
+fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_mod (IntVal b1 v1) (IntVal b2 v2) = 
+     (if b1 \<le> 32 \<and> b2 \<le> 32
+       then (IntVal 32 (sint((word_of_int(v1 smod v2) :: int32))))
+       else (IntVal 64 (sint((word_of_int(v1 smod v2) :: int64)))))" |
+  "intval_mod _ _ = UndefVal"
+
+
 (* unsuccessful try at a bitwise generic binary operator:
 fun intval_binary :: "('a word \<Rightarrow> 'a word \<Rightarrow> 'a word) \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_binary op (IntVal b1 v1) (IntVal b2 v2) = 

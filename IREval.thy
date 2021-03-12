@@ -87,11 +87,11 @@ inductive
 
   AbsNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (AbsNode x) \<mapsto> IntVal b (if v<0 then -v else v)" |
+    \<Longrightarrow> g m \<turnstile> (AbsNode x) \<mapsto> if v < 0 then (intval_sub (IntVal b 0) (IntVal b v)) else (IntVal b v)" |
 
   NegateNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> IntVal b (-v)" |
+    \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> intval_sub (IntVal b 0) (IntVal b (v))" |
 
 (* Binary arithmetic operators *)
 

@@ -57,7 +57,10 @@ lift_definition remove_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
   is "\<lambda>nid g. g(nid := None)" by simp
 
 lift_definition replace_node :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
-  is "\<lambda>nid k g. g(nid \<mapsto> k)" by simp
+  is "\<lambda>nid k g. if fst k = NoNode then g else g(nid \<mapsto> k)" by simp
+
+lift_definition as_list :: "IRGraph \<Rightarrow> (ID \<times> IRNode \<times> Stamp) list"
+  is "\<lambda>g. map (\<lambda>k. (k, the (g k))) (sorted_list_of_set (dom g))" .
 
 fun no_node :: "(ID \<times> (IRNode \<times> Stamp)) list \<Rightarrow> (ID \<times> (IRNode \<times> Stamp)) list" where
   "no_node g = filter (\<lambda>n. fst (snd n) \<noteq> NoNode) g"
@@ -130,11 +133,11 @@ text_raw \<open>\Snip{wff_graph}%\<close>
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph g = (
     0 \<in> ids g \<and> is_StartNode (kind g 0) \<and> 
-    (\<forall> n. n \<in> ids g \<longrightarrow> 
+    (\<forall> n \<in> ids g .
       set (inp g n) \<subseteq> ids g \<and>
       set (succ g n) \<subseteq> ids g \<and>
       kind g n \<noteq> NoNode) \<and>
-    (\<forall> n. n \<in> (nodes_of g isPhiNodeType) \<longrightarrow>
+    (\<forall> n \<in> (nodes_of g isPhiNodeType) .
       length (edge ir_values n g)
        = length (edge ir_ends (edge ir_merge n g) g))
   )"
@@ -179,6 +182,21 @@ lemma [simp]: "kind (irgraph g) = (\<lambda>nid. (case (map_of (no_node g)) nid 
 lemma [simp]: "stamp (irgraph g) = (\<lambda>nid. (case (map_of (no_node g)) nid of None \<Rightarrow> IllegalStamp | Some n \<Rightarrow> snd n))" 
   using irgraph.rep_eq stamp.transfer stamp.rep_eq by auto
 
+lemma map_of_upd: "(map_of g)(k \<mapsto> v) = (map_of ((k, v) # g))"
+  by simp
+
+(* this proof should be simplier *)
+lemma [code]: "replace_node nid k (irgraph g) = (irgraph ( ((nid, k) # g)))"
+proof (cases "fst k = NoNode")
+  case True
+  then show ?thesis
+    by (metis (mono_tags, lifting) Rep_IRGraph_inject filter.simps(2) irgraph.abs_eq no_node.simps replace_node.rep_eq snd_conv)
+next
+  case False
+  then show ?thesis unfolding irgraph_def replace_node_def no_node.simps
+    by (smt (verit, best) Rep_IRGraph comp_apply eq_onp_same_args filter.simps(2) id_def irgraph.rep_eq map_fun_apply map_of_upd mem_Collect_eq no_node.elims replace_node.abs_eq replace_node_def snd_eqD)
+qed
+
 lemma add_node_lookup:
   "gup = add_node nid (k, s) g \<longrightarrow> kind gup nid = k \<and> stamp gup nid = s"
   by (simp add: add_node.rep_eq kind.rep_eq stamp.rep_eq)
@@ -188,7 +206,7 @@ lemma remove_node_lookup:
   by (simp add: kind.rep_eq remove_node.rep_eq stamp.rep_eq)
 
 lemma replace_node_lookup[simp]:
-  "gup = replace_node nid (k, s) g \<longrightarrow> kind gup nid = k \<and> stamp gup nid = s"
+  "gup = replace_node nid (k, s) g \<and> k \<noteq> NoNode \<longrightarrow> kind gup nid = k \<and> stamp gup nid = s"
   by (simp add: replace_node.rep_eq kind.rep_eq stamp.rep_eq)
 
 lemma replace_node_unchanged:

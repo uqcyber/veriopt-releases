@@ -243,6 +243,205 @@ lemma tryFoldIntegerEqualsNeverDistinct:
   using assms asConstantEval neverDistinct.simps
   by (smt IntegerEqualsNodeE Value.inject(1) bool_to_val.simps(1))
 
+(*
+inductive conditionalElimination :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "\<lbrakk>wff_graph g;
+    wff_stamps g;
+    g' = Predicate.the (nElim g nid)
+    \<rbrakk> \<Longrightarrow> conditionalElimination g g'"
+
+code_pred [show_modes] conditionalElimination .
+code_pred (modes: i \<Rightarrow> o \<Rightarrow> bool) conditionalElimination .
+
+fun elimOne :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph" where
+  "elimOne g nid = Predicate.the (nElim g nid)"
+
+fun hasElim :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
+  "hasElim g nid = (\<not>(Predicate.is_empty (nElim g nid)))"
+
+fun eliminable :: "IRGraph \<Rightarrow> ID list \<Rightarrow> ID list" where
+  "eliminable g nids = filter (hasElim g) nids"
+
+fun hdOr :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a" where
+  "hdOr [] d = d" |
+  "hdOr (x # xs) d = x"
+
+fun conditionalElimination :: "IRGraph \<Rightarrow> IRGraph" where
+  "conditionalElimination g = (elimOne g 
+    (hdOr (eliminable g (sorted_list_of_set (ids g))) 0)
+  )"
+
+lemma
+  assumes "(g m h \<turnstile> nid \<leadsto> nid')"
+  assumes "kind g nid = IfNode cond t f"
+  shows "g m \<turnstile> kind g cond \<mapsto> v"
+proof -
+  have "\<exists>nid''. (g \<turnstile> (nid, m, h) \<rightarrow> (nid'', m, h))"
+    using assms(1) stutter.cases by meson
+  then show ?thesis using assms(2) step.IfNode sorry
+*)
+
+inductive_cases StepE[elim!]:
+  "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
+
+inductive conditionalEliminationN :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  alwaysDistinctEq:
+  "\<lbrakk>kind g ifcond = (IfNode cond t f);
+    kind g cond = (IntegerEqualsNode x y);
+    alwaysDistinct (stamp g x) (stamp g y);
+    g' = (replace_usages ifcond f g)
+    \<rbrakk> \<Longrightarrow> conditionalEliminationN g ifcond g'" |
+
+  neverDistinctEq:
+  "\<lbrakk>kind g ifcond = (IfNode cond t f);
+    kind g cond = (IntegerEqualsNode x y);
+    neverDistinct (stamp g x) (stamp g y);
+    g' = (replace_usages ifcond t g)
+    \<rbrakk> \<Longrightarrow> conditionalEliminationN g ifcond g'"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) conditionalEliminationN .
+
+lemma IfNodeStepE: "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Longrightarrow>
+  (\<And>cond tb fb val.
+        kind g nid = IfNode cond tb fb \<Longrightarrow>
+        nid' = (if val_to_bool val then tb else fb) \<Longrightarrow> 
+        g m \<turnstile> kind g cond \<mapsto> val \<Longrightarrow> m' = m)"
+  using StepE
+  by (smt (verit, best) IfNode Pair_inject stepDet)
+
+(*
+lemma ifNodeHasCondEval:
+  assumes "(g m h \<turnstile> nid \<leadsto> nid')"
+  assumes "kind g nid = IfNode cond t f"
+  shows "g m \<turnstile> kind g cond \<mapsto> v"
+proof -
+  obtain nid'' where step: "(g \<turnstile> (nid, m, h) \<rightarrow> (nid'', m, h))"
+    using assms(1) stutter.cases by meson
+  have "nid'' = t \<or> nid'' = f"
+    by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.inject(11) StepE \<open>g \<turnstile> (nid, m, h) \<rightarrow> (nid'', m, h)\<close> assms(2) is_EndNode.simps(12) is_sequential_node.simps(18))
+  obtain v where condkind: "g m \<turnstile> kind g cond \<mapsto> v"
+    by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.sel(56) StepE assms(2) is_EndNode.simps(12) is_sequential_node.simps(18) local.step)
+  have "nid'' = (if (val_to_bool v) then t else f)"
+    by (metis IfNode \<open>g m \<turnstile> kind g cond \<mapsto> v\<close> assms(2) local.step old.prod.inject stepDet)
+  then show ?thesis using assms(2) step IfNodeStepE condkind sorry
+qed
+*)
+
+lemma ifNodeHasCondEval:
+  assumes "(g m h \<turnstile> nid \<leadsto> nid')"
+  assumes "kind g nid = IfNode cond t f"
+  shows "\<exists> v. (g m \<turnstile> kind g cond \<mapsto> v)"
+  by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.sel(56) StepE assms(1) assms(2) is_EndNode.simps(12) is_sequential_node.simps(18) stutter.cases)
+
+
+lemma conditionalEliminationProof:
+  assumes wg: "wff_graph g"
+  assumes ws: "wff_stamps g"
+  assumes nid: "nid \<in> ids g"
+  assumes ce: "conditionalEliminationN g nid g'"
+  
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  using ce using assms
+proof (induct g nid g' arbitrary: nid rule: conditionalEliminationN.induct)
+  case (alwaysDistinctEq g ifcond cond t f x y g')
+    then show ?case proof (cases "(g m h \<turnstile> nid \<leadsto> nid')")
+      case True
+      obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
+        using ifNodeHasCondEval True alwaysDistinctEq.hyps(1)
+        by (metis IRNode.distinct(921) IRNode.distinct(923) alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(4) conditionalEliminationN.cases ids_some replace_usages replace_usages_unchanged)
+      have "v = IntVal 1 0"
+        using tryFoldIntegerEqualsAlwaysDistinct
+        using alwaysDistinctEq.prems(2) alwaysDistinctEq.hyps(2) 
+              alwaysDistinctEq.hyps(3)
+        using v by blast
+      then have g1step: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+        by (metis IfNode alwaysDistinctEq.hyps(1) v val_to_bool.simps(1))
+      have g2step: "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+        using alwaysDistinctEq.hyps(4) unfolding replace_usages.simps
+        by (simp add: step.RefNode)
+      from g1step g2step show ?thesis
+        using Step 
+        by (metis IRNode.distinct(921) IRNode.distinct(923) alwaysDistinctEq.hyps(1) alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(4) conditionalEliminationN.cases ids_some replace_usages replace_usages_unchanged)
+    next
+      case False
+      then show ?thesis
+        by blast
+    qed
+next
+  case (neverDistinctEq g ifcond cond t f x y g')
+    then show ?case proof (cases "(g m h \<turnstile> nid \<leadsto> nid')")
+      case True
+      obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
+        using ifNodeHasCondEval True neverDistinctEq.hyps(1)
+        by (metis IRNode.distinct(921) IRNode.distinct(923) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) conditionalEliminationN.cases ids_some replace_usages replace_usages_unchanged)
+      have "v = IntVal 1 1"
+        using tryFoldIntegerEqualsNeverDistinct
+        using neverDistinctEq.prems(2) neverDistinctEq.hyps(2) 
+              neverDistinctEq.hyps(3)
+        using v by blast
+      then have g1step: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+        by (smt (z3) IfNode neverDistinctEq.hyps(1) v val_to_bool.simps(1))
+      have g2step: "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+        using neverDistinctEq.hyps(4) unfolding replace_usages.simps
+        by (simp add: step.RefNode)
+      from g1step g2step show ?thesis
+        using Step
+        by (metis IRNode.distinct(921) IRNode.distinct(923) conditionalEliminationN.cases ids_some neverDistinctEq.hyps(1) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) replace_usages replace_usages_unchanged)
+    next
+      case False
+      then show ?thesis
+        by blast
+    qed
+qed
+
+
+definition exAlwaysDistinct :: "IRGraph" where
+  "exAlwaysDistinct = irgraph [
+    (0, (StartNode (None) (4)), VoidStamp),
+    (1, (ParameterNode (0)), IntegerStamp 32 (1) (2)),
+    (2, (ParameterNode (1)), IntegerStamp 32 (3) (4)),
+    (3, (IntegerEqualsNode (1) (2)), default_stamp),
+    (4, (IfNode (3) (5) (6)), VoidStamp),
+    (5, (ReturnNode ((Some 1)) (None)), default_stamp),
+    (6, (ReturnNode ((Some 2)) (None)), default_stamp)]"
+
+definition exNeverDistinct :: "IRGraph" where
+  "exNeverDistinct = irgraph [
+    (0, (StartNode (None) (4)), VoidStamp),
+    (1, (ParameterNode (0)), IntegerStamp 32 (1) (1)),
+    (2, (ParameterNode (1)), IntegerStamp 32 (1) (1)),
+    (3, (IntegerEqualsNode (1) (2)), default_stamp),
+    (4, (IfNode (3) (5) (6)), VoidStamp),
+    (5, (ReturnNode ((Some 1)) (None)), default_stamp),
+    (6, (ReturnNode ((Some 2)) (None)), default_stamp)]"
+
+code_datatype Abs_IRGraph irgraph
+values "{g' | g'. conditionalEliminationN exAlwaysDistinct 4 g'}"
+values "{g' | g'. conditionalEliminationN exNeverDistinct 4 g'}"
+
+(*
+lemma conditionEliminationValid:
+  assumes "\<forall>n \<in> ids g. \<exists> v. (g m \<turnstile> kind g n \<mapsto> v)" (* overly strong, refine *)
+  assumes "0 \<in> ids g"
+  assumes ce: "g' = conditionalElimination g"
+  shows "\<forall>nid. \<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  using ce unfolding conditionalElimination.simps elimOne.simps
+    eliminable.simps hasElim.simps 
+proof (cases "\<exists> nid \<in> ids g. hasElim g nid")
+  case True
+  then show ?thesis sorry
+next
+  case False
+  have "(eliminable g (sorted_list_of_set (ids g))) = []"
+    unfolding eliminable.simps
+    by (metis False equals0D filter_False set_empty set_sorted_list_of_set sorted_list_of_set.infinite)
+  then have "g' = Predicate.the (nElim g 0)"
+    using hdOr.simps
+    by (simp add: ce)
+  then show ?thesis using assms(1,2) oneNodeElimValid sledgehammer
+qed
+*)
+
 
 lemma replaceUsagesFoldAlwaysDistinct:
   assumes wff: "wff_graph g \<and> wff_stamps g"
@@ -262,7 +461,7 @@ proof -
     using g' unfolding replace_usages.simps
     by (simp add: step.RefNode)
   from g1step g2step show ?thesis
-    using Step by blast
+    using Step by meson
 qed
 
 lemma replaceUsagesFoldNeverDistinct:
@@ -450,9 +649,6 @@ next
     using "2.hyps"(1) by blast
 qed
 
-
-inductive_cases StepE[elim!]:
-  "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
 
 
 lemma

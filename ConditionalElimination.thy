@@ -281,25 +281,47 @@ proof -
   then show ?thesis using assms(2) step.IfNode sorry
 *)
 
-inductive_cases StepE[elim!]:
+inductive_cases StepE:
   "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
 
-inductive conditionalEliminationN :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+inductive ConditionalEliminationStep :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   alwaysDistinctEq:
   "\<lbrakk>kind g ifcond = (IfNode cond t f);
     kind g cond = (IntegerEqualsNode x y);
     alwaysDistinct (stamp g x) (stamp g y);
     g' = (replace_usages ifcond f g)
-    \<rbrakk> \<Longrightarrow> conditionalEliminationN g ifcond g'" |
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep g ifcond g'" |
 
   neverDistinctEq:
   "\<lbrakk>kind g ifcond = (IfNode cond t f);
     kind g cond = (IntegerEqualsNode x y);
     neverDistinct (stamp g x) (stamp g y);
     g' = (replace_usages ifcond t g)
-    \<rbrakk> \<Longrightarrow> conditionalEliminationN g ifcond g'"
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep g ifcond g'"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) conditionalEliminationN .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
+
+inductive ConditionalEliminationPhase :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "\<lbrakk>ConditionalEliminationStep g nid g';
+    succs = IRGraph.succ g nid;
+    length succs > 0;
+    nid' = succs!0;
+    ConditionalEliminationPhase g' nid' g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g nid g''" |
+
+  "\<lbrakk>succs = IRGraph.succ g nid;
+    length succs > 0;
+    nid' = succs!0;
+    ConditionalEliminationPhase g nid' g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g nid g''" |
+
+  "\<lbrakk>succs = IRGraph.succ g nid;
+    length succs \<le> 0\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g nid g"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase .
+
+    
 
 lemma IfNodeStepE: "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Longrightarrow>
   (\<And>cond tb fb val.
@@ -334,21 +356,21 @@ lemma ifNodeHasCondEval:
   by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.sel(56) StepE assms(1) assms(2) is_EndNode.simps(12) is_sequential_node.simps(18) stutter.cases)
 
 
-lemma conditionalEliminationProof:
+lemma ConditionalEliminationStepProof:
   assumes wg: "wff_graph g"
   assumes ws: "wff_stamps g"
   assumes nid: "nid \<in> ids g"
-  assumes ce: "conditionalEliminationN g nid g'"
+  assumes ce: "ConditionalEliminationStep g nid g'"
   
   shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
   using ce using assms
-proof (induct g nid g' arbitrary: nid rule: conditionalEliminationN.induct)
+proof (induct g nid g' arbitrary: nid rule: ConditionalEliminationStep.induct)
   case (alwaysDistinctEq g ifcond cond t f x y g')
     then show ?case proof (cases "(g m h \<turnstile> nid \<leadsto> nid')")
       case True
       obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
         using ifNodeHasCondEval True alwaysDistinctEq.hyps(1)
-        by (metis IRNode.distinct(921) IRNode.distinct(923) alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(4) conditionalEliminationN.cases ids_some replace_usages replace_usages_unchanged)
+        by (metis IRNode.distinct(921) IRNode.distinct(923) alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)
       have "v = IntVal 1 0"
         using tryFoldIntegerEqualsAlwaysDistinct
         using alwaysDistinctEq.prems(2) alwaysDistinctEq.hyps(2) 
@@ -360,8 +382,8 @@ proof (induct g nid g' arbitrary: nid rule: conditionalEliminationN.induct)
         using alwaysDistinctEq.hyps(4) unfolding replace_usages.simps
         by (simp add: step.RefNode)
       from g1step g2step show ?thesis
-        using Step 
-        by (metis IRNode.distinct(921) IRNode.distinct(923) alwaysDistinctEq.hyps(1) alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(4) conditionalEliminationN.cases ids_some replace_usages replace_usages_unchanged)
+        using Step
+        by (metis alwaysDistinctEq.prems(3) alwaysDistinctEq.prems(4) ConditionalEliminationStep.cases replace_usages step.RefNode)
     next
       case False
       then show ?thesis
@@ -373,7 +395,7 @@ next
       case True
       obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
         using ifNodeHasCondEval True neverDistinctEq.hyps(1)
-        by (metis IRNode.distinct(921) IRNode.distinct(923) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) conditionalEliminationN.cases ids_some replace_usages replace_usages_unchanged)
+        by (metis IRNode.distinct(921) IRNode.distinct(923) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)
       have "v = IntVal 1 1"
         using tryFoldIntegerEqualsNeverDistinct
         using neverDistinctEq.prems(2) neverDistinctEq.hyps(2) 
@@ -386,14 +408,36 @@ next
         by (simp add: step.RefNode)
       from g1step g2step show ?thesis
         using Step
-        by (metis IRNode.distinct(921) IRNode.distinct(923) conditionalEliminationN.cases ids_some neverDistinctEq.hyps(1) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) replace_usages replace_usages_unchanged)
+        by (metis ConditionalEliminationStep.cases neverDistinctEq.prems(3) neverDistinctEq.prems(4) replace_usages step.RefNode)
     next
       case False
       then show ?thesis
         by blast
     qed
-qed
+  qed
 
+lemma ConditionalEliminationPhaseProof:
+  assumes "wff_graph g"
+  assumes "wff_stamps g"
+  assumes "ConditionalEliminationPhase g 0 g'"
+  
+  shows "\<exists>nid' .(g m h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> 0 \<leadsto> nid')"
+proof -
+  have "0 \<in> ids g"
+    using assms(1) wff_graph.simps by blast
+  show ?thesis
+using assms(3) assms proof (induct rule: ConditionalEliminationPhase.induct)
+case (1 g nid g' succs nid' g'')
+  then show ?case sorry
+next
+  case (2 succs g nid nid' g'')
+  then show ?case sorry
+next
+  case (3 succs g nid)
+  then show ?case 
+    by simp
+qed
+qed
 
 definition exAlwaysDistinct :: "IRGraph" where
   "exAlwaysDistinct = irgraph [
@@ -415,9 +459,8 @@ definition exNeverDistinct :: "IRGraph" where
     (5, (ReturnNode ((Some 1)) (None)), default_stamp),
     (6, (ReturnNode ((Some 2)) (None)), default_stamp)]"
 
-code_datatype Abs_IRGraph irgraph
-values "{g' | g'. conditionalEliminationN exAlwaysDistinct 4 g'}"
-values "{g' | g'. conditionalEliminationN exNeverDistinct 4 g'}"
+values 1 "{g' | g'. ConditionalEliminationPhase exAlwaysDistinct 0 g'}"
+values 1 "{g' | g'. ConditionalEliminationPhase exNeverDistinct 0 g'}"
 
 (*
 lemma conditionEliminationValid:

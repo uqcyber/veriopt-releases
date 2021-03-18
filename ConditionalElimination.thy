@@ -194,6 +194,7 @@ lemma replace_usages_unchanged:
   using assms unfolding replace_usages.simps
   by (metis insertE insert_Diff replace_node_unchanged)
 
+
 lemma
   assumes "(g m h \<turnstile> nid \<leadsto> nid')"
   shows "\<forall> inter. (g \<turnstile> (nid, m, h) \<rightarrow> (inter, m, h)) \<longrightarrow> (g m h \<turnstile> nid \<leadsto> inter)"
@@ -284,42 +285,67 @@ proof -
 inductive_cases StepE:
   "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
 
-inductive ConditionalEliminationStep :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   alwaysDistinctEq:
   "\<lbrakk>kind g ifcond = (IfNode cond t f);
     kind g cond = (IntegerEqualsNode x y);
     alwaysDistinct (stamp g x) (stamp g y);
     g' = (replace_usages ifcond f g)
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep g ifcond g'" |
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
 
   neverDistinctEq:
   "\<lbrakk>kind g ifcond = (IfNode cond t f);
     kind g cond = (IntegerEqualsNode x y);
     neverDistinct (stamp g x) (stamp g y);
     g' = (replace_usages ifcond t g)
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep g ifcond g'"
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
+  impliesTrue:
+  "\<lbrakk>kind g ifcond = (IfNode cid t f);
+    cond = kind g cid;
+    \<exists> c \<in> conds . (g \<turnstile> c & cond \<hookrightarrow> KnownTrue);
+    g' = (replace_usages ifcond t g)
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
 
-inductive ConditionalEliminationPhase :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "\<lbrakk>ConditionalEliminationStep g nid g';
+  impliesFalse:
+  "\<lbrakk>kind g ifcond = (IfNode cid t f);
+    cond = kind g cid;
+    \<exists> c \<in> conds . (g \<turnstile> c & cond \<hookrightarrow> KnownFalse);
+    g' = (replace_usages ifcond f g)
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
+
+fun conditions :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode set" where
+  "conditions g nid nid' = (case kind g nid of
+  IfNode cond tb fb \<Rightarrow> 
+    (if (nid' = tb) then {kind g cond} else
+    (if (nid' = fb) then {NegateNode cond} else {}))
+  | _ \<Rightarrow> {})"
+
+inductive ConditionalEliminationPhase 
+  :: "IRNode set \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRNode set \<Rightarrow> IRGraph \<Rightarrow> bool" where
+
+  "\<lbrakk>ConditionalEliminationStep conds g nid g';
     succs = IRGraph.succ g nid;
     length succs > 0;
     nid' = succs!0;
-    ConditionalEliminationPhase g' nid' g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g nid g''" |
+    conds' = conditions g nid nid' \<union> conds;
+    ConditionalEliminationPhase conds' g' nid' conds'' g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase conds g nid conds'' g''" |
 
   "\<lbrakk>succs = IRGraph.succ g nid;
     length succs > 0;
     nid' = succs!0;
-    ConditionalEliminationPhase g nid' g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g nid g''" |
+    conds' = conditions g nid nid' \<union> conds;
+    ConditionalEliminationPhase conds' g nid' conds'' g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase conds g nid conds'' g''" |
 
   "\<lbrakk>succs = IRGraph.succ g nid;
     length succs \<le> 0\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g nid g"
+    \<Longrightarrow> ConditionalEliminationPhase conds g nid conds g"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase .
 
     
 
@@ -356,21 +382,65 @@ lemma ifNodeHasCondEval:
   by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.sel(56) StepE assms(1) assms(2) is_EndNode.simps(12) is_sequential_node.simps(18) stutter.cases)
 
 
+lemma replace_if_t:
+  assumes "kind g nid = IfNode cond tb fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> bool"
+  assumes "val_to_bool bool"
+  assumes g': "g' = replace_usages nid tb g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+proof -
+  have g1step: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    by (meson IfNode assms(1) assms(2) assms(3))
+  have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    using g' unfolding replace_usages.simps
+    by (simp add: step.RefNode)
+  from g1step g2step show ?thesis
+    using Step by blast
+qed
+
+lemma replace_if_t_imp:
+  assumes "kind g nid = IfNode cond tb fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> bool"
+  assumes "val_to_bool bool"
+  assumes g': "g' = replace_usages nid tb g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  using replace_if_t assms by blast
+
+lemma replace_if_f:
+  assumes "kind g nid = IfNode cond tb fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> bool"
+  assumes "\<not>(val_to_bool bool)"
+  assumes g': "g' = replace_usages nid fb g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+proof -
+  have g1step: "g \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
+    by (meson IfNode assms(1) assms(2) assms(3))
+  have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
+    using g' unfolding replace_usages.simps
+    by (simp add: step.RefNode)
+  from g1step g2step show ?thesis
+    using Step by blast
+qed
+
+
 lemma ConditionalEliminationStepProof:
   assumes wg: "wff_graph g"
   assumes ws: "wff_stamps g"
   assumes nid: "nid \<in> ids g"
-  assumes ce: "ConditionalEliminationStep g nid g'"
+  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. (g m \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
+  assumes ce: "ConditionalEliminationStep conds g nid g'"
   
   shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
   using ce using assms
 proof (induct g nid g' arbitrary: nid rule: ConditionalEliminationStep.induct)
-  case (alwaysDistinctEq g ifcond cond t f x y g')
+  case (alwaysDistinctEq g ifcond cond t f x y g' conds)
     then show ?case proof (cases "(g m h \<turnstile> nid \<leadsto> nid')")
       case True
       obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
         using ifNodeHasCondEval True alwaysDistinctEq.hyps(1)
-        by (metis IRNode.distinct(921) IRNode.distinct(923) alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)
+        using alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(5) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged
+        sorry (* worked before adding conds_valid *)
+        (*by (metis IRNode.distinct(921) IRNode.distinct(923) alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)*)
       have "v = IntVal 1 0"
         using tryFoldIntegerEqualsAlwaysDistinct
         using alwaysDistinctEq.prems(2) alwaysDistinctEq.hyps(2) 
@@ -383,7 +453,8 @@ proof (induct g nid g' arbitrary: nid rule: ConditionalEliminationStep.induct)
         by (simp add: step.RefNode)
       from g1step g2step show ?thesis
         using Step
-        by (metis alwaysDistinctEq.prems(3) alwaysDistinctEq.prems(4) ConditionalEliminationStep.cases replace_usages step.RefNode)
+        (* was fast before conds_valid *)
+        by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps alwaysDistinctEq.prems(3) alwaysDistinctEq.prems(5) replace_usages step.RefNode)
     next
       case False
       then show ?thesis
@@ -395,7 +466,8 @@ next
       case True
       obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
         using ifNodeHasCondEval True neverDistinctEq.hyps(1)
-        by (metis IRNode.distinct(921) IRNode.distinct(923) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)
+        sorry
+        (*by (metis IRNode.distinct(921) IRNode.distinct(923) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)*)
       have "v = IntVal 1 1"
         using tryFoldIntegerEqualsNeverDistinct
         using neverDistinctEq.prems(2) neverDistinctEq.hyps(2) 
@@ -408,18 +480,32 @@ next
         by (simp add: step.RefNode)
       from g1step g2step show ?thesis
         using Step
-        by (metis ConditionalEliminationStep.cases neverDistinctEq.prems(3) neverDistinctEq.prems(4) replace_usages step.RefNode)
+        by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps neverDistinctEq.prems(3) neverDistinctEq.prems(5) replace_usages step.RefNode)
     next
       case False
       then show ?thesis
         by blast
     qed
-  qed
+next
+  case (impliesTrue g ifcond cid t f cond conds g')
+  obtain condv where condv: "g m \<turnstile> kind g cid \<mapsto> condv"
+    using implies.simps impliesTrue.hyps(3) impliesTrue.prems(4)
+    using impliesTrue.hyps(2) by auto
+  have condvTrue: "val_to_bool condv"
+    by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_true_valid)
+  from replace_if_t_imp show ?case
+    using impliesTrue.hyps(1) condv condvTrue impliesTrue.hyps(4)
+    sorry (* what on earth are you doing Isabelle?? *)
+next
+  case (impliesFalse g ifcond cid t f cond conds g')
+  then show ?case sorry
+qed
+
 
 lemma ConditionalEliminationPhaseProof:
   assumes "wff_graph g"
   assumes "wff_stamps g"
-  assumes "ConditionalEliminationPhase g 0 g'"
+  assumes "ConditionalEliminationPhase {} g 0 conds' g'"
   
   shows "\<exists>nid' .(g m h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> 0 \<leadsto> nid')"
 proof -
@@ -459,8 +545,52 @@ definition exNeverDistinct :: "IRGraph" where
     (5, (ReturnNode ((Some 1)) (None)), default_stamp),
     (6, (ReturnNode ((Some 2)) (None)), default_stamp)]"
 
-values 1 "{g' | g'. ConditionalEliminationPhase exAlwaysDistinct 0 g'}"
-values 1 "{g' | g'. ConditionalEliminationPhase exNeverDistinct 0 g'}"
+values 1 "{g' | g' conds'. ConditionalEliminationPhase {} exAlwaysDistinct 0 conds' g'}"
+values 1 "{g' | g' conds'. ConditionalEliminationPhase {} exNeverDistinct 0 conds' g'}"
+
+definition exImpliesElim :: "IRGraph" where
+  "exImpliesElim = irgraph [
+    (0, (StartNode (None) (4)), VoidStamp),
+    (1, (ParameterNode (0)), default_stamp),
+    (2, (ParameterNode (1)), default_stamp),
+    (3, (IntegerEqualsNode (1) (2)), default_stamp),
+    (4, (IfNode (3) (5) (6)), VoidStamp),
+    (5, (BeginNode (8)), VoidStamp),
+    (6, (BeginNode (10)), VoidStamp),
+    (7, (IntegerLessThanNode (1) (2)), default_stamp),
+    (8, (IfNode (7) (9) (10)), default_stamp),
+    (9, (ReturnNode (Some 1) None), default_stamp),
+    (10, (ReturnNode (Some 2) None), default_stamp)
+  ]"
+
+values "{g' | g' conds'. ConditionalEliminationPhase {} exImpliesElim 0 conds' g'}"
+
+
+definition ConditionalEliminationTest4_test2Snippet_initial :: IRGraph where
+  "ConditionalEliminationTest4_test2Snippet_initial = irgraph [
+  (0, (StartNode  (Some 3) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) 2147483647),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) 2147483647),
+  (3, (FrameState []  None None None), IllegalStamp),
+  (4, (IntegerLessThanNode 1 2), VoidStamp),
+  (5, (BeginNode 8), VoidStamp),
+  (6, (BeginNode 13), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (EndNode), VoidStamp),
+  (9, (MergeNode  [8, 10]  (Some 16) 18), VoidStamp),
+  (10, (EndNode), VoidStamp),
+  (11, (BeginNode 15), VoidStamp),
+  (12, (BeginNode 10), VoidStamp),
+  (13, (IfNode 4 11 12), VoidStamp),
+  (14, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 1 1),
+  (15, (ReturnNode  (Some 14)  None), VoidStamp),
+  (16, (FrameState []  None None None), IllegalStamp),
+  (17, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 2 2),
+  (18, (ReturnNode  (Some 17)  None), VoidStamp)
+  ]"
+
+values "{g' | g' conds'. ConditionalEliminationPhase {} ConditionalEliminationTest4_test2Snippet_initial 0 conds' g'}"
+
 
 (*
 lemma conditionEliminationValid:
@@ -528,37 +658,6 @@ proof -
     using Step by blast
 qed
 
-lemma replace_if_t:
-  assumes "kind g nid = IfNode cond tb fb"
-  assumes "g m \<turnstile> kind g cond \<mapsto> bool"
-  assumes "val_to_bool bool"
-  assumes g': "g' = replace_usages nid tb g"
-  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
-proof -
-  have g1step: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
-    by (meson IfNode assms(1) assms(2) assms(3))
-  have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
-    using g' unfolding replace_usages.simps
-    by (simp add: step.RefNode)
-  from g1step g2step show ?thesis
-    using Step by blast
-qed
-
-lemma replace_if_f:
-  assumes "kind g nid = IfNode cond tb fb"
-  assumes "g m \<turnstile> kind g cond \<mapsto> bool"
-  assumes "\<not>(val_to_bool bool)"
-  assumes g': "g' = replace_usages nid fb g"
-  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
-proof -
-  have g1step: "g \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
-    by (meson IfNode assms(1) assms(2) assms(3))
-  have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
-    using g' unfolding replace_usages.simps
-    by (simp add: step.RefNode)
-  from g1step g2step show ?thesis
-    using Step by blast
-qed
 
 (*
 inductive conditions :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode list \<Rightarrow> bool" where

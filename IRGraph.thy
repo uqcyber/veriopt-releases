@@ -197,6 +197,9 @@ next
     by (smt (verit, best) Rep_IRGraph comp_apply eq_onp_same_args filter.simps(2) id_def irgraph.rep_eq map_fun_apply map_of_upd mem_Collect_eq no_node.elims replace_node.abs_eq replace_node_def snd_eqD)
 qed
 
+lemma [code]: "add_node nid k (irgraph g) = (irgraph ( ((nid, k) # g)))"
+  sorry
+
 lemma add_node_lookup:
   "gup = add_node nid (k, s) g \<longrightarrow> kind gup nid = k \<and> stamp gup nid = s"
   by (simp add: add_node.rep_eq kind.rep_eq stamp.rep_eq)

@@ -285,33 +285,47 @@ proof -
 inductive_cases StepE:
   "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
 
+fun nextNid :: "IRGraph \<Rightarrow> ID" where
+  "nextNid g = (Max (ids g)) + 1"
+
+fun constantCondition :: "bool \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
+  "constantCondition True nid (IfNode cond t f) g = 
+    (let nid' = nextNid g in
+    (let g' = add_node nid' ((ConstantNode (IntVal 1 1)), default_stamp) g in
+    replace_node nid (IfNode nid' t f, stamp g nid) g'))" |
+  "constantCondition False nid (IfNode cond t f) g = 
+    (let nid' = nextNid g in
+    (let g' = add_node nid' ((ConstantNode (IntVal 1 0)), default_stamp) g in
+    replace_node nid (IfNode nid' t f, stamp g nid) g'))" |
+  "constantCondition cond nid _ g = g"
+
 inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   alwaysDistinctEq:
   "\<lbrakk>kind g ifcond = (IfNode cond t f);
     kind g cond = (IntegerEqualsNode x y);
     alwaysDistinct (stamp g x) (stamp g y);
-    g' = (replace_usages ifcond f g)
+    g' = constantCondition False ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
 
   neverDistinctEq:
   "\<lbrakk>kind g ifcond = (IfNode cond t f);
     kind g cond = (IntegerEqualsNode x y);
     neverDistinct (stamp g x) (stamp g y);
-    g' = (replace_usages ifcond t g)
+    g' = constantCondition True ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
 
   impliesTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
     \<exists> c \<in> conds . (g \<turnstile> c & cond \<hookrightarrow> KnownTrue);
-    g' = (replace_usages ifcond t g)
+    g' = constantCondition True ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
 
   impliesFalse:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
     \<exists> c \<in> conds . (g \<turnstile> c & cond \<hookrightarrow> KnownFalse);
-    g' = (replace_usages ifcond f g)
+    g' = constantCondition False ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
@@ -453,6 +467,7 @@ proof (induct g nid g' arbitrary: nid rule: ConditionalEliminationStep.induct)
         by (simp add: step.RefNode)
       from g1step g2step show ?thesis
         using Step
+        sorry
         (* was fast before conds_valid *)
         by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps alwaysDistinctEq.prems(3) alwaysDistinctEq.prems(5) replace_usages step.RefNode)
     next
@@ -480,6 +495,7 @@ next
         by (simp add: step.RefNode)
       from g1step g2step show ?thesis
         using Step
+        sorry
         by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps neverDistinctEq.prems(3) neverDistinctEq.prems(5) replace_usages step.RefNode)
     next
       case False

@@ -2,6 +2,77 @@ theory ConditionalEliminationTests
 imports ConditionalElimination
 begin
 
+(* initial: ConditionalEliminationTest1_test1Snippet_basic*)
+definition ConditionalEliminationTest1_test1Snippet_basic_initial :: IRGraph where
+  "ConditionalEliminationTest1_test1Snippet_basic_initial = irgraph [
+  (0, (StartNode  (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState []  None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 23), VoidStamp),
+  (6, (BeginNode 13), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (IntVal 32 (200))), IntegerStamp 32 (200) (200)),
+  (9, (ConstantNode (IntVal 32 (201))), IntegerStamp 32 (201) (201)),
+  (10, (IntegerLessThanNode 1 9), VoidStamp),
+  (11, (BeginNode 14), VoidStamp),
+  (12, (BeginNode 16), VoidStamp),
+  (13, (IfNode 10 12 11), VoidStamp),
+  (14, (StoreFieldNode 14 ''org.graalvm.compiler.core.test.ConditionalEliminationTest1::sink3'' 8  (Some 15)  None 18), VoidStamp),
+  (15, (FrameState []  None None None), IllegalStamp),
+  (16, (EndNode), VoidStamp),
+  (17, (MergeNode  [16, 18]  (Some 19) 21), VoidStamp),
+  (18, (EndNode), VoidStamp),
+  (19, (FrameState []  None None None), IllegalStamp),
+  (20, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (21, (StoreFieldNode 21 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink1'' 20  (Some 22)  None 25), VoidStamp),
+  (22, (FrameState []  None None None), IllegalStamp),
+  (23, (EndNode), VoidStamp),
+  (24, (MergeNode  [23, 25]  (Some 26) 27), VoidStamp),
+  (25, (EndNode), VoidStamp),
+  (26, (FrameState []  None None None), IllegalStamp),
+  (27, (StoreFieldNode 27 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink0'' 3  (Some 28)  None 29), VoidStamp),
+  (28, (FrameState []  None None None), IllegalStamp),
+  (29, (ReturnNode  None  None), VoidStamp)
+  ]"
+
+(* final: ConditionalEliminationTest1_test1Snippet_basic*)
+definition ConditionalEliminationTest1_test1Snippet_basic_final :: IRGraph where
+  "ConditionalEliminationTest1_test1Snippet_basic_final = irgraph [
+  (0, (StartNode  (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState []  None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 23), VoidStamp),
+  (6, (BeginNode 13), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (IntVal 32 (200))), IntegerStamp 32 (200) (200)),
+  (9, (ConstantNode (IntVal 32 (201))), IntegerStamp 32 (201) (201)),
+  (10, (IntegerLessThanNode 1 9), VoidStamp),
+  (11, (BeginNode 14), VoidStamp),
+  (12, (BeginNode 16), VoidStamp),
+  (13, (IfNode 30 12 11), VoidStamp),
+  (14, (StoreFieldNode 14 ''org.graalvm.compiler.core.test.ConditionalEliminationTest1::sink3'' 8  (Some 15)  None 18), VoidStamp),
+  (15, (FrameState []  None None None), IllegalStamp),
+  (16, (EndNode), VoidStamp),
+  (17, (MergeNode  [16, 18]  (Some 19) 21), VoidStamp),
+  (18, (EndNode), VoidStamp),
+  (19, (FrameState []  None None None), IllegalStamp),
+  (20, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (21, (StoreFieldNode 21 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink1'' 20  (Some 22)  None 25), VoidStamp),
+  (22, (FrameState []  None None None), IllegalStamp),
+  (23, (EndNode), VoidStamp),
+  (24, (MergeNode  [23, 25]  (Some 26) 27), VoidStamp),
+  (25, (EndNode), VoidStamp),
+  (26, (FrameState []  None None None), IllegalStamp),
+  (27, (StoreFieldNode 27 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink0'' 3  (Some 28)  None 29), VoidStamp),
+  (28, (FrameState []  None None None), IllegalStamp),
+  (29, (ReturnNode  None  None), VoidStamp),
+  (30, (ConstantNode (IntVal 1 (1))), VoidStamp)
+  ]"
+
 
 (* initial: ConditionalEliminationTest1_test1Snippet*)
 definition ConditionalEliminationTest1_test1Snippet_initial :: IRGraph where

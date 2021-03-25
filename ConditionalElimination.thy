@@ -289,15 +289,29 @@ fun nextNid :: "IRGraph \<Rightarrow> ID" where
   "nextNid g = (Max (ids g)) + 1"
 
 fun constantCondition :: "bool \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
-  "constantCondition True nid (IfNode cond t f) g = 
-    (let nid' = nextNid g in
-    (let g' = add_node nid' ((ConstantNode (IntVal 1 1)), default_stamp) g in
-    replace_node nid (IfNode nid' t f, stamp g nid) g'))" |
-  "constantCondition False nid (IfNode cond t f) g = 
-    (let nid' = nextNid g in
-    (let g' = add_node nid' ((ConstantNode (IntVal 1 0)), default_stamp) g in
-    replace_node nid (IfNode nid' t f, stamp g nid) g'))" |
+  "constantCondition val nid (IfNode cond t f) g = 
+    replace_node nid (IfNode (nextNid g) t f, stamp g nid) 
+      (add_node (nextNid g) ((ConstantNode (bool_to_val val)), default_stamp) g)" |
   "constantCondition cond nid _ g = g"
+
+
+lemma constantConditionNoIf:
+  assumes "kind g ifcond \<noteq> IfNode cond t f"
+  assumes "g' = constantCondition val ifcond (kind g ifcond) g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+proof -
+  have "g' = g"
+    using assms constantCondition.simps sorry
+  then show ?thesis by simp
+qed
+
+lemma constantConditionValid:
+  assumes "kind g ifcond = IfNode cond t f"
+  assumes "g m \<turnstile> kind g cond \<mapsto> v"
+  assumes "val_to_bool b"
+  assumes "g' = constantCondition True ifcond (kind g ifcond) g"
+  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  sorry
 
 inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   alwaysDistinctEq:
@@ -328,40 +342,263 @@ inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> IRGraph \<Righ
     g' = constantCondition False ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'"
 
+
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
 
-fun conditions :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode set" where
-  "conditions g nid nid' = (case kind g nid of
-  IfNode cond tb fb \<Rightarrow> 
-    (if (nid' = tb) then {kind g cond} else
-    (if (nid' = fb) then {NegateNode cond} else {}))
-  | _ \<Rightarrow> {})"
+
+
+fun nextEdge :: "ID set \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> ID option" where
+  "nextEdge seen nid g = 
+    (let nids = (filter (\<lambda>nid'. nid' \<notin> seen) (IRGraph.succ g nid)) in 
+     (if length nids > 0 then Some (hd nids) else None))"
+
+fun pred :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
+  "pred g nid = (case kind g nid of
+    (MergeNode ends _ _) \<Rightarrow> Some (hd ends) |
+    _ \<Rightarrow> 
+      (if IRGraph.predecessors g nid = {} 
+        then None else
+        Some (hd (sorted_list_of_set (IRGraph.predecessors g nid)))
+      )
+  )"
+
+type_synonym Seen = "ID set"
+type_synonym Conditions = "IRNode list"
+
+
+inductive Step 
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions) \<Rightarrow> (ID \<times> Seen \<times> Conditions) option \<Rightarrow> bool" where
+  (* Hit a BeginNode
+     1. nid' will be the successor of the begin node
+     2. Find the first and only predecessor
+     3. Extract condition from pred (pred is assumed IfNode)
+     4. Negate condition if the begin node is second branch
+     5. Add condition or negated condition to stack
+  *)  
+  "\<lbrakk>kind g nid = BeginNode nid';
+
+    nid \<notin> seen;
+    seen' = {nid} \<union> seen;
+
+    Some ifcond = pred g nid;
+    kind g ifcond = IfNode cond t b;
+
+    i = find_index nid (IRGraph.succ g ifcond);
+    c = (if i = 0 then kind g cond else NegateNode cond);
+    conds' = c # conds\<rbrakk>
+   \<Longrightarrow> Step g (nid, seen, conds) (Some (nid', seen', conds'))" |
+
+  (* Hit an EndNode
+     1. nid' will be the usage of EndNode
+     2. pop the conditions stack
+  *)
+  "\<lbrakk>kind g nid = EndNode;
+
+    nid \<notin> seen;
+    seen' = {nid} \<union> seen;
+
+    nid' = any_usage g nid;
+
+    conds' = tl conds\<rbrakk>
+   \<Longrightarrow> Step g (nid, seen, conds) (Some (nid', seen', conds'))" |
+
+  (* We can find a successor edge that is not in seen, go there *)
+  "\<lbrakk>\<not>(is_EndNode (kind g nid));
+    \<not>(is_BeginNode (kind g nid));
+
+    nid \<notin> seen;
+    seen' = {nid} \<union> seen;
+
+    Some nid' = nextEdge seen' nid g\<rbrakk>
+   \<Longrightarrow> Step g (nid, seen, conds) (Some (nid', seen', conds))" |
+
+  (* We can cannot find a successor edge that is not in seen, give back None *)
+  "\<lbrakk>\<not>(is_EndNode (kind g nid));
+    \<not>(is_BeginNode (kind g nid));
+
+    nid \<notin> seen;
+    seen' = {nid} \<union> seen;
+
+    None = nextEdge seen' nid g\<rbrakk>
+    \<Longrightarrow> Step g (nid, seen, conds) None" |
+
+  (* We've already seen this node, give back None *)
+  "\<lbrakk>nid \<in> seen\<rbrakk> \<Longrightarrow> Step g (nid, seen, conds) None"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Step .
 
 inductive ConditionalEliminationPhase 
-  :: "IRNode set \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRNode set \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions) \<Rightarrow> IRGraph \<Rightarrow> bool" where
 
-  "\<lbrakk>ConditionalEliminationStep conds g nid g';
-    succs = IRGraph.succ g nid;
-    length succs > 0;
-    nid' = succs!0;
-    conds' = conditions g nid nid' \<union> conds;
-    ConditionalEliminationPhase conds' g' nid' conds'' g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase conds g nid conds'' g''" |
-
-  "\<lbrakk>succs = IRGraph.succ g nid;
-    length succs > 0;
-    nid' = succs!0;
-    conds' = conditions g nid nid' \<union> conds;
-    ConditionalEliminationPhase conds' g nid' conds'' g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase conds g nid conds'' g''" |
-
-  "\<lbrakk>succs = IRGraph.succ g nid;
-    length succs \<le> 0\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase conds g nid conds g"
-
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase .
-
+  (* Can do a step and optimise for the current nid *)
+  "\<lbrakk>Step g (nid, seen, conds) (Some (nid', seen', conds'));
+    ConditionalEliminationStep (set conds) g nid g';
     
+    ConditionalEliminationPhase g' (nid', seen', conds') g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds) g''" |
+
+  (* Can do a step, matches whether optimised or not causing non-determinism
+     Need to find a way to negate ConditionalEliminationStep *)
+  "\<lbrakk>Step g (nid, seen, conds) (Some (nid', seen', conds'));
+    
+    ConditionalEliminationPhase g (nid', seen', conds') g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds) g'" |
+
+  (* Can't do a step but there is a predecessor we can backtrace to *)
+  "\<lbrakk>Step g (nid, seen, conds) None;
+    Some nid' = pred g nid;
+    seen' = {nid} \<union> seen;
+    ConditionalEliminationPhase g (nid', seen', conds) g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds) g'" |
+
+  (* Can't do a step and have no predecessors do terminate *)
+  "\<lbrakk>Step g (nid, seen, conds) None;
+    None = pred g nid\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds) g"
+
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) 
+  ConditionalEliminationPhase .
+
+inductive ConditionalEliminationPhaseWithTrace
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions) \<Rightarrow> ID list \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> bool" where
+
+  (* Can do a step and optimise for the current nid *)
+  "\<lbrakk>Step g (nid, seen, conds) (Some (nid', seen', conds'));
+    ConditionalEliminationStep (set conds) g nid g';
+    
+    ConditionalEliminationPhaseWithTrace g' (nid', seen', conds') (nid # t) g'' t' conds''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds) t g'' t' conds''" |
+
+  (* Can do a step, matches whether optimised or not causing non-determinism
+     Need to find a way to negate ConditionalEliminationStep *)
+  "\<lbrakk>Step g (nid, seen, conds) (Some (nid', seen', conds'));
+    
+    ConditionalEliminationPhaseWithTrace g (nid', seen', conds') (nid # t) g' t' conds''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds) t g' t' conds''" |
+
+  (* Can't do a step but there is a predecessor we can backtrace to *)
+  "\<lbrakk>Step g (nid, seen, conds) None;
+    Some nid' = pred g nid;
+    seen' = {nid} \<union> seen;
+    ConditionalEliminationPhaseWithTrace g (nid', seen', conds) (nid # t) g' t' conds'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds) t g' t' conds'" |
+
+  (* Can't do a step and have no predecessors do terminate *)
+  "\<lbrakk>Step g (nid, seen, conds) None;
+    None = pred g nid\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds) t g (nid # t) conds"
+
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) 
+  ConditionalEliminationPhaseWithTrace .
+
+
+definition exAlwaysDistinct :: "IRGraph" where
+  "exAlwaysDistinct = irgraph [
+    (0, (StartNode (None) (4)), VoidStamp),
+    (1, (ParameterNode (0)), IntegerStamp 32 (1) (2)),
+    (2, (ParameterNode (1)), IntegerStamp 32 (3) (4)),
+    (3, (IntegerEqualsNode (1) (2)), default_stamp),
+    (4, (IfNode (3) (5) (6)), VoidStamp),
+    (5, (BeginNode 7), VoidStamp),
+    (6, (BeginNode 8), VoidStamp),
+    (7, (EndNode), VoidStamp),
+    (8, (EndNode), VoidStamp),
+    (9, (MergeNode [7, 8] None 11), VoidStamp),
+    (10, (ValuePhiNode 10 [1, 2] 9), VoidStamp),
+    (11, (ReturnNode ((Some 10)) (None)), default_stamp)]"
+values "{g' . ConditionalEliminationPhase exAlwaysDistinct (0, {}, []) g'}"
+
+
+definition exNeverDistinct :: "IRGraph" where
+  "exNeverDistinct = irgraph [
+    (0, (StartNode (None) (4)), VoidStamp),
+    (1, (ParameterNode (0)), IntegerStamp 32 (1) (1)),
+    (2, (ParameterNode (1)), IntegerStamp 32 (1) (1)),
+    (3, (IntegerEqualsNode (1) (2)), default_stamp),
+    (4, (IfNode (3) (5) (6)), VoidStamp),
+    (5, (BeginNode 7), VoidStamp),
+    (6, (BeginNode 8), VoidStamp),
+    (7, (EndNode), VoidStamp),
+    (8, (EndNode), VoidStamp),
+    (9, (MergeNode [7, 8] None 11), VoidStamp),
+    (10, (ValuePhiNode 10 [1, 2] 9), VoidStamp),
+    (11, (ReturnNode ((Some 10)) (None)), default_stamp)]"
+values "{g' . ConditionalEliminationPhase exNeverDistinct (0, {}, []) g'}"
+
+definition exImpliesElim :: "IRGraph" where
+  "exImpliesElim = irgraph [
+    (0, (StartNode (None) (4)), VoidStamp),
+    (1, (ParameterNode (0)), default_stamp),
+    (2, (ParameterNode (1)), default_stamp),
+    (3, (IntegerEqualsNode (1) (2)), default_stamp),
+    (4, (IfNode (3) (5) (6)), VoidStamp),
+    (5, (BeginNode (9)), VoidStamp),
+    (6, (BeginNode (7)), VoidStamp),
+    (7, (EndNode), VoidStamp),
+    (8, (IntegerLessThanNode (1) (2)), default_stamp),
+    (9, (IfNode (8) (10) (11)), default_stamp),
+    (10, (BeginNode 12), VoidStamp),
+    (11, (BeginNode 13), VoidStamp),
+    (12, (EndNode), VoidStamp),
+    (13, (EndNode), VoidStamp),
+    (14, (MergeNode [12, 13] None 15), VoidStamp),
+    (15, (EndNode), VoidStamp),
+    (16, (MergeNode [7, 15] None 17), VoidStamp),
+    (17, (ReturnNode (Some 1) None), default_stamp)
+  ]"
+values "{g' . ConditionalEliminationPhase exImpliesElim (0, {}, []) g'}"
+
+(* same as previous but condition is in else so condition is negated -- shouldn't optimize *)
+definition exImpliesElimNeg :: "IRGraph" where
+  "exImpliesElimNeg = irgraph [
+    (0, (StartNode (None) (4)), VoidStamp),
+    (1, (ParameterNode (0)), default_stamp),
+    (2, (ParameterNode (1)), default_stamp),
+    (3, (IntegerEqualsNode (1) (2)), default_stamp),
+    (4, (IfNode (3) (6) (5)), VoidStamp),
+    (5, (BeginNode (9)), VoidStamp),
+    (6, (BeginNode (7)), VoidStamp),
+    (7, (EndNode), VoidStamp),
+    (8, (IntegerLessThanNode (1) (2)), default_stamp),
+    (9, (IfNode (8) (10) (11)), default_stamp),
+    (10, (BeginNode 12), VoidStamp),
+    (11, (BeginNode 13), VoidStamp),
+    (12, (EndNode), VoidStamp),
+    (13, (EndNode), VoidStamp),
+    (14, (MergeNode [12, 13] None 15), VoidStamp),
+    (15, (EndNode), VoidStamp),
+    (16, (MergeNode [7, 15] None 17), VoidStamp),
+    (17, (ReturnNode (Some 1) None), default_stamp)
+  ]"
+values "{g' . ConditionalEliminationPhase exImpliesElimNeg (0, {}, []) g'}"
+
+
+definition ConditionalEliminationTest4_test2Snippet_initial :: IRGraph where
+  "ConditionalEliminationTest4_test2Snippet_initial = irgraph [
+  (0, (StartNode  (Some 3) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) 2147483647),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) 2147483647),
+  (3, (FrameState []  None None None), IllegalStamp),
+  (4, (IntegerLessThanNode 1 2), VoidStamp),
+  (5, (BeginNode 8), VoidStamp),
+  (6, (BeginNode 13), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (EndNode), VoidStamp),
+  (9, (MergeNode  [8, 10]  (Some 16) 18), VoidStamp),
+  (10, (EndNode), VoidStamp),
+  (11, (BeginNode 15), VoidStamp),
+  (12, (BeginNode 10), VoidStamp),
+  (13, (IfNode 4 11 12), VoidStamp),
+  (14, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 1 1),
+  (15, (ReturnNode  (Some 14)  None), VoidStamp),
+  (16, (FrameState []  None None None), IllegalStamp),
+  (17, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 2 2),
+  (18, (ReturnNode  (Some 17)  None), VoidStamp)
+  ]"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest4_test2Snippet_initial (0, {}, []) g'}"
+
 
 lemma IfNodeStepE: "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Longrightarrow>
   (\<And>cond tb fb val.
@@ -464,12 +701,10 @@ proof (induct g nid g' arbitrary: nid rule: ConditionalEliminationStep.induct)
         by (metis IfNode alwaysDistinctEq.hyps(1) v val_to_bool.simps(1))
       have g2step: "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
         using alwaysDistinctEq.hyps(4) unfolding replace_usages.simps
-        by (simp add: step.RefNode)
+        sorry (*by (simp add: step.RefNode)*)
       from g1step g2step show ?thesis
         using Step
-        sorry
-        (* was fast before conds_valid *)
-        by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps alwaysDistinctEq.prems(3) alwaysDistinctEq.prems(5) replace_usages step.RefNode)
+        sorry (*by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps alwaysDistinctEq.prems(3) alwaysDistinctEq.prems(5) replace_usages step.RefNode)*)
     next
       case False
       then show ?thesis
@@ -492,11 +727,11 @@ next
         by (smt (z3) IfNode neverDistinctEq.hyps(1) v val_to_bool.simps(1))
       have g2step: "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
         using neverDistinctEq.hyps(4) unfolding replace_usages.simps
-        by (simp add: step.RefNode)
+        sorry (*by (simp add: step.RefNode)*)
       from g1step g2step show ?thesis
         using Step
         sorry
-        by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps neverDistinctEq.prems(3) neverDistinctEq.prems(5) replace_usages step.RefNode)
+        (*by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps neverDistinctEq.prems(3) neverDistinctEq.prems(5) replace_usages step.RefNode)*)
     next
       case False
       then show ?thesis
@@ -521,7 +756,7 @@ qed
 lemma ConditionalEliminationPhaseProof:
   assumes "wff_graph g"
   assumes "wff_stamps g"
-  assumes "ConditionalEliminationPhase {} g 0 conds' g'"
+  assumes "ConditionalEliminationPhase g (0, {}, []) (g', seen, trace)"
   
   shows "\<exists>nid' .(g m h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> 0 \<leadsto> nid')"
 proof -
@@ -538,74 +773,12 @@ next
   case (3 succs g nid)
   then show ?case 
     by simp
+next
+  case (4)
+  then show ?case sorry
 qed
 qed
 
-definition exAlwaysDistinct :: "IRGraph" where
-  "exAlwaysDistinct = irgraph [
-    (0, (StartNode (None) (4)), VoidStamp),
-    (1, (ParameterNode (0)), IntegerStamp 32 (1) (2)),
-    (2, (ParameterNode (1)), IntegerStamp 32 (3) (4)),
-    (3, (IntegerEqualsNode (1) (2)), default_stamp),
-    (4, (IfNode (3) (5) (6)), VoidStamp),
-    (5, (ReturnNode ((Some 1)) (None)), default_stamp),
-    (6, (ReturnNode ((Some 2)) (None)), default_stamp)]"
-
-definition exNeverDistinct :: "IRGraph" where
-  "exNeverDistinct = irgraph [
-    (0, (StartNode (None) (4)), VoidStamp),
-    (1, (ParameterNode (0)), IntegerStamp 32 (1) (1)),
-    (2, (ParameterNode (1)), IntegerStamp 32 (1) (1)),
-    (3, (IntegerEqualsNode (1) (2)), default_stamp),
-    (4, (IfNode (3) (5) (6)), VoidStamp),
-    (5, (ReturnNode ((Some 1)) (None)), default_stamp),
-    (6, (ReturnNode ((Some 2)) (None)), default_stamp)]"
-
-values 1 "{g' | g' conds'. ConditionalEliminationPhase {} exAlwaysDistinct 0 conds' g'}"
-values 1 "{g' | g' conds'. ConditionalEliminationPhase {} exNeverDistinct 0 conds' g'}"
-
-definition exImpliesElim :: "IRGraph" where
-  "exImpliesElim = irgraph [
-    (0, (StartNode (None) (4)), VoidStamp),
-    (1, (ParameterNode (0)), default_stamp),
-    (2, (ParameterNode (1)), default_stamp),
-    (3, (IntegerEqualsNode (1) (2)), default_stamp),
-    (4, (IfNode (3) (5) (6)), VoidStamp),
-    (5, (BeginNode (8)), VoidStamp),
-    (6, (BeginNode (10)), VoidStamp),
-    (7, (IntegerLessThanNode (1) (2)), default_stamp),
-    (8, (IfNode (7) (9) (10)), default_stamp),
-    (9, (ReturnNode (Some 1) None), default_stamp),
-    (10, (ReturnNode (Some 2) None), default_stamp)
-  ]"
-
-values "{g' | g' conds'. ConditionalEliminationPhase {} exImpliesElim 0 conds' g'}"
-
-
-definition ConditionalEliminationTest4_test2Snippet_initial :: IRGraph where
-  "ConditionalEliminationTest4_test2Snippet_initial = irgraph [
-  (0, (StartNode  (Some 3) 7), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) 2147483647),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) 2147483647),
-  (3, (FrameState []  None None None), IllegalStamp),
-  (4, (IntegerLessThanNode 1 2), VoidStamp),
-  (5, (BeginNode 8), VoidStamp),
-  (6, (BeginNode 13), VoidStamp),
-  (7, (IfNode 4 6 5), VoidStamp),
-  (8, (EndNode), VoidStamp),
-  (9, (MergeNode  [8, 10]  (Some 16) 18), VoidStamp),
-  (10, (EndNode), VoidStamp),
-  (11, (BeginNode 15), VoidStamp),
-  (12, (BeginNode 10), VoidStamp),
-  (13, (IfNode 4 11 12), VoidStamp),
-  (14, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 1 1),
-  (15, (ReturnNode  (Some 14)  None), VoidStamp),
-  (16, (FrameState []  None None None), IllegalStamp),
-  (17, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 2 2),
-  (18, (ReturnNode  (Some 17)  None), VoidStamp)
-  ]"
-
-values "{g' | g' conds'. ConditionalEliminationPhase {} ConditionalEliminationTest4_test2Snippet_initial 0 conds' g'}"
 
 
 (*

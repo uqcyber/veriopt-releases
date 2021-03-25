@@ -2,7 +2,7 @@ theory ConditionalElimination
   imports
     IREval
     Stuttering
-    CFG
+    IRGraphFrames
 begin
 
 datatype TriState = Unknown | KnownTrue | KnownFalse
@@ -171,34 +171,27 @@ fun wff_stamps :: "IRGraph \<Rightarrow> bool" where
   "wff_stamps g = (\<forall> n \<in> ids g . 
     (\<forall> v m . (g m \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (stamp g n) v))"
 
-lemma join_unequal:
-  assumes "joined = (join x_stamp y_stamp)"
-  assumes "is_stamp_empty joined"
-  shows "\<nexists> x y . x = y \<and> valid_value x_stamp x \<and> valid_value y_stamp y"
-  using assms disjoint_empty by auto
-
 fun replace_usages :: "ID \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "replace_usages nid nid' g = replace_node nid (RefNode nid', stamp g nid') g"
 
-lemma replace_usages:
-  assumes "nid \<in> ids g"
+lemma replace_usages_effect:
   assumes "g' = replace_usages nid nid' g"
   shows "kind g' nid = RefNode nid'"
+  using IRNode.distinct(1980) assms replace_node_lookup replace_usages.simps by presburger
+
+lemma replace_usages_changeonly:
+  assumes "nid \<in> ids g"
+  assumes "g' = replace_usages nid nid' g"
+  shows "changeonly {nid} g g'"
   using assms unfolding replace_usages.simps
-  using replace_node_lookup by blast
+  by (metis DiffI changeonly.elims(3) ids_some replace_node_unchanged)
 
 lemma replace_usages_unchanged:
   assumes "nid \<in> ids g"
   assumes "g' = replace_usages nid nid' g"
-  shows "\<forall> n \<in> ids g . n \<noteq> nid \<longrightarrow> kind g n = kind g' n"
+  shows "unchanged (ids g - {nid}) g g'"
   using assms unfolding replace_usages.simps
-  by (metis insertE insert_Diff replace_node_unchanged)
-
-
-lemma
-  assumes "(g m h \<turnstile> nid \<leadsto> nid')"
-  shows "\<forall> inter. (g \<turnstile> (nid, m, h) \<rightarrow> (inter, m, h)) \<longrightarrow> (g m h \<turnstile> nid \<leadsto> inter)"
-  using Step by auto
+  by (smt (verit, del_insts) DiffE ids_some replace_node_unchanged unchanged.simps)
 
 lemma asConstantEval:
   assumes "wff_stamps g"
@@ -244,49 +237,25 @@ lemma tryFoldIntegerEqualsNeverDistinct:
   using assms asConstantEval neverDistinct.simps
   by (smt IntegerEqualsNodeE Value.inject(1) bool_to_val.simps(1))
 
-(*
-inductive conditionalElimination :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "\<lbrakk>wff_graph g;
-    wff_stamps g;
-    g' = Predicate.the (nElim g nid)
-    \<rbrakk> \<Longrightarrow> conditionalElimination g g'"
-
-code_pred [show_modes] conditionalElimination .
-code_pred (modes: i \<Rightarrow> o \<Rightarrow> bool) conditionalElimination .
-
-fun elimOne :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph" where
-  "elimOne g nid = Predicate.the (nElim g nid)"
-
-fun hasElim :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
-  "hasElim g nid = (\<not>(Predicate.is_empty (nElim g nid)))"
-
-fun eliminable :: "IRGraph \<Rightarrow> ID list \<Rightarrow> ID list" where
-  "eliminable g nids = filter (hasElim g) nids"
-
-fun hdOr :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a" where
-  "hdOr [] d = d" |
-  "hdOr (x # xs) d = x"
-
-fun conditionalElimination :: "IRGraph \<Rightarrow> IRGraph" where
-  "conditionalElimination g = (elimOne g 
-    (hdOr (eliminable g (sorted_list_of_set (ids g))) 0)
-  )"
-
-lemma
-  assumes "(g m h \<turnstile> nid \<leadsto> nid')"
-  assumes "kind g nid = IfNode cond t f"
-  shows "g m \<turnstile> kind g cond \<mapsto> v"
-proof -
-  have "\<exists>nid''. (g \<turnstile> (nid, m, h) \<rightarrow> (nid'', m, h))"
-    using assms(1) stutter.cases by meson
-  then show ?thesis using assms(2) step.IfNode sorry
-*)
-
 inductive_cases StepE:
   "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
 
 fun nextNid :: "IRGraph \<Rightarrow> ID" where
   "nextNid g = (Max (ids g)) + 1"
+
+lemma max_plus_one:
+  fixes c :: "ID set"
+  shows "\<lbrakk>finite c; c \<noteq> {}\<rbrakk> \<Longrightarrow> (Max c) + 1 \<notin> c"
+  by (meson Max_gr_iff less_add_one less_irrefl)
+
+lemma ids_finite:
+  "finite (ids g)"
+  by simp
+
+lemma nextNidNotIn:
+  "ids g \<noteq> {} \<longrightarrow> nextNid g \<notin> ids g"
+  unfolding nextNid.simps ids_finite
+  using ids_finite max_plus_one by blast
 
 fun constantCondition :: "bool \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "constantCondition val nid (IfNode cond t f) g = 
@@ -294,24 +263,135 @@ fun constantCondition :: "bool \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarro
       (add_node (nextNid g) ((ConstantNode (bool_to_val val)), default_stamp) g)" |
   "constantCondition cond nid _ g = g"
 
+lemma constantConditionTrue:
+  assumes "kind g ifcond = IfNode cond t f"
+  assumes "g' = constantCondition True ifcond (kind g ifcond) g"
+  shows "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+proof -
+  have if': "kind g' ifcond = IfNode (nextNid g) t f"
+    by (metis IRNode.simps(965) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
+  have "bool_to_val True = (IntVal 1 1)"
+    by auto
+  have "ifcond \<noteq> (nextNid g)"
+    by (metis IRNode.simps(965) assms(1) emptyE ids_some nextNidNotIn)
+  then have c': "kind g' (nextNid g) = ConstantNode (IntVal 1 1)"
+    using assms(2) replace_node_unchanged
+    by (metis Diff_iff IRNode.distinct(571) \<open>bool_to_val True = IntVal 1 1\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE ids_some insert_iff)
+  from if' c' show ?thesis using IfNode
+    by (smt (z3) ConstantNode val_to_bool.simps(1))
+qed
+
+lemma constantConditionFalse:
+  assumes "kind g ifcond = IfNode cond t f"
+  assumes "g' = constantCondition False ifcond (kind g ifcond) g"
+  shows "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+proof -
+  have if': "kind g' ifcond = IfNode (nextNid g) t f"
+    by (metis IRNode.simps(965) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
+  have "bool_to_val False = (IntVal 1 0)"
+    by auto
+  have "ifcond \<noteq> (nextNid g)"
+    by (metis IRNode.simps(965) assms(1) emptyE ids_some nextNidNotIn)
+  then have c': "kind g' (nextNid g) = ConstantNode (IntVal 1 0)"
+    using assms(2) replace_node_unchanged
+    by (metis Diff_iff IRNode.distinct(571) \<open>bool_to_val False = IntVal 1 0\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE ids_some insert_iff)
+  from if' c' show ?thesis using IfNode
+    by (smt (z3) ConstantNode val_to_bool.simps(1))
+qed
+
+lemma diff_forall:
+  assumes "\<forall>n\<in>ids g - {nid}. cond n"
+  shows "\<forall>n. n \<in> ids g \<and> n \<notin> {nid} \<longrightarrow> cond n"
+  by (meson Diff_iff assms)
+
+lemma replace_node_changeonly:
+  assumes "g' = replace_node nid node g"
+  shows "changeonly {nid} g g'"
+  using assms replace_node_unchanged
+  unfolding changeonly.simps using diff_forall
+  sorry (* Isabelle isn't doing good *)
+
+lemma add_node_changeonly:
+  assumes "g' = add_node nid node g"
+  shows "changeonly {nid} g g'"
+  by (metis Rep_IRGraph_inverse add_node.rep_eq assms replace_node.rep_eq replace_node_changeonly)
+
+lemma constantConditionNoEffect:
+  assumes "\<not>(is_IfNode (kind g nid))"
+  shows "g = constantCondition b nid (kind g nid) g"
+  using assms apply (cases "kind g nid")
+  using constantCondition.simps 
+  apply presburger+
+  apply (metis is_IfNode_def)
+  using constantCondition.simps 
+  by presburger+
+
+lemma constantConditionIfNode:
+  assumes "kind g nid = IfNode cond t f"
+  shows "constantCondition val nid (kind g nid) g = 
+    replace_node nid (IfNode (nextNid g) t f, stamp g nid) 
+     (add_node (nextNid g) ((ConstantNode (bool_to_val val)), default_stamp) g)"
+  using constantCondition.simps
+  by (simp add: assms)
+
+lemma constantCondition_changeonly:
+  assumes "nid \<in> ids g"
+  assumes "g' = constantCondition b nid (kind g nid) g"
+  shows "changeonly {nid} g g'"
+proof (cases "is_IfNode (kind g nid)")
+  case True
+  have "nextNid g \<notin> ids g"
+    using nextNidNotIn by (metis emptyE)
+  then show ?thesis using assms
+    using replace_node_changeonly add_node_changeonly unfolding changeonly.simps
+    using True constantCondition.simps(1) is_IfNode_def
+    by (metis (full_types) DiffD2 Diff_insert_absorb)
+next
+  case False
+  have "g = g'"
+    using constantConditionNoEffect
+    using False assms(2) by blast
+  then show ?thesis by simp
+qed
+  
 
 lemma constantConditionNoIf:
-  assumes "kind g ifcond \<noteq> IfNode cond t f"
+  assumes "\<forall>cond t f. kind g ifcond \<noteq> IfNode cond t f"
   assumes "g' = constantCondition val ifcond (kind g ifcond) g"
-  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid' .(g m h \<turnstile> ifcond \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> ifcond \<leadsto> nid')"
 proof -
   have "g' = g"
-    using assms constantCondition.simps sorry
+    using assms(2) assms(1)
+    using constantConditionNoEffect
+    by (metis IRNode.collapse(11))
   then show ?thesis by simp
 qed
 
 lemma constantConditionValid:
   assumes "kind g ifcond = IfNode cond t f"
   assumes "g m \<turnstile> kind g cond \<mapsto> v"
-  assumes "val_to_bool b"
-  assumes "g' = constantCondition True ifcond (kind g ifcond) g"
-  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
-  sorry
+  assumes "const = val_to_bool v"
+  assumes "g' = constantCondition const ifcond (kind g ifcond) g"
+  shows "\<exists>nid' .(g m h \<turnstile> ifcond \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> ifcond \<leadsto> nid')"
+proof (cases "const")
+  case True
+  have ifstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+    by (meson IfNode True assms(1) assms(2) assms(3))
+  have ifstep': "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+    using constantConditionTrue
+    using True assms(1) assms(4) by presburger
+  from ifstep ifstep' show ?thesis
+    using Step by blast
+next
+  case False
+  have ifstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+    by (meson IfNode False assms(1) assms(2) assms(3))
+  have ifstep': "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+    using constantConditionFalse
+    using False assms(1) assms(4) by presburger
+  from ifstep ifstep' show ?thesis
+    using Step by blast
+qed
 
 inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   alwaysDistinctEq:
@@ -608,23 +688,6 @@ lemma IfNodeStepE: "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Lon
   using StepE
   by (smt (verit, best) IfNode Pair_inject stepDet)
 
-(*
-lemma ifNodeHasCondEval:
-  assumes "(g m h \<turnstile> nid \<leadsto> nid')"
-  assumes "kind g nid = IfNode cond t f"
-  shows "g m \<turnstile> kind g cond \<mapsto> v"
-proof -
-  obtain nid'' where step: "(g \<turnstile> (nid, m, h) \<rightarrow> (nid'', m, h))"
-    using assms(1) stutter.cases by meson
-  have "nid'' = t \<or> nid'' = f"
-    by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.inject(11) StepE \<open>g \<turnstile> (nid, m, h) \<rightarrow> (nid'', m, h)\<close> assms(2) is_EndNode.simps(12) is_sequential_node.simps(18))
-  obtain v where condkind: "g m \<turnstile> kind g cond \<mapsto> v"
-    by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.sel(56) StepE assms(2) is_EndNode.simps(12) is_sequential_node.simps(18) local.step)
-  have "nid'' = (if (val_to_bool v) then t else f)"
-    by (metis IfNode \<open>g m \<turnstile> kind g cond \<mapsto> v\<close> assms(2) local.step old.prod.inject stepDet)
-  then show ?thesis using assms(2) step IfNodeStepE condkind sorry
-qed
-*)
 
 lemma ifNodeHasCondEval:
   assumes "(g m h \<turnstile> nid \<leadsto> nid')"
@@ -683,28 +746,24 @@ lemma ConditionalEliminationStepProof:
   
   shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
   using ce using assms
-proof (induct g nid g' arbitrary: nid rule: ConditionalEliminationStep.induct)
+proof (induct g nid g' rule: ConditionalEliminationStep.induct)
   case (alwaysDistinctEq g ifcond cond t f x y g' conds)
-    then show ?case proof (cases "(g m h \<turnstile> nid \<leadsto> nid')")
+    then show ?case proof (cases "(g m h \<turnstile> ifcond \<leadsto> nid')")
       case True
       obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
         using ifNodeHasCondEval True alwaysDistinctEq.hyps(1)
-        using alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(5) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged
-        sorry (* worked before adding conds_valid *)
-        (*by (metis IRNode.distinct(921) IRNode.distinct(923) alwaysDistinctEq.hyps(4) alwaysDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)*)
+        by blast
       have "v = IntVal 1 0"
         using tryFoldIntegerEqualsAlwaysDistinct
         using alwaysDistinctEq.prems(2) alwaysDistinctEq.hyps(2) 
               alwaysDistinctEq.hyps(3)
         using v by blast
-      then have g1step: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-        by (metis IfNode alwaysDistinctEq.hyps(1) v val_to_bool.simps(1))
-      have g2step: "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-        using alwaysDistinctEq.hyps(4) unfolding replace_usages.simps
-        sorry (*by (simp add: step.RefNode)*)
-      from g1step g2step show ?thesis
-        using Step
-        sorry (*by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps alwaysDistinctEq.prems(3) alwaysDistinctEq.prems(5) replace_usages step.RefNode)*)
+      then have "False = val_to_bool v"
+        by simp
+      then show ?thesis 
+        using constantConditionValid alwaysDistinctEq.hyps(1) v
+        alwaysDistinctEq.hyps(4) 
+        by blast
     next
       case False
       then show ?thesis
@@ -712,26 +771,23 @@ proof (induct g nid g' arbitrary: nid rule: ConditionalEliminationStep.induct)
     qed
 next
   case (neverDistinctEq g ifcond cond t f x y g')
-    then show ?case proof (cases "(g m h \<turnstile> nid \<leadsto> nid')")
+    then show ?case proof (cases "(g m h \<turnstile> ifcond \<leadsto> nid')")
       case True
       obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
         using ifNodeHasCondEval True neverDistinctEq.hyps(1)
-        sorry
+        by blast
         (*by (metis IRNode.distinct(921) IRNode.distinct(923) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)*)
       have "v = IntVal 1 1"
         using tryFoldIntegerEqualsNeverDistinct
         using neverDistinctEq.prems(2) neverDistinctEq.hyps(2) 
               neverDistinctEq.hyps(3)
         using v by blast
-      then have g1step: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-        by (smt (z3) IfNode neverDistinctEq.hyps(1) v val_to_bool.simps(1))
-      have g2step: "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-        using neverDistinctEq.hyps(4) unfolding replace_usages.simps
-        sorry (*by (simp add: step.RefNode)*)
-      from g1step g2step show ?thesis
-        using Step
-        sorry
-        (*by (smt (verit, ccfv_SIG) ConditionalEliminationStep.simps neverDistinctEq.prems(3) neverDistinctEq.prems(5) replace_usages step.RefNode)*)
+      then have "True = val_to_bool v"
+        by simp
+      then show ?thesis 
+        using constantConditionValid neverDistinctEq.hyps(1) v
+        neverDistinctEq.hyps(4) 
+        by blast
     next
       case False
       then show ?thesis
@@ -744,19 +800,37 @@ next
     using impliesTrue.hyps(2) by auto
   have condvTrue: "val_to_bool condv"
     by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_true_valid)
-  from replace_if_t_imp show ?case
-    using impliesTrue.hyps(1) condv condvTrue impliesTrue.hyps(4)
-    sorry (* what on earth are you doing Isabelle?? *)
+  then show ?case 
+    using constantConditionValid 
+    using impliesTrue.hyps(1) condv impliesTrue.hyps(4)
+    by blast
 next
   case (impliesFalse g ifcond cid t f cond conds g')
-  then show ?case sorry
+  then show ?case 
+  proof (cases "(g m h \<turnstile> ifcond \<leadsto> nid')")
+    case True
+    obtain condv where condv: "g m \<turnstile> kind g cid \<mapsto> condv"
+      using ifNodeHasCondEval impliesFalse.hyps(1)
+      using True by blast
+    have condvFalse: "False = val_to_bool condv"
+      using conds_valid impliesFalse.hyps(3)
+      by (metis condition_implies.intros(2) condv impliesFalse.hyps(2) impliesFalse.prems(1) impliesFalse.prems(4) implies_false_valid)
+    then show ?thesis
+      using constantConditionValid 
+      using impliesFalse.hyps(1) condv impliesFalse.hyps(4)
+      by blast
+  next
+    case False
+    then show ?thesis
+      by auto
+  qed
 qed
 
 
 lemma ConditionalEliminationPhaseProof:
   assumes "wff_graph g"
   assumes "wff_stamps g"
-  assumes "ConditionalEliminationPhase g (0, {}, []) (g', seen, trace)"
+  assumes "ConditionalEliminationPhase g (0, {}, []) g'"
   
   shows "\<exists>nid' .(g m h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> 0 \<leadsto> nid')"
 proof -
@@ -778,31 +852,6 @@ next
   then show ?case sorry
 qed
 qed
-
-
-
-(*
-lemma conditionEliminationValid:
-  assumes "\<forall>n \<in> ids g. \<exists> v. (g m \<turnstile> kind g n \<mapsto> v)" (* overly strong, refine *)
-  assumes "0 \<in> ids g"
-  assumes ce: "g' = conditionalElimination g"
-  shows "\<forall>nid. \<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
-  using ce unfolding conditionalElimination.simps elimOne.simps
-    eliminable.simps hasElim.simps 
-proof (cases "\<exists> nid \<in> ids g. hasElim g nid")
-  case True
-  then show ?thesis sorry
-next
-  case False
-  have "(eliminable g (sorted_list_of_set (ids g))) = []"
-    unfolding eliminable.simps
-    by (metis False equals0D filter_False set_empty set_sorted_list_of_set sorted_list_of_set.infinite)
-  then have "g' = Predicate.the (nElim g 0)"
-    using hdOr.simps
-    by (simp add: ce)
-  then show ?thesis using assms(1,2) oneNodeElimValid sledgehammer
-qed
-*)
 
 
 lemma replaceUsagesFoldAlwaysDistinct:
@@ -858,7 +907,7 @@ inductive conditions :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow>
    \<Longrightarrow> conditions g nid nid' [NegateNode cond]" |
   "\<lbrakk>\<not>(is_IfNode (kind g nid))\<rbrakk>
    \<Longrightarrow> conditions g nid nid' []"
-*)
+
 
 fun conditions :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode list" where
   "conditions g nid nid' = (case kind g nid of
@@ -1091,6 +1140,7 @@ proof -
   then show ?thesis using assms replace_if_t
     by blast
 qed
+*)
 
 
 end

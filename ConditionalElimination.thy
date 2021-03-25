@@ -21,7 +21,12 @@ inductive implies :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Righta
   "g \<turnstile> (IntegerLessThanNode x y) & (IntegerEqualsNode y x) \<hookrightarrow> KnownFalse" |
 
   x_imp_x:
-  "g \<turnstile> x & x \<hookrightarrow> KnownTrue"
+  "g \<turnstile> x & x \<hookrightarrow> KnownTrue" |
+
+  negate_false:
+  "\<lbrakk>g \<turnstile> x & (kind g y) \<hookrightarrow> KnownTrue\<rbrakk> \<Longrightarrow> g \<turnstile> x & (NegateNode y) \<hookrightarrow> KnownFalse" |
+  negate_true:
+  "\<lbrakk>g \<turnstile> x & (kind g y) \<hookrightarrow> KnownFalse\<rbrakk> \<Longrightarrow> g \<turnstile> x & (NegateNode y) \<hookrightarrow> KnownTrue"
 
 inductive condition_implies :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> TriState \<Rightarrow> bool"
   ("_ \<turnstile> _ & _ \<rightharpoonup> _") for g where
@@ -35,7 +40,7 @@ lemma implies_true_valid:
   assumes "g m \<turnstile> y \<mapsto> v2"
   shows "val_to_bool v1 \<longrightarrow> val_to_bool v2"
 proof -
-  have "g \<turnstile> x & y \<hookrightarrow> imp"
+  have s: "g \<turnstile> x & y \<hookrightarrow> imp"
     using assms(1) assms(2) condition_implies.cases by blast
 
 then show ?thesis
@@ -58,6 +63,13 @@ next
   case (x_imp_x x1)
   then show ?case using evalDet
     using assms(3) assms(4) by blast
+next
+  case (negate_false x1)
+  then show ?case using evalDet
+    using assms(3) assms(4) by blast
+next
+  case (negate_true x y)
+  show ?case using negate_true.hyps(1) sorry
 qed
 qed
 
@@ -162,6 +174,12 @@ next
     by (metis (full_types) bool_to_val.simps(2) eqeval evalDet less_imp_not_eq_rev.prems(4) less_imp_not_eq_rev.prems(5) lesseval val_to_bool.simps(1))
 next
   case (x_imp_x x1)
+  then show ?case by simp
+next
+  case (negate_false x1)
+  then show ?case using implies_true_valid sorry
+next
+  case (negate_true x1)
   then show ?case by simp
 qed
 qed
@@ -588,6 +606,7 @@ definition exAlwaysDistinct :: "IRGraph" where
     (9, (MergeNode [7, 8] None 11), VoidStamp),
     (10, (ValuePhiNode 10 [1, 2] 9), VoidStamp),
     (11, (ReturnNode ((Some 10)) (None)), default_stamp)]"
+
 values "{g' . ConditionalEliminationPhase exAlwaysDistinct (0, {}, []) g'}"
 
 
@@ -653,6 +672,32 @@ definition exImpliesElimNeg :: "IRGraph" where
     (17, (ReturnNode (Some 1) None), default_stamp)
   ]"
 values "{g' . ConditionalEliminationPhase exImpliesElimNeg (0, {}, []) g'}"
+
+
+(* tests the negation implies rule *)
+definition exImpliesElimNegation :: "IRGraph" where
+  "exImpliesElimNegation = irgraph [
+    (0, (StartNode (None) (4)), VoidStamp),
+    (1, (ParameterNode (0)), default_stamp),
+    (2, (ParameterNode (1)), default_stamp),
+    (3, (IntegerEqualsNode (1) (2)), default_stamp),
+    (4, (IfNode (3) (5) (6)), VoidStamp),
+    (5, (BeginNode (9)), VoidStamp),
+    (6, (BeginNode (7)), VoidStamp),
+    (7, (EndNode), VoidStamp),
+    (8, (IntegerLessThanNode (1) (2)), default_stamp),
+    (200, (NegateNode 8), default_stamp),
+    (9, (IfNode (200) (10) (11)), default_stamp),
+    (10, (BeginNode 12), VoidStamp),
+    (11, (BeginNode 13), VoidStamp),
+    (12, (EndNode), VoidStamp),
+    (13, (EndNode), VoidStamp),
+    (14, (MergeNode [12, 13] None 15), VoidStamp),
+    (15, (EndNode), VoidStamp),
+    (16, (MergeNode [7, 15] None 17), VoidStamp),
+    (17, (ReturnNode (Some 1) None), default_stamp)
+  ]"
+values "{g' . ConditionalEliminationPhase exImpliesElimNegation (0, {}, []) g'}"
 
 
 definition ConditionalEliminationTest4_test2Snippet_initial :: IRGraph where

@@ -184,6 +184,22 @@ next
 qed
 qed
 
+fun alwaysDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "alwaysDistinct stamp1 stamp2 = is_stamp_empty (join stamp1 stamp2)"
+
+fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
+
+inductive tryFold :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> TriState \<Rightarrow> bool"
+  for g where
+  "\<lbrakk>alwaysDistinct (stamp g x) (stamp g y)\<rbrakk> 
+    \<Longrightarrow> tryFold g (IntegerEqualsNode x y) KnownFalse" |
+  "\<lbrakk>neverDistinct (stamp g x) (stamp g y)\<rbrakk> 
+    \<Longrightarrow> tryFold g (IntegerEqualsNode x y) KnownTrue" |
+  "\<lbrakk>stpi_upper (stamp g x) < stpi_lower (stamp g y)\<rbrakk> 
+    \<Longrightarrow> tryFold g (IntegerLessThanNode x y) KnownTrue" |
+  "\<lbrakk>stpi_lower (stamp g x) \<ge> stpi_upper (stamp g y)\<rbrakk> 
+    \<Longrightarrow> tryFold g (IntegerLessThanNode x y) KnownFalse"
 
 fun wff_stamps :: "IRGraph \<Rightarrow> bool" where
   "wff_stamps g = (\<forall> n \<in> ids g . 
@@ -231,12 +247,6 @@ proof -
     using \<open>l = h\<close> \<open>stamp g nid = IntegerStamp b l h\<close> assms(2) assms(4) by fastforce
 qed
 
-fun alwaysDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
-  "alwaysDistinct stamp1 stamp2 = is_stamp_empty (join stamp1 stamp2)"
-
-fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
-  "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
-
 lemma tryFoldIntegerEqualsAlwaysDistinct:
   assumes "wff_stamps g"
   assumes "kind g nid = (IntegerEqualsNode x y)"
@@ -254,6 +264,70 @@ lemma tryFoldIntegerEqualsNeverDistinct:
   shows "v = IntVal 1 1"
   using assms asConstantEval neverDistinct.simps
   by (smt IntegerEqualsNodeE Value.inject(1) bool_to_val.simps(1))
+
+lemma tryFoldIntegerLessThanTrue:
+  assumes "wff_stamps g"
+  assumes "kind g nid = (IntegerLessThanNode x y)"
+  assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
+  assumes "stpi_upper (stamp g x) < stpi_lower (stamp g y)"
+  shows "v = IntVal 1 1"
+  sorry
+
+lemma tryFoldIntegerLessThanFalse:
+  assumes "wff_stamps g"
+  assumes "kind g nid = (IntegerLessThanNode x y)"
+  assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
+  assumes "stpi_lower (stamp g x) \<ge> stpi_upper (stamp g y)"
+  shows "v = IntVal 1 0"
+  sorry
+
+theorem tryFoldProofTrue:
+  assumes "wff_stamps g"
+  assumes "tryFold g (kind g nid) tristate"
+  assumes "tristate = KnownTrue"
+  assumes "g m \<turnstile> kind g nid \<mapsto> v"
+  shows "val_to_bool v"
+  using assms(2) proof (induction "kind g nid" tristate rule: tryFold.induct)
+case (1 x y)
+  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms(1,4)
+    by (smt (verit, del_insts) IRNode.distinct(925) TriState.simps(6) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerEqualsNeverDistinct)
+next
+  case (2 x y)
+  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms(1,4)
+    by (metis tryFoldIntegerEqualsNeverDistinct val_to_bool.simps(1) zero_neq_one)
+next
+case (3 x y)
+  then show ?case using tryFoldIntegerLessThanTrue assms(1,4)
+    by (metis val_to_bool.simps(1) zero_neq_one)
+next
+case (4 x y)
+  then show ?case using assms(3)
+    by (smt (verit, best) TriState.distinct(5) Value.inject(1) assms(1) assms(2) assms(4) tryFold.cases tryFoldIntegerEqualsNeverDistinct tryFoldIntegerLessThanFalse tryFoldIntegerLessThanTrue)
+qed
+
+theorem tryFoldProofFalse:
+  assumes "wff_stamps g"
+  assumes "tryFold g (kind g nid) tristate"
+  assumes "tristate = KnownFalse"
+  assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
+  shows "\<not>(val_to_bool v)"
+using assms(2) proof (induction "kind g nid" tristate rule: tryFold.induct)
+case (1 x y)
+  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms(1,4)
+    by (metis val_to_bool.simps(1))
+next
+case (2 x y)
+  then show ?case using tryFoldIntegerEqualsNeverDistinct assms(1,4)
+    by (smt (verit, best) IRNode.distinct(925) TriState.distinct(5) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerEqualsAlwaysDistinct)
+next
+case (3 x y)
+  then show ?case using tryFoldIntegerLessThanTrue assms(1,4)
+    by (smt (verit, best) IRNode.simps(969) TriState.simps(6) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerLessThanFalse)
+next
+  case (4 x y)
+  then show ?case using tryFoldIntegerLessThanFalse assms(1,4)
+    by (metis val_to_bool.simps(1))
+qed
 
 inductive_cases StepE:
   "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
@@ -412,20 +486,6 @@ next
 qed
 
 inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  alwaysDistinctEq:
-  "\<lbrakk>kind g ifcond = (IfNode cond t f);
-    kind g cond = (IntegerEqualsNode x y);
-    alwaysDistinct (stamp g x) (stamp g y);
-    g' = constantCondition False ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
-
-  neverDistinctEq:
-  "\<lbrakk>kind g ifcond = (IfNode cond t f);
-    kind g cond = (IntegerEqualsNode x y);
-    neverDistinct (stamp g x) (stamp g y);
-    g' = constantCondition True ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
-
   impliesTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
@@ -438,8 +498,21 @@ inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> IRGraph \<Righ
     cond = kind g cid;
     \<exists> c \<in> conds . (g \<turnstile> c & cond \<hookrightarrow> KnownFalse);
     g' = constantCondition False ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'"
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
 
+  tryFoldTrue:
+  "\<lbrakk>kind g ifcond = (IfNode cid t f);
+    cond = kind g cid;
+    tryFold g (kind g cid) KnownTrue;
+    g' = constantCondition True ifcond (kind g ifcond) g
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
+
+  tryFoldFalse:
+  "\<lbrakk>kind g ifcond = (IfNode cid t f);
+    cond = kind g cid;
+    tryFold g (kind g cid) KnownFalse;
+    g' = constantCondition False ifcond (kind g ifcond) g
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
 
@@ -462,10 +535,11 @@ fun pred :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
 
 type_synonym Seen = "ID set"
 type_synonym Conditions = "IRNode list"
-
+type_synonym StampFlow = "(ID \<Rightarrow> Stamp) list"
 
 inductive Step 
-  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions) \<Rightarrow> (ID \<times> Seen \<times> Conditions) option \<Rightarrow> bool" where
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) option \<Rightarrow> bool"
+  for g where
   (* Hit a BeginNode
      1. nid' will be the successor of the begin node
      2. Find the first and only predecessor
@@ -484,7 +558,7 @@ inductive Step
     i = find_index nid (IRGraph.succ g ifcond);
     c = (if i = 0 then kind g cond else NegateNode cond);
     conds' = c # conds\<rbrakk>
-   \<Longrightarrow> Step g (nid, seen, conds) (Some (nid', seen', conds'))" |
+   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow))" |
 
   (* Hit an EndNode
      1. nid' will be the usage of EndNode
@@ -498,7 +572,7 @@ inductive Step
     nid' = any_usage g nid;
 
     conds' = tl conds\<rbrakk>
-   \<Longrightarrow> Step g (nid, seen, conds) (Some (nid', seen', conds'))" |
+   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow))" |
 
   (* We can find a successor edge that is not in seen, go there *)
   "\<lbrakk>\<not>(is_EndNode (kind g nid));
@@ -508,7 +582,7 @@ inductive Step
     seen' = {nid} \<union> seen;
 
     Some nid' = nextEdge seen' nid g\<rbrakk>
-   \<Longrightarrow> Step g (nid, seen, conds) (Some (nid', seen', conds))" |
+   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds, flow))" |
 
   (* We can cannot find a successor edge that is not in seen, give back None *)
   "\<lbrakk>\<not>(is_EndNode (kind g nid));
@@ -518,74 +592,74 @@ inductive Step
     seen' = {nid} \<union> seen;
 
     None = nextEdge seen' nid g\<rbrakk>
-    \<Longrightarrow> Step g (nid, seen, conds) None" |
+    \<Longrightarrow> Step g (nid, seen, conds, flow) None" |
 
   (* We've already seen this node, give back None *)
-  "\<lbrakk>nid \<in> seen\<rbrakk> \<Longrightarrow> Step g (nid, seen, conds) None"
+  "\<lbrakk>nid \<in> seen\<rbrakk> \<Longrightarrow> Step g (nid, seen, conds, flow) None"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Step .
 
 inductive ConditionalEliminationPhase 
-  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions) \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> IRGraph \<Rightarrow> bool" where
 
   (* Can do a step and optimise for the current nid *)
-  "\<lbrakk>Step g (nid, seen, conds) (Some (nid', seen', conds'));
+  "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
     ConditionalEliminationStep (set conds) g nid g';
     
-    ConditionalEliminationPhase g' (nid', seen', conds') g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds) g''" |
+    ConditionalEliminationPhase g' (nid', seen', conds', flow') g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g''" |
 
   (* Can do a step, matches whether optimised or not causing non-determinism
      Need to find a way to negate ConditionalEliminationStep *)
-  "\<lbrakk>Step g (nid, seen, conds) (Some (nid', seen', conds'));
+  "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
     
-    ConditionalEliminationPhase g (nid', seen', conds') g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds) g'" |
+    ConditionalEliminationPhase g (nid', seen', conds', flow') g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g'" |
 
   (* Can't do a step but there is a predecessor we can backtrace to *)
-  "\<lbrakk>Step g (nid, seen, conds) None;
+  "\<lbrakk>Step g (nid, seen, conds, flow) None;
     Some nid' = pred g nid;
     seen' = {nid} \<union> seen;
-    ConditionalEliminationPhase g (nid', seen', conds) g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds) g'" |
+    ConditionalEliminationPhase g (nid', seen', conds, flow) g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g'" |
 
   (* Can't do a step and have no predecessors do terminate *)
-  "\<lbrakk>Step g (nid, seen, conds) None;
+  "\<lbrakk>Step g (nid, seen, conds, flow) None;
     None = pred g nid\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds) g"
+    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g"
 
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) 
   ConditionalEliminationPhase .
 
 inductive ConditionalEliminationPhaseWithTrace
-  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions) \<Rightarrow> ID list \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> bool" where
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> ID list \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> bool" where
 
   (* Can do a step and optimise for the current nid *)
-  "\<lbrakk>Step g (nid, seen, conds) (Some (nid', seen', conds'));
+  "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
     ConditionalEliminationStep (set conds) g nid g';
     
-    ConditionalEliminationPhaseWithTrace g' (nid', seen', conds') (nid # t) g'' t' conds''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds) t g'' t' conds''" |
+    ConditionalEliminationPhaseWithTrace g' (nid', seen', conds', flow') (nid # t) g'' t' conds''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds, flow) t g'' t' conds''" |
 
   (* Can do a step, matches whether optimised or not causing non-determinism
      Need to find a way to negate ConditionalEliminationStep *)
-  "\<lbrakk>Step g (nid, seen, conds) (Some (nid', seen', conds'));
+  "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
     
-    ConditionalEliminationPhaseWithTrace g (nid', seen', conds') (nid # t) g' t' conds''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds) t g' t' conds''" |
+    ConditionalEliminationPhaseWithTrace g (nid', seen', conds', flow') (nid # t) g' t' conds''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds, flow) t g' t' conds''" |
 
   (* Can't do a step but there is a predecessor we can backtrace to *)
-  "\<lbrakk>Step g (nid, seen, conds) None;
+  "\<lbrakk>Step g (nid, seen, conds, flow) None;
     Some nid' = pred g nid;
     seen' = {nid} \<union> seen;
-    ConditionalEliminationPhaseWithTrace g (nid', seen', conds) (nid # t) g' t' conds'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds) t g' t' conds'" |
+    ConditionalEliminationPhaseWithTrace g (nid', seen', conds, flow) (nid # t) g' t' conds'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds, flow) t g' t' conds'" |
 
   (* Can't do a step and have no predecessors do terminate *)
-  "\<lbrakk>Step g (nid, seen, conds) None;
+  "\<lbrakk>Step g (nid, seen, conds, flow) None;
     None = pred g nid\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds) t g (nid # t) conds"
+    \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds, flow) t g (nid # t) conds"
 
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) 
@@ -607,7 +681,7 @@ definition exAlwaysDistinct :: "IRGraph" where
     (10, (ValuePhiNode 10 [1, 2] 9), VoidStamp),
     (11, (ReturnNode ((Some 10)) (None)), default_stamp)]"
 
-values "{g' . ConditionalEliminationPhase exAlwaysDistinct (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase exAlwaysDistinct (0, {}, [], []) g'}"
 
 
 definition exNeverDistinct :: "IRGraph" where
@@ -624,7 +698,7 @@ definition exNeverDistinct :: "IRGraph" where
     (9, (MergeNode [7, 8] None 11), VoidStamp),
     (10, (ValuePhiNode 10 [1, 2] 9), VoidStamp),
     (11, (ReturnNode ((Some 10)) (None)), default_stamp)]"
-values "{g' . ConditionalEliminationPhase exNeverDistinct (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase exNeverDistinct (0, {}, [], []) g'}"
 
 definition exImpliesElim :: "IRGraph" where
   "exImpliesElim = irgraph [
@@ -647,7 +721,7 @@ definition exImpliesElim :: "IRGraph" where
     (16, (MergeNode [7, 15] None 17), VoidStamp),
     (17, (ReturnNode (Some 1) None), default_stamp)
   ]"
-values "{g' . ConditionalEliminationPhase exImpliesElim (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase exImpliesElim (0, {}, [], []) g'}"
 
 (* same as previous but condition is in else so condition is negated -- shouldn't optimize *)
 definition exImpliesElimNeg :: "IRGraph" where
@@ -671,7 +745,7 @@ definition exImpliesElimNeg :: "IRGraph" where
     (16, (MergeNode [7, 15] None 17), VoidStamp),
     (17, (ReturnNode (Some 1) None), default_stamp)
   ]"
-values "{g' . ConditionalEliminationPhase exImpliesElimNeg (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase exImpliesElimNeg (0, {}, [], []) g'}"
 
 
 (* tests the negation implies rule *)
@@ -697,7 +771,7 @@ definition exImpliesElimNegation :: "IRGraph" where
     (16, (MergeNode [7, 15] None 17), VoidStamp),
     (17, (ReturnNode (Some 1) None), default_stamp)
   ]"
-values "{g' . ConditionalEliminationPhase exImpliesElimNegation (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase exImpliesElimNegation (0, {}, [], []) g'}"
 
 
 definition ConditionalEliminationTest4_test2Snippet_initial :: IRGraph where
@@ -722,7 +796,7 @@ definition ConditionalEliminationTest4_test2Snippet_initial :: IRGraph where
   (17, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 2 2),
   (18, (ReturnNode  (Some 17)  None), VoidStamp)
   ]"
-values "{g' . ConditionalEliminationPhase ConditionalEliminationTest4_test2Snippet_initial (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest4_test2Snippet_initial (0, {}, [], []) g'}"
 
 
 lemma IfNodeStepE: "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Longrightarrow>
@@ -792,63 +866,23 @@ lemma ConditionalEliminationStepProof:
   shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
   using ce using assms
 proof (induct g nid g' rule: ConditionalEliminationStep.induct)
-  case (alwaysDistinctEq g ifcond cond t f x y g' conds)
-    then show ?case proof (cases "(g m h \<turnstile> ifcond \<leadsto> nid')")
-      case True
-      obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
-        using ifNodeHasCondEval True alwaysDistinctEq.hyps(1)
-        by blast
-      have "v = IntVal 1 0"
-        using tryFoldIntegerEqualsAlwaysDistinct
-        using alwaysDistinctEq.prems(2) alwaysDistinctEq.hyps(2) 
-              alwaysDistinctEq.hyps(3)
-        using v by blast
-      then have "False = val_to_bool v"
-        by simp
-      then show ?thesis 
-        using constantConditionValid alwaysDistinctEq.hyps(1) v
-        alwaysDistinctEq.hyps(4) 
-        by blast
-    next
-      case False
-      then show ?thesis
-        by blast
-    qed
-next
-  case (neverDistinctEq g ifcond cond t f x y g')
-    then show ?case proof (cases "(g m h \<turnstile> ifcond \<leadsto> nid')")
-      case True
-      obtain v where v: "g m \<turnstile> kind g cond \<mapsto> v"
-        using ifNodeHasCondEval True neverDistinctEq.hyps(1)
-        by blast
-        (*by (metis IRNode.distinct(921) IRNode.distinct(923) neverDistinctEq.hyps(4) neverDistinctEq.prems(4) ConditionalEliminationStep.cases ids_some replace_usages replace_usages_unchanged)*)
-      have "v = IntVal 1 1"
-        using tryFoldIntegerEqualsNeverDistinct
-        using neverDistinctEq.prems(2) neverDistinctEq.hyps(2) 
-              neverDistinctEq.hyps(3)
-        using v by blast
-      then have "True = val_to_bool v"
-        by simp
-      then show ?thesis 
-        using constantConditionValid neverDistinctEq.hyps(1) v
-        neverDistinctEq.hyps(4) 
-        by blast
-    next
-      case False
-      then show ?thesis
-        by blast
-    qed
-next
   case (impliesTrue g ifcond cid t f cond conds g')
-  obtain condv where condv: "g m \<turnstile> kind g cid \<mapsto> condv"
-    using implies.simps impliesTrue.hyps(3) impliesTrue.prems(4)
-    using impliesTrue.hyps(2) by auto
-  have condvTrue: "val_to_bool condv"
-    by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_true_valid)
-  then show ?case 
-    using constantConditionValid 
-    using impliesTrue.hyps(1) condv impliesTrue.hyps(4)
-    by blast
+  show ?case proof (cases "(g m h \<turnstile> ifcond \<leadsto> nid')")
+    case True
+    obtain condv where condv: "g m \<turnstile> kind g cid \<mapsto> condv"
+      using implies.simps impliesTrue.hyps(3) impliesTrue.prems(4)
+      using impliesTrue.hyps(2) True
+      by (metis ifNodeHasCondEval impliesTrue.hyps(1))
+    have condvTrue: "val_to_bool condv"
+      by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_true_valid)
+    then show ?thesis
+      using constantConditionValid 
+      using impliesTrue.hyps(1) condv impliesTrue.hyps(4)
+      by blast
+  next
+    case False
+    then show ?thesis by auto
+  qed
 next
   case (impliesFalse g ifcond cid t f cond conds g')
   then show ?case 
@@ -869,13 +903,48 @@ next
     then show ?thesis
       by auto
   qed
+next
+  case (tryFoldTrue g ifcond cid t f cond g' conds)
+  then show ?case using constantConditionValid tryFoldProofTrue
+    by (metis (full_types) ifNodeHasCondEval)
+next
+  case (tryFoldFalse g ifcond cid t f cond g' conds)
+  then show ?case using constantConditionValid tryFoldProofFalse
+    by (metis (full_types) ifNodeHasCondEval)
+qed
+
+
+lemma StepConditionsValid:
+  assumes "\<forall> cond \<in> set conds. (g m \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+  assumes "Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'))"
+  shows "\<forall> cond \<in> set conds'. (g m \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+  using assms(2) 
+proof (induction "(nid, seen, conds, flow)" "Some (nid', seen', conds', flow')" rule: Step.induct)
+  case (1 ifcond cond t b i c)
+  obtain cv where cv: "g m \<turnstile> c \<mapsto> cv"
+    sorry
+  have cvt: "val_to_bool cv"
+    sorry
+  have "set conds' = {c} \<union> set conds"
+    using "1.hyps"(8) by auto
+  then show ?case using cv 1(8) assms(1) sorry
+next
+  case (2)
+  from 2(5) have "set conds' \<subseteq> set conds"
+    by (metis list.sel(2) list.set_sel(2) subsetI)
+  then show ?case using assms(1)
+    by blast
+next
+case (3)
+  then show ?case
+    using assms(1) by force
 qed
 
 
 lemma ConditionalEliminationPhaseProof:
   assumes "wff_graph g"
   assumes "wff_stamps g"
-  assumes "ConditionalEliminationPhase g (0, {}, []) g'"
+  assumes "ConditionalEliminationPhase g (0, {}, [], []) g'"
   
   shows "\<exists>nid' .(g m h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> 0 \<leadsto> nid')"
 proof -

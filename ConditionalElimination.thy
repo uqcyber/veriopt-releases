@@ -201,6 +201,21 @@ inductive tryFold :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> TriState \<Righ
   "\<lbrakk>stpi_lower (stamp g x) \<ge> stpi_upper (stamp g y)\<rbrakk> 
     \<Longrightarrow> tryFold g (IntegerLessThanNode x y) KnownFalse"
 
+inductive tryFoldBinary :: "IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> TriState \<Rightarrow> bool"
+  where
+  "\<lbrakk>alwaysDistinct (stamps x) (stamps y)\<rbrakk> 
+    \<Longrightarrow> tryFoldBinary (IntegerEqualsNode x y) stamps KnownFalse" |
+  "\<lbrakk>neverDistinct (stamps x) (stamps y)\<rbrakk> 
+    \<Longrightarrow> tryFoldBinary (IntegerEqualsNode x y) stamps KnownTrue" |
+  "\<lbrakk>is_IntegerStamp (stamps x);
+    is_IntegerStamp (stamps y);
+    stpi_upper (stamps x) < stpi_lower (stamps y)\<rbrakk> 
+    \<Longrightarrow> tryFoldBinary (IntegerLessThanNode x y) stamps KnownTrue" |
+  "\<lbrakk>is_IntegerStamp (stamps x);
+    is_IntegerStamp (stamps y);
+    stpi_lower (stamps x) \<ge> stpi_upper (stamps y)\<rbrakk> 
+    \<Longrightarrow> tryFoldBinary (IntegerLessThanNode x y) stamps KnownFalse"
+
 fun wff_stamps :: "IRGraph \<Rightarrow> bool" where
   "wff_stamps g = (\<forall> n \<in> ids g . 
     (\<forall> v m . (g m \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (stamp g n) v))"
@@ -485,36 +500,50 @@ next
     using Step by blast
 qed
 
-inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   impliesTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
     \<exists> c \<in> conds . (g \<turnstile> c & cond \<hookrightarrow> KnownTrue);
     g' = constantCondition True ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
 
   impliesFalse:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
     \<exists> c \<in> conds . (g \<turnstile> c & cond \<hookrightarrow> KnownFalse);
     g' = constantCondition False ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
 
   tryFoldTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
     tryFold g (kind g cid) KnownTrue;
     g' = constantCondition True ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'" |
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
 
   tryFoldFalse:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
     tryFold g (kind g cid) KnownFalse;
     g' = constantCondition False ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds g ifcond g'"
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
+  tryFoldBinaryTrue:
+  "\<lbrakk>kind g ifcond = (IfNode cid t f);
+    cond = kind g cid;
+    tryFoldBinary (kind g cid) stamps KnownTrue;
+    g' = constantCondition True ifcond (kind g ifcond) g
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
+
+  tryFoldBinaryFalse:
+  "\<lbrakk>kind g ifcond = (IfNode cid t f);
+    cond = kind g cid;
+    tryFoldBinary (kind g cid) stamps KnownFalse;
+    g' = constantCondition False ifcond (kind g ifcond) g
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
 
 
 
@@ -537,6 +566,20 @@ type_synonym Seen = "ID set"
 type_synonym Conditions = "IRNode list"
 type_synonym StampFlow = "(ID \<Rightarrow> Stamp) list"
 
+(* mimics the stamp updates from registerNewCondition *)
+fun registerNewCondition :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> (ID \<Rightarrow> Stamp)" where
+  (* constrain equality by joining the stamps *)
+  "registerNewCondition g (IntegerEqualsNode x y) stamps =
+    (stamps(x := join (stamps x) (stamps y)))(y := join (stamps x) (stamps y))" |
+  "registerNewCondition g _ stamps = stamps"
+
+fun hdOr :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a" where
+  "hdOr (x # xs) de = x" |
+  "hdOr [] de = de"
+
+definition noFlow :: "(ID \<Rightarrow> Stamp)" where
+  "noFlow = (\<lambda>id. IllegalStamp)"
+
 inductive Step 
   :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) option \<Rightarrow> bool"
   for g where
@@ -557,8 +600,10 @@ inductive Step
 
     i = find_index nid (IRGraph.succ g ifcond);
     c = (if i = 0 then kind g cond else NegateNode cond);
-    conds' = c # conds\<rbrakk>
-   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow))" |
+    conds' = c # conds;
+
+    flow' = registerNewCondition g (kind g cond) (hdOr flow (stamp g))\<rbrakk>
+   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow' # flow))" |
 
   (* Hit an EndNode
      1. nid' will be the usage of EndNode
@@ -571,8 +616,9 @@ inductive Step
 
     nid' = any_usage g nid;
 
-    conds' = tl conds\<rbrakk>
-   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow))" |
+    conds' = tl conds;
+    flow' = tl flow\<rbrakk>
+   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'))" |
 
   (* We can find a successor edge that is not in seen, go there *)
   "\<lbrakk>\<not>(is_EndNode (kind g nid));
@@ -604,7 +650,7 @@ inductive ConditionalEliminationPhase
 
   (* Can do a step and optimise for the current nid *)
   "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
-    ConditionalEliminationStep (set conds) g nid g';
+    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) g nid g';
     
     ConditionalEliminationPhase g' (nid', seen', conds', flow') g''\<rbrakk>
     \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g''" |
@@ -637,7 +683,7 @@ inductive ConditionalEliminationPhaseWithTrace
 
   (* Can do a step and optimise for the current nid *)
   "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
-    ConditionalEliminationStep (set conds) g nid g';
+    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) g nid g';
     
     ConditionalEliminationPhaseWithTrace g' (nid', seen', conds', flow') (nid # t) g'' t' conds''\<rbrakk>
     \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds, flow) t g'' t' conds''" |
@@ -664,6 +710,63 @@ inductive ConditionalEliminationPhaseWithTrace
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) 
   ConditionalEliminationPhaseWithTrace .
+
+definition ConditionalEliminationTest1_test1Snippet_initial :: IRGraph where
+  "ConditionalEliminationTest1_test1Snippet_initial = irgraph [
+  (0, (StartNode  (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState []  None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 39), VoidStamp),
+  (6, (BeginNode 12), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (IntVal 32 (5))), IntegerStamp 32 (5) (5)),
+  (9, (IntegerEqualsNode 1 8), VoidStamp),
+  (10, (BeginNode 16), VoidStamp),
+  (11, (BeginNode 14), VoidStamp),
+  (12, (IfNode 9 11 10), VoidStamp),
+  (13, (ConstantNode (IntVal 32 (100))), IntegerStamp 32 (100) (100)),
+  (14, (StoreFieldNode 14 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink2'' 13  (Some 15)  None 18), VoidStamp),
+  (15, (FrameState []  None None None), IllegalStamp),
+  (16, (EndNode), VoidStamp),
+  (17, (MergeNode  [16, 18]  (Some 19) 24), VoidStamp),
+  (18, (EndNode), VoidStamp),
+  (19, (FrameState []  None None None), IllegalStamp),
+  (20, (ConstantNode (IntVal 32 (101))), IntegerStamp 32 (101) (101)),
+  (21, (IntegerLessThanNode 1 20), VoidStamp),
+  (22, (BeginNode 30), VoidStamp),
+  (23, (BeginNode 25), VoidStamp),
+  (24, (IfNode 21 23 22), VoidStamp),
+  (25, (EndNode), VoidStamp),
+  (26, (MergeNode  [25, 27, 34]  (Some 35) 43), VoidStamp),
+  (27, (EndNode), VoidStamp),
+  (28, (BeginNode 32), VoidStamp),
+  (29, (BeginNode 27), VoidStamp),
+  (30, (IfNode 4 28 29), VoidStamp),
+  (31, (ConstantNode (IntVal 32 (200))), IntegerStamp 32 (200) (200)),
+  (32, (StoreFieldNode 32 ''org.graalvm.compiler.core.test.ConditionalEliminationTest1::sink3'' 31  (Some 33)  None 34), VoidStamp),
+  (33, (FrameState []  None None None), IllegalStamp),
+  (34, (EndNode), VoidStamp),
+  (35, (FrameState []  None None None), IllegalStamp),
+  (36, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+  (37, (IntegerEqualsNode 1 36), VoidStamp),
+  (38, (BeginNode 45), VoidStamp),
+  (39, (EndNode), VoidStamp),
+  (40, (MergeNode  [39, 41, 47]  (Some 48) 49), VoidStamp),
+  (41, (EndNode), VoidStamp),
+  (42, (BeginNode 41), VoidStamp),
+  (43, (IfNode 37 42 38), VoidStamp),
+  (44, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (45, (StoreFieldNode 45 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink1'' 44  (Some 46)  None 47), VoidStamp),
+  (46, (FrameState []  None None None), IllegalStamp),
+  (47, (EndNode), VoidStamp),
+  (48, (FrameState []  None None None), IllegalStamp),
+  (49, (StoreFieldNode 49 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink0'' 3  (Some 50)  None 51), VoidStamp),
+  (50, (FrameState []  None None None), IllegalStamp),
+  (51, (ReturnNode  None  None), VoidStamp)
+  ]"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test1Snippet_initial (0, {}, [], []) g'}"
 
 
 definition exAlwaysDistinct :: "IRGraph" where
@@ -861,7 +964,7 @@ lemma ConditionalEliminationStepProof:
   assumes ws: "wff_stamps g"
   assumes nid: "nid \<in> ids g"
   assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. (g m \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
-  assumes ce: "ConditionalEliminationStep conds g nid g'"
+  assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
   
   shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
   using ce using assms

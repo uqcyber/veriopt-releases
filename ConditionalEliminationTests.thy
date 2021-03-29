@@ -108,7 +108,7 @@ definition ConditionalEliminationTest1_test1Snippet_basic_final :: IRGraph where
   (29, (ConstantNode (IntVal 1 (0))), VoidStamp)
   ]"
 
-values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test1Snippet_basic_initial (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test1Snippet_basic_initial  (0, {}, [], []) g'}"
 
 definition ConditionalEliminationTest1_test1Snippet_basic_isabelle :: IRGraph where
 "ConditionalEliminationTest1_test1Snippet_basic_isabelle = irgraph [
@@ -271,10 +271,16 @@ definition ConditionalEliminationTest1_test1Snippet_final :: IRGraph where
   (53, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
 
-values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test1Snippet_initial (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test1Snippet_initial  (0, {}, [], []) g'}"
 definition ConditionalEliminationTest1_test1Snippet_isabelle :: IRGraph where
   "ConditionalEliminationTest1_test1Snippet_isabelle = irgraph
-   [(0, StartNode (Some 2) 7, VoidStamp),
+    [(43, IfNode 54 42 38, VoidStamp),
+    (54, ConstantNode (IntVal 1 0), IntegerStamp 32 (- 2147483648) 2147483647),
+    (24, IfNode 53 23 22, VoidStamp),
+    (53, ConstantNode (IntVal 1 1), IntegerStamp 32 (- 2147483648) 2147483647),
+    (12, IfNode 52 11 10, VoidStamp),
+    (52, ConstantNode (IntVal 1 0), IntegerStamp 32 (- 2147483648) 2147483647),
+    (0, StartNode (Some 2) 7, VoidStamp),
     (1, ParameterNode 0, IntegerStamp 32 (- 2147483648) 2147483647),
     (2, FrameState [] None None None, IllegalStamp),
     (3, ConstantNode (IntVal 32 0), IntegerStamp 32 0 0),
@@ -329,7 +335,7 @@ definition ConditionalEliminationTest1_test1Snippet_isabelle :: IRGraph where
     (51, ReturnNode None None, VoidStamp)]"
 
 (* compare test1Snippet_basic, isabelle optimised graph vs graal optimised graph *)
-(* Graphs are not equal because current isabelle optimisation isn't flow sensitive/don't consider InfoElements *) 
+(* Works for now *)
 value "eqGraph ConditionalEliminationTest1_test1Snippet_isabelle ConditionalEliminationTest1_test1Snippet_final"
 
 
@@ -434,10 +440,14 @@ definition ConditionalEliminationTest1_test2Snippet_final :: IRGraph where
   ]"
 
 
-values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test2Snippet_initial (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test2Snippet_initial  (0, {}, [], []) g'}"
 definition ConditionalEliminationTest1_test2Snippet_isabelle :: IRGraph where
   "ConditionalEliminationTest1_test2Snippet_isabelle = irgraph
-   [(0, StartNode (Some 2) 7, VoidStamp),
+   [(32, IfNode 42 31 27, VoidStamp),
+    (42, ConstantNode (IntVal 1 0), IntegerStamp 32 (- 2147483648) 2147483647),
+    (13, IfNode 41 12 11, VoidStamp),
+    (41, ConstantNode (IntVal 1 1), IntegerStamp 32 (- 2147483648) 2147483647),
+    (0, StartNode (Some 2) 7, VoidStamp),
     (1, ParameterNode 0, IntegerStamp 32 (- 2147483648) 2147483647),
     (2, FrameState [] None None None, IllegalStamp),
     (3, ConstantNode (IntVal 32 0), IntegerStamp 32 0 0),
@@ -621,11 +631,17 @@ definition ConditionalEliminationTest1_test3Snippet_final :: IRGraph where
   (62, (ConstantNode (IntVal 1 (0))), VoidStamp)
   ]"
 
-values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test3Snippet_initial (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest1_test3Snippet_initial  (0, {}, [], []) g'}"
 definition ConditionalEliminationTest1_test3Snippet_isabelle :: IRGraph where
   "ConditionalEliminationTest1_test3Snippet_isabelle  = irgraph [
-    (33, IfNode 61 32 30, VoidStamp),
-    (61, ConstantNode (IntVal 1 0), IntegerStamp 32 (- 2147483648) 2147483647),
+    (33, IfNode 64 32 30, VoidStamp),
+    (64, ConstantNode (IntVal 1 0), IntegerStamp 32 (- 2147483648) 2147483647),
+    (27, IfNode 63 25 26, VoidStamp),
+    (63, ConstantNode (IntVal 1 1), IntegerStamp 32 (- 2147483648) 2147483647),
+    (21, IfNode 62 19 20, VoidStamp),
+    (62, ConstantNode (IntVal 1 1), IntegerStamp 32 (- 2147483648) 2147483647),
+    (15, IfNode 61 13 14, VoidStamp),
+    (61, ConstantNode (IntVal 1 1), IntegerStamp 32 (- 2147483648) 2147483647),
     (0, StartNode (Some 2) 7, VoidStamp),
     (1, ParameterNode 0, IntegerStamp 32 (- 2147483648) 2147483647),
     (2, FrameState [] None None None, IllegalStamp),
@@ -740,7 +756,7 @@ definition ConditionalEliminationTest4_test1Snippet_final :: IRGraph where
   (19, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
 
-values "{g' . ConditionalEliminationPhase ConditionalEliminationTest4_test1Snippet_initial (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest4_test1Snippet_initial  (0, {}, [], []) g'}"
 definition ConditionalEliminationTest4_test1Snippet_isabelle :: IRGraph where
   "ConditionalEliminationTest4_test1Snippet_isabelle = irgraph
    [(13, IfNode 19 11 12, VoidStamp),
@@ -818,7 +834,7 @@ definition ConditionalEliminationTest4_test2Snippet_final :: IRGraph where
   (19, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
 
-values "{g' . ConditionalEliminationPhase ConditionalEliminationTest4_test2Snippet_initial (0, {}, []) g'}"
+values "{g' . ConditionalEliminationPhase ConditionalEliminationTest4_test2Snippet_initial  (0, {}, [], []) g'}"
 definition ConditionalEliminationTest4_test2Snippet_isabelle :: IRGraph where
   "ConditionalEliminationTest4_test2Snippet_isabelle = irgraph
    [(13, IfNode 19 11 12, VoidStamp),

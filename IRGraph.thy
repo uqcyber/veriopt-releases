@@ -51,7 +51,7 @@ lift_definition stamp :: "IRGraph \<Rightarrow> ID \<Rightarrow> Stamp"
   is "with_default IllegalStamp snd" .
 
 lift_definition add_node :: "ID \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
-  is "\<lambda>nid k g. g(nid \<mapsto> k)" by simp
+  is "\<lambda>nid k g. if fst k = NoNode then g else g(nid \<mapsto> k)" by simp
 
 lift_definition remove_node :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph"
   is "\<lambda>nid g. g(nid := None)" by simp
@@ -197,12 +197,20 @@ next
     by (smt (verit, best) Rep_IRGraph comp_apply eq_onp_same_args filter.simps(2) id_def irgraph.rep_eq map_fun_apply map_of_upd mem_Collect_eq no_node.elims replace_node.abs_eq replace_node_def snd_eqD)
 qed
 
-lemma [code]: "add_node nid k (irgraph g) = (irgraph ( ((nid, k) # g)))"
-  sorry
+lemma [code]: "add_node nid k (irgraph g) = (irgraph (((nid, k) # g)))"
+  by (smt (z3) Rep_IRGraph_inject add_node.rep_eq filter.simps(2) irgraph.rep_eq map_of_upd no_node.simps snd_conv)
 
 lemma add_node_lookup:
-  "gup = add_node nid (k, s) g \<longrightarrow> kind gup nid = k \<and> stamp gup nid = s"
-  by (simp add: add_node.rep_eq kind.rep_eq stamp.rep_eq)
+  "gup = add_node nid (k, s) g \<longrightarrow> 
+    (if k \<noteq> NoNode then kind gup nid = k \<and> stamp gup nid = s else True)"
+proof (cases "k = NoNode")
+  case True
+  then show ?thesis by simp
+next
+  case False
+  then show ?thesis
+    by (simp add: kind.rep_eq add_node.rep_eq stamp.rep_eq)
+qed
 
 lemma remove_node_lookup:
   "gup = remove_node nid g \<longrightarrow> kind gup nid = NoNode \<and> stamp gup nid = IllegalStamp"
@@ -213,7 +221,7 @@ lemma replace_node_lookup[simp]:
   by (simp add: replace_node.rep_eq kind.rep_eq stamp.rep_eq)
 
 lemma replace_node_unchanged:
-  "gup = replace_node nid (k, s) g \<longrightarrow> (\<forall> n \<in> (ids g - {nid}) . kind g n = kind gup n)" 
+  "gup = replace_node nid (k, s) g \<longrightarrow> (\<forall> n \<in> (ids g - {nid}) . n \<in> ids g \<and> n \<in> ids gup \<and> kind g n = kind gup n)" 
   by (simp add: kind.rep_eq replace_node.rep_eq)
 
 subsection "Example Graphs"

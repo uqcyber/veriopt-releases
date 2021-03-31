@@ -136,6 +136,12 @@ lemma disjoint_empty:
   using assms int_valid_range float_valid_range
   by (induction "x_stamp"; induction "y_stamp"; auto)
 
+lemma join_unequal:
+  assumes "joined = (join x_stamp y_stamp)"
+  assumes "is_stamp_empty joined"
+  shows "\<nexists> x y . x = y \<and> valid_value x_stamp x \<and> valid_value y_stamp y"
+  using assms disjoint_empty by auto
+
 lemma intstamp_bits_eq_meet:
   assumes "(meet (IntegerStamp b1 l1 u1) (IntegerStamp b2 l2 u2)) = (IntegerStamp b3 l3 u3)"
   shows "b1 = b3 \<and> b2 = b3"

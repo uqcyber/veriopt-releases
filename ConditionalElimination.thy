@@ -190,31 +190,20 @@ fun alwaysDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
 fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
 
-inductive tryFold :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> TriState \<Rightarrow> bool"
-  for g where
-  "\<lbrakk>alwaysDistinct (stamp g x) (stamp g y)\<rbrakk> 
-    \<Longrightarrow> tryFold g (IntegerEqualsNode x y) KnownFalse" |
-  "\<lbrakk>neverDistinct (stamp g x) (stamp g y)\<rbrakk> 
-    \<Longrightarrow> tryFold g (IntegerEqualsNode x y) KnownTrue" |
-  "\<lbrakk>stpi_upper (stamp g x) < stpi_lower (stamp g y)\<rbrakk> 
-    \<Longrightarrow> tryFold g (IntegerLessThanNode x y) KnownTrue" |
-  "\<lbrakk>stpi_lower (stamp g x) \<ge> stpi_upper (stamp g y)\<rbrakk> 
-    \<Longrightarrow> tryFold g (IntegerLessThanNode x y) KnownFalse"
-
-inductive tryFoldBinary :: "IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> TriState \<Rightarrow> bool"
+inductive tryFold :: "IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> TriState \<Rightarrow> bool"
   where
   "\<lbrakk>alwaysDistinct (stamps x) (stamps y)\<rbrakk> 
-    \<Longrightarrow> tryFoldBinary (IntegerEqualsNode x y) stamps KnownFalse" |
+    \<Longrightarrow> tryFold (IntegerEqualsNode x y) stamps KnownFalse" |
   "\<lbrakk>neverDistinct (stamps x) (stamps y)\<rbrakk> 
-    \<Longrightarrow> tryFoldBinary (IntegerEqualsNode x y) stamps KnownTrue" |
+    \<Longrightarrow> tryFold (IntegerEqualsNode x y) stamps KnownTrue" |
   "\<lbrakk>is_IntegerStamp (stamps x);
     is_IntegerStamp (stamps y);
     stpi_upper (stamps x) < stpi_lower (stamps y)\<rbrakk> 
-    \<Longrightarrow> tryFoldBinary (IntegerLessThanNode x y) stamps KnownTrue" |
+    \<Longrightarrow> tryFold (IntegerLessThanNode x y) stamps KnownTrue" |
   "\<lbrakk>is_IntegerStamp (stamps x);
     is_IntegerStamp (stamps y);
     stpi_lower (stamps x) \<ge> stpi_upper (stamps y)\<rbrakk> 
-    \<Longrightarrow> tryFoldBinary (IntegerLessThanNode x y) stamps KnownFalse"
+    \<Longrightarrow> tryFold (IntegerLessThanNode x y) stamps KnownFalse"
 
 fun wff_stamps :: "IRGraph \<Rightarrow> bool" where
   "wff_stamps g = (\<forall> n \<in> ids g . 
@@ -298,11 +287,11 @@ lemma tryFoldIntegerLessThanFalse:
 
 theorem tryFoldProofTrue:
   assumes "wff_stamps g"
-  assumes "tryFold g (kind g nid) tristate"
+  assumes "tryFold (kind g nid) (stamp g) tristate"
   assumes "tristate = KnownTrue"
   assumes "g m \<turnstile> kind g nid \<mapsto> v"
   shows "val_to_bool v"
-  using assms(2) proof (induction "kind g nid" tristate rule: tryFold.induct)
+  using assms(2) proof (induction "kind g nid" "stamp g" tristate rule: tryFold.induct)
 case (1 x y)
   then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms(1,4)
     by (smt (verit, del_insts) IRNode.distinct(925) TriState.simps(6) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerEqualsNeverDistinct)
@@ -322,11 +311,11 @@ qed
 
 theorem tryFoldProofFalse:
   assumes "wff_stamps g"
-  assumes "tryFold g (kind g nid) tristate"
+  assumes "tryFold (kind g nid) (stamp g) tristate"
   assumes "tristate = KnownFalse"
   assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
   shows "\<not>(val_to_bool v)"
-using assms(2) proof (induction "kind g nid" tristate rule: tryFold.induct)
+using assms(2) proof (induction "kind g nid" "stamp g" tristate rule: tryFold.induct)
 case (1 x y)
   then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms(1,4)
     by (metis val_to_bool.simps(1))
@@ -500,7 +489,8 @@ next
     using Step by blast
 qed
 
-inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+inductive ConditionalEliminationStep :: 
+  "IRNode set \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   impliesTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
@@ -518,28 +508,14 @@ inductive ConditionalEliminationStep :: "IRNode set \<Rightarrow> (ID \<Rightarr
   tryFoldTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
-    tryFold g (kind g cid) KnownTrue;
+    tryFold (kind g cid) stamps KnownTrue;
     g' = constantCondition True ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
 
   tryFoldFalse:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
-    tryFold g (kind g cid) KnownFalse;
-    g' = constantCondition False ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
-
-  tryFoldBinaryTrue:
-  "\<lbrakk>kind g ifcond = (IfNode cid t f);
-    cond = kind g cid;
-    tryFoldBinary (kind g cid) stamps KnownTrue;
-    g' = constantCondition True ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
-
-  tryFoldBinaryFalse:
-  "\<lbrakk>kind g ifcond = (IfNode cid t f);
-    cond = kind g cid;
-    tryFoldBinary (kind g cid) stamps KnownFalse;
+    tryFold (kind g cid) stamps KnownFalse;
     g' = constantCondition False ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'"
 
@@ -596,7 +572,7 @@ inductive Step
     seen' = {nid} \<union> seen;
 
     Some ifcond = pred g nid;
-    kind g ifcond = IfNode cond t b;
+    kind g ifcond = IfNode cond t f;
 
     i = find_index nid (IRGraph.succ g ifcond);
     c = (if i = 0 then kind g cond else NegateNode cond);
@@ -917,7 +893,6 @@ lemma ifNodeHasCondEval:
   shows "\<exists> v. (g m \<turnstile> kind g cond \<mapsto> v)"
   by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.sel(56) StepE assms(1) assms(2) is_EndNode.simps(12) is_sequential_node.simps(18) stutter.cases)
 
-
 lemma replace_if_t:
   assumes "kind g nid = IfNode cond tb fb"
   assumes "g m \<turnstile> kind g cond \<mapsto> bool"
@@ -1009,12 +984,19 @@ next
 next
   case (tryFoldTrue g ifcond cid t f cond g' conds)
   then show ?case using constantConditionValid tryFoldProofTrue
-    by (metis (full_types) ifNodeHasCondEval)
+    using Step constantConditionTrue by metis
 next
   case (tryFoldFalse g ifcond cid t f cond g' conds)
   then show ?case using constantConditionValid tryFoldProofFalse
-    by (metis (full_types) ifNodeHasCondEval)
+    using Step constantConditionFalse by metis
 qed
+
+(* lies we tell isabelle to get things to pass *)
+lemma if_step:
+  assumes "nid \<in> ids g"
+  assumes "(kind g nid) \<in> control_nodes"
+  shows "(g m h \<turnstile> nid \<leadsto> nid')"
+  using assms apply (cases "kind g nid") sorry
 
 
 lemma StepConditionsValid:
@@ -1023,14 +1005,14 @@ lemma StepConditionsValid:
   shows "\<forall> cond \<in> set conds'. (g m \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
   using assms(2) 
 proof (induction "(nid, seen, conds, flow)" "Some (nid', seen', conds', flow')" rule: Step.induct)
-  case (1 ifcond cond t b i c)
+  case (1 ifcond cond t f i c)
   obtain cv where cv: "g m \<turnstile> c \<mapsto> cv"
     sorry
   have cvt: "val_to_bool cv"
     sorry
   have "set conds' = {c} \<union> set conds"
     using "1.hyps"(8) by auto
-  then show ?case using cv 1(8) assms(1) sorry
+  then show ?case using cv cvt assms(1) sorry
 next
   case (2)
   from 2(5) have "set conds' \<subseteq> set conds"

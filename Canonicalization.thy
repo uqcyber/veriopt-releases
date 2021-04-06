@@ -301,7 +301,7 @@ proof -
   have P: "gif \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
   proof -
     have ifkind: "kind gif nid = IfNode cond tb fb"
-      using gif add_node_lookup by blast
+      using gif add_node_lookup by simp
     then have condgif: "gif m \<turnstile> (kind gif cond) \<mapsto> cv"
       by (metis add_node_unchanged cv eval_in_ids fresh gif kind_unchanged stay_same wff)
     then have "\<not>(val_to_bool cv)"
@@ -313,7 +313,7 @@ proof -
   have Q: "gfb \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
   proof -
     have refkind: "kind gfb nid = RefNode fb"
-      using gfb add_node_lookup by blast
+      using gfb add_node_lookup by simp
     then show ?thesis using step.RefNode by simp
   qed
   show ?thesis using P Q using Step by meson
@@ -325,8 +325,21 @@ qed
 fun add_node_fake :: "ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "add_node_fake nid k g = add_node nid (k, VoidStamp) g"
 lemma add_node_lookup_fake:
-  "gup = add_node_fake nid k g \<longrightarrow> kind gup nid = k"
-  using add_node_lookup by auto
+  assumes "gup = add_node_fake nid k g"
+  assumes "nid \<notin> ids g"
+  shows "kind gup nid = k"
+  using add_node_lookup proof (cases "k = NoNode")
+  case True
+  have "kind g nid = NoNode"
+    using assms(2)
+    using not_in_g by blast
+  then show ?thesis using assms
+    by (metis add_node_fake.simps add_node_lookup)
+next
+  case False
+  then show ?thesis
+    by (simp add: add_node_lookup assms(1))
+qed
 lemma add_node_unchanged_fake:
   assumes "new \<notin> ids g"
   assumes "nid \<in> ids g"
@@ -370,7 +383,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
     proof -
       have create_kind: "kind gcreate nid = (create_if g cond tb fb)"
         using gcreate add_node_lookup_fake
-        by blast
+        using fresh by blast
       have create_fun: "create_if g cond tb fb = RefNode (if val_to_bool val then tb else fb)"
         using True create_kind val by simp 
       show ?thesis using step.RefNode create_kind create_fun if_cv 
@@ -391,7 +404,7 @@ next
       by (simp add: \<open>nid' = (if val_to_bool cv then tb else fb)\<close>)
     have gif_kind: "kind gif nid = (IfNode cond tb fb)"
       using add_node_lookup_fake gif
-      by blast
+      using fresh by blast
     then have "nid \<noteq> cond"
       using cv fresh indep
       using eval_in_ids by blast
@@ -410,7 +423,7 @@ next
       by auto
     have gcreate_kind: "kind gcreate nid = (create_if g cond tb fb)"
       using gcreate add_node_lookup_fake
-      by blast
+      using fresh by blast
     have eval_gcreate: "gcreate \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
     proof (cases "tb = fb")
       case True

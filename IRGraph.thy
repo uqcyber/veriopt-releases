@@ -202,10 +202,11 @@ lemma [code]: "add_node nid k (irgraph g) = (irgraph (((nid, k) # g)))"
 
 lemma add_node_lookup:
   "gup = add_node nid (k, s) g \<longrightarrow> 
-    (if k \<noteq> NoNode then kind gup nid = k \<and> stamp gup nid = s else True)"
+    (if k \<noteq> NoNode then kind gup nid = k \<and> stamp gup nid = s else kind gup nid = kind g nid)"
 proof (cases "k = NoNode")
   case True
-  then show ?thesis by simp
+  then show ?thesis
+    by (simp add: add_node.rep_eq kind.rep_eq)
 next
   case False
   then show ?thesis

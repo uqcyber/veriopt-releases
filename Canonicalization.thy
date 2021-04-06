@@ -4,7 +4,6 @@ theory Canonicalization
   imports 
     IRGraphFrames
     IRStepObj
-    ConditionalElimination
     Stuttering
 begin
 
@@ -282,41 +281,6 @@ proof -
     using wff_use_ids assms(1) assms(2) assms(3) by blast
   from inp 0 rec show ?thesis 
     using eval_uses_imp by blast
-qed
-
-lemma if_stamp_fold:
-  assumes wff: "wff_graph g \<and> wff_stamps g"
-
-  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
-  assumes condkind: "kind g cond = (IntegerEqualsNode x y)"
-  assumes emp: "is_stamp_empty (join (stamp g x) (stamp g y))"
-
-  assumes fresh: "nid \<notin> ids g"
-  assumes gif: "gif = add_node nid (IfNode cond tb fb, VoidStamp) g"
-  assumes gfb: "gfb = add_node nid (RefNode fb, VoidStamp) g"
-
-  shows "\<exists>nid'. (gif m h \<turnstile> nid \<leadsto> nid') \<and> 
-                (gfb m h \<turnstile> nid \<leadsto> nid')"
-proof -
-  have P: "gif \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
-  proof -
-    have ifkind: "kind gif nid = IfNode cond tb fb"
-      using gif add_node_lookup by simp
-    then have condgif: "gif m \<turnstile> (kind gif cond) \<mapsto> cv"
-      by (metis add_node_unchanged cv eval_in_ids fresh gif kind_unchanged stay_same wff)
-    then have "\<not>(val_to_bool cv)"
-      using tryFoldIntegerEqualsAlwaysDistinct alwaysDistinct.simps
-      by (metis condkind cv emp val_to_bool.simps(1) wff)
-    then show ?thesis
-      using step.IfNode ifkind condgif by presburger
-  qed
-  have Q: "gfb \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
-  proof -
-    have refkind: "kind gfb nid = RefNode fb"
-      using gfb add_node_lookup by simp
-    then show ?thesis using step.RefNode by simp
-  qed
-  show ?thesis using P Q using Step by meson
 qed
 
 (* The following function definition and lemmas designed to hide stamps

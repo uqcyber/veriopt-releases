@@ -139,7 +139,9 @@ fun wff_graph :: "IRGraph \<Rightarrow> bool" where
       kind g n \<noteq> NoNode) \<and>
     (\<forall> n \<in> (nodes_of g isPhiNodeType) .
       length (edge ir_values n g)
-       = length (edge ir_ends (edge ir_merge n g) g))
+       = length (edge ir_ends (edge ir_merge n g) g)) \<and>
+    (\<forall> n \<in> (nodes_of g isAbstractEndNodeType) .
+      card (usages g n) > 0)
   )"
 text_raw \<open>\EndSnip\<close>
 
@@ -228,7 +230,7 @@ lemma replace_node_unchanged:
 subsection "Example Graphs"
 text "Example 1: empty graph (just a start and end node)"
 definition start_end_graph:: IRGraph where
-  "start_end_graph = irgraph [(0, StartNode None 1, VoidStamp), (1, EndNode, VoidStamp)]"
+  "start_end_graph = irgraph [(0, StartNode None 1, VoidStamp), (1, ReturnNode None None, VoidStamp)]"
 
 lemma wff_empty: "wff_graph start_end_graph"
   unfolding start_end_graph_def wff_graph.simps by simp

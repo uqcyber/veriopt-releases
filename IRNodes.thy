@@ -281,7 +281,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_NoNode: "successors_of (NoNode) = []" |
 (* nodeout *)
 
-  successors_of_RefNode: "successors_of (RefNode ref) = []"
+  successors_of_RefNode: "successors_of (RefNode ref) = [ref]"
 
 
 

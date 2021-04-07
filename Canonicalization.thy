@@ -313,155 +313,6 @@ lemma add_node_unchanged_fake:
   using add_node_fake.simps add_node_unchanged assms by blast
 
 
-(*
-lemma changeonlyEvalDet:
-  assumes "changeonly {} g g'"
-  shows "(g m \<turnstile> node \<mapsto> val1) \<Longrightarrow>
-   (\<forall> val2. ((g' m \<turnstile> node \<mapsto> val2) \<longrightarrow> val1 = val2))"
-  apply (induct rule: eval.induct) using evalDet
-  apply blast+
-  apply force+
-  apply (metis ValueProxyNodeE assms changeonly.simps emptyE eval_in_ids)
-  apply (metis AbsNodeE Value.simps(1) assms emptyE eval_in_ids other_node_unchanged)
-  apply (metis (no_types, lifting) NegateNode NegateNodeE assms evalDet eval_in_ids ex_in_conv other_node_unchanged)
-  apply (smt (z3) AddNode all_not_in_conv assms evalAddNode evalDet eval_in_ids other_node_unchanged)
-  apply (smt (z3) SubNode SubNodeE assms empty_iff evalDet eval_in_ids other_node_unchanged)
-  using assms unfolding changeonly.simps
-  apply (metis MulNodeE Value.inject(1) emptyE eval_in_ids)
-  using assms unfolding changeonly.simps
-  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
-  using assms unfolding changeonly.simps
-  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
-  using assms unfolding changeonly.simps
-  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
-  using assms unfolding changeonly.simps
-  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
-  using assms unfolding changeonly.simps
-  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
-  using assms unfolding changeonly.simps
-  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
-  using assms unfolding changeonly.simps
-  apply (metis IsNullNodeE Value.inject(3) empty_iff eval_in_ids)
-  using assms unfolding changeonly.simps 
-  using ConditionalNodeE Value.inject(1) emptyE eval_in_ids sorry (* and so on *)
-  
-
-lemma changeonlyStepDet:
-  assumes "changeonly {} g g'"
-  assumes "wff_graph g"
-  shows "(g \<turnstile> (nid,m,h) \<rightarrow> next) \<Longrightarrow>
-   (\<forall> next'. ((g' \<turnstile> (nid,m,h) \<rightarrow> next') \<longrightarrow> next = next'))"
-proof (induction "(nid, m, h)" "next" rule: "step.induct")
-  case (SequentialNode "next")
-  have "kind g nid = kind g' nid"
-    using assms unfolding changeonly.simps
-    by (metis SequentialNode.hyps(1) emptyE ids_some is_sequential_node.simps(44))
-  then have "succ g nid = succ g' nid"
-    using succ.simps by presburger
-  then show ?case using SequentialNode
-    by (metis \<open>kind g nid = kind g' nid\<close> step.SequentialNode stepDet)
-next
-  case (IfNode cond tb fb val "next")
-  then have "kind g nid = kind g' nid"
-    using assms unfolding changeonly.simps
-    by (metis IRNode.simps(965) emptyE ids_some)
-  from IfNode have condeq: "kind g cond = kind g' cond"
-    by (meson assms changeonly.simps emptyE eval_in_ids)
-  have "unchanged (eval_usages g nid) g g'"
-    using assms(1) by auto
-  then have g'cond: "g' m \<turnstile> kind g' cond \<mapsto> val"
-    using IfNode.hyps(2) assms(2) stay_same
-    by (smt (verit, best) Diff_empty assms(1) disjoint_change eval_usages.simps mem_Collect_eq unchanged.simps)
-  from condeq have "g' m \<turnstile> kind g cond \<mapsto> val"
-    using g'cond by presburger
-  then show ?case using IfNode
-    by (metis \<open>kind g nid = kind g' nid\<close> g'cond step.IfNode stepDet)
-next
-  case (EndNodes merge i phis inputs vs m')
-  then show ?case sorry
-next
-  case (RefNode nid')
-  then show ?case sorry
-next
-  case (NewInstanceNode f obj nxt h' ref m')
-  then show ?case sorry
-next
-  case (LoadFieldNode f obj nxt ref v m')
-  then show ?case sorry
-next
-  case (StaticLoadFieldNode f nxt v m')
-  then show ?case sorry
-next
-  case (StoreFieldNode f newval uu obj nxt val ref h' m')
-  then show ?case sorry
-next
-  case (StaticStoreFieldNode f newval uv nxt val h' m')
-then show ?case sorry
-qed
-
-
-(*
-
-  case (SequentialNode nid next' h)
-(*
-  have "kind g nid = kind g' nid"
-    using assms unfolding changeonly.simps
-    by (metis SequentialNode.hyps(1) emptyE ids_some is_sequential_node.simps(44))
-  then have prem0: "is_sequential_node (kind g' nid)"
-    using SequentialNode.hyps(1) by presburger
-  then have prem1: "next = succ g' nid ! 0"
-    using SequentialNode.hyps(2) \<open>kind g nid = kind g' nid\<close> succ.simps by presburger
-*)
-  from SequentialNode show ?case using prem0 prem1 step.SequentialNode sorry
-next
-  case (IfNode cond tb fb val "next")
-  have prem0: "kind g' nid = IfNode cond tb fb"
-    by (metis IRNode.simps(965) IfNode.hyps(1) assms(1) ex_in_conv not_in_g other_node_unchanged)
-  have prem1: "g' m \<turnstile> kind g' cond \<mapsto> val"
-    using changeonlyEvalDet
-    by (smt (verit, ccfv_SIG) DiffD2 Diff_empty IfNode.hyps(2) assms(1) assms(2) changeonly.simps eval_usages.simps mem_Collect_eq stay_same unchanged.simps) 
-  have "next' = (next, m, h)"
-    using IfNode sorry
-  then show ?case using prem0 prem1 IfNode.hyps(3) step.IfNode
-    by presburger
-next
-  case (EndNodes merge i phis inputs vs m')
-  then show ?case sorry
-next
-  case (RefNode nid')
-  then show ?case sorry
-next
-  case (NewInstanceNode f obj nxt h' ref m')
-  then show ?case sorry
-next
-  case (LoadFieldNode f obj nxt ref v m')
-  then show ?case sorry
-next
-  case (StaticLoadFieldNode f nxt v m')
-  then show ?case sorry
-next
-  case (StoreFieldNode f newval uu obj nxt val ref h' m')
-  then show ?case sorry
-next
-  case (StaticStoreFieldNode f newval uv nxt val h' m')
-  then show ?case sorry
-qed*)
-
-
-lemma
-  assumes "nid \<in> ids g"
-  assumes "wff_graph g"
-  assumes "changeonly {} g g'"
-  shows "(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
-  using stepDet assms unfolding changeonly.simps
-proof -
-  have "kind g nid = kind g' nid"
-    using assms unfolding changeonly.simps 
-    by blast
-  then show ?thesis sorry
-qed
-*)
-
 
 lemma stuttering_successor:
   assumes "(g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))"
@@ -516,19 +367,376 @@ lemma equal_closure_bisimilar:
   by (metis assms bisimilar.simps mem_Collect_eq)
 
 
+lemma step_in_ids:
+  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
+  shows "nid \<in> ids g"
+  using assms proof (induct "(nid, m, h)" "(nid', m', h')" rule: step.induct)
+case SequentialNode
+  then show ?case
+    by (metis is_sequential_node.simps(44) not_in_g)
+next
+  case (IfNode cond tb fb val)
+  then show ?case by simp
+next
+  case (EndNodes i phis inputs vs)
+  show ?case using EndNodes(1) isAbstractEndNodeType.simps
+    by (metis IRNode.disc(944) is_EndNode.simps(44) not_in_g)
+next
+  case RefNode
+  then show ?case by simp
+next
+  case (NewInstanceNode f obj ref)
+then show ?case by simp
+next
+  case (LoadFieldNode f obj ref v)
+  then show ?case by simp
+next
+  case (StaticLoadFieldNode f v)
+  then show ?case by simp
+next
+  case (StoreFieldNode f newval uu obj val ref)
+  then show ?case by simp
+next
+  case (StaticStoreFieldNode f newval uv val)
+  then show ?case by simp
+qed
+
+lemma wff_size:
+  assumes "nid \<in> ids g"
+  assumes "wff_graph g"
+  assumes "isAbstractEndNodeType (kind g nid)"
+  shows "card (usages g nid) > 0"
+  using assms unfolding wff_graph.simps
+  by fastforce
+
+lemma sequentials_have_successors:
+  assumes "is_sequential_node n"
+  shows "size (successors_of n) > 0"
+  using assms by (cases n; auto)
+
+lemma step_reaches_successors_only:
+  assumes "(g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))"
+  assumes wff: "wff_graph g"
+  shows "nid' \<in> set (succ g nid) \<or> nid' \<in> usages g nid"
+  using assms proof (induct "(nid, m, h)" "(nid', m, h)"rule: step.induct)
+  case SequentialNode
+  then show ?case using sequentials_have_successors
+    by (metis nth_mem succ.simps)
+next
+  case (IfNode cond tb fb val)
+  then show ?case using successors_of_IfNode
+    by (simp add: IfNode.hyps(1))
+next
+  case (EndNodes i phis inputs vs)
+  have "nid \<in> ids g"
+    using assms(1) step_in_ids
+    by blast
+  then have usage_size: "card (usages g nid) > 0"
+    using wff EndNodes(1) wff_size
+    by blast
+  then have usage_size: "size (sorted_list_of_set (usages g nid)) > 0"
+    by (metis length_sorted_list_of_set)
+  have "usages g nid \<subseteq> ids g"
+    using wff by fastforce
+  then have finite_usage: "finite (usages g nid)"
+    by (metis bot_nat_0.extremum_strict list.size(3) sorted_list_of_set.infinite usage_size)
+  from EndNodes(2) have "nid' \<in> usages g nid"
+    unfolding any_usage.simps
+    using usage_size finite_usage
+    by (metis hd_in_set length_greater_0_conv sorted_list_of_set(1))
+  then show ?case
+    by simp
+next
+  case RefNode
+  then show ?case using successors_of_RefNode
+    by simp
+next
+  case (NewInstanceNode f obj ref)
+  then show ?case using successors_of_NewInstanceNode by simp
+next
+  case (LoadFieldNode f obj ref v)
+  then show ?case by simp
+next
+  case (StaticLoadFieldNode f v)
+  then show ?case by simp
+next
+  case (StoreFieldNode f newval uu obj val ref)
+  then show ?case by simp
+next
+  case (StaticStoreFieldNode f newval uv val)
+  then show ?case by simp
+qed
+
+
+lemma stutter_closed:
+  assumes "g m h \<turnstile> nid \<leadsto> nid'"
+  assumes "wff_graph g"
+  shows "\<exists> n \<in> ids g . nid' \<in> set (succ g n) \<or> nid' \<in> usages g n"
+  using assms
+proof (induct nid nid' rule: stutter.induct)
+  case (StutterStep nid nid')
+  have "nid \<in> ids g"
+    using StutterStep.hyps step_in_ids by blast
+  then show ?case using StutterStep step_reaches_successors_only
+    by blast
+next
+  case (Transitive nid nid'' nid')
+  then show ?case
+    by blast
+qed
+
+(*
+lemma
+  assumes "g m h \<turnstile> nid \<leadsto> nid'"
+  assumes no_end: "\<not>(\<exists>nid \<in> ids g. isAbstractEndNodeType (kind g nid))"
+  shows "\<exists> n \<in> ids g. "
+  using assms step_reaches_successors_only
+  by blast
+*)
+
+lemma dom_add_unchanged:
+  assumes "nid \<in> ids g"
+  assumes "g' = add_node_fake n k g"
+  assumes "nid \<noteq> n"
+  shows "nid \<in> ids g'"
+  using add_changed assms(1) assms(2) assms(3) by force
+
+
+lemma unchanged_step:
+  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  assumes wff: "wff_graph g"
+  assumes kind: "kind g nid = kind g' nid"
+  assumes unchanged: "unchanged (eval_usages g nid) g g'"
+  assumes succ: "succ g nid = succ g' nid"
+  (*assumes usage: "unchanged (usages g nid) g g'"*)
+  shows "g' \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+using assms proof (induct "(nid, m, h)" "(nid', m, h)" rule: step.induct)
+case SequentialNode
+  then show ?case
+    by (metis step.SequentialNode)
+next
+  case (IfNode cond tb fb val)
+  then show ?case using stay_same step.IfNode
+    by (metis (no_types, lifting) IRNodes.inputs_of_IfNode child_unchanged inp.elims list.set_intros(1))
+next
+  case (EndNodes i phis inputs vs)
+  then show ?case sorry (* this is going to be a big problem *)
+next
+  case RefNode
+  then show ?case
+    using step.RefNode by presburger
+next
+  case (NewInstanceNode f obj ref)
+  then show ?case using step.NewInstanceNode
+    by metis
+next
+  case (LoadFieldNode f obj ref v)
+  have "obj \<in> set (inp g nid)"
+    using LoadFieldNode(1) inputs_of_LoadFieldNode 
+    using opt_to_list.simps
+    by (simp add: LoadFieldNode.hyps(1))
+  then have "unchanged (eval_usages g obj) g g'"
+    using unchanged
+    using child_unchanged by blast
+  then have "g' m \<turnstile> kind g' obj \<mapsto> ObjRef ref"
+    using unchanged wff stay_same
+    using LoadFieldNode.hyps(2) by presburger
+  then show ?case using step.LoadFieldNode
+    by (metis LoadFieldNode.hyps(1) LoadFieldNode.hyps(3) LoadFieldNode.hyps(4) assms(3))
+next
+  case (StaticLoadFieldNode f v)
+  then show ?case using step.StaticLoadFieldNode
+    by metis
+next
+  case (StoreFieldNode f newval uu obj val ref)
+  have "obj \<in> set (inp g nid)"
+    using StoreFieldNode(1) inputs_of_StoreFieldNode
+    using opt_to_list.simps
+    by (simp add: StoreFieldNode.hyps(1))
+  then have "unchanged (eval_usages g obj) g g'"
+    using unchanged
+    using child_unchanged by blast
+  then have "g' m \<turnstile> kind g' obj \<mapsto> ObjRef ref"
+    using unchanged wff stay_same
+    using StoreFieldNode.hyps(3) by presburger
+  have "newval \<in> set (inp g nid)"
+    using StoreFieldNode(1) inputs_of_StoreFieldNode
+    using opt_to_list.simps
+    by (simp add: StoreFieldNode.hyps(1))
+  then have "unchanged (eval_usages g newval) g g'"
+    using unchanged
+    using child_unchanged by blast
+  then have "g' m \<turnstile> kind g' newval \<mapsto> val"
+    using unchanged wff stay_same
+    using StoreFieldNode.hyps(2) by blast
+  then show ?case using step.StoreFieldNode
+    by (metis StoreFieldNode.hyps(1) StoreFieldNode.hyps(4) StoreFieldNode.hyps(5) \<open>g' m \<turnstile> kind g' obj \<mapsto> ObjRef ref\<close> assms(3))
+next
+  case (StaticStoreFieldNode f newval uv val)
+  have "newval \<in> set (inp g nid)"
+    using StoreFieldNode(1) inputs_of_StoreFieldNode
+    using opt_to_list.simps
+    by (simp add: StaticStoreFieldNode.hyps(1))
+  then have "unchanged (eval_usages g newval) g g'"
+    using unchanged
+    using child_unchanged by blast
+  then have "g' m \<turnstile> kind g' newval \<mapsto> val"
+    using unchanged wff stay_same
+    using StaticStoreFieldNode.hyps(2) by blast
+  then show ?case using step.StaticStoreFieldNode
+    by (metis StaticStoreFieldNode.hyps(1) StaticStoreFieldNode.hyps(3) StaticStoreFieldNode.hyps(4) kind)
+qed
+
+
+lemma unchanged_closure:
+  assumes "nid \<notin> ids g"
+  assumes wff: "wff_graph g \<and> wff_graph g'"
+  assumes g': "g' = add_node_fake nid k g"
+  assumes "nid' \<in> ids g"
+  shows "(g m h \<turnstile> nid' \<leadsto> nid'') \<longleftrightarrow> (g' m h \<turnstile> nid' \<leadsto> nid'')" 
+    (is "?P \<longleftrightarrow> ?Q")
+proof
+  assume P: "?P"
+  have niddiff: "nid \<noteq> nid'"
+    using assms
+    by blast
+  from P show "?Q" using assms niddiff
+  proof (induction rule: stutter.induct)
+    case (StutterStep start e)
+    have unchanged: "unchanged (eval_usages g start) g g'"
+      using StutterStep.prems(4) add_node_unchanged_fake assms(1) g' wff by blast
+    have succ_same: "succ g start = succ g' start"
+      using StutterStep.prems(4) kind_unchanged succ.simps unchanged by presburger
+    have "kind g start = kind g' start"
+      by (metis StutterStep.prems(4) add_node_fake.elims add_node_unchanged assms(1) assms(2) g' kind_unchanged)
+    then have "g' \<turnstile> (start, m, h) \<rightarrow> (e, m, h)"
+      using unchanged_step wff unchanged succ_same
+      by (meson StutterStep.hyps)
+    then show ?case
+      using stutter.StutterStep by blast
+  next
+    case (Transitive nid nid'' nid')
+    then show ?case
+      by (metis add_node_unchanged_fake kind_unchanged step_in_ids stutter.Transitive stutter.cases succ.simps unchanged_step)
+  qed
+next
+  assume Q: "?Q"
+  have niddiff: "nid \<noteq> nid'"
+    using assms
+    by blast
+  from Q show "?P" using assms niddiff
+  proof (induction rule: stutter.induct)
+    case (StutterStep start e)
+    have "eval_usages g' start \<subseteq> eval_usages g start"
+      using g' eval_usages sorry
+    then have unchanged: "unchanged (eval_usages g' start) g' g"
+      by (smt (verit, ccfv_SIG) StutterStep.prems(4) add_node_unchanged_fake assms(1) g' subset_iff unchanged.simps wff)
+    have succ_same: "succ g start = succ g' start"
+      using StutterStep.prems(4) eval_usages_self node_unchanged succ.simps unchanged
+      by (metis (no_types, lifting) StutterStep.hyps step_in_ids)
+    have "kind g start = kind g' start"
+      by (metis StutterStep.prems(4) add_node_fake.elims add_node_unchanged assms(1) assms(2) g' kind_unchanged)
+    then have "g \<turnstile> (start, m, h) \<rightarrow> (e, m, h)"
+      using StutterStep(1) wff unchanged_step unchanged succ_same 
+      sorry (* :( *)
+    then show ?case
+      using stutter.StutterStep by blast
+  next
+    case (Transitive nid nid'' nid')
+    then show ?case
+      using add_node_unchanged_fake kind_unchanged step_in_ids stutter.Transitive stutter.cases succ.simps unchanged_step
+      sorry
+  qed
+qed
+
+lemma
+  assumes "\<forall> nid''. (g m h \<turnstile> nid \<leadsto> nid'') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid'')"
+  shows "{nid''. (g m h \<turnstile> nid \<leadsto> nid'')} = {nid''. (g' m h \<turnstile> nid \<leadsto> nid'')}"
+  using assms by presburger
+
+lemma preserve_wff:
+  assumes wff: "wff_graph g"
+  assumes "nid \<notin> ids g"
+  assumes closed: "set (inp g' nid) \<union> set (succ g' nid) \<subseteq> ids g"
+  assumes g': "g' = add_node_fake nid k g"
+  shows "wff_graph g'"
+  using assms unfolding wff_graph.simps
+  apply (intro conjI)
+      apply (metis dom_add_unchanged)
+     apply (metis add_node_unchanged_fake assms(1) kind_unchanged)
+  sorry
+
+
 lemma if_node_create_bisimulation:
+  fixes h :: DynamicHeap
   assumes wff: "wff_graph g"
   assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
   assumes fresh: "nid \<notin> ids g"
+  assumes closed: "{cond, tb, fb} \<subseteq> ids g"
   assumes gif: "gif = add_node_fake nid (IfNode cond tb fb) g"
   assumes gcreate: "gcreate = add_node_fake nid (create_if g cond tb fb) g"
 
-  assumes successors_unchanged: 
-  "{nid'. (gif m h \<turnstile> tb \<leadsto> nid')} = {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')} \<and>
-   {nid'. (gif m h \<turnstile> fb \<leadsto> nid')} = {nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')}"
-
   shows "nid . gif \<sim> gcreate"
 
+proof -
+  have indep: "\<not>(eval_uses g cond nid)"
+    using cv eval_in_ids fresh no_external_use wff by blast
+  have "kind gif nid = IfNode cond tb fb"
+    using gif add_node_lookup by simp
+  then have "{cond, tb, fb} = set (inp gif nid) \<union> set (succ gif nid)"
+    using inputs_of_IfNode successors_of_IfNode
+    by (metis empty_set inp.simps insert_is_Un list.simps(15) succ.simps)
+  then have wff_gif: "wff_graph gif"
+    using closed wff preserve_wff
+    using fresh gif by presburger
+  have "create_if g cond tb fb = IfNode cond tb fb \<or>
+        create_if g cond tb fb = RefNode tb \<or>
+        create_if g cond tb fb = RefNode fb"
+    by (cases "kind g cond"; auto)
+  then have "kind gcreate nid  = IfNode cond tb fb \<or>
+        kind gcreate nid = RefNode tb \<or>
+        kind gcreate nid = RefNode fb" 
+    using gcreate add_node_lookup
+    using add_node_lookup_fake fresh by presburger
+  then have "set (inp gcreate nid) \<union> set (succ gcreate nid) \<subseteq> {cond, tb, fb}"
+    using inputs_of_IfNode successors_of_IfNode inputs_of_RefNode successors_of_RefNode
+    by force
+  then have wff_gcreate: "wff_graph gcreate"
+    using closed wff preserve_wff fresh gcreate
+    by (metis subset_trans)
+  have tb_unchanged: "{nid'. (gif m h \<turnstile> tb \<leadsto> nid')} = {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
+  proof -
+    have "\<not>(\<exists>n \<in> ids g. nid \<in> set (succ g n) \<or> nid \<in> usages g n)"
+      using wff
+      by (metis (no_types, lifting) fresh mem_Collect_eq subsetD usages.simps wff_graph.elims(2))
+    then have "nid \<notin> {nid'. (g m h \<turnstile> tb \<leadsto> nid')}"
+      using wff stutter_closed
+      by (metis mem_Collect_eq)
+    have gif_set: "{nid'. (gif m h \<turnstile> tb \<leadsto> nid')} = {nid'. (g m h \<turnstile> tb \<leadsto> nid')}"
+      using unchanged_closure fresh wff gif closed wff_gif
+      by blast
+    have gcreate_set: "{nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')} = {nid'. (g m h \<turnstile> tb \<leadsto> nid')}"
+      using unchanged_closure fresh wff gcreate closed wff_gcreate
+      by blast
+    from gif_set gcreate_set show ?thesis by simp
+  qed
+  have fb_unchanged: "{nid'. (gif m h \<turnstile> fb \<leadsto> nid')} = {nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')}"
+      proof -
+    have "\<not>(\<exists>n \<in> ids g. nid \<in> set (succ g n) \<or> nid \<in> usages g n)"
+      using wff
+      by (metis (no_types, lifting) fresh mem_Collect_eq subsetD usages.simps wff_graph.elims(2))
+    then have "nid \<notin> {nid'. (g m h \<turnstile> fb \<leadsto> nid')}"
+      using wff stutter_closed
+      by (metis mem_Collect_eq)
+    have gif_set: "{nid'. (gif m h \<turnstile> fb \<leadsto> nid')} = {nid'. (g m h \<turnstile> fb \<leadsto> nid')}"
+      using unchanged_closure fresh wff gif closed wff_gif
+      by blast
+    have gcreate_set: "{nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')} = {nid'. (g m h \<turnstile> fb \<leadsto> nid')}"
+      using unchanged_closure fresh wff gcreate closed wff_gcreate
+      by blast
+    from gif_set gcreate_set show ?thesis by simp
+  qed
+  show ?thesis
 proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
   let ?gif_closure = "{P'. (gif m h \<turnstile> nid \<leadsto> P')}"
   let ?gcreate_closure = "{P'. (gcreate m h \<turnstile> nid \<leadsto> P')}"
@@ -556,7 +764,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using stuttering_successor
       by auto
     from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
-      using successors_unchanged by simp
+      using tb_unchanged by simp
     then show ?thesis
       using equal_closure_bisimilar by simp
   next
@@ -577,7 +785,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
     then have gcreate_closure: "?gcreate_closure = {fb} \<union> {nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')}"
       using stuttering_successor by presburger
     from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
-      using successors_unchanged by simp
+      using fb_unchanged by simp
     then show ?thesis
       using equal_closure_bisimilar by simp
   qed
@@ -606,7 +814,7 @@ next
     then have gcreate_closure: "?gcreate_closure = {tb} \<union> {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
       using stuttering_successor by presburger
     from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
-      using successors_unchanged by simp
+      using tb_unchanged by simp
     then show ?thesis
       using equal_closure_bisimilar by simp
   next
@@ -630,11 +838,12 @@ next
     then have gcreate_closure: "?gcreate_closure = ?tb_closure \<or> ?gcreate_closure = ?fb_closure"
       by (metis add_node_lookup_fake fresh gc_kind gcreate gif gif_closure)
     from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
-      using successors_unchanged
+      using tb_unchanged fb_unchanged
       by (metis add_node_lookup_fake fresh gc_kind gcreate gif)
     then show ?thesis
       using equal_closure_bisimilar by simp
   qed
+qed
 qed
 
 

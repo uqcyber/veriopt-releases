@@ -506,11 +506,11 @@ lemma if_node_create_bisimulation:
 
 inductive bisimilar :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
   ("_ . _ \<sim> _") for nid where
-  "\<lbrakk>\<forall>P'. (g m h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (g' m h \<turnstile> nid \<leadsto> Q'));
-    \<forall>Q'. (g' m h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (g m h \<turnstile> nid \<leadsto> P'))\<rbrakk>
+  "\<lbrakk>\<forall>P'. (g m h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (g' m h \<turnstile> nid \<leadsto> Q') \<and> P' = Q');
+    \<forall>Q'. (g' m h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (g m h \<turnstile> nid \<leadsto> P') \<and> P' = Q')\<rbrakk>
   \<Longrightarrow> nid . g \<sim> g'"
 
-lemma equal_closure_bisimilar[simp]:
+lemma equal_closure_bisimilar:
   assumes "{P'. (g m h \<turnstile> nid \<leadsto> P')} = {P'. (g' m h \<turnstile> nid \<leadsto> P')}"
   shows "nid . g \<sim> g'"
   by (metis assms bisimilar.simps mem_Collect_eq)
@@ -523,8 +523,11 @@ lemma if_node_create_bisimulation:
   assumes gif: "gif = add_node_fake nid (IfNode cond tb fb) g"
   assumes gcreate: "gcreate = add_node_fake nid (create_if g cond tb fb) g"
 
-  shows "(\<forall>P'. (gif m h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (gcreate m h \<turnstile> nid \<leadsto> Q')))
-      \<and> (\<forall>Q'. (gcreate m h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (gif m h \<turnstile> nid \<leadsto> P')))"
+  assumes successors_unchanged: 
+  "{nid'. (gif m h \<turnstile> tb \<leadsto> nid')} = {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')} \<and>
+   {nid'. (gif m h \<turnstile> fb \<leadsto> nid')} = {nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')}"
+
+  shows "nid . gif \<sim> gcreate"
 
 proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
   let ?gif_closure = "{P'. (gif m h \<turnstile> nid \<leadsto> P')}"
@@ -552,8 +555,10 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
     then have gcreate_closure: "?gcreate_closure = {tb} \<union> {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
       using stuttering_successor
       by auto
-    from gif_closure gcreate_closure show ?thesis
-      using equal_closure_bisimilar by auto
+    from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
+      using successors_unchanged by simp
+    then show ?thesis
+      using equal_closure_bisimilar by simp
   next
     case constantFalse: False
     have if_kind: "kind gif nid = (IfNode cond tb fb)"
@@ -571,8 +576,10 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using step.RefNode by presburger
     then have gcreate_closure: "?gcreate_closure = {fb} \<union> {nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')}"
       using stuttering_successor by presburger
-    from gif_closure gcreate_closure show ?thesis
-      using equal_closure_bisimilar by auto
+    from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
+      using successors_unchanged by simp
+    then show ?thesis
+      using equal_closure_bisimilar by simp
   qed
 next
   let ?gif_closure = "{P'. (gif m h \<turnstile> nid \<leadsto> P')}"
@@ -598,8 +605,10 @@ next
       using step.RefNode by simp
     then have gcreate_closure: "?gcreate_closure = {tb} \<union> {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
       using stuttering_successor by presburger
-    from gif_closure gcreate_closure show ?thesis
-      by auto
+    from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
+      using successors_unchanged by simp
+    then show ?thesis
+      using equal_closure_bisimilar by simp
   next
     case uniqueBranches: False
     let ?tb_closure = "{tb} \<union> {nid'. (gif m h \<turnstile> tb \<leadsto> nid')}"
@@ -620,8 +629,11 @@ next
       by (metis add_node_lookup_fake fresh gcreate gif if_step)
     then have gcreate_closure: "?gcreate_closure = ?tb_closure \<or> ?gcreate_closure = ?fb_closure"
       by (metis add_node_lookup_fake fresh gc_kind gcreate gif gif_closure)
-    from gif_closure gcreate_closure show ?thesis
-      by auto
+    from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
+      using successors_unchanged
+      by (metis add_node_lookup_fake fresh gc_kind gcreate gif)
+    then show ?thesis
+      using equal_closure_bisimilar by simp
   qed
 qed
 

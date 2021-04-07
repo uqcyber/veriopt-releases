@@ -15,6 +15,27 @@ inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE) static_test .
 
+(* program_test runs a static initialisation block first (to initialise static fields etc.),
+   then a named method.
+*)
+inductive program_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
+  where
+  InitStatics:
+  "\<lbrakk> Some g = prog '''';
+    state0 = new_map [];
+    prog \<turnstile> ([('''', 0, state0), ('''', 0, state0)], new_heap) | [] \<longrightarrow>* ((end1 # xs1), heap1) | l1;
+    state1 = new_map ps;
+    prog \<turnstile> ([(m, 0, state1), (m, 0, state1)], heap1) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2 \<rbrakk>
+    \<Longrightarrow> program_test prog m ps (m_val (prod.snd (prod.snd end2)) 0)" |
+
+  NoStatics:
+  "\<lbrakk>'''' \<notin> dom prog;
+    state = new_map ps;
+    prog \<turnstile> ([(m, 0, state), (m, 0, state)], new_heap) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2 \<rbrakk>
+    \<Longrightarrow> program_test prog m ps (m_val (prod.snd (prod.snd end2)) 0)"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testP) program_test .
+
 
 (* gr1 *)
 definition gr1 :: IRGraph where
@@ -28,8 +49,28 @@ definition gr1 :: IRGraph where
   ]"
 value "static_test gr1 [(IntVal 32 17)] (IntVal 32 42)"
 
-
-
+(* NOTE: this one uses program_test, to set the initial value of the static field! *)
+(* Lorg/graalvm/compiler/core/test/ReassociateAndCanonicalTest;.test10Snippet*)
+definition unit_test10Snippet_1180 :: Program where
+  "unit_test10Snippet_1180 = Map.empty
+  ('''' \<mapsto> irgraph [
+  (0, (StartNode  (Some 1) 3), VoidStamp),
+  (1, (FrameState []  None None None), IllegalStamp),
+  (2, (ConstantNode (IntVal 32 (1158177821))), IntegerStamp 32 (1) (1)),
+  (3, (StoreFieldNode 3 ''org.graalvm.compiler.core.test.ReassociateAndCanonicalTest::rnd'' 2 None None 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (4, (ReturnNode None None), VoidStamp)
+  ],
+  ''main'' \<mapsto> irgraph [
+  (0, (StartNode  (Some 1) 2), VoidStamp),
+  (1, (FrameState []  None None None), IllegalStamp),
+  (2, (LoadFieldNode 2 ''org.graalvm.compiler.core.test.ReassociateAndCanonicalTest::rnd'' None 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (4, (ConstantNode (IntVal 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (5, (AddNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (6, (ReturnNode  (Some 5)  None), VoidStamp)
+  ]
+  )"
+value "program_test unit_test10Snippet_1180 ''main'' [] (IntVal 32 (1158177820))"
 
 (* ================= unittest8_phi_negint run =================== *)
 

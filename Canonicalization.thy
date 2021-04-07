@@ -313,6 +313,319 @@ lemma add_node_unchanged_fake:
   using add_node_fake.simps add_node_unchanged assms by blast
 
 
+(*
+lemma changeonlyEvalDet:
+  assumes "changeonly {} g g'"
+  shows "(g m \<turnstile> node \<mapsto> val1) \<Longrightarrow>
+   (\<forall> val2. ((g' m \<turnstile> node \<mapsto> val2) \<longrightarrow> val1 = val2))"
+  apply (induct rule: eval.induct) using evalDet
+  apply blast+
+  apply force+
+  apply (metis ValueProxyNodeE assms changeonly.simps emptyE eval_in_ids)
+  apply (metis AbsNodeE Value.simps(1) assms emptyE eval_in_ids other_node_unchanged)
+  apply (metis (no_types, lifting) NegateNode NegateNodeE assms evalDet eval_in_ids ex_in_conv other_node_unchanged)
+  apply (smt (z3) AddNode all_not_in_conv assms evalAddNode evalDet eval_in_ids other_node_unchanged)
+  apply (smt (z3) SubNode SubNodeE assms empty_iff evalDet eval_in_ids other_node_unchanged)
+  using assms unfolding changeonly.simps
+  apply (metis MulNodeE Value.inject(1) emptyE eval_in_ids)
+  using assms unfolding changeonly.simps
+  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
+  using assms unfolding changeonly.simps
+  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
+  using assms unfolding changeonly.simps
+  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
+  using assms unfolding changeonly.simps
+  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
+  using assms unfolding changeonly.simps
+  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
+  using assms unfolding changeonly.simps
+  apply (metis EvalE Value.inject(1) emptyE eval_in_ids)
+  using assms unfolding changeonly.simps
+  apply (metis IsNullNodeE Value.inject(3) empty_iff eval_in_ids)
+  using assms unfolding changeonly.simps 
+  using ConditionalNodeE Value.inject(1) emptyE eval_in_ids sorry (* and so on *)
+  
+
+lemma changeonlyStepDet:
+  assumes "changeonly {} g g'"
+  assumes "wff_graph g"
+  shows "(g \<turnstile> (nid,m,h) \<rightarrow> next) \<Longrightarrow>
+   (\<forall> next'. ((g' \<turnstile> (nid,m,h) \<rightarrow> next') \<longrightarrow> next = next'))"
+proof (induction "(nid, m, h)" "next" rule: "step.induct")
+  case (SequentialNode "next")
+  have "kind g nid = kind g' nid"
+    using assms unfolding changeonly.simps
+    by (metis SequentialNode.hyps(1) emptyE ids_some is_sequential_node.simps(44))
+  then have "succ g nid = succ g' nid"
+    using succ.simps by presburger
+  then show ?case using SequentialNode
+    by (metis \<open>kind g nid = kind g' nid\<close> step.SequentialNode stepDet)
+next
+  case (IfNode cond tb fb val "next")
+  then have "kind g nid = kind g' nid"
+    using assms unfolding changeonly.simps
+    by (metis IRNode.simps(965) emptyE ids_some)
+  from IfNode have condeq: "kind g cond = kind g' cond"
+    by (meson assms changeonly.simps emptyE eval_in_ids)
+  have "unchanged (eval_usages g nid) g g'"
+    using assms(1) by auto
+  then have g'cond: "g' m \<turnstile> kind g' cond \<mapsto> val"
+    using IfNode.hyps(2) assms(2) stay_same
+    by (smt (verit, best) Diff_empty assms(1) disjoint_change eval_usages.simps mem_Collect_eq unchanged.simps)
+  from condeq have "g' m \<turnstile> kind g cond \<mapsto> val"
+    using g'cond by presburger
+  then show ?case using IfNode
+    by (metis \<open>kind g nid = kind g' nid\<close> g'cond step.IfNode stepDet)
+next
+  case (EndNodes merge i phis inputs vs m')
+  then show ?case sorry
+next
+  case (RefNode nid')
+  then show ?case sorry
+next
+  case (NewInstanceNode f obj nxt h' ref m')
+  then show ?case sorry
+next
+  case (LoadFieldNode f obj nxt ref v m')
+  then show ?case sorry
+next
+  case (StaticLoadFieldNode f nxt v m')
+  then show ?case sorry
+next
+  case (StoreFieldNode f newval uu obj nxt val ref h' m')
+  then show ?case sorry
+next
+  case (StaticStoreFieldNode f newval uv nxt val h' m')
+then show ?case sorry
+qed
+
+
+(*
+
+  case (SequentialNode nid next' h)
+(*
+  have "kind g nid = kind g' nid"
+    using assms unfolding changeonly.simps
+    by (metis SequentialNode.hyps(1) emptyE ids_some is_sequential_node.simps(44))
+  then have prem0: "is_sequential_node (kind g' nid)"
+    using SequentialNode.hyps(1) by presburger
+  then have prem1: "next = succ g' nid ! 0"
+    using SequentialNode.hyps(2) \<open>kind g nid = kind g' nid\<close> succ.simps by presburger
+*)
+  from SequentialNode show ?case using prem0 prem1 step.SequentialNode sorry
+next
+  case (IfNode cond tb fb val "next")
+  have prem0: "kind g' nid = IfNode cond tb fb"
+    by (metis IRNode.simps(965) IfNode.hyps(1) assms(1) ex_in_conv not_in_g other_node_unchanged)
+  have prem1: "g' m \<turnstile> kind g' cond \<mapsto> val"
+    using changeonlyEvalDet
+    by (smt (verit, ccfv_SIG) DiffD2 Diff_empty IfNode.hyps(2) assms(1) assms(2) changeonly.simps eval_usages.simps mem_Collect_eq stay_same unchanged.simps) 
+  have "next' = (next, m, h)"
+    using IfNode sorry
+  then show ?case using prem0 prem1 IfNode.hyps(3) step.IfNode
+    by presburger
+next
+  case (EndNodes merge i phis inputs vs m')
+  then show ?case sorry
+next
+  case (RefNode nid')
+  then show ?case sorry
+next
+  case (NewInstanceNode f obj nxt h' ref m')
+  then show ?case sorry
+next
+  case (LoadFieldNode f obj nxt ref v m')
+  then show ?case sorry
+next
+  case (StaticLoadFieldNode f nxt v m')
+  then show ?case sorry
+next
+  case (StoreFieldNode f newval uu obj nxt val ref h' m')
+  then show ?case sorry
+next
+  case (StaticStoreFieldNode f newval uv nxt val h' m')
+  then show ?case sorry
+qed*)
+
+
+lemma
+  assumes "nid \<in> ids g"
+  assumes "wff_graph g"
+  assumes "changeonly {} g g'"
+  shows "(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  using stepDet assms unfolding changeonly.simps
+proof -
+  have "kind g nid = kind g' nid"
+    using assms unfolding changeonly.simps 
+    by blast
+  then show ?thesis sorry
+qed
+*)
+
+
+lemma stuttering_successor:
+  assumes "(g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))"
+  shows "{P'. (g m h \<turnstile> nid \<leadsto> P')} = {nid'} \<union> {nid''. (g m h \<turnstile> nid' \<leadsto> nid'')}"
+proof -
+  have nextin: "nid' \<in> {P'. (g m h \<turnstile> nid \<leadsto> P')}"
+    using assms StutterStep by blast
+  have nextsubset: "{nid''. (g m h \<turnstile> nid' \<leadsto> nid'')} \<subseteq> {P'. (g m h \<turnstile> nid \<leadsto> P')}"
+    by (metis Collect_mono assms stutter.Transitive)
+  have "\<forall>n \<in> {P'. (g m h \<turnstile> nid \<leadsto> P')} . n = nid' \<or> n \<in> {nid''. (g m h \<turnstile> nid' \<leadsto> nid'')}"
+    using stepDet
+    by (metis (no_types, lifting) Pair_inject assms mem_Collect_eq stutter.simps)
+  then show ?thesis
+    using insert_absorb mk_disjoint_insert nextin nextsubset by auto
+qed
+
+(*
+fun create_if_relation :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID rel"
+  where 
+  "create_if_relation g nid cond tb fb = 
+    (case (kind g cond) of 
+      ConstantNode condv \<Rightarrow> 
+        (if (val_to_bool condv) then {(nid, tb)} else {(nid, tb)}) |
+      _ \<Rightarrow> (if tb = fb then
+              {(nid, tb)}
+            else 
+              {(nid, nid)})
+    )"
+
+
+lemma if_node_create_bisimulation:
+  assumes wff: "wff_graph g"
+  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
+  assumes fresh: "nid \<notin> ids g"
+  assumes gif: "gif = add_node_fake nid (IfNode cond tb fb) g"
+  assumes gcreate: "gcreate = add_node_fake nid (create_if g cond tb fb) g"
+
+  assumes "\<R> = create_if_relation g nid cond tb tb"
+  shows "(\<forall>P'. (gif m h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (gcreate m h \<turnstile> nid \<leadsto> Q') \<and> ((P', Q') \<in> \<R>)))
+      \<and> (\<forall>Q'. (gcreate m h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (gif m h \<turnstile> nid \<leadsto> P') \<and> ((P', Q') \<in> \<R>)))"
+*)
+
+inductive bisimilar :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
+  ("_ . _ \<sim> _") for nid where
+  "\<lbrakk>\<forall>P'. (g m h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (g' m h \<turnstile> nid \<leadsto> Q'));
+    \<forall>Q'. (g' m h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (g m h \<turnstile> nid \<leadsto> P'))\<rbrakk>
+  \<Longrightarrow> nid . g \<sim> g'"
+
+lemma equal_closure_bisimilar[simp]:
+  assumes "{P'. (g m h \<turnstile> nid \<leadsto> P')} = {P'. (g' m h \<turnstile> nid \<leadsto> P')}"
+  shows "nid . g \<sim> g'"
+  by (metis assms bisimilar.simps mem_Collect_eq)
+
+
+lemma if_node_create_bisimulation:
+  assumes wff: "wff_graph g"
+  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
+  assumes fresh: "nid \<notin> ids g"
+  assumes gif: "gif = add_node_fake nid (IfNode cond tb fb) g"
+  assumes gcreate: "gcreate = add_node_fake nid (create_if g cond tb fb) g"
+
+  shows "(\<forall>P'. (gif m h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (gcreate m h \<turnstile> nid \<leadsto> Q')))
+      \<and> (\<forall>Q'. (gcreate m h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (gif m h \<turnstile> nid \<leadsto> P')))"
+
+proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
+  let ?gif_closure = "{P'. (gif m h \<turnstile> nid \<leadsto> P')}"
+  let ?gcreate_closure = "{P'. (gcreate m h \<turnstile> nid \<leadsto> P')}"
+  case constantCond: True
+  obtain val where val: "(kind g cond) = ConstantNode val"
+    using constantCond by blast
+  then show ?thesis 
+  proof (cases "val_to_bool val")
+    case constantTrue: True
+    have if_kind: "kind gif nid = (IfNode cond tb fb)"
+      using gif add_node_lookup by simp
+    have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
+      by (metis ConstantNodeE add_node_unchanged_fake cv eval_in_ids fresh gif stay_same val wff)
+    have "(gif \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h))"
+      using step.IfNode if_kind if_cv
+      using constantTrue by presburger
+    then have gif_closure: "?gif_closure = {tb} \<union> {nid'. (gif m h \<turnstile> tb \<leadsto> nid')}"
+      using stuttering_successor by presburger 
+    have ref_kind: "kind gcreate nid = (RefNode tb)"
+      using gcreate add_node_lookup constantTrue constantCond unfolding create_if.simps
+      by (simp add: val)
+    have "(gcreate \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h))"
+      using step.RefNode ref_kind by simp
+    then have gcreate_closure: "?gcreate_closure = {tb} \<union> {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
+      using stuttering_successor
+      by auto
+    from gif_closure gcreate_closure show ?thesis
+      using equal_closure_bisimilar by auto
+  next
+    case constantFalse: False
+    have if_kind: "kind gif nid = (IfNode cond tb fb)"
+      using gif add_node_lookup by simp
+    have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
+      by (metis ConstantNodeE add_node_unchanged_fake cv eval_in_ids fresh gif stay_same val wff)
+    have "(gif \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h))"
+      using step.IfNode if_kind if_cv
+      using constantFalse by presburger
+    then have gif_closure: "?gif_closure = {fb} \<union> {nid'. (gif m h \<turnstile> fb \<leadsto> nid')}"
+      using stuttering_successor by presburger
+    have ref_kind: "kind gcreate nid = RefNode fb"
+      using add_node_lookup_fake constantFalse fresh gcreate val by force
+    then have "(gcreate \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h))"
+      using step.RefNode by presburger
+    then have gcreate_closure: "?gcreate_closure = {fb} \<union> {nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')}"
+      using stuttering_successor by presburger
+    from gif_closure gcreate_closure show ?thesis
+      using equal_closure_bisimilar by auto
+  qed
+next
+  let ?gif_closure = "{P'. (gif m h \<turnstile> nid \<leadsto> P')}"
+  let ?gcreate_closure = "{P'. (gcreate m h \<turnstile> nid \<leadsto> P')}"
+  case notConstantCond: False
+  then show ?thesis 
+  proof (cases "tb = fb")
+    case equalBranches: True
+     have if_kind: "kind gif nid = (IfNode cond tb fb)"
+      using gif add_node_lookup by simp
+    have "(gif \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)) \<or> (gif \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h))"
+      using step.IfNode if_kind cv apply (cases "val_to_bool cv")
+      apply (metis add_node_fake.simps add_node_unchanged eval_in_ids fresh gif stay_same wff)
+      by (metis add_node_unchanged_fake eval_in_ids fresh gif stay_same wff)
+    then have gif_closure: "?gif_closure = {tb} \<union> {nid'. (gif m h \<turnstile> tb \<leadsto> nid')}"
+      using equalBranches
+      using stuttering_successor by presburger
+    have iref_kind: "kind gcreate nid = (RefNode tb)"
+      using gcreate add_node_lookup notConstantCond equalBranches
+      unfolding create_if.simps
+      by (cases "(kind g cond)"; auto)
+    then have "(gcreate \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h))"
+      using step.RefNode by simp
+    then have gcreate_closure: "?gcreate_closure = {tb} \<union> {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
+      using stuttering_successor by presburger
+    from gif_closure gcreate_closure show ?thesis
+      by auto
+  next
+    case uniqueBranches: False
+    let ?tb_closure = "{tb} \<union> {nid'. (gif m h \<turnstile> tb \<leadsto> nid')}"
+    let ?fb_closure = "{fb} \<union> {nid'. (gif m h \<turnstile> fb \<leadsto> nid')}"
+     have if_kind: "kind gif nid = (IfNode cond tb fb)"
+      using gif add_node_lookup by simp
+    have if_step: "(gif \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)) \<or> (gif \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h))"
+      using step.IfNode if_kind cv apply (cases "val_to_bool cv")
+      apply (metis add_node_fake.simps add_node_unchanged eval_in_ids fresh gif stay_same wff)
+      by (metis add_node_unchanged_fake eval_in_ids fresh gif stay_same wff)
+    then have gif_closure: "?gif_closure = ?tb_closure \<or> ?gif_closure = ?fb_closure"
+      using stuttering_successor by presburger
+    have gc_kind: "kind gcreate nid = (IfNode cond tb fb)"
+      using gcreate add_node_lookup notConstantCond uniqueBranches
+      unfolding create_if.simps
+      by (cases "(kind g cond)"; auto)
+    then have "(gcreate \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)) \<or> (gcreate \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h))"
+      by (metis add_node_lookup_fake fresh gcreate gif if_step)
+    then have gcreate_closure: "?gcreate_closure = ?tb_closure \<or> ?gcreate_closure = ?fb_closure"
+      by (metis add_node_lookup_fake fresh gc_kind gcreate gif gif_closure)
+    from gif_closure gcreate_closure show ?thesis
+      by auto
+  qed
+qed
+
+
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
   assumes wff: "wff_graph g"
@@ -353,7 +666,8 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       show ?thesis using step.RefNode create_kind create_fun if_cv 
         by (simp)
     qed
-    show ?thesis using Step create_step if_step by meson
+    then show ?thesis using StutterStep create_step if_step
+      by blast
   qed
 next
   case not_const: False
@@ -405,9 +719,9 @@ next
         using IfNode \<open>cv = cv2\<close> cv2 gif_kind nid' by auto
     qed
     show ?thesis
-      using eval_gcreate eval_gif Step by blast
+      using eval_gcreate eval_gif StutterStep by blast
   qed
-  show ?thesis using nid_eq Step by meson
+  show ?thesis using nid_eq StutterStep by meson
 qed
 
 end

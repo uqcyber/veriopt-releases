@@ -477,7 +477,7 @@ proof (cases "const")
     using constantConditionTrue
     using True assms(1) assms(4) by presburger
   from ifstep ifstep' show ?thesis
-    using Step by blast
+    using StutterStep by blast
 next
   case False
   have ifstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
@@ -486,7 +486,7 @@ next
     using constantConditionFalse
     using False assms(1) assms(4) by presburger
   from ifstep ifstep' show ?thesis
-    using Step by blast
+    using StutterStep by blast
 qed
 
 inductive ConditionalEliminationStep :: 
@@ -906,7 +906,7 @@ proof -
     using g' unfolding replace_usages.simps
     by (simp add: step.RefNode)
   from g1step g2step show ?thesis
-    using Step by blast
+    using StutterStep by blast
 qed
 
 lemma replace_if_t_imp:
@@ -930,7 +930,7 @@ proof -
     using g' unfolding replace_usages.simps
     by (simp add: step.RefNode)
   from g1step g2step show ?thesis
-    using Step by blast
+    using StutterStep by blast
 qed
 
 
@@ -984,11 +984,11 @@ next
 next
   case (tryFoldTrue g ifcond cid t f cond g' conds)
   then show ?case using constantConditionValid tryFoldProofTrue
-    using Step constantConditionTrue by metis
+    using StutterStep constantConditionTrue by metis
 next
   case (tryFoldFalse g ifcond cid t f cond g' conds)
   then show ?case using constantConditionValid tryFoldProofFalse
-    using Step constantConditionFalse by metis
+    using StutterStep constantConditionFalse by metis
 qed
 
 (* lies we tell isabelle to get things to pass *)
@@ -1071,7 +1071,7 @@ proof -
     using g' unfolding replace_usages.simps
     by (simp add: step.RefNode)
   from g1step g2step show ?thesis
-    using Step by meson
+    using StutterStep by meson
 qed
 
 lemma replaceUsagesFoldNeverDistinct:
@@ -1092,7 +1092,7 @@ proof -
     using g' unfolding replace_usages.simps
     by (simp add: step.RefNode)
   from g1step g2step show ?thesis
-    using Step by blast
+    using StutterStep by blast
 qed
 
 

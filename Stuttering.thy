@@ -5,7 +5,7 @@ begin
 inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> DynamicHeap \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ \<turnstile> _ \<leadsto> _" 55)
   for g m h where
 
-  Step:
+  StutterStep:
   "\<lbrakk>g \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)\<rbrakk>
    \<Longrightarrow> g m h \<turnstile> nid \<leadsto> nid'" |
 
@@ -17,7 +17,7 @@ inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> DynamicHeap \<
 text_raw \<open>\Snip{Stutter}%\<close>
 text \<open>
 \begin{center}
-@{thm[mode=Rule] stutter.Step [no_vars]}\\[8px]
+@{thm[mode=Rule] stutter.StutterStep [no_vars]}\\[8px]
 @{thm[mode=Rule] stutter.Transitive [no_vars]}
 \end{center}
 \<close>

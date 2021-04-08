@@ -355,6 +355,19 @@ lemma if_node_create_bisimulation:
       \<and> (\<forall>Q'. (gcreate m h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (gif m h \<turnstile> nid \<leadsto> P') \<and> ((P', Q') \<in> \<R>)))"
 *)
 
+(* WIP strong bisimilar
+fun bisimilar :: "
+(IRGraph \<times> ID \<times> MapState \<times> DynamicHeap) rel
+\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> DynamicHeap)
+\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> DynamicHeap)
+\<Rightarrow> bool"
+  where
+  "bisimilar \<R> (g1, nid1, m1, h1) (g2, nid2, m2, h2) =
+    ((((g1, nid1, m1, h1), (g2, nid2, m2, h2)) \<in> \<R>) \<longrightarrow>
+    ((\<forall>P'. (g1 \<turnstile> (nid1, m1, h1) \<rightarrow> P') \<longrightarrow> (\<exists>Q' . (g2 \<turnstile> (nid2, m2, h2) \<rightarrow> Q') \<and> ((g1,P'), (g2,Q')) \<in> \<R>)) \<and>
+    (\<forall>Q'. (g2 \<turnstile> (nid2, m2, h2) \<rightarrow> Q') \<longrightarrow> (\<exists>P' . (g1 \<turnstile> (nid1, m1, h1) \<rightarrow> P') \<and> ((g1,P'), (g2,Q')) \<in> \<R>))))"
+*)
+
 inductive bisimilar :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
   ("_ . _ \<sim> _") for nid where
   "\<lbrakk>\<forall>P'. (g m h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (g' m h \<turnstile> nid \<leadsto> Q') \<and> P' = Q');
@@ -406,7 +419,7 @@ lemma wff_size:
   assumes "wff_graph g"
   assumes "isAbstractEndNodeType (kind g nid)"
   shows "card (usages g nid) > 0"
-  using assms unfolding wff_graph.simps
+  using assms unfolding wff_folds
   by fastforce
 
 lemma sequentials_have_successors:
@@ -660,7 +673,7 @@ lemma preserve_wff:
   assumes closed: "set (inp g' nid) \<union> set (succ g' nid) \<subseteq> ids g"
   assumes g': "g' = add_node_fake nid k g"
   shows "wff_graph g'"
-  using assms unfolding wff_graph.simps
+  using assms unfolding wff_folds
   apply (intro conjI)
       apply (metis dom_add_unchanged)
      apply (metis add_node_unchanged_fake assms(1) kind_unchanged)
@@ -708,7 +721,7 @@ proof -
   proof -
     have "\<not>(\<exists>n \<in> ids g. nid \<in> set (succ g n) \<or> nid \<in> usages g n)"
       using wff
-      by (metis (no_types, lifting) fresh mem_Collect_eq subsetD usages.simps wff_graph.elims(2))
+      by (metis (no_types, lifting) fresh mem_Collect_eq subsetD usages.simps wff_folds(1,3))
     then have "nid \<notin> {nid'. (g m h \<turnstile> tb \<leadsto> nid')}"
       using wff stutter_closed
       by (metis mem_Collect_eq)
@@ -724,7 +737,7 @@ proof -
       proof -
     have "\<not>(\<exists>n \<in> ids g. nid \<in> set (succ g n) \<or> nid \<in> usages g n)"
       using wff
-      by (metis (no_types, lifting) fresh mem_Collect_eq subsetD usages.simps wff_graph.elims(2))
+      by (metis (no_types, lifting) fresh mem_Collect_eq subsetD usages.simps wff_folds(1,3))
     then have "nid \<notin> {nid'. (g m h \<turnstile> fb \<leadsto> nid')}"
       using wff stutter_closed
       by (metis mem_Collect_eq)

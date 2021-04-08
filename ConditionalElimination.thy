@@ -1034,7 +1034,7 @@ lemma ConditionalEliminationPhaseProof:
   shows "\<exists>nid' .(g m h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> 0 \<leadsto> nid')"
 proof -
   have "0 \<in> ids g"
-    using assms(1) wff_graph.simps by blast
+    using assms(1) wff_folds by blast
   show ?thesis
 using assms(3) assms proof (induct rule: ConditionalEliminationPhase.induct)
 case (1 g nid g' succs nid' g'')

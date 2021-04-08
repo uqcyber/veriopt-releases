@@ -113,7 +113,7 @@ lemma inp_in_g_wff:
   assumes "wff_graph g"
   assumes "n \<in> set (inp g nid)"
   shows "n \<in> ids g"
-  using assms unfolding wff_graph.simps
+  using assms unfolding wff_folds
   using inp_in_g by blast
 
 
@@ -269,7 +269,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis SubNode inp.simps inputs_of_SubNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
+      by (metis SubNode inp.simps inputs_of_SubNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
   next
     case node:(MulNode m x b v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -282,7 +282,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis MulNode inp.simps inputs_of_MulNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
+      by (metis MulNode inp.simps inputs_of_MulNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
   next
     case node:(AndNode m x b v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -295,7 +295,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis AndNode inp.simps inputs_of_AndNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
+      by (metis AndNode inp.simps inputs_of_AndNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
   next
     case node: (OrNode m x b v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -308,7 +308,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis OrNode inp.simps inputs_of_OrNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
+      by (metis OrNode inp.simps inputs_of_OrNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
   next
     case node: (XorNode m x b v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -321,7 +321,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis XorNode inp.simps inputs_of_XorNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
+      by (metis XorNode inp.simps inputs_of_XorNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
   next
     case node: (IntegerEqualsNode m x b v1 y v2 val)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -334,7 +334,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis (full_types) IntegerEqualsNode child_member_in in_set_member inputs_of_IntegerEqualsNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
+      by (metis (full_types) IntegerEqualsNode child_member_in in_set_member inputs_of_IntegerEqualsNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
   next
     case node: (IntegerLessThanNode m x b v1 y v2 val)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -347,7 +347,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis (full_types) IntegerLessThanNode child_member_in in_set_member inputs_of_IntegerLessThanNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_graph.elims(2))
+      by (metis (full_types) IntegerLessThanNode child_member_in in_set_member inputs_of_IntegerLessThanNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
   next
     case node: (ShortCircuitOrNode m x b v1 y v2 val)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -359,9 +359,9 @@ proof -
     have y: "g1 m \<turnstile> (kind g1 y) \<mapsto> IntVal b v2"
       using node.hyps(3) by blast
     have x2: "g2 m \<turnstile> (kind g2 x) \<mapsto> IntVal b v1"
-      by (metis inp.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(1) subsetD ux wff wff_graph.elims(2))
+      by (metis inp.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(1) subsetD ux wff wff_folds(1,3))
     have y2: "g2 m \<turnstile> (kind g2 y) \<mapsto> IntVal b v2"
-      by (metis basic_trans_rules(31) inp.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(4) node.hyps(6) node.prems(1) set_subset_Cons uy wff wff_graph.elims(2))
+      by (metis basic_trans_rules(31) inp.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(4) node.hyps(6) node.prems(1) set_subset_Cons uy wff wff_folds(1,3))
     show ?case
       using node.hyps node.prems ux x uy y x2 y2
       by (metis ShortCircuitOrNode kind_unchanged)

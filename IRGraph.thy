@@ -118,32 +118,78 @@ fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where
 
 fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "predecessors g nid = {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
+text_raw \<open>\EndSnip\<close>
 
+(* useful for filtering but taken out to reduce paper content *)
 fun nodes_of :: "IRGraph \<Rightarrow> (IRNode \<Rightarrow> bool) \<Rightarrow> ID set" where
   "nodes_of g sel = {nid \<in> ids g . sel (kind g nid)}"
-
 fun edge :: "(IRNode \<Rightarrow> 'a) \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> 'a" where
   "edge sel nid g = sel (kind g nid)"
-text_raw \<open>\EndSnip\<close>
 
 fun is_empty :: "IRGraph \<Rightarrow> bool" where
   "is_empty g = (ids g = {})"
 
-text_raw \<open>\Snip{wff_graph}%\<close>
-fun wff_graph :: "IRGraph \<Rightarrow> bool" where
-  "wff_graph g = (
-    0 \<in> ids g \<and> is_StartNode (kind g 0) \<and> 
+text_raw \<open>\Snip{wff_start}%\<close>
+definition wff_start where
+  "wff_start g = (0 \<in> ids g \<and>
+    is_StartNode (kind g 0))"
+text_raw \<open>\EndSnip\<close>
+
+text_raw \<open>\Snip{wff_closed}%\<close>
+definition wff_closed where
+  "wff_closed g = 
     (\<forall> n \<in> ids g .
       set (inp g n) \<subseteq> ids g \<and>
       set (succ g n) \<subseteq> ids g \<and>
-      kind g n \<noteq> NoNode) \<and>
-    (\<forall> n \<in> (nodes_of g isPhiNodeType) .
-      length (edge ir_values n g)
-       = length (edge ir_ends (edge ir_merge n g) g)) \<and>
-    (\<forall> n \<in> (nodes_of g isAbstractEndNodeType) .
-      card (usages g n) > 0)
-  )"
+      kind g n \<noteq> NoNode)"
 text_raw \<open>\EndSnip\<close>
+
+text_raw \<open>\Snip{wff_phis}%\<close>
+definition wff_phis where
+  "wff_phis g = 
+    (\<forall> n \<in> ids g.
+      isPhiNodeType (kind g n) \<longrightarrow>
+      length (ir_values (kind g n))
+       = length (ir_ends 
+           (kind g (ir_merge (kind g n)))))"
+text_raw \<open>\EndSnip\<close>
+
+text_raw \<open>\Snip{wff_ends}%\<close>
+definition wff_ends where
+  "wff_ends g = 
+    (\<forall> n \<in> ids g .
+      isAbstractEndNodeType (kind g n) \<longrightarrow>
+      card (usages g n) > 0)"
+text_raw \<open>\EndSnip\<close>
+
+text_raw \<open>\Snip{wff_graph}%\<close>
+fun wff_graph :: "IRGraph \<Rightarrow> bool" where
+  "wff_graph g = (wff_start g \<and> wff_closed g \<and> wff_phis g \<and> wff_ends g)"
+text_raw \<open>\EndSnip\<close>
+
+print_antiquotations
+
+text_raw \<open>\Snip{wff_start_def}%
+@{thm[display,margin=40] wff_start_def}
+\EndSnip\<close>
+text_raw \<open>\Snip{wff_closed_def}%
+@{thm[display,margin=40] wff_closed_def}
+\EndSnip\<close> 
+text_raw \<open>\Snip{wff_phis_def}%
+@{thm[display,margin=40] wff_phis_def}
+\EndSnip\<close> 
+text_raw \<open>\Snip{wff_ends_def}%
+@{thm[display,margin=40] wff_ends_def}
+\EndSnip\<close> 
+
+thm (display) wff_closed_def
+
+lemmas wff_folds =
+  wff_graph.simps
+  wff_start_def
+  wff_closed_def
+  wff_phis_def
+  wff_ends_def
 
 
 lemma ids_some[simp]: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> NoNode" 
@@ -233,7 +279,7 @@ definition start_end_graph:: IRGraph where
   "start_end_graph = irgraph [(0, StartNode None 1, VoidStamp), (1, ReturnNode None None, VoidStamp)]"
 
 lemma wff_empty: "wff_graph start_end_graph"
-  unfolding start_end_graph_def wff_graph.simps by simp
+  unfolding start_end_graph_def wff_folds by simp
 
 text \<open>Example 2:
   public static int sq(int x) { return x * x; }
@@ -254,7 +300,7 @@ definition eg2_sq :: "IRGraph" where
    ]"
 
 lemma wff_eg2_sq: "wff_graph eg2_sq"
-  unfolding eg2_sq_def wff_graph.simps by simp
+  unfolding eg2_sq_def wff_folds by simp
 
 (* TODO: to include the float type (used by stamps) we need
          a code equation for float_of but it is not clear how

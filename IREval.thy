@@ -110,11 +110,11 @@ inductive
     g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> (MulNode x y) \<mapsto> intval_mul v1 v2" |
 
-(* TODO: this should be control-flow *)
   SignedDivNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
-    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> (SignedDivNode x y zeroCheck frameState next) \<mapsto> intval_div v1 v2" |
+  "g m \<turnstile> (SignedDivNode nid _ _ _ _ _) \<mapsto> m_val m nid" |
+
+  SignedRemNode:
+  "g m \<turnstile> (SignedRemNode nid _ _ _ _ _) \<mapsto> m_val m nid" |
 
 (* Binary logical bitwise operators *)
 
@@ -378,7 +378,10 @@ inductive_cases ShortCircuitOrNodeE[elim!]:\<^marker>\<open>tag invisible\<close
   "g m \<turnstile> (ShortCircuitOrNode x y) \<mapsto> val"
 
 inductive_cases SignedDivNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> (SignedDivNode x y zeroCheck stateBefore next) \<mapsto> val"
+  "g m \<turnstile> (SignedDivNode nid0 x y zeroCheck stateBefore next) \<mapsto> val"
+
+inductive_cases SignedRemNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g m \<turnstile> (SignedRemNode nid0 x y zeroCheck stateBefore next) \<mapsto> val"
 
 inductive_cases StartNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> (StartNode stateAfter next) \<mapsto> val"
@@ -448,6 +451,7 @@ FrameStateE
 MethodCallTargetNodeE
 InvokeNodeE
 SignedDivNodeE
+SignedRemNodeE
 ExceptionObjectNodeE
 InvokeWithExceptionNodeE
 BytecodeExceptionNodeE

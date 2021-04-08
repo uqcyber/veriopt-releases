@@ -525,7 +525,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow
 
 fun nextEdge :: "ID set \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> ID option" where
   "nextEdge seen nid g = 
-    (let nids = (filter (\<lambda>nid'. nid' \<notin> seen) (IRGraph.succ g nid)) in 
+    (let nids = (filter (\<lambda>nid'. nid' \<notin> seen) (successors_of (kind g nid))) in 
      (if length nids > 0 then Some (hd nids) else None))"
 
 fun pred :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
@@ -574,7 +574,7 @@ inductive Step
     Some ifcond = pred g nid;
     kind g ifcond = IfNode cond t f;
 
-    i = find_index nid (IRGraph.succ g ifcond);
+    i = find_index nid (successors_of (kind g ifcond));
     c = (if i = 0 then kind g cond else NegateNode cond);
     conds' = c # conds;
 

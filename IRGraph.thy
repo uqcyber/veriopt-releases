@@ -29,6 +29,9 @@ text_raw \<open>\Snip{graphdefnostamp}
 
 setup_lifting type_definition_IRGraph
 
+notation (latex)
+  NoNode ("\<epsilon>")
+
 text_raw \<open>\Snip{fake_lifted_helpers}\<close>
 fun ids_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID set" where
   "ids_fake g = {nid \<in> dom g . g nid \<noteq> (Some NoNode)}"
@@ -46,6 +49,9 @@ fun with_default :: "'c \<Rightarrow> ('b \<Rightarrow> 'c) \<Rightarrow> (('a \
 
 lift_definition kind :: "IRGraph \<Rightarrow> (ID \<Rightarrow> IRNode)"
   is "with_default NoNode fst" .
+
+notation (latex)
+  kind ("_\<llangle>_\<rrangle>")
 
 lift_definition stamp :: "IRGraph \<Rightarrow> ID \<Rightarrow> Stamp"
   is "with_default IllegalStamp snd" .
@@ -101,20 +107,20 @@ lemma [code]: "Rep_IRGraph (irgraph m) = map_of (no_node m)"
 
 text_raw \<open>\Snip{helpers}%\<close>
 (* Get the inputs list of a given node ID. *)
-fun inp :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "inp g nid = (inputs_of (kind g nid))"
+fun inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "inputs g nid = set (inputs_of (kind g nid))"
 (* Get the successor list of a given node ID. *)
-fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "succ g nid = (successors_of (kind g nid))"
+fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "succ g nid = set (successors_of (kind g nid))"
 (* Gives a relation between node IDs - between a node and its input nodes. *)
 fun input_edges :: "IRGraph \<Rightarrow> ID rel" where
-  "input_edges g = (\<Union> i \<in> ids g. {(i,j)|j. j \<in> fset(fset_of_list (inp g i))})"
+  "input_edges g = (\<Union> i \<in> ids g. {(i,j)|j. j \<in> (inputs g i)})"
 (* Find all the nodes in the graph that have nid as an input. *)
 fun usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "usages g nid = {j. j \<in> ids g \<and> (j,nid) \<in> input_edges g}"
 
 fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where
-  "successor_edges g = (\<Union> i \<in> ids g. {(i,j)|j . j \<in> fset(fset_of_list (succ  g i))})"
+  "successor_edges g = (\<Union> i \<in> ids g. {(i,j)|j . j \<in> (succ  g i)})"
 
 fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "predecessors g nid = {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
@@ -139,8 +145,8 @@ text_raw \<open>\Snip{wff_closed}%\<close>
 definition wff_closed where
   "wff_closed g = 
     (\<forall> n \<in> ids g .
-      set (inp g n) \<subseteq> ids g \<and>
-      set (succ g n) \<subseteq> ids g \<and>
+      inputs g n \<subseteq> ids g \<and>
+      succ g n \<subseteq> ids g \<and>
       kind g n \<noteq> NoNode)"
 text_raw \<open>\EndSnip\<close>
 

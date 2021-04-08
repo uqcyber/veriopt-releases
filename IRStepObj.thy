@@ -8,22 +8,23 @@ begin
 (* We use the H[f][p] heap representation.  See \cite{heap-reps-2011}. *)
 (* TODO: Record volatile fields?  Include class name of field? *)
 text_raw \<open>\Snip{heapdef}%\<close>
-type_synonym FieldName = "string"
-type_synonym Heap = "FieldName \<Rightarrow> objref \<Rightarrow> Value"
+type_synonym ('a, 'b) Heap = "'a \<Rightarrow> 'b \<Rightarrow> Value"
 type_synonym Free = "nat"
-type_synonym DynamicHeap = "Heap \<times> Free"
+type_synonym ('a, 'b) DynamicHeap = "('a, 'b) Heap \<times> Free"
 
-fun h_load_field :: "FieldName \<Rightarrow> objref \<Rightarrow> DynamicHeap \<Rightarrow> Value" where
+fun h_load_field :: "'a \<Rightarrow> 'b \<Rightarrow> ('a, 'b) DynamicHeap \<Rightarrow> Value" where
   "h_load_field f r (h, n) = h f r"
 
-fun h_store_field :: "FieldName \<Rightarrow> objref \<Rightarrow> Value \<Rightarrow> DynamicHeap \<Rightarrow> DynamicHeap" where
+fun h_store_field :: "'a \<Rightarrow> 'b \<Rightarrow> Value \<Rightarrow> ('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap" where
   "h_store_field f r v (h, n) = (h(f := ((h f)(r := v))), n)"
 
-fun h_new_inst :: "DynamicHeap \<Rightarrow> DynamicHeap \<times> Value" where
+fun h_new_inst :: "('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap \<times> Value" where
   "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some n)))"
+
+type_synonym FieldRefHeap = "(string, objref) DynamicHeap"
 text_raw \<open>\EndSnip\<close>
 
-definition new_heap :: "DynamicHeap" where
+definition new_heap :: "('a, 'b) DynamicHeap" where
   "new_heap =  ((\<lambda>f. \<lambda>p. UndefVal), 0)"
 
 text_raw \<open>\Snip{programdef}%\<close>
@@ -31,12 +32,12 @@ type_synonym Signature = "string"
 type_synonym Program = "Signature \<rightharpoonup> IRGraph"
 text_raw \<open>\EndSnip\<close>
 
-inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> (ID \<times> MapState \<times> DynamicHeap) \<Rightarrow> bool"
+inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> bool"
   ("_ \<turnstile> _ \<rightarrow> _" 55) for g where
 
   SequentialNode:
   "\<lbrakk>is_sequential_node (kind g nid);
-    next = (succ g nid)!0\<rbrakk> 
+    next = (successors_of (kind g nid))!0\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
 
   IfNode:
@@ -52,8 +53,8 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> DynamicH
 
     i = input_index g merge nid;
     phis = (phi_list g merge);
-    inputs = (phi_inputs g i phis);
-    g m \<turnstile> inputs \<longmapsto> vs;
+    inps = (phi_inputs g i phis);
+    g m \<turnstile> inps \<longmapsto> vs;
 
     m' = set_phis phis vs m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
@@ -250,7 +251,7 @@ qed
 
 code_pred (modes: i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
-inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap \<Rightarrow> bool"
+inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> bool"
   ("_ \<turnstile> _ \<longrightarrow> _" 55) 
   for p where
 
@@ -277,7 +278,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
     Some c_g = p c_s;
     c_m' = m_set c_nid v c_m;
-    c_nid' = (succ c_g c_nid)!0\<rbrakk> 
+    c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,c_nid',c_m')#stk, h)" |
 
   ReturnNodeVoid:
@@ -286,7 +287,7 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     Some c_g = p c_s;
     c_m' = m_set c_nid (ObjRef (Some (2048))) c_m;
     
-    c_nid' = (succ c_g c_nid)!0\<rbrakk> 
+    c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
     \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,c_nid',c_m')#stk, h)" |
 
   UnwindNode:
@@ -321,9 +322,9 @@ fun has_return :: "MapState \<Rightarrow> bool" where
   "has_return m = ((m_val m 0) \<noteq> UndefVal)"
 
 inductive exec :: "Program 
-      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
+      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
       \<Rightarrow> Trace 
-      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
+      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
       \<Rightarrow> Trace 
       \<Rightarrow> bool"
   ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
@@ -347,9 +348,9 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 
 
 inductive exec_debug :: "Program
-     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
+     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
      \<Rightarrow> nat
-     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
+     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
      \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>*_* _")
   where
@@ -370,7 +371,7 @@ definition p3:: MapState where
 values "{m_val (prod.snd (prod.snd (hd (prod.fst res)))) 0 
         | res. (\<lambda>x . Some eg2_sq) \<turnstile> ([('''',0, p3), ('''',0, p3)], new_heap) \<rightarrow>*2* res}"
 
-definition field_sq :: FieldName where
+definition field_sq :: string where
   "field_sq = ''sq''"
 
 definition eg3_sq :: IRGraph where

@@ -52,10 +52,10 @@ fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
       (sorted_list_of_set (usages g nid)))"
 
 fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
-  "input_index g n n' = find_index n' (inp g n)"
+  "input_index g n n' = find_index n' (inputs_of (kind g n))"
 
 fun phi_inputs :: "IRGraph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
-  "phi_inputs g i nodes = (map (\<lambda>n. (inp g n)!(i + 1)) nodes)"
+  "phi_inputs g i nodes = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) nodes)"
 
 fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
   "set_phis [] [] m = m" |

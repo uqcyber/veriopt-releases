@@ -238,7 +238,7 @@ qed
 
 lemma eval_uses_imp:
   "((nid' \<in> ids g \<and> nid = nid')
-    \<or> nid' \<in> set (inp g nid)
+    \<or> nid' \<in> inputs g nid
     \<or> (\<exists>nid'' . eval_uses g nid nid'' \<and> eval_uses g nid'' nid'))
     \<longleftrightarrow> eval_uses g nid nid'"
   using use0 use_inp use_trans
@@ -270,12 +270,12 @@ lemma no_external_use:
 proof -
   have 0: "nid \<noteq> nid'"
     using assms by blast
-  have inp: "nid' \<notin> set (inp g nid)"
+  have inp: "nid' \<notin> inputs g nid"
     using assms
     using inp_in_g_wff by blast
   have rec_0: "\<nexists>n . n \<in> ids g \<and> n = nid'"
     using assms by blast
-  have rec_inp: "\<nexists>n . n \<in> ids g \<and> n \<in> set (inp g nid')"
+  have rec_inp: "\<nexists>n . n \<in> ids g \<and> n \<in> inputs g nid'"
     using assms(2) inp_in_g by blast
   have rec: "\<nexists>nid'' . eval_uses g nid nid'' \<and> eval_uses g nid'' nid'"
     using wff_use_ids assms(1) assms(2) assms(3) by blast
@@ -430,7 +430,7 @@ lemma sequentials_have_successors:
 lemma step_reaches_successors_only:
   assumes "(g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))"
   assumes wff: "wff_graph g"
-  shows "nid' \<in> set (succ g nid) \<or> nid' \<in> usages g nid"
+  shows "nid' \<in> succ g nid \<or> nid' \<in> usages g nid"
   using assms proof (induct "(nid, m, h)" "(nid', m, h)"rule: step.induct)
   case SequentialNode
   then show ?case using sequentials_have_successors
@@ -484,7 +484,7 @@ qed
 lemma stutter_closed:
   assumes "g m h \<turnstile> nid \<leadsto> nid'"
   assumes "wff_graph g"
-  shows "\<exists> n \<in> ids g . nid' \<in> set (succ g n) \<or> nid' \<in> usages g n"
+  shows "\<exists> n \<in> ids g . nid' \<in> succ g n \<or> nid' \<in> usages g n"
   using assms
 proof (induct nid nid' rule: stutter.induct)
   case (StutterStep nid nid')
@@ -530,7 +530,7 @@ case SequentialNode
 next
   case (IfNode cond tb fb val)
   then show ?case using stay_same step.IfNode
-    by (metis (no_types, lifting) IRNodes.inputs_of_IfNode child_unchanged inp.elims list.set_intros(1))
+    by (metis (no_types, lifting) IRNodes.inputs_of_IfNode child_unchanged inputs.elims list.set_intros(1))
 next
   case (EndNodes i phis inputs vs)
   then show ?case sorry (* this is going to be a big problem *)
@@ -544,7 +544,7 @@ next
     by metis
 next
   case (LoadFieldNode f obj ref v)
-  have "obj \<in> set (inp g nid)"
+  have "obj \<in> inputs g nid"
     using LoadFieldNode(1) inputs_of_LoadFieldNode 
     using opt_to_list.simps
     by (simp add: LoadFieldNode.hyps(1))
@@ -562,7 +562,7 @@ next
     by metis
 next
   case (StoreFieldNode f newval uu obj val ref)
-  have "obj \<in> set (inp g nid)"
+  have "obj \<in> inputs g nid"
     using StoreFieldNode(1) inputs_of_StoreFieldNode
     using opt_to_list.simps
     by (simp add: StoreFieldNode.hyps(1))
@@ -572,7 +572,7 @@ next
   then have "g' m \<turnstile> kind g' obj \<mapsto> ObjRef ref"
     using unchanged wff stay_same
     using StoreFieldNode.hyps(3) by presburger
-  have "newval \<in> set (inp g nid)"
+  have "newval \<in> inputs g nid"
     using StoreFieldNode(1) inputs_of_StoreFieldNode
     using opt_to_list.simps
     by (simp add: StoreFieldNode.hyps(1))
@@ -586,7 +586,7 @@ next
     by (metis StoreFieldNode.hyps(1) StoreFieldNode.hyps(4) StoreFieldNode.hyps(5) \<open>g' m \<turnstile> kind g' obj \<mapsto> ObjRef ref\<close> assms(3))
 next
   case (StaticStoreFieldNode f newval uv val)
-  have "newval \<in> set (inp g nid)"
+  have "newval \<in> inputs g nid"
     using StoreFieldNode(1) inputs_of_StoreFieldNode
     using opt_to_list.simps
     by (simp add: StaticStoreFieldNode.hyps(1))
@@ -670,7 +670,7 @@ lemma
 lemma preserve_wff:
   assumes wff: "wff_graph g"
   assumes "nid \<notin> ids g"
-  assumes closed: "set (inp g' nid) \<union> set (succ g' nid) \<subseteq> ids g"
+  assumes closed: "inputs g' nid \<union> succ g' nid \<subseteq> ids g"
   assumes g': "g' = add_node_fake nid k g"
   shows "wff_graph g'"
   using assms unfolding wff_folds
@@ -681,7 +681,7 @@ lemma preserve_wff:
 
 
 lemma if_node_create_bisimulation:
-  fixes h :: DynamicHeap
+  fixes h :: FieldRefHeap
   assumes wff: "wff_graph g"
   assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
   assumes fresh: "nid \<notin> ids g"
@@ -696,9 +696,9 @@ proof -
     using cv eval_in_ids fresh no_external_use wff by blast
   have "kind gif nid = IfNode cond tb fb"
     using gif add_node_lookup by simp
-  then have "{cond, tb, fb} = set (inp gif nid) \<union> set (succ gif nid)"
+  then have "{cond, tb, fb} = inputs gif nid \<union> succ gif nid"
     using inputs_of_IfNode successors_of_IfNode
-    by (metis empty_set inp.simps insert_is_Un list.simps(15) succ.simps)
+    by (metis empty_set inputs.simps insert_is_Un list.simps(15) succ.simps)
   then have wff_gif: "wff_graph gif"
     using closed wff preserve_wff
     using fresh gif by presburger
@@ -711,7 +711,7 @@ proof -
         kind gcreate nid = RefNode fb" 
     using gcreate add_node_lookup
     using add_node_lookup_fake fresh by presburger
-  then have "set (inp gcreate nid) \<union> set (succ gcreate nid) \<subseteq> {cond, tb, fb}"
+  then have "inputs gcreate nid \<union> succ gcreate nid \<subseteq> {cond, tb, fb}"
     using inputs_of_IfNode successors_of_IfNode inputs_of_RefNode successors_of_RefNode
     by force
   then have wff_gcreate: "wff_graph gcreate"
@@ -719,7 +719,7 @@ proof -
     by (metis subset_trans)
   have tb_unchanged: "{nid'. (gif m h \<turnstile> tb \<leadsto> nid')} = {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
   proof -
-    have "\<not>(\<exists>n \<in> ids g. nid \<in> set (succ g n) \<or> nid \<in> usages g n)"
+    have "\<not>(\<exists>n \<in> ids g. nid \<in> succ g n \<or> nid \<in> usages g n)"
       using wff
       by (metis (no_types, lifting) fresh mem_Collect_eq subsetD usages.simps wff_folds(1,3))
     then have "nid \<notin> {nid'. (g m h \<turnstile> tb \<leadsto> nid')}"
@@ -735,7 +735,7 @@ proof -
   qed
   have fb_unchanged: "{nid'. (gif m h \<turnstile> fb \<leadsto> nid')} = {nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')}"
       proof -
-    have "\<not>(\<exists>n \<in> ids g. nid \<in> set (succ g n) \<or> nid \<in> usages g n)"
+    have "\<not>(\<exists>n \<in> ids g. nid \<in> succ g n \<or> nid \<in> usages g n)"
       using wff
       by (metis (no_types, lifting) fresh mem_Collect_eq subsetD usages.simps wff_folds(1,3))
     then have "nid \<notin> {nid'. (g m h \<turnstile> fb \<leadsto> nid')}"

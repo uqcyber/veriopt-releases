@@ -2,7 +2,7 @@ theory Stuttering
 imports IRStepObj
 begin
 
-inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> DynamicHeap \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ \<turnstile> _ \<leadsto> _" 55)
+inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> FieldRefHeap \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ \<turnstile> _ \<leadsto> _" 55)
   for g m h where
 
   StutterStep:

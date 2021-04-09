@@ -11,6 +11,7 @@ session semantics = "HOL-Library" +
     IRGraphFrames
     Canonicalization
     ConditionalElimination
+    ATVA2021
   document_files
     "root.tex"
     "mathpartir.sty"

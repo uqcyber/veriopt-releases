@@ -37,14 +37,14 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
 
   SequentialNode:
   "\<lbrakk>is_sequential_node (kind g nid);
-    next = (successors_of (kind g nid))!0\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
+    nid' = (successors_of (kind g nid))!0\<rbrakk> 
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
   IfNode:
   "\<lbrakk>kind g nid = (IfNode cond tb fb);
     g m \<turnstile> (kind g cond) \<mapsto> val;
-    next = (if val_to_bool val then tb else fb)\<rbrakk>
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |  
+    nid' = (if val_to_bool val then tb else fb)\<rbrakk>
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |  
 
   EndNodes:
   "\<lbrakk>isAbstractEndNodeType (kind g nid);
@@ -64,17 +64,17 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
   NewInstanceNode:
-    "\<lbrakk>kind g nid = (NewInstanceNode nid f obj nxt);
+    "\<lbrakk>kind g nid = (NewInstanceNode nid f obj nid');
       (h', ref) = h_new_inst h;
       m' = m_set nid ref m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
   LoadFieldNode:
-    "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nxt);
+    "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nid');
       g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h_load_field f ref h = v;
       m' = m_set nid v m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
   SignedDivNode:
     "\<lbrakk>kind g nid = (SignedDivNode nid x y zero sb nxt);
@@ -93,39 +93,27 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   StaticLoadFieldNode:
-    "\<lbrakk>kind g nid = (LoadFieldNode nid f None nxt);
+    "\<lbrakk>kind g nid = (LoadFieldNode nid f None nid');
       h_load_field f None h = v;
       m' = m_set nid v m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
   StoreFieldNode:
-    "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ (Some obj) nxt);
+    "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ (Some obj) nid');
       g m \<turnstile> (kind g newval) \<mapsto> val;
       g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h' = h_store_field f ref val h;
       m' = m_set nid val m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')" |
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
   StaticStoreFieldNode:
-    "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ None nxt);
+    "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ None nid');
       g m \<turnstile> (kind g newval) \<mapsto> val;
       h' = h_store_field f None val h;
       m' = m_set nid val m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h')"
+    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
 
-text_raw \<open>\Snip{StepSemantics}%\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] step.SequentialNode [no_vars]}}{step:seq}
-\induct{@{thm[mode=Rule] step.IfNode [no_vars]}}{step:if}
-\induct{@{thm[mode=Rule] step.EndNodes [no_vars]}}{step:end}
-\induct{@{thm[mode=Rule] step.RefNode [no_vars]}}{step:ref}
-\induct{@{thm[mode=Rule] step.NewInstanceNode [no_vars]}}{step:newinst}
-\induct{@{thm[mode=Rule] step.LoadFieldNode [no_vars]}}{step:load}
-\induct{@{thm[mode=Rule] step.StoreFieldNode [no_vars]}}{step:store}
-\end{center}
-\<close>
-text_raw \<open>\EndSnip\<close>
+
 (*
 inductive_cases StepE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> (nid,m,h) \<rightarrow> next"
@@ -382,17 +370,6 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
 
     c_m' = m_set c_nid e c_m\<rbrakk>
   \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,exEdge,c_m')#stk, h)"
-
-text_raw \<open>\Snip{TopStepSemantics}%\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] step_top.Lift [no_vars]}}{top:lift}
-\induct{@{thm[mode=Rule] step_top.InvokeNodeStep [no_vars]}}{top:invoke}
-\induct{@{thm[mode=Rule] step_top.ReturnNode [no_vars]}}{top:return}
-\induct{@{thm[mode=Rule] step_top.UnwindNode [no_vars]}}{top:unwind}
-\end{center}
-\<close>
-text_raw \<open>\EndSnip\<close>
 
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .

@@ -14,13 +14,4 @@ inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> FieldRefHeap \
     g m h \<turnstile> nid'' \<leadsto> nid'\<rbrakk>
    \<Longrightarrow> g m h \<turnstile> nid \<leadsto> nid'"
 
-text_raw \<open>\Snip{Stutter}%\<close>
-text \<open>
-\begin{center}
-@{thm[mode=Rule] stutter.StutterStep [no_vars]}\\[8px]
-@{thm[mode=Rule] stutter.Transitive [no_vars]}
-\end{center}
-\<close>
-text_raw \<open>\EndSnip\<close>
-
 end

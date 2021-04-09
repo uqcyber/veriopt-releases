@@ -200,22 +200,6 @@ inductive
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE) eval .
 
-text \<open>Representative induction rules for eval\<close>
-text_raw \<open>\Snip{ExpressionSemantics}%\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] eval.ConstantNode [no_vars]}}{eval:const}
-\induct{@{thm[mode=Rule] eval.ParameterNode [no_vars]}}{eval:param}
-\induct{@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}}{eval:phi}
-\induct{@{thm[mode=Rule] eval.NegateNode [no_vars]}}{eval:neg}
-\induct{@{thm[mode=Rule] eval.AddNode [no_vars]}}{eval:add}
-\induct{@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}}{eval:invoke}
-\induct{@{thm[mode=Rule] eval.LoadFieldNode [no_vars]}}{eval:load}
-\induct{@{thm[mode=Rule] eval.RefNode [no_vars]}}{eval:ref}
-\end{center}
-\<close>
-text_raw \<open>\EndSnip\<close>
-
 
 inductive
   eval_all :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID list \<Rightarrow> Value list \<Rightarrow> bool"
@@ -230,15 +214,6 @@ inductive
    \<Longrightarrow> g m \<turnstile> (nid # xs) \<longmapsto> (v # vs)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as eval_allE) eval_all .
-
-text_raw \<open>\Snip{EvalAll}%\<close>
-text \<open>
-\begin{center}
-@{thm[mode=Rule] eval_all.Base [no_vars]}\\[8px]
-@{thm[mode=Rule] eval_all.Transitive [no_vars]}
-\end{center}
-\<close>
-text_raw \<open>\EndSnip\<close>
 
 (* Test the eval predicates. *)
 inductive eval_graph :: "IRGraph \<Rightarrow> ID \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"

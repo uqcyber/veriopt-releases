@@ -14,31 +14,20 @@ text \<open>
 IRGraph is defined as a partial map with a finite domain.
 The finite domain is required to be able to generate code and produce an interpreter.
 \<close>
-text_raw \<open>\Snip{graphdef}\<close>
 typedef IRGraph = "{g :: ID \<rightharpoonup> (IRNode \<times> Stamp) . finite (dom g)}"
-text_raw \<open>\EndSnip\<close>
 proof -
   have "finite(dom(Map.empty)) \<and> ran Map.empty = {}" by auto
   then show ?thesis
     by fastforce
 qed
 
-text_raw \<open>\Snip{graphdefnostamp}
-@{bold \<open>typedef\<close>} @{term[source] \<open>IRGraph = {g :: ID \<rightharpoonup> IRNode . finite (dom g)}\<close>}
-\EndSnip\<close>
-
 setup_lifting type_definition_IRGraph
 
-notation (latex)
-  NoNode ("\<epsilon>")
-
-text_raw \<open>\Snip{fake_lifted_helpers}\<close>
 fun ids_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID set" where
   "ids_fake g = {nid \<in> dom g . g nid \<noteq> (Some NoNode)}"
 
 fun kind_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<Rightarrow> IRNode)" where
   "kind_fake g = (\<lambda>nid. (case g nid of None \<Rightarrow> NoNode | Some v \<Rightarrow> v))"
-text_raw \<open>\EndSnip\<close>
 
 lift_definition ids :: "IRGraph \<Rightarrow> ID set"
   is "\<lambda>g. {nid \<in> dom g . \<nexists>s. g nid = (Some (NoNode, s))}" .
@@ -49,9 +38,6 @@ fun with_default :: "'c \<Rightarrow> ('b \<Rightarrow> 'c) \<Rightarrow> (('a \
 
 lift_definition kind :: "IRGraph \<Rightarrow> (ID \<Rightarrow> IRNode)"
   is "with_default NoNode fst" .
-
-notation (latex)
-  kind ("_\<llangle>_\<rrangle>")
 
 lift_definition stamp :: "IRGraph \<Rightarrow> ID \<Rightarrow> Stamp"
   is "with_default IllegalStamp snd" .
@@ -105,7 +91,6 @@ lemma [code]: "Rep_IRGraph (irgraph m) = map_of (no_node m)"
   by (simp add: irgraph.rep_eq)
 
 
-text_raw \<open>\Snip{helpers}%\<close>
 (* Get the inputs list of a given node ID. *)
 fun inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "inputs g nid = set (inputs_of (kind g nid))"
@@ -118,39 +103,36 @@ fun input_edges :: "IRGraph \<Rightarrow> ID rel" where
 (* Find all the nodes in the graph that have nid as an input. *)
 fun usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "usages g nid = {j. j \<in> ids g \<and> (j,nid) \<in> input_edges g}"
-
 fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where
   "successor_edges g = (\<Union> i \<in> ids g. {(i,j)|j . j \<in> (succ  g i)})"
-
 fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "predecessors g nid = {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
-text_raw \<open>\EndSnip\<close>
-
-(* useful for filtering but taken out to reduce paper content *)
 fun nodes_of :: "IRGraph \<Rightarrow> (IRNode \<Rightarrow> bool) \<Rightarrow> ID set" where
   "nodes_of g sel = {nid \<in> ids g . sel (kind g nid)}"
 fun edge :: "(IRNode \<Rightarrow> 'a) \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> 'a" where
   "edge sel nid g = sel (kind g nid)"
 
+fun filtered_inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> (IRNode \<Rightarrow> bool) \<Rightarrow> ID list" where
+  "filtered_inputs g nid f = filter (f \<circ> (kind g)) (inputs_of (kind g nid))"
+fun filtered_successors :: "IRGraph \<Rightarrow> ID \<Rightarrow> (IRNode \<Rightarrow> bool) \<Rightarrow> ID list" where
+  "filtered_successors g nid f = filter (f \<circ> (kind g)) (successors_of (kind g nid))"
+fun filtered_usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> (IRNode \<Rightarrow> bool) \<Rightarrow> ID set" where
+  "filtered_usages g nid f = {n \<in> (usages g nid). f (kind g n)}"
+
 fun is_empty :: "IRGraph \<Rightarrow> bool" where
   "is_empty g = (ids g = {})"
 
-text_raw \<open>\Snip{wff_start}%\<close>
 definition wff_start where
   "wff_start g = (0 \<in> ids g \<and>
     is_StartNode (kind g 0))"
-text_raw \<open>\EndSnip\<close>
 
-text_raw \<open>\Snip{wff_closed}%\<close>
 definition wff_closed where
   "wff_closed g = 
     (\<forall> n \<in> ids g .
       inputs g n \<subseteq> ids g \<and>
       succ g n \<subseteq> ids g \<and>
       kind g n \<noteq> NoNode)"
-text_raw \<open>\EndSnip\<close>
 
-text_raw \<open>\Snip{wff_phis}%\<close>
 definition wff_phis where
   "wff_phis g = 
     (\<forall> n \<in> ids g.
@@ -158,37 +140,17 @@ definition wff_phis where
       length (ir_values (kind g n))
        = length (ir_ends 
            (kind g (ir_merge (kind g n)))))"
-text_raw \<open>\EndSnip\<close>
 
-text_raw \<open>\Snip{wff_ends}%\<close>
 definition wff_ends where
   "wff_ends g = 
     (\<forall> n \<in> ids g .
       isAbstractEndNodeType (kind g n) \<longrightarrow>
       card (usages g n) > 0)"
-text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{wff_graph}%\<close>
 fun wff_graph :: "IRGraph \<Rightarrow> bool" where
   "wff_graph g = (wff_start g \<and> wff_closed g \<and> wff_phis g \<and> wff_ends g)"
 text_raw \<open>\EndSnip\<close>
-
-print_antiquotations
-
-text_raw \<open>\Snip{wff_start_def}%
-@{thm[display,margin=40] wff_start_def}
-\EndSnip\<close>
-text_raw \<open>\Snip{wff_closed_def}%
-@{thm[display,margin=40] wff_closed_def}
-\EndSnip\<close> 
-text_raw \<open>\Snip{wff_phis_def}%
-@{thm[display,margin=40] wff_phis_def}
-\EndSnip\<close> 
-text_raw \<open>\Snip{wff_ends_def}%
-@{thm[display,margin=40] wff_ends_def}
-\EndSnip\<close> 
-
-thm (display) wff_closed_def
 
 lemmas wff_folds =
   wff_graph.simps

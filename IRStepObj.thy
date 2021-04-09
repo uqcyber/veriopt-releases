@@ -27,10 +27,8 @@ text_raw \<open>\EndSnip\<close>
 definition new_heap :: "('a, 'b) DynamicHeap" where
   "new_heap =  ((\<lambda>f. \<lambda>p. UndefVal), 0)"
 
-text_raw \<open>\Snip{programdef}%\<close>
 type_synonym Signature = "string"
 type_synonym Program = "Signature \<rightharpoonup> IRGraph"
-text_raw \<open>\EndSnip\<close>
 
 inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> bool"
   ("_ \<turnstile> _ \<rightarrow> _" 55) for g where

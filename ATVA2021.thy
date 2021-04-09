@@ -13,7 +13,9 @@ notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 
 text_raw \<open>\Snip{isbinary}
+\begin{center}
 @{text \<open>isBinaryArithmeticNodeType ::\<close>} @{typeof isBinaryArithmeticNodeType}
+\end{center}
 \EndSnip\<close>
 
 (* figure out how to export a subset of IRNode!!! *)
@@ -87,29 +89,29 @@ text_raw \<open>\Snip{wff_ends_def}%
 text_raw \<open>\Snip{wff_graph_def}%
 @{text \<open>wff_graph :: \<close>} @{typeof wff_graph}
 
-@{thm[display] wff_graph.simps}
+@{thm wff_graph.simps}
 \EndSnip\<close>
 
 
-text_raw \<open>\Snip{programdef}
-{@bold \<open>type-synonym\<close>} Signature = @{typeof Signature}
+text_raw \<open>\Snip{programdef}%
+@{bold \<open>type-synonym\<close>} Signature = @{typ Signature}
 
-{@bold \<open>type-synonym\<close>} Program = @{typeof Program}
-\<close>
+@{bold \<open>type-synonym\<close>} Program = @{typ Program}
+\EndSnip\<close>
 
 (* TODO: add heap here *)
 
 text_raw \<open>\Snip{ExpressionSemantics}%\<close>
 text \<open>
 \begin{center}
-\induct{@{thm[mode=Rule,display] eval.ConstantNode [no_vars]}}{eval:const}
-\induct{@{thm[mode=Rule,display] eval.ParameterNode [no_vars]}}{eval:param}
-\induct{@{thm[mode=Rule,display] eval.ValuePhiNode [no_vars]}}{eval:phi}
-\induct{@{thm[mode=Rule,display] eval.NegateNode [no_vars]}}{eval:neg}
-\induct{@{thm[mode=Rule,display] eval.AddNode [no_vars]}}{eval:add}
-\induct{@{thm[mode=Rule,display] eval.InvokeNodeEval [no_vars]}}{eval:invoke}
-\induct{@{thm[mode=Rule,display] eval.LoadFieldNode [no_vars]}}{eval:load}
-\induct{@{thm[mode=Rule,display] eval.RefNode [no_vars]}}{eval:ref}
+\induct{@{thm[mode=Rule] eval.ConstantNode [no_vars]}}{eval:const}
+\induct{@{thm[mode=Rule] eval.ParameterNode [no_vars]}}{eval:param}
+\induct{@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}}{eval:phi}
+\induct{@{thm[mode=Rule] eval.NegateNode [no_vars]}}{eval:neg}
+\induct{@{thm[mode=Rule] eval.AddNode [no_vars]}}{eval:add}
+\induct{@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}}{eval:invoke}
+\induct{@{thm[mode=Rule] eval.LoadFieldNode [no_vars]}}{eval:load}
+\induct{@{thm[mode=Rule] eval.RefNode [no_vars]}}{eval:ref}
 \end{center}
 \<close>
 text_raw \<open>\EndSnip\<close>

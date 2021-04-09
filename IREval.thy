@@ -91,7 +91,7 @@ inductive
 
   NegateNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> intval_sub (IntVal b 0) (IntVal b (v))" |
+    \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> intval_sub (IntVal b 0) (IntVal b v)" |
 
 (* Binary arithmetic operators *)
 

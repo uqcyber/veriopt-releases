@@ -2,9 +2,8 @@ section \<open>Canonicalization optimisation transformations\<close>
 
 theory Canonicalization
   imports 
-    IRGraphFrames
-    IRStepObj
-    Stuttering
+    Proofs.IRGraphFrames
+    Proofs.Stuttering
 begin
 
 

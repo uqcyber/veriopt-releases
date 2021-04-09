@@ -9,7 +9,7 @@ section \<open>Dynamic Frames for GraalVM graphs\<close>
 
 theory IRGraphFrames
   imports 
-    IREval
+    Semantics.IREval
 begin
 
 fun unchanged :: "ID set \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where

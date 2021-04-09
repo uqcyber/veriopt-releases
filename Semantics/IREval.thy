@@ -2,8 +2,7 @@ section \<open>Inductive evaluation semantics of floating nodes\<close>
 
 theory IREval
   imports
-    IRNodeHierarchy
-    IRGraph
+    Graph.IRGraph
 begin
 
 datatype MapState =

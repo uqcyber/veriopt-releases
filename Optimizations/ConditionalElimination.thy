@@ -1,8 +1,7 @@
 theory ConditionalElimination
   imports
-    IREval
-    Stuttering
-    IRGraphFrames
+    Proofs.IRGraphFrames
+    Proofs.Stuttering
 begin
 
 datatype TriState = Unknown | KnownTrue | KnownFalse
@@ -215,7 +214,8 @@ fun replace_usages :: "ID \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> I
 lemma replace_usages_effect:
   assumes "g' = replace_usages nid nid' g"
   shows "kind g' nid = RefNode nid'"
-  using IRNode.distinct(1980) assms replace_node_lookup replace_usages.simps by presburger
+  using assms replace_node_lookup replace_usages.simps IRNode.distinct(2069)
+  by (metis)
 
 lemma replace_usages_changeonly:
   assumes "nid \<in> ids g"
@@ -294,7 +294,7 @@ theorem tryFoldProofTrue:
   using assms(2) proof (induction "kind g nid" "stamp g" tristate rule: tryFold.induct)
 case (1 x y)
   then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms(1,4)
-    by (smt (verit, del_insts) IRNode.distinct(925) TriState.simps(6) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerEqualsNeverDistinct)
+    by (smt (verit, del_insts) IRNode.distinct(949) TriState.simps(6) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerEqualsNeverDistinct)
 next
   case (2 x y)
   then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms(1,4)
@@ -322,11 +322,11 @@ case (1 x y)
 next
 case (2 x y)
   then show ?case using tryFoldIntegerEqualsNeverDistinct assms(1,4)
-    by (smt (verit, best) IRNode.distinct(925) TriState.distinct(5) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerEqualsAlwaysDistinct)
+    by (smt (verit, best) IRNode.distinct(949) TriState.distinct(5) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerEqualsAlwaysDistinct)
 next
 case (3 x y)
   then show ?case using tryFoldIntegerLessThanTrue assms(1,4)
-    by (smt (verit, best) IRNode.simps(969) TriState.simps(6) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerLessThanFalse)
+    by (smt (verit, best) IRNode.simps(993) TriState.simps(6) Value.inject(1) assms(2) assms(3) tryFold.cases tryFoldIntegerLessThanFalse)
 next
   case (4 x y)
   then show ?case using tryFoldIntegerLessThanFalse assms(1,4)
@@ -365,14 +365,14 @@ lemma constantConditionTrue:
   shows "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
 proof -
   have if': "kind g' ifcond = IfNode (nextNid g) t f"
-    by (metis IRNode.simps(965) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
+    by (metis IRNode.simps(989) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
   have "bool_to_val True = (IntVal 1 1)"
     by auto
   have "ifcond \<noteq> (nextNid g)"
-    by (metis IRNode.simps(965) assms(1) emptyE ids_some nextNidNotIn)
+    by (metis IRNode.simps(989) assms(1) emptyE ids_some nextNidNotIn)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal 1 1)"
     using assms(2) replace_node_unchanged
-    by (metis Diff_iff IRNode.distinct(571) \<open>bool_to_val True = IntVal 1 1\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE ids_some insert_iff)
+    by (metis DiffI IRNode.distinct(585) \<open>bool_to_val True = IntVal 1 1\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE insertE not_in_g)
   from if' c' show ?thesis using IfNode
     by (smt (z3) ConstantNode val_to_bool.simps(1))
 qed
@@ -383,14 +383,14 @@ lemma constantConditionFalse:
   shows "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
 proof -
   have if': "kind g' ifcond = IfNode (nextNid g) t f"
-    by (metis IRNode.simps(965) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
+    by (metis IRNode.simps(989) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
   have "bool_to_val False = (IntVal 1 0)"
     by auto
   have "ifcond \<noteq> (nextNid g)"
-    by (metis IRNode.simps(965) assms(1) emptyE ids_some nextNidNotIn)
+    by (metis IRNode.simps(989) assms(1) emptyE ids_some nextNidNotIn)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal 1 0)"
     using assms(2) replace_node_unchanged
-    by (metis Diff_iff IRNode.distinct(571) \<open>bool_to_val False = IntVal 1 0\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE ids_some insert_iff)
+    by (metis DiffI IRNode.distinct(585) \<open>bool_to_val False = IntVal 1 0\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE insertE not_in_g)
   from if' c' show ?thesis using IfNode
     by (smt (z3) ConstantNode val_to_bool.simps(1))
 qed
@@ -891,7 +891,8 @@ lemma ifNodeHasCondEval:
   assumes "(g m h \<turnstile> nid \<leadsto> nid')"
   assumes "kind g nid = IfNode cond t f"
   shows "\<exists> v. (g m \<turnstile> kind g cond \<mapsto> v)"
-  by (smt (z3) IRNode.disc(912) IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923) IRNode.sel(56) StepE assms(1) assms(2) is_EndNode.simps(12) is_sequential_node.simps(18) stutter.cases)
+  using IfNodeStepE assms(1) assms(2)  stutter.cases
+  by (smt (z3) IRNode.disc(932) IRNode.distinct(893) IRNode.distinct(913) IRNode.distinct(927) IRNode.distinct(929) IRNode.distinct(933) IRNode.distinct(947) IRNode.sel(59) StepE is_EndNode.simps(12) is_sequential_node.simps(17))
 
 lemma replace_if_t:
   assumes "kind g nid = IfNode cond tb fb"

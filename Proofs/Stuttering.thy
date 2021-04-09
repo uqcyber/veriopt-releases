@@ -1,5 +1,6 @@
 theory Stuttering
-imports IRStepObj
+  imports
+    Semantics.IRStepObj
 begin
 
 inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> FieldRefHeap \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ \<turnstile> _ \<leadsto> _" 55)

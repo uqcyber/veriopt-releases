@@ -1,9 +1,6 @@
 theory ATVA2021
   imports
-    IRGraph
-    IREval
-    IRStepObj
-    Canonicalization
+    Optimizations.Canonicalization
 begin
 
 notation (latex)

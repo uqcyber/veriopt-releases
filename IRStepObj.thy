@@ -167,7 +167,7 @@ proof (induction rule: "step.induct")
     by (metis isIntegerDivRemNodeType.simps)
   from notif notend notref notnew notload notstore notdivrem
   show ?case using SequentialNode step.cases
-    by (smt (z3) IRNode.discI(28) IRNode.discI(35) IRNode.discI(36) Pair_inject is_sequential_node.simps(17) is_sequential_node.simps(23) is_sequential_node.simps(39) is_sequential_node.simps(46))
+    by (smt (z3) IRNode.discI(28) Pair_inject is_sequential_node.simps(17) is_sequential_node.simps(23) is_sequential_node.simps(37) is_sequential_node.simps(38) is_sequential_node.simps(39) is_sequential_node.simps(46))
 next
   case (IfNode g nid cond tb fb m val "next" h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -264,7 +264,7 @@ next
     by (simp add: LoadFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using LoadFieldNode step.cases
-    by (smt (z3) IRNode.discI(35) IRNode.discI(36) IRNode.distinct(1333) IRNode.distinct(1353) IRNode.distinct(1367) IRNode.distinct(893) IRNode.distinct(1297) IRNode.distinct(1315) IRNode.distinct(1329) IRNode.distinct(871) IRNode.inject(18) Pair_inject Value.inject(3) evalDet option.distinct(1) option.inject)
+    by (smt (z3) IRNode.distinct(1333) IRNode.distinct(1347) IRNode.distinct(1349) IRNode.distinct(1353) IRNode.distinct(1367) IRNode.distinct(893) IRNode.inject(18) Pair_inject Value.inject(3) evalDet option.distinct(1) option.inject)
 next
   case (StaticLoadFieldNode g nid f nxt h v m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -315,7 +315,7 @@ next
     by (simp add: SignedDivNode.hyps(1))
   from notseq notend
   show ?case using SignedDivNode step.cases
-    sorry 
+    by (smt (z3) IRNode.distinct(1347) IRNode.distinct(1777) IRNode.distinct(1961) IRNode.distinct(1965) IRNode.distinct(1979) IRNode.distinct(927) IRNode.inject(35) Pair_inject evalDet) 
 next
   case (SignedRemNode g nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -326,7 +326,7 @@ next
     by (simp add: SignedRemNode.hyps(1))
   from notseq notend
   show ?case using SignedRemNode step.cases
-    sorry 
+    by (smt (z3) IRNode.distinct(1349) IRNode.distinct(1779) IRNode.distinct(1961) IRNode.distinct(1983) IRNode.distinct(1997) IRNode.distinct(929) IRNode.inject(36) Pair_inject evalDet)
 qed
 
 

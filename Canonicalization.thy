@@ -37,13 +37,55 @@ proof -
     using ConstantNode val wn by auto
 qed
 
+(*
+value "IntVal 32 (sint (word_of_int 0 + word_of_int (-2)::32word))"
+
+lemma
+  "LENGTH('a) > (2 ^ (2)) + 1 \<longrightarrow> sint (word_of_int 0 + word_of_int (2)::'a::len word) = (2)"
+  sledgehammer
+*)
+
+lemma
+  assumes res: "res = intval_add (IntVal b 0) (IntVal b v2)"
+  shows "res = (IntVal bi v2)"
+proof (cases "b \<le> 32")
+  case True
+  have "res = IntVal 32 (sint (word_of_int 0 + word_of_int v2))"
+    using True res unfolding intval_add.simps sorry
+  then show ?thesis sorry
+next
+  case False
+  then show ?thesis sorry
+qed
+
+lemma add_xconst_node:
+  assumes xconst: "kind g x = (ConstantNode (IntVal b xv))"
+  assumes xzero: "xv = 0"
+  assumes addkind: "kind g z = (AddNode x y)"
+  assumes refkind: "kind g r = (RefNode y)"
+  assumes ez: "g m \<turnstile> (kind g z) \<mapsto> (IntVal b v1)"
+  assumes er: "g m \<turnstile> (kind g r) \<mapsto> (IntVal b v2)"
+  shows "v1 = v2"
+proof -
+  have yv: "g m \<turnstile> (kind g y) \<mapsto> IntVal b v2"
+    using eval.RefNode er
+    by (metis RefNodeE refkind)
+  have xv: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xv"
+    using eval.ConstantNode xconst by simp
+  have wv: "(IntVal b v1) = intval_add (IntVal b xv) (IntVal b v2)"
+    using ez addkind eval.AddNode
+    using evalDet xv yv by presburger 
+  show ?thesis sorry
+qed
+
 text_raw \<open>\Snip{CreateAddNode}%\<close>
 fun create_add :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where 
   "create_add g x y = 
     (case (kind g x) of 
       ConstantNode (IntVal b xv) \<Rightarrow> 
         (case (kind g y) of
-          ConstantNode (IntVal b yv) \<Rightarrow> ConstantNode (IntVal b (xv+yv)) | 
+          ConstantNode (IntVal b yv) \<Rightarrow> 
+            ConstantNode (intval_add (IntVal b xv) (IntVal b yv)) | 
           _ \<Rightarrow> if xv = 0 then RefNode y else AddNode x y
         ) |
       _ \<Rightarrow> (case (kind g y) of
@@ -59,7 +101,7 @@ lemma comeon:
   shows "(case x of ConstantNode (IntVal _ _) \<Rightarrow> a | _ \<Rightarrow> b) = b"
   using assms
   (*by (smt IRNode.case_eq_if IRNode.collapse(7) Value.case_eq_if is_IntVal_def)*)
-  by (smt IRNode.case_eq_if IRNode.sel(59) Value.case_eq_if Value.collapse(1) is_ConstantNode_def)
+  by (smt IRNode.case_eq_if IRNode.sel(62) Value.case_eq_if Value.collapse(1) is_ConstantNode_def)
 
 lemma comeon2:
   assumes "\<forall>b v. kind g x \<noteq> ConstantNode (IntVal b v)"
@@ -88,6 +130,27 @@ lemma comeon5:
   using assms comeon3
   by (smt IRNode.case_eq_if Value.case_eq_if)
 
+lemma
+  assumes "x < (2 ^ LENGTH('a::len))"
+  shows "sint (word_of_int x::'a word) = x"
+  sorry
+
+lemma add_zero:
+  assumes "x < (2 ^ LENGTH('a)) - 1"
+  shows "(sint ((word_of_int 0::('a::len word)) + word_of_int x::('a::len word))) = x"
+proof -
+  have "sint (word_of_int x::('a word)) = x"
+    using assms sorry
+  show ?thesis sorry
+qed
+
+value "word_of_int (-2)::(32word)"
+value "sint (word_of_int (-2)::32word)"
+value "sint (word_of_int 0 + word_of_int (-2)::32word)"
+
+lemma add_val_xzero:
+  shows "intval_add (IntVal b 0) (IntVal b yv) = (IntVal b yv)"
+  unfolding intval_add.simps sorry
 
 (* TODO: update these proofs to use intval_add ... *)
 
@@ -95,16 +158,55 @@ text_raw \<open>\Snip{AddNodeCreate}%\<close>
 lemma add_node_create:
   assumes xv: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xv"
   assumes yv: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yv"
+  assumes res: "res = intval_add (IntVal b xv) (IntVal b yv)"
   shows 
-    "(g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (xv+yv)) \<and>
-     (g m \<turnstile> (create_add g x y) \<mapsto> IntVal b (xv+yv))"
+    "(g m \<turnstile> (AddNode x y) \<mapsto> res) \<and>
+     (g m \<turnstile> (create_add g x y) \<mapsto> res)"
 text_raw \<open>\EndSnip\<close>
 proof -
-  let ?P = "(g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (xv+yv))"
-  let ?Q = "(g m \<turnstile> (create_add g x y) \<mapsto> IntVal b (xv+yv))"
+  let ?P = "(g m \<turnstile> (AddNode x y) \<mapsto> res)"
+  let ?Q = "(g m \<turnstile> (create_add g x y) \<mapsto> res)"
   have P: ?P
-    using xv yv eval.AddNode by simp
+    using xv yv res eval.AddNode by blast
   have Q: ?Q
+  proof (cases "is_ConstantNode (kind g x)")
+    case xconst: True
+    then show ?thesis
+    proof (cases "is_ConstantNode (kind g y)")
+      case yconst: True
+      have "create_add g x y = ConstantNode res"
+        using xconst yconst
+        using ConstantNodeE is_ConstantNode_def xv yv res by auto
+      then show ?thesis using eval.ConstantNode by simp
+    next
+      case ynotconst: False
+      have "kind g x = ConstantNode (IntVal b xv)"
+        using ConstantNodeE xconst
+        by (metis is_ConstantNode_def xv)
+      then have add_def:
+        "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
+        using xconst ynotconst create_add.simps IRNode.case_eq_if
+        sorry
+      then show ?thesis
+      proof (cases "xv = 0")
+        case xzero: True
+        have "create_add g x y = RefNode y"
+          using xzero add_def 
+          by meson
+        then show ?thesis using xzero sorry
+      next
+        case xnotzero: False
+        then show ?thesis sorry
+      qed
+    qed
+next
+  case notxconst: False
+  then show ?thesis sorry
+qed
+  show ?thesis sorry
+qed
+
+(*
   proof (cases "\<exists>b v. (kind g x) = ConstantNode (IntVal b v)")
     case xconst: True
     then show ?thesis
@@ -194,7 +296,7 @@ proof -
   qed
   from P Q show ?thesis by simp
 qed
-
+*)
 
 text_raw \<open>\Snip{CreateIfNode}%\<close>
 fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode"
@@ -390,14 +492,15 @@ lemma step_in_ids:
   using assms proof (induct "(nid, m, h)" "(nid', m', h')" rule: step.induct)
 case SequentialNode
   then show ?case
-    by (metis is_sequential_node.simps(44) not_in_g)
+    by (metis is_sequential_node.simps(45) not_in_g)
 next
   case (IfNode cond tb fb val)
   then show ?case by simp
 next
   case (EndNodes i phis inputs vs)
   show ?case using EndNodes(1) isAbstractEndNodeType.simps
-    by (metis IRNode.disc(944) is_EndNode.simps(44) not_in_g)
+    using not_in_g
+    by (metis IRNode.disc(965) is_EndNode.simps(45))
 next
   case RefNode
   then show ?case by simp
@@ -406,6 +509,12 @@ next
 then show ?case by simp
 next
   case (LoadFieldNode f obj ref v)
+  then show ?case by simp
+next
+  case (SignedDivNode x y zero sb v1 v2 v)
+  then show ?case by simp
+next
+  case (SignedRemNode x y zero sb v1 v2 v)
   then show ?case by simp
 next
   case (StaticLoadFieldNode f v)
@@ -472,6 +581,12 @@ next
   then show ?case using successors_of_NewInstanceNode by simp
 next
   case (LoadFieldNode f obj ref v)
+  then show ?case by simp
+next
+  case (SignedDivNode x y zero sb v1 v2 v)
+  then show ?case by simp
+next
+  case (SignedRemNode x y zero sb v1 v2 v)
   then show ?case by simp
 next
   case (StaticLoadFieldNode f v)
@@ -560,6 +675,54 @@ next
     using LoadFieldNode.hyps(2) by presburger
   then show ?case using step.LoadFieldNode
     by (metis LoadFieldNode.hyps(1) LoadFieldNode.hyps(3) LoadFieldNode.hyps(4) assms(3))
+next
+  case (SignedDivNode x y zero sb v1 v2 v)
+  have "x \<in> inputs g nid"
+    using SignedDivNode(1) inputs_of_SignedDivNode
+    using opt_to_list.simps
+    by (simp add: SignedDivNode.hyps(1))
+  then have "unchanged (eval_usages g x) g g'"
+    using unchanged
+    using child_unchanged by blast
+  then have "g' m \<turnstile> kind g' x \<mapsto> v1"
+    using unchanged wff stay_same
+    using SignedDivNode.hyps(2) by presburger
+  have "y \<in> inputs g nid"
+    using SignedDivNode(1) inputs_of_SignedDivNode
+    using opt_to_list.simps
+    by (simp add: SignedDivNode.hyps(1))
+  then have "unchanged (eval_usages g y) g g'"
+    using unchanged
+    using child_unchanged by blast
+  then have "g' m \<turnstile> kind g' y \<mapsto> v2"
+    using unchanged wff stay_same
+    using SignedDivNode.hyps(3) by presburger
+  then show ?case using step.SignedDivNode
+    by (metis SignedDivNode.hyps(1) SignedDivNode.hyps(4) SignedDivNode.hyps(5) \<open>g' m \<turnstile> kind g' x \<mapsto> v1\<close> kind)
+next
+  case (SignedRemNode x y zero sb v1 v2 v)
+  have "x \<in> inputs g nid"
+    using SignedRemNode(1) inputs_of_SignedRemNode
+    using opt_to_list.simps
+    by (simp add: SignedRemNode.hyps(1))
+  then have "unchanged (eval_usages g x) g g'"
+    using unchanged
+    using child_unchanged by blast
+  then have "g' m \<turnstile> kind g' x \<mapsto> v1"
+    using unchanged wff stay_same
+    using SignedRemNode.hyps(2) by presburger
+  have "y \<in> inputs g nid"
+    using SignedRemNode(1) inputs_of_SignedRemNode
+    using opt_to_list.simps
+    by (simp add: SignedRemNode.hyps(1))
+  then have "unchanged (eval_usages g y) g g'"
+    using unchanged
+    using child_unchanged by blast
+  then have "g' m \<turnstile> kind g' y \<mapsto> v2"
+    using unchanged wff stay_same
+    using SignedRemNode.hyps(3) by presburger
+  then show ?case
+    by (metis SignedRemNode.hyps(1) SignedRemNode.hyps(4) SignedRemNode.hyps(5) \<open>g' m \<turnstile> kind g' x \<mapsto> v1\<close> kind step.SignedRemNode)
 next
   case (StaticLoadFieldNode f v)
   then show ?case using step.StaticLoadFieldNode

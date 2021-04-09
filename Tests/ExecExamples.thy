@@ -2,7 +2,7 @@ section \<open>Example program evaluation\<close>
 
 theory ExecExamples
   imports
-    IRStepObj
+    Semantics.IRStepObj
 begin
 
 declare [[ML_source_trace]]

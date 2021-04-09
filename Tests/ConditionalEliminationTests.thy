@@ -1,5 +1,5 @@
 theory ConditionalEliminationTests
-imports ConditionalElimination
+imports Optimizations.ConditionalElimination
 begin
 
 

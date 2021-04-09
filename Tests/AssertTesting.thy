@@ -1,11 +1,11 @@
 theory AssertTesting
-imports IRStepObj
+imports Semantics.IRStepObj
 begin
 
 declare [[ML_source_trace]]
 
 (* Heap with asserts enabled *)
-definition assertEnabledHeap :: DynamicHeap where
+definition assertEnabledHeap :: FieldRefHeap where
   "assertEnabledHeap = h_store_field ''VerifyProgram.$assertionsDisabled'' None (IntVal 32 0) new_heap"
 
 (* Dependencies for the AssertionError class *)
@@ -30,7 +30,7 @@ datatype ExitCause =
   Exception ID Value
 
 inductive assert_test :: "Program 
-      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> DynamicHeap
+      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
       \<Rightarrow> ExitCause
       \<Rightarrow> bool"
   for p where

@@ -2,7 +2,7 @@ section \<open>Testing of IR Semantics based on GraalVM Unit Tests\<close>
 
 theory UnitTesting
   imports
-    IRStepObj
+    Semantics.IRStepObj
 begin
 
 declare [[ML_source_trace]]

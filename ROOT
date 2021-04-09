@@ -34,11 +34,20 @@ session Optimizations in Optimizations = Proofs +
     Canonicalization
     ConditionalElimination
 
+session Tests in Tests = Optimizations +
+  description
+    "Miscellaneous project testing"
+  theories
+    AssertTesting
+    ExecExamples
+    UnitTesting
+    ConditionalEliminationTests
+
 session ATVA2021 in ATVA2021 = Optimizations +
   description
     "Content for ATVA2021 paper"
   options [document = pdf, document_output = "output",
-           quick_and_dirty, show_question_marks = false]
+           show_question_marks = false]
   theories
     ATVA2021
   document_files (in "../document")

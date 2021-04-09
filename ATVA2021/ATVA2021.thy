@@ -96,7 +96,23 @@ text_raw \<open>\Snip{programdef}%
 @{bold \<open>type-synonym\<close>} Program = @{typ Program}
 \EndSnip\<close>
 
+
 (* TODO: add heap here *)
+text_raw \<open>\Snip{heapdef}%\<close>
+text_raw \<open>
+@{text \<open>h_load_field :: \<close>} @{typeof h_load_field}
+
+@{thm h_load_field.simps}\\[0.75em]
+
+@{text \<open>h_store_field :: \<close>} @{typeof h_store_field}
+
+@{thm h_store_field.simps}\\[0.75em]
+
+@{text \<open>h_new_inst :: \<close>} @{typeof h_new_inst}
+
+@{thm h_new_inst.simps}
+\<close>
+text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{ExpressionSemantics}%\<close>
 text \<open>
@@ -154,7 +170,7 @@ text_raw \<open>\Snip{CreateAddNodeDisplay}%
 \EndSnip\<close>
 
 text_raw \<open>\Snip{AddNodeCreateDisplay}%
-@{thm[display] add_node_create}
+@{thm[mode=Rule] add_node_create}
 \EndSnip\<close>
 
 text_raw \<open>\Snip{CreateIfNodeDisplay}%
@@ -171,7 +187,7 @@ text \<open>
 text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{IfNodeCreateDisplay}%
-@{thm[display] if_node_create}
+@{thm[mode=Rule] if_node_create}
 \EndSnip\<close>
 
 (* EXPERIMENTAL *)

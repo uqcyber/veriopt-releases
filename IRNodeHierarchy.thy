@@ -37,7 +37,7 @@ fun isAccessFieldNodeType :: "IRNode \<Rightarrow> bool" where
   "isAccessFieldNodeType n = ((is_LoadFieldNode n) \<or> (is_StoreFieldNode n))"
 
 fun isIntegerDivRemNodeType :: "IRNode \<Rightarrow> bool" where
-  "isIntegerDivRemNodeType n = ((is_SignedDivNode n))"
+  "isIntegerDivRemNodeType n = ((is_SignedDivNode n) \<or> (is_SignedRemNode n))"
 
 fun isFixedBinaryNodeType :: "IRNode \<Rightarrow> bool" where
   "isFixedBinaryNodeType n = ((isIntegerDivRemNodeType n))"
@@ -160,7 +160,7 @@ fun is_SingleMemoryKill :: "IRNode \<Rightarrow> bool" where
   "is_SingleMemoryKill n = ((is_BytecodeExceptionNode n) \<or> (is_ExceptionObjectNode n) \<or> (is_InvokeNode n) \<or> (is_InvokeWithExceptionNode n) \<or> (is_KillingBeginNode n) \<or> (is_StartNode n))"
 
 fun is_LIRLowerable :: "IRNode \<Rightarrow> bool" where
-  "is_LIRLowerable n = ((isAbstractBeginNodeType n) \<or> (isAbstractEndNodeType n) \<or> (isAbstractMergeNodeType n) \<or> (isBinaryOpLogicNodeType n) \<or> (isCallTargetNodeType n) \<or> (is_ConditionalNode n) \<or> (is_ConstantNode n) \<or> (is_IfNode n) \<or> (is_InvokeNode n) \<or> (is_InvokeWithExceptionNode n) \<or> (is_IsNullNode n) \<or> (is_LoopBeginNode n) \<or> (is_PiNode n) \<or> (is_ReturnNode n) \<or> (is_SignedDivNode n) \<or> (isUnaryOpLogicNodeType n) \<or> (is_UnwindNode n))"
+  "is_LIRLowerable n = ((isAbstractBeginNodeType n) \<or> (isAbstractEndNodeType n) \<or> (isAbstractMergeNodeType n) \<or> (isBinaryOpLogicNodeType n) \<or> (isCallTargetNodeType n) \<or> (is_ConditionalNode n) \<or> (is_ConstantNode n) \<or> (is_IfNode n) \<or> (is_InvokeNode n) \<or> (is_InvokeWithExceptionNode n) \<or> (is_IsNullNode n) \<or> (is_LoopBeginNode n) \<or> (is_PiNode n) \<or> (is_ReturnNode n) \<or> (isIntegerDivRemNodeType n) \<or> (isUnaryOpLogicNodeType n) \<or> (is_UnwindNode n))"
 
 fun is_GuardedNode :: "IRNode \<Rightarrow> bool" where
   "is_GuardedNode n = ((isFloatingGuardedNodeType n))"
@@ -217,7 +217,6 @@ fun is_sequential_node :: "IRNode \<Rightarrow> bool" where
   "is_sequential_node (KillingBeginNode _) = True" |
   "is_sequential_node (LoopBeginNode _ _ _ _) = True" |
   "is_sequential_node (LoopExitNode _ _ _) = True" |
-  "is_sequential_node (SignedDivNode _ _ _ _ _) = True" |
   "is_sequential_node (MergeNode _ _ _) = True" |
   "is_sequential_node _ = False"
 

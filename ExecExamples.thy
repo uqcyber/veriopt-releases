@@ -13,6 +13,7 @@ declare [[ML_source_trace]]
 
    Discuss ways to fix this
  *)
+
 inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Trace \<Rightarrow> bool" ("_|_\<leadsto>_|_")
   where
   "\<lbrakk>state = new_map ps;
@@ -210,7 +211,7 @@ definition combs :: Program where
  (12, (InvokeNode (12) (11) (None) (None) ((Some 13)) (15)), IntegerStamp 32 (-2147483648) (2147483647)),
  (13, (FrameState ([]) (None) ((Some [5, 8, 12])) (None)), IllegalStamp),
  (14, (MulNode (8) (12)), IntegerStamp 32 (-2147483648) (2147483647)),
- (15, (SignedDivNode (5) (14) (None) (None) (16)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (15, (SignedDivNode (15) (5) (14) (None) (None) (16)), IntegerStamp 32 (-2147483648) (2147483647)),
  (16, (ReturnNode ((Some 15)) (None)), VoidStamp)
 ])
 (''Combinations.fact(I)I'' \<mapsto> irgraph [
@@ -289,7 +290,7 @@ definition native_combs :: Program where
  (35, (IfNode (31) (34) (33)), VoidStamp),
  (36, (FrameState ([]) (None) (None) (None)), IllegalStamp),
  (38, (EndNode), VoidStamp),
- (39, (SignedDivNode (8) (29) ((Some 33)) (None) (40)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (39, (SignedDivNode (39) (8) (29) ((Some 33)) (None) (40)), IntegerStamp 32 (-2147483648) (2147483647)),
  (40, (ReturnNode ((Some 39)) (None)), VoidStamp),
  (41, (FrameState ([]) (None) ((Some [17])) (None)), IllegalStamp),
  (42, (UnwindNode (17)), VoidStamp)

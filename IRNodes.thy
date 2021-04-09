@@ -72,8 +72,9 @@ datatype (discs_sels) IRNode =
   | PiNode (ir_object: "INPUT") (ir_guard_opt: "INPUT_GUARD option") 
   | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
-  | SignedDivNode (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | SignedDivNode (ir_nid: ID) (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | SignedRemNode (ir_nid: ID) (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC")
   | StoreFieldNode (ir_nid: ID) (ir_field: string) (ir_value: "INPUT") (ir_stateAfter_opt: "INPUT_STATE option") (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | SubNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | UnwindNode (ir_exception: "INPUT") 
@@ -170,7 +171,9 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_ShortCircuitOrNode:
   "inputs_of (ShortCircuitOrNode x y) = [x, y]" |
   inputs_of_SignedDivNode:
-  "inputs_of (SignedDivNode x y zeroCheck stateBefore next) = [x, y] @ (opt_to_list zeroCheck) @ (opt_to_list stateBefore)" |
+  "inputs_of (SignedDivNode nid0 x y zeroCheck stateBefore next) = [x, y] @ (opt_to_list zeroCheck) @ (opt_to_list stateBefore)" |
+  inputs_of_SignedRemNode:
+  "inputs_of (SignedRemNode nid0 x y zeroCheck stateBefore next) = [x, y] @ (opt_to_list zeroCheck) @ (opt_to_list stateBefore)" |
   inputs_of_StartNode:
   "inputs_of (StartNode stateAfter next) = (opt_to_list stateAfter)" |
   inputs_of_StoreFieldNode:
@@ -263,7 +266,9 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_ShortCircuitOrNode:
   "successors_of (ShortCircuitOrNode x y) = []" |
   successors_of_SignedDivNode:
-  "successors_of (SignedDivNode x y zeroCheck stateBefore next) = [next]" |
+  "successors_of (SignedDivNode nid0 x y zeroCheck stateBefore next) = [next]" |
+  successors_of_SignedRemNode:
+  "successors_of (SignedRemNode nid0 x y zeroCheck stateBefore next) = [next]" |
   successors_of_StartNode:
   "successors_of (StartNode stateAfter next) = [next]" |
   successors_of_StoreFieldNode:

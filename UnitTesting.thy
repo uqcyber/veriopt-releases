@@ -45,9 +45,10 @@ definition gr1 :: IRGraph where
   (2, (FrameState []  None None None), default_stamp),
   (3, (ConstantNode (IntVal 32 42)), default_stamp),
   (4, (AddNode 1 3), default_stamp),
-  (5, (ReturnNode  (Some 3)  None), default_stamp)
+  (5, (ReturnNode  (Some 4)  None), default_stamp)
   ]"
-value "static_test gr1 [(IntVal 32 17)] (IntVal 32 42)"
+value "static_test gr1 [(IntVal 32 17)] (IntVal 32 59)"
+value "static_test gr1 [(IntVal 32 2147483647)] (IntVal 32 (-2147483607))"
 
 (* NOTE: this one uses program_test, to set the initial value of the static field! *)
 (* Lorg/graalvm/compiler/core/test/ReassociateAndCanonicalTest;.test10Snippet*)

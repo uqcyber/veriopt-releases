@@ -14,26 +14,27 @@ lemma eval_const_node:
   using xn eval.ConstantNode by simp
 
 lemma eval_add_node: 
-  assumes x: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xv"
-  assumes y: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yv"
-  shows "g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (xv+yv)"
+  assumes x: "g m \<turnstile> (kind g x) \<mapsto> xv"
+  assumes y: "g m \<turnstile> (kind g y) \<mapsto> yv"
+  shows "g m \<turnstile> (AddNode x y) \<mapsto> intval_add xv yv"
   using eval.AddNode x y by blast
 
 lemma add_const_nodes:
   assumes xn: "kind g x = (ConstantNode (IntVal b xv))"
   assumes yn: "kind g y = (ConstantNode (IntVal b yv))"
   assumes zn: "kind g z = (AddNode x y)"
-  assumes wn: "kind g w = (ConstantNode (IntVal b (xv+yv)))"
+  assumes wn: "kind g w = (ConstantNode (intval_add (IntVal b xv) (IntVal b yv)))"
+  assumes val: "intval_add (IntVal b xv) (IntVal b yv) = IntVal b v1"
   assumes ez: "g m \<turnstile> (kind g z) \<mapsto> (IntVal b v1)"
   assumes ew: "g m \<turnstile> (kind g w) \<mapsto> (IntVal b v2)"
   shows "v1 = v2"
 proof -
-  have zv: "g m \<turnstile> (kind g z) \<mapsto> IntVal b (xv+yv)"
-    using eval.AddNode eval_const_node xn yn zn by simp
-  have wv: "g m \<turnstile> (kind g w) \<mapsto> IntVal b (xv+yv)"
-    using eval_const_node wn by auto
-  show ?thesis using evalDet zv wv
-    using ew ez by blast
+  have zv: "g m \<turnstile> (kind g z) \<mapsto> IntVal b v1"
+    using eval.AddNode eval_const_node xn yn zn val by metis
+  have wv: "g m \<turnstile> (kind g w) \<mapsto> IntVal b v2"
+    using eval_const_node wn ew by blast 
+  show ?thesis using evalDet zv wv ew ez
+    using ConstantNode val wn by auto
 qed
 
 text_raw \<open>\Snip{CreateAddNode}%\<close>
@@ -86,6 +87,9 @@ lemma comeon5:
         \<or> (case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) = c"
   using assms comeon3
   by (smt IRNode.case_eq_if Value.case_eq_if)
+
+
+(* TODO: update these proofs to use intval_add ... *)
 
 text_raw \<open>\Snip{AddNodeCreate}%\<close>
 lemma add_node_create:

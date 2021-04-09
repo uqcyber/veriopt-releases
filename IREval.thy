@@ -87,51 +87,51 @@ inductive
 
   AbsNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (AbsNode x) \<mapsto> IntVal b (if v<0 then -v else v)" |
+    \<Longrightarrow> g m \<turnstile> (AbsNode x) \<mapsto> if v < 0 then (intval_sub (IntVal b 0) (IntVal b v)) else (IntVal b v)" |
 
   NegateNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> IntVal b (-v)" |
+    \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> intval_sub (IntVal b 0) (IntVal b (v))" |
 
 (* Binary arithmetic operators *)
 
   AddNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> (AddNode x y) \<mapsto> IntVal b (v1+v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk>
+    \<Longrightarrow> g m \<turnstile> (AddNode x y) \<mapsto> intval_add v1 v2" |
 
   SubNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (SubNode x y) \<mapsto> IntVal b (v1-v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (SubNode x y) \<mapsto> intval_sub v1 v2" |
 
   MulNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (MulNode x y) \<mapsto> IntVal b (v1*v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (MulNode x y) \<mapsto> intval_mul v1 v2" |
 
-(* TODO: this should be control-flow *)
   SignedDivNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> (SignedDivNode x y zeroCheck frameState next) \<mapsto> IntVal b (v1 div v2)" |
+  "g m \<turnstile> (SignedDivNode nid _ _ _ _ _) \<mapsto> m_val m nid" |
+
+  SignedRemNode:
+  "g m \<turnstile> (SignedRemNode nid _ _ _ _ _) \<mapsto> m_val m nid" |
 
 (* Binary logical bitwise operators *)
 
   AndNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (AndNode x y) \<mapsto> IntVal b (v1 AND v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (AndNode x y) \<mapsto> intval_and  v1 v2" |
 
   OrNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (OrNode x y) \<mapsto> IntVal b (v1 OR v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (OrNode x y) \<mapsto> intval_or v1 v2" |
 
   XorNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    g m \<turnstile> (kind g y) \<mapsto> IntVal b v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (XorNode x y) \<mapsto> IntVal b (v1 XOR v2)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
+    g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (XorNode x y) \<mapsto> intval_xor v1 v2" |
 
 (* Comparison operators *)
 (* NOTE: if we use IntVal(bool_to_int(v1=v2)), then code generation does not work! *)
@@ -378,7 +378,10 @@ inductive_cases ShortCircuitOrNodeE[elim!]:\<^marker>\<open>tag invisible\<close
   "g m \<turnstile> (ShortCircuitOrNode x y) \<mapsto> val"
 
 inductive_cases SignedDivNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g m \<turnstile> (SignedDivNode x y zeroCheck stateBefore next) \<mapsto> val"
+  "g m \<turnstile> (SignedDivNode nid0 x y zeroCheck stateBefore next) \<mapsto> val"
+
+inductive_cases SignedRemNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g m \<turnstile> (SignedRemNode nid0 x y zeroCheck stateBefore next) \<mapsto> val"
 
 inductive_cases StartNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> (StartNode stateAfter next) \<mapsto> val"
@@ -448,6 +451,7 @@ FrameStateE
 MethodCallTargetNodeE
 InvokeNodeE
 SignedDivNodeE
+SignedRemNodeE
 ExceptionObjectNodeE
 InvokeWithExceptionNodeE
 BytecodeExceptionNodeE
@@ -460,9 +464,9 @@ NoNodeE
 
 (* Try proving 'inverted rules' for eval. *)
 lemma "evalAddNode" : "g m \<turnstile> (AddNode x y) \<mapsto> val \<Longrightarrow>
-  (\<exists> b v1. (g m \<turnstile> (kind g x) \<mapsto> IntVal b v1) \<and>
-    (\<exists> v2. (g m \<turnstile> (kind g y) \<mapsto> IntVal b v2) \<and>
-       val = IntVal b (v1 + v2)))"
+  (\<exists> v1. (g m \<turnstile> (kind g x) \<mapsto> v1) \<and>
+    (\<exists> v2. (g m \<turnstile> (kind g y) \<mapsto> v2) \<and>
+       val = intval_add v1 v2))"
   using AddNodeE by auto
 
 lemma not_floating: "(\<exists>y ys. (successors_of n) = y # ys) \<longrightarrow> \<not>(is_floating_node n)"

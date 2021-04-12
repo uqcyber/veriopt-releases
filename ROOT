@@ -54,6 +54,17 @@ session ATVA2021 in ATVA2021 = Optimizations +
     "root.tex"
     "mathpartir.sty"
 
+session ASE2021 in ASE2021 = Optimizations +
+  description
+    "Content for ASE2021 paper"
+  options [document = pdf, document_output = "output",
+           show_question_marks = false]
+  theories
+    ASE2021
+  document_files (in "../document")
+    "root.tex"
+    "mathpartir.sty"
+
 (*
 session semantics = "HOL-Library" +
   description

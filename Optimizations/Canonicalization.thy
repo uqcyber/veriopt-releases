@@ -6,18 +6,6 @@ theory Canonicalization
     Proofs.Stuttering
 begin
 
-
-lemma eval_const_node:
-  assumes xn: "kind g x = (ConstantNode xv)"
-  shows "g m \<turnstile> (kind g x) \<mapsto> xv"
-  using xn eval.ConstantNode by simp
-
-lemma eval_add_node: 
-  assumes x: "g m \<turnstile> (kind g x) \<mapsto> xv"
-  assumes y: "g m \<turnstile> (kind g y) \<mapsto> yv"
-  shows "g m \<turnstile> (AddNode x y) \<mapsto> intval_add xv yv"
-  using eval.AddNode x y by blast
-
 lemma add_const_nodes:
   assumes xn: "kind g x = (ConstantNode (IntVal b xv))"
   assumes yn: "kind g y = (ConstantNode (IntVal b yv))"
@@ -29,9 +17,9 @@ lemma add_const_nodes:
   shows "v1 = v2"
 proof -
   have zv: "g m \<turnstile> (kind g z) \<mapsto> IntVal b v1"
-    using eval.AddNode eval_const_node xn yn zn val by metis
+    using eval.AddNode eval.ConstantNode xn yn zn val by metis
   have wv: "g m \<turnstile> (kind g w) \<mapsto> IntVal b v2"
-    using eval_const_node wn ew by blast 
+    using eval.ConstantNode wn ew by blast 
   show ?thesis using evalDet zv wv ew ez
     using ConstantNode val wn by auto
 qed
@@ -42,7 +30,6 @@ value "IntVal 32 (sint (word_of_int 0 + word_of_int (-2)::32word))"
 lemma
   "LENGTH('a) > (2 ^ (2)) + 1 \<longrightarrow> sint (word_of_int 0 + word_of_int (2)::'a::len word) = (2)"
   sledgehammer
-*)
 
 lemma
   assumes res: "res = intval_add (IntVal b 0) (IntVal b v2)"
@@ -56,26 +43,28 @@ next
   case False
   then show ?thesis sorry
 qed
+*)
 
-lemma add_xconst_node:
-  assumes xconst: "kind g x = (ConstantNode (IntVal b xv))"
-  assumes xzero: "xv = 0"
-  assumes addkind: "kind g z = (AddNode x y)"
-  assumes refkind: "kind g r = (RefNode y)"
-  assumes ez: "g m \<turnstile> (kind g z) \<mapsto> (IntVal b v1)"
-  assumes er: "g m \<turnstile> (kind g r) \<mapsto> (IntVal b v2)"
-  shows "v1 = v2"
+(*
+lemma
+  assumes "x < (2 ^ LENGTH('a::len))"
+  shows "sint (word_of_int x::'a word) = x"
+  sorry
+
+lemma add_zero:
+  assumes "x < (2 ^ LENGTH('a)) - 1"
+  shows "(sint ((word_of_int 0::('a::len word)) + word_of_int x::('a::len word))) = x"
 proof -
-  have yv: "g m \<turnstile> (kind g y) \<mapsto> IntVal b v2"
-    using eval.RefNode er
-    by (metis RefNodeE refkind)
-  have xv: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xv"
-    using eval.ConstantNode xconst by simp
-  have wv: "(IntVal b v1) = intval_add (IntVal b xv) (IntVal b v2)"
-    using ez addkind eval.AddNode
-    using evalDet xv yv by presburger 
+  have "sint (word_of_int x::('a word)) = x"
+    using assms sorry
   show ?thesis sorry
 qed
+
+value "word_of_int (-2)::(32word)"
+value "sint (word_of_int (-2)::32word)"
+value "sint (word_of_int 0 + word_of_int (-2)::32word)"
+*)
+
 
 text_raw \<open>\Snip{CreateAddNode}%\<close>
 fun create_add :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where 
@@ -95,63 +84,17 @@ fun create_add :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNod
     )"
 text_raw \<open>\EndSnip\<close>
 
-lemma comeon:
-  assumes "\<forall>b v. x \<noteq> ConstantNode (IntVal b v)"
-  shows "(case x of ConstantNode (IntVal _ _) \<Rightarrow> a | _ \<Rightarrow> b) = b"
-  using assms
-  (*by (smt IRNode.case_eq_if IRNode.collapse(7) Value.case_eq_if is_IntVal_def)*)
-  by (smt IRNode.case_eq_if IRNode.sel(62) Value.case_eq_if Value.collapse(1) is_ConstantNode_def)
 
-lemma comeon2:
-  assumes "\<forall>b v. kind g x \<noteq> ConstantNode (IntVal b v)"
-  shows "(case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | _ \<Rightarrow> b) = b"
-  using assms comeon
-  by (simp add: comeon)
-
-lemma comeon3:
-  assumes "\<forall>b v. x \<noteq> ConstantNode (IntVal b v)"
-  assumes "a \<noteq> b \<and> a \<noteq> c"
-  shows "(case x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) \<noteq> a"
-  using assms comeon
-  by (smt IRNode.case_eq_if Value.case_eq_if)
-
-lemma comeon4:
-  assumes "\<forall>b v. kind g x \<noteq> ConstantNode (IntVal b v)"
-  assumes "a \<noteq> b \<and> a \<noteq> c"
-  shows "(case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) \<noteq> a"
-  using assms comeon3
-  by (simp add: comeon3)
-
-lemma comeon5:
-  assumes "\<forall>b v. kind g x \<noteq> ConstantNode (IntVal b v)"
-  shows "(case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) = b
-        \<or> (case kind g x of ConstantNode (IntVal _ _) \<Rightarrow> a | ConstantNode _ \<Rightarrow> b | _ \<Rightarrow> c) = c"
-  using assms comeon3
-  by (smt IRNode.case_eq_if Value.case_eq_if)
-
-lemma
-  assumes "x < (2 ^ LENGTH('a::len))"
-  shows "sint (word_of_int x::'a word) = x"
-  sorry
-
-lemma add_zero:
-  assumes "x < (2 ^ LENGTH('a)) - 1"
-  shows "(sint ((word_of_int 0::('a::len word)) + word_of_int x::('a::len word))) = x"
-proof -
-  have "sint (word_of_int x::('a word)) = x"
-    using assms sorry
-  show ?thesis sorry
-qed
-
-value "word_of_int (-2)::(32word)"
-value "sint (word_of_int (-2)::32word)"
-value "sint (word_of_int 0 + word_of_int (-2)::32word)"
-
+(* these are incorrect with the introduction of accurate addition semantics *)
+(* most obviously due to the resultant b being either 32 or 64 *)
 lemma add_val_xzero:
   shows "intval_add (IntVal b 0) (IntVal b yv) = (IntVal b yv)"
   unfolding intval_add.simps sorry
 
-(* TODO: update these proofs to use intval_add ... *)
+lemma add_val_yzero:
+  shows "intval_add (IntVal b xv) (IntVal b 0) = (IntVal b xv)"
+  unfolding intval_add.simps sorry
+
 
 text_raw \<open>\Snip{AddNodeCreate}%\<close>
 lemma add_node_create:
@@ -184,25 +127,66 @@ proof -
         by (metis is_ConstantNode_def xv)
       then have add_def:
         "create_add g x y = (if xv = 0 then RefNode y else AddNode x y)"
-        using xconst ynotconst create_add.simps IRNode.case_eq_if
-        sorry
+        using xconst ynotconst is_ConstantNode_def
+        unfolding create_add.simps
+        by (simp split: IRNode.split)
       then show ?thesis
       proof (cases "xv = 0")
         case xzero: True
-        have "create_add g x y = RefNode y"
+        have ref: "create_add g x y = RefNode y"
           using xzero add_def 
           by meson
-        then show ?thesis using xzero sorry
+        have refval: "g m \<turnstile> RefNode y \<mapsto> IntVal b yv"
+          using eval.RefNode yv by simp
+        have "res = IntVal b yv"
+          using res unfolding xzero add_val_xzero by simp
+        then show ?thesis using xzero ref refval by simp
       next
         case xnotzero: False
-        then show ?thesis sorry
+        then show ?thesis
+          using P add_def by presburger
       qed
     qed
 next
   case notxconst: False
-  then show ?thesis sorry
+  then show ?thesis
+    proof (cases "is_ConstantNode (kind g y)")
+      case yconst: True
+      have "kind g y = ConstantNode (IntVal b yv)"
+        using ConstantNodeE yconst
+        by (metis is_ConstantNode_def yv)
+      then have add_def:
+        "create_add g x y = (if yv = 0 then RefNode x else AddNode x y)"
+        using notxconst yconst is_ConstantNode_def
+        unfolding create_add.simps
+        by (simp split: IRNode.split)
+      then show ?thesis
+      proof (cases "yv = 0")
+        case yzero: True
+        have ref: "create_add g x y = RefNode x"
+          using yzero add_def 
+          by meson
+        have refval: "g m \<turnstile> RefNode x \<mapsto> IntVal b xv"
+          using eval.RefNode xv by simp
+        have "res = IntVal b xv"
+          using res unfolding yzero add_val_yzero by simp
+        then show ?thesis using yzero ref refval by simp
+      next
+        case ynotzero: False
+        then show ?thesis
+          using P add_def by presburger
+      qed
+      
+    next
+      case notyconst: False
+      have "create_add g x y = AddNode x y"
+        using notxconst notyconst is_ConstantNode_def 
+        create_add.simps by (simp split: IRNode.split)
+      then show ?thesis
+        using P by presburger
+    qed
 qed
-  show ?thesis sorry
+  from P Q show ?thesis by simp
 qed
 
 (*

@@ -274,4 +274,17 @@ definition unit_verifyMergeSnippet_11 :: IRGraph where
   ]"
 value "static_test unit_verifyMergeSnippet_11 [(IntVal 32 (42))] (IntVal 32 (1))"
 
+
+definition moduloSnippet :: IRGraph where
+"moduloSnippet = irgraph [
+ (0, (StartNode ((Some 3)) (4)), VoidStamp),
+ (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (2, (ParameterNode (1)), IntegerStamp 32 (-2147483648) (2147483647)),
+ (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
+ (4, (SignedRemNode (4) (1) (2) (None) (None) (5)), IntegerStamp 32 (-2147483647) (2147483647)),
+ (5, (ReturnNode ((Some 4)) (None)), VoidStamp)]
+"
+
+(*value "static_test moduloSnippet [(IntVal 32 (1)), (Intval 32 (-2147483648))] (IntVal 32 (1))"*)
+
 end

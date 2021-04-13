@@ -54,7 +54,7 @@ session ATVA2021 in ATVA2021 = Optimizations +
     "root.tex"
     "mathpartir.sty"
 
-session ASE2021 in ASE2021 = Optimizations +
+session ASE2021 in ASE2021 = Tests +
   description
     "Content for ASE2021 paper"
   options [document = pdf, document_output = "output",

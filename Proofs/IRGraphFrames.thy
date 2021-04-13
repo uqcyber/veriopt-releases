@@ -365,10 +365,10 @@ proof -
       using node.hyps node.prems ux x uy y x2 y2
       by (metis ShortCircuitOrNode kind_unchanged)
   next
-    case node: (LogicNegationNode m x b v1 val nida)
+    case node: (LogicNegationNode m x v1 val nida)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
       by (metis child_member_in child_unchanged inputs_of_LogicNegationNode member_rec(1))
-    then have x:"g2 m \<turnstile> (kind g2 x) \<mapsto> IntVal b v1"
+    then have x:"g2 m \<turnstile> (kind g2 x) \<mapsto> IntVal 1 v1"
       by (metis inputs.simps inp_in_g_wff inputs_of_LogicNegationNode list.set_intros(1) node.hyps(2) node.hyps(4) wff)
     then show ?case
       by (metis LogicNegationNode kind_unchanged node.hyps(3) node.hyps(4) node.prems(1) node.prems(2))

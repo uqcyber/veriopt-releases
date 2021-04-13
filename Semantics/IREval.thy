@@ -171,8 +171,8 @@ inductive
     \<Longrightarrow> g m \<turnstile> (ShortCircuitOrNode x y) \<mapsto> val" |
 
   LogicNegationNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    val = IntVal b (NOT v1)\<rbrakk> 
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal 1 v1;
+    val = IntVal 1 (NOT v1)\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> (LogicNegationNode x) \<mapsto> val" |
 
 (* Access the value returned by the most recent call *)

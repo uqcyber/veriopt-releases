@@ -1,4 +1,4 @@
-section \<open>Inductive evaluation semantics of floating nodes\<close>
+section \<open>Data-flow Semantics\<close>
 
 theory IREval
   imports
@@ -449,13 +449,13 @@ lemma not_floating: "(\<exists>y ys. (successors_of n) = y # ys) \<longrightarro
 
 
 text \<open>A top-level goal: eval is deterministic.\<close>
-theorem "evalDet":
+theorem evalDet:
    "(g m \<turnstile> node \<mapsto> val1) \<Longrightarrow>
    (\<forall> val2. ((g m \<turnstile> node \<mapsto> val2) \<longrightarrow> val1 = val2))"
   apply (induction rule: "eval.induct")
   by (rule allI; rule impI; elim EvalE; auto)+
 
-theorem "evalAllDet":
+theorem evalAllDet:
    "(g m \<turnstile> nodes \<longmapsto> vals1) \<Longrightarrow>
    (\<forall> vals2. ((g m \<turnstile> nodes \<longmapsto> vals2) \<longrightarrow> vals1 = vals2))"
   apply (induction rule: "eval_all.induct")

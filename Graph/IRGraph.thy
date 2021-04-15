@@ -1,4 +1,4 @@
-section \<open>GraalVM Graph Representation\<close>
+section \<open>Graph Representation\<close>
 
 theory IRGraph
   imports 
@@ -122,44 +122,6 @@ fun filtered_usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> (IRNode \<Rightar
 fun is_empty :: "IRGraph \<Rightarrow> bool" where
   "is_empty g = (ids g = {})"
 
-definition wff_start where
-  "wff_start g = (0 \<in> ids g \<and>
-    is_StartNode (kind g 0))"
-
-definition wff_closed where
-  "wff_closed g = 
-    (\<forall> n \<in> ids g .
-      inputs g n \<subseteq> ids g \<and>
-      succ g n \<subseteq> ids g \<and>
-      kind g n \<noteq> NoNode)"
-
-definition wff_phis where
-  "wff_phis g = 
-    (\<forall> n \<in> ids g.
-      isPhiNodeType (kind g n) \<longrightarrow>
-      length (ir_values (kind g n))
-       = length (ir_ends 
-           (kind g (ir_merge (kind g n)))))"
-
-definition wff_ends where
-  "wff_ends g = 
-    (\<forall> n \<in> ids g .
-      isAbstractEndNodeType (kind g n) \<longrightarrow>
-      card (usages g n) > 0)"
-
-text_raw \<open>\Snip{wff_graph}%\<close>
-fun wff_graph :: "IRGraph \<Rightarrow> bool" where
-  "wff_graph g = (wff_start g \<and> wff_closed g \<and> wff_phis g \<and> wff_ends g)"
-text_raw \<open>\EndSnip\<close>
-
-lemmas wff_folds =
-  wff_graph.simps
-  wff_start_def
-  wff_closed_def
-  wff_phis_def
-  wff_ends_def
-
-
 lemma ids_some[simp]: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> NoNode" 
 proof -
   have that: "x \<in> ids g \<longrightarrow> kind g x \<noteq> NoNode"
@@ -169,6 +131,11 @@ proof -
     by (cases "Rep_IRGraph g x = None"; auto)
   from this that show ?thesis by auto
 qed
+
+lemma not_in_g: 
+  assumes "nid \<notin> ids g"
+  shows "kind g nid = NoNode"
+  using assms ids_some by blast
 
 lemma valid_creation[simp]:
   "finite (dom g) \<longleftrightarrow> Rep_IRGraph (Abs_IRGraph g) = g"
@@ -241,13 +208,10 @@ lemma replace_node_unchanged:
   "gup = replace_node nid (k, s) g \<longrightarrow> (\<forall> n \<in> (ids g - {nid}) . n \<in> ids g \<and> n \<in> ids gup \<and> kind g n = kind gup n)" 
   by (simp add: kind.rep_eq replace_node.rep_eq)
 
-subsection "Example Graphs"
+subsubsection "Example Graphs"
 text "Example 1: empty graph (just a start and end node)"
 definition start_end_graph:: IRGraph where
   "start_end_graph = irgraph [(0, StartNode None 1, VoidStamp), (1, ReturnNode None None, VoidStamp)]"
-
-lemma wff_empty: "wff_graph start_end_graph"
-  unfolding start_end_graph_def wff_folds by simp
 
 text \<open>Example 2:
   public static int sq(int x) { return x * x; }
@@ -266,9 +230,6 @@ definition eg2_sq :: "IRGraph" where
     (4, MulNode 1 1, default_stamp),
     (5, ReturnNode (Some 4) None, default_stamp)
    ]"
-
-lemma wff_eg2_sq: "wff_graph eg2_sq"
-  unfolding eg2_sq_def wff_folds by simp
 
 (* TODO: to include the float type (used by stamps) we need
          a code equation for float_of but it is not clear how

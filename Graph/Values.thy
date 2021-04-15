@@ -1,3 +1,5 @@
+section \<open>Runtime Values and Arithmetic\<close>
+
 theory Values
   imports
     "HOL-Library.Word"
@@ -134,4 +136,5 @@ fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
        then (IntVal 32 (sint((word_of_int v1 :: int32) XOR (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) XOR (word_of_int v2 :: int64)))))" |
   "intval_xor _ _ = UndefVal"
+
 end

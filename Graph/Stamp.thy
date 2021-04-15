@@ -1,3 +1,5 @@
+section \<open>Stamp Typing\<close>
+
 theory Stamp
   imports Values
 begin

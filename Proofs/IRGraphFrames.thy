@@ -1,14 +1,16 @@
-section \<open>Dynamic Frames for GraalVM graphs\<close>
+subsection \<open>Dynamic Frames\<close>
 
-(* This theory defines two operators, 'unchanged' and 'changeonly',
-   that are useful for specifying which nodes in an IRGraph can change.
-   The dynamic framing idea originates from 'Dynamic Frames' in software verification,
-   started by Ioannis T. Kassios in "Dynamic frames: Support for framing, 
-   dependencies and sharing without restrictions", In FM 2006.
-*)
+text \<open>
+This theory defines two operators, 'unchanged' and 'changeonly',
+that are useful for specifying which nodes in an IRGraph can change.
+The dynamic framing idea originates from 'Dynamic Frames' in software verification,
+started by Ioannis T. Kassios in "Dynamic frames: Support for framing, 
+dependencies and sharing without restrictions", In FM 2006.
+\<close>
 
 theory IRGraphFrames
-  imports 
+  imports
+    Form
     Semantics.IREval
 begin
 
@@ -36,7 +38,7 @@ lemma other_node_unchanged:
   using changeonly.simps by blast
 
 
-subsection \<open>Some notation for input nodes used\<close>
+text \<open>Some notation for input nodes used\<close>
 
 (* Relates all the nodes used in an 'eval', including the node itself. *)
 inductive eval_uses:: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool"
@@ -61,11 +63,6 @@ lemma eval_usages_self:
   shows "nid \<in> eval_usages g nid"
   using assms eval_usages.simps eval_uses.intros(1)
   by (simp add: ids.rep_eq)
-
-lemma not_in_g: 
-  assumes "nid \<notin> ids g"
-  shows "kind g nid = NoNode"
-  using assms ids_some by blast
 
 lemma not_in_g_inputs: 
   assumes "nid \<notin> ids g"
@@ -451,6 +448,82 @@ proof -
     then show ?case
       by (metis PiNode.hyps(3) PiNode.prems(1) PiNode.prems(2) eval.PiNode kind_unchanged)
   qed
+qed
+
+
+lemma add_changed:
+  assumes "gup = add_node new k g"
+  shows "changeonly {new} g gup"
+  using assms unfolding add_node_def changeonly.simps
+  using add_node.rep_eq add_node_def kind.rep_eq by auto
+
+lemma disjoint_change:
+  assumes "changeonly change g gup"
+  assumes "nochange = ids g - change"
+  shows "unchanged nochange g gup"
+  using assms unfolding changeonly.simps unchanged.simps
+  by blast
+
+lemma add_node_unchanged:
+  assumes "new \<notin> ids g"
+  assumes "nid \<in> ids g"
+  assumes "gup = add_node new k g"
+  assumes "wff_graph g"
+  shows "unchanged (eval_usages g nid) g gup"
+proof -
+  have "new \<notin> (eval_usages g nid)" using assms
+    using eval_usages.simps by blast
+  then have "changeonly {new} g gup"
+    using assms add_changed by blast
+  then show ?thesis using assms add_node_def disjoint_change
+    using Diff_insert_absorb by auto
+qed
+
+lemma eval_uses_imp:
+  "((nid' \<in> ids g \<and> nid = nid')
+    \<or> nid' \<in> inputs g nid
+    \<or> (\<exists>nid'' . eval_uses g nid nid'' \<and> eval_uses g nid'' nid'))
+    \<longleftrightarrow> eval_uses g nid nid'"
+  using use0 use_inp use_trans
+  by (meson eval_uses.simps)
+
+lemma wff_use_ids:
+  assumes "wff_graph g"
+  assumes "nid \<in> ids g"
+  assumes "eval_uses g nid nid'"
+  shows "nid' \<in> ids g"
+  using assms(3)
+proof (induction rule: eval_uses.induct)
+  case use0
+  then show ?case by simp
+next
+  case use_inp
+  then show ?case
+    using assms(1) inp_in_g_wff by blast
+next
+  case use_trans
+  then show ?case by blast
+qed
+
+lemma no_external_use:
+  assumes "wff_graph g"
+  assumes "nid' \<notin> ids g"
+  assumes "nid \<in> ids g"
+  shows "\<not>(eval_uses g nid nid')"
+proof -
+  have 0: "nid \<noteq> nid'"
+    using assms by blast
+  have inp: "nid' \<notin> inputs g nid"
+    using assms
+    using inp_in_g_wff by blast
+  have rec_0: "\<nexists>n . n \<in> ids g \<and> n = nid'"
+    using assms by blast
+  have rec_inp: "\<nexists>n . n \<in> ids g \<and> n \<in> inputs g nid'"
+    using assms(2) inp_in_g by blast
+  have rec: "\<nexists>nid'' . eval_uses g nid nid'' \<and> eval_uses g nid'' nid'"
+    using wff_use_ids assms(1) assms(2) assms(3) by blast
+  from inp 0 rec show ?thesis 
+    using eval_uses_imp by blast
 qed
 
 end

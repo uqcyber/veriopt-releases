@@ -1,4 +1,5 @@
-section \<open>Inductive small-step semantics of IR graphs\<close>
+section \<open>Control-flow Semantics\<close>
+subsection \<open>Intraprocedural Semantics\<close>
 
 theory IRStepObj
   imports
@@ -26,9 +27,6 @@ text_raw \<open>\EndSnip\<close>
 
 definition new_heap :: "('a, 'b) DynamicHeap" where
   "new_heap =  ((\<lambda>f. \<lambda>p. UndefVal), 0)"
-
-type_synonym Signature = "string"
-type_synonym Program = "Signature \<rightharpoonup> IRGraph"
 
 inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> bool"
   ("_ \<turnstile> _ \<rightarrow> _" 55) for g where
@@ -111,21 +109,10 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
 
-
-(*
-inductive_cases StepE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> (nid,m,h) \<rightarrow> next"
-
-inductive_cases StepNoModE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
-*)
-
-definition step_selectors :: "(IRNode \<Rightarrow> bool) set" where
-  "step_selectors = {is_sequential_node, is_IfNode, isAbstractEndNodeType,
-    is_RefNode, is_NewInstanceNode, is_LoadFieldNode, is_StoreFieldNode, is_SignedDivNode, is_SignedRemNode}"
+code_pred (modes: i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
 
-theorem "stepDet":
+theorem stepDet:
    "(g \<turnstile> (nid,m,h) \<rightarrow> next) \<Longrightarrow>
    (\<forall> next'. ((g \<turnstile> (nid,m,h) \<rightarrow> next') \<longrightarrow> next = next'))"
 proof (induction rule: "step.induct")
@@ -315,8 +302,21 @@ next
     by (smt (z3) IRNode.distinct(1349) IRNode.distinct(1779) IRNode.distinct(1961) IRNode.distinct(1983) IRNode.distinct(1997) IRNode.distinct(929) IRNode.inject(36) Pair_inject evalDet)
 qed
 
+lemma step_in_ids:
+  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
+  shows "nid \<in> ids g"
+  using assms apply (induct "(nid, m, h)" "(nid', m', h')" rule: step.induct)
+  using is_sequential_node.simps(45) not_in_g 
+  apply metis
+  apply simp
+  using EndNodes(1) isAbstractEndNodeType.simps IRNode.disc(965) is_EndNode.simps(45) ids_some
+  apply metis
+  by simp+
 
-code_pred (modes: i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
+subsection \<open>Interprocedural Semantics\<close>
+
+type_synonym Signature = "string"
+type_synonym Program = "Signature \<rightharpoonup> IRGraph"
 
 inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> bool"
   ("_ \<turnstile> _ \<longrightarrow> _" 55) 
@@ -369,8 +369,9 @@ inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> Map
     c_m' = m_set c_nid e c_m\<rbrakk>
   \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,exEdge,c_m')#stk, h)"
 
-
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
+
+subsection \<open>Big-step Execution\<close>
 
 type_synonym Trace = "(Signature \<times> ID \<times> MapState) list"
 
@@ -419,6 +420,8 @@ inductive exec_debug :: "Program
     \<Longrightarrow> exec_debug p s n s"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) "exec_debug" .
 
+
+subsubsection \<open>Heap Testing\<close>
 
 definition p3:: MapState where
   "p3 = set_params new_map_state [IntVal 32 3]"

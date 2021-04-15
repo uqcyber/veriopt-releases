@@ -1,4 +1,5 @@
-section \<open>GraalVM Nodes\<close>
+section \<open>Nodes\<close>
+subsection \<open>Types of Nodes\<close>
 
 theory IRNodes
   imports
@@ -25,7 +26,6 @@ SUCC instead of ID for control-flow successor edges.
 Optional edges are handled as "INPUT option" etc.
 \<close>
 
-subsection "Node Types"
 type_synonym ID = "nat"
 type_synonym INPUT = "ID"   (* InputType.Value is the default *)
 type_synonym INPUT_ASSOC = "ID" (* InputType.Association *)

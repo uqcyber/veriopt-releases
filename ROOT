@@ -21,18 +21,30 @@ session Semantics in Semantics = Graph +
 session Proofs in Proofs = Semantics +
   description
     "Supporting proof theories and definitions"
-  options [quick_and_dirty]
+  options [quick_and_dirty, document = pdf,
+           document_output = "document",
+           show_question_marks = false]
   theories
+    Bisimulation
+    Form
     IRGraphFrames
+    Rewrites
     Stuttering
+  document_files (in "../latex")
+    "root.tex"
 
 session Optimizations in Optimizations = Proofs +
   description
     "Graph transformation optimizations"
-  options [quick_and_dirty]
+  options [quick_and_dirty, document = pdf,
+           document_output = "document",
+           show_question_marks = false]
   theories
     Canonicalization
     ConditionalElimination
+    Construction
+  document_files (in "../latex")
+    "root.tex"
 
 session Tests in Tests = Optimizations +
   description
@@ -50,7 +62,7 @@ session ATVA2021 in ATVA2021 = Optimizations +
            show_question_marks = false]
   theories
     ATVA2021
-  document_files (in "../document")
+  document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
 
@@ -61,9 +73,38 @@ session ASE2021 in ASE2021 = Tests +
            show_question_marks = false]
   theories
     ASE2021
-  document_files (in "../document")
+  document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
+
+session Document in Document = Optimizations +
+  description
+    "Whole project document"
+  options [document = pdf, document_output = "output",
+           document_variants="document:outline=/proof"]
+  sessions
+    Graph
+    Semantics
+    Proofs
+    Optimizations
+  document_theories
+    Graph.Values
+    Graph.IRNodes
+    Graph.IRNodeHierarchy
+    Graph.Stamp
+    Graph.IRGraph
+    Semantics.IREval
+    Semantics.IRStepObj
+    Proofs.Bisimulation
+    Proofs.Form
+    Proofs.IRGraphFrames
+    Proofs.Rewrites
+    Proofs.Stuttering
+    Optimizations.Canonicalization
+    Optimizations.ConditionalElimination
+    Optimizations.Construction
+  document_files (in ".")
+    "root.tex"
 
 (*
 session semantics = "HOL-Library" +

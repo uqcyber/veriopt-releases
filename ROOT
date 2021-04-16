@@ -10,6 +10,7 @@ session Graph in Graph = "HOL-Library" +
     IRNodeHierarchy
     Stamp
     IRGraph
+    Comparison
 
 session Semantics in Semantics = Graph +
   description

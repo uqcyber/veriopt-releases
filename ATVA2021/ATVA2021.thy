@@ -165,14 +165,6 @@ text \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
-text_raw \<open>\Snip{CreateAddNodeDisplay}%
-@{thm[display] create_add.simps}
-\EndSnip\<close>
-
-text_raw \<open>\Snip{AddNodeCreateDisplay}%
-@{thm[mode=Rule] add_node_create}
-\EndSnip\<close>
-
 text_raw \<open>\Snip{AddNodeRules}%
 \begin{center}
 @{thm[mode=Rule] CanonicalizeAdd.add_both_const [no_vars]}\\[8px]
@@ -185,10 +177,6 @@ text_raw \<open>\Snip{AddNodeProof}%
 @{thm canonicalize_add}
 \EndSnip\<close>
 
-text_raw \<open>\Snip{CreateIfNodeDisplay}%
-@{thm[display] create_if.simps}
-\EndSnip\<close>
-
 text_raw \<open>\Snip{Stutter}%\<close>
 text \<open>
 \begin{center}
@@ -197,10 +185,6 @@ text \<open>
 \end{center}
 \<close>
 text_raw \<open>\EndSnip\<close>
-
-text_raw \<open>\Snip{IfNodeCreateDisplay}%
-@{thm[mode=Rule] if_node_create}
-\EndSnip\<close>
 
 text_raw \<open>\Snip{CanonicalizeIfNodeRules}%
 \begin{center}

@@ -447,6 +447,15 @@ proof -
       using PiNode.hyps(1) PiNode.hyps(2) PiNode.prems(2) child_unchanged eval_in_ids by blast
     then show ?case
       by (metis PiNode.hyps(3) PiNode.prems(1) PiNode.prems(2) eval.PiNode kind_unchanged)
+  next
+    case (NotNode m x val not_val)
+    have object: "x \<in> inputs g1 nid"
+      using inputs_of_NotNode inputs.simps
+      by (metis NotNode.hyps(4) list.set_intros(1))
+    then have ref: "g2 m \<turnstile> (kind g2 x) \<mapsto> val"
+      using NotNode.hyps(1) NotNode.hyps(2) NotNode.prems(2) child_unchanged eval_in_ids by blast
+    then show ?case
+      by (metis NotNode.hyps(3) NotNode.hyps(4) NotNode.prems(1) NotNode.prems(2) eval.NotNode kind_unchanged)
   qed
 qed
 

@@ -261,6 +261,18 @@ next
   then show ?case using eval.RefNode xval add_val_yzero 
     apply (cases xval; auto)
     by (metis Value.inject(1) zero_neq_numeral)+
+next
+  case (add_xsub x a y)
+  then show ?case sorry
+next
+  case (add_ysub y a x)
+  then show ?case sorry
+next
+  case (add_xnegate nx x y)
+  then show ?case sorry
+next
+  case (add_ynegate ny y x)
+  then show ?case sorry
 qed
 qed
 

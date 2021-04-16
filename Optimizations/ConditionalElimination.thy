@@ -55,24 +55,23 @@ text \<open>
 Proofs that the implies relation is correct with respect to the 
 existing evaluation semantics.
 \<close>
-(* TODO: I've broken this proof, the shows is not showing the writen this due to order of ops *)
+
 lemma implies_valid:
   assumes "wff_graph g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "g m \<turnstile> x \<mapsto> v1"
   assumes "g m \<turnstile> y \<mapsto> v2"
-  shows "imp = KnownTrue \<longrightarrow> (val_to_bool v1 \<longrightarrow> val_to_bool v2) \<and>
-         imp = KnownFalse \<longrightarrow> (val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2))"
-proof (cases imp)
-  case Unknown
-  then show ?thesis
-    by simp
-next
-  case KnownTrue
+  shows "(imp = KnownTrue \<longrightarrow> (val_to_bool v1 \<longrightarrow> val_to_bool v2)) \<and>
+         (imp = KnownFalse \<longrightarrow> (val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2)))"
+    (is "(?TP \<longrightarrow> ?TC) \<and> (?FP \<longrightarrow> ?FC)")
+  apply (intro conjI; rule impI)
+proof -
+  assume KnownTrue: ?TP
+  show ?TC proof -
   have s: "g \<turnstile> x & y \<hookrightarrow> imp"
-    using assms(2) KnownTrue condition_implies.cases by blast
+    using KnownTrue assms(2) condition_implies.cases by blast
   then show ?thesis
-  using assms proof (induct x y imp rule: implies.induct)
+  using KnownTrue assms proof (induct x y imp rule: implies.induct)
     case (eq_imp_less x y)
     then show ?case by simp
   next
@@ -97,15 +96,17 @@ next
       using assms(2,3) by blast
   next
     case (negate_true x y)
-    show ?case using negate_true.hyps(1)
-      by simp
+    then show ?case
+      sorry
+  qed
   qed
 next
-  case KnownFalse
-  have "g \<turnstile> x & y \<hookrightarrow> imp"
+  assume KnownFalse: ?FP
+  show ?FC proof -
+    have "g \<turnstile> x & y \<hookrightarrow> imp"
     using KnownFalse assms(2) condition_implies.cases by blast
   then show ?thesis
-  using assms proof (induct x y imp rule: implies.induct)
+  using assms KnownFalse proof (induct x y imp rule: implies.induct)
     case (eq_imp_less x y)
     obtain b xval where xval: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xval"
       using eq_imp_less.prems(3) by blast
@@ -196,11 +197,12 @@ next
     case (x_imp_x x1)
     then show ?case by simp
   next
-    case (negate_false x1)
-    then show ?case by simp
+    case (negate_false x y)
+    then show ?case sorry
   next
     case (negate_true x1)
     then show ?case by simp
+  qed
   qed
 qed
 
@@ -211,7 +213,7 @@ lemma implies_true_valid:
   assumes "g m \<turnstile> x \<mapsto> v1"
   assumes "g m \<turnstile> y \<mapsto> v2"
   shows "val_to_bool v1 \<longrightarrow> val_to_bool v2"
-  using assms implies_valid sorry
+  using assms implies_valid by blast
 
 lemma implies_false_valid:
   assumes "wff_graph g"
@@ -220,7 +222,7 @@ lemma implies_false_valid:
   assumes "g m \<turnstile> x \<mapsto> v1"
   assumes "g m \<turnstile> y \<mapsto> v2"
   shows "val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2)"
-  using assms implies_valid sorry
+  using assms implies_valid by blast
 
 text \<open>
 The following relation corresponds to the UnaryOpLogicNode.tryFold
@@ -706,7 +708,7 @@ proof (induct g nid g' rule: ConditionalEliminationStep.induct)
       using impliesTrue.hyps(2) True
       by (metis ifNodeHasCondEvalStutter impliesTrue.hyps(1))
     have condvTrue: "val_to_bool condv"
-      by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_true_valid)
+      by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(1) impliesTrue.prems(4) implies_true_valid)
     then show ?thesis
       using constantConditionValid 
       using impliesTrue.hyps(1) condv impliesTrue.hyps(4)
@@ -763,7 +765,7 @@ proof (induct g nid g' rule: ConditionalEliminationStep.induct)
   show ?case proof (cases "\<exists>h nid'. (g \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h))")
     case True
     then obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-      by (metis IfNode condition_implies.intros(2) ifNodeHasCondEval impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(3) implies_true_valid)
+      by (metis IfNode StutterStep condition_implies.intros(2) ifNodeHasCondEvalStutter impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(1) impliesTrue.prems(3) implies_true_valid)
     have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
       using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(4) by blast
     then show ?thesis using gstep

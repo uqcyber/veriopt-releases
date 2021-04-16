@@ -122,6 +122,9 @@ fun filtered_usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> (IRNode \<Rightar
 fun is_empty :: "IRGraph \<Rightarrow> bool" where
   "is_empty g = (ids g = {})"
 
+fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID" where
+  "any_usage g nid = hd (sorted_list_of_set (usages g nid))"
+
 lemma ids_some[simp]: "x \<in> ids g \<longleftrightarrow> kind g x \<noteq> NoNode" 
 proof -
   have that: "x \<in> ids g \<longrightarrow> kind g x \<noteq> NoNode"

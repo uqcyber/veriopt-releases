@@ -62,9 +62,6 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
 
-fun any_usage :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID" where
-  "any_usage g nid = hd (sorted_list_of_set (usages g nid))"
-
 inductive
   eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ \<turnstile> _ \<mapsto> _" 55)
   for g where

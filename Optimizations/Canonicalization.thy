@@ -6,6 +6,8 @@ theory Canonicalization
     Proofs.Stuttering
     Proofs.Bisimulation
     Proofs.Form
+
+    Graph.Traversal
 begin
 
 inductive Canonicalize_ConditionalNode :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" where
@@ -291,6 +293,10 @@ inductive CanonicalizeIf :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \
   eqBranch:
   "\<lbrakk>\<not>(is_ConstantNode (kind g cond));
     tb = fb\<rbrakk>
+   \<Longrightarrow> CanonicalizeIf g (IfNode cond tb fb) (RefNode tb)" |
+
+  eqCondition: (* made up - find where this occurs *)
+  "\<lbrakk>kind g cond = IntegerEqualsNode x x\<rbrakk>
    \<Longrightarrow> CanonicalizeIf g (IfNode cond tb fb) (RefNode tb)"
 
 lemma canonicalize_if:
@@ -333,6 +339,23 @@ next
     case False
     then show ?thesis sorry
   qed
+next
+  case (eqCondition cond x tb fb)
+  fix val
+  show ?case proof (cases "g m \<turnstile> kind g cond \<mapsto> val")
+    case True
+    then have gstep: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    using step.IfNode eval.IntegerEqualsNode
+    by (smt (verit, ccfv_SIG) IntegerEqualsNodeE bool_to_val.simps(1) eqCondition.hyps eqCondition.prems(1) val_to_bool.simps(1))
+  have g'step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    using replace_node_lookup
+    using IRNode.simps(2114) eqCondition.prems(3) step.RefNode by presburger
+  from gstep g'step show ?thesis
+    using lockstep_strong_bisimilulation assms(3) by simp
+  next
+    case False
+    then show ?thesis sorry
+  qed
 qed
 
 inductive CanonicalizeBinaryArithmeticNode :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
@@ -368,12 +391,12 @@ inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   sub_left_add1:
   (* (a + b) - b \<Rightarrow> a *)
   "\<lbrakk>kind g left = AddNode a b\<rbrakk> 
-    \<Longrightarrow> CanonicalizeSub g (SubNode left b) (Ref a)" |
+    \<Longrightarrow> CanonicalizeSub g (SubNode left b) (RefNode a)" |
 
   sub_left_add2:
   (* (a + b) - a \<Rightarrow> b *)
   "\<lbrakk>kind g left = AddNode a b\<rbrakk> 
-    \<Longrightarrow> CanonicalizeSub g (SubNode left a) (Ref b)" |
+    \<Longrightarrow> CanonicalizeSub g (SubNode left a) (RefNode b)" |
 
   sub_left_sub:
   (* (a - b) - a \<Rightarrow> (-b) *)
@@ -505,13 +528,15 @@ inductive CanonicalizeAbs :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   for g where
   abs_abs:  (* AbsNode.canonical(78) *)
   "\<lbrakk>kind g x = (AbsNode y)\<rbrakk>
-    \<Longrightarrow> CanonicalizeAbs g (AbsNode x) (AbsNode y)" |
+    \<Longrightarrow> CanonicalizeAbs g (AbsNode x) (AbsNode y)"
 
   (* Why don't they canonicalize abs(-x) = abs(x) in Graal source code? 
      Let's try add it here and prove it anyway *)
+  (* TODO: @KT this rule doesn't work for code gen is nx a typo?
   abs_negate:
   "\<lbrakk>kind g x = (AbsNode x)\<rbrakk>
     \<Longrightarrow> CanonicalizeAbs g (AbsNode nx) (AbsNode x)" 
+  *)
 
 inductive CanonicalizeNot :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
@@ -537,5 +562,143 @@ inductive CanonicalizeNegate :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNo
     \<Longrightarrow> CanonicalizeNegate g (NegateNode nx) (RefNode x)" (* TODO: should this be a Ref or just replace the node? *)
 
   (* TODO: negate_sub, negate_rightshift NegateNode.canonical(91) *)
+
+
+
+
+inductive CanonicalizationStep :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool"
+  for g where
+  ConditionalNode:
+  "\<lbrakk>Canonicalize_ConditionalNode g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  AddNode:
+  "\<lbrakk>CanonicalizeAdd g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  IfNode:
+  "\<lbrakk>CanonicalizeIf g node node'\<rbrakk>
+    \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  (* TODO: fix
+  BinaryArithmaticNode:
+  "\<lbrakk>CanonicalizeBinaryArithmeticNode g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'"
+  *)
+
+  SubNode:
+  "\<lbrakk>CanonicalizeSub g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  MulNode:
+  "\<lbrakk>CanonicalizeMul g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  AndNode:
+  "\<lbrakk>CanonicalizeAnd g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  OrNode:
+  "\<lbrakk>CanonicalizeOr g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  AbsNode:
+  "\<lbrakk>CanonicalizeAbs g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  NotNode:
+  "\<lbrakk>CanonicalizeNot g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  Negatenode:
+  "\<lbrakk>CanonicalizeNegate g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Canonicalize_ConditionalNode .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeAdd .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeIf .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeSub .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeMul .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeAnd .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeOr .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeAbs .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeNot .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeNegate .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizationStep .
+
+
+(* dummy analysis *)
+type_synonym CanonicalizationAnalysis = "bool option"
+
+fun analyse :: "(ID \<times> Seen \<times> CanonicalizationAnalysis) \<Rightarrow> CanonicalizationAnalysis" where
+  "analyse i = None"
+
+inductive CanonicalizationPhase 
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> CanonicalizationAnalysis) \<Rightarrow> IRGraph \<Rightarrow> bool" where
+
+  \<comment> \<open>Can do a step and optimise for the current node\<close>
+  "\<lbrakk>Step analyse g (nid, seen, i) (Some (nid', seen', i'));
+    CanonicalizationStep g (kind g nid) node;
+  
+    g' = replace_node nid (node, stamp g nid) g;
+    
+    CanonicalizationPhase g' (nid', seen', i') g''\<rbrakk>
+    \<Longrightarrow> CanonicalizationPhase g (nid, seen, i) g''" |
+
+  \<comment> \<open>Can do a step, matches whether optimised or not causing non-determinism
+      We need to find a way to negate ConditionalEliminationStep\<close>
+  "\<lbrakk>Step analyse g (nid, seen, i) (Some (nid', seen', i'));
+    
+    CanonicalizationPhase g (nid', seen', i') g'\<rbrakk>
+    \<Longrightarrow> CanonicalizationPhase g (nid, seen, i) g'" |
+
+  (* TODO: part of the step? *)
+  "\<lbrakk>Step analyse g (nid, seen, i) None;
+    Some nid' = pred g nid;
+    seen' = {nid} \<union> seen;
+    CanonicalizationPhase g (nid', seen', i) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizationPhase g (nid, seen, i) g'" |
+
+  (* TODO: part of the step? *)
+  "\<lbrakk>Step analyse g (nid, seen, i) None;
+    None = pred g nid\<rbrakk>
+    \<Longrightarrow> CanonicalizationPhase g (nid, seen, i) g"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizationPhase .
+
+type_synonym Trace = "IRNode list"
+inductive CanonicalizationPhaseWithTrace 
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> CanonicalizationAnalysis) \<Rightarrow> IRGraph \<Rightarrow> Trace \<Rightarrow> Trace \<Rightarrow> bool" where
+
+  \<comment> \<open>Can do a step and optimise for the current node\<close>
+  "\<lbrakk>Step analyse g (nid, seen, i) (Some (nid', seen', i'));
+    CanonicalizationStep g (kind g nid) node;
+  
+    g' = replace_node nid (node, stamp g nid) g;
+    
+    CanonicalizationPhaseWithTrace g' (nid', seen', i') g'' (kind g nid # t) t' \<rbrakk>
+    \<Longrightarrow> CanonicalizationPhaseWithTrace g (nid, seen, i) g'' t t'" |
+
+  \<comment> \<open>Can do a step, matches whether optimised or not causing non-determinism
+      We need to find a way to negate ConditionalEliminationStep\<close>
+  "\<lbrakk>Step analyse g (nid, seen, i) (Some (nid', seen', i'));
+    
+    CanonicalizationPhaseWithTrace g (nid', seen', i') g' (kind g nid # t) t' \<rbrakk>
+    \<Longrightarrow> CanonicalizationPhaseWithTrace g (nid, seen, i) g' t t'" |
+
+  (* TODO: part of the step? *)
+  "\<lbrakk>Step analyse g (nid, seen, i) None;
+    Some nid' = pred g nid;
+    seen' = {nid} \<union> seen;
+    CanonicalizationPhaseWithTrace g (nid', seen', i) g' (kind g nid # t) t' \<rbrakk>
+    \<Longrightarrow> CanonicalizationPhaseWithTrace g (nid, seen, i) g' t t'" |
+
+  (* TODO: part of the step? *)
+  "\<lbrakk>Step analyse g (nid, seen, i) None;
+    None = pred g nid\<rbrakk>
+    \<Longrightarrow> CanonicalizationPhaseWithTrace g (nid, seen, i) g t t"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizationPhaseWithTrace .
+
 
 end

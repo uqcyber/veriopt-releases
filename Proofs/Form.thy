@@ -46,7 +46,9 @@ fun wff_stamps :: "IRGraph \<Rightarrow> bool" where
   "wff_stamps g = (\<forall> n \<in> ids g . 
     (\<forall> v m . (g m \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (stamp g n) v))"
 
-
+fun wff_stamp :: "IRGraph \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> bool" where
+  "wff_stamp g s = (\<forall> n \<in> ids g . 
+    (\<forall> v m . (g m \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (s n) v))"
 
 lemma wff_empty: "wff_graph start_end_graph"
   unfolding start_end_graph_def wff_folds by simp

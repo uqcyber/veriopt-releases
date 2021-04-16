@@ -1,7 +1,23 @@
+section \<open>Conditional Elimination Tests\<close>
+
 theory ConditionalEliminationTests
 imports Optimizations.ConditionalElimination
 begin
 
+text \<open>
+We assert the validity of the definition of conditional elimination optimizations through
+the following suite of test cases.
+
+GraalVM has existing infrastructure to perform unit tests of conditional elimination
+optimizations, wherein an input method graph is run through the conditional elimination phase
+to produce an optimized graph. The optimized graph is then structurally compared with a handwritten
+optimized method.
+
+We interject into this workflow to generate the Isabelle representation of both the input
+unoptimized graph and the expected optimized graph. We then perform our conditional elimination
+phase on the unoptimized graph and assert that the optimized graph expected by GraalVM is equivalent
+to that which our Isabelle phase generates.
+\<close>
 
 fun find_ref_nodes :: "IRGraph \<Rightarrow> (ID \<rightharpoonup> ID)" where
 "find_ref_nodes g = map_of

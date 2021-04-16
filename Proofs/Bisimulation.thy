@@ -39,4 +39,11 @@ lemma lockstep_strong_bisimilulation:
   shows "nid | g \<sim> g'"
   using assms(2) assms(3) stepDet strong_noop_bisimilar.simps by blast
 
+lemma no_step_bisimulation:
+  assumes "\<forall>m h nid' m' h'. \<not>(g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
+  assumes "\<forall>m h nid' m' h'. \<not>(g' \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
+  shows "nid | g \<sim> g'"
+  using assms
+  by (simp add: assms(1) assms(2) strong_noop_bisimilar.intros)
+
 end

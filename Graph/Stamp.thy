@@ -107,6 +107,11 @@ fun asConstant :: "Stamp \<Rightarrow> Value" where
   "asConstant (IntegerStamp b l h) = (if l = h then IntVal b l else UndefVal)" |
   "asConstant _ = UndefVal"
 
+fun alwaysDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "alwaysDistinct stamp1 stamp2 = is_stamp_empty (join stamp1 stamp2)"
+
+fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
 
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
   "valid_value (IntegerStamp b1 l h) (IntVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |
@@ -143,6 +148,39 @@ lemma join_unequal:
   assumes "is_stamp_empty joined"
   shows "\<nexists> x y . x = y \<and> valid_value x_stamp x \<and> valid_value y_stamp y"
   using assms disjoint_empty by auto
+
+lemma neverDistinctEqual:
+  assumes "neverDistinct x_stamp y_stamp"
+  shows "\<nexists> x y . x \<noteq> y \<and> valid_value x_stamp x \<and> valid_value y_stamp y"
+  using assms
+  by (smt (verit, best) asConstant.simps(1) asConstant.simps(2) asConstant.simps(3) neverDistinct.elims(2) valid_value.elims(2))
+
+lemma boundsNoOverlapNoEqual:
+  assumes "stpi_upper x_stamp < stpi_lower y_stamp"
+  assumes "is_IntegerStamp x_stamp \<and> is_IntegerStamp y_stamp"
+  shows "\<nexists> x y . x = y \<and> valid_value x_stamp x \<and> valid_value y_stamp y"
+  using assms apply (cases "x_stamp"; auto)
+  using int_valid_range
+  by (smt (verit, ccfv_threshold) Stamp.collapse(1) mem_Collect_eq valid_value.simps(1))
+
+lemma boundsNoOverlap:
+  assumes "stpi_upper x_stamp < stpi_lower y_stamp"
+  assumes "x = IntVal b1 xval"
+  assumes "y = IntVal b2 yval"
+  assumes "is_IntegerStamp x_stamp \<and> is_IntegerStamp y_stamp"
+  assumes "valid_value x_stamp x \<and> valid_value y_stamp y"
+  shows "xval < yval"
+  using assms is_IntegerStamp_def by force
+
+lemma boundsAlwaysOverlap:
+  assumes "stpi_lower x_stamp \<ge> stpi_upper y_stamp"
+  assumes "x = IntVal b1 xval"
+  assumes "y = IntVal b2 yval"
+  assumes "is_IntegerStamp x_stamp \<and> is_IntegerStamp y_stamp"
+  assumes "valid_value x_stamp x \<and> valid_value y_stamp y"
+  shows "\<not>(xval < yval)"
+  using assms is_IntegerStamp_def
+  by fastforce
 
 lemma intstamp_bits_eq_meet:
   assumes "(meet (IntegerStamp b1 l1 u1) (IntegerStamp b2 l2 u2)) = (IntegerStamp b3 l3 u3)"

@@ -92,6 +92,11 @@ inductive
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> intval_sub (IntVal b 0) (IntVal b v)" |
 
+  NotNode:
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> val;
+    not_val = (\<not>(val_to_bool val)) \<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (NotNode x) \<mapsto> bool_to_val not_val" |
+    
 (* Binary arithmetic operators *)
 
   AddNode:

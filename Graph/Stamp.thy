@@ -113,6 +113,11 @@ fun alwaysDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
 fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
 
+fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
+  "constantAsStamp (IntVal b v) = (IntegerStamp (nat b) v v)" |
+  (* TODO *)
+  "constantAsStamp _ = IllegalStamp"
+
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
   "valid_value (IntegerStamp b1 l h) (IntVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |
   "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |

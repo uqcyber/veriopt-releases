@@ -278,14 +278,15 @@ lemma tryFoldIntegerLessThanTrue:
   shows "v = IntVal 1 1"
 proof -
   have stamp_type: "is_IntegerStamp (stamps x)"
-    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(9) assms(1) assms(2) assms(3) eval_in_ids valid_value.elims(2) valid_value.simps(4) wff_stamp.elims(2))
+    using assms
+    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wff_stamp.elims(2))
   obtain xval b where xval: "g m \<turnstile> kind g x \<mapsto> IntVal b xval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   obtain yval b where yval: "g m \<turnstile> kind g y \<mapsto> IntVal b yval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
     using assms(4)
-    by (metis stamp_type Stamp.disc(2) Value.distinct(1) Value.distinct(9) assms(1) eval_in_ids valid_value.elims(2) wff_stamp.simps yval)
+    by (metis stamp_type Stamp.disc(2) Value.distinct(1) assms(1) eval_in_ids valid_value.elims(2) wff_stamp.simps yval)
   then have "xval < yval"
     using boundsNoOverlap xval yval assms(1,4)
     using eval_in_ids wff_stamp.elims(2)
@@ -302,7 +303,8 @@ lemma tryFoldIntegerLessThanFalse:
   shows "v = IntVal 1 0"
   proof -
   have stamp_type: "is_IntegerStamp (stamps x)"
-    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(9) assms(1) assms(2) assms(3) eval_in_ids valid_value.elims(2) valid_value.simps(4) wff_stamp.elims(2))
+    using assms
+    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wff_stamp.elims(2))
   obtain xval b where xval: "g m \<turnstile> kind g x \<mapsto> IntVal b xval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   obtain yval b where yval: "g m \<turnstile> kind g y \<mapsto> IntVal b yval"

@@ -236,8 +236,9 @@ definition eg2_sq :: "IRGraph" where
 
 (* TODO: to include the float type (used by stamps) we need
          a code equation for float_of but it is not clear how
-         to implement this correctly *)
-lemma[code]: "float_of n = 0" sorry
+         to implement this correctly
+lemma[code]: "float_of n = 0"
+*)
 
 (* Test the code generation. *)
 value "input_edges eg2_sq"

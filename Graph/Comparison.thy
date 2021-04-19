@@ -41,6 +41,9 @@ fun diffNodesGraph :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> ID set" where
 "diffNodesGraph g1 g2 = (let refNodes = find_ref_nodes g1 in
     { n . n \<in> Predicate.the (reachables_i_i_o g1 [0]) \<and> (case refNodes n of Some _ \<Rightarrow> False | _ \<Rightarrow> True) \<and> \<not>(nodeEq refNodes g1 n g2 n)})"
 
+fun diffNodesInfo :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode \<times> IRNode) set" where
+"diffNodesInfo g1 g2 = {(nid, kind g1 nid, kind g2 nid) | nid . nid \<in> diffNodesGraph g1 g2}"
+
 fun eqGraph :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
 "eqGraph isabelle_graph graal_graph = ((diffNodesGraph isabelle_graph graal_graph) = {})"
 

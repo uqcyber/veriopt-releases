@@ -23,12 +23,6 @@ qed
 
 setup_lifting type_definition_IRGraph
 
-fun ids_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID set" where
-  "ids_fake g = {nid \<in> dom g . g nid \<noteq> (Some NoNode)}"
-
-fun kind_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<Rightarrow> IRNode)" where
-  "kind_fake g = (\<lambda>nid. (case g nid of None \<Rightarrow> NoNode | Some v \<Rightarrow> v))"
-
 lift_definition ids :: "IRGraph \<Rightarrow> ID set"
   is "\<lambda>g. {nid \<in> dom g . \<nexists>s. g nid = (Some (NoNode, s))}" .
 
@@ -91,16 +85,16 @@ lemma [code]: "Rep_IRGraph (irgraph m) = map_of (no_node m)"
   by (simp add: irgraph.rep_eq)
 
 
-(* Get the inputs list of a given node ID. *)
+\<comment> \<open>Get the inputs set of a given node ID\<close>
 fun inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "inputs g nid = set (inputs_of (kind g nid))"
-(* Get the successor list of a given node ID. *)
+\<comment> \<open>Get the successor set of a given node ID\<close>
 fun succ :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "succ g nid = set (successors_of (kind g nid))"
-(* Gives a relation between node IDs - between a node and its input nodes. *)
+\<comment> \<open>Gives a relation between node IDs - between a node and its input nodes\<close>
 fun input_edges :: "IRGraph \<Rightarrow> ID rel" where
   "input_edges g = (\<Union> i \<in> ids g. {(i,j)|j. j \<in> (inputs g i)})"
-(* Find all the nodes in the graph that have nid as an input. *)
+\<comment> \<open>Find all the nodes in the graph that have nid as an input - the usages of nid\<close>
 fun usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "usages g nid = {j. j \<in> ids g \<and> (j,nid) \<in> input_edges g}"
 fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where

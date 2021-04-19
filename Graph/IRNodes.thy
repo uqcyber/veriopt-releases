@@ -97,7 +97,11 @@ fun opt_list_to_list :: "'a list option \<Rightarrow> 'a list" where
   "opt_list_to_list None = []" |
   "opt_list_to_list (Some x) = x"
 
-text \<open>inputs\_of and successors\_of partition the node edges into input or successor edges\<close>
+text \<open>
+The following functions, inputs\_of and successors\_of, are automatically generated
+from the GraalVM compiler.
+Their purpose is to partition the node edges into input or successor edges.
+\<close>
 (* nodeout: isabelle-inputs *)
 fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_AbsNode:

@@ -45,7 +45,27 @@
 \title{Veriopt}
 \maketitle
 
+\begin{abstract}
+The Veriopt project aims to prove the optimization pass of the GraalVM compiler.
+The GraalVM compiler includes a sophisticated Intermediate Representation (IR)
+in the form of a sea-of-nodes based graph structure.
+We first define the IR graph structure in the Isabelle/HOL interactive theorem prover.
+We subsequently give the evaluation of the structure a semantics based on the current
+understanding of the purpose of each IR graph node.
+Optimization phases are then encoded including the static analysis passes required for
+an optimization.
+Each optimization phase is proved to be correct by proving that a bisimulation exists
+between the unoptimized and optimized graphs.
+The following document has been automatically generated from the Isabelle/HOL source
+to provide a very comprehensive definition of the semantics and optimizations introduced
+by the Veriopt project.
+\end{abstract}
+
+\pagebreak
+
 \tableofcontents
+
+\pagebreak
 
 % sane default for proof documents
 \parindent 0pt\parskip 0.5ex

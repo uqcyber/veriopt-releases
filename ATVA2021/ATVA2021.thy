@@ -35,6 +35,12 @@ text_raw \<open>\Snip{graphdefnostamp}
 @{bold \<open>typedef\<close>} @{term[source] \<open>IRGraph = {g :: ID \<rightharpoonup> IRNode . finite (dom g)}\<close>}
 \EndSnip\<close>
 
+fun ids_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> ID set" where
+  "ids_fake g = {nid \<in> dom g . g nid \<noteq> (Some NoNode)}"
+
+fun kind_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<Rightarrow> IRNode)" where
+  "kind_fake g = (\<lambda>nid. (case g nid of None \<Rightarrow> NoNode | Some v \<Rightarrow> v))"
+
 text_raw \<open>\Snip{helpers_display}%
 @{text \<open>ids :: \<close>} @{typeof ids_fake}
 

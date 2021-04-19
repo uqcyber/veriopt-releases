@@ -280,22 +280,24 @@ qed
 
 inductive CanonicalizeIf :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool"
   for g where
-  trueConst:
+  trueConst: (* IfNode.simplify (287) *)
   "\<lbrakk>kind g cond = ConstantNode condv;
     val_to_bool condv\<rbrakk>
    \<Longrightarrow> CanonicalizeIf g (IfNode cond tb fb) (RefNode tb)" |
 
-  falseConst:
+  falseConst: (* IfNode.simplify (287) *)
   "\<lbrakk>kind g cond = ConstantNode condv;
     \<not>(val_to_bool condv)\<rbrakk>
    \<Longrightarrow> CanonicalizeIf g (IfNode cond tb fb) (RefNode fb)" |
   
-  eqBranch:
+  eqBranch: (* In ConditionalNode.canonicalizeConditional(152) *)
   "\<lbrakk>\<not>(is_ConstantNode (kind g cond));
     tb = fb\<rbrakk>
    \<Longrightarrow> CanonicalizeIf g (IfNode cond tb fb) (RefNode tb)" |
 
-  eqCondition: (* made up - find where this occurs *)
+  (* Brae: made up - find where this occurs *)
+  (* KT: I imagine the IntegerEqualsNode x x will get canonicalized to a true ConstantNode first *)
+  eqCondition: 
   "\<lbrakk>kind g cond = IntegerEqualsNode x x\<rbrakk>
    \<Longrightarrow> CanonicalizeIf g (IfNode cond tb fb) (RefNode tb)"
 
@@ -373,7 +375,8 @@ inductive CanonicalizeBinaryArithmeticNode :: "ID \<Rightarrow> IRGraph \<Righta
     g''' = replace_node op_id (kind g (ir_x op), meet (constantAsStamp tv) (constantAsStamp fv)) g'' \<rbrakk>
     \<Longrightarrow> CanonicalizeBinaryArithmeticNode op_id g g'''"
 
-  (* TODO: other operators *)
+  (* TODO: other operators: should these be done as separate rules or should above one be made generic?
+     Need to make tradeoff on simplicity to prove vs conciseness/readability? *)
 
 inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
@@ -388,32 +391,43 @@ inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
     val = intval_sub c_1 c_2\<rbrakk>
     \<Longrightarrow> CanonicalizeSub g (SubNode x y) (ConstantNode val)"  |
 
-  sub_left_add1:
+  sub_left_add1: (* SubNode.canonical(86) *)
   (* (a + b) - b \<Rightarrow> a *)
   "\<lbrakk>kind g left = AddNode a b\<rbrakk> 
     \<Longrightarrow> CanonicalizeSub g (SubNode left b) (RefNode a)" |
 
-  sub_left_add2:
+  sub_left_add2: (* SubNode.canonical(90) *)
   (* (a + b) - a \<Rightarrow> b *)
   "\<lbrakk>kind g left = AddNode a b\<rbrakk> 
     \<Longrightarrow> CanonicalizeSub g (SubNode left a) (RefNode b)" |
 
-  sub_left_sub:
+  sub_left_sub: (* SubNode.canonical(94) *)
   (* (a - b) - a \<Rightarrow> (-b) *)
   "\<lbrakk>kind g left = SubNode a b\<rbrakk> 
     \<Longrightarrow> CanonicalizeSub g (SubNode left a) (NegateNode b)" |
 
-  sub_right_add1:
+  sub_right_add1: (* SubNode.canonical(103) *)
   (* a - (a + b) \<Rightarrow> (-b) *)
   "\<lbrakk>kind g right = AddNode a b\<rbrakk> 
     \<Longrightarrow> CanonicalizeSub g (SubNode a right) (NegateNode b)" |
 
-  sub_right_add2:
+  sub_right_add2: (* SubNode.canonical(107) *)
   (* b - (a + b) \<Rightarrow> (-a) *)
   "\<lbrakk>kind g right = AddNode a b\<rbrakk> 
-    \<Longrightarrow> CanonicalizeSub g (SubNode b right) (NegateNode a)"
+    \<Longrightarrow> CanonicalizeSub g (SubNode b right) (NegateNode a)" | 
 
-  (* TODO: the rest of them ... *)
+  sub_right_sub: (* SubNode.canonical(111) *)
+  (* a - (a - b) \<Rightarrow> b *)
+  "\<lbrakk>kind g right = AddNode a b\<rbrakk> 
+    \<Longrightarrow> CanonicalizeSub g (SubNode a right) (RefNode a)" |
+
+  sub_y_negate: (* SubNode.canonical(152) *)
+  (* a - (-b) \<Rightarrow> a + b *)           
+  "\<lbrakk>kind g nb = NegateNode b\<rbrakk> 
+    \<Longrightarrow> CanonicalizeSub g (SubNode a nb) (AddNode a b)"
+
+  (* TODO: reassocation in SubNode.canonical(119-151)
+     How can we do this within our framework? *)
 
 inductive CanonicalizeMul :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
@@ -461,6 +475,48 @@ inductive CanonicalizeMul :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
 
   (* Skipping bit shift optimisations at MulNode.canonical(130) for now *)
 
+inductive CanonicalizeAbs :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
+  for g where
+  abs_abs:  (* AbsNode.canonical(78) *)
+  "\<lbrakk>kind g x = (AbsNode y)\<rbrakk>
+    \<Longrightarrow> CanonicalizeAbs g (AbsNode x) (AbsNode y)" |
+
+  (* Why don't they canonicalize abs(-x) = abs(x) in Graal source code? 
+     Let's try add it here and prove it anyway *)
+  abs_negate:
+  "\<lbrakk>kind g nx = (NegateNode x)\<rbrakk>
+    \<Longrightarrow> CanonicalizeAbs g (AbsNode nx) (AbsNode x)" 
+  
+inductive CanonicalizeNegate :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
+  for g where
+  negate_const:
+  "\<lbrakk>kind g nx = (ConstantNode val);
+    val = (IntVal b v);
+    neg_val = intval_sub (IntVal b 0) val \<rbrakk>
+    \<Longrightarrow> CanonicalizeNegate g (NegateNode nx) (ConstantNode neg_val)" |
+
+  negate_negate: (* NegateNode.canonical(88) *)
+  "\<lbrakk>kind g nx = (NegateNode x)\<rbrakk>
+    \<Longrightarrow> CanonicalizeNegate g (NegateNode nx) (RefNode x)" |
+
+  negate_sub: (* NegateNode.canonical(91) *)
+  "\<lbrakk>kind g sub = (SubNode x y);
+    stamp g sub = (IntegerStamp _ _ _)\<rbrakk>
+    \<Longrightarrow> CanonicalizeNegate g (NegateNode sub) (SubNode y x)"
+
+  (* negate_rightshift in NegateNode.canonical(91) skipped, no RightShiftNode *)
+
+inductive CanonicalizeNot :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
+  for g where
+  not_const:
+  "\<lbrakk>kind g nx = (ConstantNode val);
+    neg_val = bool_to_val (\<not>(val_to_bool val)) \<rbrakk>
+    \<Longrightarrow> CanonicalizeNot g (NotNode nx) (ConstantNode neg_val)" |
+
+  not_not:  (* NotNode.canonical(75) *)
+  "\<lbrakk>kind g nx = (NotNode x)\<rbrakk>
+    \<Longrightarrow> CanonicalizeNot g (NotNode nx) (RefNode x)"
+
 inductive CanonicalizeAnd :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
   and_same: (* AndNode.canonical(82) *)
@@ -490,9 +546,6 @@ inductive CanonicalizeAnd :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   (* Skipping AndNode.canonical(91), no upMask/downMask for stamps yet? *)
   (* Skipping AndNode.canonical(107), no ZeroExtend/SignExtend yet *)
 
-  (* TODO: de morgan's law in AndNode.canonical(119) *)
-
-
 inductive CanonicalizeOr :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
   or_same:  (* OrNode.canonical(93) *)
@@ -504,17 +557,17 @@ inductive CanonicalizeOr :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \
     val_to_bool val\<rbrakk>
     \<Longrightarrow> CanonicalizeOr g (OrNode x y) (ConstantNode val)" |
 
-  or_ytrue: 
+  or_ytrue:  (* OrNode.canonical(113) *)
   "\<lbrakk>kind g y = ConstantNode val;
     val_to_bool val\<rbrakk>
     \<Longrightarrow> CanonicalizeOr g (OrNode x y) (ConstantNode val)" | 
 
-  or_xfalse:
+  or_xfalse: (* OrNode.canonical(113) *)
   "\<lbrakk>kind g x = ConstantNode val;
     \<not>(val_to_bool val)\<rbrakk>
     \<Longrightarrow> CanonicalizeOr g (OrNode x y) (RefNode y)" |
 
-  or_yfalse:
+  or_yfalse: (* OrNode.canonical(113) *)
   "\<lbrakk>kind g y = ConstantNode val;
     \<not>(val_to_bool val)\<rbrakk>
     \<Longrightarrow> CanonicalizeOr g (OrNode x y) (RefNode x)" 
@@ -522,47 +575,28 @@ inductive CanonicalizeOr :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \
   (* Skipping OrNode.canonical(91), no upMask/downMask for stamps yet? *)
   (* Skipping OrNode.canonical(107), no ZeroExtend/SignExtend yet *)
 
-  (* TODO: de morgan's law in OrNode.canonical(119) *)
+inductive CanonicalizeDeMorgansLaw :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  (* OrNode.canonical(120) *)
+  (* (!x \<or> !y) \<Rightarrow> !(x \<and> y) *)
+  de_morgan_or_to_and:
+  "\<lbrakk>kind g nid = OrNode nx ny;
+    kind g nx = NotNode x;
+    kind g ny = NotNode y;
+    new_add_id = nextNid g;
+    g' = add_node new_add_id ((AddNode x y), (IntegerStamp 1 0 1)) g;
+    g'' = replace_node nid ((NotNode new_add_id), (IntegerStamp 1 0 1)) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizeDeMorgansLaw nid g g''" |
 
-inductive CanonicalizeAbs :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
-  for g where
-  abs_abs:  (* AbsNode.canonical(78) *)
-  "\<lbrakk>kind g x = (AbsNode y)\<rbrakk>
-    \<Longrightarrow> CanonicalizeAbs g (AbsNode x) (AbsNode y)"
-
-  (* Why don't they canonicalize abs(-x) = abs(x) in Graal source code? 
-     Let's try add it here and prove it anyway *)
-  (* TODO: @KT this rule doesn't work for code gen is nx a typo?
-  abs_negate:
-  "\<lbrakk>kind g x = (AbsNode x)\<rbrakk>
-    \<Longrightarrow> CanonicalizeAbs g (AbsNode nx) (AbsNode x)" 
-  *)
-
-inductive CanonicalizeNot :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
-  for g where
-  not_const:
-  "\<lbrakk>kind g nx = (ConstantNode val);
-    neg_val = bool_to_val (\<not>(val_to_bool val)) \<rbrakk>
-    \<Longrightarrow> CanonicalizeNot g (NotNode nx) (ConstantNode neg_val)" |
-
-  not_not:  (* NotNode.canonical(75) *)
-  "\<lbrakk>kind g nx = (NotNode x)\<rbrakk>
-    \<Longrightarrow> CanonicalizeNot g (NotNode nx) (RefNode x)" (* TODO: should this be a Ref or just replace the node? *)
-
-inductive CanonicalizeNegate :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
-  for g where
-  negate_const:
-  "\<lbrakk>kind g nx = (ConstantNode val);
-    val = (IntVal b v);
-    neg_val = intval_sub (IntVal b 0) val \<rbrakk>
-    \<Longrightarrow> CanonicalizeNegate g (NegateNode nx) (ConstantNode neg_val)" |
-
-  negate_negate: (* NegateNode.canonical(88) *)
-  "\<lbrakk>kind g nx = (NegateNode x)\<rbrakk>
-    \<Longrightarrow> CanonicalizeNegate g (NegateNode nx) (RefNode x)" (* TODO: should this be a Ref or just replace the node? *)
-
-  (* TODO: negate_sub, negate_rightshift NegateNode.canonical(91) *)
-
+  (* AndNode.canonical(119) *)
+  (* (!x \<and> !y) \<Rightarrow> !(x \<or> y) *)
+  de_morgan_and_to_or:
+  "\<lbrakk>kind g nid = AndNode nx ny;
+    kind g nx = NotNode x;
+    kind g ny = NotNode y;
+    new_add_id = nextNid g;
+    g' = add_node new_add_id ((OrNode x y), (IntegerStamp 1 0 1)) g;
+    g'' = replace_node nid ((NotNode new_add_id), (IntegerStamp 1 0 1)) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizeDeMorgansLaw nid g g''" 
 
 inductive CanonicalizeIntegerEquals :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
@@ -676,7 +710,6 @@ inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarr
     g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
     g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''"
-
 
 inductive CanonicalizationStep :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool"
   for g where

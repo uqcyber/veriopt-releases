@@ -2,43 +2,16 @@ theory
   CanonicalizationTests
 imports
   Optimizations.Canonicalization
+  Tests.IRGraphSort
+  Graph.Comparison
 begin
 
-subsection \<open>IntegerEqualsCanonicalizerTest\<close>
-(* initial: IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet*)
-definition IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial :: IRGraph where  "IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial = irgraph [
-  (0, (StartNode (Some 3) 9), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (SubNode 1 2), IntegerStamp 32 (-2147483648) (2147483647)),
-  (5, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
-  (6, (IntegerEqualsNode 1 2), VoidStamp),
-  (7, (BeginNode 12), VoidStamp),
-  (8, (BeginNode 11), VoidStamp),
-  (9, (IfNode 6 8 7), VoidStamp),
-  (10, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
-  (11, (ReturnNode (Some 10) None), VoidStamp),
-  (12, (ReturnNode (Some 5) None), VoidStamp)
-  ]"
+thm CanonicalizationStep.equation
+thm CanonicalizationPhase.equation
 
-(* final: IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet*)
-definition IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_final :: IRGraph where  "IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_final = irgraph [
-  (0, (StartNode None 7), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
-  (4, (IntegerEqualsNode 1 2), VoidStamp),
-  (5, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
-  (6, (ConditionalNode 4 5 3), IntegerStamp 32 (0) (1)),
-  (7, (ReturnNode (Some 6) None), VoidStamp)
-  ]"
+definition CanonicalizationPhaseAnalysisStart where
+  "CanonicalizationPhaseAnalysisStart = None"
 
-values "{g' . CanonicalizationPhase IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial (0, {}, None) g'}"
-
-
-
-subsection \<open>IfCanonicalizerTest\<close>
 
 (* initial: IfCanonicalizerTest_test1Snippet*)
 definition IfCanonicalizerTest_test1Snippet_initial :: IRGraph where  "IfCanonicalizerTest_test1Snippet_initial = irgraph [
@@ -58,14 +31,38 @@ definition IfCanonicalizerTest_test1Snippet_initial :: IRGraph where  "IfCanonic
 
 (* final: IfCanonicalizerTest_test1Snippet*)
 definition IfCanonicalizerTest_test1Snippet_final :: IRGraph where  "IfCanonicalizerTest_test1Snippet_final = irgraph [
-  (0, (StartNode (Some 2) 4), VoidStamp),
+  (0, (StartNode (Some 2) 5), VoidStamp),
   (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
   (2, (FrameState [] None None None), IllegalStamp),
-  (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
-  (4, (ReturnNode (Some 3) None), VoidStamp)
+  (3, (BeginNode 9), VoidStamp),
+  (4, (BeginNode 7), VoidStamp),
+  (5, (IfNode 10 4 3), VoidStamp),
+  (6, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (7, (ReturnNode (Some 6) None), VoidStamp),
+  (8, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+  (9, (ReturnNode (Some 8) None), VoidStamp),
+  (10, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
 
-values "{g' . CanonicalizationPhase IfCanonicalizerTest_test1Snippet_initial (0, {}, None) g'}"
+value "
+  eqGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test1Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test1Snippet_final
+"
+
+value "
+  diffNodesInfo
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test1Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test1Snippet_final
+"
 
 
 (* initial: IfCanonicalizerTest_test2Snippet*)
@@ -98,13 +95,50 @@ definition IfCanonicalizerTest_test2Snippet_initial :: IRGraph where  "IfCanonic
 
 (* final: IfCanonicalizerTest_test2Snippet*)
 definition IfCanonicalizerTest_test2Snippet_final :: IRGraph where  "IfCanonicalizerTest_test2Snippet_final = irgraph [
-  (0, (StartNode (Some 2) 4), VoidStamp),
+  (0, (StartNode (Some 2) 5), VoidStamp),
   (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
   (2, (FrameState [] None None None), IllegalStamp),
-  (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
-  (4, (ReturnNode (Some 3) None), VoidStamp)
+  (3, (BeginNode 21), VoidStamp),
+  (4, (BeginNode 8), VoidStamp),
+  (5, (IfNode 22 4 3), VoidStamp),
+  (6, (BeginNode 9), VoidStamp),
+  (7, (BeginNode 14), VoidStamp),
+  (8, (IfNode 22 7 6), VoidStamp),
+  (9, (EndNode), VoidStamp),
+  (10, (MergeNode  [9, 11] (Some 17) 19), VoidStamp),
+  (11, (EndNode), VoidStamp),
+  (12, (BeginNode 16), VoidStamp),
+  (13, (BeginNode 11), VoidStamp),
+  (14, (IfNode 22 12 13), VoidStamp),
+  (15, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (16, (ReturnNode (Some 15) None), VoidStamp),
+  (17, (FrameState [] None None None), IllegalStamp),
+  (18, (ConstantNode (IntVal 32 (3))), IntegerStamp 32 (3) (3)),
+  (19, (ReturnNode (Some 18) None), VoidStamp),
+  (20, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+  (21, (ReturnNode (Some 20) None), VoidStamp),
+  (22, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
-values "{g' . CanonicalizationPhase IfCanonicalizerTest_test2Snippet_initial (0, {}, None) g'}"
+
+value "
+  eqGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test2Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test2Snippet_final
+"
+
+value "
+  diffNodesInfo
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test2Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test2Snippet_final
+"
 
 
 (* initial: IfCanonicalizerTest_test3Snippet*)
@@ -157,12 +191,68 @@ definition IfCanonicalizerTest_test3Snippet_initial :: IRGraph where  "IfCanonic
 
 (* final: IfCanonicalizerTest_test3Snippet*)
 definition IfCanonicalizerTest_test3Snippet_final :: IRGraph where  "IfCanonicalizerTest_test3Snippet_final = irgraph [
-  (0, (StartNode (Some 2) 4), VoidStamp),
+  (0, (StartNode (Some 2) 5), VoidStamp),
   (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
   (2, (FrameState [] None None None), IllegalStamp),
-  (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
-  (4, (ReturnNode (Some 3) None), VoidStamp)
+  (3, (BeginNode 37), VoidStamp),
+  (4, (BeginNode 9), VoidStamp),
+  (5, (IfNode 38 4 3), VoidStamp),
+  (6, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (7, (BeginNode 12), VoidStamp),
+  (8, (BeginNode 16), VoidStamp),
+  (9, (IfNode 39 8 7), VoidStamp),
+  (10, (BeginNode 20), VoidStamp),
+  (11, (BeginNode 14), VoidStamp),
+  (12, (IfNode 39 11 10), VoidStamp),
+  (13, (ConstantNode (IntVal 32 (3))), IntegerStamp 32 (3) (3)),
+  (14, (ReturnNode (Some 13) None), VoidStamp),
+  (15, (BeginNode 24), VoidStamp),
+  (16, (EndNode), VoidStamp),
+  (17, (MergeNode  [16, 18, 21, 26, 29] (Some 34) 35), VoidStamp),
+  (18, (EndNode), VoidStamp),
+  (19, (BeginNode 18), VoidStamp),
+  (20, (IfNode 39 19 15), VoidStamp),
+  (21, (EndNode), VoidStamp),
+  (22, (BeginNode 28), VoidStamp),
+  (23, (BeginNode 21), VoidStamp),
+  (24, (IfNode 38 22 23), VoidStamp),
+  (25, (BeginNode 32), VoidStamp),
+  (26, (EndNode), VoidStamp),
+  (27, (BeginNode 26), VoidStamp),
+  (28, (IfNode 39 27 25), VoidStamp),
+  (29, (EndNode), VoidStamp),
+  (30, (BeginNode 33), VoidStamp),
+  (31, (BeginNode 29), VoidStamp),
+  (32, (IfNode 38 30 31), VoidStamp),
+  (33, (ReturnNode (Some 6) None), VoidStamp),
+  (34, (FrameState [] None None None), IllegalStamp),
+  (35, (ReturnNode (Some 13) None), VoidStamp),
+  (36, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+  (37, (ReturnNode (Some 36) None), VoidStamp),
+  (38, (ConstantNode (IntVal 1 (1))), VoidStamp),
+  (39, (ConstantNode (IntVal 1 (0))), VoidStamp)
   ]"
+
+value "
+  eqGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test3Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test3Snippet_final
+"
+
+value "
+  diffNodesGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test3Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test3Snippet_final
+"
+
 
 (* initial: IfCanonicalizerTest_test4Snippet*)
 definition IfCanonicalizerTest_test4Snippet_initial :: IRGraph where  "IfCanonicalizerTest_test4Snippet_initial = irgraph [
@@ -181,12 +271,38 @@ definition IfCanonicalizerTest_test4Snippet_initial :: IRGraph where  "IfCanonic
 
 (* final: IfCanonicalizerTest_test4Snippet*)
 definition IfCanonicalizerTest_test4Snippet_final :: IRGraph where  "IfCanonicalizerTest_test4Snippet_final = irgraph [
-  (0, (StartNode (Some 2) 4), VoidStamp),
+  (0, (StartNode (Some 2) 5), VoidStamp),
   (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
   (2, (FrameState [] None None None), IllegalStamp),
-  (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
-  (4, (ReturnNode (Some 3) None), VoidStamp)
+  (3, (BeginNode 8), VoidStamp),
+  (4, (BeginNode 7), VoidStamp),
+  (5, (IfNode 9 4 3), VoidStamp),
+  (6, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (7, (ReturnNode (Some 6) None), VoidStamp),
+  (8, (ReturnNode (Some 6) None), VoidStamp),
+  (9, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
+
+value "
+  eqGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test4Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test4Snippet_final
+"
+
+value "
+  diffNodesGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test4Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test4Snippet_final
+"
+
 
 (* initial: IfCanonicalizerTest_test5Snippet*)
 definition IfCanonicalizerTest_test5Snippet_initial :: IRGraph where  "IfCanonicalizerTest_test5Snippet_initial = irgraph [
@@ -218,12 +334,99 @@ definition IfCanonicalizerTest_test5Snippet_initial :: IRGraph where  "IfCanonic
 
 (* final: IfCanonicalizerTest_test5Snippet*)
 definition IfCanonicalizerTest_test5Snippet_final :: IRGraph where  "IfCanonicalizerTest_test5Snippet_final = irgraph [
-  (0, (StartNode (Some 2) 4), VoidStamp),
+  (0, (StartNode (Some 2) 6), VoidStamp),
   (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
   (2, (FrameState [] None None None), IllegalStamp),
-  (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
-  (4, (ReturnNode (Some 3) None), VoidStamp)
+  (3, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+  (4, (BeginNode 8), VoidStamp),
+  (5, (BeginNode 10), VoidStamp),
+  (6, (IfNode 18 5 4), VoidStamp),
+  (7, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (8, (EndNode), VoidStamp),
+  (9, (MergeNode  [8, 10] (Some 12) 15), VoidStamp),
+  (10, (EndNode), VoidStamp),
+  (11, (ValuePhiNode 11  [3, 7] 9), IntegerStamp 32 (1) (2)),
+  (12, (FrameState [] None None None), IllegalStamp),
+  (13, (BeginNode 17), VoidStamp),
+  (14, (BeginNode 16), VoidStamp),
+  (15, (IfNode 18 14 13), VoidStamp),
+  (16, (ReturnNode (Some 7) None), VoidStamp),
+  (17, (ReturnNode (Some 7) None), VoidStamp),
+  (18, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
+
+value "
+  eqGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test5Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test5Snippet_final
+"
+
+value "
+  diffNodesGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test5Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test5Snippet_final
+"
+
+
+(* initial: IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet*)
+definition IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial :: IRGraph where  "IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial = irgraph [
+  (0, (StartNode (Some 3) 9), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (SubNode 1 2), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (IntegerEqualsNode 1 2), VoidStamp),
+  (7, (BeginNode 12), VoidStamp),
+  (8, (BeginNode 11), VoidStamp),
+  (9, (IfNode 6 8 7), VoidStamp),
+  (10, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (11, (ReturnNode (Some 10) None), VoidStamp),
+  (12, (ReturnNode (Some 5) None), VoidStamp)
+  ]"
+
+(* final: IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet*)
+definition IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_final :: IRGraph where  "IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_final = irgraph [
+  (0, (StartNode None 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 2), VoidStamp),
+  (5, (BeginNode 10), VoidStamp),
+  (6, (BeginNode 9), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+  (9, (ReturnNode (Some 8) None), VoidStamp),
+  (10, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+
+value "
+  eqGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_final
+"
+
+value "
+  diffNodesGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_final
+"
 
 
 

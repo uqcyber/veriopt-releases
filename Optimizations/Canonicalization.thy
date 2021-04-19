@@ -212,11 +212,7 @@ inductive CanonicalizeAdd :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   "\<lbrakk>kind g ny = NegateNode y \<rbrakk> 
     \<Longrightarrow> CanonicalizeAdd g (AddNode x ny) (SubNode x y)"
 
-  (* Skipping for now
-  add_swap: (* AddNode.canonical (178) *)
-  "\<lbrakk>is_ConstantNode (kind g x);
-    \<not>(is_ConstantNode (kind g y))\<rbrakk>
-    \<Longrightarrow> CanonicalizeAdd g (AddNode x y) (AddNode y x)"  *)
+  (* TODO: reassociation of constants *) 
 
 lemma canonicalize_add:
   assumes "CanonicalizeAdd g before after"
@@ -378,7 +374,74 @@ inductive CanonicalizeBinaryArithmeticNode :: "ID \<Rightarrow> IRGraph \<Righta
   (* TODO: other operators: should these be done as separate rules or should above one be made generic?
      Need to make tradeoff on simplicity to prove vs conciseness/readability? *)
 
-inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
+(* TODO: is there a nice way to genericise the below rules for any IRNode that is_BinaryCommutative *)
+inductive CanonicalizeCommutativeBinaryArithmeticNode :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool"
+  for g where
+  (* BinaryArithmeticNode.maybeCommuteInputs *)
+  add_ids_ordered:
+  "\<lbrakk>\<not>(is_ConstantNode (kind g y));
+    ((is_ConstantNode (kind g x)) \<or> (x > y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (AddNode x y) (AddNode y x)" | 
+
+  and_ids_ordered:
+  "\<lbrakk>\<not>(is_ConstantNode (kind g y));
+    ((is_ConstantNode (kind g x)) \<or> (x > y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (AndNode x y) (AndNode y x)" | 
+
+  int_equals_ids_ordered:
+  "\<lbrakk>\<not>(is_ConstantNode (kind g y));
+    ((is_ConstantNode (kind g x)) \<or> (x > y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (IntegerEqualsNode x y) (IntegerEqualsNode y x)" | 
+
+  mul_ids_ordered:
+  "\<lbrakk>\<not>(is_ConstantNode (kind g y));
+    ((is_ConstantNode (kind g x)) \<or> (x > y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (MulNode x y) (MulNode y x)" | 
+
+  or_ids_ordered:
+  "\<lbrakk>\<not>(is_ConstantNode (kind g y));
+    ((is_ConstantNode (kind g x)) \<or> (x > y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (OrNode x y) (OrNode y x)" | 
+
+  xor_ids_ordered:
+  "\<lbrakk>\<not>(is_ConstantNode (kind g y));
+    ((is_ConstantNode (kind g x)) \<or> (x > y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (XorNode x y) (XorNode y x)" |
+
+  (* TODO: these swaps to make constants appear as second variable may interact 
+    with other canonicalization rules (e.g. for add) that deal with first arguments being constant  *)
+  add_swap_const_first:
+  "\<lbrakk>is_ConstantNode (kind g x);
+    \<not>(is_ConstantNode (kind g y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (AddNode x y) (AddNode y x)" | 
+
+  and_swap_const_first:
+  "\<lbrakk>is_ConstantNode (kind g x);
+    \<not>(is_ConstantNode (kind g y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (AndNode x y) (AndNode y x)" | 
+
+  int_equals_swap_const_first:
+  "\<lbrakk>is_ConstantNode (kind g x);
+    \<not>(is_ConstantNode (kind g y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (IntegerEqualsNode x y) (IntegerEqualsNode y x)" | 
+  
+  mul_swap_const_first:
+  "\<lbrakk>is_ConstantNode (kind g x);
+    \<not>(is_ConstantNode (kind g y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (MulNode x y) (MulNode y x)" | 
+
+  or_swap_const_first:
+  "\<lbrakk>is_ConstantNode (kind g x);
+    \<not>(is_ConstantNode (kind g y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (OrNode x y) (OrNode y x)" | 
+
+  xor_swap_const_first:
+  "\<lbrakk>is_ConstantNode (kind g x);
+    \<not>(is_ConstantNode (kind g y))\<rbrakk>
+    \<Longrightarrow> CanonicalizeCommutativeBinaryArithmeticNode g (XorNode x y) (XorNode y x)"
+
+
+inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool"
   for g where
   sub_same: (* SubNode.canonical(76) *)
   "\<lbrakk>x = y;
@@ -421,14 +484,23 @@ inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   "\<lbrakk>kind g right = AddNode a b\<rbrakk> 
     \<Longrightarrow> CanonicalizeSub g (SubNode a right) (RefNode a)" |
 
+  sub_yzero: (* SubNode.canonical(121) *)
+  (* x - 0 \<Rightarrow> x *)
+  "\<lbrakk>kind g y = ConstantNode (IntVal _ 0)\<rbrakk>
+    \<Longrightarrow> CanonicalizeSub g (SubNode x y) (RefNode x)" |
+
+  sub_xzero: (* SubNode.canonical(146) *)
+  (* 0 - x \<Rightarrow> (-x). Assuming here y is not a float. *)
+  "\<lbrakk>kind g x = ConstantNode (IntVal _ 0)\<rbrakk>
+    \<Longrightarrow> CanonicalizeSub g (SubNode x y) (NegateNode y)" |
+
   sub_y_negate: (* SubNode.canonical(152) *)
   (* a - (-b) \<Rightarrow> a + b *)           
   "\<lbrakk>kind g nb = NegateNode b\<rbrakk> 
-    \<Longrightarrow> CanonicalizeSub g (SubNode a nb) (AddNode a b)"
+    \<Longrightarrow> CanonicalizeSub g (SubNode a nb) (AddNode a b)" 
 
-  (* TODO: reassocation in SubNode.canonical(119-151)
-     How can we do this within our framework? *)
-
+  (* TODO: reassociation in SubNode.canonical(119-151) *)
+                                              
 inductive CanonicalizeMul :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
   mul_both_const:
@@ -474,6 +546,8 @@ inductive CanonicalizeMul :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
     \<Longrightarrow> CanonicalizeMul g (MulNode x y) (NegateNode x)" 
 
   (* Skipping bit shift optimisations at MulNode.canonical(130) for now *)
+
+  (* TODO: reassociation in SubNode.canonical(119-151) *)
 
 inductive CanonicalizeAbs :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where

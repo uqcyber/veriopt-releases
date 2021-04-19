@@ -564,6 +564,118 @@ inductive CanonicalizeNegate :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNo
   (* TODO: negate_sub, negate_rightshift NegateNode.canonical(91) *)
 
 
+inductive CanonicalizeIntegerEquals :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
+  for g where
+  int_equals_same_node: (* IntegerEqualsNode.canonical(139) *)
+  "\<lbrakk>x = y\<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode x y) (ConstantNode (IntVal 1 1))" |
+
+  int_equals_distinct: (* IntegerEqualsNode.canonical(143) *)
+  "\<lbrakk>alwaysDistinct (stamp g x) (stamp g y)\<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode x y) (ConstantNode (IntVal 1 0))" |
+
+  int_equals_add_first_both_same: (* IntegerEqualsNode.canonical(152) *)
+  (* (x+y) == (x+z) \<Rightarrow> (y == z) *)
+  "\<lbrakk>kind g left = AddNode x y;
+    kind g right = AddNode x z\<rbrakk> 
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode left right) (IntegerEqualsNode y z)" |
+
+  int_equals_add_first_second_same: (* IntegerEqualsNode.canonical(156) *)
+  (* (x+y) == (z+x) \<Rightarrow> (y == z) *)
+  "\<lbrakk>kind g left = AddNode x y;
+    kind g right = AddNode z x\<rbrakk> 
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode left right) (IntegerEqualsNode y z)" | 
+
+  int_equals_add_second_first_same:  (* IntegerEqualsNode.canonical(160) *)
+  (* (y+x) == (x+z) \<Rightarrow> (y == z) *)
+  "\<lbrakk>kind g left = AddNode y x;
+    kind g right = AddNode x z\<rbrakk> 
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode left right) (IntegerEqualsNode y z)" |
+
+  int_equals_add_second_both__same:  (* IntegerEqualsNode.canonical(164) *)
+  (* (y+x) == (z+x) \<Rightarrow> (y == z) *)
+  "\<lbrakk>kind g left = AddNode y x;
+    kind g right = AddNode z x\<rbrakk> 
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode left right) (IntegerEqualsNode y z)" |
+
+  int_equals_sub_first_both_same: (* IntegerEqualsNode.canonical(180) *)
+  (* (x-y) == (x-z) \<Rightarrow> (y == z) *)
+  "\<lbrakk>kind g left = SubNode x y;
+    kind g right = SubNode x z\<rbrakk> 
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode left right) (IntegerEqualsNode y z)" |
+
+  int_equals_sub_second_both_same: (* IntegerEqualsNode.canonical(184) *)
+  (* (y-x) == (z-x) \<Rightarrow> (y == z) *)
+  "\<lbrakk>kind g left = SubNode y x;
+    kind g right = SubNode z x\<rbrakk> 
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode left right) (IntegerEqualsNode y z)" 
+
+inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  int_equals_rewrite: (* use above rewrite rules if it matches *)
+  "\<lbrakk>CanonicalizeIntegerEquals g node node';
+    node = kind g nid;
+    g' = replace_node nid (node', stamp g nid) g \<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g'" | 
+
+  (* IntegerEquals.canonical(197) *)
+  (* (x+y) == x \<Rightarrow> (y == 0) *)
+  int_equals_left_contains_right1:
+  "\<lbrakk>kind g nid = IntegerEqualsNode left x;
+    kind g left = AddNode x y;
+    const_id = nextNid g;
+    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" |
+
+  (* IntegerEquals.canonical(200) *)
+  (* (x+y) == y \<Rightarrow> (x == 0) *)
+  int_equals_left_contains_right2:
+  "\<lbrakk>kind g nid = IntegerEqualsNode left y;
+    kind g left = AddNode x y;
+    const_id = nextNid g;
+    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g'' = replace_node const_id ((IntegerEqualsNode x const_id), stamp g nid) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" | 
+
+  (* IntegerEquals.canonical(208) *)
+  (* x == (x+y) \<Rightarrow> (y == 0) *)
+  int_equals_right_contains_left1:
+  "\<lbrakk>kind g nid = IntegerEqualsNode x right;
+    kind g right = AddNode x y;
+    const_id = nextNid g;
+    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" |
+
+  (* IntegerEquals.canonical(211) *)
+  (* y == (x+y) \<Rightarrow> (x == 0) *)
+  int_equals_right_contains_left2:
+  "\<lbrakk>kind g nid = IntegerEqualsNode y right;
+    kind g right = AddNode x y;
+    const_id = nextNid g;
+    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g'' = replace_node const_id ((IntegerEqualsNode x const_id), stamp g nid) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" |
+
+  (* IntegerEquals.canonical(219) *)
+  (* (x - y) == x \<Rightarrow> (y == 0) *)
+  int_equals_left_contains_right3:
+  "\<lbrakk>kind g nid = IntegerEqualsNode left x;
+    kind g left = SubNode x y;
+    const_id = nextNid g;
+    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" |
+
+  (* IntegerEquals.canonical(227) *)
+  (* x == (x - y) \<Rightarrow> (y == 0) *)
+  int_equals_right_contains_left3:
+  "\<lbrakk>kind g nid = IntegerEqualsNode x right;
+    kind g right = SubNode x y;
+    const_id = nextNid g;
+    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
+    \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''"
 
 
 inductive CanonicalizationStep :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool"

@@ -116,12 +116,66 @@ next
     using ConditionalNodeE Value.sel(1) condition_bounds_y.prems(4) by blast
 qed
 
+lemma add_zero_32:
+  assumes "wff_value (IntVal 32 y)"
+  shows "(IntVal 32 0) +* (IntVal 32 y) = (IntVal 32 y)"
+proof -
+  have "-(2^31) \<le> y \<and> y < 2^31"
+    using assms unfolding wff_value.simps by simp
+  then show ?thesis unfolding intval_add.simps apply auto
+    using \<open>- (2 ^ 31) \<le> y \<and> y < 2 ^ 31\<close> signed_take_bit_int_eq_self by blast
+qed
+
+lemma add_zero_64:
+  assumes "wff_value (IntVal 64 y)"
+  shows "(IntVal 64 0) +* (IntVal 64 y) = (IntVal 64 y)"
+proof -
+  have "-(2^63) \<le> y \<and> y < 2^63"
+    using assms unfolding wff_value.simps by simp
+  then show ?thesis unfolding intval_add.simps apply auto
+    using \<open>- (2 ^ 63) \<le> y \<and> y < 2 ^ 63\<close> signed_take_bit_int_eq_self by blast
+qed
+
+lemma 
+  assumes "wff_value (IntVal bc y)"
+  assumes "bc \<in> {32,64}"
+  shows "(IntVal bc 0) +* (IntVal bc y) = (IntVal bc y)"
+proof -
+  have bounds: "-(2^((nat bc)-1)) \<le> y \<and> y < 2^((nat bc)-1)"
+    using assms unfolding wff_value.simps by auto
+  then show ?thesis unfolding intval_add.simps apply auto
+    using bounds signed_take_bit_int_eq_self assms
+    by auto
+qed
+
+(*
+lemma 
+  assumes "wff_value (IntVal bl y)"
+  assumes "bl \<in> {32,64}"
+
+  shows "(IntVal bl 0) +* (IntVal bl y) = (IntVal br y)"
+proof -
+  have bounds: "-(2^((nat bl)-1)) \<le> y \<and> y < 2^((nat bl)-1)"
+    using assms unfolding wff_value.simps by auto
+  then show ?thesis unfolding intval_add.simps apply auto
+    using bounds assms
+    apply auto using signed_take_bit_int_eq_self apply auto
+    try
+qed
+*)
+
+(* (-x + y) \<Rightarrow> (y - x) *)
+lemma 
+  assumes "wff_value (IntVal b x) \<and> wff_value (IntVal b y)"
+  shows "((IntVal b 0) -* (IntVal b x)) +* (IntVal b y) = (IntVal b y) -* (IntVal b x)"
+  using assms unfolding wff_value.simps by simp
+
 
 lemma CanonicalizeAddProof:
   assumes "CanonicalizeAdd g before after"
-  assumes "wff_graph g \<and> wff_stamps g"
-  assumes "g m \<turnstile> before \<mapsto> res"
-  assumes "g m \<turnstile> after \<mapsto> res'"
+  assumes "wff_graph g \<and> wff_stamps g \<and> wff_values g"
+  assumes "g m \<turnstile> before \<mapsto> IntVal b res"
+  assumes "g m \<turnstile> after \<mapsto> IntVal b' res'"
   shows "res = res'"
 proof -
   obtain x y where addkind: "before = AddNode x y"
@@ -132,31 +186,34 @@ proof -
   from addkind
   obtain yval where yval: "g m \<turnstile> kind g y \<mapsto> yval"
     using assms(3) by blast
-  have res: "res = intval_add xval yval"
+  have res: "IntVal b res = intval_add xval yval"
     using assms(3) eval.AddNode
     using addkind evalDet xval yval by presburger
   show ?thesis
     using assms addkind xval yval res
   proof (induct rule: "CanonicalizeAdd.induct")
 case (add_both_const x c_1 y c_2 val)
-  then show ?case using eval.ConstantNode by auto
+  then show ?case using eval.ConstantNode
+    by (metis ConstantNodeE IRNode.inject(2) Value.inject(1))
 next
-  case (add_xzero x c_1 y b)
-  have xeval: "g m \<turnstile> kind g x \<mapsto> (IntVal b 0)"
+  case (add_xzero x c_1 y bc)
+  have xeval: "g m \<turnstile> kind g x \<mapsto> (IntVal bc 0)"
     by (simp add: ConstantNode add_xzero.hyps(1) add_xzero.hyps(3))
   have yeval: "g m \<turnstile> kind g y \<mapsto> yval"
     using add_xzero.prems(4) yval by blast
-  then have "res = intval_add (IntVal b 0) yval"
+  then have res_val: "IntVal b res = intval_add (IntVal bc 0) yval"
     using eval.AddNode eval.ConstantNode add_xzero(1,3,5)
     using evalDet by presburger
-  then show ?case using eval.RefNode yval sorry
+  have "IntVal b' res' = yval"
+    by (meson RefNodeE add_xzero.prems(3) evalDet yeval)
+  then show ?case using eval.RefNode yval res_val sorry
 next
-  case (add_yzero x y c_2 b)
-  have yeval: "g m \<turnstile> kind g y \<mapsto> (IntVal b 0)"
+  case (add_yzero x y c_2 bc)
+  have yeval: "g m \<turnstile> kind g y \<mapsto> (IntVal bc 0)"
     by (simp add: ConstantNode add_yzero.hyps(2) add_yzero.hyps(3))
   have yeval: "g m \<turnstile> kind g x \<mapsto> xval"
     using add_yzero.prems(4) xval by fastforce
-  then have "res = intval_add xval (IntVal b 0)"
+  then have "IntVal b res = intval_add xval (IntVal bc 0)"
     using eval.AddNode eval.ConstantNode add_yzero(2,3,5)
     using evalDet by presburger
   then show ?case using eval.RefNode xval sorry

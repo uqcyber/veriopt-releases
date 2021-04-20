@@ -40,9 +40,9 @@ inductive implies :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Righta
   "g \<turnstile> x & x \<hookrightarrow> KnownTrue" |
 
   negate_false:
-  "\<lbrakk>g \<turnstile> x & (kind g y) \<hookrightarrow> KnownTrue\<rbrakk> \<Longrightarrow> g \<turnstile> x & (NegateNode y) \<hookrightarrow> KnownFalse" |
+  "\<lbrakk>g \<turnstile> x & (kind g y) \<hookrightarrow> KnownTrue\<rbrakk> \<Longrightarrow> g \<turnstile> x & (LogicNegationNode y) \<hookrightarrow> KnownFalse" |
   negate_true:
-  "\<lbrakk>g \<turnstile> x & (kind g y) \<hookrightarrow> KnownFalse\<rbrakk> \<Longrightarrow> g \<turnstile> x & (NegateNode y) \<hookrightarrow> KnownTrue"
+  "\<lbrakk>g \<turnstile> x & (kind g y) \<hookrightarrow> KnownFalse\<rbrakk> \<Longrightarrow> g \<turnstile> x & (LogicNegationNode y) \<hookrightarrow> KnownTrue"
 
 
 text \<open>Total relation over partial implies relation\<close>
@@ -56,8 +56,25 @@ Proofs that the implies relation is correct with respect to the
 existing evaluation semantics.
 \<close>
 
+
+lemma logic_negation_relation:
+  assumes "wff_values g"
+  assumes "g m \<turnstile> kind g y \<mapsto> val"
+  assumes "kind g neg = LogicNegationNode y"
+  assumes "g m \<turnstile> kind g neg \<mapsto> invval"
+  shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool inval)"
+proof -
+  have "wff_value val"
+    using assms(1,2) wff_values_eval by blast
+  have "wff_value invval"
+    using assms(1,4) wff_values_eval by blast
+  then show ?thesis 
+    using assms eval.LogicNegationNode
+    by fastforce
+qed
+
 lemma implies_valid:
-  assumes "wff_graph g"
+  assumes "wff_graph g \<and> wff_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "g m \<turnstile> x \<mapsto> v1"
   assumes "g m \<turnstile> y \<mapsto> v2"
@@ -96,8 +113,8 @@ proof -
       using assms(2,3) by blast
   next
     case (negate_true x y)
-    then show ?case
-      sorry
+    then show ?case using logic_negation_relation
+      by fastforce
   qed
   qed
 next
@@ -198,7 +215,7 @@ next
     then show ?case by simp
   next
     case (negate_false x y)
-    then show ?case sorry
+    then show ?case using logic_negation_relation sorry
   next
     case (negate_true x1)
     then show ?case by simp
@@ -207,7 +224,7 @@ next
 qed
 
 lemma implies_true_valid:
-  assumes "wff_graph g"
+  assumes "wff_graph g \<and> wff_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "imp = KnownTrue"
   assumes "g m \<turnstile> x \<mapsto> v1"
@@ -216,7 +233,7 @@ lemma implies_true_valid:
   using assms implies_valid by blast
 
 lemma implies_false_valid:
-  assumes "wff_graph g"
+  assumes "wff_graph g \<and> wff_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "imp = KnownFalse"
   assumes "g m \<turnstile> x \<mapsto> v1"
@@ -311,7 +328,7 @@ lemma tryFoldIntegerLessThanFalse:
     using assms(2,3) eval.IntegerLessThanNode by auto
   have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
     using assms(4)
-    by (metis stamp_type Stamp.disc(2) Value.distinct(1) Value.distinct(9) assms(1) eval_in_ids valid_value.elims(2) wff_stamp.simps yval)
+    by (metis stamp_type Stamp.disc(2) Value.distinct(1) assms(1) eval_in_ids valid_value.elims(2) wff_stamp.simps yval)
   then have "\<not>(xval < yval)"
     using boundsAlwaysOverlap xval yval assms(1,4)
     using eval_in_ids wff_stamp.elims(2)
@@ -695,6 +712,7 @@ with respect to preservation of stuttering steps.
 lemma ConditionalEliminationStepProof:
   assumes wg: "wff_graph g"
   assumes ws: "wff_stamps g"
+  assumes wv: "wff_values g"
   assumes nid: "nid \<in> ids g"
   assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. (g m \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
@@ -710,7 +728,7 @@ proof (induct g nid g' rule: ConditionalEliminationStep.induct)
       using impliesTrue.hyps(2) True
       by (metis ifNodeHasCondEvalStutter impliesTrue.hyps(1))
     have condvTrue: "val_to_bool condv"
-      by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(1) impliesTrue.prems(4) implies_true_valid)
+      by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(1) impliesTrue.prems(3) impliesTrue.prems(5) implies_true_valid)
     then show ?thesis
       using constantConditionValid 
       using impliesTrue.hyps(1) condv impliesTrue.hyps(4)
@@ -728,8 +746,7 @@ next
       using ifNodeHasCondEvalStutter impliesFalse.hyps(1)
       using True by blast
     have condvFalse: "False = val_to_bool condv"
-      using conds_valid impliesFalse.hyps(3)
-      by (metis condition_implies.intros(2) condv impliesFalse.hyps(2) impliesFalse.prems(1) impliesFalse.prems(4) implies_false_valid)
+      by (metis condition_implies.intros(2) condv impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(1) impliesFalse.prems(3) impliesFalse.prems(5) implies_false_valid)
     then show ?thesis
       using constantConditionValid 
       using impliesFalse.hyps(1) condv impliesFalse.hyps(4)
@@ -755,87 +772,52 @@ Prove that the individual conditional elimination rules are correct
 with respect to finding a bisimulation between the unoptimized and optimized graphs.
 \<close>
 lemma ConditionalEliminationStepProofBisimulation:
-  assumes wff: "wff_graph g \<and> wff_stamp g stamps"
+  assumes wff: "wff_graph g \<and> wff_stamp g stamps \<and> wff_values g"
   assumes nid: "nid \<in> ids g"
   assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. (g m \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
+  assumes gstep: "\<exists> h nid'. (g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))" (* we don't yet consider optimizations which produce a step that didn't already exist *)
 
   shows "nid | g \<sim> g'"
-  using ce using assms
+  using ce gstep using assms
 proof (induct g nid g' rule: ConditionalEliminationStep.induct)
   case (impliesTrue g ifcond cid t f cond conds g' stamps)
-  show ?case proof (cases "\<exists>h nid'. (g \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h))")
-    case True
-    then obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-      by (metis IfNode StutterStep condition_implies.intros(2) ifNodeHasCondEvalStutter impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(1) impliesTrue.prems(3) implies_true_valid)
-    have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-      using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(4) by blast
-    then show ?thesis using gstep
-      by (metis stepDet strong_noop_bisimilar.intros)
-  next
-    case False
-    then have "\<not>(\<exists>m h nid'. (g' \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h)))"
-      using impliesTrue sorry
-    then show ?thesis using False no_step_bisimulation
-      using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(4) by blast
-  qed
+  from impliesTrue(5) obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+    by (metis IfNode StutterStep condition_implies.intros(2) ifNodeHasCondEvalStutter impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(2) impliesTrue.prems(4) implies_true_valid)
+  have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+    using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(4) by blast
+  then show ?case using gstep
+    by (metis stepDet strong_noop_bisimilar.intros)
 next
   case (impliesFalse g ifcond cid t f cond conds g' stamps)
-  show ?case proof (cases "\<exists>h nid'. (g \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h))")
-    case True
-    then obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-      by (metis IfNode condition_implies.intros(2) ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(1) impliesFalse.prems(3) implies_false_valid)
-    have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-      using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(4) by blast
-    then show ?thesis using gstep
-      by (metis stepDet strong_noop_bisimilar.intros)
-  next
-    case False
-    then have "\<not>(\<exists>m h nid'. (g' \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h)))"
-      using impliesTrue sorry
-    then show ?thesis using False no_step_bisimulation
-      using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(4) by blast
-  qed
+  from impliesFalse(5) obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+    by (metis IfNode condition_implies.intros(2) ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(2) impliesFalse.prems(4) implies_false_valid)
+  have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+    using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(4) by blast
+  then show ?case using gstep
+    by (metis stepDet strong_noop_bisimilar.intros)
 next
   case (tryFoldTrue g ifcond cid t f cond stamps g' conds)
-  show ?case proof (cases "\<exists>h nid'. (g \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h))")
-    case True
-    obtain val where "g m \<turnstile> kind g cid \<mapsto> val"
-      using True ifNodeHasCondEval tryFoldTrue.hyps(1) by blast
-    then have "val_to_bool val"
-      using tryFoldProofTrue tryFoldTrue.prems(1) tryFoldTrue(3) 
-      by blast
-    then obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-      using True
-      by (meson IfNode \<open>g m \<turnstile> kind g cid \<mapsto> val\<close> tryFoldTrue.hyps(1))
-    have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-      using constantConditionTrue tryFoldTrue.hyps(1) tryFoldTrue.hyps(4) by presburger
-    then show ?thesis using gstep
-      by (metis stepDet strong_noop_bisimilar.intros)
-  next
-    case False
-    then have "\<not>(\<exists>m h nid'. (g' \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h)))"
-      using impliesTrue sorry
-    then show ?thesis using False no_step_bisimulation
-      using constantConditionTrue tryFoldTrue.hyps(1) tryFoldTrue.hyps(4) by blast
-  qed
+  from tryFoldTrue(5) obtain val where "g m \<turnstile> kind g cid \<mapsto> val"
+    using ifNodeHasCondEval tryFoldTrue.hyps(1) by blast
+  then have "val_to_bool val"
+    using tryFoldProofTrue tryFoldTrue.prems(2) tryFoldTrue(3) 
+    by blast
+  then obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+    using tryFoldTrue(5)
+    by (meson IfNode \<open>g m \<turnstile> kind g cid \<mapsto> val\<close> tryFoldTrue.hyps(1))
+  have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+    using constantConditionTrue tryFoldTrue.hyps(1) tryFoldTrue.hyps(4) by presburger
+  then show ?case using gstep
+    by (metis stepDet strong_noop_bisimilar.intros)
 next
   case (tryFoldFalse g ifcond cid t f cond stamps g' conds)
-  show ?case proof (cases "\<exists>h nid'. (g \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h))")
-    case True
-    then obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-      by (meson IfNode ifNodeHasCondEval tryFoldFalse.hyps(1) tryFoldFalse.hyps(3) tryFoldFalse.prems(1) tryFoldProofFalse)
-    have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-      using constantConditionFalse tryFoldFalse.hyps(1) tryFoldFalse.hyps(4) by blast
-    then show ?thesis using gstep
-      by (metis stepDet strong_noop_bisimilar.intros)
-  next
-    case False
-    then have "\<not>(\<exists>m h nid'. (g' \<turnstile> (ifcond, m, h) \<rightarrow> (nid', m, h)))"
-      using impliesTrue sorry
-    then show ?thesis using False no_step_bisimulation
-      using constantConditionFalse tryFoldFalse.hyps(1) tryFoldFalse.hyps(4) by blast
-  qed
+  from tryFoldFalse(5) obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+    by (meson IfNode ifNodeHasCondEval tryFoldFalse.hyps(1) tryFoldFalse.hyps(3) tryFoldFalse.prems(2) tryFoldProofFalse)
+  have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+    using constantConditionFalse tryFoldFalse.hyps(1) tryFoldFalse.hyps(4) by blast
+  then show ?case using gstep
+    by (metis stepDet strong_noop_bisimilar.intros)
 qed
 
 

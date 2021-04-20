@@ -1,6 +1,6 @@
 theory ATVA2021
   imports
-    Optimizations.Canonicalization
+    Optimizations.CanonicalizationProofs
 begin
 
 notation (latex)
@@ -180,7 +180,7 @@ text_raw \<open>\Snip{AddNodeRules}%
 \EndSnip\<close>
 
 text_raw \<open>\Snip{AddNodeProof}%
-@{thm canonicalize_add}
+@{thm CanonicalizeAddProof}
 \EndSnip\<close>
 
 text_raw \<open>\Snip{Stutter}%\<close>
@@ -202,7 +202,7 @@ text_raw \<open>\Snip{CanonicalizeIfNodeRules}%
 
 text_raw \<open>\Snip{CanonicalizeIfNodeProof}%
 \begin{center}
-@{thm[display] canonicalize_if}
+@{thm[display] CanonicalizeIfProof}
 \end{center}
 \EndSnip\<close>
 

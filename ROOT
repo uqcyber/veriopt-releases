@@ -42,6 +42,7 @@ session Optimizations in Optimizations = Proofs +
            show_question_marks = false]
   theories
     Canonicalization
+    CanonicalizationProofs
     ConditionalElimination
     Construction
   document_files (in "../latex")

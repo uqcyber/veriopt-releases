@@ -1,12 +1,19 @@
 section \<open>Control-flow Semantics\<close>
-subsection \<open>Intraprocedural Semantics\<close>
 
 theory IRStepObj
   imports
     IREval
 begin
 
-(* We use the H[f][p] heap representation.  See \cite{heap-reps-2011}. *)
+subsection \<open>Heap\<close> (* TODO: find a better location for heap definition *)
+
+text \<open>
+The heap model we introduce maps field references to object instances to runtime values.
+We use the H[f][p] heap representation. See @{text "\\cite{heap-reps-2011}"}.
+
+We also introduce the DynamicHeap type which allocates new object references sequentially
+storing the next free object reference as 'Free'.
+\<close>
 (* TODO: Record volatile fields?  Include class name of field? *)
 text_raw \<open>\Snip{heapdef}%\<close>
 type_synonym ('a, 'b) Heap = "'a \<Rightarrow> 'b \<Rightarrow> Value"
@@ -27,6 +34,15 @@ text_raw \<open>\EndSnip\<close>
 
 definition new_heap :: "('a, 'b) DynamicHeap" where
   "new_heap =  ((\<lambda>f. \<lambda>p. UndefVal), 0)"
+
+subsection \<open>Intraprocedural Semantics\<close>
+
+text \<open>
+Intraprocedural semantics are given as a small-step semantics.
+
+Within the context of a graph, the configuration triple, (ID, MethodState, Heap),
+is related to the subsequent configuration.
+\<close>
 
 inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> bool"
   ("_ \<turnstile> _ \<rightarrow> _" 55) for g where
@@ -111,6 +127,11 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
 
 code_pred (modes: i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
+text \<open>
+We prove that within the same graph, a configuration triple will always
+transition to the same subsequent configuration. Therefore, our step semantics
+is deterministic.
+\<close>
 
 theorem stepDet:
    "(g \<turnstile> (nid,m,h) \<rightarrow> next) \<Longrightarrow>

@@ -5,6 +5,27 @@ theory IREval
     Graph.IRGraph
 begin
 
+text \<open>
+We define the semantics of data-flow nodes as big-step operational semantics.
+
+Data-flow nodes are evaluated in the context of the @{typ IRGraph} and a method state
+(currently called MapState in the theories for historical reasons).
+
+The method state consists of the values for each method parameter, references to
+method parameters use an index of the parameter wihtin the parameter list, as such
+we store a list of parameter values which are looked up at parameter references.
+
+The method state also stores a mapping of node ids to values. The contents of this
+mapping is calculates during the traversal of the control flow graph.
+
+As a concrete example, as the @{term SignedDivNode} can have side-effects
+(during division by zero), it is treated part of the control-flow as the data-flow 
+is specified to be side-effect free.
+As a result, the control-flow semantics for @{term SignedDivNode} calculates the value of a node
+and maps the node identifier to the value within the method state.
+The data-flow semantics then just reads the value stored in the method state for the node.
+\<close>
+
 datatype MapState =
   MapState
     (m_values: "ID \<Rightarrow> Value")
@@ -40,6 +61,7 @@ fun bool_to_val :: "bool \<Rightarrow> Value" where
   "bool_to_val False = (IntVal 1 0)"
 
 
+(* TODO: move the following phi helpers to step semantics? *)
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
@@ -79,7 +101,7 @@ inductive
   "\<lbrakk>g m \<turnstile> (kind g c) \<mapsto> val\<rbrakk>
     \<Longrightarrow> g m \<turnstile> (ValueProxyNode c _) \<mapsto> val" |
 
-(* Unary arithmetic operators *)
+  \<comment> \<open>Unary arithmetic operators\<close>
 
   AbsNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
@@ -94,7 +116,7 @@ inductive
     not_val = (\<not>(val_to_bool val)) \<rbrakk> 
     \<Longrightarrow> g m \<turnstile> (NotNode x) \<mapsto> bool_to_val not_val" |
     
-(* Binary arithmetic operators *)
+  \<comment> \<open>Binary arithmetic operators\<close>
 
   AddNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
@@ -117,7 +139,7 @@ inductive
   SignedRemNode:
   "g m \<turnstile> (SignedRemNode nid _ _ _ _ _) \<mapsto> m_val m nid" |
 
-(* Binary logical bitwise operators *)
+  \<comment> \<open>Binary logical bitwise operators\<close>
 
   AndNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
@@ -134,7 +156,7 @@ inductive
     g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> (XorNode x y) \<mapsto> intval_xor v1 v2" |
 
-(* Comparison operators *)
+  \<comment> \<open>Comparison operators\<close>
 (* NOTE: if we use IntVal(bool_to_int(v1=v2)), then code generation does not work! *)
   IntegerEqualsNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v1;
@@ -153,7 +175,7 @@ inductive
     val = bool_to_val(ref = None)\<rbrakk>
     \<Longrightarrow> g m \<turnstile> (IsNullNode obj) \<mapsto> val" |
 
-(* Other nodes *)
+  \<comment> \<open>Other nodes\<close>
 (* Note that both branches are evaluated but only one is used.
    This is not an issue as evaluation is total (but may return UnDef) *)
 
@@ -201,7 +223,14 @@ inductive
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE) eval .
 
+text \<open>
+The step semantics for phi nodes requires all the input nodes of the
+phi node to be evaluated to a value at the same time.
 
+We introduce the @{text eval_all} relation to handle the evaluation
+of a list of node identifiers in parallel. As the evaluation semantics
+are side-effect free this is trivial.
+\<close>
 inductive
   eval_all :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID list \<Rightarrow> Value list \<Rightarrow> bool"
   ("_ _ \<turnstile> _ \<longmapsto> _" 55)
@@ -389,7 +418,7 @@ inductive_cases RefNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g m \<turnstile> (RefNode ref) \<mapsto> val"
 
 
-lemmas EvalE = 
+lemmas EvalE\<^marker>\<open>tag invisible\<close> = 
 EndNodeE
 LoopEndNodeE
 LoadFieldNodeE
@@ -438,7 +467,10 @@ PiNodeE
 NoNodeE
 
 
-(* Try proving 'inverted rules' for eval. *)
+text \<open>
+Here we show that using the elimination rules for eval we can
+prove 'inverted rule' properties
+\<close>
 lemma "evalAddNode" : "g m \<turnstile> (AddNode x y) \<mapsto> val \<Longrightarrow>
   (\<exists> v1. (g m \<turnstile> (kind g x) \<mapsto> v1) \<and>
     (\<exists> v2. (g m \<turnstile> (kind g y) \<mapsto> v2) \<and>
@@ -450,7 +482,10 @@ lemma not_floating: "(\<exists>y ys. (successors_of n) = y # ys) \<longrightarro
   by (induct "n"; simp add: neq_Nil_conv)
 
 
-text \<open>A top-level goal: eval is deterministic.\<close>
+text \<open>
+We show that within the context of a graph and method state, the same
+node will always evaluate to the same value and the semantics is therefore deterministic.
+\<close>
 theorem evalDet:
    "(g m \<turnstile> node \<mapsto> val1) \<Longrightarrow>
    (\<forall> val2. ((g m \<turnstile> node \<mapsto> val2) \<longrightarrow> val1 = val2))"

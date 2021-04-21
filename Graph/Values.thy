@@ -8,29 +8,54 @@ theory Values
     "HOL-Library.LaTeXsugar"
 begin
 
+text \<open>
+In order to properly implement the IR semantics we first introduce
+a new type of runtime values. Our evaluation semantics are defined
+in terms of these runtime values.
+These runtime values represent the full range of primitive types
+currently allowed by our semantics, ranging from basic integer types
+to object references and eventually arrays.
+
+An object reference is an option type where the None object reference
+points to the static fields. This is examined more closely in our
+definition of the heap.
+\<close>
+
 type_synonym objref = "nat option"
 
-(* Java supports 64, 32, 16, 8 signed ints, plus 1 bit (boolean) ints.
-   Our Value type models this by keeping the value as an infinite precision signed int,
-   but also carrying along the number of bits allowed.
-   So each (IntVal b v) should satisfy the invariants:
-      b in {1,8,16,32,64} and
-      (b > 1 \<Longrightarrow> v == signed (signed_take_bit b v))
-*)
-type_synonym int64 = "64 word"   (* long *)
-type_synonym int32 = "32 word"   (* int *)
-type_synonym int16 = "16 word"   (* short *)
-type_synonym int8 = "8 word"   (* char *)
-type_synonym int1 = "1 word"   (* boolean *)
-
 datatype Value  =
-  UndefVal |
+  UndefVal | (* TODO: still required? *)
   IntVal (v_bits: int) (v_int: int) |
   FloatVal (v_bits: int) (v_float: float) |
   ObjRef objref |
   ObjStr string
 
-(* Check that a signed int value does not overflow b bits. *)
+text \<open>
+Java supports 64, 32, 16, 8 signed ints, plus 1 bit (boolean) ints.
+Our Value type models this by keeping the value as an infinite precision signed int,
+but also carrying along the number of bits allowed.
+
+So each (IntVal b v) should satisfy the invariants:
+
+@{term "b \<in> {1,8,16,32,64}"}
+
+@{term "b > 1 \<Longrightarrow> v == signed (signed_take_bit b v)"}
+\<close>
+
+type_synonym int64 = "64 word" \<comment> \<open>long\<close>
+type_synonym int32 = "32 word" \<comment> \<open>int\<close>
+type_synonym int16 = "16 word" \<comment> \<open>short\<close>
+type_synonym int8 = "8 word" \<comment> \<open>char\<close>
+type_synonym int1 = "1 word" \<comment> \<open>boolean\<close>
+
+
+text \<open>
+We define integer values to be well-formed when their bit size is valid
+and their integer value is able to fit within the bit size.
+This is defined using the @{text wff_value} function.
+\<close>
+
+\<comment> \<open>Check that a signed int value does not overflow b bits.\<close>
 fun fits_into_n :: "nat \<Rightarrow> int \<Rightarrow> bool" where
   "fits_into_n b val = ((-(2^(b-1)) \<le> val) \<and> (val < (2^(b-1))))"
 
@@ -40,6 +65,7 @@ fun wff_value :: "Value \<Rightarrow> bool" where
     (nat b = 1 \<longrightarrow> (v = 0 \<or> v = 1)) \<and>
     (nat b > 1 \<longrightarrow> fits_into_n (nat b) v))" |
   "wff_value _ = True"
+
 
 (* boolean values *)
 lemma "\<not> (wff_value (IntVal 1 (-1)))" by simp
@@ -59,31 +85,34 @@ lemma wff_byte_128: "i \<ge> 128 \<longrightarrow> \<not> (wff_value (IntVal 8 i
 
 value "sint(word_of_int (1) :: int1)"
 
+text \<open>
+We need to introduce arithmetic operations which agree with the JVM.
+
+Within the JVM, bytecode arithmetic operations are performed on 32
+or 64 bit integers, unboxing where appropriate.
+
+The following collection of intval functions correspond to the JVM
+arithmetic operations.
+\<close>
+
 (* Corresponds to JVM iadd and ladd instructions. *)
-fun intval_add :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+fun intval_add :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "+*" 65) where
   "intval_add (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32 
        then (IntVal 32 (sint((word_of_int v1 :: int32) + (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))" |
   "intval_add _ _ = UndefVal"
 
-code_deps intval_add  (* view dependency graph of code definitions *)
-code_thms intval_add  (* print all code definitions used by intval_add *)
-
-value "intval_add (IntVal 32 (2^31-1)) (IntVal 32 (2^31-1))"  (* gives: IntVal 32 (-2) *)
-value "intval_add (IntVal 64 (2^31-1)) (IntVal 32 (2^31-1))"  (* gives: IntVal 64 4294967294 *)
-
 (* Corresponds to JVM isub and lsub instructions. *)
-fun intval_sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+fun intval_sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "-*" 65) where
   "intval_sub (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32 
        then (IntVal 32 (sint((word_of_int v1 :: int32) - (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) - (word_of_int v2 :: int64)))))" |
   "intval_sub _ _ = UndefVal"
 
-
 (* Corresponds to JVM imul and lmul instructions. *)
-fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "**" 70) where
   "intval_mul (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int v1 :: int32) * (word_of_int v2 :: int32))))
@@ -91,7 +120,7 @@ fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_mul _ _ = UndefVal"
 
 (* Java division rounds towards 0. *)
-fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "/*" 70) where
   "intval_div (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int(v1 sdiv v2) :: int32))))
@@ -99,13 +128,12 @@ fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_div _ _ = UndefVal"
 
 (* Java % is a modulo operator that can give negative results, since div rounds towards 0. *)
-fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "%*" 70) where
   "intval_mod (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int(v1 smod v2) :: int32))))
        else (IntVal 64 (sint((word_of_int(v1 smod v2) :: int64)))))" |
   "intval_mod _ _ = UndefVal"
-
 
 (* unsuccessful try at a bitwise generic binary operator:
 fun intval_binary :: "('a word \<Rightarrow> 'a word \<Rightarrow> 'a word) \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
@@ -116,21 +144,21 @@ fun intval_binary :: "('a word \<Rightarrow> 'a word \<Rightarrow> 'a word) \<Ri
   "intval_binary _ _ _ = UndefVal"
 *)
 
-fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "&&*" 64) where
   "intval_and (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int v1 :: int32) AND (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) AND (word_of_int v2 :: int64)))))" |
   "intval_and _ _ = UndefVal"
 
-fun intval_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+fun intval_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "||*" 59) where
   "intval_or (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int v1 :: int32) OR (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) OR (word_of_int v2 :: int64)))))" |
   "intval_or _ _ = UndefVal"
 
-fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "^*" 59) where
   "intval_xor (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int v1 :: int32) XOR (word_of_int v2 :: int32))))
@@ -177,5 +205,12 @@ lemma add32_0:
   using b apply simp
   done
 
+code_deps intval_add  (* view dependency graph of code definitions *)
+code_thms intval_add  (* print all code definitions used by intval_add *)
+
+lemma "intval_add (IntVal 32 (2^31-1)) (IntVal 32 (2^31-1)) = IntVal 32 (-2)"
+  by eval
+lemma "intval_add (IntVal 64 (2^31-1)) (IntVal 32 (2^31-1)) = IntVal 64 4294967294"
+  by eval
 
 end

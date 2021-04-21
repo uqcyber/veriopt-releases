@@ -56,4 +56,19 @@ lemma wff_empty: "wff_graph start_end_graph"
 lemma wff_eg2_sq: "wff_graph eg2_sq"
   unfolding eg2_sq_def wff_folds by simp
 
+
+fun wff_values :: "IRGraph \<Rightarrow> bool" where
+  "wff_values g = (\<forall> n \<in> ids g .
+    (\<forall> v m . (g m \<turnstile> kind g n \<mapsto> v) \<longrightarrow> wff_value v))"
+
+lemma wff_value_range:
+  "b > 1 \<and> b \<in> {1,8,16,32,64} \<longrightarrow> {v. wff_value (IntVal b v)} = {v. ((-(2^(b-1)) \<le> v) \<and> (v < (2^(b-1))))}"
+  unfolding wff_value.simps
+  by auto
+
+lemma wff_value_bit_range:
+  "b = 1 \<longrightarrow> {v. wff_value (IntVal b v)} = {0, 1}"
+  unfolding wff_value.simps
+  by auto
+
 end

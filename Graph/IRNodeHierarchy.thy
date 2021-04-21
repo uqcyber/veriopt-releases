@@ -4,13 +4,24 @@ theory IRNodeHierarchy
 imports IRNodes
 begin
 
+text \<open>
+It is helpful to introduce a node hierarchy into our formalization.
+Often the GraalVM compiler relies on explicit type checks to determine
+which operations to perform on a given node, we try to mimic the same
+functionality by using a suite of predicate functions over the IRNode
+class to determine inheritance.
+
+As one would expect, the function is<ClassName>Type will be true if
+the node parameter is a subclass of the ClassName within the GraalVM compiler.
+
+These functions have been automatically generated from the compiler.
+\<close>
+
 (* Datatype with no parameters don't generate selectors *)
 fun is_EndNode :: "IRNode \<Rightarrow> bool" where
   "is_EndNode EndNode = True" |
   "is_EndNode _ = False"
 
-
-text \<open>Class inheritance functions to determine if a node is extended from another\<close>
 (* nodeout: isabelle-subclass *)
 fun isVirtualStateType :: "IRNode \<Rightarrow> bool" where
   "isVirtualStateType n = ((is_FrameState n))"
@@ -219,6 +230,12 @@ fun is_sequential_node :: "IRNode \<Rightarrow> bool" where
   "is_sequential_node (LoopExitNode _ _ _) = True" |
   "is_sequential_node (MergeNode _ _ _) = True" |
   "is_sequential_node _ = False"
+
+text \<open>
+The following convenience function is useful in determining if
+two IRNodes are of the same type irregardless of their edges.
+It will return true if both the node parameters are the same node class.
+\<close>
 
 (* nodeout: isabelle-compare-type *)
 fun is_same_ir_node_type :: "IRNode \<Rightarrow> IRNode \<Rightarrow> bool" where

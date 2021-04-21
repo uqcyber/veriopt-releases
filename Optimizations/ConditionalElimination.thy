@@ -65,9 +65,10 @@ lemma logic_negation_relation:
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool inval)"
 proof -
   have "wff_value val"
-    using assms(1,2) wff_values_eval by blast
+    using assms(1) assms(2) eval_in_ids wff_values.elims(2)
+    by meson
   have "wff_value invval"
-    using assms(1,4) wff_values_eval by blast
+    using assms(1,4) eval_in_ids wff_values.simps by blast
   then show ?thesis 
     using assms eval.LogicNegationNode
     by fastforce

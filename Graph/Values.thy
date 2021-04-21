@@ -137,4 +137,45 @@ fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
        else (IntVal 64 (sint((word_of_int v1 :: int64) XOR (word_of_int v2 :: int64)))))" |
   "intval_xor _ _ = UndefVal"
 
+
+
+(* Other possibly-helpful lemmas from WORD and its ancestors:
+
+lemma signed_take_bit_add:
+  \<open>signed_take_bit n (signed_take_bit n k + signed_take_bit n l) = signed_take_bit n (k + l)\<close>
+
+lemma plus_dist:
+  \<open>Word.the_int (v + w) = take_bit LENGTH('a) (Word.the_int v + Word.the_int w)\<close>
+  for v w :: \<open>'a::len word\<close>
+*)
+
+
+lemma int32_mod [simp]:
+  assumes wff:"wff_value (IntVal 32 b)"
+  shows "((b + 2^31) mod 2^32) = (b + 2^31)"
+  using wff by simp
+
+
+(* Any well-formed IntVal is equal to itself. *)
+lemma wff_int [simp]: 
+  assumes b: "wff_value (IntVal 32 n)"
+  shows "sint(word_of_int n :: 32 word) = n"
+  apply (simp only: int_word_sint)
+  using b apply simp
+  done
+
+
+(* Adding 0 is the identity, if (IntVal 32 b) is well-formed. *)
+lemma add32_0: 
+  assumes z:"wff_value (IntVal 32 0)"
+  assumes b:"wff_value (IntVal 32 b)"
+  shows "intval_add (IntVal 32 0) (IntVal 32 b) = (IntVal 32 (b))"
+  apply (simp only: intval_add.simps word_of_int_0)
+  apply (simp only: order_class.order.refl conj_absorb if_True)
+  apply (simp only: word_add_def uint_0_eq add_0)
+  apply (simp only: word_of_int_uint int_word_sint)
+  using b apply simp
+  done
+
+
 end

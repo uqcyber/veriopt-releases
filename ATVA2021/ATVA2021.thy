@@ -3,9 +3,9 @@ theory ATVA2021
     Optimizations.CanonicalizationProofs
 begin
 
-notation (latex)
+(*notation (latex)
   NoNode ("\<epsilon>")
-
+*)
 notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 

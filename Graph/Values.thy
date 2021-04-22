@@ -185,16 +185,39 @@ lemma plus_dist:
   for v w :: \<open>'a::len word\<close>
 *)
 
-(* this should follow from the definition of intval_add *)
+(* this should follow from the definition of intval_add. *)
 lemma intval_add_bits:
   assumes b: "IntVal b res = intval_add x y"
   shows "b = 32 \<or> b = 64"
 proof -
-  have "intval_add x y \<noteq> UndefVal"
+  have def: "intval_add x y \<noteq> UndefVal"
     using b by auto
+  consider b1 v1 where "x = IntVal b1 v1"
+    by (metis Value.exhaust_sel def intval_add.simps(2,3,4,5))
+  consider b2 v2 where "y = IntVal b2 v2"
+    by (metis Value.exhaust_sel def intval_add.simps(6,7,8,9))
+  have
+     ax: "intval_add (IntVal b1 v1) (IntVal b2 v2) = 
+       (if b1 \<le> 32 \<and> b2 \<le> 32 
+       then (IntVal 32 (sint((word_of_int v1 :: int32) + (word_of_int v2 :: int32))))
+       else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))"
+      (is "?L = (if ?C then (IntVal 32 ?A) else (IntVal 64 ?B))")
+    by simp
+  have "(b1 \<le> 32 \<and> b2 \<le> 32) \<or> \<not>(b1 \<le> 32 \<and> b2 \<le> 32)" by auto
   then show ?thesis
-    (* using intval_add.elims intval_add.simps(1) apply simp *)
-    sorry
+  proof
+    assume "(b1 \<le> 32 \<and> b2 \<le> 32)"
+    then have r32: "?L = (IntVal 32 ?A)" using ax by auto
+    then have "IntVal b res = (IntVal 32 ?A)" using b sorry
+    then have "b = 32" using r32 by auto
+    then show ?thesis by simp 
+  next
+    assume "\<not>(b1 \<le> 32 \<and> b2 \<le> 32)"
+    then have r64: "?L = (IntVal 64 ?B)" using ax by auto
+    then have "IntVal b res = ?L" using b sorry
+    then have "b = 64" using r64 by auto
+    then show ?thesis by simp 
+  qed
 qed
 
 
@@ -208,12 +231,13 @@ proof -
     by (simp add: int_bits_allowed_def)
 qed
 
+(*
 lemma int32_mod [simp]:
   assumes wff: "wff_value (IntVal w b)"
   assumes notbool: "w > 1"
   shows "((b + 2^(w-1)) mod 2^w) = (b + 2^(w-1))"
   using wff notbool by auto
-
+*)
 
 (* Any well-formed IntVal is equal to its underlying integer value. *)
 lemma wff_int [simp]:

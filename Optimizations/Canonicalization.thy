@@ -72,7 +72,7 @@ inductive CanonicalizeAdd :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   add_yzero: (* AddNode.canonical (100) *)
   "\<lbrakk>\<not>(is_ConstantNode (kind g x));
     kind g y = ConstantNode c_2;
-    c_2 = (IntVal b 0)\<rbrakk>
+    c_2 = (IntVal 32 0)\<rbrakk>
     \<Longrightarrow> CanonicalizeAdd g (AddNode x y) (RefNode x)" |
 
   add_xsub:  (* AddNode.canonical (85) *)

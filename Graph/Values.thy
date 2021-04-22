@@ -220,6 +220,25 @@ proof -
 qed
 
 
+lemma word_add_sym: 
+  shows "word_of_int v1 + word_of_int v2 = word_of_int v2 + word_of_int v1"
+  by simp
+
+(* commutative rules to be used when needed. *)
+lemma intval_add_sym1:
+  shows "intval_add (IntVal b1 v1) (IntVal b2 v2) = intval_add (IntVal b2 v2) (IntVal b1 v1)"
+  by (simp add: word_add_sym)
+
+lemma intval_add_sym:
+  shows "intval_add x y = intval_add y x"
+  using intval_add_sym1 apply simp
+  apply (induction "x")
+      apply auto
+  apply (induction "y")
+      apply auto
+  done
+
+
 lemma wff_int32:
   assumes wf: "wff_value (IntVal b v)"
   shows "b = 32"

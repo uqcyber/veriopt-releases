@@ -1,11 +1,39 @@
-## How to use these Isabelle theories / sessions
+# Veriopt
 
-Build all the sessions::
+[![Build](https://github.com/uqcyber/VeriOptReleases/actions/workflows/build.yml/badge.svg)](https://github.com/uqcyber/VeriOptReleases/actions/workflows/build.yml)
 
-  isabelle build -D .
+Veriopt is a formal verification effort undertaken by researchers at the University of Queensland. The project aims to formally verify the optimization phases within the [GraalVM](http://graalvm.org/) compiler.
 
+The intermediate representation of the compiler is formalized within the [Isabelle/HOL](https://isabelle.in.tum.de/) interactive theorem prover. Optimizations are then proven to be semantic preserving transformations of the intermediate representation.
 
-Run Isabelle with the jEdit GUI::
+This repository hosts the [Isabelle/HOL](https://isabelle.in.tum.de/) theories which define a formal semantics of the intermediate representation and prove the correctness of optimization phases. The repository is in a pre-release state as we develop the theory, the theories including the formal semantics may change frequently.
 
-  isabelle jedit -d . ROOT
+## Viewing Theories
+The theories developed as part of this project are automatically built as HTML and deployed for viewing at the below URL:
 
+https://uqcyber.github.io/VeriOptReleases
+
+This page provides an overview for each of the Isabelle sessions. You can navigate the theories through the links on the index page. Documentation in the form of PDFs for all relevant theories can also be found at the following locations:
+
+Full document: https://uqcyber.github.io/VeriOptReleases/Document/document.pdf
+
+Outline, ignoring proof details: https://uqcyber.github.io/VeriOptReleases/Document/outline.pdf
+
+## Editing Theories
+Theories can be modified within the Isabelle/HOL IDE using the following command. Isabelle2021 will need to be installed and the tool wrapper should be accessible via the `isabelle` command on your machine.
+
+```bash
+git clone https://github.com/uqcyber/VeriOptReleases
+isabelle jedit -d VeriOptReleases ROOT
+```
+
+## Building Theories
+Building the theories will check all the theories in the repository are correct and generate HTML and PDF outputs. You can build the theories with the following command. Isabelle2021 will need to be installed and the tool wrapper should be accessible via the `isabelle` command on your machine.
+
+```bash
+git clone https://github.com/uqcyber/VeriOptReleases
+cd VeriOptReleases
+isabelle build -P. -D . -v
+```
+
+Generated HTML and PDF artifacts will be available in the `veriopt` directory within the repository.

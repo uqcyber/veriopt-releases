@@ -196,17 +196,32 @@ case (add_both_const x c_1 y c_2 val)
   then show ?case using eval.ConstantNode
     by (metis ConstantNodeE IRNode.inject(2) Value.inject(1))
 next
-  case (add_xzero x c_1 y bc)
-  have xeval: "g m \<turnstile> kind g x \<mapsto> (IntVal bc 0)"
+  case (add_xzero x c_1 y)
+  have xeval: "g m \<turnstile> kind g x \<mapsto> (IntVal 32 0)"
     by (simp add: ConstantNode add_xzero.hyps(1) add_xzero.hyps(3))
   have yeval: "g m \<turnstile> kind g y \<mapsto> yval"
     using add_xzero.prems(4) yval by blast
-  then have res_val: "IntVal b res = intval_add (IntVal bc 0) yval"
-    using eval.AddNode eval.ConstantNode add_xzero(1,3,5)
-    using evalDet by presburger
-  have "IntVal b' res' = yval"
+  have ywff: "wff_value yval"
+    using yeval add_xzero.prems(1) eval_in_ids wff_values.simps by blast 
+
+(*
+  have yBits: "yval = (IntVal b yval32) \<and> b \<in> int_bits_allowed"
+    using add_xzero.prems  
+*)
+
+  then have y: "IntVal b' res' = yval"
     by (meson RefNodeE add_xzero.prems(3) evalDet yeval)
-  then show ?case using eval.RefNode yval res_val sorry
+  then have bpBits: "b' = 32"
+    using ywff wff_int32 by auto
+  then have res_val: "IntVal b res = intval_add (IntVal 32 0) yval"
+    using eval.AddNode eval.ConstantNode add_xzero(1,3,5)
+    using evalDet by (metis IRNode.inject(2) add_xzero.prems(4) res xval) 
+    (* was: by presburger *)
+  then have bBits: "b = 32"
+    using ywff intval_add_bits bpBits y by force 
+  then show ?case
+    using eval.RefNode yval res_val ywff add32_0 y
+    by (metis Value.inject(1) add_zero_32 bpBits)
 next
   case (add_yzero x y c_2 bc)
   have yeval: "g m \<turnstile> kind g y \<mapsto> (IntVal bc 0)"

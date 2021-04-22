@@ -59,15 +59,21 @@ This is defined using the @{text wff_value} function.
 fun fits_into_n :: "nat \<Rightarrow> int \<Rightarrow> bool" where
   "fits_into_n b val = ((-(2^(b-1)) \<le> val) \<and> (val < (2^(b-1))))"
 
+definition int_bits_allowed :: "int set" where
+  "int_bits_allowed = {32}"
+
+(* was:   (nat b \<in> {1,8,16,32,64} \<and> ...
+   But we temporarily reduce this to 32/64 until we use stamps more statically.
+*)
 fun wff_value :: "Value \<Rightarrow> bool" where
   "wff_value (IntVal b v) = 
-    (nat b \<in> {1,8,16,32,64} \<and>
+    (b \<in> int_bits_allowed \<and>
     (nat b = 1 \<longrightarrow> (v = 0 \<or> v = 1)) \<and>
     (nat b > 1 \<longrightarrow> fits_into_n (nat b) v))" |
   "wff_value _ = True"
 
 
-(* boolean values *)
+(* boolean values  TODO
 lemma "\<not> (wff_value (IntVal 1 (-1)))" by simp
 lemma wff_false: "wff_value (IntVal 1 0)" by simp
 lemma wff_true: "wff_value (IntVal 1 1)" by simp
@@ -75,13 +81,15 @@ lemma "\<not> (wff_value (IntVal 1 2))" by simp
 
 value "(-7::int) div (4::int)"   (* gives -2.  Truncates towards negative infinity, unlike Java. *)
 value "(-7::int) mod (4::int)"   (* gives 1.  Whereas Java gives -3. *)
+*)
 
-(* byte values *)
+(* byte values TODO
 lemma wff_byte__neg129: "i < -128 \<longrightarrow> \<not> (wff_value (IntVal 8 i))" by simp
 lemma wff_byte__neg: "-128 \<le> i \<and> i < 0 \<longrightarrow> wff_value (IntVal 8 i)" by simp
 lemma wff_byte_0: "wff_value (IntVal 8 0)" by simp
 lemma wff_byte_pos: "0 < i \<and> i < 128 \<longrightarrow> wff_value (IntVal 8 i)" by simp
 lemma wff_byte_128: "i \<ge> 128 \<longrightarrow> \<not> (wff_value (IntVal 8 i))" by simp
+*)
 
 value "sint(word_of_int (1) :: int1)"
 
@@ -177,19 +185,43 @@ lemma plus_dist:
   for v w :: \<open>'a::len word\<close>
 *)
 
+(* this should follow from the definition of intval_add *)
+lemma intval_add_bits:
+  assumes b: "IntVal b res = intval_add x y"
+  shows "b = 32 \<or> b = 64"
+proof -
+  have "intval_add x y \<noteq> UndefVal"
+    using b by auto
+  then show ?thesis
+    (* using intval_add.elims intval_add.simps(1) apply simp *)
+    sorry
+qed
+
+
+lemma wff_int32:
+  assumes wf: "wff_value (IntVal b v)"
+  shows "b = 32"
+proof -
+  have "b \<in> int_bits_allowed"
+    using wf wff_value.simps(1) by blast 
+  then show ?thesis
+    by (simp add: int_bits_allowed_def)
+qed
 
 lemma int32_mod [simp]:
-  assumes wff:"wff_value (IntVal 32 b)"
-  shows "((b + 2^31) mod 2^32) = (b + 2^31)"
-  using wff by simp
+  assumes wff: "wff_value (IntVal w b)"
+  assumes notbool: "w > 1"
+  shows "((b + 2^(w-1)) mod 2^w) = (b + 2^(w-1))"
+  using wff notbool by auto
 
 
-(* Any well-formed IntVal is equal to itself. *)
-lemma wff_int [simp]: 
-  assumes b: "wff_value (IntVal 32 n)"
-  shows "sint(word_of_int n :: 32 word) = n"
+(* Any well-formed IntVal is equal to its underlying integer value. *)
+lemma wff_int [simp]:
+  assumes wff: "wff_value (IntVal w n)"
+  assumes notbool: "w = 32"
+  shows "sint((word_of_int n) :: int32) = n"
   apply (simp only: int_word_sint)
-  using b apply simp
+  using wff notbool apply simp
   done
 
 

@@ -3,7 +3,8 @@ chapter "veriopt"
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM IR structure"
-  options [quick_and_dirty]
+  options [document = pdf,
+           document_output = "document"]
   theories
     Values
     IRNodes
@@ -15,6 +16,8 @@ session Graph in Graph = "HOL-Library" +
 session Semantics in Semantics = Graph +
   description
     "Semantics of GraalVM graphs"
+  options [document = pdf,
+           document_output = "document"]
   theories
     IREval
     IRStepObj
@@ -61,7 +64,7 @@ session ATVA2021 in ATVA2021 = Optimizations +
   description
     "Content for ATVA2021 paper"
   options [document = pdf, document_output = "output",
-           show_question_marks = false]
+           show_question_marks = false, quick_and_dirty]
   theories
     ATVA2021
   document_files (in "../latex")

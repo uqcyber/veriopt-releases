@@ -246,10 +246,6 @@ next
   then show ?case
     by simp
 next
-  case RefNode
-  then show ?case using successors_of_RefNode
-    by simp
-next
   case (NewInstanceNode f obj ref)
   then show ?case using successors_of_NewInstanceNode by simp
 next
@@ -309,10 +305,6 @@ next
 next
   case (EndNodes i phis inputs vs)
   then show ?case sorry (* this is going to be a big problem *)
-next
-  case RefNode
-  then show ?case
-    using step.RefNode by presburger
 next
   case (NewInstanceNode f obj ref)
   then show ?case using step.NewInstanceNode
@@ -499,7 +491,6 @@ fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<R
     )"
 text_raw \<open>\EndSnip\<close>
 
-
 lemma if_node_create_bisimulation:
   fixes h :: FieldRefHeap
   assumes wff: "wff_graph g"
@@ -592,7 +583,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using gcreate add_node_lookup constantTrue constantCond unfolding create_if.simps
       by (simp add: val)
     have "(gcreate \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h))"
-      using step.RefNode ref_kind by simp
+      using stepRefNode ref_kind by simp
     then have gcreate_closure: "?gcreate_closure = {tb} \<union> {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
       using stuttering_successor
       by auto
@@ -614,7 +605,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
     have ref_kind: "kind gcreate nid = RefNode fb"
       using add_node_lookup_fake constantFalse fresh gcreate val by force
     then have "(gcreate \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h))"
-      using step.RefNode by presburger
+      using stepRefNode by presburger
     then have gcreate_closure: "?gcreate_closure = {fb} \<union> {nid'. (gcreate m h \<turnstile> fb \<leadsto> nid')}"
       using stuttering_successor by presburger
     from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
@@ -643,7 +634,7 @@ next
       unfolding create_if.simps
       by (cases "(kind g cond)"; auto)
     then have "(gcreate \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h))"
-      using step.RefNode by simp
+      using stepRefNode by simp
     then have gcreate_closure: "?gcreate_closure = {tb} \<union> {nid'. (gcreate m h \<turnstile> tb \<leadsto> nid')}"
       using stuttering_successor by presburger
     from gif_closure gcreate_closure have "?gif_closure = ?gcreate_closure"
@@ -717,7 +708,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
         using fresh by blast
       have create_fun: "create_if g cond tb fb = RefNode (if val_to_bool val then tb else fb)"
         using True create_kind val by simp 
-      show ?thesis using step.RefNode create_kind create_fun if_cv 
+      show ?thesis using stepRefNode create_kind create_fun if_cv 
         by (simp)
     qed
     then show ?thesis using StutterStep create_step if_step
@@ -762,7 +753,7 @@ next
       have "create_if g cond tb fb = RefNode tb"
         using not_const True by (cases "(kind g cond)"; auto)
       then show ?thesis
-        using True gcreate_kind nid' step.RefNode
+        using True gcreate_kind nid' stepRefNode
         by (simp)
     next
       case False

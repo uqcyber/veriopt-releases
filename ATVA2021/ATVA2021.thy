@@ -175,7 +175,6 @@ text \<open>
 \induct{@{thm[mode=Rule] step.SequentialNode [no_vars]}}{step:seq}
 \induct{@{thm[mode=Rule] step.IfNode [no_vars]}}{step:if}
 \induct{@{thm[mode=Rule] step.EndNodes [no_vars]}}{step:end}
-\induct{@{thm[mode=Rule] step.RefNode [no_vars]}}{step:ref}
 \induct{@{thm[mode=Rule] step.NewInstanceNode [no_vars]}}{step:newinst}
 \induct{@{thm[mode=Rule] step.LoadFieldNode [no_vars]}}{step:load}
 \induct{@{thm[mode=Rule] step.StoreFieldNode [no_vars]}}{step:store}

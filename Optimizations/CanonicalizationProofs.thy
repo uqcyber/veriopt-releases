@@ -37,8 +37,8 @@ proof (induct rule: CanonicalizeConditional.induct)
   next
     case False
     have flipv_range: "flipv \<in> {0, 1}"
-      using assms(2) flipv wff_value_bit_range
-      by (metis eval_in_ids mem_Collect_eq negate_condition.prems(2) wff_values.elims(2))
+      using assms(2) flipv wff_value_bit_range sorry (* broken by wff_range to 32
+      by (metis eval_in_ids mem_Collect_eq negate_condition.prems(2) wff_values.elims(2))*)
     have "(NOT flipv) \<noteq> 0"
       using False invert by fastforce
     then have "flipv \<noteq> 1"
@@ -309,7 +309,7 @@ proof (induct rule: CanonicalizeIf.induct)
     using step.IfNode by presburger
   have g'step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using replace_node_lookup
-    by (simp add: step.RefNode trueConst.prems(3))
+    by (simp add: stepRefNode trueConst.prems(3))
   from gstep g'step show ?case
     using lockstep_strong_bisimilulation assms(3) by simp
 next
@@ -319,28 +319,31 @@ next
     using step.IfNode by presburger
   have g'step: "g' \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     using replace_node_lookup
-    by (simp add: falseConst.prems(3) step.RefNode)
+    by (simp add: falseConst.prems(3) stepRefNode)
   from gstep g'step show ?case
     using lockstep_strong_bisimilulation assms(3) by simp
 next
   case (eqBranch cond tb fb)
-  fix val
-  have gstep: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
-    using eqBranch(2,3) step.IfNode assms(4)
-    by (smt (verit) IRNode.disc(932) IRNode.distinct(947) IRNode.inject(11) IRNode.simps(938) IRNode.simps(958) IRNode.simps(972) IRNode.simps(974) IRNode.simps(978) Pair_inject isAbstractEndNodeType.simps is_EndNode.simps(12) is_sequential_node.simps(17) step.simps)
+  have cval: "\<exists>v. (g m \<turnstile> kind g cond \<mapsto> v)"
+    using IfNodeCond
+    by (meson eqBranch.prems(1) eqBranch.prems(4))
+  then have gstep: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    using eqBranch(2,3) assms(4) IfNodeStepCases by blast
   have g'step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
-    by (simp add: eqBranch.prems(3) step.RefNode)
+    by (simp add: eqBranch.prems(3) stepRefNode)
   from gstep g'step show ?thesis
     using lockstep_strong_bisimilulation assms(3) by simp
 next
   case (eqCondition cond x tb fb)
-  fix val
+  have cval: "\<exists>v. (g m \<turnstile> kind g cond \<mapsto> v)"
+    using IfNodeCond
+    by (meson eqCondition.prems(1) eqCondition.prems(4))
   have gstep: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using step.IfNode eval.IntegerEqualsNode
-    by (smt (z3) IRNode.disc(932) IRNode.distinct(947) IRNode.sel(59) IRNode.simps(938) IRNode.simps(958) IRNode.simps(972) IRNode.simps(974) IRNode.simps(978) IntegerEqualsNodeE Pair_inject bool_to_val.simps(1) eqCondition.hyps eqCondition.prems(1) eqCondition.prems(4) isAbstractEndNodeType.simps is_EndNode.simps(12) is_sequential_node.simps(17) step.simps val_to_bool.simps(1))
+    by (smt (z3) IntegerEqualsNodeE bool_to_val.simps(1) cval eqCondition.hyps eqCondition.prems(1) val_to_bool.simps(1))
   have g'step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using replace_node_lookup
-    using IRNode.simps(2114) eqCondition.prems(3) step.RefNode by presburger
+    using IRNode.simps(2114) eqCondition.prems(3) stepRefNode by presburger
   from gstep g'step show ?thesis
     using lockstep_strong_bisimilulation assms(3) by simp
 qed

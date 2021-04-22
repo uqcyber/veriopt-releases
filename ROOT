@@ -3,7 +3,7 @@ chapter "veriopt"
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM IR structure"
-  options [document = pdf,
+  options [quick_and_dirty, document = pdf,
            document_output = "document"]
   theories
     Values

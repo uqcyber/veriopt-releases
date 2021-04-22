@@ -67,8 +67,8 @@ lemma wff_value_range:
   by auto
 
 lemma wff_value_bit_range:
-  "b = 1 \<longrightarrow> {v. wff_value (IntVal b v)} = {0, 1}"
+  "b = 1 \<longrightarrow> {v. wff_value (IntVal b v)} = {}"
   unfolding wff_value.simps
-  by auto
+  by (simp add: int_bits_allowed_def)
 
 end

@@ -13,6 +13,7 @@ definition CanonicalizationPhaseAnalysisStart where
   "CanonicalizationPhaseAnalysisStart = None"
 
 
+
 (* initial: IfCanonicalizerTest_test1Snippet*)
 definition IfCanonicalizerTest_test1Snippet_initial :: IRGraph where  "IfCanonicalizerTest_test1Snippet_initial = irgraph [
   (0, (StartNode (Some 2) 7), VoidStamp),
@@ -46,6 +47,16 @@ definition IfCanonicalizerTest_test1Snippet_final :: IRGraph where  "IfCanonical
 
 value "
   eqGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test1Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test1Snippet_final
+"
+
+value "
+  diffNodesGraph
   (Predicate.the
     (CanonicalizationPhase_i_i_o
       IfCanonicalizerTest_test1Snippet_initial
@@ -122,6 +133,16 @@ definition IfCanonicalizerTest_test2Snippet_final :: IRGraph where  "IfCanonical
 
 value "
   eqGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test2Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test2Snippet_final
+"
+
+value "
+  diffNodesGraph
   (Predicate.the
     (CanonicalizationPhase_i_i_o
       IfCanonicalizerTest_test2Snippet_initial
@@ -253,6 +274,16 @@ value "
   IfCanonicalizerTest_test3Snippet_final
 "
 
+value "
+  diffNodesInfo
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test3Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test3Snippet_final
+"
+
 
 (* initial: IfCanonicalizerTest_test4Snippet*)
 definition IfCanonicalizerTest_test4Snippet_initial :: IRGraph where  "IfCanonicalizerTest_test4Snippet_initial = irgraph [
@@ -295,6 +326,16 @@ value "
 
 value "
   diffNodesGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test4Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test4Snippet_final
+"
+
+value "
+  diffNodesInfo
   (Predicate.the
     (CanonicalizationPhase_i_i_o
       IfCanonicalizerTest_test4Snippet_initial
@@ -375,6 +416,16 @@ value "
   IfCanonicalizerTest_test5Snippet_final
 "
 
+value "
+  diffNodesInfo
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IfCanonicalizerTest_test5Snippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IfCanonicalizerTest_test5Snippet_final
+"
+
 
 (* initial: IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet*)
 definition IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial :: IRGraph where  "IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial = irgraph [
@@ -420,6 +471,16 @@ value "
 
 value "
   diffNodesGraph
+  (Predicate.the
+    (CanonicalizationPhase_i_i_o
+      IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial
+      (0, {}, CanonicalizationPhaseAnalysisStart)
+    ))
+  IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_final
+"
+
+value "
+  diffNodesInfo
   (Predicate.the
     (CanonicalizationPhase_i_i_o
       IntegerEqualsCanonicalizerTest_testSubtractEqualsZeroSnippet_initial

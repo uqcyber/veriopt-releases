@@ -483,10 +483,22 @@ corresponds to the ConditionalEliminationPhase.registerNewCondition.
 This method updates the flow-sensitive stamp information based on the condition which
 we know must be true. 
 \<close>
+fun clip_upper :: "Stamp \<Rightarrow> int \<Rightarrow> Stamp" where
+  "clip_upper (IntegerStamp b l h) c = (IntegerStamp b l c)" |
+  "clip_upper s c = s"
+fun clip_lower :: "Stamp \<Rightarrow> int \<Rightarrow> Stamp" where
+  "clip_lower (IntegerStamp b l h) c = (IntegerStamp b c h)" |
+  "clip_lower s c = s"
+
 fun registerNewCondition :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> (ID \<Rightarrow> Stamp)" where
   (* constrain equality by joining the stamps *)
   "registerNewCondition g (IntegerEqualsNode x y) stamps =
     (stamps(x := join (stamps x) (stamps y)))(y := join (stamps x) (stamps y))" |
+  (* constrain less than by removing overlapping stamps *)
+  "registerNewCondition g (IntegerLessThanNode x y) stamps =
+    (stamps
+      (x := clip_upper (stamps x) (stpi_lower (stamps y))))
+      (y := clip_lower (stamps y) (stpi_upper (stamps x)))" |
   "registerNewCondition g _ stamps = stamps"
 
 fun hdOr :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a" where
@@ -656,7 +668,7 @@ lemma ifNodeHasCondEvalStutter:
   assumes "kind g nid = IfNode cond t f"
   shows "\<exists> v. (g m \<turnstile> kind g cond \<mapsto> v)"
   using IfNodeStepE assms(1) assms(2)  stutter.cases
-  by (smt (z3) IRNode.disc(932) IRNode.distinct(893) IRNode.distinct(913) IRNode.distinct(927) IRNode.distinct(929) IRNode.distinct(933) IRNode.distinct(947) IRNode.sel(59) StepE is_EndNode.simps(12) is_sequential_node.simps(17))
+  by (meson IfNodeCond)
 
 lemma ifNodeHasCondEval:
   assumes "(g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
@@ -677,7 +689,7 @@ proof -
     by (meson IfNode assms(1) assms(2) assms(3))
   have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using g' unfolding replace_usages.simps
-    by (simp add: step.RefNode)
+    by (simp add: stepRefNode)
   from g1step g2step show ?thesis
     using StutterStep by blast
 qed
@@ -701,7 +713,7 @@ proof -
     by (meson IfNode assms(1) assms(2) assms(3))
   have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     using g' unfolding replace_usages.simps
-    by (simp add: step.RefNode)
+    by (simp add: stepRefNode)
   from g1step g2step show ?thesis
     using StutterStep by blast
 qed

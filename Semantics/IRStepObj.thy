@@ -71,10 +71,6 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
     m' = set_phis phis vs m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
 
-  RefNode:
-    "\<lbrakk>kind g nid = (RefNode nid')\<rbrakk>
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
-
   NewInstanceNode:
     "\<lbrakk>kind g nid = (NewInstanceNode nid f obj nid');
       (h', ref) = h_new_inst h;
@@ -144,9 +140,6 @@ proof (induction rule: "step.induct")
   have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
     using SequentialNode.hyps(1) is_sequential_node.simps 
     by (metis isAbstractEndNodeType.simps is_EndNode.elims(2) is_LoopEndNode_def)
-  have notref: "\<not>(is_RefNode (kind g nid))"
-    using SequentialNode.hyps(1) is_sequential_node.simps
-    by (metis is_RefNode_def)
   have notnew: "\<not>(is_NewInstanceNode (kind g nid))"
     using SequentialNode.hyps(1) is_sequential_node.simps
     by (metis is_NewInstanceNode_def)
@@ -159,9 +152,9 @@ proof (induction rule: "step.induct")
   have notdivrem:  "\<not>(isIntegerDivRemNodeType (kind g nid))"
     using SequentialNode.hyps(1) is_sequential_node.simps is_SignedDivNode_def is_SignedRemNode_def
     by (metis isIntegerDivRemNodeType.simps)
-  from notif notend notref notnew notload notstore notdivrem
+  from notif notend notnew notload notstore notdivrem
   show ?case using SequentialNode step.cases
-    by (smt (z3) IRNode.discI(28) Pair_inject is_sequential_node.simps(17) is_sequential_node.simps(23) is_sequential_node.simps(37) is_sequential_node.simps(38) is_sequential_node.simps(39) is_sequential_node.simps(46))
+    by (smt (verit) IRNode.discI(18) is_IfNode_def is_NewInstanceNode_def is_StoreFieldNode_def is_sequential_node.simps(38) is_sequential_node.simps(39) old.prod.inject)
 next
   case (IfNode nid cond tb fb m val "next" h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -206,19 +199,6 @@ next
   from notseq notif notref notnew notload notstore notdivrem
   show ?case using EndNodes evalAllDet
     by (smt (z3) is_IfNode_def is_LoadFieldNode_def is_NewInstanceNode_def is_RefNode_def is_StoreFieldNode_def is_SignedDivNode_def is_SignedRemNode_def  Pair_inject isIntegerDivRemNodeType.elims(3) step.cases)
-next
-  case (RefNode nid nid' m h)
-  then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
-    by (simp add: RefNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
-    by (simp add: RefNode.hyps(1))
-  have notdivrem: "\<not>(isIntegerDivRemNodeType (kind g nid))"
-    by (simp add: RefNode.hyps(1))
-  from notseq notend notdivrem
-  show ?case using RefNode step.cases
-    by (smt (z3) IRNode.distinct(1367) IRNode.distinct(1797) IRNode.distinct(1979) IRNode.distinct(1997) IRNode.distinct(2027) IRNode.distinct(947) IRNode.inject(44) Pair_inject)
 next
   case (NewInstanceNode nid f obj nxt h' ref h m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -323,15 +303,38 @@ next
     by (smt (z3) IRNode.distinct(1349) IRNode.distinct(1779) IRNode.distinct(1961) IRNode.distinct(1983) IRNode.distinct(1997) IRNode.distinct(929) IRNode.inject(36) Pair_inject evalDet)
 qed
 
+lemma stepRefNode:
+  "\<lbrakk>kind g nid = RefNode nid'\<rbrakk> \<Longrightarrow> g \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
+  by (simp add: SequentialNode)
+
+lemma IfNodeStepCases: 
+  assumes "kind g nid = IfNode cond tb fb"
+  assumes "g m \<turnstile> kind g cond \<mapsto> v"
+  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  shows "nid' \<in> {tb, fb}"
+  using step.IfNode
+  by (metis assms(1) assms(2) assms(3) insert_iff prod.inject stepDet)
+
+lemma IfNodeSeq:
+  shows "kind g nid = IfNode cond tb fb \<longrightarrow> \<not>(is_sequential_node (kind g nid))"
+  unfolding is_sequential_node.simps by simp
+
+lemma IfNodeCond:
+  assumes "kind g nid = IfNode cond tb fb"
+  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  shows "\<exists> v. (g m \<turnstile> kind g cond \<mapsto> v)"
+  using assms(2,1) by (induct "(nid,m,h)" "(nid',m,h)" rule: step.induct; auto)
+
 lemma step_in_ids:
   assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
   shows "nid \<in> ids g"
   using assms apply (induct "(nid, m, h)" "(nid', m', h')" rule: step.induct)
   using is_sequential_node.simps(45) not_in_g 
-  apply metis
   apply simp
-  using EndNodes(1) isAbstractEndNodeType.simps IRNode.disc(965) is_EndNode.simps(45) ids_some
-  apply metis
+  apply (metis is_sequential_node.simps(46))
+  using ids_some apply (metis IRNode.simps(990))
+  using EndNodes(1) isAbstractEndNodeType.simps is_EndNode.simps(45) ids_some
+  apply (metis IRNode.disc(965))
   by simp+
 
 subsection \<open>Interprocedural Semantics\<close>

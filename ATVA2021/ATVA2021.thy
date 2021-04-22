@@ -97,24 +97,48 @@ text_raw \<open>\Snip{wff_graph_def}%
 
 
 text_raw \<open>\Snip{programdef}%
-@{bold \<open>type-synonym\<close>} Signature = @{typ Signature}
+@{bold \<open>type-synonym\<close>} Signature = @{typ string}
 
-@{bold \<open>type-synonym\<close>} Program = @{typ Program}
+@{bold \<open>type-synonym\<close>} Program = @{typ "Signature \<Rightarrow> IRGraph option"}
 \EndSnip\<close>
 
+print_antiquotations
+
+(*
+type_synonym ('a, 'b) Heap = "'a \<Rightarrow> 'b \<Rightarrow> Value"
+type_synonym Free = "nat"
+type_synonym ('a, 'b) DynamicHeap = "('a, 'b) Heap \<times> Free"
+
+fun h_load_field :: "'a \<Rightarrow> 'b \<Rightarrow> ('a, 'b) DynamicHeap \<Rightarrow> Value" where
+  "h_load_field f r (h, n) = h f r"
+
+fun h_store_field :: "'a \<Rightarrow> 'b \<Rightarrow> Value \<Rightarrow> ('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap" where
+  "h_store_field f r v (h, n) = (h(f := ((h f)(r := v))), n)"
+
+fun h_new_inst :: "('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap \<times> Value" where
+  "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some n)))"
+
+type_synonym FieldRefHeap = "(string, objref) DynamicHeap"
+*)
 
 (* TODO: add heap here *)
 text_raw \<open>\Snip{heapdef}%\<close>
+type_synonym Heap = "string \<Rightarrow> objref \<Rightarrow> Value"
+type_synonym Free = "nat"
+type_synonym DynamicHeap = "Heap \<times> Free"
+
 text_raw \<open>
-@{text \<open>h_load_field :: \<close>} @{typeof h_load_field}
+\\[0.75em]
+
+@{text \<open>h_load_field :: \<close>} @{typ[source] "string \<Rightarrow> objref \<Rightarrow> DynamicHeap \<Rightarrow> Value"}
 
 @{thm h_load_field.simps}\\[0.75em]
 
-@{text \<open>h_store_field :: \<close>} @{typeof h_store_field}
+@{text \<open>h_store_field :: \<close>} @{typ[source] "string \<Rightarrow> objref \<Rightarrow> Value \<Rightarrow> DynamicHeap \<Rightarrow> DynamicHeap"}
 
 @{thm h_store_field.simps}\\[0.75em]
 
-@{text \<open>h_new_inst :: \<close>} @{typeof h_new_inst}
+@{text \<open>h_new_inst :: \<close>} @{typ[source] "DynamicHeap \<Rightarrow> (DynamicHeap \<times> Value)"}
 
 @{thm h_new_inst.simps}
 \<close>
@@ -199,10 +223,20 @@ text_raw \<open>\Snip{CanonicalizeIfNodeRules}%
 @{thm[mode=Rule] CanonicalizeIf.eqBranch}
 \end{center}
 \EndSnip\<close>
+definition replace_node_fake :: "ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
+  "replace_node_fake nid node g = replace_node nid (node,default_stamp) g"
+lemma CanonicalizeIfProof_fake:
+  fixes m::MapState and h::FieldRefHeap
+  assumes "kind g nid = before"
+  assumes "CanonicalizeIf g before after"
+  assumes "g' = replace_node_fake nid after g"
+  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  shows "nid | g \<sim> g'"
+  sorry
 
 text_raw \<open>\Snip{CanonicalizeIfNodeProof}%
 \begin{center}
-@{thm[display] CanonicalizeIfProof}
+@{thm[display] CanonicalizeIfProof_fake}
 \end{center}
 \EndSnip\<close>
 

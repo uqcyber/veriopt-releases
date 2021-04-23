@@ -58,7 +58,7 @@ session Tests in Tests = Optimizations +
     AssertTesting
     ExecExamples
     UnitTesting
-    ConditionalEliminationTests
+    (*ConditionalEliminationTests*)
 
 session ATVA2021 in ATVA2021 = Optimizations +
   description

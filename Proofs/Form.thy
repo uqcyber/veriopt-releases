@@ -19,7 +19,7 @@ definition wff_closed where
 definition wff_phis where
   "wff_phis g = 
     (\<forall> n \<in> ids g.
-      isPhiNodeType (kind g n) \<longrightarrow>
+      is_PhiNode (kind g n) \<longrightarrow>
       length (ir_values (kind g n))
        = length (ir_ends 
            (kind g (ir_merge (kind g n)))))"
@@ -27,7 +27,7 @@ definition wff_phis where
 definition wff_ends where
   "wff_ends g = 
     (\<forall> n \<in> ids g .
-      isAbstractEndNodeType (kind g n) \<longrightarrow>
+      is_AbstractEndNode (kind g n) \<longrightarrow>
       card (usages g n) > 0)"
 
 text_raw \<open>\Snip{wff_graph}%\<close>

@@ -133,9 +133,9 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_IntegerLessThanNode:
   "inputs_of (IntegerLessThanNode x y) = [x, y]" |
   inputs_of_InvokeNode:
-  "inputs_of (InvokeNode nid0 callTarget classInit stateDuring stateAfter next) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
+  "inputs_of (InvokeNode nid0 callTarget classInit stateDuring stateAfter next) = callTarget # (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
   inputs_of_InvokeWithExceptionNode:
-  "inputs_of (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) = [callTarget] @ (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
+  "inputs_of (InvokeWithExceptionNode nid0 callTarget classInit stateDuring stateAfter next exceptionEdge) = callTarget # (opt_to_list classInit) @ (opt_to_list stateDuring) @ (opt_to_list stateAfter)" |
   inputs_of_IsNullNode:
   "inputs_of (IsNullNode value) = [value]" |
   inputs_of_KillingBeginNode:
@@ -149,7 +149,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_LoopEndNode:
   "inputs_of (LoopEndNode loopBegin) = [loopBegin]" |
   inputs_of_LoopExitNode:
-  "inputs_of (LoopExitNode loopBegin stateAfter next) = [loopBegin] @ (opt_to_list stateAfter)" |
+  "inputs_of (LoopExitNode loopBegin stateAfter next) = loopBegin # (opt_to_list stateAfter)" |
   inputs_of_MergeNode:
   "inputs_of (MergeNode ends stateAfter next) = ends @ (opt_to_list stateAfter)" |
   inputs_of_MethodCallTargetNode:
@@ -159,7 +159,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_NegateNode:
   "inputs_of (NegateNode value) = [value]" |
   inputs_of_NewArrayNode:
-  "inputs_of (NewArrayNode length0 stateBefore next) = [length0] @ (opt_to_list stateBefore)" |
+  "inputs_of (NewArrayNode length0 stateBefore next) = length0 # (opt_to_list stateBefore)" |
   inputs_of_NewInstanceNode:
   "inputs_of (NewInstanceNode nid0 instanceClass stateBefore next) = (opt_to_list stateBefore)" |
   inputs_of_NotNode:
@@ -169,7 +169,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_ParameterNode:
   "inputs_of (ParameterNode index) = []" |
   inputs_of_PiNode:
-  "inputs_of (PiNode object guard) = [object] @ (opt_to_list guard)" |
+  "inputs_of (PiNode object guard) = object # (opt_to_list guard)" |
   inputs_of_ReturnNode:
   "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
   inputs_of_ShortCircuitOrNode:
@@ -181,13 +181,13 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_StartNode:
   "inputs_of (StartNode stateAfter next) = (opt_to_list stateAfter)" |
   inputs_of_StoreFieldNode:
-  "inputs_of (StoreFieldNode nid0 field value stateAfter object next) = [value] @ (opt_to_list stateAfter) @ (opt_to_list object)" |
+  "inputs_of (StoreFieldNode nid0 field value stateAfter object next) = value # (opt_to_list stateAfter) @ (opt_to_list object)" |
   inputs_of_SubNode:
   "inputs_of (SubNode x y) = [x, y]" |
   inputs_of_UnwindNode:
   "inputs_of (UnwindNode exception) = [exception]" |
   inputs_of_ValuePhiNode:
-  "inputs_of (ValuePhiNode nid0 values merge) = [merge] @ values" |
+  "inputs_of (ValuePhiNode nid0 values merge) = merge # values" |
   inputs_of_ValueProxyNode:
   "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
   inputs_of_XorNode:

@@ -675,7 +675,7 @@ lemma ifNodeHasCondEval:
   assumes "kind g nid = IfNode cond t f"
   shows "\<exists> v. (g m \<turnstile> kind g cond \<mapsto> v)"
   using IfNodeStepE assms(1) assms(2)
-  by (smt (z3) IRNode.disc(932) IRNode.simps(938) IRNode.simps(958) IRNode.simps(972) IRNode.simps(974) IRNode.simps(978) Pair_inject StutterStep ifNodeHasCondEvalStutter isAbstractEndNodeType.simps is_EndNode.simps(12) step.cases)
+  by (smt (z3) IRNode.disc(932) IRNode.simps(938) IRNode.simps(958) IRNode.simps(972) IRNode.simps(974) IRNode.simps(978) Pair_inject StutterStep ifNodeHasCondEvalStutter is_AbstractEndNode.simps is_EndNode.simps(12) step.cases)
 
 
 lemma replace_if_t:

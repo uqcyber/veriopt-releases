@@ -69,7 +69,7 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
 
 fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "phi_list g nid = 
-    (filter (\<lambda>x.(isPhiNodeType (kind g x)))
+    (filter (\<lambda>x.(is_PhiNode (kind g x)))
       (sorted_list_of_set (usages g nid)))"
 
 fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
@@ -258,7 +258,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 values "{v. eval_graph eg2_sq 4 [IntVal 32 5] v}"
 
 fun has_control_flow :: "IRNode \<Rightarrow> bool" where
-  "has_control_flow n = (isAbstractEndNodeType n
+  "has_control_flow n = (is_AbstractEndNode n
     \<or> (length (successors_of n) > 0))"
 
 definition control_nodes :: "IRNode set" where

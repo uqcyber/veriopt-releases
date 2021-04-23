@@ -203,7 +203,7 @@ lemma equal_closure_bisimilar:
 lemma wff_size:
   assumes "nid \<in> ids g"
   assumes "wff_graph g"
-  assumes "isAbstractEndNodeType (kind g nid)"
+  assumes "is_AbstractEndNode (kind g nid)"
   shows "card (usages g nid) > 0"
   using assms unfolding wff_folds
   by fastforce

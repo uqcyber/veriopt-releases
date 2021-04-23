@@ -59,9 +59,9 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |  
 
   EndNodes:
-  "\<lbrakk>isAbstractEndNodeType (kind g nid);
+  "\<lbrakk>is_AbstractEndNode (kind g nid);
     merge = any_usage g nid;
-    isAbstractMergeNodeType (kind g merge);
+    is_AbstractMergeNode (kind g merge);
 
     i = input_index g merge nid;
     phis = (phi_list g merge);
@@ -137,9 +137,9 @@ proof (induction rule: "step.induct")
   have notif: "\<not>(is_IfNode (kind g nid))"
     using SequentialNode.hyps(1) is_sequential_node.simps 
     by (metis is_IfNode_def)
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
     using SequentialNode.hyps(1) is_sequential_node.simps 
-    by (metis isAbstractEndNodeType.simps is_EndNode.elims(2) is_LoopEndNode_def)
+    by (metis is_AbstractEndNode.simps is_EndNode.elims(2) is_LoopEndNode_def)
   have notnew: "\<not>(is_NewInstanceNode (kind g nid))"
     using SequentialNode.hyps(1) is_sequential_node.simps
     by (metis is_NewInstanceNode_def)
@@ -149,22 +149,22 @@ proof (induction rule: "step.induct")
   have notstore: "\<not>(is_StoreFieldNode (kind g nid))"
     using SequentialNode.hyps(1) is_sequential_node.simps
     by (metis is_StoreFieldNode_def)
-  have notdivrem:  "\<not>(isIntegerDivRemNodeType (kind g nid))"
+  have notdivrem:  "\<not>(is_IntegerDivRemNode (kind g nid))"
     using SequentialNode.hyps(1) is_sequential_node.simps is_SignedDivNode_def is_SignedRemNode_def
-    by (metis isIntegerDivRemNodeType.simps)
+    by (metis is_IntegerDivRemNode.simps)
   from notif notend notnew notload notstore notdivrem
   show ?case using SequentialNode step.cases
     by (smt (verit) IRNode.discI(18) is_IfNode_def is_NewInstanceNode_def is_StoreFieldNode_def is_sequential_node.simps(38) is_sequential_node.simps(39) old.prod.inject)
 next
   case (IfNode nid cond tb fb m val "next" h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
+    using is_sequential_node.simps is_AbstractMergeNode.simps
     by (simp add: IfNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractEndNode.simps
     by (simp add: IfNode.hyps(1))
-  have notdivrem: "\<not>(isIntegerDivRemNodeType (kind g nid))" 
-    using isAbstractEndNodeType.simps
+  have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))" 
+    using is_AbstractEndNode.simps
     by (simp add: IfNode.hyps(1))
   from notseq notend notdivrem show ?case using IfNode evalDet
     using IRNode.distinct(871) IRNode.distinct(891) IRNode.distinct(909) IRNode.distinct(923)
@@ -172,55 +172,55 @@ next
 next
   case (EndNodes nid merge i phis inputs m vs m' h)
   have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using EndNodes.hyps(1) isAbstractEndNodeType.simps is_sequential_node.simps 
+    using EndNodes.hyps(1) is_AbstractEndNode.simps is_sequential_node.simps 
     by (metis is_EndNode.elims(2) is_LoopEndNode_def)
   have notif: "\<not>(is_IfNode (kind g nid))"
     using EndNodes.hyps(1)
-    by (metis isAbstractEndNodeType.elims(1) is_EndNode.simps(12) is_IfNode_def IRNode.distinct_disc(900))
+    by (metis is_AbstractEndNode.elims(1) is_EndNode.simps(12) is_IfNode_def IRNode.distinct_disc(900))
   have notref: "\<not>(is_RefNode (kind g nid))"
     using EndNodes.hyps(1) is_sequential_node.simps
-    using IRNode.disc(1899) IRNode.distinct(1473) isAbstractEndNodeType.simps is_EndNode.elims(2) is_LoopEndNode_def is_RefNode_def
+    using IRNode.disc(1899) IRNode.distinct(1473) is_AbstractEndNode.simps is_EndNode.elims(2) is_LoopEndNode_def is_RefNode_def
     by (metis IRNode.distinct(737) IRNode.distinct_disc(1518))
   have notnew: "\<not>(is_NewInstanceNode (kind g nid))"
-    using EndNodes.hyps(1) isAbstractEndNodeType.simps
+    using EndNodes.hyps(1) is_AbstractEndNode.simps
     using IRNode.distinct_disc(1442) is_EndNode.simps(29) is_NewInstanceNode_def
     by (metis IRNode.distinct_disc(1483))
   have notload: "\<not>(is_LoadFieldNode (kind g nid))"
-    using EndNodes.hyps(1) isAbstractEndNodeType.simps
+    using EndNodes.hyps(1) is_AbstractEndNode.simps
     by (metis IRNode.disc(939) is_EndNode.simps(19) is_LoadFieldNode_def)
   have notstore: "\<not>(is_StoreFieldNode (kind g nid))"
-    using EndNodes.hyps(1) isAbstractEndNodeType.simps
+    using EndNodes.hyps(1) is_AbstractEndNode.simps
     using IRNode.distinct_disc(1504) is_EndNode.simps(39) is_StoreFieldNode_def 
     by fastforce
-  have notdivrem: "\<not>(isIntegerDivRemNodeType (kind g nid))"
-    using EndNodes.hyps(1) isAbstractEndNodeType.simps is_SignedDivNode_def is_SignedRemNode_def
-    using IRNode.distinct_disc(1498) IRNode.distinct_disc(1500) isIntegerDivRemNodeType.simps is_EndNode.simps(36) is_EndNode.simps(37) 
+  have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
+    using EndNodes.hyps(1) is_AbstractEndNode.simps is_SignedDivNode_def is_SignedRemNode_def
+    using IRNode.distinct_disc(1498) IRNode.distinct_disc(1500) is_IntegerDivRemNode.simps is_EndNode.simps(36) is_EndNode.simps(37) 
     by auto
   from notseq notif notref notnew notload notstore notdivrem
   show ?case using EndNodes evalAllDet
-    by (smt (z3) is_IfNode_def is_LoadFieldNode_def is_NewInstanceNode_def is_RefNode_def is_StoreFieldNode_def is_SignedDivNode_def is_SignedRemNode_def  Pair_inject isIntegerDivRemNodeType.elims(3) step.cases)
+    by (smt (z3) is_IfNode_def is_LoadFieldNode_def is_NewInstanceNode_def is_RefNode_def is_StoreFieldNode_def is_SignedDivNode_def is_SignedRemNode_def  Pair_inject is_IntegerDivRemNode.elims(3) step.cases)
 next
   case (NewInstanceNode nid f obj nxt h' ref h m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
+    using is_sequential_node.simps is_AbstractMergeNode.simps
     by (simp add: NewInstanceNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractMergeNode.simps
     by (simp add: NewInstanceNode.hyps(1))
   have notif: "\<not>(is_IfNode (kind g nid))"
-    using isAbstractEndNodeType.simps
+    using is_AbstractMergeNode.simps
     by (simp add: NewInstanceNode.hyps(1))
   have notref: "\<not>(is_RefNode (kind g nid))"
-    using isAbstractEndNodeType.simps
+    using is_AbstractMergeNode.simps
     by (simp add: NewInstanceNode.hyps(1))
   have notload: "\<not>(is_LoadFieldNode (kind g nid))"
-    using isAbstractEndNodeType.simps
+    using is_AbstractMergeNode.simps
     by (simp add: NewInstanceNode.hyps(1))
   have notstore: "\<not>(is_StoreFieldNode (kind g nid))"
-    using isAbstractEndNodeType.simps
+    using is_AbstractMergeNode.simps
     by (simp add: NewInstanceNode.hyps(1))
-  have notdivrem:  "\<not>(isIntegerDivRemNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notdivrem:  "\<not>(is_IntegerDivRemNode (kind g nid))"
+    using is_AbstractMergeNode.simps
     by (simp add: NewInstanceNode.hyps(1))
   from notseq notend notif notref notload notstore notdivrem
   show ?case using NewInstanceNode step.cases
@@ -228,13 +228,13 @@ next
 next
   case (LoadFieldNode nid f obj nxt m ref h v m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
+    using is_sequential_node.simps is_AbstractMergeNode.simps
     by (simp add: LoadFieldNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractEndNode.simps
     by (simp add: LoadFieldNode.hyps(1))
-  have notdivrem:  "\<not>(isIntegerDivRemNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notdivrem:  "\<not>(is_IntegerDivRemNode (kind g nid))"
+    using is_AbstractEndNode.simps
     by (simp add: LoadFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using LoadFieldNode step.cases
@@ -242,12 +242,12 @@ next
 next
   case (StaticLoadFieldNode nid f nxt h v m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
+    using is_sequential_node.simps is_AbstractMergeNode.simps
     by (simp add: StaticLoadFieldNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractEndNode.simps
     by (simp add: StaticLoadFieldNode.hyps(1))
-  have notdivrem: "\<not>(isIntegerDivRemNodeType (kind g nid))"
+  have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
     by (simp add: StaticLoadFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using StaticLoadFieldNode step.cases
@@ -255,12 +255,12 @@ next
 next
   case (StoreFieldNode nid f newval uu obj nxt m val ref h' h m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
+    using is_sequential_node.simps is_AbstractMergeNode.simps
     by (simp add: StoreFieldNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractEndNode.simps
     by (simp add: StoreFieldNode.hyps(1))
-  have notdivrem: "\<not>(isIntegerDivRemNodeType (kind g nid))"
+  have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
     by (simp add: StoreFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using StoreFieldNode step.cases
@@ -268,12 +268,12 @@ next
 next
   case (StaticStoreFieldNode nid f newval uv nxt m val h' h m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
+    using is_sequential_node.simps is_AbstractMergeNode.simps
     by (simp add: StaticStoreFieldNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractEndNode.simps
     by (simp add: StaticStoreFieldNode.hyps(1))
-  have notdivrem: "\<not>(isIntegerDivRemNodeType (kind g nid))"
+  have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
     by (simp add: StaticStoreFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using StoreFieldNode step.cases
@@ -282,10 +282,10 @@ next
 next
   case (SignedDivNode nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
+    using is_sequential_node.simps is_AbstractMergeNode.simps
     by (simp add: SignedDivNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractEndNode.simps
     by (simp add: SignedDivNode.hyps(1))
   from notseq notend
   show ?case using SignedDivNode step.cases
@@ -293,10 +293,10 @@ next
 next
   case (SignedRemNode nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
-    using is_sequential_node.simps isAbstractMergeNodeType.simps
+    using is_sequential_node.simps is_AbstractMergeNode.simps
     by (simp add: SignedRemNode.hyps(1))
-  have notend: "\<not>(isAbstractEndNodeType (kind g nid))"
-    using isAbstractEndNodeType.simps
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractEndNode.simps
     by (simp add: SignedRemNode.hyps(1))
   from notseq notend
   show ?case using SignedRemNode step.cases
@@ -333,7 +333,7 @@ lemma step_in_ids:
   apply simp
   apply (metis is_sequential_node.simps(46))
   using ids_some apply (metis IRNode.simps(990))
-  using EndNodes(1) isAbstractEndNodeType.simps is_EndNode.simps(45) ids_some
+  using EndNodes(1) is_AbstractEndNode.simps is_EndNode.simps(45) ids_some
   apply (metis IRNode.disc(965))
   by simp+
 

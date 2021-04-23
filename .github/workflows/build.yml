@@ -1,0 +1,60 @@
+name: Isabelle Build
+
+on: [workflow_dispatch, push, pull_request]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+    
+    - name: Cache Isabelle Heaps
+      uses: actions/cache@v2
+      with:
+        key: ${{ runner.os }}-Isabelle2021-${{ hashFiles('ROOT') }}-${{ github.run_id }}
+        path: .heaps
+        restore-keys: |
+          ${{ runner.os }}-Isabelle2021-${{ hashFiles('ROOT') }}
+      
+    - name: Build Sessions
+      uses: NieDzejkob/isabelle-action@v1.8
+      with:
+        args: "build -b -P. -D . -v"
+        heapCacheDir: .heaps
+        
+    - name: Check State
+      run: ls -R .
+
+    - name: Upload Document Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: VerioptDoc
+        path: ./veriopt/Document/document.pdf
+        
+    - name: Upload Document Outline Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: VerioptOutline
+        path: ./veriopt/Document/outline.pdf
+        
+    - name: Upload Session Documents
+      uses: actions/upload-artifact@v2
+      with:
+        name: VerioptDocuments
+        path: ./veriopt/*/document.pdf
+        
+    - name: Upload HTML Documentation
+      uses: actions/upload-artifact@v2
+      with:
+        name: VerioptHTML
+        path: ./veriopt
+      
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+        publish_dir: ./veriopt

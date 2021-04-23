@@ -124,7 +124,7 @@ inductive CanonicalizeIf :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \
    \<Longrightarrow> CanonicalizeIf g (IfNode cond tb fb) (RefNode tb)"
 
 inductive CanonicalizeBinaryArithmeticNode :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
- add_cond_fold: (* BinaryArithmeticNode.canonical (94) *)
+ add_const_fold: (* BinaryArithmeticNode.canonical (94) *)
    "\<lbrakk>op = kind g op_id;
     is_AddNode op;
     kind g (ir_x op) = ConditionalNode cond tb fb;
@@ -312,7 +312,7 @@ inductive CanonicalizeMul :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
     c_1 = (IntVal b (-1))\<rbrakk>
     \<Longrightarrow> CanonicalizeMul g (MulNode x y) (NegateNode x)" 
 
-  (* Skipping bit shift optimisations at MulNode.canonical(130) for now *)
+  (* NOTE: Skipping bit shift optimisations at MulNode.canonical(130) for now *)
 
   (* TODO: reassociation in SubNode.canonical(119-151) *)
 
@@ -345,7 +345,7 @@ inductive CanonicalizeNegate :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNo
     stamp g sub = (IntegerStamp _ _ _)\<rbrakk>
     \<Longrightarrow> CanonicalizeNegate g (NegateNode sub) (SubNode y x)"
 
-  (* negate_rightshift in NegateNode.canonical(91) skipped, no RightShiftNode *)
+  (* NOTE: negate_rightshift in NegateNode.canonical(91) skipped, no RightShiftNode *)
 
 inductive CanonicalizeNot :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
@@ -413,8 +413,8 @@ inductive CanonicalizeOr :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \
     \<not>(val_to_bool val)\<rbrakk>
     \<Longrightarrow> CanonicalizeOr g (OrNode x y) (RefNode x)" 
 
-  (* Skipping OrNode.canonical(91), no upMask/downMask for stamps yet? *)
-  (* Skipping OrNode.canonical(107), no ZeroExtend/SignExtend yet *)
+  (* NOTE: Skipping OrNode.canonical(91), no upMask/downMask for stamps yet? *)
+  (* NOTE: Skipping OrNode.canonical(107), no ZeroExtend/SignExtend yet *)
 
 inductive CanonicalizeDeMorgansLaw :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   (* OrNode.canonical(120) *)
@@ -485,6 +485,8 @@ inductive CanonicalizeIntegerEquals :: "IRGraph \<Rightarrow> IRNode \<Rightarro
     kind g right = SubNode z x\<rbrakk> 
     \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode left right) (IntegerEqualsNode y z)" 
 
+  (* NOTE: missing IntegerEqualsNode.canonicalizeSymmetricConstant rules *)
+
 inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   int_equals_rewrite: (* use above rewrite rules if it matches *)
   "\<lbrakk>CanonicalizeIntegerEquals g node node';
@@ -551,6 +553,24 @@ inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarr
     g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
     g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''"
+
+   (* NOTE: missing IntegerEqualsNode.canonicalizeSymmetricConstant rules *)
+
+(* TODO: BinaryArithmeticNode.reassociateMatchedConstants for all associative nodes *)
+(* TODO: BinaryArithmeticNode.reassociateUnmatchedValues *)
+
+(* TODO: XorNode *)
+(* TODO: IntegerLessThanNode *)
+(* TODO: ShortCircuitOrNode *)
+(* TODO: IsNullNode *)
+
+(* TODO: SignedDivNode *)
+(* TODO: SignedRemNode *)
+
+(* TODO: (Value)PhiNode *)
+
+(* TODO: LoadFieldNode *)
+(* TODO: StoreFieldNode *)
 
 inductive CanonicalizationStep :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool"
   for g where

@@ -36,6 +36,7 @@ session Proofs in Proofs = Semantics +
     Stuttering
   document_files (in "../latex")
     "root.tex"
+    "mathpartir.sty"
 
 session Optimizations in Optimizations = Proofs +
   description
@@ -50,6 +51,7 @@ session Optimizations in Optimizations = Proofs +
     Construction
   document_files (in "../latex")
     "root.tex"
+    "mathpartir.sty"
 
 session Tests in Tests = Optimizations +
   description

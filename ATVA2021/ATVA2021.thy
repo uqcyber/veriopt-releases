@@ -76,23 +76,23 @@ text_raw \<open>\Snip{helpers_display}%
 \EndSnip\<close>
 
 
-text_raw \<open>\Snip{wff_start_def}%
-@{thm[display,margin=40] wff_start_def}
+text_raw \<open>\Snip{wf_start_def}%
+@{thm[display,margin=40] wf_start_def}
 \EndSnip\<close>
-text_raw \<open>\Snip{wff_closed_def}%
-@{thm[display,margin=40] wff_closed_def}
+text_raw \<open>\Snip{wf_closed_def}%
+@{thm[display,margin=40] wf_closed_def}
 \EndSnip\<close> 
-text_raw \<open>\Snip{wff_phis_def}%
-@{thm[display,margin=40] wff_phis_def}
+text_raw \<open>\Snip{wf_phis_def}%
+@{thm[display,margin=40] wf_phis_def}
 \EndSnip\<close> 
-text_raw \<open>\Snip{wff_ends_def}%
-@{thm[display,margin=40] wff_ends_def}
+text_raw \<open>\Snip{wf_ends_def}%
+@{thm[display,margin=40] wf_ends_def}
 \EndSnip\<close>
 
-text_raw \<open>\Snip{wff_graph_def}%
-@{text \<open>wff_graph :: \<close>} @{typeof wff_graph}
+text_raw \<open>\Snip{wf_graph_def}%
+@{text \<open>wf_graph :: \<close>} @{typeof wf_graph}
 
-@{thm wff_graph.simps}
+@{thm wf_graph.simps}
 \EndSnip\<close>
 
 text_raw \<open>@{bold \<open>type-synonym\<close>} Signature = @{typ string}\<close>

@@ -58,24 +58,24 @@ existing evaluation semantics.
 
 
 lemma logic_negation_relation:
-  assumes "wff_values g"
+  assumes "wf_values g"
   assumes "g m \<turnstile> kind g y \<mapsto> val"
   assumes "kind g neg = LogicNegationNode y"
   assumes "g m \<turnstile> kind g neg \<mapsto> invval"
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool inval)"
 proof -
-  have "wff_value val"
-    using assms(1) assms(2) eval_in_ids wff_values.elims(2)
+  have "wf_value val"
+    using assms(1) assms(2) eval_in_ids wf_values.elims(2)
     by meson
-  have "wff_value invval"
-    using assms(1,4) eval_in_ids wff_values.simps by blast
+  have "wf_value invval"
+    using assms(1,4) eval_in_ids wf_values.simps by blast
   then show ?thesis 
     using assms eval.LogicNegationNode
     by fastforce
 qed
 
 lemma implies_valid:
-  assumes "wff_graph g \<and> wff_values g"
+  assumes "wf_graph g \<and> wf_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "g m \<turnstile> x \<mapsto> v1"
   assumes "g m \<turnstile> y \<mapsto> v2"
@@ -225,7 +225,7 @@ next
 qed
 
 lemma implies_true_valid:
-  assumes "wff_graph g \<and> wff_values g"
+  assumes "wf_graph g \<and> wf_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "imp = KnownTrue"
   assumes "g m \<turnstile> x \<mapsto> v1"
@@ -234,7 +234,7 @@ lemma implies_true_valid:
   using assms implies_valid by blast
 
 lemma implies_false_valid:
-  assumes "wff_graph g \<and> wff_values g"
+  assumes "wf_graph g \<and> wf_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "imp = KnownFalse"
   assumes "g m \<turnstile> x \<mapsto> v1"
@@ -271,25 +271,25 @@ the tryFold relation correctly predicts the output value with respect to
 our evaluation semantics.
 \<close>
 lemma tryFoldIntegerEqualsAlwaysDistinct:
-  assumes "wff_stamp g stamps"
+  assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
   assumes "alwaysDistinct (stamps x) (stamps y)"
   shows "v = IntVal 1 0"
   using assms eval.IntegerEqualsNode join_unequal alwaysDistinct.simps
-  by (smt (verit, best) IntegerEqualsNodeE bool_to_val.simps(2) eval_in_ids wff_stamp.elims(2))
+  by (smt (verit, best) IntegerEqualsNodeE bool_to_val.simps(2) eval_in_ids wf_stamp.elims(2))
 
 lemma tryFoldIntegerEqualsNeverDistinct:
-  assumes "wff_stamp g stamps"
+  assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
   assumes "neverDistinct (stamps x) (stamps y)"
   shows "v = IntVal 1 1"
   using assms neverDistinctEqual IntegerEqualsNodeE
-  by (smt (verit, ccfv_threshold) Value.inject(1) bool_to_val.simps(1) eval_in_ids wff_stamp.simps)
+  by (smt (verit, ccfv_threshold) Value.inject(1) bool_to_val.simps(1) eval_in_ids wf_stamp.simps)
 
 lemma tryFoldIntegerLessThanTrue:
-  assumes "wff_stamp g stamps"
+  assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
   assumes "stpi_upper (stamps x) < stpi_lower (stamps y)"
@@ -297,24 +297,24 @@ lemma tryFoldIntegerLessThanTrue:
 proof -
   have stamp_type: "is_IntegerStamp (stamps x)"
     using assms
-    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wff_stamp.elims(2))
+    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wf_stamp.elims(2))
   obtain xval b where xval: "g m \<turnstile> kind g x \<mapsto> IntVal b xval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   obtain yval b where yval: "g m \<turnstile> kind g y \<mapsto> IntVal b yval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
     using assms(4)
-    by (metis stamp_type Stamp.disc(2) Value.distinct(1) assms(1) eval_in_ids valid_value.elims(2) wff_stamp.simps yval)
+    by (metis stamp_type Stamp.disc(2) Value.distinct(1) assms(1) eval_in_ids valid_value.elims(2) wf_stamp.simps yval)
   then have "xval < yval"
     using boundsNoOverlap xval yval assms(1,4)
-    using eval_in_ids wff_stamp.elims(2)
+    using eval_in_ids wf_stamp.elims(2)
     by metis
   then show ?thesis
     by (metis (full_types) IntegerLessThanNodeE Value.sel(3) assms(2) assms(3) bool_to_val.simps(1) evalDet xval yval)
 qed
 
 lemma tryFoldIntegerLessThanFalse:
-  assumes "wff_stamp g stamps"
+  assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
   assumes "stpi_lower (stamps x) \<ge> stpi_upper (stamps y)"
@@ -322,24 +322,24 @@ lemma tryFoldIntegerLessThanFalse:
   proof -
   have stamp_type: "is_IntegerStamp (stamps x)"
     using assms
-    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wff_stamp.elims(2))
+    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wf_stamp.elims(2))
   obtain xval b where xval: "g m \<turnstile> kind g x \<mapsto> IntVal b xval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   obtain yval b where yval: "g m \<turnstile> kind g y \<mapsto> IntVal b yval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
     using assms(4)
-    by (metis stamp_type Stamp.disc(2) Value.distinct(1) assms(1) eval_in_ids valid_value.elims(2) wff_stamp.simps yval)
+    by (metis stamp_type Stamp.disc(2) Value.distinct(1) assms(1) eval_in_ids valid_value.elims(2) wf_stamp.simps yval)
   then have "\<not>(xval < yval)"
     using boundsAlwaysOverlap xval yval assms(1,4)
-    using eval_in_ids wff_stamp.elims(2)
+    using eval_in_ids wf_stamp.elims(2)
     by metis
   then show ?thesis
     by (smt (verit, best) IntegerLessThanNodeE Value.inject(1) assms(2) assms(3) bool_to_val.simps(2) evalDet xval yval)
 qed
 
 theorem tryFoldProofTrue:
-  assumes "wff_stamp g stamps"
+  assumes "wf_stamp g stamps"
   assumes "tryFold (kind g nid) stamps tristate"
   assumes "tristate = KnownTrue"
   assumes "g m \<turnstile> kind g nid \<mapsto> v"
@@ -363,7 +363,7 @@ case (4 stamps x y)
 qed
 
 theorem tryFoldProofFalse:
-  assumes "wff_stamp g stamps"
+  assumes "wf_stamp g stamps"
   assumes "tryFold (kind g nid) stamps tristate"
   assumes "tristate = KnownFalse"
   assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
@@ -723,9 +723,9 @@ Prove that the individual conditional elimination rules are correct
 with respect to preservation of stuttering steps.
 \<close>
 lemma ConditionalEliminationStepProof:
-  assumes wg: "wff_graph g"
-  assumes ws: "wff_stamps g"
-  assumes wv: "wff_values g"
+  assumes wg: "wf_graph g"
+  assumes ws: "wf_stamps g"
+  assumes wv: "wf_values g"
   assumes nid: "nid \<in> ids g"
   assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. (g m \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
@@ -785,7 +785,7 @@ Prove that the individual conditional elimination rules are correct
 with respect to finding a bisimulation between the unoptimized and optimized graphs.
 \<close>
 lemma ConditionalEliminationStepProofBisimulation:
-  assumes wff: "wff_graph g \<and> wff_stamp g stamps \<and> wff_values g"
+  assumes wf: "wf_graph g \<and> wf_stamp g stamps \<and> wf_values g"
   assumes nid: "nid \<in> ids g"
   assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. (g m \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
@@ -870,14 +870,14 @@ case (3)
 qed
 
 lemma ConditionalEliminationPhaseProof:
-  assumes "wff_graph g"
-  assumes "wff_stamps g"
+  assumes "wf_graph g"
+  assumes "wf_stamps g"
   assumes "ConditionalEliminationPhase g (0, {}, [], []) g'"
   
   shows "\<exists>nid' .(g m h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> 0 \<leadsto> nid')"
 proof -
   have "0 \<in> ids g"
-    using assms(1) wff_folds by blast
+    using assms(1) wf_folds by blast
   show ?thesis
 using assms(3) assms proof (induct rule: ConditionalEliminationPhase.induct)
 case (1 g nid g' succs nid' g'')

@@ -88,7 +88,7 @@ lemma child_member_in:
   by (metis child_member ids_some inputs.elims)
 
 
-(* Node inputs are not necessarily in ids g (unless wff_graph g).
+(* Node inputs are not necessarily in ids g (unless wf_graph g).
    But this is true because 'inp' is defined using 'kind'. *)
 lemma inp_in_g: 
   assumes "n \<in> inputs g nid"
@@ -105,11 +105,11 @@ proof -
     by metis
 qed
 
-lemma inp_in_g_wff:
-  assumes "wff_graph g"
+lemma inp_in_g_wf:
+  assumes "wf_graph g"
   assumes "n \<in> inputs g nid"
   shows "n \<in> ids g"
-  using assms unfolding wff_folds
+  using assms unfolding wf_folds
   using inp_in_g by blast
 
 
@@ -172,7 +172,7 @@ lemma eval_in_ids:
 theorem stay_same:
   assumes nc: "unchanged (eval_usages g1 nid) g1 g2"
   assumes g1: "g1 m \<turnstile> (kind g1 nid) \<mapsto> v1"
-  assumes wff: "wff_graph g1"
+  assumes wf: "wf_graph g1"
   shows "g2 m \<turnstile> (kind g2 nid) \<mapsto> v1"
 proof -
   have nid: "nid \<in> ids g1"
@@ -205,7 +205,7 @@ proof -
       using child_member_in inputs_of_ValueProxyNode
       by (metis member_rec(1))
     then have cin: "child \<in> ids g1" 
-      using wff inp_in_g_wff by blast
+      using wf inp_in_g_wf by blast
     from inp_in have unc: "unchanged (eval_usages g1 child) g1 g2"
       using child_unchanged ValueProxyNode.prems(2) by metis
     then have "g2 m \<turnstile> (kind g2 child) \<mapsto> val"
@@ -219,7 +219,7 @@ proof -
       by (metis child_unchanged elim_inp_set ids_some inputs_of.simps(1) list.set_intros(1))
     then have "g2 m \<turnstile> (kind g2 x) \<mapsto> IntVal b v"
       using AbsNode.hyps(1) AbsNode.hyps(2) not_in_g
-      by (metis AbsNode.hyps(3) AbsNode.prems(1) elim_inp_set ids_some inp_in_g_wff inputs_of.simps(1) list.set_intros(1) wff)
+      by (metis AbsNode.hyps(3) AbsNode.prems(1) elim_inp_set ids_some inp_in_g_wf inputs_of.simps(1) list.set_intros(1) wf)
     then show ?case
       by (metis AbsNode.hyps(3) AbsNode.prems(1) AbsNode.prems(2) eval.AbsNode kind_unchanged)
   next
@@ -228,7 +228,7 @@ proof -
     have xinp: "x \<in> inputs g1 nid" 
       using child_member_in by (metis member_rec(1))
     then have xin: "x \<in> ids g1" 
-      using wff inp_in_g_wff by blast
+      using wf inp_in_g_wf by blast
     from xinp child_unchanged Node.prems(2)
       have ux: "unchanged (eval_usages g1 x) g1 g2" by blast
     have x1:"g1 m \<turnstile> (kind g1 x) \<mapsto> IntVal b v"
@@ -252,7 +252,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis AddNode inputs.simps inp_in_g_wff inputs_of_AddNode kind_unchanged list.set_intros(1) set_subset_Cons subset_iff wff)
+      by (metis AddNode inputs.simps inp_in_g_wf inputs_of_AddNode kind_unchanged list.set_intros(1) set_subset_Cons subset_iff wf)
   next
     case node:(SubNode m x v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -265,7 +265,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis SubNode inputs.simps inputs_of_SubNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
+      by (metis SubNode inputs.simps inputs_of_SubNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
   next
     case node:(MulNode m x v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -278,7 +278,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis MulNode inputs.simps inputs_of_MulNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
+      by (metis MulNode inputs.simps inputs_of_MulNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
   next
     case node:(AndNode m x v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -291,7 +291,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis AndNode inputs.simps inputs_of_AndNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
+      by (metis AndNode inputs.simps inputs_of_AndNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
   next
     case node: (OrNode m x v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -304,7 +304,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis OrNode inputs.simps inputs_of_OrNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
+      by (metis OrNode inputs.simps inputs_of_OrNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
   next
     case node: (XorNode m x v1 y v2)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -317,7 +317,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis XorNode inputs.simps inputs_of_XorNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
+      by (metis XorNode inputs.simps inputs_of_XorNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
   next
     case node: (IntegerEqualsNode m x b v1 y v2 val)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -330,7 +330,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis (full_types) IntegerEqualsNode child_member_in in_set_member inputs_of_IntegerEqualsNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
+      by (metis (full_types) IntegerEqualsNode child_member_in in_set_member inputs_of_IntegerEqualsNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
   next
     case node: (IntegerLessThanNode m x b v1 y v2 val)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -343,7 +343,7 @@ proof -
       using node.hyps(3) by blast
     show ?case
       using node.hyps node.prems ux x uy y
-      by (metis (full_types) IntegerLessThanNode child_member_in in_set_member inputs_of_IntegerLessThanNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wff wff_folds(1,3))
+      by (metis (full_types) IntegerLessThanNode child_member_in in_set_member inputs_of_IntegerLessThanNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
   next
     case node: (ShortCircuitOrNode m x b v1 y v2 val)
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
@@ -355,9 +355,9 @@ proof -
     have y: "g1 m \<turnstile> (kind g1 y) \<mapsto> IntVal b v2"
       using node.hyps(3) by blast
     have x2: "g2 m \<turnstile> (kind g2 x) \<mapsto> IntVal b v1"
-      by (metis inputs.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(1) subsetD ux wff wff_folds(1,3))
+      by (metis inputs.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(1) subsetD ux wf wf_folds(1,3))
     have y2: "g2 m \<turnstile> (kind g2 y) \<mapsto> IntVal b v2"
-      by (metis basic_trans_rules(31) inputs.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(4) node.hyps(6) node.prems(1) set_subset_Cons uy wff wff_folds(1,3))
+      by (metis basic_trans_rules(31) inputs.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(4) node.hyps(6) node.prems(1) set_subset_Cons uy wf wf_folds(1,3))
     show ?case
       using node.hyps node.prems ux x uy y x2 y2
       by (metis ShortCircuitOrNode kind_unchanged)
@@ -366,7 +366,7 @@ proof -
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
       by (metis child_member_in child_unchanged inputs_of_LogicNegationNode member_rec(1))
     then have x:"g2 m \<turnstile> (kind g2 x) \<mapsto> IntVal 1 v1"
-      by (metis inputs.simps inp_in_g_wff inputs_of_LogicNegationNode list.set_intros(1) node.hyps(2) node.hyps(4) wff)
+      by (metis inputs.simps inp_in_g_wf inputs_of_LogicNegationNode list.set_intros(1) node.hyps(2) node.hyps(4) wf)
     then show ?case
       by (metis LogicNegationNode kind_unchanged node.hyps(3) node.hyps(4) node.prems(1) node.prems(2))
   next
@@ -376,21 +376,21 @@ proof -
     then have "unchanged (eval_usages g1 condition) g1 g2"
       using child_unchanged node.prems(2) by blast
     then have cond: "g2 m \<turnstile> (kind g2 condition) \<mapsto> IntVal 1 cond"
-      using node c inp_in_g_wff wff by blast
+      using node c inp_in_g_wf wf by blast
 
     have t: "trueExp \<in> inputs g1 nid"
       by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
     then have utrue: "unchanged (eval_usages g1 trueExp) g1 g2"
       using node.prems(2) child_unchanged by blast
     then have trueVal: "g2 m \<turnstile> (kind g2 trueExp) \<mapsto> IntVal b (trueVal)"
-      using node.hyps node t inp_in_g_wff wff by blast
+      using node.hyps node t inp_in_g_wf wf by blast
 
     have f: "falseExp \<in> inputs g1 nid"
       by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
     then have ufalse: "unchanged (eval_usages g1 falseExp) g1 g2"
       using node.prems(2) child_unchanged by blast
     then have falseVal: "g2 m \<turnstile> (kind g2 falseExp) \<mapsto> IntVal b (falseVal)"
-      using node.hyps node f inp_in_g_wff wff by blast
+      using node.hyps node f inp_in_g_wf wf by blast
 
     have "g2 m \<turnstile> (kind g2 nid) \<mapsto> val"
       using kind_same trueVal falseVal cond
@@ -403,7 +403,7 @@ proof -
     have x: "x \<in> inputs g1 nid"
       by (metis IRNodes.inputs_of_RefNode RefNode.hyps(3) RefNode.prems(1) child_member_in member_rec(1))
     then have ref: "g2 m \<turnstile> (kind g2 x) \<mapsto> val"
-      using RefNode.hyps(2) RefNode.prems(2) child_unchanged inp_in_g_wff wff by blast
+      using RefNode.hyps(2) RefNode.prems(2) child_unchanged inp_in_g_wf wf by blast
     then show ?case
       by (metis RefNode.hyps(3) RefNode.prems(1) RefNode.prems(2) eval.RefNode kind_unchanged)
   next
@@ -477,7 +477,7 @@ lemma add_node_unchanged:
   assumes "new \<notin> ids g"
   assumes "nid \<in> ids g"
   assumes "gup = add_node new k g"
-  assumes "wff_graph g"
+  assumes "wf_graph g"
   shows "unchanged (eval_usages g nid) g gup"
 proof -
   have "new \<notin> (eval_usages g nid)" using assms
@@ -496,8 +496,8 @@ lemma eval_uses_imp:
   using use0 use_inp use_trans
   by (meson eval_uses.simps)
 
-lemma wff_use_ids:
-  assumes "wff_graph g"
+lemma wf_use_ids:
+  assumes "wf_graph g"
   assumes "nid \<in> ids g"
   assumes "eval_uses g nid nid'"
   shows "nid' \<in> ids g"
@@ -508,14 +508,14 @@ proof (induction rule: eval_uses.induct)
 next
   case use_inp
   then show ?case
-    using assms(1) inp_in_g_wff by blast
+    using assms(1) inp_in_g_wf by blast
 next
   case use_trans
   then show ?case by blast
 qed
 
 lemma no_external_use:
-  assumes "wff_graph g"
+  assumes "wf_graph g"
   assumes "nid' \<notin> ids g"
   assumes "nid \<in> ids g"
   shows "\<not>(eval_uses g nid nid')"
@@ -524,13 +524,13 @@ proof -
     using assms by blast
   have inp: "nid' \<notin> inputs g nid"
     using assms
-    using inp_in_g_wff by blast
+    using inp_in_g_wf by blast
   have rec_0: "\<nexists>n . n \<in> ids g \<and> n = nid'"
     using assms by blast
   have rec_inp: "\<nexists>n . n \<in> ids g \<and> n \<in> inputs g nid'"
     using assms(2) inp_in_g by blast
   have rec: "\<nexists>nid'' . eval_uses g nid nid'' \<and> eval_uses g nid'' nid'"
-    using wff_use_ids assms(1) assms(2) assms(3) by blast
+    using wf_use_ids assms(1) assms(2) assms(3) by blast
   from inp 0 rec show ?thesis 
     using eval_uses_imp by blast
 qed

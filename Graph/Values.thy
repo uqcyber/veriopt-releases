@@ -52,7 +52,7 @@ type_synonym int1 = "1 word" \<comment> \<open>boolean\<close>
 text \<open>
 We define integer values to be well-formed when their bit size is valid
 and their integer value is able to fit within the bit size.
-This is defined using the @{text wff_value} function.
+This is defined using the @{text wf_value} function.
 \<close>
 
 \<comment> \<open>Check that a signed int value does not overflow b bits.\<close>
@@ -65,30 +65,30 @@ definition int_bits_allowed :: "int set" where
 (* was:   (nat b \<in> {1,8,16,32,64} \<and> ...
    But we temporarily reduce this to 32/64 until we use stamps more statically.
 *)
-fun wff_value :: "Value \<Rightarrow> bool" where
-  "wff_value (IntVal b v) = 
+fun wf_value :: "Value \<Rightarrow> bool" where
+  "wf_value (IntVal b v) = 
     (b \<in> int_bits_allowed \<and>
     (nat b = 1 \<longrightarrow> (v = 0 \<or> v = 1)) \<and>
     (nat b > 1 \<longrightarrow> fits_into_n (nat b) v))" |
-  "wff_value _ = True"
+  "wf_value _ = True"
 
 
 (* boolean values  TODO
-lemma "\<not> (wff_value (IntVal 1 (-1)))" by simp
-lemma wff_false: "wff_value (IntVal 1 0)" by simp
-lemma wff_true: "wff_value (IntVal 1 1)" by simp
-lemma "\<not> (wff_value (IntVal 1 2))" by simp
+lemma "\<not> (wf_value (IntVal 1 (-1)))" by simp
+lemma wf_false: "wf_value (IntVal 1 0)" by simp
+lemma wf_true: "wf_value (IntVal 1 1)" by simp
+lemma "\<not> (wf_value (IntVal 1 2))" by simp
 
 value "(-7::int) div (4::int)"   (* gives -2.  Truncates towards negative infinity, unlike Java. *)
 value "(-7::int) mod (4::int)"   (* gives 1.  Whereas Java gives -3. *)
 *)
 
 (* byte values TODO
-lemma wff_byte__neg129: "i < -128 \<longrightarrow> \<not> (wff_value (IntVal 8 i))" by simp
-lemma wff_byte__neg: "-128 \<le> i \<and> i < 0 \<longrightarrow> wff_value (IntVal 8 i)" by simp
-lemma wff_byte_0: "wff_value (IntVal 8 0)" by simp
-lemma wff_byte_pos: "0 < i \<and> i < 128 \<longrightarrow> wff_value (IntVal 8 i)" by simp
-lemma wff_byte_128: "i \<ge> 128 \<longrightarrow> \<not> (wff_value (IntVal 8 i))" by simp
+lemma wf_byte__neg129: "i < -128 \<longrightarrow> \<not> (wf_value (IntVal 8 i))" by simp
+lemma wf_byte__neg: "-128 \<le> i \<and> i < 0 \<longrightarrow> wf_value (IntVal 8 i)" by simp
+lemma wf_byte_0: "wf_value (IntVal 8 0)" by simp
+lemma wf_byte_pos: "0 < i \<and> i < 128 \<longrightarrow> wf_value (IntVal 8 i)" by simp
+lemma wf_byte_128: "i \<ge> 128 \<longrightarrow> \<not> (wf_value (IntVal 8 i))" by simp
 *)
 
 value "sint(word_of_int (1) :: int1)"
@@ -239,38 +239,38 @@ lemma intval_add_sym:
   done
 
 
-lemma wff_int32:
-  assumes wf: "wff_value (IntVal b v)"
+lemma wf_int32:
+  assumes wf: "wf_value (IntVal b v)"
   shows "b = 32"
 proof -
   have "b \<in> int_bits_allowed"
-    using wf wff_value.simps(1) by blast 
+    using wf wf_value.simps(1) by blast 
   then show ?thesis
     by (simp add: int_bits_allowed_def)
 qed
 
 (*
 lemma int32_mod [simp]:
-  assumes wff: "wff_value (IntVal w b)"
+  assumes wf: "wf_value (IntVal w b)"
   assumes notbool: "w > 1"
   shows "((b + 2^(w-1)) mod 2^w) = (b + 2^(w-1))"
-  using wff notbool by auto
+  using wf notbool by auto
 *)
 
 (* Any well-formed IntVal is equal to its underlying integer value. *)
-lemma wff_int [simp]:
-  assumes wff: "wff_value (IntVal w n)"
+lemma wf_int [simp]:
+  assumes wf: "wf_value (IntVal w n)"
   assumes notbool: "w = 32"
   shows "sint((word_of_int n) :: int32) = n"
   apply (simp only: int_word_sint)
-  using wff notbool apply simp
+  using wf notbool apply simp
   done
 
 
 (* Adding 0 is the identity, if (IntVal 32 b) is well-formed. *)
 lemma add32_0: 
-  assumes z:"wff_value (IntVal 32 0)"
-  assumes b:"wff_value (IntVal 32 b)"
+  assumes z:"wf_value (IntVal 32 0)"
+  assumes b:"wf_value (IntVal 32 b)"
   shows "intval_add (IntVal 32 0) (IntVal 32 b) = (IntVal 32 (b))"
   apply (simp only: intval_add.simps word_of_int_0)
   apply (simp only: order_class.order.refl conj_absorb if_True)

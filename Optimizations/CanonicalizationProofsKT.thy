@@ -16,7 +16,7 @@ lemma double_negate: "bool_to_val (\<not>(val_to_bool (bool_to_val (\<not>(val_t
 
 lemma CanonicalizeNotProof:
   assumes "CanonicalizeNot g before after"
-  assumes "wff_stamps g"
+  assumes "wf_stamps g"
   assumes "g m \<turnstile> before \<mapsto> IntVal b res"
   assumes "g m \<turnstile> after \<mapsto> IntVal b' res'"
   shows "res = res'"

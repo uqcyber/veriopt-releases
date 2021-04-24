@@ -6,7 +6,7 @@ begin
 
 lemma CanonicalizeConditionalProof:
   assumes "CanonicalizeConditional g before after"
-  assumes "wff_graph g \<and> wff_stamps g \<and> wff_values g"
+  assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
   assumes "g m \<turnstile> before \<mapsto> res"
   assumes "g m \<turnstile> after \<mapsto> res'"
   shows "res = res'"
@@ -37,8 +37,8 @@ proof (induct rule: CanonicalizeConditional.induct)
   next
     case False
     have flipv_range: "flipv \<in> {0, 1}"
-      using assms(2) flipv wff_value_bit_range sorry (* broken by wff_range to 32
-      by (metis eval_in_ids mem_Collect_eq negate_condition.prems(2) wff_values.elims(2))*)
+      using assms(2) flipv wf_value_bit_range sorry (* broken by wf_range to 32
+      by (metis eval_in_ids mem_Collect_eq negate_condition.prems(2) wf_values.elims(2))*)
     have "(NOT flipv) \<noteq> 0"
       using False invert by fastforce
     then have "flipv \<noteq> 1"
@@ -90,7 +90,7 @@ next
     using condition_bounds_x.prems(3) by blast
   have "tbval \<le> fbval"
     using condition_bounds_x.prems(2) tbval fbval condition_bounds_x.hyps(2) int_valid_range
-    unfolding wff_stamps.simps 
+    unfolding wf_stamps.simps 
     by (smt (verit, best) Stamp.sel(2) Stamp.sel(3) Value.inject(1) eval_in_ids valid_value.elims(2) valid_value.simps(3))
   then have "res = IntVal b tbval"
     using ConditionalNodeE tbval fbval
@@ -106,7 +106,7 @@ next
     using condition_bounds_y.prems(3) by blast
   have "tbval \<ge> fbval"
     using condition_bounds_y.prems(2) tbval fbval condition_bounds_y.hyps(2) int_valid_range
-    unfolding wff_stamps.simps 
+    unfolding wf_stamps.simps 
     by (smt (verit, ccfv_SIG) Stamp.disc(2) boundsAlwaysOverlap eval_in_ids valid_value.elims(2) valid_value.simps(3))
   then have "res = IntVal b tbval"
     using ConditionalNodeE tbval fbval
@@ -117,32 +117,32 @@ next
 qed
 
 lemma add_zero_32:
-  assumes "wff_value (IntVal 32 y)"
+  assumes "wf_value (IntVal 32 y)"
   shows "(IntVal 32 0) +* (IntVal 32 y) = (IntVal 32 y)"
 proof -
   have "-(2^31) \<le> y \<and> y < 2^31"
-    using assms unfolding wff_value.simps by simp
+    using assms unfolding wf_value.simps by simp
   then show ?thesis unfolding intval_add.simps apply auto
     using \<open>- (2 ^ 31) \<le> y \<and> y < 2 ^ 31\<close> signed_take_bit_int_eq_self by blast
 qed
 
 lemma add_zero_64:
-  assumes "wff_value (IntVal 64 y)"
+  assumes "wf_value (IntVal 64 y)"
   shows "(IntVal 64 0) +* (IntVal 64 y) = (IntVal 64 y)"
 proof -
   have "-(2^63) \<le> y \<and> y < 2^63"
-    using assms unfolding wff_value.simps by simp
+    using assms unfolding wf_value.simps by simp
   then show ?thesis unfolding intval_add.simps apply auto
     using \<open>- (2 ^ 63) \<le> y \<and> y < 2 ^ 63\<close> signed_take_bit_int_eq_self by blast
 qed
 
 lemma 
-  assumes "wff_value (IntVal bc y)"
+  assumes "wf_value (IntVal bc y)"
   assumes "bc \<in> {32,64}"
   shows "(IntVal bc 0) +* (IntVal bc y) = (IntVal bc y)"
 proof -
   have bounds: "-(2^((nat bc)-1)) \<le> y \<and> y < 2^((nat bc)-1)"
-    using assms unfolding wff_value.simps by auto
+    using assms unfolding wf_value.simps by auto
   then show ?thesis unfolding intval_add.simps apply auto
     using bounds signed_take_bit_int_eq_self assms
     by auto
@@ -150,13 +150,13 @@ qed
 
 (*
 lemma 
-  assumes "wff_value (IntVal bl y)"
+  assumes "wf_value (IntVal bl y)"
   assumes "bl \<in> {32,64}"
 
   shows "(IntVal bl 0) +* (IntVal bl y) = (IntVal br y)"
 proof -
   have bounds: "-(2^((nat bl)-1)) \<le> y \<and> y < 2^((nat bl)-1)"
-    using assms unfolding wff_value.simps by auto
+    using assms unfolding wf_value.simps by auto
   then show ?thesis unfolding intval_add.simps apply auto
     using bounds assms
     apply auto using signed_take_bit_int_eq_self apply auto
@@ -166,14 +166,14 @@ qed
 
 (* (-x + y) \<Rightarrow> (y - x) *)
 lemma 
-  assumes "wff_value (IntVal b x) \<and> wff_value (IntVal b y)"
+  assumes "wf_value (IntVal b x) \<and> wf_value (IntVal b y)"
   shows "((IntVal b 0) -* (IntVal b x)) +* (IntVal b y) = (IntVal b y) -* (IntVal b x)"
-  using assms unfolding wff_value.simps by simp
+  using assms unfolding wf_value.simps by simp
 
 
 lemma CanonicalizeAddProof:
   assumes "CanonicalizeAdd g before after"
-  assumes "wff_graph g \<and> wff_stamps g \<and> wff_values g"
+  assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
   assumes "g m \<turnstile> before \<mapsto> IntVal b res"
   assumes "g m \<turnstile> after \<mapsto> IntVal b' res'"
   shows "res = res'"
@@ -201,19 +201,19 @@ next
     by (simp add: ConstantNode add_xzero.hyps(1) add_xzero.hyps(3))
   have yeval: "g m \<turnstile> kind g y \<mapsto> yval"
     using add_xzero.prems(4) yval by blast
-  have ywff: "wff_value yval"
-    using yeval add_xzero.prems(1) eval_in_ids wff_values.simps by blast 
+  have ywf: "wf_value yval"
+    using yeval add_xzero.prems(1) eval_in_ids wf_values.simps by blast 
   then have y: "IntVal b' res' = yval"
     by (meson RefNodeE add_xzero.prems(3) evalDet yeval)
   then have bpBits: "b' = 32"
-    using ywff wff_int32 by auto
+    using ywf wf_int32 by auto
   then have res_val: "IntVal b res = intval_add (IntVal 32 0) yval"
     using eval.AddNode eval.ConstantNode add_xzero(1,3,5)
     using evalDet by (metis IRNode.inject(2) add_xzero.prems(4) res xval) 
   then have bBits: "b = 32"
-    using ywff intval_add_bits bpBits y by force 
+    using ywf intval_add_bits bpBits y by force 
   then show ?case
-    using eval.RefNode yval res_val ywff add32_0 y
+    using eval.RefNode yval res_val ywf add32_0 y
     by (metis Value.inject(1) add_zero_32 bpBits)
 next
   case (add_yzero x y c_2)
@@ -221,21 +221,21 @@ next
     by (simp add: ConstantNode add_yzero.hyps(2) add_yzero.hyps(3))
   have xeval: "g m \<turnstile> kind g x \<mapsto> xval"
     using add_yzero.prems(4) xval by fastforce
-  then have xwff: "wff_value xval" 
-    using yeval add_yzero.prems(1) eval_in_ids wff_values.simps by blast 
+  then have xwf: "wf_value xval" 
+    using yeval add_yzero.prems(1) eval_in_ids wf_values.simps by blast 
   then have y: "IntVal b' res' = xval"
     by (meson RefNodeE add_yzero.prems(3) evalDet xeval)
   then have bpBits: "b' = 32"
-    using xwff wff_int32 by auto
+    using xwf wf_int32 by auto
   then have "IntVal b res = intval_add xval (IntVal 32 0)"
     using eval.AddNode eval.ConstantNode add_yzero(2,3,5)
     using evalDet xeval by presburger
   then have res: "IntVal b res = intval_add (IntVal 32 0) xval"
     by (simp add: intval_add_sym)
   then have "b = 32"
-    using xwff intval_add_bits bpBits y by force 
-  then show ?case using eval.RefNode xval wff_int32 intval_add_bits
-    by (metis Value.inject(1) res add_zero_32 xwff y) 
+    using xwf intval_add_bits bpBits y by force 
+  then show ?case using eval.RefNode xval wf_int32 intval_add_bits
+    by (metis Value.inject(1) res add_zero_32 xwf y) 
 next
   case (add_xsub x a y)
   then show ?case sorry
@@ -254,7 +254,7 @@ qed
 
 lemma CanonicalizeSubProof:
   assumes "CanonicalizeSub g before after"
-  assumes "wff_stamps g"
+  assumes "wf_stamps g"
   assumes "g m \<turnstile> before \<mapsto> IntVal b1 res"
   assumes "g m \<turnstile> after \<mapsto> IntVal b2 res'"
   shows "res = res'"

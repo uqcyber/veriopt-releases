@@ -95,11 +95,10 @@ text_raw \<open>\Snip{wff_graph_def}%
 @{thm wff_graph.simps}
 \EndSnip\<close>
 
+text_raw \<open>@{bold \<open>type-synonym\<close>} Signature = @{typ string}\<close>
 
 text_raw \<open>\Snip{programdef}%
-@{bold \<open>type-synonym\<close>} Signature = @{typ string}
-
-@{bold \<open>type-synonym\<close>} Program = @{typ "Signature \<Rightarrow> IRGraph option"}
+@{bold \<open>type-synonym\<close>} Program = @{typ "Signature \<rightharpoonup> IRGraph"}
 \EndSnip\<close>
 
 print_antiquotations
@@ -148,10 +147,10 @@ text_raw \<open>\Snip{ExpressionSemantics}%\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] eval.ConstantNode [no_vars]}}{eval:const}
-\induct{@{thm[mode=Rule] eval.ParameterNode [no_vars]}}{eval:param}
-\induct{@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}}{eval:phi}
 \induct{@{thm[mode=Rule] eval.NegateNode [no_vars]}}{eval:neg}
 \induct{@{thm[mode=Rule] eval.AddNode [no_vars]}}{eval:add}
+\induct{@{thm[mode=Rule] eval.ParameterNode [no_vars]}}{eval:param}
+\induct{@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}}{eval:phi}
 \induct{@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}}{eval:invoke}
 \induct{@{thm[mode=Rule] eval.LoadFieldNode [no_vars]}}{eval:load}
 \induct{@{thm[mode=Rule] eval.RefNode [no_vars]}}{eval:ref}

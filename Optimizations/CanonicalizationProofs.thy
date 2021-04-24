@@ -118,33 +118,33 @@ qed
 
 lemma add_zero_32:
   assumes "wf_value (IntVal 32 y)"
-  shows "(IntVal 32 0) +* (IntVal 32 y) = (IntVal 32 y)"
+  shows "(IntVal 32 0) + (IntVal 32 y) = (IntVal 32 y)"
 proof -
   have "-(2^31) \<le> y \<and> y < 2^31"
     using assms unfolding wf_value.simps by simp
-  then show ?thesis unfolding intval_add.simps apply auto
+  then show ?thesis unfolding plus_Value_def intval_add.simps apply auto
     using \<open>- (2 ^ 31) \<le> y \<and> y < 2 ^ 31\<close> signed_take_bit_int_eq_self by blast
 qed
 
 lemma add_zero_64:
   assumes "wf_value (IntVal 64 y)"
-  shows "(IntVal 64 0) +* (IntVal 64 y) = (IntVal 64 y)"
+  shows "(IntVal 64 0) + (IntVal 64 y) = (IntVal 64 y)"
 proof -
   have "-(2^63) \<le> y \<and> y < 2^63"
     using assms unfolding wf_value.simps by simp
-  then show ?thesis unfolding intval_add.simps apply auto
+  then show ?thesis unfolding plus_Value_def intval_add.simps apply auto
     using \<open>- (2 ^ 63) \<le> y \<and> y < 2 ^ 63\<close> signed_take_bit_int_eq_self by blast
 qed
 
 lemma 
   assumes "wf_value (IntVal bc y)"
   assumes "bc \<in> {32,64}"
-  shows "(IntVal bc 0) +* (IntVal bc y) = (IntVal bc y)"
+  shows "(IntVal bc 0) + (IntVal bc y) = (IntVal bc y)"
 proof -
   have bounds: "-(2^((nat bc)-1)) \<le> y \<and> y < 2^((nat bc)-1)"
     using assms unfolding wf_value.simps by auto
   then show ?thesis unfolding intval_add.simps apply auto
-    using bounds signed_take_bit_int_eq_self assms
+    using bounds signed_take_bit_int_eq_self assms plus_Value_def
     by auto
 qed
 
@@ -167,8 +167,8 @@ qed
 (* (-x + y) \<Rightarrow> (y - x) *)
 lemma 
   assumes "wf_value (IntVal b x) \<and> wf_value (IntVal b y)"
-  shows "((IntVal b 0) -* (IntVal b x)) +* (IntVal b y) = (IntVal b y) -* (IntVal b x)"
-  using assms unfolding wf_value.simps by simp
+  shows "((IntVal b 0) - (IntVal b x)) + (IntVal b y) = (IntVal b y) - (IntVal b x)"
+  using assms unfolding plus_Value_def minus_Value_def wf_value.simps by simp
 
 
 lemma CanonicalizeAddProof:
@@ -188,7 +188,7 @@ proof -
     using assms(3) by blast
   have res: "IntVal b res = intval_add xval yval"
     using assms(3) eval.AddNode
-    using addkind evalDet xval yval by presburger
+    using addkind evalDet xval yval plus_Value_def by metis
   show ?thesis
     using assms addkind xval yval res
   proof (induct rule: "CanonicalizeAdd.induct")
@@ -213,7 +213,7 @@ next
   then have bBits: "b = 32"
     using ywf intval_add_bits bpBits y by force 
   then show ?case
-    using eval.RefNode yval res_val ywf add32_0 y
+    using eval.RefNode yval res_val ywf add32_0 y plus_Value_def
     by (metis Value.inject(1) add_zero_32 bpBits)
 next
   case (add_yzero x y c_2)
@@ -228,13 +228,13 @@ next
   then have bpBits: "b' = 32"
     using xwf wf_int32 by auto
   then have "IntVal b res = intval_add xval (IntVal 32 0)"
-    using eval.AddNode eval.ConstantNode add_yzero(2,3,5)
-    using evalDet xeval by presburger
+    using eval.AddNode eval.ConstantNode add_yzero(2,3,5) 
+    using evalDet xeval plus_Value_def by metis
   then have res: "IntVal b res = intval_add (IntVal 32 0) xval"
     by (simp add: intval_add_sym)
   then have "b = 32"
     using xwf intval_add_bits bpBits y by force 
-  then show ?case using eval.RefNode xval wf_int32 intval_add_bits
+  then show ?case using eval.RefNode xval wf_int32 intval_add_bits plus_Value_def
     by (metis Value.inject(1) res add_zero_32 xwf y) 
 next
   case (add_xsub x a y)

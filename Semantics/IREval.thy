@@ -108,8 +108,8 @@ inductive
     \<Longrightarrow> g m \<turnstile> (AbsNode x) \<mapsto> if v < 0 then (intval_sub (IntVal b 0) (IntVal b v)) else (IntVal b v)" |
 
   NegateNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> intval_sub (IntVal b 0) (IntVal b v)" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> (IntVal (v_bits v) 0) - v" |
 
   NotNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> val;
@@ -121,17 +121,17 @@ inductive
   AddNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
     g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk>
-    \<Longrightarrow> g m \<turnstile> (AddNode x y) \<mapsto> intval_add v1 v2" |
+    \<Longrightarrow> g m \<turnstile> (AddNode x y) \<mapsto> v1 + v2" |
 
   SubNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
     g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (SubNode x y) \<mapsto> intval_sub v1 v2" |
+    \<Longrightarrow> g m \<turnstile> (SubNode x y) \<mapsto> v1 - v2" |
 
   MulNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v1;
     g m \<turnstile> (kind g y) \<mapsto> v2\<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (MulNode x y) \<mapsto> intval_mul v1 v2" |
+    \<Longrightarrow> g m \<turnstile> (MulNode x y) \<mapsto> v1 * v2" |
 
   SignedDivNode:
   "g m \<turnstile> (SignedDivNode nid _ _ _ _ _) \<mapsto> m_val m nid" |
@@ -207,7 +207,7 @@ inductive
   "g m \<turnstile> (InvokeWithExceptionNode nid _ _ _ _ _ _) \<mapsto> m_val m nid" |
 
   NewInstanceNode:
-  "g m \<turnstile> (NewInstanceNode nid class stateBefore next) \<mapsto> m_val m nid" |
+  "g m \<turnstile> (NewInstanceNode nid _ _ _) \<mapsto> m_val m nid" |
 
   LoadFieldNode:
   "g m \<turnstile> (LoadFieldNode nid _ _ _) \<mapsto> m_val m nid" |
@@ -475,7 +475,7 @@ lemma "evalAddNode" : "g m \<turnstile> (AddNode x y) \<mapsto> val \<Longrighta
   (\<exists> v1. (g m \<turnstile> (kind g x) \<mapsto> v1) \<and>
     (\<exists> v2. (g m \<turnstile> (kind g y) \<mapsto> v2) \<and>
        val = intval_add v1 v2))"
-  using AddNodeE by auto
+  using AddNodeE plus_Value_def by metis
 
 lemma not_floating: "(\<exists>y ys. (successors_of n) = y # ys) \<longrightarrow> \<not>(is_floating_node n)"
   unfolding is_floating_node.simps

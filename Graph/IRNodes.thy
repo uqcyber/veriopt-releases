@@ -187,7 +187,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_UnwindNode:
   "inputs_of (UnwindNode exception) = [exception]" |
   inputs_of_ValuePhiNode:
-  "inputs_of (ValuePhiNode nid0 values merge) = merge # values" |
+  "inputs_of (ValuePhiNode nid values merge) = merge # values" |
   inputs_of_ValueProxyNode:
   "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
   inputs_of_XorNode:

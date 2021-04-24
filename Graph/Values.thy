@@ -104,44 +104,89 @@ arithmetic operations.
 \<close>
 
 (* Corresponds to JVM iadd and ladd instructions. *)
-fun intval_add :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "+*" 65) where
+fun intval_add :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_add (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32 
        then (IntVal 32 (sint((word_of_int v1 :: int32) + (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))" |
   "intval_add _ _ = UndefVal"
 
+instantiation Value :: plus
+begin
+
+definition plus_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "plus_Value = intval_add"
+
+instance proof qed
+end
+
 (* Corresponds to JVM isub and lsub instructions. *)
-fun intval_sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "-*" 65) where
+fun intval_sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_sub (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32 
        then (IntVal 32 (sint((word_of_int v1 :: int32) - (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) - (word_of_int v2 :: int64)))))" |
   "intval_sub _ _ = UndefVal"
 
+instantiation Value :: minus
+begin
+
+definition minus_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "minus_Value = intval_sub"
+
+instance proof qed
+end
+
 (* Corresponds to JVM imul and lmul instructions. *)
-fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "**" 70) where
+fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_mul (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int v1 :: int32) * (word_of_int v2 :: int32))))
        else (IntVal 64 (sint((word_of_int v1 :: int64) * (word_of_int v2 :: int64)))))" |
   "intval_mul _ _ = UndefVal"
 
+instantiation Value :: times
+begin
+
+definition times_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "times_Value = intval_mul"
+
+instance proof qed
+end
+
 (* Java division rounds towards 0. *)
-fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "/*" 70) where
+fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_div (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int(v1 sdiv v2) :: int32))))
        else (IntVal 64 (sint((word_of_int(v1 sdiv v2) :: int64)))))" |
   "intval_div _ _ = UndefVal"
 
+instantiation Value :: divide
+begin
+
+definition divide_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "divide_Value = intval_div"
+
+instance proof qed
+end
+
 (* Java % is a modulo operator that can give negative results, since div rounds towards 0. *)
-fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "%*" 70) where
+fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_mod (IntVal b1 v1) (IntVal b2 v2) = 
      (if b1 \<le> 32 \<and> b2 \<le> 32
        then (IntVal 32 (sint((word_of_int(v1 smod v2) :: int32))))
        else (IntVal 64 (sint((word_of_int(v1 smod v2) :: int64)))))" |
   "intval_mod _ _ = UndefVal"
+
+instantiation Value :: modulo
+begin
+
+definition modulo_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "modulo_Value = intval_mod"
+
+instance proof qed
+end
 
 (* unsuccessful try at a bitwise generic binary operator:
 fun intval_binary :: "('a word \<Rightarrow> 'a word \<Rightarrow> 'a word) \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where

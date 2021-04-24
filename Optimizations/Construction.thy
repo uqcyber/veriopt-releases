@@ -18,7 +18,7 @@ lemma add_const_nodes:
   shows "v1 = v2"
 proof -
   have zv: "g m \<turnstile> (kind g z) \<mapsto> IntVal b v1"
-    using eval.AddNode eval.ConstantNode xn yn zn val by metis
+    using eval.AddNode eval.ConstantNode xn yn zn val plus_Value_def by metis
   have wv: "g m \<turnstile> (kind g w) \<mapsto> IntVal b v2"
     using eval.ConstantNode wn ew by blast 
   show ?thesis using evalDet zv wv ew ez
@@ -67,7 +67,7 @@ proof -
   let ?P = "(g m \<turnstile> (AddNode x y) \<mapsto> res)"
   let ?Q = "(g m \<turnstile> (create_add g x y) \<mapsto> res)"
   have P: ?P
-    using xv yv res eval.AddNode by blast
+    using xv yv res eval.AddNode plus_Value_def by metis
   have Q: ?Q
   proof (cases "is_ConstantNode (kind g x)")
     case xconst: True

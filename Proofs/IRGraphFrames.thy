@@ -223,7 +223,7 @@ proof -
     then show ?case
       by (metis AbsNode.hyps(3) AbsNode.prems(1) AbsNode.prems(2) eval.AbsNode kind_unchanged)
   next
-    case Node: (NegateNode m x b v _)
+    case Node: (NegateNode m x v _)
     from inputs_of_NegateNode Node.hyps(3) Node.prems(1) 
     have xinp: "x \<in> inputs g1 nid" 
       using child_member_in by (metis member_rec(1))
@@ -231,10 +231,10 @@ proof -
       using wf inp_in_g_wf by blast
     from xinp child_unchanged Node.prems(2)
       have ux: "unchanged (eval_usages g1 x) g1 g2" by blast
-    have x1:"g1 m \<turnstile> (kind g1 x) \<mapsto> IntVal b v"
+    have x1:"g1 m \<turnstile> (kind g1 x) \<mapsto> v"
       using Node.hyps(1) Node.hyps(2)
       by blast
-    have x2: "g2 m \<turnstile> (kind g2 x) \<mapsto> IntVal b v"
+    have x2: "g2 m \<turnstile> (kind g2 x) \<mapsto> v"
       using kind_unchanged ux xin Node.hyps
       by blast
     then show ?case

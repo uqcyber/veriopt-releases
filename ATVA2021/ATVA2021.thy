@@ -150,11 +150,11 @@ text_raw \<open>\Snip{ExpressionSemantics}%\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] eval.ConstantNode [no_vars]}}{eval:const}
-\induct{@{thm[mode=Rule] eval.NegateNode [no_vars]}}{eval:neg}
 \induct{@{thm[mode=Rule] eval.AddNode [no_vars]}}{eval:add}
 \induct{@{thm[mode=Rule] eval.ParameterNode [no_vars]}}{eval:param}
 \induct{@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}}{eval:phi}
 \induct{@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}}{eval:invoke}
+\induct{@{thm[mode=Rule] eval.NewInstanceNode [no_vars]}}{eval:invoke}
 \induct{@{thm[mode=Rule] eval.LoadFieldNode [no_vars]}}{eval:load}
 \end{center}
 \<close>

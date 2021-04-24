@@ -66,7 +66,7 @@ So each (IntVal b v) should satisfy the invariants:
 <span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹
 We define integer values to be well-formed when their bit size is valid
 and their integer value is able to fit within the bit size.
-This is defined using the <span class="antiquoted"><span class="antiquoted"><span class="antiquote"><span class="antiquote">@{</span></span><span class="operator"><span class="operator">text</span></span> <span class="raw_text"><span class="raw_text">wff_value</span></span><span class="antiquote"><span class="antiquote">}</span></span></span></span> function.
+This is defined using the <span class="antiquoted"><span class="antiquoted"><span class="antiquote"><span class="antiquote">@{</span></span><span class="operator"><span class="operator">text</span></span> <span class="raw_text"><span class="raw_text">wf_value</span></span><span class="antiquote"><span class="antiquote">}</span></span></span></span> function.
 ›</span></span>
 
 <span class="comment1">― ‹Check that a signed int value does not overflow b bits.›</span>
@@ -79,30 +79,30 @@ This is defined using the <span class="antiquoted"><span class="antiquoted"><spa
 <span class="comment1">(* was:   (nat b ∈ {1,8,16,32,64} ∧ ...
    But we temporarily reduce this to 32/64 until we use stamps more statically.
 *)</span>
-<span class="keyword1"><span class="command">fun</span></span> <span class="entity">wff_value</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> bool"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
-  <span class="quoted"><span class="quoted">"<span class="free">wff_value</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b</span></span></span> <span class="free"><span class="bound"><span class="entity">v</span></span></span><span class="main">)</span> <span class="main">=</span> 
+<span class="keyword1"><span class="command">fun</span></span> <span class="entity">wf_value</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> bool"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">wf_value</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b</span></span></span> <span class="free"><span class="bound"><span class="entity">v</span></span></span><span class="main">)</span> <span class="main">=</span> 
     <span class="main">(</span><span class="free"><span class="bound"><span class="entity">b</span></span></span> <span class="main">∈</span> int_bits_allowed <span class="main">∧</span>
     <span class="main">(</span>nat <span class="free"><span class="bound"><span class="entity">b</span></span></span> <span class="main">=</span> <span class="main">1</span> <span class="main">⟶</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">v</span></span></span> <span class="main">=</span> <span class="main">0</span> <span class="main">∨</span> <span class="free"><span class="bound"><span class="entity">v</span></span></span> <span class="main">=</span> <span class="main">1</span><span class="main">)</span><span class="main">)</span> <span class="main">∧</span>
     <span class="main">(</span>nat <span class="free"><span class="bound"><span class="entity">b</span></span></span> <span class="main">&gt;</span> <span class="main">1</span> <span class="main">⟶</span> fits_into_n <span class="main">(</span>nat <span class="free"><span class="bound"><span class="entity">b</span></span></span><span class="main">)</span> <span class="free"><span class="bound"><span class="entity">v</span></span></span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
-  <span class="quoted"><span class="quoted">"<span class="free">wff_value</span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main">=</span> True"</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">wf_value</span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main">=</span> True"</span></span>
 
 
 <span class="comment1">(* boolean values  TODO
-lemma "¬ (wff_value (IntVal 1 (-1)))" by simp
-lemma wff_false: "wff_value (IntVal 1 0)" by simp
-lemma wff_true: "wff_value (IntVal 1 1)" by simp
-lemma "¬ (wff_value (IntVal 1 2))" by simp
+lemma "¬ (wf_value (IntVal 1 (-1)))" by simp
+lemma wf_false: "wf_value (IntVal 1 0)" by simp
+lemma wf_true: "wf_value (IntVal 1 1)" by simp
+lemma "¬ (wf_value (IntVal 1 2))" by simp
 
 value "(-7::int) div (4::int)"   (* gives -2.  Truncates towards negative infinity, unlike Java. *)
 value "(-7::int) mod (4::int)"   (* gives 1.  Whereas Java gives -3. *)
 *)</span>
 
 <span class="comment1">(* byte values TODO
-lemma wff_byte__neg129: "i &lt; -128 ⟶ ¬ (wff_value (IntVal 8 i))" by simp
-lemma wff_byte__neg: "-128 ≤ i ∧ i &lt; 0 ⟶ wff_value (IntVal 8 i)" by simp
-lemma wff_byte_0: "wff_value (IntVal 8 0)" by simp
-lemma wff_byte_pos: "0 &lt; i ∧ i &lt; 128 ⟶ wff_value (IntVal 8 i)" by simp
-lemma wff_byte_128: "i ≥ 128 ⟶ ¬ (wff_value (IntVal 8 i))" by simp
+lemma wf_byte__neg129: "i &lt; -128 ⟶ ¬ (wf_value (IntVal 8 i))" by simp
+lemma wf_byte__neg: "-128 ≤ i ∧ i &lt; 0 ⟶ wf_value (IntVal 8 i)" by simp
+lemma wf_byte_0: "wf_value (IntVal 8 0)" by simp
+lemma wf_byte_pos: "0 &lt; i ∧ i &lt; 128 ⟶ wf_value (IntVal 8 i)" by simp
+lemma wf_byte_128: "i ≥ 128 ⟶ ¬ (wf_value (IntVal 8 i))" by simp
 *)</span>
 
 <span class="keyword1"><span class="command">value</span></span> <span class="quoted"><span class="quoted">"sint<span class="main">(</span>word_of_int <span class="main">(</span><span class="main">1</span><span class="main">)</span> <span class="main">::</span> int1<span class="main">)</span>"</span></span>
@@ -118,44 +118,89 @@ arithmetic operations.
 ›</span></span>
 
 <span class="comment1">(* Corresponds to JVM iadd and ladd instructions. *)</span>
-<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_add</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="main">(</span><span class="keyword2"><span class="keyword">infix</span></span> <span class="quoted">"<span class="keyword1">+*</span>"</span> 65<span class="main">)</span> <span class="keyword2"><span class="keyword">where</span></span>
+<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_add</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_add</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="free"><span class="bound"><span class="entity">v1</span></span></span><span class="main">)</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">=</span> 
      <span class="main">(</span><span class="keyword1">if</span> <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="main">≤</span> <span class="numeral">32</span> <span class="main">∧</span> <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="main">≤</span> <span class="numeral">32</span> 
        <span class="keyword1">then</span> <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="main">::</span> int32<span class="main">)</span> <span class="main">+</span> <span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v2</span></span></span> <span class="main">::</span> int32<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
        <span class="keyword1">else</span> <span class="main">(</span>IntVal <span class="numeral">64</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="main">::</span> int64<span class="main">)</span> <span class="main">+</span> <span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v2</span></span></span> <span class="main">::</span> int64<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_add</span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main">=</span> UndefVal"</span></span>
 
+<span class="keyword1"><span class="command">instantiation</span></span> Value <span class="main">::</span> <span class="quoted">plus</span>
+<span class="keyword2"><span class="keyword">begin</span></span>
+
+<span class="keyword1"><span class="command">definition</span></span> <span class="entity"><span class="class_parameter">plus_Value</span></span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">plus_Value</span> <span class="main">=</span> intval_add"</span></span>
+
+<span class="keyword1"><span class="command">instance</span></span> <span class="keyword1"><span class="command">proof</span></span> <span class="keyword1"><span class="command">qed</span></span>
+<span class="keyword2"><span class="keyword">end</span></span>
+
 <span class="comment1">(* Corresponds to JVM isub and lsub instructions. *)</span>
-<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_sub</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="main">(</span><span class="keyword2"><span class="keyword">infix</span></span> <span class="quoted">"<span class="keyword1">-*</span>"</span> 65<span class="main">)</span> <span class="keyword2"><span class="keyword">where</span></span>
+<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_sub</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_sub</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="free"><span class="bound"><span class="entity">v1</span></span></span><span class="main">)</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">=</span> 
      <span class="main">(</span><span class="keyword1">if</span> <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="main">≤</span> <span class="numeral">32</span> <span class="main">∧</span> <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="main">≤</span> <span class="numeral">32</span> 
        <span class="keyword1">then</span> <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="main">::</span> int32<span class="main">)</span> <span class="main">-</span> <span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v2</span></span></span> <span class="main">::</span> int32<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
        <span class="keyword1">else</span> <span class="main">(</span>IntVal <span class="numeral">64</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="main">::</span> int64<span class="main">)</span> <span class="main">-</span> <span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v2</span></span></span> <span class="main">::</span> int64<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_sub</span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main">=</span> UndefVal"</span></span>
 
+<span class="keyword1"><span class="command">instantiation</span></span> Value <span class="main">::</span> <span class="quoted">minus</span>
+<span class="keyword2"><span class="keyword">begin</span></span>
+
+<span class="keyword1"><span class="command">definition</span></span> <span class="entity"><span class="class_parameter">minus_Value</span></span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">minus_Value</span> <span class="main">=</span> intval_sub"</span></span>
+
+<span class="keyword1"><span class="command">instance</span></span> <span class="keyword1"><span class="command">proof</span></span> <span class="keyword1"><span class="command">qed</span></span>
+<span class="keyword2"><span class="keyword">end</span></span>
+
 <span class="comment1">(* Corresponds to JVM imul and lmul instructions. *)</span>
-<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_mul</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="main">(</span><span class="keyword2"><span class="keyword">infix</span></span> <span class="quoted">"<span class="keyword1">**</span>"</span> 70<span class="main">)</span> <span class="keyword2"><span class="keyword">where</span></span>
+<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_mul</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_mul</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="free"><span class="bound"><span class="entity">v1</span></span></span><span class="main">)</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">=</span> 
      <span class="main">(</span><span class="keyword1">if</span> <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="main">≤</span> <span class="numeral">32</span> <span class="main">∧</span> <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="main">≤</span> <span class="numeral">32</span>
        <span class="keyword1">then</span> <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="main">::</span> int32<span class="main">)</span> <span class="main">*</span> <span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v2</span></span></span> <span class="main">::</span> int32<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
        <span class="keyword1">else</span> <span class="main">(</span>IntVal <span class="numeral">64</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="main">::</span> int64<span class="main">)</span> <span class="main">*</span> <span class="main">(</span>word_of_int <span class="free"><span class="bound"><span class="entity">v2</span></span></span> <span class="main">::</span> int64<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_mul</span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main">=</span> UndefVal"</span></span>
 
+<span class="keyword1"><span class="command">instantiation</span></span> Value <span class="main">::</span> <span class="quoted">times</span>
+<span class="keyword2"><span class="keyword">begin</span></span>
+
+<span class="keyword1"><span class="command">definition</span></span> <span class="entity"><span class="class_parameter">times_Value</span></span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">times_Value</span> <span class="main">=</span> intval_mul"</span></span>
+
+<span class="keyword1"><span class="command">instance</span></span> <span class="keyword1"><span class="command">proof</span></span> <span class="keyword1"><span class="command">qed</span></span>
+<span class="keyword2"><span class="keyword">end</span></span>
+
 <span class="comment1">(* Java division rounds towards 0. *)</span>
-<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_div</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="main">(</span><span class="keyword2"><span class="keyword">infix</span></span> <span class="quoted">"<span class="keyword3">/</span><span class="keyword1">*</span>"</span> 70<span class="main">)</span> <span class="keyword2"><span class="keyword">where</span></span>
+<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_div</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_div</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="free"><span class="bound"><span class="entity">v1</span></span></span><span class="main">)</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">=</span> 
      <span class="main">(</span><span class="keyword1">if</span> <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="main">≤</span> <span class="numeral">32</span> <span class="main">∧</span> <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="main">≤</span> <span class="numeral">32</span>
        <span class="keyword1">then</span> <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int<span class="main">(</span><span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="keyword1">sdiv</span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">::</span> int32<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
        <span class="keyword1">else</span> <span class="main">(</span>IntVal <span class="numeral">64</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int<span class="main">(</span><span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="keyword1">sdiv</span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">::</span> int64<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_div</span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main">=</span> UndefVal"</span></span>
 
+<span class="keyword1"><span class="command">instantiation</span></span> Value <span class="main">::</span> <span class="quoted">divide</span>
+<span class="keyword2"><span class="keyword">begin</span></span>
+
+<span class="keyword1"><span class="command">definition</span></span> <span class="entity"><span class="class_parameter">divide_Value</span></span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">divide_Value</span> <span class="main">=</span> intval_div"</span></span>
+
+<span class="keyword1"><span class="command">instance</span></span> <span class="keyword1"><span class="command">proof</span></span> <span class="keyword1"><span class="command">qed</span></span>
+<span class="keyword2"><span class="keyword">end</span></span>
+
 <span class="comment1">(* Java % is a modulo operator that can give negative results, since div rounds towards 0. *)</span>
-<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_mod</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="main">(</span><span class="keyword2"><span class="keyword">infix</span></span> <span class="quoted">"<span class="keyword1">%*</span>"</span> 70<span class="main">)</span> <span class="keyword2"><span class="keyword">where</span></span>
+<span class="keyword1"><span class="command">fun</span></span> <span class="entity">intval_mod</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_mod</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="free"><span class="bound"><span class="entity">v1</span></span></span><span class="main">)</span> <span class="main">(</span>IntVal <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">=</span> 
      <span class="main">(</span><span class="keyword1">if</span> <span class="free"><span class="bound"><span class="entity">b1</span></span></span> <span class="main">≤</span> <span class="numeral">32</span> <span class="main">∧</span> <span class="free"><span class="bound"><span class="entity">b2</span></span></span> <span class="main">≤</span> <span class="numeral">32</span>
        <span class="keyword1">then</span> <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int<span class="main">(</span><span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="keyword1">smod</span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">::</span> int32<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
        <span class="keyword1">else</span> <span class="main">(</span>IntVal <span class="numeral">64</span> <span class="main">(</span>sint<span class="main">(</span><span class="main">(</span>word_of_int<span class="main">(</span><span class="free"><span class="bound"><span class="entity">v1</span></span></span> <span class="keyword1">smod</span> <span class="free"><span class="bound"><span class="entity">v2</span></span></span><span class="main">)</span> <span class="main">::</span> int64<span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
   <span class="quoted"><span class="quoted">"<span class="free">intval_mod</span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main"><span class="bound"><span class="entity">_</span></span></span> <span class="main">=</span> UndefVal"</span></span>
+
+<span class="keyword1"><span class="command">instantiation</span></span> Value <span class="main">::</span> <span class="quoted">modulo</span>
+<span class="keyword2"><span class="keyword">begin</span></span>
+
+<span class="keyword1"><span class="command">definition</span></span> <span class="entity"><span class="class_parameter">modulo_Value</span></span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Value <span class="main">⇒</span> Value <span class="main">⇒</span> Value"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">modulo_Value</span> <span class="main">=</span> intval_mod"</span></span>
+
+<span class="keyword1"><span class="command">instance</span></span> <span class="keyword1"><span class="command">proof</span></span> <span class="keyword1"><span class="command">qed</span></span>
+<span class="keyword2"><span class="keyword">end</span></span>
 
 <span class="comment1">(* unsuccessful try at a bitwise generic binary operator:
 fun intval_binary :: "('a word ⇒ 'a word ⇒ 'a word) ⇒ Value ⇒ Value ⇒ Value" where
@@ -253,38 +298,38 @@ lemma plus_dist:
   <span class="keyword1"><span class="command"><span class="improper"><span class="command">done</span></span></span></span>
 
 
-<span class="keyword1"><span class="command">lemma</span></span> wff_int32<span class="main">:</span>
-  <span class="keyword2"><span class="keyword">assumes</span></span> wf<span class="main">:</span> <span class="quoted"><span class="quoted">"wff_value <span class="main">(</span>IntVal <span class="free">b</span> <span class="free">v</span><span class="main">)</span>"</span></span>
+<span class="keyword1"><span class="command">lemma</span></span> wf_int32<span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> wf<span class="main">:</span> <span class="quoted"><span class="quoted">"wf_value <span class="main">(</span>IntVal <span class="free">b</span> <span class="free">v</span><span class="main">)</span>"</span></span>
   <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="free">b</span> <span class="main">=</span> <span class="numeral">32</span>"</span></span>
 <span class="keyword1"><span class="command">proof</span></span> <span class="operator">-</span>
   <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"<span class="free">b</span> <span class="main">∈</span> int_bits_allowed"</span></span>
-    <span class="keyword1"><span class="command">using</span></span> wf wff_value.simps<span class="main">(</span>1<span class="main">)</span> <span class="keyword1"><span class="command">by</span></span> <span class="operator">blast</span> 
+    <span class="keyword1"><span class="command">using</span></span> wf wf_value.simps<span class="main">(</span>1<span class="main">)</span> <span class="keyword1"><span class="command">by</span></span> <span class="operator">blast</span> 
   <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?thesis</span></span></span>
     <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">simp</span> <span class="quasi_keyword">add</span><span class="main"><span class="main">:</span></span> int_bits_allowed_def<span class="main">)</span>
 <span class="keyword1"><span class="command">qed</span></span>
 
 <span class="comment1">(*
 lemma int32_mod [simp]:
-  assumes wff: "wff_value (IntVal w b)"
+  assumes wf: "wf_value (IntVal w b)"
   assumes notbool: "w &gt; 1"
   shows "((b + 2^(w-1)) mod 2^w) = (b + 2^(w-1))"
-  using wff notbool by auto
+  using wf notbool by auto
 *)</span>
 
 <span class="comment1">(* Any well-formed IntVal is equal to its underlying integer value. *)</span>
-<span class="keyword1"><span class="command">lemma</span></span> wff_int <span class="main">[</span><span class="operator">simp</span><span class="main">]</span><span class="main">:</span>
-  <span class="keyword2"><span class="keyword">assumes</span></span> wff<span class="main">:</span> <span class="quoted"><span class="quoted">"wff_value <span class="main">(</span>IntVal <span class="free">w</span> <span class="free">n</span><span class="main">)</span>"</span></span>
+<span class="keyword1"><span class="command">lemma</span></span> wf_int <span class="main">[</span><span class="operator">simp</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> wf<span class="main">:</span> <span class="quoted"><span class="quoted">"wf_value <span class="main">(</span>IntVal <span class="free">w</span> <span class="free">n</span><span class="main">)</span>"</span></span>
   <span class="keyword2"><span class="keyword">assumes</span></span> notbool<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="free">w</span> <span class="main">=</span> <span class="numeral">32</span>"</span></span>
   <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"sint<span class="main">(</span><span class="main">(</span>word_of_int <span class="free">n</span><span class="main">)</span> <span class="main">::</span> int32<span class="main">)</span> <span class="main">=</span> <span class="free">n</span>"</span></span>
   <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">simp</span> <span class="quasi_keyword">only</span><span class="main"><span class="main">:</span></span> int_word_sint<span class="main">)</span>
-  <span class="keyword1"><span class="command">using</span></span> wff notbool <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="operator">simp</span>
+  <span class="keyword1"><span class="command">using</span></span> wf notbool <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="operator">simp</span>
   <span class="keyword1"><span class="command"><span class="improper"><span class="command">done</span></span></span></span>
 
 
 <span class="comment1">(* Adding 0 is the identity, if (IntVal 32 b) is well-formed. *)</span>
 <span class="keyword1"><span class="command">lemma</span></span> add32_0<span class="main">:</span> 
-  <span class="keyword2"><span class="keyword">assumes</span></span> z<span class="main">:</span><span class="quoted"><span class="quoted">"wff_value <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">0</span><span class="main">)</span>"</span></span>
-  <span class="keyword2"><span class="keyword">assumes</span></span> b<span class="main">:</span><span class="quoted"><span class="quoted">"wff_value <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="free">b</span><span class="main">)</span>"</span></span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> z<span class="main">:</span><span class="quoted"><span class="quoted">"wf_value <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">0</span><span class="main">)</span>"</span></span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> b<span class="main">:</span><span class="quoted"><span class="quoted">"wf_value <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="free">b</span><span class="main">)</span>"</span></span>
   <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"intval_add <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">0</span><span class="main">)</span> <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="free">b</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntVal <span class="numeral">32</span> <span class="main">(</span><span class="free">b</span><span class="main">)</span><span class="main">)</span>"</span></span>
   <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">simp</span> <span class="quasi_keyword">only</span><span class="main"><span class="main">:</span></span> intval_add.simps word_of_int_0<span class="main">)</span>
   <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">simp</span> <span class="quasi_keyword">only</span><span class="main"><span class="main">:</span></span> order_class.order.refl conj_absorb if_True<span class="main">)</span>

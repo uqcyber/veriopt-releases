@@ -63,7 +63,7 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
     merge = any_usage g nid;
     is_AbstractMergeNode (kind g merge);
 
-    i = input_index g merge nid;
+    i = find_index nid (inputs_of (kind g merge));
     phis = (phi_list g merge);
     inps = (phi_inputs g i phis);
     g m \<turnstile> inps \<longmapsto> vs;

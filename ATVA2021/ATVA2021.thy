@@ -97,8 +97,6 @@ text_raw \<open>\Snip{wff_graph_def}%
 
 
 text_raw \<open>\Snip{programdef}%
-@{bold \<open>type-synonym\<close>} Signature = @{typ string}
-
 @{bold \<open>type-synonym\<close>} Program = @{typ "Signature \<Rightarrow> IRGraph option"}
 \EndSnip\<close>
 

@@ -30,27 +30,26 @@ datatype ExitCause =
   Exception ID Value
 
 inductive assert_test :: "Program 
-      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
       \<Rightarrow> ExitCause
       \<Rightarrow> bool"
   for p where
-  "\<lbrakk>Some g = p s;
-    kind g nid = (UnwindNode exception);
+  "\<lbrakk>kind g nid = (UnwindNode exception);
 
     g m \<turnstile> kind g exception \<mapsto> ObjRef e;
     details = h_load_field ''assertFailure'' e h\<rbrakk>
 
-    \<Longrightarrow> assert_test p (((s,nid,m)#stk),h) (Exception exception details)" |
+    \<Longrightarrow> assert_test p (((g,nid,m)#stk),h) (Exception exception details)" |
 
-  "\<lbrakk>p \<turnstile> (((s,nid,m)#stk),h) \<longrightarrow> (((s',nid',m')#stk'),h');
+  "\<lbrakk>p \<turnstile> (((g,nid,m)#stk),h) \<longrightarrow> (((g',nid',m')#stk'),h');
 
-    assert_test p (((s',nid',m')#stk'),h') es\<rbrakk> 
-    \<Longrightarrow> assert_test p (((s,nid,m)#stk),h) es" |
+    assert_test p (((g',nid',m')#stk'),h') es\<rbrakk> 
+    \<Longrightarrow> assert_test p (((g,nid,m)#stk),h) es" |
 
-  "\<lbrakk>p \<turnstile> (((s,nid,m)#stk),h) \<longrightarrow> (((s',nid',m')#stk'),h');
+  "\<lbrakk>p \<turnstile> (((g,nid,m)#stk),h) \<longrightarrow> (((g',nid',m')#stk'),h');
     has_return m'\<rbrakk>
 
-    \<Longrightarrow> assert_test p (((s,nid,m)#stk),h) NormalReturn"
+    \<Longrightarrow> assert_test p (((g,nid,m)#stk),h) NormalReturn"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as assertTest,
                   i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as assertTestOut)
@@ -205,8 +204,8 @@ definition prog :: Program where
  (5, (ReturnNode ((Some 4)) (None)), VoidStamp)])
 "
 
-value "assert_test prog ([(''VerifyProgram.verify()V'', 0, new_map []),(''VerifyProgram.verify()V'', 0, new_map [])], assertEnabledHeap) NormalReturn"
-values "{m | m . assert_test prog ([(''VerifyProgram.verify()V'', 0, new_map [])], assertEnabledHeap) m}"
+value "assert_test prog ([(the (prog ''VerifyProgram.verify()V''), 0, new_map []),(the (prog ''VerifyProgram.verify()V''), 0, new_map [])], assertEnabledHeap) NormalReturn"
+values "{m | m . assert_test prog ([(the (prog ''VerifyProgram.verify()V''), 0, new_map [])], assertEnabledHeap) m}"
 
 
 end

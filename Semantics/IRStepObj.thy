@@ -342,96 +342,89 @@ subsection \<open>Interprocedural Semantics\<close>
 type_synonym Signature = "string"
 type_synonym Program = "Signature \<rightharpoonup> IRGraph"
 
-inductive step_top :: "Program \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> bool"
+inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> bool"
   ("_ \<turnstile> _ \<longrightarrow> _" 55) 
   for p where
 
   Lift:
-  "\<lbrakk>Some g = p s;
-    g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#stk, h) \<longrightarrow> ((s,nid',m')#stk, h')" |
+  "\<lbrakk>g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
+    \<Longrightarrow> p \<turnstile> ((g,nid,m)#stk, h) \<longrightarrow> ((g,nid',m')#stk, h')" |
 
   InvokeNodeStep:
-  "\<lbrakk>Some g = p s;
-    is_Invoke (kind g nid);
+  "\<lbrakk>is_Invoke (kind g nid);
 
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
+    Some targetGraph = p targetMethod;
 
     g m \<turnstile> arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#stk, h) \<longrightarrow> ((targetMethod,0,m')#(s,nid,m)#stk, h)" |
+    \<Longrightarrow> p \<turnstile> ((g,nid,m)#stk, h) \<longrightarrow> ((targetGraph,0,m')#(g,nid,m)#stk, h)" |
 
   ReturnNode:
-  "\<lbrakk>Some g = p s;
-    kind g nid = (ReturnNode (Some expr) _);
+  "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
     g m \<turnstile> (kind g expr) \<mapsto> v;
 
-    Some c_g = p c_s;
     c_m' = m_set c_nid v c_m;
     c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,c_nid',c_m')#stk, h)" |
+    \<Longrightarrow> p \<turnstile> ((g,nid,m)#(c_g,c_nid,c_m)#stk, h) \<longrightarrow> ((c_g,c_nid',c_m')#stk, h)" |
 
   ReturnNodeVoid:
-  "\<lbrakk>Some g = p s;
-    kind g nid = (ReturnNode None _);
-    Some c_g = p c_s;
+  "\<lbrakk>kind g nid = (ReturnNode None _);
     c_m' = m_set c_nid (ObjRef (Some (2048))) c_m;
     
     c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,c_nid',c_m')#stk, h)" |
+    \<Longrightarrow> p \<turnstile> ((g,nid,m)#(c_g,c_nid,c_m)#stk, h) \<longrightarrow> ((c_g,c_nid',c_m')#stk, h)" |
 
   UnwindNode:
-  "\<lbrakk>Some g = p s;
-    kind g nid = (UnwindNode exception);
+  "\<lbrakk>kind g nid = (UnwindNode exception);
 
     g m \<turnstile> (kind g exception) \<mapsto> e;
-
-    Some c_g = (p c_s);      
+     
     kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 
     c_m' = m_set c_nid e c_m\<rbrakk>
-  \<Longrightarrow> p \<turnstile> ((s,nid,m)#(c_s,c_nid,c_m)#stk, h) \<longrightarrow> ((c_s,exEdge,c_m')#stk, h)"
+  \<Longrightarrow> p \<turnstile> ((g,nid,m)#(c_g,c_nid,c_m)#stk, h) \<longrightarrow> ((c_g,exEdge,c_m')#stk, h)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 
 subsection \<open>Big-step Execution\<close>
 
-type_synonym Trace = "(Signature \<times> ID \<times> MapState) list"
+type_synonym Trace = "(IRGraph \<times> ID \<times> MapState) list"
 
 fun has_return :: "MapState \<Rightarrow> bool" where
   "has_return m = ((m_val m 0) \<noteq> UndefVal)"
 
 inductive exec :: "Program 
-      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
       \<Rightarrow> Trace 
-      \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
       \<Rightarrow> Trace 
       \<Rightarrow> bool"
   ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
   for p
   where
-  "\<lbrakk>p \<turnstile> (((s,nid,m)#xs),h) \<longrightarrow> (((s',nid',m')#ys),h');
+  "\<lbrakk>p \<turnstile> (((g,nid,m)#xs),h) \<longrightarrow> (((g',nid',m')#ys),h');
     \<not>(has_return m');
 
-    l' = (l @ [(s, nid,m)]);
+    l' = (l @ [(g, nid,m)]);
 
-    exec p (((s',nid',m')#ys),h') l' next_state l''\<rbrakk> 
-    \<Longrightarrow> exec p (((s,nid,m)#xs),h) l next_state l''" 
+    exec p (((g',nid',m')#ys),h') l' next_state l''\<rbrakk> 
+    \<Longrightarrow> exec p (((g,nid,m)#xs),h) l next_state l''" 
 (* TODO: refactor this stopping condition to be more abstract *)
   |
-  "\<lbrakk>p \<turnstile> (((s,nid,m)#xs),h) \<longrightarrow> (((s',nid',m')#ys),h');
+  "\<lbrakk>p \<turnstile> (((g,nid,m)#xs),h) \<longrightarrow> (((g',nid',m')#ys),h');
     has_return m';
 
-    l' = (l @ [(s,nid,m)])\<rbrakk>
-    \<Longrightarrow> exec p (((s,nid,m)#xs),h) l (((s',nid',m')#ys),h') l'"
+    l' = (l @ [(g,nid,m)])\<rbrakk>
+    \<Longrightarrow> exec p (((g,nid,m)#xs),h) l (((g',nid',m')#ys),h') l'"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool as Exec) "exec" .
 
 
 inductive exec_debug :: "Program
-     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
+     \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
      \<Rightarrow> nat
-     \<Rightarrow> (Signature \<times> ID \<times> MapState) list \<times> FieldRefHeap
+     \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
      \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>*_* _")
   where
@@ -452,7 +445,7 @@ definition p3:: MapState where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{m_val (prod.snd (prod.snd (hd (prod.fst res)))) 0 
-        | res. (\<lambda>x . Some eg2_sq) \<turnstile> ([('''',0, p3), ('''',0, p3)], new_heap) \<rightarrow>*2* res}"
+        | res. (\<lambda>x . Some eg2_sq) \<turnstile> ([(eg2_sq,0, p3), (eg2_sq,0, p3)], new_heap) \<rightarrow>*2* res}"
 
 definition field_sq :: string where
   "field_sq = ''sq''"
@@ -468,7 +461,7 @@ definition eg3_sq :: IRGraph where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
 values "{h_load_field field_sq None (prod.snd res)
-        | res. (\<lambda>x. Some eg3_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
+        | res. (\<lambda>x. Some eg3_sq) \<turnstile> ([(eg3_sq, 0, p3), (eg3_sq, 0, p3)], new_heap) \<rightarrow>*3* res}"
 
 definition eg4_sq :: IRGraph where
   "eg4_sq = irgraph [
@@ -482,6 +475,6 @@ definition eg4_sq :: IRGraph where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
 values "{h_load_field field_sq (Some 0) (prod.snd res)
-        | res. (\<lambda>x. Some eg4_sq) \<turnstile> ([('''', 0, p3), ('''', 0, p3)], new_heap) \<rightarrow>*3* res}"
+        | res. (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, p3), (eg4_sq, 0, p3)], new_heap) \<rightarrow>*3* res}"
 end
 

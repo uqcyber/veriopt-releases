@@ -17,7 +17,7 @@ declare [[ML_source_trace]]
 inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Trace \<Rightarrow> bool" ("_|_\<leadsto>_|_")
   where
   "\<lbrakk>state = new_map ps;
-    (\<lambda>x. Some g) \<turnstile> ([('''', 0, state), ('''', 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
+    (\<lambda>x. Some g) \<turnstile> ([(g, 0, state), (g, 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
     \<Longrightarrow> exec_graph g ps (prod.snd end) l"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> o \<Rightarrow> bool as execE) "exec_graph" .
 
@@ -142,7 +142,8 @@ values "{m_val m 0 |n m l. sum | [IntVal 32 20] \<leadsto> (n, m) | l}"
 inductive exec_prog :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_|_|_\<leadsto>_")
   where
   "\<lbrakk>state = new_map ps;
-    p \<turnstile> ([(main, 0, state), (main, 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
+    Some main_g = p main;
+    p \<turnstile> ([(main_g, 0, state), (main_g, 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
     \<Longrightarrow> exec_prog p main ps (prod.snd end)"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> bool as execProgE) "exec_prog" .
 
@@ -242,12 +243,13 @@ definition combs :: Program where
 
 definition combs_params where "combs_params = new_map [IntVal 32 10, IntVal 32 6]"
 definition combs_main where "combs_main = ''Combinations.combinations(I, I)I''"
+definition combs_main_g where "combs_main_g = the (combs combs_main)"
 
 values "{m_val m 0 |n m l. combs | combs_main | [IntVal 32 10, IntVal 32 6] \<leadsto> (n, m)}"
 
-values "{l |x h l. combs \<turnstile> ([(combs_main, 0, combs_params), (combs_main, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
-values "{x |x h l. combs \<turnstile> ([(combs_main, 0, combs_params), (combs_main, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
-values "{m_values (prod.snd (prod.snd (x!0))) 12 |x h l. combs \<turnstile> ([(combs_main, 0, combs_params), (combs_main, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
+values "{l |x h l. combs \<turnstile> ([(combs_main_g, 0, combs_params), (combs_main_g, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
+values "{x |x h l. combs \<turnstile> ([(combs_main_g, 0, combs_params), (combs_main_g, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
+values "{m_values (prod.snd (prod.snd (x!0))) 12 |x h l. combs \<turnstile> ([(combs_main_g, 0, combs_params), (combs_main_g, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
 
 
 definition native_combs :: Program where
@@ -322,10 +324,12 @@ definition native_combs :: Program where
 
 definition native_combs_params where "native_combs_params = new_map [IntVal 32 10, IntVal 32 6]"
 definition native_combs_main where "native_combs_main = ''Combinations.combinations(II)I''"
+definition native_combs_main_g where "native_combs_main_g = the (native_combs native_combs_main)"
+
 
 values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 32 10, IntVal 32 6] \<leadsto> (n, m)}"
 
-values "{m | m . native_combs \<turnstile> ([(native_combs_main, 0, native_combs_params)], new_heap) \<rightarrow>*7* m}"
+values "{m | m . native_combs \<turnstile> ([(native_combs_main_g, 0, native_combs_params)], new_heap) \<rightarrow>*7* m}"
 
 
 definition simple_obj :: Program where
@@ -416,7 +420,7 @@ definition simple_obj_main where "simple_obj_main = ''SimpleObject.objExample()I
 
 values "{m_val m 0 |n m l. simple_obj | simple_obj_main | [] \<leadsto> (n, m)}"
 
-values "{m | m . simple_obj \<turnstile> ([(simple_obj_main, 0, empty_params)], new_heap) \<rightarrow>*21* m}"
+values "{m | m . simple_obj \<turnstile> ([(the (simple_obj simple_obj_main), 0, empty_params)], new_heap) \<rightarrow>*21* m}"
 
 
 definition multiple_obj :: Program where
@@ -660,6 +664,6 @@ definition parcel_main where "parcel_main = ''PassTheParcel.test(II)I''"
 values "{m_val m 0 |n m l. pass_the_parcel | parcel_main | [IntVal 32 5, IntVal 32 20] \<leadsto> (n, m)}"
 
 definition parcel_params where "parcel_params = new_map [IntVal 32 2, IntVal 32 3]"
-values "{m | m . pass_the_parcel \<turnstile> ([(parcel_main, 0, parcel_params)], new_heap) \<rightarrow>*98* m}"
+values "{m | m . pass_the_parcel \<turnstile> ([(the (pass_the_parcel parcel_main), 0, parcel_params)], new_heap) \<rightarrow>*98* m}"
 
 end

@@ -10,7 +10,7 @@ declare [[ML_source_trace]]
 inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
   where
   "\<lbrakk>state = new_map ps;
-    (\<lambda>x. Some g) \<turnstile> ([('''', 0, state), ('''', 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l \<rbrakk>
+    (\<lambda>x. Some g) \<turnstile> ([(g, 0, state), (g, 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l \<rbrakk>
     \<Longrightarrow> static_test g ps (m_val (prod.snd (prod.snd end)) 0)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE) static_test .
@@ -21,17 +21,20 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE)
 inductive program_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
   where
   InitStatics:
-  "\<lbrakk> Some g = prog '''';
+  "\<lbrakk>Some init = prog '''';
     state0 = new_map [];
-    prog \<turnstile> ([('''', 0, state0), ('''', 0, state0)], new_heap) | [] \<longrightarrow>* ((end1 # xs1), heap1) | l1;
+    prog \<turnstile> ([(init, 0, state0), (init, 0, state0)], new_heap) | [] \<longrightarrow>* ((end1 # xs1), heap1) | l1;
+    
+    Some g = prog m;
     state1 = new_map ps;
-    prog \<turnstile> ([(m, 0, state1), (m, 0, state1)], heap1) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2 \<rbrakk>
+    prog \<turnstile> ([(g, 0, state1), (g, 0, state1)], heap1) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2 \<rbrakk>
     \<Longrightarrow> program_test prog m ps (m_val (prod.snd (prod.snd end2)) 0)" |
 
   NoStatics:
   "\<lbrakk>'''' \<notin> dom prog;
+    Some g = prog m;
     state = new_map ps;
-    prog \<turnstile> ([(m, 0, state), (m, 0, state)], new_heap) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2 \<rbrakk>
+    prog \<turnstile> ([(g, 0, state), (g, 0, state)], new_heap) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2 \<rbrakk>
     \<Longrightarrow> program_test prog m ps (m_val (prod.snd (prod.snd end2)) 0)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testP) program_test .

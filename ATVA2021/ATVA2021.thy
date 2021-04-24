@@ -9,16 +9,19 @@ begin
 notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 
+syntax (spaced_type_def output)
+  "_constrain" :: "logic => type => logic" ("_ :: _" [4, 0] 3)
+
 text_raw \<open>\Snip{isbinary}
 \begin{center}
-@{text \<open>isBinaryArithmeticNodeType ::\<close>} @{typeof isBinaryArithmeticNodeType}
+@{term_type[mode=spaced_type_def] is_BinaryArithmeticNode}
 \end{center}
 \EndSnip\<close>
 
 (* figure out how to export a subset of IRNode!!! *)
 
 text_raw \<open>\Snip{inputs_of}%
-@{text \<open>inputs_of :: \<close>} @{typeof inputs_of}
+@{term_type[mode=spaced_type_def] inputs_of}
 
 @{thm inputs_of_ConstantNode}
 
@@ -42,35 +45,35 @@ fun kind_fake :: "(ID \<rightharpoonup> IRNode) \<Rightarrow> (ID \<Rightarrow> 
   "kind_fake g = (\<lambda>nid. (case g nid of None \<Rightarrow> NoNode | Some v \<Rightarrow> v))"
 
 text_raw \<open>\Snip{helpers_display}%
-@{text \<open>ids :: \<close>} @{typeof ids_fake}
+@{term_type[mode=spaced_type_def] ids_fake}
 
 @{thm ids_fake.simps}\\[0.75em]
 
-@{text \<open>kind :: \<close>} @{typeof kind_fake}
+@{term_type[mode=spaced_type_def] kind_fake}
 
 @{thm kind_fake.simps}\\[0.75em]
 
-@{text \<open>inputs :: \<close>} @{typeof inputs}
+@{term_type[mode=spaced_type_def] inputs}
 
 @{thm inputs.simps}\\[0.75em]
 
-@{text \<open>succ :: \<close>} @{typeof succ}
+@{term_type[mode=spaced_type_def] succ}
 
 @{thm succ.simps}\\[0.75em]
 
-@{text \<open>input_edges :: \<close>} @{typeof input_edges}
+@{term_type[mode=spaced_type_def] input_edges}
 
 @{thm input_edges.simps}\\[0.75em]
 
-@{text \<open>usages :: \<close>} @{typeof usages}
+@{term_type[mode=spaced_type_def] usages}
 
 @{thm usages.simps}\\[0.75em]
 
-@{text \<open>successor_edges :: \<close>} @{typeof successor_edges}
+@{term_type[mode=spaced_type_def] successor_edges}
 
 @{thm successor_edges.simps}\\[0.75em]
 
-@{text \<open>predecessors :: \<close>} @{typeof predecessors}
+@{term_type[mode=spaced_type_def] predecessors}
 
 @{thm predecessors.simps}\\[0.75em]
 \EndSnip\<close>
@@ -90,7 +93,7 @@ text_raw \<open>\Snip{wf_ends_def}%
 \EndSnip\<close>
 
 text_raw \<open>\Snip{wf_graph_def}%
-@{text \<open>wf_graph :: \<close>} @{typeof wf_graph}
+@{term_type[mode=spaced_type_def] wf_graph}
 
 @{thm wf_graph.simps}
 \EndSnip\<close>

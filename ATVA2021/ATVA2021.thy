@@ -156,7 +156,6 @@ text \<open>
 \induct{@{thm[mode=Rule] eval.ValuePhiNode [no_vars]}}{eval:phi}
 \induct{@{thm[mode=Rule] eval.InvokeNodeEval [no_vars]}}{eval:invoke}
 \induct{@{thm[mode=Rule] eval.LoadFieldNode [no_vars]}}{eval:load}
-\induct{@{thm[mode=Rule] eval.RefNode [no_vars]}}{eval:ref}
 \end{center}
 \<close>
 text_raw \<open>\EndSnip\<close>

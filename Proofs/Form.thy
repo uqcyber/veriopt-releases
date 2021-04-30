@@ -56,10 +56,16 @@ lemma wf_empty: "wf_graph start_end_graph"
 lemma wf_eg2_sq: "wf_graph eg2_sq"
   unfolding eg2_sq_def wf_folds by simp
 
+fun wf_logic_node_inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where 
+"wf_logic_node_inputs g n =
+  (\<forall> inp \<in> set (inputs_of (kind g n)) . (\<forall> v m . (g m \<turnstile> kind g inp \<mapsto> v) \<longrightarrow> wf_bool v))"
 
 fun wf_values :: "IRGraph \<Rightarrow> bool" where
   "wf_values g = (\<forall> n \<in> ids g .
-    (\<forall> v m . (g m \<turnstile> kind g n \<mapsto> v) \<longrightarrow> wf_value v))"
+    (\<forall> v m . (g m \<turnstile> kind g n \<mapsto> v) \<longrightarrow> 
+      (wf_value v \<and> 
+      (is_LogicNode (kind g n) \<longrightarrow> 
+        wf_bool v \<and> wf_logic_node_inputs g n))))"
 
 lemma wf_value_range:
   "b > 1 \<and> b \<in> int_bits_allowed \<longrightarrow> {v. wf_value (IntVal b v)} = {v. ((-(2^(b-1)) \<le> v) \<and> (v < (2^(b-1))))}"

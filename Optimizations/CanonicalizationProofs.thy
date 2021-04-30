@@ -17,9 +17,8 @@ proof (induct rule: CanonicalizeConditional.induct)
     using negate_condition.prems(3) by blast
   then obtain flipv where flipv: "g m \<turnstile> kind g flip \<mapsto> IntVal 1 flipv"
     by (metis LogicNegationNodeE negate_condition.hyps)
-  have invert: "condv = 0 \<longleftrightarrow> (NOT flipv) = 0"
-    using eval.LogicNegationNode condv flipv
-    by (metis Value.inject(1) evalDet negate_condition.hyps)
+  have invert: "(val_to_bool (IntVal 1 condv)) \<longleftrightarrow> \<not>(val_to_bool (IntVal 1 flipv))" 
+    by (metis bool_to_val.simps(1) bool_to_val.simps(2) condv eval.LogicNegationNode evalDet flipv negate_condition.hyps val_to_bool.simps(1) zero_neq_one)
   obtain tbval where tbval: "g m \<turnstile> kind g tb \<mapsto> tbval"
     using negate_condition.prems(3) by blast
   obtain fbval where fbval: "g m \<turnstile> kind g fb \<mapsto> fbval"
@@ -37,12 +36,13 @@ proof (induct rule: CanonicalizeConditional.induct)
   next
     case False
     have flipv_range: "flipv \<in> {0, 1}"
-      using assms(2) flipv wf_value_bit_range sorry (* broken by wf_range to 32
-      by (metis eval_in_ids mem_Collect_eq negate_condition.prems(2) wf_values.elims(2))*)
+      using assms(2) flipv wf_value_bit_range
+      by (metis False insertI1 invert val_to_bool.simps(1))
     have "(NOT flipv) \<noteq> 0"
-      using False invert by fastforce
+      using False invert
+      by (metis bit.compl_zero val_to_bool.simps(1) zero_neq_neg_one)
     then have "flipv \<noteq> 1"
-      using not_eq_complement sorry
+      using not_eq_complement False invert by force
     then have "flipv = 0"
       using flipv_range by auto
     then have "tbval = res"
@@ -380,11 +380,33 @@ lemma double_negate:
   \<Longrightarrow> bool_to_val (\<not>(val_to_bool (bool_to_val (\<not>(val_to_bool x))))) = x" 
   using wf_bool.elims(2) by fastforce
 
+lemma logic_negation_bool_inputs:
+  assumes "wf_values g"
+  assumes "g m \<turnstile> kind g inp \<mapsto> inp_val"
+  assumes "kind g n = LogicNegationNode inp"
+  assumes "g m \<turnstile> kind g n \<mapsto> val"
+  shows "wf_bool inp_val" 
+  using assms
+proof - 
+  have is_logic_node: "is_LogicNode (kind g n)"
+    using is_LogicNode.simps
+    by (simp add: assms(3))
+  have inp_is_input: "inp \<in> set (inputs_of (kind g n))" 
+    by (simp add: assms(3))
+  have n_is_id: "n \<in> ids g" 
+    by (simp add: assms(3))
+  then have wflni: "wf_logic_node_inputs g n" 
+    using wf_values.simps assms(1) is_logic_node inp_is_input assms(2) assms(4) by blast
+  then show ?thesis 
+    using assms(2) inp_is_input wf_logic_node_inputs.simps by blast
+qed
+
 lemma CanonicalizeLogicNegationProof:
   assumes "CanonicalizeLogicNegation g before after"
   assumes "wf_stamps g"
   assumes "g m \<turnstile> before \<mapsto> IntVal b res"
   assumes "g m \<turnstile> after \<mapsto> IntVal b' res'"
+  assumes "wf_values g"
   shows "res = res'"
   using assms 
 proof (induct rule: CanonicalizeLogicNegation.induct)
@@ -402,8 +424,7 @@ next
   obtain refval where refval: "g m \<turnstile> after \<mapsto> refval"
     using assms(4) by auto
   then have "wf_bool xval" 
-    (* TODO: need to make this an assumption somehow *)
-    sorry
+    using logic_negation_bool_inputs logical_not_not.hyps logical_not_not.prems(4) nxval xval by blast
   then have ref_xval_eq: "refval = xval" 
     by (metis RefNode assms(4) evalDet logical_not_not.prems(3) refval xval)
   then have "nxval = bool_to_val (\<not>(val_to_bool xval))"

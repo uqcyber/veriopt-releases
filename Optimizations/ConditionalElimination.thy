@@ -62,16 +62,21 @@ lemma logic_negation_relation:
   assumes "g m \<turnstile> kind g y \<mapsto> val"
   assumes "kind g neg = LogicNegationNode y"
   assumes "g m \<turnstile> kind g neg \<mapsto> invval"
-  shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool inval)"
+  shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
 proof -
   have "wf_value val"
     using assms(1) assms(2) eval_in_ids wf_values.elims(2)
     by meson
   have "wf_value invval"
     using assms(1,4) eval_in_ids wf_values.simps by blast
-  then show ?thesis 
-    using assms eval.LogicNegationNode
-    by fastforce
+  have "wf_bool invval"
+    by (metis LogicNegationNodeE assms(3) assms(4) bool_to_val.elims wf_bool.simps(1))
+  have "invval = bool_to_val (\<not>(val_to_bool val))"
+    using assms(2) assms(3) assms(4) evalDet by fastforce
+  have "val_to_bool invval \<longleftrightarrow> \<not>(val_to_bool val)" 
+    using \<open>invval = bool_to_val (\<not> val_to_bool val)\<close> by force
+  then show ?thesis
+    by simp
 qed
 
 lemma implies_valid:

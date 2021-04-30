@@ -375,4 +375,47 @@ lemma add_val_yzero:
   unfolding intval_add.simps sorry
 *)
 
+lemma double_negate: 
+ "\<lbrakk>wf_bool x\<rbrakk> 
+  \<Longrightarrow> bool_to_val (\<not>(val_to_bool (bool_to_val (\<not>(val_to_bool x))))) = x" 
+  using wf_bool.elims(2) by fastforce
+
+lemma CanonicalizeLogicNegationProof:
+  assumes "CanonicalizeLogicNegation g before after"
+  assumes "wf_stamps g"
+  assumes "g m \<turnstile> before \<mapsto> IntVal b res"
+  assumes "g m \<turnstile> after \<mapsto> IntVal b' res'"
+  shows "res = res'"
+  using assms 
+proof (induct rule: CanonicalizeLogicNegation.induct)
+  case (logical_not_const nx val neg_val)
+  then show ?case 
+    by (smt (verit) ConstantNodeE LogicNegationNodeE Value.inject(1) val_to_bool.simps(1))
+next
+  case (logical_not_not nx x)
+  obtain nxval where nxval: "g m \<turnstile> kind g nx \<mapsto> nxval"
+    using logical_not_not.prems(2) by blast
+  obtain xval where xval: "g m \<turnstile> kind g x \<mapsto> xval"
+    using logical_not_not.prems(3) by blast
+  obtain beforeval where beforeval: "g m \<turnstile> before \<mapsto> beforeval"
+    using assms(3) by auto
+  obtain refval where refval: "g m \<turnstile> after \<mapsto> refval"
+    using assms(4) by auto
+  then have "wf_bool xval" 
+    (* TODO: need to make this an assumption somehow *)
+    sorry
+  then have ref_xval_eq: "refval = xval" 
+    by (metis RefNode assms(4) evalDet logical_not_not.prems(3) refval xval)
+  then have "nxval = bool_to_val (\<not>(val_to_bool xval))"
+    by (smt (verit) LogicNegationNodeE evalDet logical_not_not.hyps nxval val_to_bool.simps(1) xval)
+  then have "beforeval = bool_to_val (\<not>(val_to_bool nxval))"
+    by (smt (verit) LogicNegationNodeE assms(3) beforeval evalDet logical_not_not.prems(2) nxval val_to_bool.simps(1))
+  then have double_negate_xval: "bool_to_val (\<not>(val_to_bool (bool_to_val (\<not>(val_to_bool xval))))) = xval"
+    by (simp add: \<open>wf_bool xval\<close> double_negate)
+  then have node_eq_eq: "beforeval = xval"
+    by (simp add: \<open>beforeval = bool_to_val (\<not> val_to_bool nxval)\<close> \<open>nxval = bool_to_val (\<not> val_to_bool xval)\<close>)
+  show ?thesis 
+    by (metis Value.inject(1) assms(3) assms(4) beforeval evalDet node_eq_eq ref_xval_eq refval)
+qed
+
 end

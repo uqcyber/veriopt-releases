@@ -366,9 +366,9 @@ proof -
     then have ux: "unchanged (eval_usages g1 x) g1 g2"
       by (metis child_member_in child_unchanged inputs_of_LogicNegationNode member_rec(1))
     then have x:"g2 m \<turnstile> (kind g2 x) \<mapsto> IntVal 1 v1"
-      by (metis inputs.simps inp_in_g_wf inputs_of_LogicNegationNode list.set_intros(1) node.hyps(2) node.hyps(4) wf)
+      using eval_in_ids node.hyps(1) node.hyps(2) by blast
     then show ?case
-      by (metis LogicNegationNode kind_unchanged node.hyps(3) node.hyps(4) node.prems(1) node.prems(2))
+      by (metis LogicNegationNode kind_unchanged node.hyps(3) node.hyps(4) node.hyps(5) node.prems(1) node.prems(2))
   next
     case node:(ConditionalNode m condition cond trueExp b trueVal falseExp falseVal val)
     have c: "condition \<in> inputs g1 nid"
@@ -442,7 +442,7 @@ proof -
     case (PiNode m object val)
     have object: "object \<in> inputs g1 nid"
       using inputs_of_PiNode inputs.simps
-      by (metis PiNode.hyps(3) append_Cons list.set_intros(1))
+      by (metis PiNode.hyps(3) list.set_intros(1))
     then have ref: "g2 m \<turnstile> (kind g2 object) \<mapsto> val"
       using PiNode.hyps(1) PiNode.hyps(2) PiNode.prems(2) child_unchanged eval_in_ids by blast
     then show ?case

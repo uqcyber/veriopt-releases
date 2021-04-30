@@ -349,14 +349,25 @@ inductive CanonicalizeNegate :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNo
 
 inductive CanonicalizeNot :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
-  not_const:
+  not_const: (* UnaryArithmeticNode.findSynonym(78) *)
   "\<lbrakk>kind g nx = (ConstantNode val);
-    neg_val = bool_to_val (\<not>(val_to_bool val)) \<rbrakk>
+    neg_val = intval_not val\<rbrakk>
     \<Longrightarrow> CanonicalizeNot g (NotNode nx) (ConstantNode neg_val)" |
 
   not_not:  (* NotNode.canonical(75) *)
   "\<lbrakk>kind g nx = (NotNode x)\<rbrakk>
     \<Longrightarrow> CanonicalizeNot g (NotNode nx) (RefNode x)"
+
+inductive CanonicalizeLogicNegation :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
+  for g where
+  logical_not_const: (* LogicNegationNode.findSynonym(61) *)
+  "\<lbrakk>kind g nx = (ConstantNode val);
+    neg_val = bool_to_val (\<not>(val_to_bool val))\<rbrakk>
+    \<Longrightarrow> CanonicalizeLogicNegation g (LogicNegationNode nx) (ConstantNode neg_val)" |
+
+  logical_not_not:  (* LogicNegationNode.findSynonym(65) *)
+  "\<lbrakk>kind g nx = (LogicNegationNode x)\<rbrakk>
+    \<Longrightarrow> CanonicalizeLogicNegation g (LogicNegationNode nx) (RefNode x)"
 
 inductive CanonicalizeAnd :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode \<Rightarrow> bool" 
   for g where
@@ -616,8 +627,12 @@ inductive CanonicalizationStep :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IR
   "\<lbrakk>CanonicalizeNot g node node'\<rbrakk>
    \<Longrightarrow> CanonicalizationStep g node node'" |
 
-  Negatenode:
+  NegateNode:
   "\<lbrakk>CanonicalizeNegate g node node'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep g node node'" |
+
+  LogicNegationNode:
+  "\<lbrakk>CanonicalizeLogicNegation g node node'\<rbrakk>
    \<Longrightarrow> CanonicalizationStep g node node'"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeConditional .
@@ -630,6 +645,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Canonica
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeAbs .
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeNot .
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeNegate .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizeLogicNegation .
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CanonicalizationStep .
 
 

@@ -112,9 +112,9 @@ inductive
     \<Longrightarrow> g m \<turnstile> (NegateNode x) \<mapsto> (IntVal (v_bits v) 0) - v" |
 
   NotNode:
-  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> val;
-    not_val = (\<not>(val_to_bool val)) \<rbrakk> 
-    \<Longrightarrow> g m \<turnstile> (NotNode x) \<mapsto> bool_to_val not_val" |
+  "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> v;
+    nv = intval_not v\<rbrakk> 
+    \<Longrightarrow> g m \<turnstile> (NotNode x) \<mapsto> nv" |
     
   \<comment> \<open>Binary arithmetic operators\<close>
 
@@ -196,7 +196,8 @@ inductive
 
   LogicNegationNode:
   "\<lbrakk>g m \<turnstile> (kind g x) \<mapsto> IntVal 1 v1;
-    val = IntVal 1 (NOT v1)\<rbrakk> 
+    neg_v1 = (\<not>(val_to_bool (IntVal 1 v1)));
+    val = bool_to_val neg_v1\<rbrakk> 
     \<Longrightarrow> g m \<turnstile> (LogicNegationNode x) \<mapsto> val" |
 
 (* Access the value returned by the most recent call *)

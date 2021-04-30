@@ -72,6 +72,9 @@ fun wf_value :: "Value \<Rightarrow> bool" where
     (nat b > 1 \<longrightarrow> fits_into_n (nat b) v))" |
   "wf_value _ = True"
 
+fun wf_bool :: "Value \<Rightarrow> bool" where
+  "wf_bool (IntVal b v) = (b = 1 \<and> (v = 0 \<or> v = 1))" |
+  "wf_bool _ = False" 
 
 (* boolean values  TODO
 lemma "\<not> (wf_value (IntVal 1 (-1)))" by simp
@@ -218,7 +221,12 @@ fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "^*" 59
        else (IntVal 64 (sint((word_of_int v1 :: int64) XOR (word_of_int v2 :: int64)))))" |
   "intval_xor _ _ = UndefVal"
 
-
+fun intval_not :: "Value \<Rightarrow> Value" where
+  "intval_not (IntVal b v) = 
+     (if b \<le> 32
+       then (IntVal 32 (sint(NOT (word_of_int v :: int32))))
+       else (IntVal 64 (sint(NOT (word_of_int v :: int64)))))" |
+  "intval_not _ = UndefVal"
 
 (* Other possibly-helpful lemmas from WORD and its ancestors:
 

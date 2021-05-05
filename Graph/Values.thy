@@ -273,6 +273,9 @@ proof -
 qed
 
 
+(* ========================================================================
+   Commutative and Associative results.  (Not used yet).
+   ======================================================================== *)
 lemma word_add_sym: 
   shows "word_of_int v1 + word_of_int v2 = word_of_int v2 + word_of_int v1"
   by simp
@@ -290,6 +293,13 @@ lemma intval_add_sym:
   apply (induction "y")
       apply auto
   done
+
+
+lemma word_add_assoc: 
+  shows "(word_of_int v1 + word_of_int v2) + word_of_int v3 
+       = word_of_int v1 + (word_of_int v2 + word_of_int v3)"
+  by simp
+(* =========================== end ========================*)
 
 
 lemma wf_int32:

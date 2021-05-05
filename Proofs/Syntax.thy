@@ -3,16 +3,43 @@ subsection \<open>Custom Syntax\<close>
 theory Syntax
 imports
   Semantics.IRStepObj
-  Bisimulation
+  MyBisimulation
 keywords
   "optimization_phase" :: thy_decl and
   "optimization" :: thy_goal_defn and
-  "perform" "of"
+  "optimization_tactic" :: thy_goal_defn and
+  "perform" "goal" "rewrite" and 
+  "analyse" "traverse" "assign" :: quasi_command and
+  "print_optimizations" :: diag
 begin
 
 (* this theory is still a big WIP *)
 
+definition sound :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "sound g g' = (\<forall>m h nid. (nid \<in> ids g \<longrightarrow> (nid m h | g \<sim> g')))"
+
 ML \<open>
+type optimization_tactic =
+  {name: string, goals: string list(*, fixes: string,
+   goals: string, rewrite: string*)}
+
+structure TacticStore = Theory_Data
+(
+  type T = optimization_tactic list;
+  val empty = [];
+  val extend = I;
+  val merge = Library.merge (fn (_) => false);
+);
+
+val get = TacticStore.get;
+
+fun add t thy = TacticStore.map t thy
+
+val reset = TacticStore.put [];
+
+
+
+
 fun trace_prop str =
 Local_Theory.background_theory (fn ctxt => (tracing str; ctxt))
 
@@ -39,89 +66,193 @@ fun partial_conjunct (lhs, rhs) =
 fun conjunct (terms:term list) t1 : term =
   List.foldr partial_conjunct t1 terms
 
-(*
-fun conjunct ((top::rest):term list) : term =
-  Const ("HOL.conj", @{typ "bool \<Rightarrow> bool \<Rightarrow> bool"})
-  $ top
-  $ (conjunct rest)
-  | conjunct (top::[]) = top
-  | conjunct [] = @{term n}
-*)
+fun assign (assignment:term * term) =
+  Const ("HOL.eq", @{typ "IRNode \<Rightarrow> IRNode \<Rightarrow> bool"})
+  $ fst assignment $ snd assignment;
 
-fun goals ((((name, f), t), props), action) ctxt = 
+fun goals
+  ((
+    name,
+    tactic:string),
+    assigns:(string * string) list)
+   ctxt = 
   let
-    val (_, fixedc) = Variable.add_fixes ["g", "g'"] ctxt
-
-    (*val props = map (to_prop fixedc) props*)
-    val act = Syntax.read_term fixedc action
-    val combination =   Const ("HOL.Trueprop", @{typ "bool \<Rightarrow> prop"})
-                      $ (Const ("HOL.implies", @{typ "bool \<Rightarrow> bool \<Rightarrow> bool"})
-                      $ conjunct (map (Syntax.read_term ctxt) props)
-                        act
-                      $ ((Const ("Bisimulation.strong_noop_bisimilar",
-                                @{typ "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"}))
-                      $ (Free ("nid", @{typ ID}))
-                      $ (Free ("g", @{typ IRGraph}))
-                      $ (Free ("g'", @{typ IRGraph}))))
-    
-    (*val assums = Proof.assume [] [wrap_term combination] []*)
-
-    (*val theory = (Proof.theorem NONE (K I) ([act] :: [(con, [])] :: [props]) fixedc)*)
+    val assigns = map (fn a => (Syntax.read_term ctxt ((fst a)^"::IRNode"), Syntax.read_term ctxt (snd a))) assigns;
+    val assigns = (map assign assigns);
 
     fun after_qed thm_name thms lthy =
-      Local_Theory.note (name, (flat thms)) lthy |> snd
+      let
+        val thy' = ((Local_Theory.note (name, (flat thms)) lthy) |> snd)
+      in
+        (Local_Theory.note (name, flat thms) lthy) |> snd
+      end
+
+    (*val compilation = Predicate_Compile_Core.code_pred
+      Predicate_Compile_Aux.default_options
+      "flip_negation"
+      ctxt*)
+
+    val _ = @{print} {name = name, assigns = assigns}
   in
-    (Proof.theorem NONE (after_qed "mything") [[(wrap_term combination)]] fixedc)
-    (*Proof.set_facts [@{thm def_Collect_coinduct}] (Proof.begin_block (Proof.init ctxt1))*)
-    (*Proof.assume [] [props] [] (Proof.init fixedc)*)
-    (* Proof.fix_cmd f (Proof.init ctxt1) *)
-    (*Proof.fix_cmd f (Proof.theorem NONE (K I) ([act] :: [(con, [])] :: [props]) fixedc)*)
+    Proof.theorem NONE (after_qed "mything") [map wrap_term assigns] ctxt
   end
+
+type 'a optimization =
+  {name: string, phase: string, class: optimization_tactic,
+   rule: thm
+(*, code: 'a Predicate.pred*)
+}
+
+val parse_optimization_declaration =
+  Parse_Spec.thm_name "(" --| Parse.name -- Parse.$$$ ")" --| Parse.$$$ ":"
+
+val parse_assignments =
+  Scan.repeat (Parse.$$$ "assign" |-- Parse.name --| Parse.$$$ ":" -- Parse.term)
 
 val _ =
   Outer_Syntax.local_theory_to_proof \<^command_keyword>\<open>optimization\<close>
     "perform an optimization and open proof obligation"
-    (Parse_Spec.thm_name "of" --
-      (Parse.params) --
-      (Parse.keyword_improper "and" |-- Parse.params) --
-      Scan.repeat (Parse.keyword_improper "assumes" |-- Parse.prop) --
-      (Parse.keyword_improper "perform" |-- Parse.prop)
+    (parse_optimization_declaration
+     -- parse_assignments
      >> goals);
 
-fun do_nothing name = (Local_Theory.background_theory I)
+fun do_nothing _ = (Local_Theory.background_theory I)
 
 val _ =
   Outer_Syntax.local_theory \<^command_keyword>\<open>optimization_phase\<close>
-    "quotient type definitions (require equivalence proofs)"
-    (Parse.name |-- Parse.begin >> do_nothing);
+    "Whole optimization phase definition"
+    (
+      Parse.name
+      -- Parse.$$$ "analyse"
+      -- Parse.$$$ "traverse"
+    >> do_nothing);
+
+
+fun show_sound
+  (obligation:term)
+  (goals:(term list))
+  (rewrite:term) =
+  Const ("HOL.Trueprop", @{typ "bool \<Rightarrow> prop"})
+  $ (Const ("HOL.implies", @{typ "bool \<Rightarrow> bool \<Rightarrow> bool"})
+    $ conjunct goals rewrite
+    $ obligation);
+
+fun register_tactic thms ctxt =
+  let
+    val register = TacticStore.put [{name="ahhhh", goals=[""]}, {name="no", goals=[""]}]
+  in
+    Proof_Context.background_theory (register) ctxt
+  end
+
+fun declare_tactic
+  (((((
+    name:string,
+    target:string option),
+    fixes:(binding * string option * mixfix) list),
+    conditions:string list),
+    goal:string),
+    rewrite:string)
+  thy =
+  let
+    val conditions = map (Syntax.read_term thy) conditions;
+    val goal = Syntax.read_term thy goal;
+    val rewrite = Syntax.read_term thy rewrite;
+
+    val _ = @{print} {name = name, target = target, fixes = fixes, conditions = conditions,
+                      goal = goal, rewrite = rewrite, thy = thy}
+  in
+    (Proof.theorem NONE register_tactic [[(wrap_term (show_sound @{term "sound g g'"} [goal] rewrite))]] thy)
+  end
+
+val parse_fixes =
+  Scan.repeat (Parse.$$$ "fixes" |-- Parse.!!! Parse_Spec.locale_fixes)
+
+val parse_target =
+  Scan.option (Parse.$$$ ":" |-- Parse.name)
+
+val parse_conditions =
+  Scan.repeat (Parse.$$$ "when" |-- Parse.prop)
+
+val parse_goal =
+  (Parse.$$$ "goal" |-- Parse.prop)
+
+val parse_rewrite =
+  (Parse.$$$ "rewrite" |-- Parse.prop)
+
+val _ =
+  Outer_Syntax.local_theory_to_proof \<^command_keyword>\<open>optimization_tactic\<close>
+    "define a new tactic to specify optimizations"
+    (
+      Parse.name
+      -- parse_target 
+      -- (parse_fixes >> flat)
+      -- parse_conditions
+      -- parse_goal
+      -- parse_rewrite
+    >> declare_tactic);
+
+fun print_optimizations ctxt =
+  Pretty.writeln (Pretty.str "hi");
+
+fun print_optimizations ctxt =
+  let
+    fun print_goals goal =
+      Pretty.str goal;
+    fun print_tact tact =
+      Pretty.big_list
+        ((#name tact) ^ ":")
+        ((map print_goals (#goals tact)));
+  in
+    [Pretty.big_list "optimization_tactics:" (map print_tact (get ctxt))]
+  end |> Pretty.writeln_chunks;
+
+val _ =
+  Outer_Syntax.command \<^command_keyword>\<open>print_optimizations\<close>
+    "print debug information for optimizations"
+    (Scan.succeed
+      (Toplevel.keep (print_optimizations o Toplevel.theory_of)));
 \<close>
 
-value "Bisimulation.strong_noop_bisimilar A B"
 
-value "HOL.Trueprop (HOL.implies A B)"
+optimization_tactic soundness
+  fixes g :: IRGraph
+  fixes g' :: IRGraph
+  goal "sound g g'"
+  rewrite "g' = g"
+  by simp
 
-optimization_phase Canonicalization begin
-  optimization flip_negation of g and g'
-    assumes "kind g nid = (ConditionalNode cond tb fb)"
-    assumes "kind g cond = LogicNegationNode flip"
-    perform "g' = replace_node nid ((ConditionalNode flip fb tb),s) g"
-    sorry
+ML_val "TacticStore.get (Proof_Context.theory_of @{context})"
+print_optimizations
 
-  print_theorems
+ML \<open>Proof_Context.background_theory (TacticStore.put [{name="hi", goals=[]}])\<close>
+print_optimizations
 
-    (*"\<lbrakk>kind g nid = (ConditionalNode cond tb fb);
-      kind g cond = LogicNegationNode flip;
-      g' = replace_node nid ((ConditionalNode flip fb tb),s) g\<rbrakk>
-      \<Longrightarrow> True"*)
+optimization_tactic data : soundness
+  fixes before :: IRNode
+  fixes after :: IRNode
+  goal "(g m \<turnstile> before \<mapsto> res) \<and> (g m \<turnstile> after \<mapsto> res)"
+  rewrite "kind g nid = before \<longrightarrow> (g' = replace_node nid after g)"
+  sorry
 
-(*
-      (* FIXME Parse.type_args_constrained and standard treatment of sort constraints *)
-      (Parse_Spec.overloaded -- (Parse.type_args -- Parse.binding --
-        Parse.opt_mixfix -- (\<^keyword>\<open>=\<close> |-- Parse.typ) -- (\<^keyword>\<open>/\<close> |--
-          Scan.optional (Parse.reserved "partial" -- \<^keyword>\<open>:\<close> >> K true) false -- Parse.term) --
-        Scan.option (\<^keyword>\<open>morphisms\<close> |-- Parse.!!! (Parse.binding -- Parse.binding)) --
-        Scan.option (\<^keyword>\<open>parametric\<close> |-- Parse.!!! Parse.thm))
-      >> (fn (overloaded, spec) => quotient_type_cmd {overloaded = overloaded} spec))\<close>
-*)
+setup \<open>
+  TacticStore.put
+    [{name="soundness", goals=["sound g g'"]},
+    {name="data", goals=["(g m \<turnstile> before \<mapsto> res) \<and> (g m \<turnstile> after \<mapsto> res)"]}]
+\<close>
+
+ML_val "TacticStore.get (Proof_Context.theory_of @{context})"
+
+print_optimizations
+
+optimization_phase Canonicalization 
+  analyse
+  traverse
+
+optimization flip_negation (data):
+  assign before : "ConditionalNode cond tb fb"
+  assign after : "LogicNegationNode flip"
+  sorry
+
+print_theorems
 
 end

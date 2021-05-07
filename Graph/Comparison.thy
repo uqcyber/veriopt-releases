@@ -18,13 +18,20 @@ fun find_ref_nodes :: "IRGraph \<Rightarrow> (ID \<rightharpoonup> ID)" where
 fun replace_ref_nodes :: "IRGraph \<Rightarrow> (ID \<rightharpoonup> ID) \<Rightarrow> ID list \<Rightarrow> ID list" where
 "replace_ref_nodes g m xs = map (\<lambda>id. (case (m id) of Some other \<Rightarrow> other | None \<Rightarrow> id)) xs"
 
-inductive reachables :: "IRGraph \<Rightarrow> ID list \<Rightarrow> ID set \<Rightarrow> bool" where
-"reachables g [] {}" |
-"\<lbrakk>node = kind g n;
-  new = (inputs_of node) @ (successors_of node);
-  reachables g (to_see @ new) seen \<rbrakk> \<Longrightarrow> reachables g (n # to_see) ({n} \<union> seen)"
+fun find_next :: "ID list \<Rightarrow> ID set \<Rightarrow> ID option" where
+  "find_next to_see seen = (let l = (filter (\<lambda>nid. nid \<notin> seen) to_see)
+    in (case l of [] \<Rightarrow> None | xs \<Rightarrow> Some (hd xs)))"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) reachables .
+inductive reachables :: "IRGraph \<Rightarrow> ID list \<Rightarrow> ID set \<Rightarrow> ID set \<Rightarrow> bool" where
+"reachables g [] {} {}" |
+"\<lbrakk>None = find_next to_see seen\<rbrakk> \<Longrightarrow> reachables g to_see seen seen" |
+"\<lbrakk>Some n = find_next to_see seen;
+  node = kind g n;
+  new = (inputs_of node) @ (successors_of node);
+  reachables g (to_see @ new) ({n} \<union> seen) seen' \<rbrakk> \<Longrightarrow> reachables g to_see seen seen' "
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) [show_steps,show_mode_inference,show_intermediate_results] 
+reachables .
 
 inductive nodeEq :: "(ID \<rightharpoonup> ID) \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> bool" where 
 "\<lbrakk> kind g1 n1 = RefNode ref; nodeEq m g1 ref g2 n2 \<rbrakk> \<Longrightarrow> nodeEq m g1 n1 g2 n2" | 
@@ -39,7 +46,7 @@ code_pred [show_modes] nodeEq .
 
 fun diffNodesGraph :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> ID set" where
 "diffNodesGraph g1 g2 = (let refNodes = find_ref_nodes g1 in
-    { n . n \<in> Predicate.the (reachables_i_i_o g1 [0]) \<and> (case refNodes n of Some _ \<Rightarrow> False | _ \<Rightarrow> True) \<and> \<not>(nodeEq refNodes g1 n g2 n)})"
+    { n . n \<in> Predicate.the (reachables_i_i_i_o g1 [0] {}) \<and> (case refNodes n of Some _ \<Rightarrow> False | _ \<Rightarrow> True) \<and> \<not>(nodeEq refNodes g1 n g2 n)})"
 
 fun diffNodesInfo :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode \<times> IRNode) set" where
 "diffNodesInfo g1 g2 = {(nid, kind g1 nid, kind g2 nid) | nid . nid \<in> diffNodesGraph g1 g2}"

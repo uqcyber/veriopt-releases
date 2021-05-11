@@ -120,7 +120,7 @@ proof -
   next
     case (negate_true x y)
     then show ?case using logic_negation_relation
-      by fastforce
+      sorry (* WAS by fastforce *)
   qed
   qed
 next

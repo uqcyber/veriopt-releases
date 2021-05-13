@@ -52,7 +52,7 @@ lemma nextNidNotIn:
 fun constantCondition :: "bool \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "constantCondition val nid (IfNode cond t f) g = 
     replace_node nid (IfNode (nextNid g) t f, stamp g nid) 
-      (add_node (nextNid g) ((ConstantNode (bool_to_val val)), default_stamp) g)" |
+      (add_node (nextNid g) ((ConstantNode (bool_to_val val)), constantAsStamp (bool_to_val val)) g)" |
   "constantCondition cond nid _ g = g"
 
 lemma constantConditionTrue:
@@ -122,7 +122,7 @@ lemma constantConditionIfNode:
   assumes "kind g nid = IfNode cond t f"
   shows "constantCondition val nid (kind g nid) g = 
     replace_node nid (IfNode (nextNid g) t f, stamp g nid) 
-     (add_node (nextNid g) ((ConstantNode (bool_to_val val)), default_stamp) g)"
+     (add_node (nextNid g) ((ConstantNode (bool_to_val val)), constantAsStamp (bool_to_val val)) g)"
   using constantCondition.simps
   by (simp add: assms)
 

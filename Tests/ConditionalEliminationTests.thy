@@ -1031,8 +1031,8 @@ definition ConditionalEliminationTest1_test1Snippet_final :: IRGraph where  "Con
   (49, (StoreFieldNode 49 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink0'' 3 (Some 50) None 51), VoidStamp),
   (50, (FrameState [] None None None), IllegalStamp),
   (51, (ReturnNode None None), VoidStamp),
-  (52, (LogicConstantNode (IntVal 1 (0))), VoidStamp),
-  (53, (LogicConstantNode (IntVal 1 (1))), VoidStamp)
+  (52, (ConstantNode (IntVal 1 (0))), VoidStamp),
+  (53, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
 
 value "
@@ -1154,8 +1154,8 @@ definition ConditionalEliminationTest1_test2Snippet_final :: IRGraph where  "Con
   (38, (StoreFieldNode 38 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink0'' 3 (Some 39) None 40), VoidStamp),
   (39, (FrameState [] None None None), IllegalStamp),
   (40, (ReturnNode None None), VoidStamp),
-  (41, (LogicConstantNode (IntVal 1 (1))), VoidStamp),
-  (42, (LogicConstantNode (IntVal 1 (0))), VoidStamp)
+  (41, (ConstantNode (IntVal 1 (1))), VoidStamp),
+  (42, (ConstantNode (IntVal 1 (0))), VoidStamp)
   ]"
 
 value "
@@ -1317,8 +1317,8 @@ definition ConditionalEliminationTest1_test3Snippet_final :: IRGraph where  "Con
   (58, (StoreFieldNode 58 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink0'' 3 (Some 59) None 60), VoidStamp),
   (59, (FrameState [] None None None), IllegalStamp),
   (60, (ReturnNode None None), VoidStamp),
-  (61, (LogicConstantNode (IntVal 1 (1))), VoidStamp),
-  (62, (LogicConstantNode (IntVal 1 (0))), VoidStamp)
+  (61, (ConstantNode (IntVal 1 (1))), VoidStamp),
+  (62, (ConstantNode (IntVal 1 (0))), VoidStamp)
   ]"
 
 value "
@@ -1396,7 +1396,7 @@ definition ConditionalEliminationTest4_test1Snippet_final :: IRGraph where  "Con
   (16, (FrameState [] None None None), IllegalStamp),
   (17, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
   (18, (ReturnNode (Some 17) None), VoidStamp),
-  (19, (LogicConstantNode (IntVal 1 (1))), VoidStamp)
+  (19, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
 
 value "
@@ -1474,7 +1474,7 @@ definition ConditionalEliminationTest4_test2Snippet_final :: IRGraph where  "Con
   (16, (FrameState [] None None None), IllegalStamp),
   (17, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
   (18, (ReturnNode (Some 17) None), VoidStamp),
-  (19, (LogicConstantNode (IntVal 1 (1))), VoidStamp)
+  (19, (ConstantNode (IntVal 1 (1))), VoidStamp)
   ]"
 
 value "

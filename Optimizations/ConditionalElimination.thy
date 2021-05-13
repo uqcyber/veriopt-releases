@@ -542,10 +542,10 @@ inductive Step
     kind g ifcond = IfNode cond t f;
 
     i = find_index nid (successors_of (kind g ifcond));
-    c = (if i = 0 then kind g cond else NegateNode cond);
+    c = (if i = 0 then kind g cond else LogicNegationNode cond);
     conds' = c # conds;
 
-    flow' = registerNewCondition g (kind g cond) (hdOr flow (stamp g))\<rbrakk>
+    flow' = registerNewCondition g c (hdOr flow (stamp g))\<rbrakk>
    \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow' # flow))" |
 
   \<comment> \<open>

@@ -16,7 +16,7 @@ additionally provide a number of lemmas which help to prove future optimizations
 
 datatype Stamp = 
   VoidStamp
-  | IntegerStamp (stp_bits: nat) (stpi_lower: int) (stpi_upper: int)
+  | IntegerStamp (stp_bits: nat) (stpi_lower: int64) (stpi_upper: int64)
   (* | FloatStamp (stp_bits: nat) (stpf_lower: float) (stpf_upper: float) *)
   | KlassPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
   | MethodCountersPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
@@ -25,7 +25,7 @@ datatype Stamp =
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
   | IllegalStamp
 
-fun bit_bounds :: "nat \<Rightarrow> (int \<times> int)" where
+fun bit_bounds :: "nat \<Rightarrow> (int64 \<times> int64)" where
   "bit_bounds bits = (((2 ^ bits) div 2) * -1, ((2 ^ bits) div 2) - 1)"
 
 (* NOTE: the FloatStamp has been commented out to allow use of code generation facilities *)
@@ -123,7 +123,7 @@ the asConstant function converts the stamp to a value where one can be inferred.
 \<close>
 (* NOTE: we could also add a 32-bit version of this if needed. *)
 fun asConstant :: "Stamp \<Rightarrow> Value" where
-  "asConstant (IntegerStamp b l h) = (if l = h then IntVal64 (word_of_int l) else UndefVal)" |
+  "asConstant (IntegerStamp b l h) = (if l = h then IntVal64 l else UndefVal)" |
   "asConstant _ = UndefVal"
 
 \<comment> \<open>Determine if two stamps never have value overlaps i.e. their join is empty\<close>
@@ -134,15 +134,30 @@ fun alwaysDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
 fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
 
+fun widen :: "int32 \<Rightarrow> int64" where
+  "widen bits = (word_of_int (Word.the_int bits))"
+fun narrow :: "int64 \<Rightarrow> int32" where
+  "narrow bits = (word_of_int (Word.the_int bits))"
+
+lemma 
+  fixes thing::int32
+  shows "(Word.the_int thing) = Word.the_int (word_of_int (Word.the_int thing))"
+  sorry
+
+lemma
+  "(Word.the_int (widen bits)) = (Word.the_int bits)"
+  sorry
+
 fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
-  "constantAsStamp (IntVal32 v) = (IntegerStamp (nat 32) (sint v) (sint v))" |
-  "constantAsStamp (IntVal64 v) = (IntegerStamp (nat 64) (sint v) (sint v))" |
+  "constantAsStamp (IntVal32 v) = (IntegerStamp (nat 32) (widen v) (widen v))" |
+  "constantAsStamp (IntVal64 v) = (IntegerStamp (nat 64) v v)" |
   (* TODO: float *)
   "constantAsStamp _ = IllegalStamp"
 
 \<comment> \<open>Define when a runtime value is valid for a stamp\<close>
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
-  "valid_value (IntegerStamp b l h) (IntVal32 v) = ((sint v \<ge> l) \<and> (sint v \<le> h))" |
+  "valid_value (IntegerStamp b l h) (IntVal32 v) = ((widen v \<ge> l) \<and> (widen v \<le> h))" |
+  "valid_value (IntegerStamp b l h) (IntVal64 v) = ((v \<ge> l) \<and> (v \<le> h))" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
   "valid_value (VoidStamp) (UndefVal) = True" |
   "valid_value stamp val = False"
@@ -154,19 +169,45 @@ integer stamp with an unrestricted range. We use @{text default_stamp} as it is 
 definition default_stamp :: "Stamp" where
   "default_stamp = (unrestricted_stamp (IntegerStamp 32 0 0))"
 
+(*fun wf_stamp_range :: "Stamp \<Rightarrow> bool" where
+  "wf_stamp_range (IntegerStamp bits lower upper) = 
+    (fits_into_n bits lower \<and> fits_into_n bits upper)" |
+  "wf_stamp_range _ = True"*)
+
+lemma
+  assumes "stamp = IntegerStamp bits lower upper"
+  assumes "lower > upper"
+  shows "\<nexists>val . valid_value stamp val"
+  sorry
+
 (* Theories/Lemmas *)
 (* TODO: should we have separate 32 and 64 versions of this? *)
 lemma int_valid_range:
   assumes "stamp = IntegerStamp 32 lower upper"
-  shows "{x . valid_value stamp x} = {(IntVal32 (word_of val)) | val . val \<in> {lower..upper}}"
-  using assms valid_value.simps apply auto
+  assumes "wf_stamp_range stamp"
+  shows "{x . valid_value stamp x} = {(IntVal32 (narrow val)) | val . val \<in> {lower..upper}}"
+  (is "?V = ?R")
+proof (cases "upper \<ge> lower")
+  case True
+  obtain val where val: "val \<in> {lower..upper}"
+    using True
+    by (metis atLeastatMost_empty_iff2 equals0I)
+  then show ?thesis sorry
+next
+  case False
+  have "?R = {}"
+    using False by simp
+  have "?V = {}"
+    using False valid_value.simps sorry
+  then show ?thesis sorry
+qed
+  
   (* TODO: here we need to prove: sint (word_of val) = val
     To do that, we need to know that the stamp is well-formed,
     so its lower and upper bounds fit within 32 bits.
 
   using valid_value.elims(2) by blast
 *)
-  sorry
 
 (*
 lemma float_valid_range:
@@ -194,17 +235,22 @@ lemma join_unequal:
 lemma neverDistinctEqual:
   assumes "neverDistinct x_stamp y_stamp"
   shows "\<nexists> x y . x \<noteq> y \<and> valid_value x_stamp x \<and> valid_value y_stamp y"
-  using assms
+  using assms sorry
+(*
   by (smt (verit, best) asConstant.simps(1) asConstant.simps(2) asConstant.simps(3) neverDistinct.elims(2) valid_value.elims(2))
+*)
 
 lemma boundsNoOverlapNoEqual:
   assumes "stpi_upper x_stamp < stpi_lower y_stamp"
   assumes "is_IntegerStamp x_stamp \<and> is_IntegerStamp y_stamp"
   shows "\<nexists> x y . x = y \<and> valid_value x_stamp x \<and> valid_value y_stamp y"
   using assms apply (cases "x_stamp"; auto)
-  using int_valid_range
+  using int_valid_range sorry
+(*
   by (smt (verit, ccfv_threshold) Stamp.collapse(1) mem_Collect_eq valid_value.simps(1))
+*)
 
+(*
 lemma boundsNoOverlap:
   assumes "stpi_upper x_stamp < stpi_lower y_stamp"
   assumes "x = IntVal b1 xval"
@@ -307,6 +353,7 @@ begin
   have "meet (FloatStamp 32 0 20) (FloatStamp 32 (-100) 10) = (FloatStamp 32 (- 100) 20)"
     by auto
 end
+*)
 *)
 
 end

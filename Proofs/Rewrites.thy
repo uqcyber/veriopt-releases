@@ -52,7 +52,7 @@ lemma nextNidNotIn:
 fun constantCondition :: "bool \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "constantCondition val nid (IfNode cond t f) g = 
     replace_node nid (IfNode (nextNid g) t f, stamp g nid) 
-      (add_node (nextNid g) ((ConstantNode (bool_to_val val)), constantAsStamp (bool_to_val val)) g)" |
+      (add_node (nextNid g) ((ConstantNode (bool_to_val val)), constant_as_stamp (bool_to_val val)) g)" |
   "constantCondition cond nid _ g = g"
 
 lemma constantConditionTrue:
@@ -62,15 +62,15 @@ lemma constantConditionTrue:
 proof -
   have if': "kind g' ifcond = IfNode (nextNid g) t f"
     by (metis IRNode.simps(989) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
-  have "bool_to_val True = (IntVal 1 1)"
+  have "bool_to_val True = (IntVal32 1)"
     by auto
   have "ifcond \<noteq> (nextNid g)"
     by (metis IRNode.simps(989) assms(1) emptyE ids_some nextNidNotIn)
-  then have c': "kind g' (nextNid g) = ConstantNode (IntVal 1 1)"
+  then have c': "kind g' (nextNid g) = ConstantNode (IntVal32 1)"
     using assms(2) replace_node_unchanged
-    by (metis DiffI IRNode.distinct(585) \<open>bool_to_val True = IntVal 1 1\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE insertE not_in_g)
+    by (metis DiffI IRNode.distinct(585) \<open>bool_to_val True = IntVal32 1\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE insertE not_in_g)
   from if' c' show ?thesis using IfNode
-    by (smt (z3) ConstantNode val_to_bool.simps(1))
+    by (metis (mono_tags, hide_lams) ConstantNode val_to_bool.simps(1) zero_neq_one)    
 qed
 
 lemma constantConditionFalse:
@@ -80,15 +80,15 @@ lemma constantConditionFalse:
 proof -
   have if': "kind g' ifcond = IfNode (nextNid g) t f"
     by (metis IRNode.simps(989) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
-  have "bool_to_val False = (IntVal 1 0)"
+  have "bool_to_val False = (IntVal32 0)"
     by auto
   have "ifcond \<noteq> (nextNid g)"
     by (metis IRNode.simps(989) assms(1) emptyE ids_some nextNidNotIn)
-  then have c': "kind g' (nextNid g) = ConstantNode (IntVal 1 0)"
+  then have c': "kind g' (nextNid g) = ConstantNode (IntVal32 0)"
     using assms(2) replace_node_unchanged
-    by (metis DiffI IRNode.distinct(585) \<open>bool_to_val False = IntVal 1 0\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE insertE not_in_g)
+    by (metis DiffI IRNode.distinct(585) \<open>bool_to_val False = IntVal32 0\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE insertE not_in_g)
   from if' c' show ?thesis using IfNode
-    by (smt (z3) ConstantNode val_to_bool.simps(1))
+    by (metis (no_types, hide_lams) ConstantNode val_to_bool.simps(1))
 qed
 
 lemma diff_forall:
@@ -122,7 +122,7 @@ lemma constantConditionIfNode:
   assumes "kind g nid = IfNode cond t f"
   shows "constantCondition val nid (kind g nid) g = 
     replace_node nid (IfNode (nextNid g) t f, stamp g nid) 
-     (add_node (nextNid g) ((ConstantNode (bool_to_val val)), constantAsStamp (bool_to_val val)) g)"
+     (add_node (nextNid g) ((ConstantNode (bool_to_val val)), constant_as_stamp (bool_to_val val)) g)"
   using constantCondition.simps
   by (simp add: assms)
 

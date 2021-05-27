@@ -2,7 +2,7 @@ subsection \<open>Formedness Properties\<close>
 
 theory Form
 imports
-  Semantics.IREval
+  Semantics.IREval2
 begin
 
 definition wf_start where
@@ -63,10 +63,11 @@ fun wf_logic_node_inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
 fun wf_values :: "IRGraph \<Rightarrow> bool" where
   "wf_values g = (\<forall> n \<in> ids g .
     (\<forall> v m . (g m \<turnstile> kind g n \<mapsto> v) \<longrightarrow> 
-      (wf_value v \<and> 
+      (
       (is_LogicNode (kind g n) \<longrightarrow> 
         wf_bool v \<and> wf_logic_node_inputs g n))))"
 
+(*
 lemma wf_value_range:
   "b > 1 \<and> b \<in> int_bits_allowed \<longrightarrow> {v. wf_value (IntVal b v)} = {v. ((-(2^(b-1)) \<le> v) \<and> (v < (2^(b-1))))}"
   unfolding wf_value.simps
@@ -76,5 +77,6 @@ lemma wf_value_bit_range:
   "b = 1 \<longrightarrow> {v. wf_value (IntVal b v)} = {}"
   unfolding wf_value.simps
   by (simp add: int_bits_allowed_def)
+*)
 
 end

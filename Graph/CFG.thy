@@ -13,14 +13,21 @@ datatype Block =
   BasicBlock (start_node: ID) (end_node: ID) |
   NoBlock
 
-fun findEnd :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list \<Rightarrow> ID" where
-  "findEnd g nid [next] = (if is_AbstractBeginNode (kind g next) then nid else next)" |
-  (*"findEnd g nid [next] = findEnd g next (successors_of (kind g next))" |*)
+(* TODO: prove termination *)
+function findEnd :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list \<Rightarrow> ID" where
+  "findEnd g nid [next] = findEnd g next (successors_of (kind g next))" |
   "findEnd g nid succs = nid"
+  sorry termination sorry
 
-fun findStart :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list \<Rightarrow> ID" where
-  "findStart g nid [pred] = (if is_AbstractBeginNode (kind g nid) then nid else pred)" |
+(* TODO: prove termination *)
+function findStart :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list \<Rightarrow> ID" where
+  "findStart g nid [pred] =
+    (if is_AbstractBeginNode (kind g nid) then
+      nid
+    else
+      (findStart g pred (sorted_list_of_set (predecessors g nid))))" |
   "findStart g nid preds = nid"
+  sorry termination sorry
 
 fun blockOf :: "IRGraph \<Rightarrow> ID \<Rightarrow> Block" where
   "blockOf g nid = (
@@ -321,9 +328,9 @@ value "blockOf ConditionalEliminationTest1_test1Snippet_initial 7" (* Block 0 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 6" (* Block 1 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 12" (* Block 1 *)
 
-value "blockOf ConditionalEliminationTest1_test1Snippet_initial 11" (* Block 2 *) (* TODO: incorrect, should be 11 to 18 *)
+value "blockOf ConditionalEliminationTest1_test1Snippet_initial 11" (* Block 2 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 14" (* Block 2 *)
-value "blockOf ConditionalEliminationTest1_test1Snippet_initial 18" (* Block 2 *) (* TODO: incorrect, should be 11 to 18 *)
+value "blockOf ConditionalEliminationTest1_test1Snippet_initial 18" (* Block 2 *)
 
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 10" (* Block 3 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 16" (* Block 3 *)
@@ -337,9 +344,9 @@ value "blockOf ConditionalEliminationTest1_test1Snippet_initial 25" (* Block 5 *
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 22" (* Block 6*)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 30" (* Block 6 *)
 
-value "blockOf ConditionalEliminationTest1_test1Snippet_initial 28" (* Block 7 *) (* TODO: incorrect, should be 28 to 34 *)
+value "blockOf ConditionalEliminationTest1_test1Snippet_initial 28" (* Block 7 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 32" (* Block 7 *)
-value "blockOf ConditionalEliminationTest1_test1Snippet_initial 34" (* Block 7 *) (* TODO: incorrect, should be 28 to 34 *)
+value "blockOf ConditionalEliminationTest1_test1Snippet_initial 34" (* Block 7 *)
 
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 29" (* Block 8 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 27" (* Block 8 *)
@@ -350,16 +357,16 @@ value "blockOf ConditionalEliminationTest1_test1Snippet_initial 43" (* Block 9 *
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 42" (* Block 10 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 41" (* Block 10 *)
 
-value "blockOf ConditionalEliminationTest1_test1Snippet_initial 38" (* Block 11 *) (* TODO: incorrect, should be 38 to 47 *)
+value "blockOf ConditionalEliminationTest1_test1Snippet_initial 38" (* Block 11 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 45" (* Block 11 *)
-value "blockOf ConditionalEliminationTest1_test1Snippet_initial 47" (* Block 11 *) (* TODO: incorrect, should be 38 to 47 *)
+value "blockOf ConditionalEliminationTest1_test1Snippet_initial 47" (* Block 11 *)
 
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 5" (* Block 12 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 39" (* Block 12 *)
 
-value "blockOf ConditionalEliminationTest1_test1Snippet_initial 40" (* Block 13 *) (* TODO: incorrect, should be 40 to 51 *)
+value "blockOf ConditionalEliminationTest1_test1Snippet_initial 40" (* Block 13 *)
 value "blockOf ConditionalEliminationTest1_test1Snippet_initial 49" (* Block 13 *)
-value "blockOf ConditionalEliminationTest1_test1Snippet_initial 51" (* Block 13 *) (* TODO: incorrect, should be 40 to 51 *)
+value "blockOf ConditionalEliminationTest1_test1Snippet_initial 51" (* Block 13 *)
 
 (* Block 0 *)
 value "pred ConditionalEliminationTest1_test1Snippet_initial

@@ -12,6 +12,7 @@ session Graph in Graph = "HOL-Library" +
     Stamp
     IRGraph
     Comparison
+    CFG
 
 session Semantics in Semantics = Graph +
   description

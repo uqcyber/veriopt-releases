@@ -74,13 +74,13 @@ inductive postdominates :: "IRGraph \<Rightarrow> Block \<Rightarrow> Block \<Ri
   "\<lbrakk>(z = n) \<or> ((succ g n \<noteq> {}) \<and> (\<forall>s \<in> succ g n . (g \<turnstile> z \<le>\<le> s)))\<rbrakk> \<Longrightarrow> postdominates g z n"
 code_pred [show_modes] postdominates .
 
-inductive properly_dominates :: "IRGraph \<Rightarrow> Block \<Rightarrow> Block \<Rightarrow> bool" ("_ \<turnstile> _ >> _" 20) where
-  "\<lbrakk>(g \<turnstile> d \<ge>\<ge> n); (d \<noteq> n)\<rbrakk> \<Longrightarrow> properly_dominates g d n"
-code_pred [show_modes] properly_dominates .
+inductive strictly_dominates :: "IRGraph \<Rightarrow> Block \<Rightarrow> Block \<Rightarrow> bool" ("_ \<turnstile> _ >> _" 20) where
+  "\<lbrakk>(g \<turnstile> d \<ge>\<ge> n); (d \<noteq> n)\<rbrakk> \<Longrightarrow> strictly_dominates g d n"
+code_pred [show_modes] strictly_dominates .
 
-inductive properly_postdominates :: "IRGraph \<Rightarrow> Block \<Rightarrow> Block \<Rightarrow> bool" ("_ \<turnstile> _ << _" 20) where
-  "\<lbrakk>(g \<turnstile> d \<le>\<le> n); (d \<noteq> n)\<rbrakk> \<Longrightarrow> properly_postdominates g d n"
-code_pred [show_modes] properly_postdominates .
+inductive strictly_postdominates :: "IRGraph \<Rightarrow> Block \<Rightarrow> Block \<Rightarrow> bool" ("_ \<turnstile> _ << _" 20) where
+  "\<lbrakk>(g \<turnstile> d \<le>\<le> n); (d \<noteq> n)\<rbrakk> \<Longrightarrow> strictly_postdominates g d n"
+code_pred [show_modes] strictly_postdominates .
 
 lemma "pred g nid = {} \<longrightarrow> \<not>(\<exists> d . (d \<noteq> nid) \<and> (g \<turnstile> d \<ge>\<ge> nid))"
   using dominates.cases by blast
@@ -89,17 +89,19 @@ lemma "succ g nid = {} \<longrightarrow> \<not>(\<exists> d . (d \<noteq> nid) \
   using postdominates.cases by blast
 
 lemma "pred g nid = {} \<longrightarrow> \<not>(\<exists> d . (g \<turnstile> d >> nid))"
-  using dominates.simps properly_dominates.simps by presburger
+  using dominates.simps strictly_dominates.simps by presburger
 
 lemma "succ g nid = {} \<longrightarrow> \<not>(\<exists> d . (g \<turnstile> d << nid))"
-  using postdominates.simps properly_postdominates.simps by presburger
-
+  using postdominates.simps strictly_postdominates.simps by presburger
 
 inductive wf_cfg :: "IRGraph \<Rightarrow> bool" where
   "\<lbrakk>\<forall> nid \<in> ids g . (blockOf g nid \<noteq> NoBlock) \<longrightarrow> (g \<turnstile> (blockOf g 0) \<ge>\<ge> (blockOf g nid))\<rbrakk>
   \<Longrightarrow> wf_cfg g"
 code_pred [show_modes] wf_cfg .
 
+inductive immediately_dominates :: "IRGraph \<Rightarrow> Block \<Rightarrow> Block \<Rightarrow> bool" ("_ \<turnstile> _ idom _" 20) where
+  "\<lbrakk>(g \<turnstile> d >> n); (\<forall> w \<in> ids g . (g \<turnstile> (blockOf g w) >> n) \<longrightarrow> (g \<turnstile> (blockOf g w) \<ge>\<ge> d))\<rbrakk> \<Longrightarrow> immediately_dominates g d n"
+code_pred [show_modes] immediately_dominates .
 
 definition simple_if :: IRGraph where
   "simple_if = irgraph [

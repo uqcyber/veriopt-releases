@@ -215,20 +215,19 @@ inductive
 
   BinaryNodeSame:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g2 \<triangleleft> ye \<leadsto> (g3, y);
-    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
-    find_node_and_stamp g3 (bin_node op x y, s') = Some nid\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g3, nid)" |
+    g \<triangleleft> ye \<leadsto> (g2, y);
+    s' = stamp_binary op (stamp g2 x) (stamp g2 y);
+    find_node_and_stamp g2 (bin_node op x y, s') = Some nid\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g2, nid)" |
 
   BinaryNodeNew:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g2 \<triangleleft> ye \<leadsto> (g3, y);
-    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
-    find_node_and_stamp g3 (bin_node op x y, s') = None;
-    fresh_id g3 nid;
-    g' = add_node nid (bin_node op x y, s') g3\<rbrakk>
+    g \<triangleleft> ye \<leadsto> (g2, y);
+    s' = stamp_binary op (stamp g2 x) (stamp g2 y);
+    find_node_and_stamp g2 (bin_node op x y, s') = None;
+    fresh_id g2 nid;
+    g' = add_node nid (bin_node op x y, s') g2\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g', nid)" |
-
 
   AllLeafNodes:
   "stamp g nid = s

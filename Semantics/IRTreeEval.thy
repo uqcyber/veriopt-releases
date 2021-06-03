@@ -2,7 +2,7 @@ section \<open>Data-flow Semantics\<close>
 
 theory IRTreeEval
   imports
-    Graph.IRGraph2
+    Graph.IRGraph
 begin
 
 text \<open>
@@ -52,57 +52,6 @@ fun new_map :: "Value list \<Rightarrow> MapState" where
   "new_map ps = set_params new_map_state ps"
 
 
-fun val_to_bool :: "Value \<Rightarrow> bool" where
-  "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
-  "val_to_bool v = False"
-
-fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal32 1)" |
-  "bool_to_val False = (IntVal32 0)"
-
-
-(* TODO: move the following phi helpers to step semantics? *)
-(* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
-fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
-  "find_index _ [] = 0" |
-  "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
-
-fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
-  "phi_list g nid = 
-    (filter (\<lambda>x.(is_PhiNode (kind g x)))
-      (sorted_list_of_set (usages g nid)))"
-
-fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
-  "input_index g n n' = find_index n' (inputs_of (kind g n))"
-
-fun phi_inputs :: "IRGraph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
-  "phi_inputs g i nodes = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) nodes)"
-
-fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
-  "set_phis [] [] m = m" |
-  "set_phis (nid # xs) (v # vs) m = (set_phis xs vs (m_set nid v m))" |
-  "set_phis [] (v # vs) m = m" |
-  "set_phis (x # xs) [] m = m"
-
-fun abs_value :: "Value \<Rightarrow> Value" where
-  "abs_value (IntVal32 v) = (if v < 0 then (intval_sub (IntVal32 0) (IntVal32 v)) else (IntVal32 v))" |
-  "abs_value (IntVal64 v) = (if v < 0 then (intval_sub (IntVal64 0) (IntVal64 v)) else (IntVal64 v))" |
-  "abs_value _ = UndefVal"
-
-fun negate_value :: "Value \<Rightarrow> Value" where
-  "negate_value (IntVal32 v) = (IntVal32 0) - (IntVal32 v)" |
-  "negate_value (IntVal64 v) = (IntVal64 0) - (IntVal64 v)" |
-  "negate_value _ = UndefVal"
-
-fun equal_value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "equal_value (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |
-  "equal_value (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 = v2)" |
-  "equal_value _ _ = UndefVal"
-
-fun less_than_value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "less_than_value (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 < v2)" |
-  "less_than_value (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 < v2)" |
-  "less_than_value _ _ = UndefVal"
 
 
 (* ======================== START OF NEW TREE STUFF ==========================*)

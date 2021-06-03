@@ -216,6 +216,7 @@ inductive
   BinaryNodeSame:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
     g \<triangleleft> ye \<leadsto> (g2, y);
+    xe = ye \<longrightarrow> x = y;
     s' = stamp_binary op (stamp g2 x) (stamp g2 y);
     find_node_and_stamp g2 (bin_node op x y, s') = Some nid\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g2, nid)" |
@@ -223,6 +224,7 @@ inductive
   BinaryNodeNew:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
     g \<triangleleft> ye \<leadsto> (g2, y);
+    xe = ye \<longrightarrow> x = y;
     s' = stamp_binary op (stamp g2 x) (stamp g2 y);
     find_node_and_stamp g2 (bin_node op x y, s') = None;
     fresh_id g2 nid;

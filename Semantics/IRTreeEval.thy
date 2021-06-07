@@ -57,11 +57,6 @@ fun new_map :: "Value list \<Rightarrow> MapState" where
 (* ======================== START OF NEW TREE STUFF ==========================*)
 subsection \<open>Data-flow Tree Representation\<close>
 
-(* TODO: add a code lemma for this, to return max+1. *)
-fun fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
-  "fresh_id g nid = (nid \<notin> ids g)"
-
-
 datatype IRUnaryOp = UnaryAbs | UnaryNeg
 datatype IRBinaryOp = BinAdd | BinMul | BinSub
 
@@ -160,12 +155,37 @@ fun find_node :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> ID option" where
 fun find_node_and_stamp :: "IRGraph \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> ID option" where
   "find_node_and_stamp g (n,s) = None"
 
+export_code stamp_unary stamp_binary find_node find_node_and_stamp
+
 (* Creates the appropriate IRNode for a given binary operator. *)
 fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where
   "bin_node BinAdd x y = AddNode x y" |
   "bin_node BinMul x y = MulNode x y" |
   "bin_node BinSub x y = SubNode x y"
 
+
+inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
+  "nid \<notin> ids g \<Longrightarrow> fresh_id g nid"
+
+code_pred fresh_id .
+
+(* A finite version of 'ids'.  There should be an easier way... *)
+fun f_ids :: "IRGraph \<Rightarrow> ID fset" where
+  "f_ids g = fset_of_list(map fst (as_list g))"
+
+lemma f_ids[code]: "f_ids (irgraph m) = fset_of_list (map fst (no_node m))"
+  sorry 
+  (* TODO: apply (simp add: as_list.rep_eq) *)
+
+export_code f_ids
+
+(* TODO: add a code lemma for this, to return max+1. *)
+fun get_fresh_id :: "IRGraph \<Rightarrow> ID" where
+  "get_fresh_id g = 100"
+(*  "get_fresh_id g = (ffold max (0::nat) (f_ids g))" *)
+
+export_code get_fresh_id
+value "get_fresh_id eg2_sq"
 
 (* Second version of tree insertion into graph:
 
@@ -175,16 +195,16 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
 *)
 inductive
   unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<triangleleft> _ \<leadsto> _" 55)
-  for g where
+  where
 
   ConstantNodeSame:
-  "\<lbrakk>find_node_and_stamp g (ConstantNode c, constant_as_stamp c) = Some nid\<rbrakk>
+  "\<lbrakk>find_node_and_stamp g (ConstantNode c, constantAsStamp c) = Some nid\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ConstantExpr c) \<leadsto> (g, nid)" |
 
   ConstantNodeNew:
-  "\<lbrakk>find_node_and_stamp g (ConstantNode c, constant_as_stamp c) = None;
-    fresh_id g nid;
-    g' = add_node nid (ConstantNode c, constant_as_stamp c) g \<rbrakk>
+  "\<lbrakk>find_node_and_stamp g (ConstantNode c, constantAsStamp c) = None;
+    nid = get_fresh_id g;
+    g' = add_node nid (ConstantNode c, constantAsStamp c) g \<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ConstantExpr c) \<leadsto> (g', nid)" |
 
 
@@ -194,7 +214,7 @@ inductive
 
   ParameterNodeNew:
   "\<lbrakk>find_node_and_stamp g (ParameterNode i, s) = None;
-    fresh_id g nid;
+    nid = get_fresh_id g;
     g' = add_node nid (ParameterNode i, s) g\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ParameterExpr i s) \<leadsto> (g', nid)" |
 
@@ -207,7 +227,7 @@ inductive
   AbsNodeNew:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
     find_node_and_stamp g2 (AbsNode x, stamp g2 x) = None;
-    fresh_id g2 nid;
+    nid = get_fresh_id g2;
     s' = stamp_unary UnaryAbs (stamp g2 x);
     g' = add_node nid (AbsNode nidx, s') g2\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (UnaryExpr UnaryAbs xe) \<leadsto> (g', nid)" |
@@ -215,29 +235,33 @@ inductive
 
   BinaryNodeSame:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g \<triangleleft> ye \<leadsto> (g2, y);
-    xe = ye \<longrightarrow> x = y;
-    s' = stamp_binary op (stamp g2 x) (stamp g2 y);
-    find_node_and_stamp g2 (bin_node op x y, s') = Some nid\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g2, nid)" |
+    g2 \<triangleleft> ye \<leadsto> (g3, y);
+    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
+    find_node_and_stamp g3 (bin_node op x y, s') = Some nid\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g3, nid)" |
 
   BinaryNodeNew:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g \<triangleleft> ye \<leadsto> (g2, y);
-    xe = ye \<longrightarrow> x = y;
-    s' = stamp_binary op (stamp g2 x) (stamp g2 y);
-    find_node_and_stamp g2 (bin_node op x y, s') = None;
-    fresh_id g2 nid;
-    g' = add_node nid (bin_node op x y, s') g2\<rbrakk>
+    g2 \<triangleleft> ye \<leadsto> (g3, y);
+    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
+    find_node_and_stamp g3 (bin_node op x y, s') = None;
+    nid = get_fresh_id g3;
+    g' = add_node nid (bin_node op x y, s') g3\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g', nid)" |
 
   AllLeafNodes:
   "stamp g nid = s
     \<Longrightarrow> g \<triangleleft> (LeafExpr nid s) \<leadsto> (g, nid)"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as unrepE) unrep .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as unrepE)
+  [show_steps,show_mode_inference,show_intermediate_results] unrep .
 
-values "{t. eg2_sq 4  \<triangleright> t}"
+definition sq_param0 :: IRExpr where
+  "sq_param0 = BinaryExpr BinMul 
+    (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))
+    (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))"
+
+values "{nid. eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, nid)}"
 
 
 end

@@ -52,6 +52,27 @@ fun new_map :: "Value list \<Rightarrow> MapState" where
   "new_map ps = set_params new_map_state ps"
 
 
+(* =========== TODO: move into IRGraph? ============== *)
+
+(* A finite version of 'ids'.  There should be an easier way... *)
+fun f_ids :: "IRGraph \<Rightarrow> ID fset" where
+  "f_ids g = fset_of_list(sorted_list_of_set (dom (Rep_IRGraph g)))"
+(* NOTE: above does not remove NoNode?
+  "f_ids g = \<lbrace> nid |\<in>| dom g . (\<nexists>s. g nid = (Some (NoNode, s))) \<rbrace>"
+*)
+
+lemma f_ids[code]: "f_ids (irgraph m) = fset_of_list (map fst (no_node m))"
+  sorry 
+  (* TODO: apply (simp add: as_list.rep_eq) *)
+
+export_code f_ids
+
+
+fun find_node_and_stamp :: "IRGraph \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> ID option" where
+  "find_node_and_stamp g (n,s) =
+     find (\<lambda>i. kind g i = n \<and> stamp g i = s) (sorted_list_of_fset(f_ids g))"
+
+export_code find_node_and_stamp
 
 
 (* ======================== START OF NEW TREE STUFF ==========================*)
@@ -148,14 +169,7 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_binary op s1 s2 = s1"
 
-(* TODO! implement these to find nodes, so we reuse nodes as much as possible. *)
-fun find_node :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> ID option" where
-  "find_node g n = None"
-
-fun find_node_and_stamp :: "IRGraph \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> ID option" where
-  "find_node_and_stamp g (n,s) = None"
-
-export_code stamp_unary stamp_binary find_node find_node_and_stamp
+export_code stamp_unary stamp_binary 
 
 (* Creates the appropriate IRNode for a given binary operator. *)
 fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where
@@ -169,29 +183,20 @@ inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
 
 code_pred fresh_id .
 
-(* A finite version of 'ids'.  There should be an easier way... *)
-fun f_ids :: "IRGraph \<Rightarrow> ID fset" where
-  "f_ids g = fset_of_list(sorted_list_of_set (dom (Rep_IRGraph g)))"
-
-lemma f_ids[code]: "f_ids (irgraph m) = fset_of_list (map fst (no_node m))"
-  sorry 
-  (* TODO: apply (simp add: as_list.rep_eq) *)
-
-export_code f_ids
-
-(* TODO: add a code lemma for this, to return max+1. *)
+(* This generates a specific fresh ID (max+1), in a code-friendly way. *)
 fun get_fresh_id :: "IRGraph \<Rightarrow> ID" where
-(*  "get_fresh_id g = 100"
+(* Previous attempts - cannot generate code due to nat not Enum. 
+  "get_fresh_id g = 100"
   "get_fresh_id g = (ffold max (0::nat) (f_ids g))"
   "get_fresh_id g = fst(last(as_list g))"
   "get_fresh_id g = last(sorted_list_of_set (dom (Rep_IRGraph g)))"
 *)
-(* Not always correct, but at least this can generate code! *)
-  "get_fresh_id g = fcard(f_ids g)"
+  "get_fresh_id g = last(sorted_list_of_fset(f_ids g)) + 1"
 
 export_code get_fresh_id
+(* these examples return 6 and 7 respectively *)
 value "get_fresh_id eg2_sq"
-value "get_fresh_id (add_node 4 (ParameterNode 2, default_stamp) eg2_sq)"
+value "get_fresh_id (add_node 6 (ParameterNode 2, default_stamp) eg2_sq)"
 
 (* Second version of tree insertion into graph:
 

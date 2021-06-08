@@ -52,15 +52,6 @@ fun new_map :: "Value list \<Rightarrow> MapState" where
   "new_map ps = set_params new_map_state ps"
 
 
-fun val_to_bool :: "Value \<Rightarrow> bool" where
-  "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
-  "val_to_bool v = False"
-
-fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal32 1)" |
-  "bool_to_val False = (IntVal32 0)"
-
-
 (* TODO: move the following phi helpers to step semantics? *)
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
@@ -83,26 +74,6 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis (nid # xs) (v # vs) m = (set_phis xs vs (m_set nid v m))" |
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
-
-fun abs_value :: "Value \<Rightarrow> Value" where
-  "abs_value (IntVal32 v) = (if v < 0 then (intval_sub (IntVal32 0) (IntVal32 v)) else (IntVal32 v))" |
-  "abs_value (IntVal64 v) = (if v < 0 then (intval_sub (IntVal64 0) (IntVal64 v)) else (IntVal64 v))" |
-  "abs_value _ = UndefVal"
-
-fun negate_value :: "Value \<Rightarrow> Value" where
-  "negate_value (IntVal32 v) = (IntVal32 0) - (IntVal32 v)" |
-  "negate_value (IntVal64 v) = (IntVal64 0) - (IntVal64 v)" |
-  "negate_value _ = UndefVal"
-
-fun equal_value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "equal_value (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |
-  "equal_value (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 = v2)" |
-  "equal_value _ _ = UndefVal"
-
-fun less_than_value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "less_than_value (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 < v2)" |
-  "less_than_value (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 < v2)" |
-  "less_than_value _ _ = UndefVal"
 
 inductive
   eval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> IRNode \<Rightarrow> Value \<Rightarrow> bool" ("_ _ \<turnstile> _ \<mapsto> _" 55)

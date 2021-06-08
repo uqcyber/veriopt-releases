@@ -1,14 +1,17 @@
+section \<open>Stamps: Type and Range Information\<close>
+
 theory Stamp4
 imports
   Values2
   HOL.Lattices
 begin
 
-
+experiment begin
+text \<open>A possible equivalent alternative to the definition of less\_eq\<close>
 fun less_eq_alt :: "'a::ord \<times> 'a \<Rightarrow> 'a \<times> 'a \<Rightarrow> bool" where
-  "less_eq_alt (l1, u1) (l2, u2) = 
-    (if l1 \<le> u1 \<and> l2 \<le> u2 then ((l1 \<ge> l2) \<and> (u1 \<le> u2)) else False)"
+  "less_eq_alt (l1, u1) (l2, u2) = ((\<not> l1 \<le> u1) \<or> l2 \<le> l1 \<and> u1 \<le> u2)"
 
+text \<open>Proof equivalence\<close>
 lemma 
   fixes l1 l2 u1 u2 :: int
   assumes "l1 \<le> u1 \<and> l2 \<le> u2"
@@ -17,35 +20,26 @@ lemma
 
 lemma 
   fixes l1 l2 u1 u2 :: int
-  assumes "l1 \<le> u1 \<and> l2 \<le> u2"
   shows "{l1..u1} \<subseteq> {l2..u2} = less_eq_alt (l1, u1) (l2, u2)"
-  by (simp add: assms)
-
+  by simp
+end
   
-
+text \<open>Definition of the stamp type\<close>
 datatype stamp =
-  intstamp int64 int64
-
+  intstamp int64 int64 \<comment>\<open>Type: Integer; Range: Lower Bound \& Upper Bound\<close>
 (*
-fun join :: "stamp \<Rightarrow> stamp \<Rightarrow> stamp" (infix "\<squnion>" 60) where
-  "join (intstamp l1 u1) (intstamp l2 u2) = intstamp (max l1 l2) (min u1 u2)"
-
-fun meet :: "stamp \<Rightarrow> stamp \<Rightarrow> stamp" (infix "\<sqinter>" 60) where
-  "meet (intstamp l1 u1) (intstamp l2 u2) = intstamp (min l1 l2) (max u1 u2)"
-
-fun less :: "stamp \<Rightarrow> stamp \<Rightarrow> bool" (infix "<" 50) where
-  "less (intstamp l1 u1) (intstamp l2 u2) = ({l1..u1} \<subset> {l2..u2})"
-
-fun lesseq :: "stamp \<Rightarrow> stamp \<Rightarrow> bool" (infix "\<le>" 50) where
-  "lesseq (intstamp l1 u1) (intstamp l2 u2) = ({l1..u1} \<subseteq> {l2..u2})"
-
-definition empty_stamp ("\<bottom>" 50) where
-  "empty_stamp = intstamp 0 0"
-
-definition unrestricted_stamp ("\<top>" 50) where
-  "unrestricted_stamp = intstamp 0 1"
+  | floatstamp \<comment>\<open>Type: Float; Range: Lower Bound \& Upper Bound\<close>
+  | objectstamp classname \<comment>\<open>Type: Object Instance; Range: Upper Bound Superclass\<close>
 *)
 
+subsection \<open>Stamp Lattice\<close>
+subsubsection \<open>Stamp Order\<close>
+text \<open>
+Defines an ordering on the stamp type.
+
+One stamp is less than another if the valid values
+for the stamp are a strict subset of the other stamp.
+\<close>
 instantiation stamp :: order
 begin
 
@@ -135,7 +129,13 @@ instance
   using antisym by simp
 end
 
+subsubsection \<open>Stamp Join\<close>
+text \<open>
+Defines the @{emph \<open>join\<close>} operation for stamps.
 
+For any two stamps, the @{emph \<open>join\<close>} is defined as the intersection
+of the valid values for the stamp.
+\<close>
 instantiation stamp :: semilattice_inf
 begin
 
@@ -233,6 +233,14 @@ instance
   using inf_greatest by simp
 end
 
+
+subsubsection \<open>Stamp Meet\<close>
+text \<open>
+Defines the @{emph \<open>meet\<close>} operation for stamps.
+
+For any two stamps, the @{emph \<open>meet\<close>} is defined as the union
+of the valid values for the stamp.
+\<close>
 instantiation stamp :: semilattice_sup
 begin
 
@@ -291,7 +299,7 @@ qed
 
 lemma sup_least:
   fixes x y z :: stamp
-  shows "y \<le> x \<Longrightarrow> z \<le> x \<Longrightarrow> (y \<squnion> z) \<le> x"
+  shows "y \<le> x \<Longrightarrow> z \<le> x \<Longrightarrow> ((y \<squnion> z) \<le> x)"
 proof -
   fix x y z :: stamp
   assume xlessy: "y \<le> x"
@@ -313,12 +321,14 @@ proof -
     using xlessz xdef zdef
     using less_eq_stamp.simps by blast
   have leq: "{?l4..?u4} \<subseteq> {l1..u1}" (is ?subset_thesis)
-    using s1 s2 sorry
-  have "?thesis = ?subset_thesis"
-    using yzdef xdef less_eq_stamp.simps sorry
-  then show ?thesis
-    using leq
-    by fastforce
+    using s1 s2 unfolding atLeastatMost_subset_iff
+    (* why is this such a hard proof? *)
+    by (metis (no_types, hide_lams) inf.orderE inf_stamp.simps max.bounded_iff max.cobounded2 min.bounded_iff min.cobounded2 stamp.inject xdef xlessy xlessz ydef zdef)
+  have "(y \<squnion> z \<le> x) = ?subset_thesis"
+    using yzdef xdef less_eq_stamp.simps 
+    by simp
+  then show "(y \<squnion> z \<le> x)"
+    using leq by fastforce
 qed
 
 instance
@@ -328,6 +338,22 @@ instance
   using sup_least by simp
 end
 
+
+subsubsection \<open>Stamp Bounds\<close>
+text \<open>
+Defines the top and bottom elements of the stamp lattice.
+
+This poses an interesting question as our stamp type is a
+union of the various @{emph \<open>Stamp\<close>} subclasses, e.g.
+@{emph \<open>IntegerStamp\<close>}, @{emph \<open>ObjectStamp\<close>}, etc.
+
+Each subclass should preferably have its own unique
+top and bottom element, i.e. An @{emph \<open>IntegerStamp\<close>}
+would have the top element of the full range of integers
+allowed by the bit width and a bottom of a range with no integers.
+While the @{emph \<open>ObjectStamp\<close>} should have @{emph \<open>Object\<close>}
+as the top and @{emph \<open>Void\<close>} as the bottom element.
+\<close>
 instantiation stamp :: bounded_lattice
 begin
 
@@ -335,44 +361,83 @@ notation bot ("\<bottom>" 50)
 notation top ("\<top>" 50)
 
 definition width_min :: "nat \<Rightarrow> int64" where
-  "width_min bits = ((2 ^ bits) div 2) * -1"
+  "width_min bits = -(2^(bits-1))"
 
 definition width_max :: "nat \<Rightarrow> int64" where
-  "width_max bits = ((2 ^ bits) div 2) - 1"
+  "width_max bits = (2^(bits-1)) - 1"
+
+value "(sint (width_min 64), sint (width_max 64))"
+value "max_word::int64"
 
 lemma
-  fixes x y :: int64
-  assumes "x = (((2 ^ 64) div 2) * -1)"
-  assumes "y = (((2 ^ 64) div 2) - 1)"
-  shows "x < y"
-  using assms sorry
+  assumes "x = width_min 64"
+  assumes "y = width_max 64"
+  shows "sint x < sint y"
+  using assms unfolding width_min_def width_max_def by simp
 
-definition "bot_stamp = intstamp (width_max 64) (width_min 64)"
-definition "top_stamp = intstamp (width_min 64) (width_max 64)"
+text \<open>
+Note that this definition is valid for unsigned integers only.
+
+The bottom and top element for signed integers would be
+(- 9223372036854775808, 9223372036854775807).
+
+For unsigned we have
+(0, 18446744073709551615).
+
+For Java we are likely to be more concerned with signed integers.
+To use the appropriate bottom and top for signed integers we
+would need to change our definition of less\_eq from
+{l1..u1} <= {l2..u2}
+to
+{sint l1..sint u1} <= {sint l2..sint u2}
+
+We may still find an unsigned integer stamp useful.
+I plan to investigate the Java code to see if this is useful
+and then apply the changes to switch to signed integers.
+\<close>
+definition "bot_stamp = intstamp max_word 0"
+definition "top_stamp = intstamp 0 max_word"
 
 lemma bot_least:
   fixes a :: stamp
   shows "(\<bottom>) \<le> a"
-  proof -
+proof -
   obtain min max where bot_def:"\<bottom> = intstamp max min"
-    (is "\<bottom> = intstamp ?max ?min")
     using bot_stamp_def 
     by force
   have "min < max"
     using bot_def
-    unfolding bot_stamp_def
-    width_min_def width_max_def
-    sorry
-  have "{?max..?min} = {}"
-    sorry
+    unfolding bot_stamp_def width_min_def width_max_def
+    using word_gt_0 by fastforce
+  then have "{max..min} = {}"
+    using bot_def
+    unfolding bot_stamp_def width_min_def width_max_def
+    by auto
   then show ?thesis
-    sorry
+    unfolding bot_stamp_def
+    using less_eq_stamp.simps
+    by (simp add: stamp.induct)
 qed
 
 lemma top_greatest:
   fixes a :: stamp
   shows "a \<le> (\<top>)"
-  sorry
+proof -
+  obtain min max where top_def:"\<top> = intstamp min max"
+    using top_stamp_def 
+    by force
+  have max_is_max: "\<not>(\<exists> n. n > max)"
+    by (metis stamp.inject top_def top_stamp_def word_order.extremum_strict)
+  have min_is_min: "\<not>(\<exists> n. n < min)"
+    by (metis not_less_iff_gr_or_eq stamp.inject top_def top_stamp_def word_coorder.not_eq_extremum)
+  have "\<not>(\<exists> l u. {min..max} < {l..u})"
+    using max_is_max min_is_min
+    by (metis atLeastatMost_psubset_iff not_less)
+  then show ?thesis
+    unfolding top_stamp_def
+    using less_eq_stamp.simps
+    using less_eq_stamp.elims(3) by fastforce
+qed
 
 instance
   apply standard
@@ -381,6 +446,11 @@ instance
 end
 
 
+subsection \<open>Java Stamp Methods\<close>
+text \<open>
+The following are methods from the Java Stamp class,
+they are the methods primarily used for optimizations.
+\<close>
 definition is_unrestricted :: "stamp \<Rightarrow> bool" where
   "is_unrestricted s = (\<top> = s)"
 
@@ -399,13 +469,70 @@ definition never_distinct :: "stamp \<Rightarrow> stamp \<Rightarrow> bool" wher
   "never_distinct stamp1 stamp2 = 
     (as_constant stamp1 = as_constant stamp2 \<and> as_constant stamp1 \<noteq> None)"
 
+
+subsection \<open>Mapping to Values\<close>
 fun valid_value :: "stamp => Value => bool" where
-  "valid_value (intstamp l u) (IntVal64 v) = (v \<in> {l..u})"
+  "valid_value (intstamp l u) (IntVal64 v) = (v \<in> {l..u})" |
+  "valid_value (intstamp l u) _ = False"
+
+text \<open>
+The @{const valid_value} function is used to map a stamp instance
+to the values that are allowed by the stamp.
+
+It would be nice if there was a slightly more integrated way
+to perform this mapping as it requires some infrastructure
+to prove some fairly simple properties.
+\<close>
+lemma bottom_range_empty:
+  "\<not>(valid_value (\<bottom>) v)"
+  unfolding bot_stamp_def
+  using valid_value.elims(2) by fastforce
+
+lemma join_values:
+  assumes "joined = x_stamp \<sqinter> y_stamp"
+  shows "valid_value joined x \<longleftrightarrow> (valid_value x_stamp x \<and> valid_value y_stamp x)"
+proof (cases x)
+  case UndefVal
+  then show ?thesis
+    using valid_value.elims(2) by blast
+next
+  case (IntVal32 x2)
+  then show ?thesis
+    using valid_value.elims(2) by blast
+next
+  case (IntVal64 x3)
+  obtain lx ux where xdef: "x_stamp = intstamp lx ux"
+    using stamp.exhaust by blast
+  obtain ly uy where ydef: "y_stamp = intstamp ly uy"
+    using stamp.exhaust by blast
+  obtain v where "x = IntVal64 v"
+    using IntVal64 by blast
+  have "joined = intstamp (max lx ly) (min ux uy)"
+    (is "joined = intstamp ?lj ?uj")
+    by (simp add: xdef ydef assms)
+  then have "valid_value joined (IntVal64 v) = (v \<in> {?lj..?uj})"
+    by simp
+  then show ?thesis
+    using \<open>x = IntVal64 v\<close> xdef ydef by force
+next
+  case (FloatVal x4)
+  then show ?thesis
+    using valid_value.elims(2) by blast
+next
+  case (ObjRef x5)
+  then show ?thesis
+    using valid_value.elims(2) by blast
+next
+  case (ObjStr x6)
+  then show ?thesis
+    using valid_value.elims(2) by blast
+qed
 
 lemma disjoint_empty:
   fixes x_stamp y_stamp :: stamp
-  assumes "\<bottom> = x_stamp \<squnion> y_stamp"
-  shows "\<not>(\<exists>x y. valid_value x_stamp x \<and> valid_value y_stamp y)"
-  using assms sorry
+  assumes "\<bottom> = x_stamp \<sqinter> y_stamp"
+  shows "\<not>(valid_value x_stamp x \<and> valid_value y_stamp x)"
+  using assms bottom_range_empty join_values
+  by blast
 
 end

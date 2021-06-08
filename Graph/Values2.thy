@@ -203,6 +203,35 @@ lemma plus_dist:
   for v w :: \<open>'a::len word\<close>
 *)
 
+fun val_to_bool :: "Value \<Rightarrow> bool" where
+  "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
+  "val_to_bool v = False"
+
+fun bool_to_val :: "bool \<Rightarrow> Value" where
+  "bool_to_val True = (IntVal32 1)" |
+  "bool_to_val False = (IntVal32 0)"
+
+
+fun abs_value :: "Value \<Rightarrow> Value" where
+  "abs_value (IntVal32 v) = (if v < 0 then (intval_sub (IntVal32 0) (IntVal32 v)) else (IntVal32 v))" |
+  "abs_value (IntVal64 v) = (if v < 0 then (intval_sub (IntVal64 0) (IntVal64 v)) else (IntVal64 v))" |
+  "abs_value _ = UndefVal"
+
+fun negate_value :: "Value \<Rightarrow> Value" where
+  "negate_value (IntVal32 v) = (IntVal32 0) - (IntVal32 v)" |
+  "negate_value (IntVal64 v) = (IntVal64 0) - (IntVal64 v)" |
+  "negate_value _ = UndefVal"
+
+fun equal_value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "equal_value (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |
+  "equal_value (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 = v2)" |
+  "equal_value _ _ = UndefVal"
+
+fun less_than_value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "less_than_value (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 < v2)" |
+  "less_than_value (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 < v2)" |
+  "less_than_value _ _ = UndefVal"
+
 
 
 (* ========================================================================

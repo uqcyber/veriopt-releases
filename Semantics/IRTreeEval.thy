@@ -171,7 +171,7 @@ code_pred fresh_id .
 
 (* A finite version of 'ids'.  There should be an easier way... *)
 fun f_ids :: "IRGraph \<Rightarrow> ID fset" where
-  "f_ids g = fset_of_list(map fst (as_list g))"
+  "f_ids g = fset_of_list(sorted_list_of_set (dom (Rep_IRGraph g)))"
 
 lemma f_ids[code]: "f_ids (irgraph m) = fset_of_list (map fst (no_node m))"
   sorry 
@@ -181,11 +181,17 @@ export_code f_ids
 
 (* TODO: add a code lemma for this, to return max+1. *)
 fun get_fresh_id :: "IRGraph \<Rightarrow> ID" where
-  "get_fresh_id g = 100"
-(*  "get_fresh_id g = (ffold max (0::nat) (f_ids g))" *)
+(*  "get_fresh_id g = 100"
+  "get_fresh_id g = (ffold max (0::nat) (f_ids g))"
+  "get_fresh_id g = fst(last(as_list g))"
+  "get_fresh_id g = last(sorted_list_of_set (dom (Rep_IRGraph g)))"
+*)
+(* Not always correct, but at least this can generate code! *)
+  "get_fresh_id g = fcard(f_ids g)"
 
 export_code get_fresh_id
 value "get_fresh_id eg2_sq"
+value "get_fresh_id (add_node 4 (ParameterNode 2, default_stamp) eg2_sq)"
 
 (* Second version of tree insertion into graph:
 
@@ -229,7 +235,7 @@ inductive
     find_node_and_stamp g2 (AbsNode x, stamp g2 x) = None;
     nid = get_fresh_id g2;
     s' = stamp_unary UnaryAbs (stamp g2 x);
-    g' = add_node nid (AbsNode nidx, s') g2\<rbrakk>
+    g' = add_node nid (AbsNode x, s') g2\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (UnaryExpr UnaryAbs xe) \<leadsto> (g', nid)" |
 
 
@@ -253,7 +259,7 @@ inductive
   "stamp g nid = s
     \<Longrightarrow> g \<triangleleft> (LeafExpr nid s) \<leadsto> (g, nid)"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as unrepE)
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE)
   [show_steps,show_mode_inference,show_intermediate_results] unrep .
 
 definition sq_param0 :: IRExpr where
@@ -261,7 +267,7 @@ definition sq_param0 :: IRExpr where
     (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))
     (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))"
 
-values "{nid. eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, nid)}"
+values "{(nid, g) . (eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, nid))}"
 
 
 end

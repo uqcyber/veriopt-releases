@@ -18,10 +18,13 @@ session Semantics in Semantics = Graph +
   description
     "Semantics of GraalVM graphs"
   options [document = pdf,
-           document_output = "document"]
+           document_output = "output"]
   theories
     IREval
     IRStepObj
+  document_files (in "../latex")
+    "root.tex"
+    "mathpartir.sty"
 
 session Proofs in Proofs = Semantics +
   description

@@ -177,6 +177,16 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinMul x y = MulNode x y" |
   "bin_node BinSub x y = SubNode x y"
 
+(* TODO: switch these to new Values2 *)
+fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
+  "unary_eval UnaryAbs (IntVal b1 v1)  = IntVal 32 (abs v1)" |
+  "unary_eval op v1 = UndefVal"
+
+fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "bin_eval BinAdd (IntVal b1 v1) (IntVal b2 v2) = IntVal 32 (v1+v2)" |
+  "bin_eval BinMul (IntVal b1 v1) (IntVal b2 v2) = IntVal 32 (v1*v2)" |
+  "bin_eval BinSub (IntVal b1 v1) (IntVal b2 v2) = IntVal 32 (v1-v2)" |
+  "bin_eval op v1 v2 = UndefVal"
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "nid \<notin> ids g \<Longrightarrow> fresh_id g nid"
@@ -265,7 +275,16 @@ inductive
     \<Longrightarrow> g \<triangleleft> (LeafExpr nid s) \<leadsto> (g, nid)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE)
-  [show_steps,show_mode_inference,show_intermediate_results] unrep .
+(*
+  [show_steps,show_mode_inference,show_intermediate_results] 
+*)  unrep .
+
+text_raw \<open>\Snip{unrepRules}%
+\begin{center}
+@{thm[mode=Rule] unrep.ConstantNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ConstantNodeNew [no_vars]}\\[8px]
+\end{center}
+\EndSnip\<close>
 
 definition sq_param0 :: IRExpr where
   "sq_param0 = BinaryExpr BinMul 
@@ -274,6 +293,37 @@ definition sq_param0 :: IRExpr where
 
 values "{(nid, g) . (eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, nid))}"
 
+
+subsection \<open>Data-flow Tree Evaluation\<close>
+
+inductive
+  eval :: "MapState \<Rightarrow> IRExpr \<Rightarrow> Value \<Rightarrow> bool" ("_ \<turnstile> _ \<mapsto> _" 55)
+  for m where
+
+  ConstantExpr:
+  "m \<turnstile> (ConstantExpr c) \<mapsto> c" |
+
+  ParameterExpr:
+  "m \<turnstile> (ParameterExpr i s) \<mapsto> (m_params m)!i" |
+
+  UnaryExpr:
+  "\<lbrakk>m \<turnstile> xe \<mapsto> v\<rbrakk>
+    \<Longrightarrow> m \<turnstile> (UnaryExpr op xe) \<mapsto> unary_eval op v" |
+
+  BinaryExpr:
+  "\<lbrakk>m \<turnstile> xe \<mapsto> x;
+    m \<turnstile> ye \<mapsto> y\<rbrakk>
+    \<Longrightarrow> m \<turnstile> (BinaryExpr op xe ye) \<mapsto> bin_eval op x y" |
+
+  LeafExpr:
+  "\<lbrakk>val = m_values m nid\<rbrakk>
+    \<Longrightarrow> m \<turnstile> LeafExpr nid s \<mapsto> val"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE)
+  [show_steps,show_mode_inference,show_intermediate_results] 
+  eval .
+
+values "{v. eval (new_map [IntVal 32 5]) sq_param0 v}"
 
 end
 

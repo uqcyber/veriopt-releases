@@ -159,6 +159,18 @@ inductive
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
 
+text_raw \<open>\Snip{repRules}%
+\begin{center}
+@{thm[mode=Rule] rep.ConstantNode [no_vars]}\\[8px]
+@{thm[mode=Rule] rep.ParameterNode [no_vars]}\\[8px]
+@{thm[mode=Rule] rep.AbsNode [no_vars]}\\[8px]
+@{thm[mode=Rule] rep.AddNode [no_vars]}\\[8px]
+@{thm[mode=Rule] rep.MulNode [no_vars]}\\[8px]
+@{thm[mode=Rule] rep.SubNode [no_vars]}\\[8px]
+@{thm[mode=Rule] rep.LoadFieldNode [no_vars]}\\[8px]
+\end{center}
+\EndSnip\<close>
+
 values "{t. eg2_sq 4  \<triangleright> t}"
 
 
@@ -283,6 +295,11 @@ text_raw \<open>\Snip{unrepRules}%
 \begin{center}
 @{thm[mode=Rule] unrep.ConstantNodeSame [no_vars]}\\[8px]
 @{thm[mode=Rule] unrep.ConstantNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ParameterNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ParameterNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.BinaryNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.BinaryNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.AllLeafNodes [no_vars]}\\[8px]
 \end{center}
 \EndSnip\<close>
 
@@ -319,9 +336,25 @@ inductive
   "\<lbrakk>val = m_values m nid\<rbrakk>
     \<Longrightarrow> m \<turnstile> LeafExpr nid s \<mapsto> val"
 
+text_raw \<open>\Snip{evalRules}%
+\begin{center}
+@{thm[mode=Rule] eval.ConstantExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.ParameterExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.UnaryExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.BinaryExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] eval.LeafExpr [no_vars]}\\[8px]
+\end{center}
+\EndSnip\<close>
+
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE)
   [show_steps,show_mode_inference,show_intermediate_results] 
   eval .
+
+text_raw \<open>\Snip{evalCode}%
+code\_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE)
+  [show\_steps,show\_mode_inference,show\_intermediate\_results] 
+  eval .
+\EndSnip\<close>
 
 values "{v. eval (new_map [IntVal 32 5]) sq_param0 v}"
 

@@ -609,4 +609,261 @@ lemma
   by simp
 end
 
+
+
+subsection \<open>Generic Integer Stamp\<close>
+
+text \<open>
+Experimental definition of integer stamps generically,
+restricting the datatype to only allow valid ranges and
+the bottom integer element (max_int..min_int).
+\<close>
+
+definition int_bottom :: "'a::len word \<times> 'a word" where
+  "int_bottom = ((2 ^ (LENGTH('a) - 1)) - 1, -(2 ^ (LENGTH('a) - 1)))"
+
+definition int_top :: "'a::len word \<times> 'a word" where
+  "int_top = (-(2 ^ (LENGTH('a) - 1)), (2 ^ (LENGTH('a) - 1)) - 1)"
+
+value "int_bottom::(32 word \<times> 32 word)"
+value "sint (2147483647::32 word)"
+value "sint (2147483648::32 word)"
+
+
+typedef (overloaded) ('a::len) intstamp = 
+  "{bounds :: ('a word, 'a word) prod . (sint (fst bounds) < sint (snd bounds) \<or> bounds = int_bottom)}"
+proof -
+  show ?thesis
+    by (smt (z3) mem_Collect_eq prod.sel(1) prod.sel(2) signed_minus_1 sint_0)
+qed
+
+setup_lifting type_definition_intstamp
+
+lift_definition lower :: "('a::len) intstamp \<Rightarrow> 'a word"
+  is "prod.fst \<circ> Rep_intstamp" .
+
+lift_definition upper :: "('a::len) intstamp \<Rightarrow> 'a word"
+  is "prod.snd \<circ> Rep_intstamp" .
+
+lift_definition lower_int :: "('a::len) intstamp \<Rightarrow> int"
+  is "sint \<circ> prod.fst" .
+
+lift_definition upper_int :: "('a::len) intstamp \<Rightarrow> int"
+  is "sint \<circ> prod.snd" .
+
+lift_definition range :: "('a::len) intstamp \<Rightarrow> int set"
+  is "\<lambda> (l, u). {sint l..sint u}" .
+
+lift_definition bounds :: "('a::len) intstamp \<Rightarrow> ('a word \<times> 'a word)"
+  is Rep_intstamp .
+
+lift_definition is_bottom :: "('a::len) intstamp \<Rightarrow> bool"
+  is "\<lambda> x. x = int_bottom" .
+
+lift_definition from_bounds :: "('a::len word \<times> 'a word) \<Rightarrow> 'a intstamp"
+  is "Abs_intstamp" .
+
+instantiation intstamp :: (len) order
+begin
+
+definition less_eq_intstamp :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> bool" where
+  "less_eq_intstamp s1 s2 = (range s1 \<subseteq> range s2)"
+
+definition less_intstamp :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> bool" where
+  "less_intstamp s1 s2 = (range s1 \<subset> range s2)"
+
+lemma bottom_is_bottom:
+  assumes "is_bottom s"
+  shows "s \<le> a"
+proof -
+  have "bounds s = int_bottom"
+    by (metis assms bounds.transfer is_bottom.rep_eq)
+  obtain min max where "bounds s = (max, min)"
+    by fastforce
+  have "sint min < sint max"
+    sorry
+  then have "range s = {}"
+    unfolding range_def bounds_def
+    by (simp add: \<open>bounds s = (max, min)\<close> bounds.transfer)
+  then show ?thesis
+    by (simp add: Stamp4.less_eq_intstamp_def)
+qed
+
+lemma bounds_has_value:
+  fixes x y :: int
+  assumes "x < y"
+  shows "card {x..y} > 0"
+  using assms by auto
+
+lemma bounds_has_no_value:
+  fixes x y :: int
+  assumes "x < y"
+  shows "card {y..x} = 0"
+  using assms by auto
+
+lemma bottom_unique: 
+  fixes a s :: "'a intstamp"
+  assumes "is_bottom s"
+  shows "a \<le> s \<longleftrightarrow> is_bottom a"
+proof -
+  have "\<forall>x. sint (fst (bounds x)) < sint (snd (bounds x)) \<or> is_bottom x"
+    unfolding bounds_def is_bottom_def
+    using Rep_intstamp by auto
+  then have "\<forall>x. (card (range x)) > 0 \<or> is_bottom x"
+    unfolding range_def using bounds_has_value
+    by (smt (z3) bounds.abs_eq case_prod_beta' range.rep_eq range_def)
+  obtain min max where boundsdef: "bounds s = (max, min)"
+    by fastforce
+  have nooverlap: "sint min < sint max"
+    sorry
+  have "range s = {sint max..sint min}"
+    by (simp add: bounds.transfer boundsdef range.rep_eq)
+  then have "card (range s) = 0"
+    using nooverlap bounds_has_no_value by simp
+  then have "\<forall>x. (card (range x)) > 0 \<longrightarrow> s < x"
+    using \<open>Stamp4.range s = {sint max..sint min}\<close> atLeastatMost_empty less_intstamp_def by auto
+  then show ?thesis
+    by (meson \<open>\<forall>x. 0 < card (Stamp4.range x) \<or> is_bottom x\<close> bottom_is_bottom leD less_eq_intstamp_def less_intstamp_def)
+qed
+
+
+lemma bottom_antisym:
+  assumes "is_bottom x"
+  shows "x \<le> y \<Longrightarrow> y \<le> x \<Longrightarrow> x = y"
+  using assms proof (cases "is_bottom y")
+case True
+  then show ?thesis
+    by (metis Rep_intstamp_inverse assms is_bottom.rep_eq)
+next
+  case False
+  assume "y \<le> x"
+  have "\<not>(y \<le> x)"
+    using bottom_unique False assms
+    by simp
+  then show ?thesis
+    using \<open>y \<le> x\<close> by auto
+qed
+
+lemma int_antisym:
+  fixes x y :: "'a intstamp"
+  shows "x \<le> y \<Longrightarrow> y \<le> x \<Longrightarrow> x = y"
+proof -
+  fix x :: "'a intstamp"
+  fix y :: "'a intstamp"
+  assume xlessy: "x \<le> y"
+  assume ylessx: "y \<le> x"
+  obtain l1 u1 where xdef: "bounds x = (l1, u1)"
+    by fastforce
+  obtain l2 u2 where ydef: "bounds y = (l2, u2)"
+    by fastforce
+  
+  from xlessy have s1: "{sint l1..sint u1} \<subseteq> {sint l2..sint u2}" (is "?xlessy")
+    using xdef ydef unfolding bounds_def range_def less_eq_intstamp_def
+    by simp
+  from ylessx have s2: "{sint l2..sint u2} \<subseteq> {sint l1..sint u1}" (is "?ylessx")
+    using xdef ydef unfolding bounds_def range_def less_eq_intstamp_def
+    by simp
+  show "x = y" proof (cases "is_bottom x")
+    case True
+    then show ?thesis using bottom_antisym xlessy ylessx
+      by simp
+  next
+    case False
+    then show ?thesis sorry
+  qed
+qed
+
+instance
+  apply standard
+     apply (simp add: less_eq_intstamp_def less_intstamp_def less_le_not_le)
+  apply blast
+  using less_eq_intstamp_def apply force
+  using less_eq_intstamp_def apply force
+  by (simp add: int_antisym)
+end
+
+
+instantiation intstamp :: (len) semilattice_inf
+begin
+
+notation inf (infix "\<sqinter>" 65)
+
+definition join_bounds :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> ('a word \<times> 'a word)" where
+  "join_bounds s1 s2 = (word_of_int (max (lower_int s1) (lower_int s2)), word_of_int (min (upper_int s1) (upper_int s2)))"
+
+definition join_or_bottom :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> ('a word \<times> 'a word)" where
+  "join_or_bottom s1 s2 = (let bound = (join_bounds s1 s2) in 
+    if sint (fst bound) \<ge> sint (snd bound) then int_bottom else bound)"
+
+definition inf_intstamp :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> 'a intstamp" where
+  "inf_intstamp s1 s2 = from_bounds (join_or_bottom s1 s2)"
+
+lemma always_valid:
+  fixes s1 s2 :: "'a intstamp"
+  shows "Rep_intstamp (Abs_intstamp (join_or_bottom s1 s2)) = join_or_bottom s1 s2"
+  unfolding join_or_bottom_def join_bounds_def
+  by (simp add: Abs_intstamp_inverse)
+
+lemma invalid_join:
+  fixes s1 s2 :: "'a intstamp"
+  assumes "bound = join_bounds s1 s2"
+  assumes "sint (fst bound) \<ge> sint (snd bound)"
+  shows "from_bounds int_bottom = s1 \<sqinter> s2"
+  using assms(1) assms(2) inf_intstamp_def join_or_bottom_def by presburger
+
+lemma unfold_bounds:
+  "bounds x = (lower x, upper x)"
+  by (simp add: bounds.transfer lower.rep_eq upper.rep_eq)
+
+lemma int_inf_le1: 
+  fixes x y :: "'a intstamp"
+  shows "(x \<sqinter> y) \<le> x"
+proof (cases "is_bottom (x \<sqinter> y)")
+  case True
+  then show ?thesis
+    by (simp add: bottom_is_bottom)
+next
+  case False
+  then show ?thesis
+  using False proof -
+  obtain l1 u1 where xdef: "lower_int x = l1 \<and> upper_int x = u1"
+    by fastforce
+  obtain l2 u2 where ydef: "lower_int y = l2 \<and> upper_int y = u2"
+    by fastforce
+  have unwrappingl: "sint (word_of_int (max l1 l2)) = max l1 l2"
+    using xdef unfolding lower_int_def upper_int_def sorry
+  have unwrappingu: "sint (word_of_int (max u1 u2)) = max u1 u2"
+    using xdef unfolding lower_int_def upper_int_def sorry
+  have joindef: "x \<sqinter> y = from_bounds (word_of_int (max l1 l2), word_of_int (min u1 u2))"
+    (is "?join = from_bounds (word_of_int ?l3, word_of_int ?u3)")
+    using False
+    by (smt (z3) Stamp4.join_or_bottom_def always_valid from_bounds.abs_eq inf_intstamp_def is_bottom.rep_eq join_bounds_def xdef ydef)
+  have leq: "{?l3..?u3} \<subseteq> {l1..u1}"
+    by simp
+  have "(x \<sqinter> y) \<le> x = ({?l3..?u3} \<subseteq> {l1..u1})"
+    using xdef joindef range_def less_eq_intstamp_def sorry
+  then show "(x \<sqinter> y) \<le> x"
+    using leq
+    by fastforce
+qed
+qed
+
+lemma int_inf_le2: 
+  fixes x y :: "'a intstamp"
+  shows "(x \<sqinter> y) \<le> y"
+  sorry  
+
+lemma int_inf_greatest:
+  fixes x y :: "'a intstamp"
+  shows "x \<le> y \<Longrightarrow> x \<le> z \<Longrightarrow> x \<le> y \<sqinter> z"
+  sorry
+
+instance
+  apply standard
+    apply (simp add: local.int_inf_le1)
+   apply (simp add: local.int_inf_le2)
+  by (simp add: local.int_inf_greatest)
+
+end
+
 end

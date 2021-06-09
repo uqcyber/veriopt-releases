@@ -4,14 +4,37 @@ session Graph in Graph = "HOL-Library" +
   description
     "GraalVM IR structure"
   options [quick_and_dirty, document = pdf,
-           document_output = "document"]
+           document_output = "document",
+           document_variants="document:outline=/proof"]
   theories
     Values
     IRNodes
     IRNodeHierarchy
     Stamp
+    Stamp4
     IRGraph
     Comparison
+  document_files (in "../latex")
+    "root.tex"
+    "mathpartir.sty"
+  document_files (in "../Stamps")
+    "lattice.tex"
+
+session Stamps in Stamps = Graph +
+  description
+    "GraalVM Stamp Theory"
+  options [quick_and_dirty, document = pdf,
+           document_output = "document",
+           document_variants="document:outline=/proof"]
+  sessions
+    Graph
+  document_theories
+    Graph.Stamp4
+  document_files (in ".")
+    "root.tex"
+    "lattice.tex"
+  document_files (in "../latex")
+    "mathpartir.sty"
 
 session Semantics in Semantics = Graph +
   description
@@ -37,6 +60,8 @@ session Proofs in Proofs = Semantics +
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
+  document_files (in "../Stamps")
+    "lattice.tex"
 
 session Optimizations in Optimizations = Proofs +
   description
@@ -52,6 +77,8 @@ session Optimizations in Optimizations = Proofs +
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
+  document_files (in "../Stamps")
+    "lattice.tex"
 
 session Tests in Tests = Optimizations +
   description
@@ -72,6 +99,8 @@ session ATVA2021 in ATVA2021 = Optimizations +
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
+  document_files (in "../Stamps")
+    "lattice.tex"
 
 session ASE2021 in ASE2021 = Tests +
   description
@@ -83,6 +112,8 @@ session ASE2021 in ASE2021 = Tests +
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
+  document_files (in "../Stamps")
+    "lattice.tex"
 
 session Document in Document = Optimizations +
   description
@@ -112,6 +143,8 @@ session Document in Document = Optimizations +
     Optimizations.Construction
   document_files (in ".")
     "root.tex"
+  document_files (in "../Stamps")
+    "lattice.tex"
 
 (*
 session semantics = "HOL-Library" +

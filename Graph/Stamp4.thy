@@ -5,24 +5,6 @@ imports
   Values2
   HOL.Lattices
 begin
-
-experiment begin
-text \<open>A possible equivalent alternative to the definition of less\_eq\<close>
-fun less_eq_alt :: "'a::ord \<times> 'a \<Rightarrow> 'a \<times> 'a \<Rightarrow> bool" where
-  "less_eq_alt (l1, u1) (l2, u2) = ((\<not> l1 \<le> u1) \<or> l2 \<le> l1 \<and> u1 \<le> u2)"
-
-text \<open>Proof equivalence\<close>
-lemma 
-  fixes l1 l2 u1 u2 :: int
-  assumes "l1 \<le> u1 \<and> l2 \<le> u2"
-  shows "{l1..u1} \<subseteq> {l2..u2} = ((l1 \<ge> l2) \<and> (u1 \<le> u2))"
-  by (simp add: assms)
-
-lemma 
-  fixes l1 l2 u1 u2 :: int
-  shows "{l1..u1} \<subseteq> {l2..u2} = less_eq_alt (l1, u1) (l2, u2)"
-  by simp
-end
   
 text \<open>Definition of the stamp type\<close>
 datatype stamp =
@@ -33,6 +15,9 @@ datatype stamp =
 *)
 
 subsection \<open>Stamp Lattice\<close>
+
+text_raw \<open>\input{lattice}\\\<close>
+
 subsubsection \<open>Stamp Order\<close>
 text \<open>
 Defines an ordering on the stamp type.
@@ -534,5 +519,24 @@ lemma disjoint_empty:
   shows "\<not>(valid_value x_stamp x \<and> valid_value y_stamp x)"
   using assms bottom_range_empty join_values
   by blast
+
+
+experiment begin
+text \<open>A possible equivalent alternative to the definition of less\_eq\<close>
+fun less_eq_alt :: "'a::ord \<times> 'a \<Rightarrow> 'a \<times> 'a \<Rightarrow> bool" where
+  "less_eq_alt (l1, u1) (l2, u2) = ((\<not> l1 \<le> u1) \<or> l2 \<le> l1 \<and> u1 \<le> u2)"
+
+text \<open>Proof equivalence\<close>
+lemma 
+  fixes l1 l2 u1 u2 :: int
+  assumes "l1 \<le> u1 \<and> l2 \<le> u2"
+  shows "{l1..u1} \<subseteq> {l2..u2} = ((l1 \<ge> l2) \<and> (u1 \<le> u2))"
+  by (simp add: assms)
+
+lemma 
+  fixes l1 l2 u1 u2 :: int
+  shows "{l1..u1} \<subseteq> {l2..u2} = less_eq_alt (l1, u1) (l2, u2)"
+  by simp
+end
 
 end

@@ -1,29 +1,7 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{isabelle,isabellesym}
 \usepackage{amssymb}
-\usepackage{mathpartir}
 \usepackage{tikz-cd}
-
-% further packages required for unusual symbols (see also
-% isabellesym.sty), use only when needed
-
-%\usepackage{amssymb}
-  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
-  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
-  %\<triangleq>, \<yen>, \<lozenge>
-
-%\usepackage{eurosym}
-  %for \<euro>
-
-%\usepackage[only,bigsqcap]{stmaryrd}
-  %for \<Sqinter>
-
-%\usepackage{eufrak}
-  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
-
-%\usepackage{textcomp}
-  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
-  %\<currency>
 
 % this should be the last package used
 \usepackage{pdfsetup}
@@ -36,7 +14,6 @@
 %\renewcommand{\isastyle}{\isastyleminor}
 
 % display anything in a snip without any markup
-%\providecommand{\snip}[2]{#2}%endsnip
 \newcommand{\Snip}[1]{\isanewline\isanewline}
 \newcommand{\EndSnip}{\isanewline\isanewline}
 \newcommand{\induct}[1]{}
@@ -44,16 +21,33 @@
 
 \begin{document}
 
-\title{Unspecified Veriopt Theory}
+\title{GraalVM Stamp Theory}
 \maketitle
 
+\begin{abstract}
+The GraalVM compiler uses stamps to track type and range
+information during program analysis.
+Type information is recorded by using distinct subclasses
+of the abstract base class \texttt{Stamp},
+i.e. \texttt{IntegerStamp} is used to represent an integer type.
+Each subclass introduces facilities for tracking range information.
+Every subclass of the \texttt{Stamp} class forms a lattice,
+together with an arbitrary top and bottom element each sublattice
+forms a lattice of all stamps.
+This Isabelle/HOL theory models stamps as instantiations of a lattice.
+\end{abstract}
+
+\pagebreak
+
 \tableofcontents
+
+\pagebreak
 
 % sane default for proof documents
 \parindent 0pt\parskip 0.5ex
 
 % generated text of all theories
-\input{session}
+\input{Stamp4}
 
 % optional bibliography
 %\bibliographystyle{abbrv}

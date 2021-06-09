@@ -5,7 +5,77 @@ imports
   Values2
   HOL.Lattices
 begin
-  
+
+subsection \<open>Void Stamp\<close>
+text \<open>
+The VoidStamp represents a type with no associated values.
+The VoidStamp lattice is therefore a simple single element lattice.
+\<close>
+datatype void =
+  VoidStamp
+
+instantiation void :: order
+begin
+
+definition less_eq_void :: "void \<Rightarrow> void \<Rightarrow> bool" where
+  "less_eq_void a b = True"
+
+definition less_void :: "void \<Rightarrow> void \<Rightarrow> bool" where
+  "less_void a b = False"
+
+instance
+  apply standard
+     apply (simp add: less_eq_void_def less_void_def)
+    apply (simp add: less_eq_void_def)
+   apply (simp add: less_eq_void_def)
+  by (metis (full_types) void.exhaust)
+
+end
+
+instantiation void :: semilattice_inf
+begin
+
+definition inf_void :: "void \<Rightarrow> void \<Rightarrow> void" where
+  "inf_void a b = VoidStamp"
+
+instance
+  apply standard
+    apply (simp add: less_eq_void_def)
+   apply (simp add: less_eq_void_def)
+  by (metis (mono_tags) void.exhaust)
+
+end
+
+instantiation void :: semilattice_sup
+begin
+
+definition sup_void :: "void \<Rightarrow> void \<Rightarrow> void" where
+  "sup_void a b = VoidStamp"
+
+instance
+  apply standard
+    apply (simp add: less_eq_void_def)
+   apply (simp add: less_eq_void_def)
+  by (metis (mono_tags) void.exhaust)
+
+end
+
+instantiation void :: bounded_lattice
+begin
+
+definition bot_void :: "void" where
+  "bot_void = VoidStamp"
+
+definition top_void :: "void" where
+  "top_void = VoidStamp"
+
+instance
+  apply standard
+   apply (simp add: less_eq_void_def)
+  by (simp add: less_eq_void_def)
+
+end
+
 text \<open>Definition of the stamp type\<close>
 datatype stamp =
   intstamp int64 int64 \<comment>\<open>Type: Integer; Range: Lower Bound \& Upper Bound\<close>

@@ -191,14 +191,15 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
 
 (* TODO: switch these to new Values2 *)
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
-  "unary_eval UnaryAbs (IntVal b1 v1)  = IntVal 32 (abs v1)" |
+  "unary_eval UnaryAbs (IntVal32 v1)  = IntVal32 ( (if sint(v1) < 0 then - v1 else v1) )" |
+  "unary_eval UnaryAbs (IntVal64 v1)  = IntVal64 ( (if sint(v1) < 0 then - v1 else v1) )" |
   "unary_eval op v1 = UndefVal"
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "bin_eval BinAdd (IntVal b1 v1) (IntVal b2 v2) = IntVal 32 (v1+v2)" |
-  "bin_eval BinMul (IntVal b1 v1) (IntVal b2 v2) = IntVal 32 (v1*v2)" |
-  "bin_eval BinSub (IntVal b1 v1) (IntVal b2 v2) = IntVal 32 (v1-v2)" |
-  "bin_eval op v1 v2 = UndefVal"
+  "bin_eval BinAdd v1 v2 = intval_add v1 v2" |
+  "bin_eval BinMul v1 v2 = intval_mul v1 v2" |
+  "bin_eval BinSub v1 v2 = intval_sub v1 v2"
+(*  "bin_eval op v1 v2 = UndefVal" *)
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "nid \<notin> ids g \<Longrightarrow> fresh_id g nid"
@@ -356,7 +357,7 @@ code\_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE
   eval .
 \EndSnip\<close>
 
-values "{v. eval (new_map [IntVal 32 5]) sq_param0 v}"
+values "{v. eval (new_map [IntVal32 5]) sq_param0 v}"
 
 end
 

@@ -229,7 +229,10 @@ value "get_fresh_id (add_node 6 (ParameterNode 2, default_stamp) eg2_sq)"
 *)
 inductive
   unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<triangleleft> _ \<leadsto> _" 55)
-  where
+
+  and
+  unrepList :: "IRGraph \<Rightarrow> IRExpr list \<Rightarrow> (IRGraph \<times> ID list) \<Rightarrow> bool" ("_ \<triangleleft>\<triangleleft> _ \<leadsto> _" 55)
+  for g where
 
   ConstantNodeSame:
   "\<lbrakk>find_node_and_stamp g (ConstantNode c, constantAsStamp c) = Some nid\<rbrakk>
@@ -266,31 +269,40 @@ inductive
     g' = add_node nid (AbsNode x, s') g2\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (UnaryExpr UnaryAbs xe) \<leadsto> (g', nid)" |
 
-
   BinaryNodeSame:
-  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g2 \<triangleleft> ye \<leadsto> (g3, y);
-    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
-    find_node_and_stamp g3 (bin_node op x y, s') = Some nid\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g3, nid)" |
+  "\<lbrakk>g \<triangleleft>\<triangleleft> [xe, ye] \<leadsto> (g2, [x, y]);
+    s' = stamp_binary op (stamp g2 x) (stamp g2 y);
+    find_node_and_stamp g2 (bin_node op x y, s') = Some nid\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g2, nid)" |
 
   BinaryNodeNew:
-  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g2 \<triangleleft> ye \<leadsto> (g3, y);
-    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
-    find_node_and_stamp g3 (bin_node op x y, s') = None;
-    nid = get_fresh_id g3;
-    g' = add_node nid (bin_node op x y, s') g3\<rbrakk>
+  "\<lbrakk>g \<triangleleft>\<triangleleft> [xe, ye] \<leadsto> (g2, [x, y]);
+    s' = stamp_binary op (stamp g2 x) (stamp g2 y);
+    find_node_and_stamp g2 (bin_node op x y, s') = None;
+    nid = get_fresh_id g2;
+    g' = add_node nid (bin_node op x y, s') g2\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g', nid)" |
 
   AllLeafNodes:
   "stamp g nid = s
-    \<Longrightarrow> g \<triangleleft> (LeafExpr nid s) \<leadsto> (g, nid)"
+    \<Longrightarrow> g \<triangleleft> (LeafExpr nid s) \<leadsto> (g, nid)" |
+
+  NilList:
+  "g \<triangleleft>\<triangleleft> [] \<leadsto> (g, [])" |
+
+(* TODO: this will fail for [xe,ye] where they are not equal.
+         Figure out how to generate code for this?
+*)
+  ConsList:
+  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
+    g \<triangleleft>\<triangleleft> xes \<leadsto> (g2, xs)\<rbrakk>
+    \<Longrightarrow> g \<triangleleft>\<triangleleft> (xe#xes) \<leadsto> (g2, x#xs)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE)
 (*
   [show_steps,show_mode_inference,show_intermediate_results] 
 *)  unrep .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepListE) unrepList .
 
 text_raw \<open>\Snip{unrepRules}%
 \begin{center}
@@ -359,5 +371,24 @@ code\_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE
 
 values "{v. eval (new_map [IntVal32 5]) sq_param0 v}"
 
+inductive_cases UnaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "m \<turnstile> (UnaryExpr op xe) \<mapsto> val"
+
+lemma eval_det :
+  shows "(m \<turnstile> e \<mapsto> v1) \<Longrightarrow> (m \<turnstile> e \<mapsto> v2) \<Longrightarrow> v1 = v2"
+  apply (induction rule: "eval.induct")
+  using eval.cases apply blast
+  using eval.cases apply blast
+  using "UnaryExprE(is m op xe v2)" 
+
+
+  apply (rule "eval.ConstantExpr")
+  apply auto
+
+(*
+Step 2: e1 isrefby e2 iff forall m. m \<turnstile> e1 \<mapsto> v \<Longrightarrow> m \<turnstile> e2 \<mapsto> v
+
+Step 3: if e1 isrefby e2 then g[e1] isREFby g[e2]
+*)
 end
 

@@ -229,7 +229,6 @@ value "get_fresh_id (add_node 6 (ParameterNode 2, default_stamp) eg2_sq)"
 *)
 inductive
   unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<triangleleft> _ \<leadsto> _" 55)
-
   and
   unrepList :: "IRGraph \<Rightarrow> IRExpr list \<Rightarrow> (IRGraph \<times> ID list) \<Rightarrow> bool" ("_ \<triangleleft>\<triangleleft> _ \<leadsto> _" 55)
   for g where
@@ -327,7 +326,7 @@ values "{(nid, g) . (eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, nid))}"
 subsection \<open>Data-flow Tree Evaluation\<close>
 
 inductive
-  eval :: "MapState \<Rightarrow> IRExpr \<Rightarrow> Value \<Rightarrow> bool" ("_ \<turnstile> _ \<mapsto> _" 55)
+  evaltree :: "MapState \<Rightarrow> IRExpr \<Rightarrow> Value \<Rightarrow> bool" ("_ \<turnstile> _ \<mapsto> _" 55)
   for m where
 
   ConstantExpr:
@@ -351,39 +350,55 @@ inductive
 
 text_raw \<open>\Snip{evalRules}%
 \begin{center}
-@{thm[mode=Rule] eval.ConstantExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] eval.ParameterExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] eval.UnaryExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] eval.BinaryExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] eval.LeafExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] evaltree.ConstantExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] evaltree.ParameterExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] evaltree.BinaryExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}\\[8px]
 \end{center}
 \EndSnip\<close>
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE)
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalT)
   [show_steps,show_mode_inference,show_intermediate_results] 
-  eval .
+  evaltree .
 
 text_raw \<open>\Snip{evalCode}%
 code\_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE)
   [show\_steps,show\_mode_inference,show\_intermediate\_results] 
-  eval .
+  evaltree .
 \EndSnip\<close>
 
-values "{v. eval (new_map [IntVal32 5]) sq_param0 v}"
+values "{v. evaltree (new_map [IntVal32 5]) sq_param0 v}"
 
+
+(* derive a forward reasoning rule for each case. *)
+inductive_cases ConstantExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "m \<turnstile> (ConstantExpr c) \<mapsto> val"
+inductive_cases ParameterExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "m \<turnstile> (ParameterExpr i s) \<mapsto> val"
 inductive_cases UnaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "m \<turnstile> (UnaryExpr op xe) \<mapsto> val"
+inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "m \<turnstile> (BinaryExpr op xe ye) \<mapsto> val"
+inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "m \<turnstile> (LeafExpr nid s) \<mapsto> val"
 
-lemma eval_det :
-  shows "(m \<turnstile> e \<mapsto> v1) \<Longrightarrow> (m \<turnstile> e \<mapsto> v2) \<Longrightarrow> v1 = v2"
-  apply (induction rule: "eval.induct")
-  using eval.cases apply blast
-  using eval.cases apply blast
-  using "UnaryExprE(is m op xe v2)" 
+(* group those forward rules into a named set *)
+lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> = 
+  ConstantExprE
+  ParameterExprE
+  UnaryExprE
+  BinaryExprE
+  LeafExprE
 
 
-  apply (rule "eval.ConstantExpr")
-  apply auto
+lemma eval_det:
+  fixes m e v1
+  shows "(m \<turnstile> e \<mapsto> v1) \<Longrightarrow> 
+         (\<forall> v2. ((m \<turnstile> e \<mapsto> v2) \<longrightarrow> v1 = v2))"
+  apply (induction rule: "evaltree.induct")
+  by (rule allI; rule impI; elim EvalTreeE; auto)+
+
 
 (*
 Step 2: e1 isrefby e2 iff forall m. m \<turnstile> e1 \<mapsto> v \<Longrightarrow> m \<turnstile> e2 \<mapsto> v

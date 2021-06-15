@@ -1,4 +1,4 @@
-theory ATVA2021
+theory SemanticsSnippets
   imports
     Optimizations.CanonicalizationProofs
 begin
@@ -232,7 +232,7 @@ lemma CanonicalizeIfProof_fake:
   assumes "g' = replace_node_fake nid after g"
   assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid | g \<sim> g'"
-  sorry
+  by (metis CanonicalizeIfProof assms(1) assms(2) assms(3) assms(4) replace_node_fake_def)
 
 text_raw \<open>\Snip{CanonicalizeIfNodeProof}%
 \begin{center}

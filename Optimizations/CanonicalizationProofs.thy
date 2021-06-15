@@ -155,7 +155,6 @@ lemma
   shows "((IntVal b 0) - (IntVal b x)) + (IntVal b y) = (IntVal b y) - (IntVal b x)"
   using assms unfolding plus_Value_def minus_Value_def wf_value.simps by simp
 
-experiment begin
 lemma CanonicalizeAddProof:
   assumes "CanonicalizeAdd g before after"
   assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
@@ -236,6 +235,7 @@ next
 qed
 qed
 
+experiment begin
 lemma CanonicalizeSubProof:
   assumes "CanonicalizeSub g before after"
   assumes "wf_stamps g"

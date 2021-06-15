@@ -54,7 +54,7 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
 
   IfNode:
   "\<lbrakk>kind g nid = (IfNode cond tb fb);
-    g m \<turnstile> (kind g cond) \<mapsto> val;
+    [g, m] \<turnstile> (kind g cond) \<mapsto> val;
     nid' = (if val_to_bool val then tb else fb)\<rbrakk>
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |  
 
@@ -66,7 +66,7 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
     i = find_index nid (inputs_of (kind g merge));
     phis = (phi_list g merge);
     inps = (phi_inputs g i phis);
-    g m \<turnstile> inps \<longmapsto> vs;
+    [g, m] \<turnstile> inps \<longmapsto> vs;
 
     m' = set_phis phis vs m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
@@ -79,23 +79,23 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
 
   LoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nid');
-      g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
+      [g, m] \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h_load_field f ref h = v;
       m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
   SignedDivNode:
     "\<lbrakk>kind g nid = (SignedDivNode nid x y zero sb nxt);
-      g m \<turnstile> (kind g x) \<mapsto> v1;
-      g m \<turnstile> (kind g y) \<mapsto> v2;
+      [g, m] \<turnstile> (kind g x) \<mapsto> v1;
+      [g, m] \<turnstile> (kind g y) \<mapsto> v2;
       v = (intval_div v1 v2);
       m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   SignedRemNode:
     "\<lbrakk>kind g nid = (SignedRemNode nid x y zero sb nxt);
-      g m \<turnstile> (kind g x) \<mapsto> v1;
-      g m \<turnstile> (kind g y) \<mapsto> v2;
+      [g, m] \<turnstile> (kind g x) \<mapsto> v1;
+      [g, m] \<turnstile> (kind g y) \<mapsto> v2;
       v = (intval_mod v1 v2);
       m' = m_set nid v m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
@@ -108,15 +108,15 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
 
   StoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ (Some obj) nid');
-      g m \<turnstile> (kind g newval) \<mapsto> val;
-      g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
+      [g, m] \<turnstile> (kind g newval) \<mapsto> val;
+      [g, m] \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h' = h_store_field f ref val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
   StaticStoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ None nid');
-      g m \<turnstile> (kind g newval) \<mapsto> val;
+      [g, m] \<turnstile> (kind g newval) \<mapsto> val;
       h' = h_store_field f None val h;
       m' = m_set nid val m\<rbrakk> 
     \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
@@ -309,7 +309,7 @@ lemma stepRefNode:
 
 lemma IfNodeStepCases: 
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "g m \<turnstile> kind g cond \<mapsto> v"
+  assumes "[g, m] \<turnstile> kind g cond \<mapsto> v"
   assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid' \<in> {tb, fb}"
   using step.IfNode
@@ -322,7 +322,7 @@ lemma IfNodeSeq:
 lemma IfNodeCond:
   assumes "kind g nid = IfNode cond tb fb"
   assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
-  shows "\<exists> v. (g m \<turnstile> kind g cond \<mapsto> v)"
+  shows "\<exists> v. ([g, m] \<turnstile> kind g cond \<mapsto> v)"
   using assms(2,1) by (induct "(nid,m,h)" "(nid',m,h)" rule: step.induct; auto)
 
 lemma step_in_ids:
@@ -357,13 +357,13 @@ inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapSt
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
     Some targetGraph = p targetMethod;
 
-    g m \<turnstile> arguments \<longmapsto> vs;
+    [g, m] \<turnstile> arguments \<longmapsto> vs;
     m' = set_params m vs\<rbrakk>
     \<Longrightarrow> p \<turnstile> ((g,nid,m)#stk, h) \<longrightarrow> ((targetGraph,0,m')#(g,nid,m)#stk, h)" |
 
   ReturnNode:
   "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
-    g m \<turnstile> (kind g expr) \<mapsto> v;
+    [g, m] \<turnstile> (kind g expr) \<mapsto> v;
 
     c_m' = m_set c_nid v c_m;
     c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
@@ -379,7 +379,7 @@ inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapSt
   UnwindNode:
   "\<lbrakk>kind g nid = (UnwindNode exception);
 
-    g m \<turnstile> (kind g exception) \<mapsto> e;
+    [g, m] \<turnstile> (kind g exception) \<mapsto> e;
      
     kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 

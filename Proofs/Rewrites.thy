@@ -161,7 +161,7 @@ qed
 
 lemma constantConditionValid:
   assumes "kind g ifcond = IfNode cond t f"
-  assumes "g m \<turnstile> kind g cond \<mapsto> v"
+  assumes "[g, m] \<turnstile> kind g cond \<mapsto> v"
   assumes "const = val_to_bool v"
   assumes "g' = constantCondition const ifcond (kind g ifcond) g"
   shows "\<exists>nid' .(g m h \<turnstile> ifcond \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> ifcond \<leadsto> nid')"

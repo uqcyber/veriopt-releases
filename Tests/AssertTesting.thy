@@ -36,7 +36,7 @@ inductive assert_test :: "Program
   for p where
   "\<lbrakk>kind g nid = (UnwindNode exception);
 
-    g m \<turnstile> kind g exception \<mapsto> ObjRef e;
+    [g, m] \<turnstile> kind g exception \<mapsto> ObjRef e;
     details = h_load_field ''assertFailure'' e h\<rbrakk>
 
     \<Longrightarrow> assert_test p (((g,nid,m)#stk),h) (Exception exception details)" |

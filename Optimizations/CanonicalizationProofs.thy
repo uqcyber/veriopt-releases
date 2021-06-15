@@ -7,21 +7,21 @@ begin
 lemma CanonicalizeConditionalProof:
   assumes "CanonicalizeConditional g before after"
   assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
-  assumes "g m \<turnstile> before \<mapsto> res"
-  assumes "g m \<turnstile> after \<mapsto> res'"
+  assumes "[g, m] \<turnstile> before \<mapsto> res"
+  assumes "[g, m] \<turnstile> after \<mapsto> res'"
   shows "res = res'"
   using assms(1) assms 
 proof (induct rule: CanonicalizeConditional.induct)
   case (negate_condition g cond flip tb fb)
-  obtain condv where condv: "g m \<turnstile> kind g cond \<mapsto> IntVal 1 condv"
+  obtain condv where condv: "[g, m] \<turnstile> kind g cond \<mapsto> IntVal 1 condv"
     using negate_condition.prems(3) by blast
-  then obtain flipv where flipv: "g m \<turnstile> kind g flip \<mapsto> IntVal 1 flipv"
+  then obtain flipv where flipv: "[g, m] \<turnstile> kind g flip \<mapsto> IntVal 1 flipv"
     by (metis LogicNegationNodeE negate_condition.hyps)
   have invert: "(val_to_bool (IntVal 1 condv)) \<longleftrightarrow> \<not>(val_to_bool (IntVal 1 flipv))" 
     by (metis bool_to_val.simps(1) bool_to_val.simps(2) condv eval.LogicNegationNode evalDet flipv negate_condition.hyps val_to_bool.simps(1) zero_neq_one)
-  obtain tbval where tbval: "g m \<turnstile> kind g tb \<mapsto> tbval"
+  obtain tbval where tbval: "[g, m] \<turnstile> kind g tb \<mapsto> tbval"
     using negate_condition.prems(3) by blast
-  obtain fbval where fbval: "g m \<turnstile> kind g fb \<mapsto> fbval"
+  obtain fbval where fbval: "[g, m] \<turnstile> kind g fb \<mapsto> fbval"
     using negate_condition.prems(3) by blast
   show ?case proof (cases "condv = 0")
     case True
@@ -65,11 +65,11 @@ next
     using eval.RefNode evalDet by force
 next
   case (cond_eq g cond tb fb)
-  then obtain condv where condv: "g m \<turnstile> kind g cond \<mapsto> condv"
+  then obtain condv where condv: "[g, m] \<turnstile> kind g cond \<mapsto> condv"
     by blast
-  obtain tbval where tbval: "g m \<turnstile> kind g tb \<mapsto> tbval"
+  obtain tbval where tbval: "[g, m] \<turnstile> kind g tb \<mapsto> tbval"
     using cond_eq.prems(3) by blast
-  obtain fbval where fbval: "g m \<turnstile> kind g fb \<mapsto> fbval"
+  obtain fbval where fbval: "[g, m] \<turnstile> kind g fb \<mapsto> fbval"
     using cond_eq.prems(3) by blast
   from cond_eq show ?case proof (cases "val_to_bool condv")
     case True
@@ -84,9 +84,9 @@ next
   qed
 next
   case (condition_bounds_x g cond tb fb)
-  obtain tbval b where tbval: "g m \<turnstile> kind g tb \<mapsto> IntVal b tbval"
+  obtain tbval b where tbval: "[g, m] \<turnstile> kind g tb \<mapsto> IntVal b tbval"
     using condition_bounds_x.prems(3) by blast
-  obtain fbval b where fbval: "g m \<turnstile> kind g fb \<mapsto> IntVal b fbval"
+  obtain fbval b where fbval: "[g, m] \<turnstile> kind g fb \<mapsto> IntVal b fbval"
     using condition_bounds_x.prems(3) by blast
   have "tbval \<le> fbval"
     using condition_bounds_x.prems(2) tbval fbval condition_bounds_x.hyps(2) int_valid_range
@@ -100,9 +100,9 @@ next
     using ConditionalNodeE Value.sel(1) condition_bounds_x.prems(4) by blast
 next
   case (condition_bounds_y g cond fb tb)
-  obtain tbval b where tbval: "g m \<turnstile> kind g tb \<mapsto> IntVal b tbval"
+  obtain tbval b where tbval: "[g, m] \<turnstile> kind g tb \<mapsto> IntVal b tbval"
     using condition_bounds_y.prems(3) by blast
-  obtain fbval b where fbval: "g m \<turnstile> kind g fb \<mapsto> IntVal b fbval"
+  obtain fbval b where fbval: "[g, m] \<turnstile> kind g fb \<mapsto> IntVal b fbval"
     using condition_bounds_y.prems(3) by blast
   have "tbval \<ge> fbval"
     using condition_bounds_y.prems(2) tbval fbval condition_bounds_y.hyps(2) int_valid_range
@@ -174,17 +174,17 @@ lemma
 lemma CanonicalizeAddProof:
   assumes "CanonicalizeAdd g before after"
   assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
-  assumes "g m \<turnstile> before \<mapsto> IntVal b res"
-  assumes "g m \<turnstile> after \<mapsto> IntVal b' res'"
+  assumes "[g, m] \<turnstile> before \<mapsto> IntVal b res"
+  assumes "[g, m] \<turnstile> after \<mapsto> IntVal b' res'"
   shows "res = res'"
 proof -
   obtain x y where addkind: "before = AddNode x y"
     using CanonicalizeAdd.simps assms by auto
   from addkind
-  obtain xval where xval: "g m \<turnstile> kind g x \<mapsto> xval"
+  obtain xval where xval: "[g, m] \<turnstile> kind g x \<mapsto> xval"
     using assms(3) by blast
   from addkind
-  obtain yval where yval: "g m \<turnstile> kind g y \<mapsto> yval"
+  obtain yval where yval: "[g, m] \<turnstile> kind g y \<mapsto> yval"
     using assms(3) by blast
   have res: "IntVal b res = intval_add xval yval"
     using assms(3) eval.AddNode
@@ -197,9 +197,9 @@ case (add_both_const x c_1 y c_2 val)
     by (metis ConstantNodeE IRNode.inject(2) Value.inject(1))
 next
   case (add_xzero x c_1 y)
-  have xeval: "g m \<turnstile> kind g x \<mapsto> (IntVal 32 0)"
+  have xeval: "[g, m] \<turnstile> kind g x \<mapsto> (IntVal 32 0)"
     by (simp add: ConstantNode add_xzero.hyps(1) add_xzero.hyps(3))
-  have yeval: "g m \<turnstile> kind g y \<mapsto> yval"
+  have yeval: "[g, m] \<turnstile> kind g y \<mapsto> yval"
     using add_xzero.prems(4) yval by blast
   have ywf: "wf_value yval"
     using yeval add_xzero.prems(1) eval_in_ids wf_values.simps by blast 
@@ -217,9 +217,9 @@ next
     by (metis Value.inject(1) add_zero_32 bpBits)
 next
   case (add_yzero x y c_2)
-  have yeval: "g m \<turnstile> kind g y \<mapsto> (IntVal 32 0)"
+  have yeval: "[g, m] \<turnstile> kind g y \<mapsto> (IntVal 32 0)"
     by (simp add: ConstantNode add_yzero.hyps(2) add_yzero.hyps(3))
-  have xeval: "g m \<turnstile> kind g x \<mapsto> xval"
+  have xeval: "[g, m] \<turnstile> kind g x \<mapsto> xval"
     using add_yzero.prems(4) xval by fastforce
   then have xwf: "wf_value xval" 
     using yeval add_yzero.prems(1) eval_in_ids wf_values.simps by blast 
@@ -255,8 +255,8 @@ qed
 lemma CanonicalizeSubProof:
   assumes "CanonicalizeSub g before after"
   assumes "wf_stamps g"
-  assumes "g m \<turnstile> before \<mapsto> IntVal b1 res"
-  assumes "g m \<turnstile> after \<mapsto> IntVal b2 res'"
+  assumes "[g, m] \<turnstile> before \<mapsto> IntVal b1 res"
+  assumes "[g, m] \<turnstile> after \<mapsto> IntVal b2 res'"
   shows "res = res'"
   using assms proof (induct rule: CanonicalizeSub.induct)
 case (sub_same x y b l h)
@@ -324,7 +324,7 @@ next
     using lockstep_strong_bisimilulation assms(3) by simp
 next
   case (eqBranch cond tb fb)
-  have cval: "\<exists>v. (g m \<turnstile> kind g cond \<mapsto> v)"
+  have cval: "\<exists>v. ([g, m] \<turnstile> kind g cond \<mapsto> v)"
     using IfNodeCond
     by (meson eqBranch.prems(1) eqBranch.prems(4))
   then have gstep: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
@@ -335,7 +335,7 @@ next
     using lockstep_strong_bisimilulation assms(3) by simp
 next
   case (eqCondition cond x tb fb)
-  have cval: "\<exists>v. (g m \<turnstile> kind g cond \<mapsto> v)"
+  have cval: "\<exists>v. ([g, m] \<turnstile> kind g cond \<mapsto> v)"
     using IfNodeCond
     by (meson eqCondition.prems(1) eqCondition.prems(4))
   have gstep: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
@@ -382,9 +382,9 @@ lemma double_negate:
 
 lemma logic_negation_bool_inputs:
   assumes "wf_values g"
-  assumes "g m \<turnstile> kind g inp \<mapsto> inp_val"
+  assumes "[g, m] \<turnstile> kind g inp \<mapsto> inp_val"
   assumes "kind g n = LogicNegationNode inp"
-  assumes "g m \<turnstile> kind g n \<mapsto> val"
+  assumes "[g, m] \<turnstile> kind g n \<mapsto> val"
   shows "wf_bool inp_val" 
   using assms
 proof - 
@@ -404,8 +404,8 @@ qed
 lemma CanonicalizeLogicNegationProof:
   assumes "CanonicalizeLogicNegation g before after"
   assumes "wf_stamps g"
-  assumes "g m \<turnstile> before \<mapsto> IntVal b res"
-  assumes "g m \<turnstile> after \<mapsto> IntVal b' res'"
+  assumes "[g, m] \<turnstile> before \<mapsto> IntVal b res"
+  assumes "[g, m] \<turnstile> after \<mapsto> IntVal b' res'"
   assumes "wf_values g"
   shows "res = res'"
   using assms 
@@ -415,13 +415,13 @@ proof (induct rule: CanonicalizeLogicNegation.induct)
     by (smt (verit) ConstantNodeE LogicNegationNodeE Value.inject(1) val_to_bool.simps(1))
 next
   case (logical_not_not nx x)
-  obtain nxval where nxval: "g m \<turnstile> kind g nx \<mapsto> nxval"
+  obtain nxval where nxval: "[g, m] \<turnstile> kind g nx \<mapsto> nxval"
     using logical_not_not.prems(2) by blast
-  obtain xval where xval: "g m \<turnstile> kind g x \<mapsto> xval"
+  obtain xval where xval: "[g, m] \<turnstile> kind g x \<mapsto> xval"
     using logical_not_not.prems(3) by blast
-  obtain beforeval where beforeval: "g m \<turnstile> before \<mapsto> beforeval"
+  obtain beforeval where beforeval: "[g, m] \<turnstile> before \<mapsto> beforeval"
     using assms(3) by auto
-  obtain refval where refval: "g m \<turnstile> after \<mapsto> refval"
+  obtain refval where refval: "[g, m] \<turnstile> after \<mapsto> refval"
     using assms(4) by auto
   then have "wf_bool xval" 
     using logic_negation_bool_inputs logical_not_not.hyps logical_not_not.prems(4) nxval xval by blast

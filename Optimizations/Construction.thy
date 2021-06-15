@@ -13,13 +13,13 @@ lemma add_const_nodes:
   assumes zn: "kind g z = (AddNode x y)"
   assumes wn: "kind g w = (ConstantNode (intval_add (IntVal b xv) (IntVal b yv)))"
   assumes val: "intval_add (IntVal b xv) (IntVal b yv) = IntVal b v1"
-  assumes ez: "g m \<turnstile> (kind g z) \<mapsto> (IntVal b v1)"
-  assumes ew: "g m \<turnstile> (kind g w) \<mapsto> (IntVal b v2)"
+  assumes ez: "[g, m] \<turnstile> (kind g z) \<mapsto> (IntVal b v1)"
+  assumes ew: "[g, m] \<turnstile> (kind g w) \<mapsto> (IntVal b v2)"
   shows "v1 = v2"
 proof -
-  have zv: "g m \<turnstile> (kind g z) \<mapsto> IntVal b v1"
+  have zv: "[g, m] \<turnstile> (kind g z) \<mapsto> IntVal b v1"
     using eval.AddNode eval.ConstantNode xn yn zn val plus_Value_def by metis
-  have wv: "g m \<turnstile> (kind g w) \<mapsto> IntVal b v2"
+  have wv: "[g, m] \<turnstile> (kind g w) \<mapsto> IntVal b v2"
     using eval.ConstantNode wn ew by blast 
   show ?thesis using evalDet zv wv ew ez
     using ConstantNode val wn by auto
@@ -56,16 +56,16 @@ text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{AddNodeCreate}%\<close>
 lemma add_node_create:
-  assumes xv: "g m \<turnstile> (kind g x) \<mapsto> IntVal b xv"
-  assumes yv: "g m \<turnstile> (kind g y) \<mapsto> IntVal b yv"
+  assumes xv: "[g, m] \<turnstile> (kind g x) \<mapsto> IntVal b xv"
+  assumes yv: "[g, m] \<turnstile> (kind g y) \<mapsto> IntVal b yv"
   assumes res: "res = intval_add (IntVal b xv) (IntVal b yv)"
   shows 
-    "(g m \<turnstile> (AddNode x y) \<mapsto> res) \<and>
-     (g m \<turnstile> (create_add g x y) \<mapsto> res)"
+    "([g, m] \<turnstile> (AddNode x y) \<mapsto> res) \<and>
+     ([g, m] \<turnstile> (create_add g x y) \<mapsto> res)"
 text_raw \<open>\EndSnip\<close>
 proof -
-  let ?P = "(g m \<turnstile> (AddNode x y) \<mapsto> res)"
-  let ?Q = "(g m \<turnstile> (create_add g x y) \<mapsto> res)"
+  let ?P = "([g, m] \<turnstile> (AddNode x y) \<mapsto> res)"
+  let ?Q = "([g, m] \<turnstile> (create_add g x y) \<mapsto> res)"
   have P: ?P
     using xv yv res eval.AddNode plus_Value_def by metis
   have Q: ?Q
@@ -94,7 +94,7 @@ proof -
         have ref: "create_add g x y = RefNode y"
           using xzero add_def 
           by meson
-        have refval: "g m \<turnstile> RefNode y \<mapsto> IntVal b yv"
+        have refval: "[g, m] \<turnstile> RefNode y \<mapsto> IntVal b yv"
           using eval.RefNode yv by simp
         have "res = IntVal b yv"
           using res unfolding xzero add_val_xzero by simp
@@ -124,7 +124,7 @@ next
         have ref: "create_add g x y = RefNode x"
           using yzero add_def 
           by meson
-        have refval: "g m \<turnstile> RefNode x \<mapsto> IntVal b xv"
+        have refval: "[g, m] \<turnstile> RefNode x \<mapsto> IntVal b xv"
           using eval.RefNode xv by simp
         have "res = IntVal b xv"
           using res unfolding yzero add_val_yzero by simp
@@ -318,7 +318,7 @@ next
   then have "unchanged (eval_usages g obj) g g'"
     using unchanged
     using child_unchanged by blast
-  then have "g' m \<turnstile> kind g' obj \<mapsto> ObjRef ref"
+  then have "[g', m] \<turnstile> kind g' obj \<mapsto> ObjRef ref"
     using unchanged wf stay_same
     using LoadFieldNode.hyps(2) by presburger
   then show ?case using step.LoadFieldNode
@@ -332,7 +332,7 @@ next
   then have "unchanged (eval_usages g x) g g'"
     using unchanged
     using child_unchanged by blast
-  then have "g' m \<turnstile> kind g' x \<mapsto> v1"
+  then have "[g', m] \<turnstile> kind g' x \<mapsto> v1"
     using unchanged wf stay_same
     using SignedDivNode.hyps(2) by presburger
   have "y \<in> inputs g nid"
@@ -342,11 +342,11 @@ next
   then have "unchanged (eval_usages g y) g g'"
     using unchanged
     using child_unchanged by blast
-  then have "g' m \<turnstile> kind g' y \<mapsto> v2"
+  then have "[g', m] \<turnstile> kind g' y \<mapsto> v2"
     using unchanged wf stay_same
     using SignedDivNode.hyps(3) by presburger
   then show ?case using step.SignedDivNode
-    by (metis SignedDivNode.hyps(1) SignedDivNode.hyps(4) SignedDivNode.hyps(5) \<open>g' m \<turnstile> kind g' x \<mapsto> v1\<close> kind)
+    by (metis SignedDivNode.hyps(1) SignedDivNode.hyps(4) SignedDivNode.hyps(5) \<open>[g', m] \<turnstile> kind g' x \<mapsto> v1\<close> kind)
 next
   case (SignedRemNode x y zero sb v1 v2 v)
   have "x \<in> inputs g nid"
@@ -356,7 +356,7 @@ next
   then have "unchanged (eval_usages g x) g g'"
     using unchanged
     using child_unchanged by blast
-  then have "g' m \<turnstile> kind g' x \<mapsto> v1"
+  then have "[g', m] \<turnstile> kind g' x \<mapsto> v1"
     using unchanged wf stay_same
     using SignedRemNode.hyps(2) by presburger
   have "y \<in> inputs g nid"
@@ -366,11 +366,11 @@ next
   then have "unchanged (eval_usages g y) g g'"
     using unchanged
     using child_unchanged by blast
-  then have "g' m \<turnstile> kind g' y \<mapsto> v2"
+  then have "[g', m] \<turnstile> kind g' y \<mapsto> v2"
     using unchanged wf stay_same
     using SignedRemNode.hyps(3) by presburger
   then show ?case
-    by (metis SignedRemNode.hyps(1) SignedRemNode.hyps(4) SignedRemNode.hyps(5) \<open>g' m \<turnstile> kind g' x \<mapsto> v1\<close> kind step.SignedRemNode)
+    by (metis SignedRemNode.hyps(1) SignedRemNode.hyps(4) SignedRemNode.hyps(5) \<open>[g', m] \<turnstile> kind g' x \<mapsto> v1\<close> kind step.SignedRemNode)
 next
   case (StaticLoadFieldNode f v)
   then show ?case using step.StaticLoadFieldNode
@@ -384,7 +384,7 @@ next
   then have "unchanged (eval_usages g obj) g g'"
     using unchanged
     using child_unchanged by blast
-  then have "g' m \<turnstile> kind g' obj \<mapsto> ObjRef ref"
+  then have "[g', m] \<turnstile> kind g' obj \<mapsto> ObjRef ref"
     using unchanged wf stay_same
     using StoreFieldNode.hyps(3) by presburger
   have "newval \<in> inputs g nid"
@@ -394,11 +394,11 @@ next
   then have "unchanged (eval_usages g newval) g g'"
     using unchanged
     using child_unchanged by blast
-  then have "g' m \<turnstile> kind g' newval \<mapsto> val"
+  then have "[g', m] \<turnstile> kind g' newval \<mapsto> val"
     using unchanged wf stay_same
     using StoreFieldNode.hyps(2) by blast
   then show ?case using step.StoreFieldNode
-    by (metis StoreFieldNode.hyps(1) StoreFieldNode.hyps(4) StoreFieldNode.hyps(5) \<open>g' m \<turnstile> kind g' obj \<mapsto> ObjRef ref\<close> assms(3))
+    by (metis StoreFieldNode.hyps(1) StoreFieldNode.hyps(4) StoreFieldNode.hyps(5) \<open>[g', m] \<turnstile> kind g' obj \<mapsto> ObjRef ref\<close> assms(3))
 next
   case (StaticStoreFieldNode f newval uv val)
   have "newval \<in> inputs g nid"
@@ -408,7 +408,7 @@ next
   then have "unchanged (eval_usages g newval) g g'"
     using unchanged
     using child_unchanged by blast
-  then have "g' m \<turnstile> kind g' newval \<mapsto> val"
+  then have "[g', m] \<turnstile> kind g' newval \<mapsto> val"
     using unchanged wf stay_same
     using StaticStoreFieldNode.hyps(2) by blast
   then show ?case using step.StaticStoreFieldNode
@@ -494,7 +494,7 @@ text_raw \<open>\EndSnip\<close>
 lemma if_node_create_bisimulation:
   fixes h :: FieldRefHeap
   assumes wf: "wf_graph g"
-  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
+  assumes cv: "[g, m] \<turnstile> (kind g cond) \<mapsto> cv"
   assumes fresh: "nid \<notin> ids g"
   assumes closed: "{cond, tb, fb} \<subseteq> ids g"
   assumes gif: "gif = add_node_fake nid (IfNode cond tb fb) g"
@@ -572,7 +572,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
     case constantTrue: True
     have if_kind: "kind gif nid = (IfNode cond tb fb)"
       using gif add_node_lookup by simp
-    have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
+    have if_cv: "[gif, m] \<turnstile> (kind gif cond) \<mapsto> val"
       by (metis ConstantNodeE add_node_unchanged_fake cv eval_in_ids fresh gif stay_same val wf)
     have "(gif \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h))"
       using step.IfNode if_kind if_cv
@@ -595,7 +595,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
     case constantFalse: False
     have if_kind: "kind gif nid = (IfNode cond tb fb)"
       using gif add_node_lookup by simp
-    have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
+    have if_cv: "[gif, m] \<turnstile> (kind gif cond) \<mapsto> val"
       by (metis ConstantNodeE add_node_unchanged_fake cv eval_in_ids fresh gif stay_same val wf)
     have "(gif \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h))"
       using step.IfNode if_kind if_cv
@@ -674,7 +674,7 @@ qed
 text_raw \<open>\Snip{IfNodeCreate}%\<close>
 lemma if_node_create:
   assumes wf: "wf_graph g"
-  assumes cv: "g m \<turnstile> (kind g cond) \<mapsto> cv"
+  assumes cv: "[g, m] \<turnstile> (kind g cond) \<mapsto> cv"
   assumes fresh: "nid \<notin> ids g"
   assumes gif: "gif = add_node_fake nid (IfNode cond tb fb) g"
   assumes gcreate: "gcreate = add_node_fake nid (create_if g cond tb fb) g"
@@ -690,7 +690,7 @@ proof (cases "\<exists> val . (kind g cond) = ConstantNode val")
       using cv eval_in_ids by auto
     have if_kind: "kind gif nid = (IfNode cond tb fb)"
       using gif add_node_lookup by simp
-    have if_cv: "gif m \<turnstile> (kind gif cond) \<mapsto> val"
+    have if_cv: "[gif, m] \<turnstile> (kind gif cond) \<mapsto> val"
       using step.IfNode if_kind
       using True eval.ConstantNode gif fresh
       using stay_same cond_exists
@@ -734,7 +734,7 @@ next
     have "unchanged (eval_usages g cond) g gif"
       using gif add_node_unchanged_fake
       using cv eval_in_ids fresh wf by blast
-    then obtain cv2 where cv2: "gif m \<turnstile> (kind gif cond) \<mapsto> cv2" 
+    then obtain cv2 where cv2: "[gif, m] \<turnstile> (kind gif cond) \<mapsto> cv2" 
       using cv gif wf stay_same by blast
     then have "cv = cv2"
       using indep gif cv

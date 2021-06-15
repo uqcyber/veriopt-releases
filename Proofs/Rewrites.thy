@@ -101,7 +101,7 @@ lemma replace_node_changeonly:
   shows "changeonly {nid} g g'"
   using assms replace_node_unchanged
   unfolding changeonly.simps using diff_forall
-  sorry (* Isabelle isn't doing good *)
+  by (metis Rep_IRGraph_inverse add_changed add_node.rep_eq ids_some other_node_unchanged replace_node.rep_eq)
 
 lemma add_node_changeonly:
   assumes "g' = add_node nid node g"

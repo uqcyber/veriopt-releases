@@ -148,21 +148,6 @@ proof -
     by auto
 qed
 
-(*
-lemma 
-  assumes "wf_value (IntVal bl y)"
-  assumes "bl \<in> {32,64}"
-
-  shows "(IntVal bl 0) +* (IntVal bl y) = (IntVal br y)"
-proof -
-  have bounds: "-(2^((nat bl)-1)) \<le> y \<and> y < 2^((nat bl)-1)"
-    using assms unfolding wf_value.simps by auto
-  then show ?thesis unfolding intval_add.simps apply auto
-    using bounds assms
-    apply auto using signed_take_bit_int_eq_self apply auto
-    try
-qed
-*)
 
 (* (-x + y) \<Rightarrow> (y - x) *)
 lemma 
@@ -170,7 +155,7 @@ lemma
   shows "((IntVal b 0) - (IntVal b x)) + (IntVal b y) = (IntVal b y) - (IntVal b x)"
   using assms unfolding plus_Value_def minus_Value_def wf_value.simps by simp
 
-
+experiment begin
 lemma CanonicalizeAddProof:
   assumes "CanonicalizeAdd g before after"
   assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
@@ -251,7 +236,6 @@ next
 qed
 qed
 
-
 lemma CanonicalizeSubProof:
   assumes "CanonicalizeSub g before after"
   assumes "wf_stamps g"
@@ -292,7 +276,7 @@ next
   case (sub_y_negate nb b a)
   then show ?case sorry
 qed
-
+end
 
 lemma CanonicalizeIfProof:
   fixes m::MapState and h::FieldRefHeap
@@ -348,32 +332,6 @@ next
     using lockstep_strong_bisimilulation assms(3) by simp
 qed
 
-
-(*
-lemma add_zero:
-  assumes "x < (2 ^ (LENGTH('a) - 1))"
-  shows "(sint ((word_of_int 0::('a::len word)) + word_of_int x::('a::len word))) = x"
-proof -
-  have "sint (word_of_int x::('a word)) = x"
-    using assms sorry
-  show ?thesis sorry
-qed
-
-value "word_of_int (-2)::(32word)"
-value "sint (word_of_int (-2)::32word)"
-value "sint (word_of_int 0 + word_of_int (-2)::32word)"
-
-
-(* these are incorrect with the introduction of accurate addition semantics *)
-(* most obviously due to the resultant b being either 32 or 64 *)
-lemma add_val_xzero:
-  shows "intval_add (IntVal b 0) (IntVal b yv) = (IntVal b yv)"
-  unfolding intval_add.simps sorry
-
-lemma add_val_yzero:
-  shows "intval_add (IntVal b xv) (IntVal b 0) = (IntVal b xv)"
-  unfolding intval_add.simps sorry
-*)
 
 lemma double_negate: 
  "\<lbrakk>wf_bool x\<rbrakk> 

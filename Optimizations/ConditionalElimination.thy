@@ -79,6 +79,12 @@ proof -
     by simp
 qed
 
+lemma unfold: 
+  assumes "P"
+  assumes "Q"
+  shows "P \<longrightarrow> Q \<and> Q \<longrightarrow> P"
+  by simp
+
 lemma implies_valid:
   assumes "wf_graph g \<and> wf_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
@@ -119,8 +125,9 @@ proof -
       using assms(2,3) by blast
   next
     case (negate_true x y)
-    then show ?case using logic_negation_relation
-      sorry (* WAS by fastforce *)
+    show ?case
+      using negate_true(1,4,5,6,7)
+      sorry
   qed
   qed
 next
@@ -841,7 +848,7 @@ qed
 
 text \<open>Mostly experimental proofs from here on out.\<close>
 
-(* lies we tell isabelle to get things to pass *)
+experiment begin
 lemma if_step:
   assumes "nid \<in> ids g"
   assumes "(kind g nid) \<in> control_nodes"
@@ -899,5 +906,6 @@ next
   then show ?case sorry
 qed
 qed
+end
 
 end

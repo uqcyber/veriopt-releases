@@ -33,6 +33,7 @@ inductive strong_noop_bisimilar :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGra
   \<Longrightarrow> nid | g \<sim> g'"
 
 lemma lockstep_strong_bisimilulation:
+  fixes m h
   assumes "g' = replace_node nid node g"
   assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   assumes "g' \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"

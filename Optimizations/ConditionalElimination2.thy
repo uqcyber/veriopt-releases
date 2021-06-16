@@ -460,26 +460,50 @@ lemma tryFoldIntegerEqualsNeverDistinct:
   assumes "never_distinct (stamps x) (stamps y)"
   shows "v = IntVal32 1"
   using assms never_distinct_equal IntegerEqualsNodeE
-  sorry
+  unfolding wf_stamp.simps
+proof -
+  obtain xval where xval: "g m \<turnstile> kind g x \<mapsto> xval"
+    by (metis IntegerEqualsNodeE assms(2) assms(3))
+  obtain yval where yval: "g m \<turnstile> kind g y \<mapsto> yval"
+    by (metis IntegerEqualsNodeE assms(2) assms(3))
+  have bit_right: "(is_IntVal32 xval \<and> is_IntVal32 yval) 
+        \<or> (is_IntVal64 xval \<and> is_IntVal64 yval)"
+    using IntegerEqualsNodeE assms
+    by (metis evalDet xval yval)
+  have v_def: "v = equal_value xval yval"
+    using assms(2,3) IntegerEqualsNodeE
+    by (metis evalDet xval yval)
+  have "x \<in> ids g \<and> y \<in> ids g"
+    using eval_in_ids xval yval by blast
+  then have "xval = yval"
+    using never_distinct_equal assms(1,4) xval yval
+    unfolding wf_stamp.simps
+    by blast
+  then have "(equal_value xval yval) = IntVal32 1"
+    using equals_never_undef assms(2,3) xval yval bit_right
+      equal_value_true
+    by simp
+  then show ?thesis using v_def
+    by simp
+qed
 
 lemma tryFoldIntegerLessThanTrue:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "g m \<turnstile> (kind g nid) \<mapsto> v"
-  assumes "stpi_upper (stamps x) < stpi_lower (stamps y)"
-  shows "v = IntVal 1 1"
+  assumes "stamps x = IntegerStamp isx"
+  assumes "stamps y = IntegerStamp isy"
+  assumes "upper_bound isx < lower_bound isy"
+  shows "v = IntVal32 1"
 proof -
-  have stamp_type: "is_IntegerStamp (stamps x)"
-    using assms
-    by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wf_stamp.elims(2))
-  obtain xval b where xval: "g m \<turnstile> kind g x \<mapsto> IntVal b xval"
+  obtain xval where xval: "g m \<turnstile> kind g x \<mapsto> xval"
     using assms(2,3) eval.IntegerLessThanNode by auto
-  obtain yval b where yval: "g m \<turnstile> kind g y \<mapsto> IntVal b yval"
+  obtain yval where yval: "g m \<turnstile> kind g y \<mapsto> yval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
-    using assms(4)
-    by (metis stamp_type Stamp.disc(2) Value.distinct(1) assms(1) eval_in_ids valid_value.elims(2) wf_stamp.simps yval)
-  then have "xval < yval"
+    using assms
+    by auto
+  then have "val_to_bool (less_than_value xval yval)"
     using boundsNoOverlap xval yval assms(1,4)
     using eval_in_ids wf_stamp.elims(2)
     by metis

@@ -59,9 +59,9 @@ existing evaluation semantics.
 
 lemma logic_negation_relation:
   assumes "wf_values g"
-  assumes "[g, m] \<turnstile> kind g y \<mapsto> val"
+  assumes "[g, m, p] \<turnstile> kind g y \<mapsto> val"
   assumes "kind g neg = LogicNegationNode y"
-  assumes "[g, m] \<turnstile> kind g neg \<mapsto> invval"
+  assumes "[g, m, p] \<turnstile> kind g neg \<mapsto> invval"
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
 proof -
   have "wf_value val"
@@ -88,8 +88,8 @@ lemma unfold:
 lemma implies_valid:
   assumes "wf_graph g \<and> wf_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
-  assumes "[g, m] \<turnstile> x \<mapsto> v1"
-  assumes "[g, m] \<turnstile> y \<mapsto> v2"
+  assumes "[g, m, p] \<turnstile> x \<mapsto> v1"
+  assumes "[g, m, p] \<turnstile> y \<mapsto> v2"
   shows "(imp = KnownTrue \<longrightarrow> (val_to_bool v1 \<longrightarrow> val_to_bool v2)) \<and>
          (imp = KnownFalse \<longrightarrow> (val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2)))"
     (is "(?TP \<longrightarrow> ?TC) \<and> (?FP \<longrightarrow> ?FC)")
@@ -138,15 +138,15 @@ next
   then show ?thesis
   using assms KnownFalse proof (induct x y imp rule: implies.induct)
     case (eq_imp_less x y)
-    obtain b xval where xval: "[g, m] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
+    obtain b xval where xval: "[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
       using eq_imp_less.prems(3) by blast
-    then obtain yval where yval: "[g, m] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
+    then obtain yval where yval: "[g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
       using eq_imp_less.prems(3)
       using evalDet by blast
-    have eqeval: "[g, m] \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
+    have eqeval: "[g, m, p] \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
       using eval.IntegerEqualsNode
       using xval yval by blast
-    have lesseval: "[g, m] \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
+    have lesseval: "[g, m, p] \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
       using eval.IntegerLessThanNode
       using xval yval by blast
     have "xval = yval \<longrightarrow> \<not>(xval < yval)"
@@ -156,15 +156,15 @@ next
       by (metis (full_types) "eq_imp_less.prems"(3) "eq_imp_less.prems"(4) bool_to_val.simps(2) evalDet val_to_bool.simps(1))
   next
     case (eq_imp_less_rev x y)
-    obtain b xval where xval: "[g, m] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
+    obtain b xval where xval: "[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
       using eq_imp_less_rev.prems(3) by blast
-    then obtain yval where yval: "[g, m] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
+    then obtain yval where yval: "[g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
       using eq_imp_less_rev.prems(3)
       using evalDet by blast
-    have eqeval: "[g, m] \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
+    have eqeval: "[g, m, p] \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
       using eval.IntegerEqualsNode
       using xval yval by blast
-    have lesseval: "[g, m] \<turnstile> (IntegerLessThanNode y x) \<mapsto> bool_to_val(yval < xval)"
+    have lesseval: "[g, m, p] \<turnstile> (IntegerLessThanNode y x) \<mapsto> bool_to_val(yval < xval)"
       using eval.IntegerLessThanNode
       using xval yval by blast
     have "xval = yval \<longrightarrow> \<not>(yval < xval)"
@@ -174,15 +174,15 @@ next
       by (metis (full_types) eq_imp_less_rev.prems(3) eq_imp_less_rev.prems(4) bool_to_val.simps(2) evalDet val_to_bool.simps(1))
   next
     case (less_imp_rev_less x y)
-    obtain b xval where xval: "[g, m] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
+    obtain b xval where xval: "[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
       using less_imp_rev_less.prems(3) by blast
-    then obtain yval where yval: "[g, m] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
+    then obtain yval where yval: "[g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
       using less_imp_rev_less.prems(3)
       using evalDet by blast
-    have lesseval: "[g, m] \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
+    have lesseval: "[g, m, p] \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
       using eval.IntegerLessThanNode
       using xval yval by blast
-    have revlesseval: "[g, m] \<turnstile> (IntegerLessThanNode y x) \<mapsto> bool_to_val(yval < xval)"
+    have revlesseval: "[g, m, p] \<turnstile> (IntegerLessThanNode y x) \<mapsto> bool_to_val(yval < xval)"
       using eval.IntegerLessThanNode
       using xval yval by blast
     have "xval < yval \<longrightarrow> \<not>(yval < xval)"
@@ -191,15 +191,15 @@ next
       by (metis (full_types) bool_to_val.simps(2) evalDet less_imp_rev_less.prems(3,4) less_imp_rev_less.prems(3) lesseval revlesseval val_to_bool.simps(1))
   next
     case (less_imp_not_eq x y)
-    obtain b xval where xval: "[g, m] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
+    obtain b xval where xval: "[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
       using less_imp_not_eq.prems(3) by blast
-    then obtain yval where yval: "[g, m] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
+    then obtain yval where yval: "[g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
       using less_imp_not_eq.prems(3)
       using evalDet by blast
-    have eqeval: "[g, m] \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
+    have eqeval: "[g, m, p] \<turnstile> (IntegerEqualsNode x y) \<mapsto> bool_to_val(xval = yval)"
       using eval.IntegerEqualsNode
       using xval yval by blast
-    have lesseval: "[g, m] \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
+    have lesseval: "[g, m, p] \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
       using eval.IntegerLessThanNode
       using xval yval by blast
     have "xval < yval \<longrightarrow> \<not>(xval = yval)"
@@ -208,15 +208,15 @@ next
       by (metis (full_types) bool_to_val.simps(2) eqeval evalDet less_imp_not_eq.prems(3,4) less_imp_not_eq.prems(3) lesseval val_to_bool.simps(1))
   next
     case (less_imp_not_eq_rev x y)
-    obtain b xval where xval: "[g, m] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
+    obtain b xval where xval: "[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b xval"
       using less_imp_not_eq_rev.prems(3) by blast
-    then obtain yval where yval: "[g, m] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
+    then obtain yval where yval: "[g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal b yval"
       using less_imp_not_eq_rev.prems(3)
       using evalDet by blast
-    have eqeval: "[g, m] \<turnstile> (IntegerEqualsNode y x) \<mapsto> bool_to_val(yval = xval)"
+    have eqeval: "[g, m, p] \<turnstile> (IntegerEqualsNode y x) \<mapsto> bool_to_val(yval = xval)"
       using eval.IntegerEqualsNode
       using xval yval by blast
-    have lesseval: "[g, m] \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
+    have lesseval: "[g, m, p] \<turnstile> (IntegerLessThanNode x y) \<mapsto> bool_to_val(xval < yval)"
       using eval.IntegerLessThanNode
       using xval yval by blast
     have "xval < yval \<longrightarrow> \<not>(yval = xval)"
@@ -240,8 +240,8 @@ lemma implies_true_valid:
   assumes "wf_graph g \<and> wf_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "imp = KnownTrue"
-  assumes "[g, m] \<turnstile> x \<mapsto> v1"
-  assumes "[g, m] \<turnstile> y \<mapsto> v2"
+  assumes "[g, m, p] \<turnstile> x \<mapsto> v1"
+  assumes "[g, m, p] \<turnstile> y \<mapsto> v2"
   shows "val_to_bool v1 \<longrightarrow> val_to_bool v2"
   using assms implies_valid by blast
 
@@ -249,8 +249,8 @@ lemma implies_false_valid:
   assumes "wf_graph g \<and> wf_values g"
   assumes "g \<turnstile> x & y \<rightharpoonup> imp"
   assumes "imp = KnownFalse"
-  assumes "[g, m] \<turnstile> x \<mapsto> v1"
-  assumes "[g, m] \<turnstile> y \<mapsto> v2"
+  assumes "[g, m, p] \<turnstile> x \<mapsto> v1"
+  assumes "[g, m, p] \<turnstile> y \<mapsto> v2"
   shows "val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2)"
   using assms implies_valid by blast
 
@@ -285,7 +285,7 @@ our evaluation semantics.
 lemma tryFoldIntegerEqualsAlwaysDistinct:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerEqualsNode x y)"
-  assumes "[g, m] \<turnstile> (kind g nid) \<mapsto> v"
+  assumes "[g, m, p] \<turnstile> (kind g nid) \<mapsto> v"
   assumes "alwaysDistinct (stamps x) (stamps y)"
   shows "v = IntVal 1 0"
   using assms eval.IntegerEqualsNode join_unequal alwaysDistinct.simps
@@ -294,7 +294,7 @@ lemma tryFoldIntegerEqualsAlwaysDistinct:
 lemma tryFoldIntegerEqualsNeverDistinct:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerEqualsNode x y)"
-  assumes "[g, m] \<turnstile> (kind g nid) \<mapsto> v"
+  assumes "[g, m, p] \<turnstile> (kind g nid) \<mapsto> v"
   assumes "neverDistinct (stamps x) (stamps y)"
   shows "v = IntVal 1 1"
   using assms neverDistinctEqual IntegerEqualsNodeE
@@ -303,16 +303,16 @@ lemma tryFoldIntegerEqualsNeverDistinct:
 lemma tryFoldIntegerLessThanTrue:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
-  assumes "[g, m] \<turnstile> (kind g nid) \<mapsto> v"
+  assumes "[g, m, p] \<turnstile> (kind g nid) \<mapsto> v"
   assumes "stpi_upper (stamps x) < stpi_lower (stamps y)"
   shows "v = IntVal 1 1"
 proof -
   have stamp_type: "is_IntegerStamp (stamps x)"
     using assms
     by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wf_stamp.elims(2))
-  obtain xval b where xval: "[g, m] \<turnstile> kind g x \<mapsto> IntVal b xval"
+  obtain xval b where xval: "[g, m, p] \<turnstile> kind g x \<mapsto> IntVal b xval"
     using assms(2,3) eval.IntegerLessThanNode by auto
-  obtain yval b where yval: "[g, m] \<turnstile> kind g y \<mapsto> IntVal b yval"
+  obtain yval b where yval: "[g, m, p] \<turnstile> kind g y \<mapsto> IntVal b yval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
     using assms(4)
@@ -328,16 +328,16 @@ qed
 lemma tryFoldIntegerLessThanFalse:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
-  assumes "[g, m] \<turnstile> (kind g nid) \<mapsto> v"
+  assumes "[g, m, p] \<turnstile> (kind g nid) \<mapsto> v"
   assumes "stpi_lower (stamps x) \<ge> stpi_upper (stamps y)"
   shows "v = IntVal 1 0"
   proof -
   have stamp_type: "is_IntegerStamp (stamps x)"
     using assms
     by (metis IntegerLessThanNodeE Stamp.disc(2) Value.distinct(1) eval_in_ids valid_value.elims(2) wf_stamp.elims(2))
-  obtain xval b where xval: "[g, m] \<turnstile> kind g x \<mapsto> IntVal b xval"
+  obtain xval b where xval: "[g, m, p] \<turnstile> kind g x \<mapsto> IntVal b xval"
     using assms(2,3) eval.IntegerLessThanNode by auto
-  obtain yval b where yval: "[g, m] \<turnstile> kind g y \<mapsto> IntVal b yval"
+  obtain yval b where yval: "[g, m, p] \<turnstile> kind g y \<mapsto> IntVal b yval"
     using assms(2,3) eval.IntegerLessThanNode by auto
   have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
     using assms(4)
@@ -354,7 +354,7 @@ theorem tryFoldProofTrue:
   assumes "wf_stamp g stamps"
   assumes "tryFold (kind g nid) stamps tristate"
   assumes "tristate = KnownTrue"
-  assumes "[g, m] \<turnstile> kind g nid \<mapsto> v"
+  assumes "[g, m, p] \<turnstile> kind g nid \<mapsto> v"
   shows "val_to_bool v"
   using assms(2) proof (induction "kind g nid" stamps tristate rule: tryFold.induct)
 case (1 stamps x y)
@@ -378,7 +378,7 @@ theorem tryFoldProofFalse:
   assumes "wf_stamp g stamps"
   assumes "tryFold (kind g nid) stamps tristate"
   assumes "tristate = KnownFalse"
-  assumes "[g, m] \<turnstile> (kind g nid) \<mapsto> v"
+  assumes "[g, m, p] \<turnstile> (kind g nid) \<mapsto> v"
   shows "\<not>(val_to_bool v)"
 using assms(2) proof (induction "kind g nid" stamps tristate rule: tryFold.induct)
 case (1 stamps x y)
@@ -401,7 +401,7 @@ qed
 
 
 inductive_cases StepE:
-  "g \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
+  "g, p \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
 
 text \<open>
 Perform conditional elimination rewrites on the graph for a particular node.
@@ -667,39 +667,39 @@ inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<cl
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhaseWithTrace .
 
 
-lemma IfNodeStepE: "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Longrightarrow>
+lemma IfNodeStepE: "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Longrightarrow>
   (\<And>cond tb fb val.
         kind g nid = IfNode cond tb fb \<Longrightarrow>
         nid' = (if val_to_bool val then tb else fb) \<Longrightarrow> 
-        [g, m] \<turnstile> kind g cond \<mapsto> val \<Longrightarrow> m' = m)"
+        [g, m, p] \<turnstile> kind g cond \<mapsto> val \<Longrightarrow> m' = m)"
   using StepE
   by (smt (verit, best) IfNode Pair_inject stepDet)
 
 lemma ifNodeHasCondEvalStutter:
-  assumes "(g m h \<turnstile> nid \<leadsto> nid')"
+  assumes "(g m p h \<turnstile> nid \<leadsto> nid')"
   assumes "kind g nid = IfNode cond t f"
-  shows "\<exists> v. ([g, m] \<turnstile> kind g cond \<mapsto> v)"
+  shows "\<exists> v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
   using IfNodeStepE assms(1) assms(2)  stutter.cases
   by (meson IfNodeCond)
 
 lemma ifNodeHasCondEval:
-  assumes "(g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
+  assumes "(g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
   assumes "kind g nid = IfNode cond t f"
-  shows "\<exists> v. ([g, m] \<turnstile> kind g cond \<mapsto> v)"
+  shows "\<exists> v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
   using IfNodeStepE assms(1) assms(2)
   by (smt (z3) IRNode.disc(932) IRNode.simps(938) IRNode.simps(958) IRNode.simps(972) IRNode.simps(974) IRNode.simps(978) Pair_inject StutterStep ifNodeHasCondEvalStutter is_AbstractEndNode.simps is_EndNode.simps(12) step.cases)
 
 
 lemma replace_if_t:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
   assumes "val_to_bool bool"
   assumes g': "g' = replace_usages nid tb g"
-  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
 proof -
-  have g1step: "g \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+  have g1step: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     by (meson IfNode assms(1) assms(2) assms(3))
-  have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+  have g2step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using g' unfolding replace_usages.simps
     by (simp add: stepRefNode)
   from g1step g2step show ?thesis
@@ -708,22 +708,22 @@ qed
 
 lemma replace_if_t_imp:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
   assumes "val_to_bool bool"
   assumes g': "g' = replace_usages nid tb g"
-  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
   using replace_if_t assms by blast
 
 lemma replace_if_f:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
   assumes "\<not>(val_to_bool bool)"
   assumes g': "g' = replace_usages nid fb g"
-  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
 proof -
-  have g1step: "g \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
+  have g1step: "g, p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     by (meson IfNode assms(1) assms(2) assms(3))
-  have g2step: "g' \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
+  have g2step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     using g' unfolding replace_usages.simps
     by (simp add: stepRefNode)
   from g1step g2step show ?thesis
@@ -739,16 +739,16 @@ lemma ConditionalEliminationStepProof:
   assumes ws: "wf_stamps g"
   assumes wv: "wf_values g"
   assumes nid: "nid \<in> ids g"
-  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([g, m] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
+  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([g, m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
 
-  shows "\<exists>nid' .(g m h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> nid \<leadsto> nid')"
+  shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
   using ce using assms
 proof (induct g nid g' rule: ConditionalEliminationStep.induct)
   case (impliesTrue g ifcond cid t f cond conds g')
-  show ?case proof (cases "(g m h \<turnstile> ifcond \<leadsto> nid')")
+  show ?case proof (cases "(g m p h \<turnstile> ifcond \<leadsto> nid')")
     case True
-    obtain condv where condv: "[g, m] \<turnstile> kind g cid \<mapsto> condv"
+    obtain condv where condv: "[g, m, p] \<turnstile> kind g cid \<mapsto> condv"
       using implies.simps impliesTrue.hyps(3) impliesTrue.prems(4)
       using impliesTrue.hyps(2) True
       by (metis ifNodeHasCondEvalStutter impliesTrue.hyps(1))
@@ -765,9 +765,9 @@ proof (induct g nid g' rule: ConditionalEliminationStep.induct)
 next
   case (impliesFalse g ifcond cid t f cond conds g')
   then show ?case 
-  proof (cases "(g m h \<turnstile> ifcond \<leadsto> nid')")
+  proof (cases "(g m p h \<turnstile> ifcond \<leadsto> nid')")
     case True
-    obtain condv where condv: "[g, m] \<turnstile> kind g cid \<mapsto> condv"
+    obtain condv where condv: "[g, m, p] \<turnstile> kind g cid \<mapsto> condv"
       using ifNodeHasCondEvalStutter impliesFalse.hyps(1)
       using True by blast
     have condvFalse: "False = val_to_bool condv"
@@ -799,47 +799,47 @@ with respect to finding a bisimulation between the unoptimized and optimized gra
 lemma ConditionalEliminationStepProofBisimulation:
   assumes wf: "wf_graph g \<and> wf_stamp g stamps \<and> wf_values g"
   assumes nid: "nid \<in> ids g"
-  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([g, m] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
+  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([g, m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
-  assumes gstep: "\<exists> h nid'. (g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))" (* we don't yet consider optimizations which produce a step that didn't already exist *)
+  assumes gstep: "\<exists> h nid'. (g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))" (* we don't yet consider optimizations which produce a step that didn't already exist *)
 
   shows "nid | g \<sim> g'"
   using ce gstep using assms
 proof (induct g nid g' rule: ConditionalEliminationStep.induct)
   case (impliesTrue g ifcond cid t f cond conds g' stamps)
-  from impliesTrue(5) obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+  from impliesTrue(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     by (metis IfNode StutterStep condition_implies.intros(2) ifNodeHasCondEvalStutter impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(2) impliesTrue.prems(4) implies_true_valid)
-  have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+  have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(4) by blast
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
 next
   case (impliesFalse g ifcond cid t f cond conds g' stamps)
-  from impliesFalse(5) obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+  from impliesFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     by (metis IfNode condition_implies.intros(2) ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(2) impliesFalse.prems(4) implies_false_valid)
-  have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+  have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(4) by blast
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
 next
   case (tryFoldTrue g ifcond cid t f cond stamps g' conds)
-  from tryFoldTrue(5) obtain val where "[g, m] \<turnstile> kind g cid \<mapsto> val"
+  from tryFoldTrue(5) obtain val where "[g, m, p] \<turnstile> kind g cid \<mapsto> val"
     using ifNodeHasCondEval tryFoldTrue.hyps(1) by blast
   then have "val_to_bool val"
     using tryFoldProofTrue tryFoldTrue.prems(2) tryFoldTrue(3) 
     by blast
-  then obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+  then obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using tryFoldTrue(5)
-    by (meson IfNode \<open>[g, m] \<turnstile> kind g cid \<mapsto> val\<close> tryFoldTrue.hyps(1))
-  have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+    by (meson IfNode \<open>[g, m, p] \<turnstile> kind g cid \<mapsto> val\<close> tryFoldTrue.hyps(1))
+  have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using constantConditionTrue tryFoldTrue.hyps(1) tryFoldTrue.hyps(4) by presburger
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
 next
   case (tryFoldFalse g ifcond cid t f cond stamps g' conds)
-  from tryFoldFalse(5) obtain h where gstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+  from tryFoldFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     by (meson IfNode ifNodeHasCondEval tryFoldFalse.hyps(1) tryFoldFalse.hyps(3) tryFoldFalse.prems(2) tryFoldProofFalse)
-  have "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+  have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     using constantConditionFalse tryFoldFalse.hyps(1) tryFoldFalse.hyps(4) by blast
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
@@ -852,17 +852,17 @@ experiment begin
 lemma if_step:
   assumes "nid \<in> ids g"
   assumes "(kind g nid) \<in> control_nodes"
-  shows "(g m h \<turnstile> nid \<leadsto> nid')"
+  shows "(g m p h \<turnstile> nid \<leadsto> nid')"
   using assms apply (cases "kind g nid") sorry
 
 lemma StepConditionsValid:
-  assumes "\<forall> cond \<in> set conds. ([g, m] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+  assumes "\<forall> cond \<in> set conds. ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
   assumes "Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'))"
-  shows "\<forall> cond \<in> set conds'. ([g, m] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+  shows "\<forall> cond \<in> set conds'. ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
   using assms(2) 
 proof (induction "(nid, seen, conds, flow)" "Some (nid', seen', conds', flow')" rule: Step.induct)
   case (1 ifcond cond t f i c)
-  obtain cv where cv: "[g, m] \<turnstile> c \<mapsto> cv"
+  obtain cv where cv: "[g, m, p] \<turnstile> c \<mapsto> cv"
     sorry
   have cvt: "val_to_bool cv"
     sorry
@@ -886,7 +886,7 @@ lemma ConditionalEliminationPhaseProof:
   assumes "wf_stamps g"
   assumes "ConditionalEliminationPhase g (0, {}, [], []) g'"
   
-  shows "\<exists>nid' .(g m h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m h \<turnstile> 0 \<leadsto> nid')"
+  shows "\<exists>nid' .(g m p h \<turnstile> 0 \<leadsto> nid') \<longrightarrow> (g' m p h \<turnstile> 0 \<leadsto> nid')"
 proof -
   have "0 \<in> ids g"
     using assms(1) wf_folds by blast

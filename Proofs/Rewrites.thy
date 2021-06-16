@@ -58,7 +58,7 @@ fun constantCondition :: "bool \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarro
 lemma constantConditionTrue:
   assumes "kind g ifcond = IfNode cond t f"
   assumes "g' = constantCondition True ifcond (kind g ifcond) g"
-  shows "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+  shows "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
 proof -
   have if': "kind g' ifcond = IfNode (nextNid g) t f"
     by (metis IRNode.simps(989) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
@@ -76,7 +76,7 @@ qed
 lemma constantConditionFalse:
   assumes "kind g ifcond = IfNode cond t f"
   assumes "g' = constantCondition False ifcond (kind g ifcond) g"
-  shows "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+  shows "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
 proof -
   have if': "kind g' ifcond = IfNode (nextNid g) t f"
     by (metis IRNode.simps(989) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
@@ -150,7 +150,7 @@ qed
 lemma constantConditionNoIf:
   assumes "\<forall>cond t f. kind g ifcond \<noteq> IfNode cond t f"
   assumes "g' = constantCondition val ifcond (kind g ifcond) g"
-  shows "\<exists>nid' .(g m h \<turnstile> ifcond \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> ifcond \<leadsto> nid')"
+  shows "\<exists>nid' .(g m p h \<turnstile> ifcond \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> ifcond \<leadsto> nid')"
 proof -
   have "g' = g"
     using assms(2) assms(1)
@@ -161,24 +161,24 @@ qed
 
 lemma constantConditionValid:
   assumes "kind g ifcond = IfNode cond t f"
-  assumes "[g, m] \<turnstile> kind g cond \<mapsto> v"
+  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> v"
   assumes "const = val_to_bool v"
   assumes "g' = constantCondition const ifcond (kind g ifcond) g"
-  shows "\<exists>nid' .(g m h \<turnstile> ifcond \<leadsto> nid') \<longleftrightarrow> (g' m h \<turnstile> ifcond \<leadsto> nid')"
+  shows "\<exists>nid' .(g m p h \<turnstile> ifcond \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> ifcond \<leadsto> nid')"
 proof (cases "const")
   case True
-  have ifstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+  have ifstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     by (meson IfNode True assms(1) assms(2) assms(3))
-  have ifstep': "g' \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+  have ifstep': "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using constantConditionTrue
     using True assms(1) assms(4) by presburger
   from ifstep ifstep' show ?thesis
     using StutterStep by blast
 next
   case False
-  have ifstep: "g \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+  have ifstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     by (meson IfNode False assms(1) assms(2) assms(3))
-  have ifstep': "g' \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
+  have ifstep': "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     using constantConditionFalse
     using False assms(1) assms(4) by presburger
   from ifstep ifstep' show ?thesis

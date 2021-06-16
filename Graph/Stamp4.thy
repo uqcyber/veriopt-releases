@@ -616,22 +616,58 @@ subsection \<open>Generic Integer Stamp\<close>
 text \<open>
 Experimental definition of integer stamps generically,
 restricting the datatype to only allow valid ranges and
-the bottom integer element (max_int..min_int).
+the bottom integer element (max\_int..min\_int).
 \<close>
 
+definition max_signed_int :: "'a::len word" where
+  "max_signed_int = (2 ^ (LENGTH('a) - 1)) - 1"
+
+definition min_signed_int :: "'a::len word" where
+  "min_signed_int = -(2 ^ (LENGTH('a) - 1))"
+
 definition int_bottom :: "'a::len word \<times> 'a word" where
-  "int_bottom = ((2 ^ (LENGTH('a) - 1)) - 1, -(2 ^ (LENGTH('a) - 1)))"
+  "int_bottom = (max_signed_int, min_signed_int)"
 
 definition int_top :: "'a::len word \<times> 'a word" where
-  "int_top = (-(2 ^ (LENGTH('a) - 1)), (2 ^ (LENGTH('a) - 1)) - 1)"
+  "int_top = (min_signed_int, max_signed_int)"
 
+(*
+definition signed_gt_eq :: "'a::len word \<Rightarrow> 'a word \<Rightarrow> bool" where
+  "signed_gt_eq a b = (sint a \<ge> sint a)"
+
+definition signed_gt :: "'a::len word \<Rightarrow> 'a word \<Rightarrow> bool" where
+  "signed_gt a b = (sint a > sint a)"
+
+interpretation wor: ordering_top \<open>signed_gt_eq\<close> \<open>signed_gt\<close> \<open>max_signed_int :: 'a::len word\<close>
+  apply (standard) sledgehammer
+*)
+
+lemma max_signed:
+  fixes a :: "'a::len word"
+  shows "sint a \<le> sint (max_signed_int::'a word)"
+proof (cases "sint a = sint (max_signed_int::'a word)")
+  case True
+  then show ?thesis by simp
+next
+  case False
+  have "sint a < sint (max_signed_int::'a word)"
+    using False unfolding max_signed_int_def sorry
+  then show ?thesis by simp
+qed
+
+lemma min_signed:
+  fixes a :: "'a::len word"
+  shows "sint a \<ge> sint (min_signed_int::'a word)"
+  sorry
+
+value "max_signed_int :: 32 word"
 value "int_bottom::(32 word \<times> 32 word)"
 value "sint (2147483647::32 word)"
 value "sint (2147483648::32 word)"
 
 
 typedef (overloaded) ('a::len) intstamp = 
-  "{bounds :: ('a word, 'a word) prod . (sint (fst bounds) < sint (snd bounds) \<or> bounds = int_bottom)}"
+  "{bounds :: ('a word, 'a word) prod . (sint (fst bounds) \<le> sint (snd bounds) \<or> bounds = int_bottom)}"
 proof -
   show ?thesis
     by (smt (z3) mem_Collect_eq prod.sel(1) prod.sel(2) signed_minus_1 sint_0)
@@ -672,16 +708,30 @@ definition less_eq_intstamp :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarr
 definition less_intstamp :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> bool" where
   "less_intstamp s1 s2 = (range s1 \<subset> range s2)"
 
+
+value "int_bottom::(1 word \<times> 1 word)"
+value "sint (0::1 word)"
+value "sint (1::1 word)"
+
+value "int_bottom::(2 word \<times> 2 word)"
+value "sint (1::2 word)"
+value "sint (2::2 word)"
+value "sint ((2 ^ (LENGTH(32) - 1) - 1)::32 word) > sint ((- (2 ^ (LENGTH(32) - 1)))::32 word)"
+
 lemma bottom_is_bottom:
   assumes "is_bottom s"
   shows "s \<le> a"
 proof -
-  have "bounds s = int_bottom"
+  have boundsdef: "bounds s = int_bottom"
     by (metis assms bounds.transfer is_bottom.rep_eq)
   obtain min max where "bounds s = (max, min)"
     by fastforce
-  have "sint min < sint max"
-    sorry
+  then have "max \<noteq> min"
+    by (metis boundsdef dual_order.eq_iff fst_conv int_bottom_def less_minus_one_simps(1) max_signed min_signed not_less sint_0 sint_n1 snd_conv)
+  then have "sint min < sint max"
+    unfolding boundsdef int_bottom_def 
+    using max_signed
+    by (metis \<open>bounds s = (max, min)\<close> boundsdef int_bottom_def order.not_eq_order_implies_strict prod.sel(1) signed_word_eqI)
   then have "range s = {}"
     unfolding range_def bounds_def
     by (simp add: \<open>bounds s = (max, min)\<close> bounds.transfer)
@@ -706,16 +756,17 @@ lemma bottom_unique:
   assumes "is_bottom s"
   shows "a \<le> s \<longleftrightarrow> is_bottom a"
 proof -
-  have "\<forall>x. sint (fst (bounds x)) < sint (snd (bounds x)) \<or> is_bottom x"
+  have "\<forall>x. sint (fst (bounds x)) \<le> sint (snd (bounds x)) \<or> is_bottom x"
     unfolding bounds_def is_bottom_def
     using Rep_intstamp by auto
   then have "\<forall>x. (card (range x)) > 0 \<or> is_bottom x"
     unfolding range_def using bounds_has_value
-    by (smt (z3) bounds.abs_eq case_prod_beta' range.rep_eq range_def)
+    by (simp add: bounds.transfer case_prod_beta)
   obtain min max where boundsdef: "bounds s = (max, min)"
     by fastforce
   have nooverlap: "sint min < sint max"
-    sorry
+    using max_signed
+    by (metis assms bounds.transfer boundsdef fst_conv int_bottom_def is_bottom.rep_eq min_signed order.not_eq_order_implies_strict signed_word_eqI sint_0 snd_conv verit_la_disequality zero_neq_one)
   have "range s = {sint max..sint min}"
     by (simp add: bounds.transfer boundsdef range.rep_eq)
   then have "card (range s) = 0"
@@ -782,6 +833,21 @@ instance
   by (simp add: int_antisym)
 end
 
+value "take_bit LENGTH(63) 20::int"
+value "take_bit LENGTH(63) ((-20)::int)"
+value "bit (20::int64) (63::nat)"
+value "bit ((-20)::int64) (63::nat)"
+
+value "((-20)::int64) < (20::int64)"
+
+value "take_bit LENGTH(63) ((-20)::int)"
+
+lift_definition smax :: "'a::len word \<Rightarrow> 'a word \<Rightarrow> 'a word"
+  is "\<lambda> a b. (if (sint a) \<le> (sint b) then b else a)" .
+
+lift_definition smin :: "'a::len word \<Rightarrow> 'a word \<Rightarrow> 'a word"
+  is "\<lambda> a b. (if (sint a) \<le> (sint b) then a else b)" .
+
 
 instantiation intstamp :: (len) semilattice_inf
 begin
@@ -789,7 +855,7 @@ begin
 notation inf (infix "\<sqinter>" 65)
 
 definition join_bounds :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> ('a word \<times> 'a word)" where
-  "join_bounds s1 s2 = (word_of_int (max (lower_int s1) (lower_int s2)), word_of_int (min (upper_int s1) (upper_int s2)))"
+  "join_bounds s1 s2 = (smax (lower s1) (lower s2), smin (upper s1) (upper s2))"
 
 definition join_or_bottom :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> ('a word \<times> 'a word)" where
   "join_or_bottom s1 s2 = (let bound = (join_bounds s1 s2) in 
@@ -800,8 +866,8 @@ definition inf_intstamp :: "'a intstamp \<Rightarrow> 'a intstamp \<Rightarrow> 
 
 lemma always_valid:
   fixes s1 s2 :: "'a intstamp"
-  shows "Rep_intstamp (Abs_intstamp (join_or_bottom s1 s2)) = join_or_bottom s1 s2"
-  unfolding join_or_bottom_def join_bounds_def
+  shows "Rep_intstamp (from_bounds (join_or_bottom s1 s2)) = join_or_bottom s1 s2"
+  unfolding join_or_bottom_def join_bounds_def from_bounds_def
   by (simp add: Abs_intstamp_inverse)
 
 lemma invalid_join:
@@ -826,22 +892,19 @@ next
   case False
   then show ?thesis
   using False proof -
-  obtain l1 u1 where xdef: "lower_int x = l1 \<and> upper_int x = u1"
+  obtain l1 u1 where xdef: "lower x = l1 \<and> upper x = u1"
     by fastforce
-  obtain l2 u2 where ydef: "lower_int y = l2 \<and> upper_int y = u2"
+  obtain l2 u2 where ydef: "lower y = l2 \<and> upper y = u2"
     by fastforce
-  have unwrappingl: "sint (word_of_int (max l1 l2)) = max l1 l2"
-    using xdef unfolding lower_int_def upper_int_def sorry
-  have unwrappingu: "sint (word_of_int (max u1 u2)) = max u1 u2"
-    using xdef unfolding lower_int_def upper_int_def sorry
-  have joindef: "x \<sqinter> y = from_bounds (word_of_int (max l1 l2), word_of_int (min u1 u2))"
-    (is "?join = from_bounds (word_of_int ?l3, word_of_int ?u3)")
+  have joindef: "x \<sqinter> y = from_bounds ((smax l1 l2, smin u1 u2))"
+    (is "x \<sqinter> y = from_bounds (?l3, ?u3)")
     using False
-    by (smt (z3) Stamp4.join_or_bottom_def always_valid from_bounds.abs_eq inf_intstamp_def is_bottom.rep_eq join_bounds_def xdef ydef)
-  have leq: "{?l3..?u3} \<subseteq> {l1..u1}"
-    by simp
-  have "(x \<sqinter> y) \<le> x = ({?l3..?u3} \<subseteq> {l1..u1})"
-    using xdef joindef range_def less_eq_intstamp_def sorry
+    by (smt (z3) Stamp4.inf_intstamp_def Stamp4.join_bounds_def always_valid is_bottom.rep_eq join_or_bottom_def xdef ydef)
+  have leq: "{sint ?l3..sint ?u3} \<subseteq> {sint l1..sint u1}"
+    by (smt (z3) atLeastatMost_subset_iff smax.transfer smin.transfer)
+  have "(x \<sqinter> y) \<le> x = ({sint ?l3..sint ?u3} \<subseteq> {sint l1..sint u1})"
+    using xdef joindef range_def less_eq_intstamp_def
+    by (smt (z3) False Stamp4.always_valid Stamp4.join_or_bottom_def bounds.abs_eq case_prod_conv inf_intstamp_def is_bottom.rep_eq join_bounds_def range.rep_eq unfold_bounds ydef)
   then show "(x \<sqinter> y) \<le> x"
     using leq
     by fastforce
@@ -851,7 +914,39 @@ qed
 lemma int_inf_le2: 
   fixes x y :: "'a intstamp"
   shows "(x \<sqinter> y) \<le> y"
-  sorry  
+proof (cases "is_bottom (x \<sqinter> y)")
+  case True
+  then show ?thesis
+    by (simp add: bottom_is_bottom)
+next
+  case False
+  then show ?thesis
+  using False proof -
+  obtain l1 u1 where xdef: "lower x = l1 \<and> upper x = u1"
+    by fastforce
+  obtain l2 u2 where ydef: "lower y = l2 \<and> upper y = u2"
+    by fastforce
+  have joindef: "x \<sqinter> y = from_bounds ((smax l1 l2, smin u1 u2))"
+    (is "x \<sqinter> y = from_bounds (?l3, ?u3)")
+    using False
+    by (smt (z3) Stamp4.inf_intstamp_def Stamp4.join_bounds_def always_valid is_bottom.rep_eq join_or_bottom_def xdef ydef)
+  have leq: "{sint ?l3..sint ?u3} \<subseteq> {sint l1..sint u1}"
+    by (smt (z3) atLeastatMost_subset_iff smax.transfer smin.transfer)
+  have "(x \<sqinter> y) \<le> y = ({sint ?l3..sint ?u3} \<subseteq> {sint l2..sint u2})"
+    using xdef joindef range_def less_eq_intstamp_def
+    by (smt (z3) False Stamp4.always_valid Stamp4.join_or_bottom_def bounds.abs_eq case_prod_conv inf_intstamp_def is_bottom.rep_eq join_bounds_def range.rep_eq unfold_bounds ydef)
+  then show "(x \<sqinter> y) \<le> y"
+    using leq
+    by (smt (z3) atLeastatMost_subset_iff smax.transfer smin.transfer)
+qed
+qed
+
+lemma
+  assumes "x \<le> y"
+  assumes "is_bottom y"
+  shows "is_bottom x"
+  using bottom_is_bottom assms
+  using bottom_unique by auto
 
 lemma int_inf_greatest:
   fixes x y :: "'a intstamp"
@@ -865,5 +960,135 @@ instance
   by (simp add: local.int_inf_greatest)
 
 end
+
+
+instantiation intstamp :: (len) semilattice_sup
+begin
+
+notation sup (infix "\<squnion>" 65)
+
+instance sorry
+
+end
+
+instantiation intstamp :: (len) bounded_lattice
+begin
+
+notation bot ("\<bottom>" 50)
+notation top ("\<top>" 50)
+
+definition "bot_intstamp = int_bottom"
+definition "top_intstamp = int_top"
+
+instance sorry
+
+end
+
+value "sint (0::1 word)"
+value "sint (1::1 word)"
+
+datatype Stamp =
+  BottomStamp |
+  TopStamp |
+  VoidStamp |
+  (*Int1Stamp "1 uintstamp" |*)
+  Int8Stamp "8 intstamp" |
+  Int16Stamp "16 intstamp" |
+  Int32Stamp "32 intstamp" |
+  Int64Stamp "64 intstamp"
+
+instantiation Stamp :: order
+begin
+
+fun less_eq_Stamp :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "less_eq_Stamp BottomStamp _ = True" |
+  "less_eq_Stamp _ TopStamp = True" |
+  "less_eq_Stamp VoidStamp VoidStamp = True" |
+  "less_eq_Stamp (Int8Stamp v1) (Int8Stamp v2) = (v1 \<le> v2)" |
+  "less_eq_Stamp (Int16Stamp v1) (Int16Stamp v2) = (v1 \<le> v2)" |
+  "less_eq_Stamp (Int32Stamp v1) (Int32Stamp v2) = (v1 \<le> v2)" |
+  "less_eq_Stamp (Int64Stamp v1) (Int64Stamp v2) = (v1 \<le> v2)" |
+  "less_eq_Stamp _ _ = False"
+
+fun less_Stamp :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "less_Stamp BottomStamp BottomStamp = False" |
+  "less_Stamp BottomStamp _ = True" |
+  "less_Stamp TopStamp TopStamp = False" |
+  "less_Stamp _ TopStamp = True" |
+  "less_Stamp VoidStamp VoidStamp = False" |
+  "less_Stamp (Int8Stamp v1) (Int8Stamp v2) = (v1 < v2)" |
+  "less_Stamp (Int16Stamp v1) (Int16Stamp v2) = (v1 < v2)" |
+  "less_Stamp (Int32Stamp v1) (Int32Stamp v2) = (v1 < v2)" |
+  "less_Stamp (Int64Stamp v1) (Int64Stamp v2) = (v1 < v2)" |
+  "less_Stamp _ _ = False"
+
+instance
+  apply standard sorry
+end
+
+instantiation Stamp :: semilattice_inf
+begin
+
+notation inf (infix "\<sqinter>" 65)
+
+fun inf_Stamp :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
+  "inf_Stamp BottomStamp _ = BottomStamp" |
+  "inf_Stamp _ BottomStamp = BottomStamp" |
+  "inf_Stamp TopStamp _ = TopStamp" |
+  "inf_Stamp _ TopStamp = TopStamp" |
+  "inf_Stamp VoidStamp VoidStamp = VoidStamp" |
+  "inf_Stamp (Int8Stamp v1) (Int8Stamp v2) = Int8Stamp (v1 \<sqinter> v2)" |
+  "inf_Stamp (Int16Stamp v1) (Int16Stamp v2) = Int16Stamp (v1 \<sqinter> v2)" |
+  "inf_Stamp (Int32Stamp v1) (Int32Stamp v2) = Int32Stamp (v1 \<sqinter> v2)" |
+  "inf_Stamp (Int64Stamp v1) (Int64Stamp v2) = Int64Stamp (v1 \<sqinter> v2)"
+
+instance
+  apply standard sorry
+end
+
+
+instantiation Stamp :: semilattice_sup
+begin
+
+notation sup (infix "\<squnion>" 65)
+
+fun sup_Stamp :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
+  "sup_Stamp BottomStamp _ = BottomStamp" |
+  "sup_Stamp _ BottomStamp = BottomStamp" |
+  "sup_Stamp TopStamp _ = TopStamp" |
+  "sup_Stamp _ TopStamp = TopStamp" |
+  "sup_Stamp VoidStamp VoidStamp = VoidStamp" |
+  "sup_Stamp (Int8Stamp v1) (Int8Stamp v2) = Int8Stamp (v1 \<squnion> v2)" |
+  "sup_Stamp (Int16Stamp v1) (Int16Stamp v2) = Int16Stamp (v1 \<squnion> v2)" |
+  "sup_Stamp (Int32Stamp v1) (Int32Stamp v2) = Int32Stamp (v1 \<squnion> v2)" |
+  "sup_Stamp (Int64Stamp v1) (Int64Stamp v2) = Int64Stamp (v1 \<squnion> v2)"
+
+instance
+  apply standard sorry
+end
+
+
+instantiation Stamp :: bounded_lattice
+begin
+
+notation bot ("\<bottom>" 50)
+notation top ("\<top>" 50)
+
+definition top_Stamp :: "Stamp" where
+  "top_Stamp = TopStamp"
+definition bot_Stamp :: "Stamp" where
+  "bot_Stamp = BottomStamp"
+
+instance
+  apply standard sorry
+end
+
+lemma [code]: "Rep_intstamp (from_bounds (l, u)) = (l, u)"
+  using Abs_intstamp_inverse from_bounds.rep_eq
+  sorry
+
+code_datatype Abs_intstamp
+
+value "Int32Stamp (from_bounds (2::32 word, 5::32 word)) \<sqinter> Int32Stamp (from_bounds (2::32 word, 5::32 word))"
 
 end

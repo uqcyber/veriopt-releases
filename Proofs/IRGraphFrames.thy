@@ -11,7 +11,7 @@ dependencies and sharing without restrictions", In FM 2006.
 theory IRGraphFrames
   imports
     Form
-    Semantics.IREval2
+    Semantics.IREval
 begin
 
 fun unchanged :: "ID set \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where

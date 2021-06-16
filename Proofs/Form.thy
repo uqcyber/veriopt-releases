@@ -2,7 +2,7 @@ subsection \<open>Formedness Properties\<close>
 
 theory Form
 imports
-  Semantics.IREval2
+  Semantics.IREval
 begin
 
 definition wf_start where

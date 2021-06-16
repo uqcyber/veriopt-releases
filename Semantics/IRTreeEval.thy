@@ -305,13 +305,13 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepL
 
 text_raw \<open>\Snip{unrepRules}%
 \begin{center}
-@{thm[mode=Rule] unrep.ConstantNodeSame [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep.ConstantNodeNew [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep.ParameterNodeSame [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep.ParameterNodeNew [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep.BinaryNodeSame [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep.BinaryNodeNew [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep.AllLeafNodes [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.ConstantNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.ConstantNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.ParameterNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.ParameterNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.BinaryNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.BinaryNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.AllLeafNodes [no_vars]}\\[8px]
 \end{center}
 \EndSnip\<close>
 
@@ -392,7 +392,7 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
   LeafExprE
 
 
-lemma eval_det:
+lemma evaltree_det:
   fixes m e v1
   shows "(m \<turnstile> e \<mapsto> v1) \<Longrightarrow> 
          (\<forall> v2. ((m \<turnstile> e \<mapsto> v2) \<longrightarrow> v1 = v2))"
@@ -400,9 +400,42 @@ lemma eval_det:
   by (rule allI; rule impI; elim EvalTreeE; auto)+
 
 
-(*
-Step 2: e1 isrefby e2 iff forall m. m \<turnstile> e1 \<mapsto> v \<Longrightarrow> m \<turnstile> e2 \<mapsto> v
+subsection \<open>Data-flow Tree Refinement\<close>
 
+(* This is the induced semantic equivalence relation between expressions.
+   Note that syntactic equality implies semantics equivalence, but not vice versa.
+*)
+definition equiv_exprs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<doteq> _" 55) where
+  "(e1 \<doteq> e2) = (\<forall> m v. ((m \<turnstile> e1 \<mapsto> v) \<longleftrightarrow> (m \<turnstile> e2 \<mapsto> v)))"
+
+
+(* We define a refinement ordering over IRExpr and show that it is a preorder.
+  Note that it is asymmetric because e2 may refer to fewer variables than e1. *)
+instantiation IRExpr :: preorder begin
+
+definition
+  le_expr_def [simp]: "(e1 \<le> e2) \<longleftrightarrow> (\<forall> m v. ((m \<turnstile> e1 \<mapsto> v) \<longrightarrow> (m \<turnstile> e2 \<mapsto> v)))"
+
+definition
+  lt_expr_def [simp]: "(e1 < e2) \<longleftrightarrow> (e1 \<le> e2 \<and> \<not> (e1 \<doteq> e2))"
+
+(*
+  assumes less_le_not_le: "x < y \<longleftrightarrow> x \<le> y \<and> \<not> (y \<le> x)"
+  and order_refl [iff]: "x \<le> x"
+  and order_trans: "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z"
+*)
+instance proof
+  fix x y z :: IRExpr
+  show "x < y \<longleftrightarrow> x \<le> y \<and> \<not> (y \<le> x)" by (simp add: equiv_exprs_def; auto)
+  show "x \<le> x" by simp
+  show "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z" by simp 
+qed
+
+
+
+(*
+Step 2b: prove monotonicity rules for each subexpression position?
+ 
 Step 3: if e1 isrefby e2 then g[e1] isREFby g[e2]
 *)
 end

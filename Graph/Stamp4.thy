@@ -1088,7 +1088,7 @@ lemma [code]: "Rep_intstamp (from_bounds (l, u)) = (l, u)"
   sorry
 
 code_datatype Abs_intstamp
-
+(*
 value "Int32Stamp (from_bounds (2::32 word, 5::32 word)) \<sqinter> Int32Stamp (from_bounds (2::32 word, 5::32 word))"
-
+*)
 end

@@ -1,4 +1,4 @@
-theory ATVA2021
+theory SemanticsSnippets
   imports
     Optimizations.CanonicalizationProofs
 begin
@@ -197,7 +197,7 @@ text_raw \<open>\EndSnip\<close>
 
 text_raw \<open>\Snip{CanonicalDataObligation}%
 \begin{center}
-@{term[source] "\<forall>m. (g\<^sub>1 m \<turnstile> g\<^sub>1\<llangle>nid\<rrangle> \<mapsto> v) \<longleftrightarrow> (g\<^sub>2 m \<turnstile> g\<^sub>2\<llangle>nid\<rrangle> \<mapsto> v)"}.
+@{term[source] "\<forall>m. ([g\<^sub>1, m] \<turnstile> g\<^sub>1\<llangle>nid\<rrangle> \<mapsto> v) \<longleftrightarrow> ([g\<^sub>2, m] \<turnstile> g\<^sub>2\<llangle>nid\<rrangle> \<mapsto> v)"}.
 \end{center}
 \EndSnip\<close>
 
@@ -238,7 +238,7 @@ lemma CanonicalizeIfProof_fake:
   assumes "g' = replace_node_fake nid after g"
   assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid | g \<sim> g'"
-  sorry
+  by (metis CanonicalizeIfProof assms(1) assms(2) assms(3) assms(4) replace_node_fake_def)
 
 text_raw \<open>\Snip{CanonicalizeIfNodeProof}%
 \begin{center}

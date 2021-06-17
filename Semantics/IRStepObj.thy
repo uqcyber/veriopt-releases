@@ -356,9 +356,9 @@ inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapSt
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
     Some targetGraph = P targetMethod;
-
-    [g, m, p] \<turnstile> arguments \<longmapsto> vs\<rbrakk>
-    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m,vs)#(g,nid,m,p)#stk, h)" |
+    m' = new_map_state;
+    [g, m, p] \<turnstile> arguments \<longmapsto> ps\<rbrakk>
+    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',ps)#(g,nid,m,p)#stk, h)" |
 
   ReturnNode:
   "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);

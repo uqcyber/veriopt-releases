@@ -181,7 +181,14 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_binary op s1 s2 = s1"
 
-export_code stamp_unary stamp_binary 
+fun stamp_expr :: "IRExpr \<Rightarrow> Stamp" where
+"stamp_expr (UnaryExpr op x) = stamp_unary op (stamp_expr x)" |
+"stamp_expr (BinaryExpr bop x y) = stamp_binary bop (stamp_expr x) (stamp_expr y)" |
+"stamp_expr (ConstantExpr val) = constantAsStamp val" |
+"stamp_expr (LeafExpr i s) = s" |
+"stamp_expr (ParameterExpr i s) = s"
+
+export_code stamp_unary stamp_binary stamp_expr
 
 (* Creates the appropriate IRNode for a given binary operator. *)
 fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where

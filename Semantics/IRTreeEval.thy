@@ -137,19 +137,19 @@ inductive
   AddNode:
   "\<lbrakk>kind g n = AddNode x y;
     g x \<triangleright> xe;
-    g x \<triangleright> ye\<rbrakk>
+    g y \<triangleright> ye\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (BinaryExpr BinAdd xe ye)" |
 
   MulNode:
   "\<lbrakk>kind g n = MulNode x y;
     g x \<triangleright> xe;
-    g x \<triangleright> ye\<rbrakk>
+    g y \<triangleright> ye\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (BinaryExpr BinMul xe ye)" |
 
   SubNode:
   "\<lbrakk>kind g n = SubNode x y;
     g x \<triangleright> xe;
-    g x \<triangleright> ye\<rbrakk>
+    g y \<triangleright> ye\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (BinaryExpr BinSub xe ye)" |
 
   LoadFieldNode: (* TODO others *)

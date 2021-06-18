@@ -50,6 +50,7 @@ session Optimizations in Optimizations = Proofs +
            show_question_marks = false]
   theories
     Canonicalization
+    CanonicalizationTree
     CanonicalizationProofs
     ConditionalElimination
     Construction

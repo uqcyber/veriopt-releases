@@ -200,7 +200,9 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_eval UnaryAbs (IntVal32 v1)  = IntVal32 ( (if sint(v1) < 0 then - v1 else v1) )" |
   "unary_eval UnaryAbs (IntVal64 v1)  = IntVal64 ( (if sint(v1) < 0 then - v1 else v1) )" |
-  "unary_eval op v1 = UndefVal"
+  "unary_eval UnaryNeg (IntVal32 v1)  = IntVal32 (- v1)" |
+  "unary_eval UnaryNeg (IntVal64 v1)  = IntVal64 (- v1)"
+(*  "unary_eval op v1 = UndefVal" *)
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "bin_eval BinAdd v1 v2 = intval_add v1 v2" |
@@ -337,10 +339,12 @@ inductive
   for m where
 
   ConstantExpr:
-  "m \<turnstile> (ConstantExpr c) \<mapsto> c" |
+  "\<lbrakk>c \<noteq> UndefVal\<rbrakk>
+    \<Longrightarrow> m \<turnstile> (ConstantExpr c) \<mapsto> c" |
 
   ParameterExpr:
-  "m \<turnstile> (ParameterExpr i s) \<mapsto> (m_params m)!i" |
+  "\<lbrakk>valid_value s ((m_params m)!i)\<rbrakk>
+    \<Longrightarrow> m \<turnstile> (ParameterExpr i s) \<mapsto> (m_params m)!i" |
 
   UnaryExpr:
   "\<lbrakk>m \<turnstile> xe \<mapsto> v\<rbrakk>
@@ -352,7 +356,8 @@ inductive
     \<Longrightarrow> m \<turnstile> (BinaryExpr op xe ye) \<mapsto> bin_eval op x y" |
 
   LeafExpr:
-  "\<lbrakk>val = m_values m nid\<rbrakk>
+  "\<lbrakk>val = m_values m nid;
+    valid_value s val\<rbrakk>
     \<Longrightarrow> m \<turnstile> LeafExpr nid s \<mapsto> val"
 
 text_raw \<open>\Snip{evalRules}%
@@ -399,12 +404,34 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
   LeafExprE
 
 
+text \<open>Evaluation of expression trees is deterministic.\<close>
 lemma evaltree_det:
   fixes m e v1
   shows "(m \<turnstile> e \<mapsto> v1) \<Longrightarrow> 
          (\<forall> v2. ((m \<turnstile> e \<mapsto> v2) \<longrightarrow> v1 = v2))"
   apply (induction rule: "evaltree.induct")
   by (rule allI; rule impI; elim EvalTreeE; auto)+
+
+
+text \<open>A valid value cannot be $UndefVal$.\<close>
+lemma valid_not_undef:
+  assumes a1: "valid_value s val"
+  assumes a2: "s \<noteq> VoidStamp"
+  shows "val \<noteq> UndefVal"
+  apply (rule valid_value.elims(1)[of s val True])
+  using a1 a2 by auto
+
+
+text \<open>TODO: could we prove that expression evaluation never returns $UndefVal$?
+  But this might require restricting unary and binary operators to be total...
+\<close>
+(*
+lemma evaltree_not_undef:
+  fixes m e v
+  shows "(m \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
+  apply (induction rule: "evaltree.induct")
+  using valid_not_undef apply auto
+*)
 
 
 subsection \<open>Data-flow Tree Refinement\<close>
@@ -431,7 +458,7 @@ definition
   and order_refl [iff]: "x \<le> x"
   and order_trans: "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z"
 *)
-instance proof
+instance proof 
   fix x y z :: IRExpr
   show "x < y \<longleftrightarrow> x \<le> y \<and> \<not> (y \<le> x)" by (simp add: equiv_exprs_def; auto)
   show "x \<le> x" by simp
@@ -439,12 +466,85 @@ instance proof
 qed
 
 
+lemma leafint32:
+  assumes ev: "m \<turnstile> LeafExpr i (IntegerStamp 32 lo hi) \<mapsto> val"
+  shows "\<exists>v. val = (IntVal32 v)"
+(* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
+proof - 
+  have "valid_value (IntegerStamp 32 lo hi) val"
+    using ev by (rule LeafExprE; simp)
+  then show ?thesis
+    using "valid_value.cases"
+    by (metis valid_value.elims(2) valid_value.simps(14)) 
+qed
+
+lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (- 2147483648) 2147483647"
+  using default_stamp_def by auto
+
+lemma valid32:
+  assumes a: "valid_value (IntegerStamp 32 lo hi) val"
+  shows "\<exists>v. val = (IntVal32 v)"
+ using a "valid_value.cases"
+  by (metis constantAsStamp.cases valid_value.simps(14) valid_value.simps(21) valid_value.simps(22) valid_value.simps(23) valid_value.simps(24)) 
+
+
+(* An example refinement: a + 0 \<le> a *)
+lemma a0a: "(BinaryExpr BinAdd (LeafExpr 1 default_stamp) (ConstantExpr (IntVal32 0)))
+              \<le> (LeafExpr 1 default_stamp)" (is "?L \<le> ?R")
+  apply auto
+proof -
+  fix m
+  assume v: "valid_value
+          (IntegerStamp 32 (- 2147483648) 2147483647)
+          (m_values m (Suc 0))" (is "valid_value ?S ?E")
+  obtain xv :: int32 where "?E = (IntVal32 xv)" 
+     using v valid32 by blast 
+  then have "intval_add ?E (IntVal32 0) = ?E" by simp
+  then show "m \<turnstile> LeafExpr (Suc 0) ?S \<mapsto> intval_add ?E (IntVal32 0)"
+    using evaltree.LeafExpr v by simp
+qed
+
+(* OLDER ATTEMPTS: 
+  unfolding le_expr_def 
+proof 
+    assume a: "m \<turnstile> ?L \<mapsto> val" (is "m \<turnstile> BinaryExpr BinAdd ?R ?C \<mapsto> val")
+  (* First we work down to the leaves of the left tree, deducing facts. *)
+    obtain x :: Value where x: "m \<turnstile> ?R \<mapsto> x" by (meson a BinaryExprE) 
+    obtain y :: Value where y: "m \<turnstile> ?C \<mapsto> y" by (meson a BinaryExprE) 
+    have "val = bin_eval BinAdd x y"
+      using BinaryExprE[OF a] x y by blast
+    then have add: "val = intval_add x y" by auto
+    have y0: "y = (IntVal32 0)" using y by auto
+    obtain xv :: int32 where "x = (IntVal32 xv)" using x leafint32 default_stamp by metis
+  (* Now work up the right tree, deducing values. *)
+    then have "intval_add x y = x" using y0 by simp
+    then have "val = x" using add by simp
+    then show "m \<turnstile> ?R \<mapsto> val" using x by auto
+  qed
+    then show "?STMT"  
+    qed
+*)
+(*
+m \<turnstile> BinaryExpr BinAdd
+                (LeafExpr (Suc 0) default_stamp)
+                (ConstantExpr (IntVal32 0)) \<mapsto> v \<longrightarrow>
+          m \<turnstile> LeafExpr (Suc 0) default_stamp \<mapsto> v
+*)
+
+   
 
 (*
 Step 2b: prove monotonicity rules for each subexpression position?
  
 Step 3: if e1 isrefby e2 then g[e1] isREFby g[e2]
 *)
+
+lemma graph_refined:
+  assumes "e1 \<le> e2"
+  assumes "g \<triangleleft> e1 \<leadsto> (g1, x1)"
+  assumes "g \<triangleleft> e2 \<leadsto> (g2, x2)"
+  shows "\<forall> m m' h h'. (g \<turnstile> (x1, m, h) \<rightarrow> (nid, m', h'))
+                  \<longrightarrow> (g \<turnstile> (x2, m, h) \<rightarrow> (nid, m', h'))"
 end
 end
 

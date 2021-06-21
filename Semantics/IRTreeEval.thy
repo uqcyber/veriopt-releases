@@ -190,6 +190,9 @@ fun stamp_expr :: "IRExpr \<Rightarrow> Stamp" where
 
 export_code stamp_unary stamp_binary stamp_expr
 
+fun unary_node :: "IRUnaryOp \<Rightarrow> ID \<Rightarrow> IRNode" where
+  "unary_node UnaryAbs v = AbsNode v"
+
 (* Creates the appropriate IRNode for a given binary operator. *)
 fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where
   "bin_node BinAdd x y = AddNode x y" |
@@ -263,19 +266,19 @@ inductive
     g' = add_node nid (ParameterNode i, s) g\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ParameterExpr i s) \<leadsto> (g', nid)" |
 
-
-  AbsNodeSame:
+  UnaryNodeSame:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    find_node_and_stamp g2 (AbsNode x, stamp g2 x) = Some nid\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (UnaryExpr UnaryAbs xe) \<leadsto> (g2, nid)" |
+    s' = stamp_unary op (stamp g2 x);
+    find_node_and_stamp g2 (unary_node op x, s') = Some nid\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (UnaryExpr op xe) \<leadsto> (g2, nid)" |
 
-  AbsNodeNew:
+  UnaryNodeNew:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    find_node_and_stamp g2 (AbsNode x, stamp g2 x) = None;
+    s' = stamp_unary op (stamp g2 x);
+    find_node_and_stamp g2 (unary_node op x, s') = None;
     nid = get_fresh_id g2;
-    s' = stamp_unary UnaryAbs (stamp g2 x);
-    g' = add_node nid (AbsNode x, s') g2\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (UnaryExpr UnaryAbs xe) \<leadsto> (g', nid)" |
+    g' = add_node nid (unary_node op x, s') g2\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (UnaryExpr op xe) \<leadsto> (g', nid)" |
 
   BinaryNodeSame:
   "\<lbrakk>g \<triangleleft>\<triangleleft> [xe, ye] \<leadsto> (g2, [x, y]);

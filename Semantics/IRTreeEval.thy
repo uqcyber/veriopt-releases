@@ -90,6 +90,8 @@ datatype IRBinaryOp =
   | BinAnd
   | BinOr
   | BinXor
+  | BinIntegerEquals
+  | BinIntegerLessThan
 
 
 datatype (discs_sels) IRExpr =
@@ -100,8 +102,6 @@ datatype (discs_sels) IRExpr =
 *)
   | ConstantExpr (ir_const: Value) 
 (* TODO
-  | IntegerEqualsNode (ir_x: IRExpr) (ir_y: IRExpr) 
-  | IntegerLessThanNode (ir_x: IRExpr) (ir_y: IRExpr) 
   | IsNullNode (ir_value: IRExpr) 
   | LogicNegationNode (ir_value: IRExpr)
 *)
@@ -186,6 +186,18 @@ inductive
     g y \<triangleright> ye\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (BinaryExpr BinXor xe ye)" |
 
+  IntegerEqualsNode:
+  "\<lbrakk>kind g n = IntegerEqualsNode x y;
+    g x \<triangleright> xe;
+    g y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)" |
+
+  IntegerLessThanNode:
+  "\<lbrakk>kind g n = IntegerLessThanNode x y;
+    g x \<triangleright> xe;
+    g y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)" |
+
   LoadFieldNode: (* TODO others *)
   "\<lbrakk>kind g n = LoadFieldNode nid f obj nxt;
     stamp g n = s\<rbrakk>
@@ -236,7 +248,9 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinSub x y = SubNode x y" |
   "bin_node BinAnd x y = AndNode x y" |
   "bin_node BinOr  x y = OrNode x y" |
-  "bin_node BinXor x y = XorNode x y"
+  "bin_node BinXor x y = XorNode x y" |
+  "bin_node BinIntegerEquals x y = IntegerEqualsNode x y" |
+  "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y"
 
 (* TODO: switch these to new Values2 *)
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
@@ -257,7 +271,9 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinSub v1 v2 = intval_sub v1 v2" |
   "bin_eval BinAnd v1 v2 = intval_and v1 v2" |
   "bin_eval BinOr  v1 v2 = intval_or v1 v2" |
-  "bin_eval BinXor v1 v2 = intval_xor v1 v2"
+  "bin_eval BinXor v1 v2 = intval_xor v1 v2" |
+  "bin_eval BinIntegerEquals v1 v2 = intval_equals v1 v2" |
+  "bin_eval BinIntegerLessThan v1 v2 = intval_less_than v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where

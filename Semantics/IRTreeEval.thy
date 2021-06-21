@@ -78,14 +78,24 @@ export_code find_node_and_stamp
 (* ======================== START OF NEW TREE STUFF ==========================*)
 subsection \<open>Data-flow Tree Representation\<close>
 
-datatype IRUnaryOp = UnaryAbs | UnaryNeg
-datatype IRBinaryOp = BinAdd | BinMul | BinSub
+datatype IRUnaryOp =
+    UnaryAbs
+  | UnaryNeg
+  | UnaryNot
+
+datatype IRBinaryOp =
+    BinAdd
+  | BinMul
+  | BinSub
+  | BinAnd
+  | BinOr
+  | BinXor
+
 
 datatype (discs_sels) IRExpr =
-  UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr) 
+    UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
   | BinaryExpr (ir_op: IRBinaryOp) (ir_x: IRExpr) (ir_y: IRExpr) 
 (* TODO
-  | AndExpr (ir_x: IRExpr) (ir_y: IRExpr)
   | ConditionalExpr (ir_condition: IRExpr) (ir_trueValue: IRExpr) (ir_falseValue: IRExpr) 
 *)
   | ConstantExpr (ir_const: Value) 
@@ -96,9 +106,6 @@ datatype (discs_sels) IRExpr =
   | LogicNegationNode (ir_value: IRExpr)
 *)
 (* TODO
-  | NegateNode (ir_value: IRExpr) 
-  | NotNode (ir_value: IRExpr) 
-  | OrNode (ir_x: IRExpr) (ir_y: IRExpr) 
 *)
   | ParameterExpr (ir_index: nat) (ir_stamp: Stamp)
 (* Not needed?
@@ -108,9 +115,6 @@ datatype (discs_sels) IRExpr =
 (* Not needed?
   | UnwindNode (ir_exception: IRExpr) 
   | ValueProxyNode (ir_value: IRExpr) (ir_loopExit: IRExpr) 
-*)
-(* TODO
-  | XorNode (ir_x: IRExpr) (ir_y: IRExpr) 
 *)
   | LeafExpr (ir_nid: ID) (ir_stamp: Stamp)
   (* LeafExpr is for pre-evaluated nodes, like LoadFieldNode, SignedDivNode. *) 
@@ -129,11 +133,23 @@ inductive
     stamp g n = s\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (ParameterExpr i s)" |
 
+(* Unary nodes *)
   AbsNode:
   "\<lbrakk>kind g n = AbsNode x;
     g x \<triangleright> xe\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryAbs xe)" |
 
+  NotNode:
+  "\<lbrakk>kind g n = NotNode x;
+    g x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryNot xe)" |
+
+  NegateNode:
+  "\<lbrakk>kind g n = NegateNode x;
+    g x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryNeg xe)" |
+
+(* Binary nodes *)
   AddNode:
   "\<lbrakk>kind g n = AddNode x y;
     g x \<triangleright> xe;
@@ -151,6 +167,24 @@ inductive
     g x \<triangleright> xe;
     g y \<triangleright> ye\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (BinaryExpr BinSub xe ye)" |
+
+  AndNode:
+  "\<lbrakk>kind g n = AndNode x y;
+    g x \<triangleright> xe;
+    g y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinAnd xe ye)" |
+
+  OrNode:
+  "\<lbrakk>kind g n = OrNode x y;
+    g x \<triangleright> xe;
+    g y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinOr xe ye)" |
+
+  XorNode:
+  "\<lbrakk>kind g n = XorNode x y;
+    g x \<triangleright> xe;
+    g y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinXor xe ye)" |
 
   LoadFieldNode: (* TODO others *)
   "\<lbrakk>kind g n = LoadFieldNode nid f obj nxt;
@@ -191,26 +225,39 @@ fun stamp_expr :: "IRExpr \<Rightarrow> Stamp" where
 export_code stamp_unary stamp_binary stamp_expr
 
 fun unary_node :: "IRUnaryOp \<Rightarrow> ID \<Rightarrow> IRNode" where
-  "unary_node UnaryAbs v = AbsNode v"
+  "unary_node UnaryAbs v = AbsNode v" |
+  "unary_node UnaryNot v = NotNode v" |
+  "unary_node UnaryNeg v = NegateNode v"
 
 (* Creates the appropriate IRNode for a given binary operator. *)
 fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where
   "bin_node BinAdd x y = AddNode x y" |
   "bin_node BinMul x y = MulNode x y" |
-  "bin_node BinSub x y = SubNode x y"
+  "bin_node BinSub x y = SubNode x y" |
+  "bin_node BinAnd x y = AndNode x y" |
+  "bin_node BinOr  x y = OrNode x y" |
+  "bin_node BinXor x y = XorNode x y"
 
 (* TODO: switch these to new Values2 *)
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_eval UnaryAbs (IntVal32 v1)  = IntVal32 ( (if sint(v1) < 0 then - v1 else v1) )" |
   "unary_eval UnaryAbs (IntVal64 v1)  = IntVal64 ( (if sint(v1) < 0 then - v1 else v1) )" |
+
   "unary_eval UnaryNeg (IntVal32 v1)  = IntVal32 (- v1)" |
-  "unary_eval UnaryNeg (IntVal64 v1)  = IntVal64 (- v1)"
+  "unary_eval UnaryNeg (IntVal64 v1)  = IntVal64 (- v1)" |
+
+  "unary_eval UnaryNot (IntVal32 v1) = IntVal32 (NOT v1)" |
+  "unary_eval UnaryNot (IntVal64 v1) = IntVal64 (NOT v1)"
+
 (*  "unary_eval op v1 = UndefVal" *)
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "bin_eval BinAdd v1 v2 = intval_add v1 v2" |
   "bin_eval BinMul v1 v2 = intval_mul v1 v2" |
-  "bin_eval BinSub v1 v2 = intval_sub v1 v2"
+  "bin_eval BinSub v1 v2 = intval_sub v1 v2" |
+  "bin_eval BinAnd v1 v2 = intval_and v1 v2" |
+  "bin_eval BinOr  v1 v2 = intval_or v1 v2" |
+  "bin_eval BinXor v1 v2 = intval_xor v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where

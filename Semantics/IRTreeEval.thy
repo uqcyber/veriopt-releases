@@ -82,6 +82,7 @@ datatype IRUnaryOp =
     UnaryAbs
   | UnaryNeg
   | UnaryNot
+  | UnaryLogicNegation
 
 datatype IRBinaryOp =
     BinAdd
@@ -96,10 +97,8 @@ datatype IRBinaryOp =
 
 datatype (discs_sels) IRExpr =
     UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
-  | BinaryExpr (ir_op: IRBinaryOp) (ir_x: IRExpr) (ir_y: IRExpr) 
-(* TODO
-  | ConditionalExpr (ir_condition: IRExpr) (ir_trueValue: IRExpr) (ir_falseValue: IRExpr) 
-*)
+  | BinaryExpr (ir_op: IRBinaryOp) (ir_x: IRExpr) (ir_y: IRExpr)
+  | ConditionalExpr (ir_condition: IRExpr) (ir_trueValue: IRExpr) (ir_falseValue: IRExpr)
   | ConstantExpr (ir_const: Value) 
 (* TODO
   | IsNullNode (ir_value: IRExpr) 
@@ -133,6 +132,13 @@ inductive
     stamp g n = s\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (ParameterExpr i s)" |
 
+  ConditionalNode:
+  "\<lbrakk>kind g n = ConditionalNode c t f;
+    g c \<triangleright> ce;
+    g t \<triangleright> te;
+    g f \<triangleright> fe\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (ConditionalExpr ce te fe)" |
+
 (* Unary nodes *)
   AbsNode:
   "\<lbrakk>kind g n = AbsNode x;
@@ -148,6 +154,11 @@ inductive
   "\<lbrakk>kind g n = NegateNode x;
     g x \<triangleright> xe\<rbrakk>
     \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryNeg xe)" |
+
+  LogicNegationNode:
+  "\<lbrakk>kind g n = LogicNegationNode x;
+    g x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryLogicNegation xe)" |
 
 (* Binary nodes *)
   AddNode:
@@ -228,18 +239,21 @@ fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Righta
   "stamp_binary op s1 s2 = s1"
 
 fun stamp_expr :: "IRExpr \<Rightarrow> Stamp" where
-"stamp_expr (UnaryExpr op x) = stamp_unary op (stamp_expr x)" |
-"stamp_expr (BinaryExpr bop x y) = stamp_binary bop (stamp_expr x) (stamp_expr y)" |
-"stamp_expr (ConstantExpr val) = constantAsStamp val" |
-"stamp_expr (LeafExpr i s) = s" |
-"stamp_expr (ParameterExpr i s) = s"
+  "stamp_expr (UnaryExpr op x) = stamp_unary op (stamp_expr x)" |
+  "stamp_expr (BinaryExpr bop x y) = stamp_binary bop (stamp_expr x) (stamp_expr y)" |
+  "stamp_expr (ConstantExpr val) = constantAsStamp val" |
+  "stamp_expr (LeafExpr i s) = s" |
+  "stamp_expr (ParameterExpr i s) = s" |
+  "stamp_expr (ConditionalExpr c t f) = meet (stamp_expr t) (stamp_expr f)"
+
 
 export_code stamp_unary stamp_binary stamp_expr
 
 fun unary_node :: "IRUnaryOp \<Rightarrow> ID \<Rightarrow> IRNode" where
   "unary_node UnaryAbs v = AbsNode v" |
   "unary_node UnaryNot v = NotNode v" |
-  "unary_node UnaryNeg v = NegateNode v"
+  "unary_node UnaryNeg v = NegateNode v" |
+  "unary_node UnaryLogicNegation v = LogicNegationNode v"
 
 (* Creates the appropriate IRNode for a given binary operator. *)
 fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where
@@ -261,7 +275,9 @@ fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_eval UnaryNeg (IntVal64 v1)  = IntVal64 (- v1)" |
 
   "unary_eval UnaryNot (IntVal32 v1) = IntVal32 (NOT v1)" |
-  "unary_eval UnaryNot (IntVal64 v1) = IntVal64 (NOT v1)"
+  "unary_eval UnaryNot (IntVal64 v1) = IntVal64 (NOT v1)" |
+
+  "unary_eval UnaryLogicNegation (IntVal32 v1) = (if v1 = 0 then (IntVal32 1) else (IntVal32 0))"
 
 (*  "unary_eval op v1 = UndefVal" *)
 
@@ -318,7 +334,6 @@ inductive
     g' = add_node nid (ConstantNode c, constantAsStamp c) g \<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ConstantExpr c) \<leadsto> (g', nid)" |
 
-
   ParameterNodeSame:
   "\<lbrakk>find_node_and_stamp g (ParameterNode i, s) = Some nid\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ParameterExpr i s) \<leadsto> (g, nid)" |
@@ -328,6 +343,20 @@ inductive
     nid = get_fresh_id g;
     g' = add_node nid (ParameterNode i, s) g\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ParameterExpr i s) \<leadsto> (g', nid)" |
+
+  ConditionalNodeSame:
+  "\<lbrakk>g \<triangleleft>\<triangleleft> [ce, te, fe] \<leadsto> (g2, [c, t, f]);
+    s' = meet (stamp g2 t) (stamp g2 f);
+    find_node_and_stamp g2 (ConditionalNode c t f, s') = Some nid\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (ConditionalExpr ce te fe) \<leadsto> (g2, nid)" |
+
+  ConditionalNodeNew:
+  "\<lbrakk>g \<triangleleft>\<triangleleft> [ce, te, fe] \<leadsto> (g2, [c, t, f]);
+    s' = meet (stamp g2 t) (stamp g2 f);
+    find_node_and_stamp g2 (ConditionalNode c t f, s') = None;
+    nid = get_fresh_id g2;
+    g' = add_node nid (ConditionalNode c t f, s') g2\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (ConditionalExpr ce te fe) \<leadsto> (g', nid)" |
 
   UnaryNodeSame:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
@@ -384,8 +413,12 @@ text_raw \<open>\Snip{unrepRules}%
 @{thm[mode=Rule] unrep_unrepList.ConstantNodeNew [no_vars]}\\[8px]
 @{thm[mode=Rule] unrep_unrepList.ParameterNodeSame [no_vars]}\\[8px]
 @{thm[mode=Rule] unrep_unrepList.ParameterNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.ConditionalNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.ConditionalNodeNew [no_vars]}\\[8px]
 @{thm[mode=Rule] unrep_unrepList.BinaryNodeSame [no_vars]}\\[8px]
 @{thm[mode=Rule] unrep_unrepList.BinaryNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.UnaryNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep_unrepList.UnaryNodeNew [no_vars]}\\[8px]
 @{thm[mode=Rule] unrep_unrepList.AllLeafNodes [no_vars]}\\[8px]
 \end{center}
 \EndSnip\<close>
@@ -412,6 +445,12 @@ inductive
   "\<lbrakk>valid_value s ((m_params m)!i)\<rbrakk>
     \<Longrightarrow> m \<turnstile> (ParameterExpr i s) \<mapsto> (m_params m)!i" |
 
+  ConditionalExpr:
+  "\<lbrakk>m \<turnstile> ce \<mapsto> cond;
+    branch = (if val_to_bool cond then te else fe);
+    m \<turnstile> branch \<mapsto> v\<rbrakk>
+    \<Longrightarrow> m \<turnstile> (ConditionalExpr ce te fe) \<mapsto> v" |
+
   UnaryExpr:
   "\<lbrakk>m \<turnstile> xe \<mapsto> v\<rbrakk>
     \<Longrightarrow> m \<turnstile> (UnaryExpr op xe) \<mapsto> unary_eval op v" |
@@ -430,6 +469,7 @@ text_raw \<open>\Snip{evalRules}%
 \begin{center}
 @{thm[mode=Rule] evaltree.ConstantExpr [no_vars]}\\[8px]
 @{thm[mode=Rule] evaltree.ParameterExpr [no_vars]}\\[8px]
+@{thm[mode=Rule] evaltree.ConditionalExpr [no_vars]}\\[8px]
 @{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}\\[8px]
 @{thm[mode=Rule] evaltree.BinaryExpr [no_vars]}\\[8px]
 @{thm[mode=Rule] evaltree.LeafExpr [no_vars]}\\[8px]
@@ -454,6 +494,8 @@ inductive_cases ConstantExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "m \<turnstile> (ConstantExpr c) \<mapsto> val"
 inductive_cases ParameterExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "m \<turnstile> (ParameterExpr i s) \<mapsto> val"
+inductive_cases ConditionalExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "m \<turnstile> (ConditionalExpr c t f) \<mapsto> val"
 inductive_cases UnaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "m \<turnstile> (UnaryExpr op xe) \<mapsto> val"
 inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -465,6 +507,7 @@ inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
 lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> = 
   ConstantExprE
   ParameterExprE
+  ConditionalExprE
   UnaryExprE
   BinaryExprE
   LeafExprE

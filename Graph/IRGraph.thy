@@ -3,7 +3,7 @@ section \<open>Graph Representation\<close>
 theory IRGraph
   imports 
     IRNodeHierarchy
-    Stamp
+    Stamp2
     "HOL-Library.FSet"
     "HOL.Relation"
 begin

@@ -3,8 +3,6 @@ chapter "veriopt"
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM IR structure"
-  options [quick_and_dirty, document = pdf,
-           document_output = "document"]
   theories
     Values
     IRNodes
@@ -12,13 +10,11 @@ session Graph in Graph = "HOL-Library" +
     Stamp
     IRGraph
     Comparison
-    CFG
+    (* CFG -- will add back once sorries are fixed *)
 
 session Semantics in Semantics = Graph +
   description
     "Semantics of GraalVM graphs"
-  options [document = pdf,
-           document_output = "document"]
   theories
     IREval
     IRStepObj
@@ -26,33 +22,22 @@ session Semantics in Semantics = Graph +
 session Proofs in Proofs = Semantics +
   description
     "Supporting proof theories and definitions"
-  options [quick_and_dirty, document = pdf,
-           document_output = "document",
-           show_question_marks = false]
   theories
     Bisimulation
     Form
     IRGraphFrames
     Rewrites
     Stuttering
-  document_files (in "../latex")
-    "root.tex"
-    "mathpartir.sty"
 
 session Optimizations in Optimizations = Proofs +
   description
     "Graph transformation optimizations"
-  options [quick_and_dirty, document = pdf,
-           document_output = "document",
-           show_question_marks = false]
+  options [quick_and_dirty]
   theories
     Canonicalization
     CanonicalizationProofs
     ConditionalElimination
     Construction
-  document_files (in "../latex")
-    "root.tex"
-    "mathpartir.sty"
 
 session Tests in Tests = Optimizations +
   description
@@ -63,29 +48,9 @@ session Tests in Tests = Optimizations +
     UnitTesting
     (*ConditionalEliminationTests*)
 
-session ATVA2021 in ATVA2021 = Optimizations +
-  description
-    "Content for ATVA2021 paper"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false, quick_and_dirty]
-  theories
-    ATVA2021
-  document_files (in "../latex")
-    "root.tex"
-    "mathpartir.sty"
+\<comment>\<open>All documentation sessions\<close>
 
-session ASE2021 in ASE2021 = Tests +
-  description
-    "Content for ASE2021 paper"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
-  theories
-    ASE2021
-  document_files (in "../latex")
-    "root.tex"
-    "mathpartir.sty"
-
-session Document in Document = Optimizations +
+session Document in "Papers/Main" = Optimizations +
   description
     "Whole project document"
   options [document = pdf, document_output = "output",
@@ -101,35 +66,46 @@ session Document in Document = Optimizations +
     Graph.IRNodeHierarchy
     Graph.Stamp
     Graph.IRGraph
+
     Semantics.IREval
     Semantics.IRStepObj
+
     Proofs.Bisimulation
     Proofs.Form
     Proofs.IRGraphFrames
     Proofs.Rewrites
     Proofs.Stuttering
+    Graph.Traversal
+
     Optimizations.Canonicalization
+    Optimizations.CanonicalizationProofs
     Optimizations.ConditionalElimination
     Optimizations.Construction
   document_files (in ".")
     "root.tex"
+  document_files (in "../../latex")
+    "mathpartir.sty"
 
-(*
-session semantics = "HOL-Library" +
+\<comment>\<open>Snippets for papers\<close>
+
+session SemanticsPaper in "Papers/Semantics" = Optimizations +
   description
-    "GraalIR Semantics"
-  options [document = pdf, document_output = "output", quick_and_dirty, show_question_marks = false]
+    "Content for IR semantics description paper"
+  options [document = pdf, document_output = "output",
+           show_question_marks = false]
   theories
-    IRNodes
-    IRNodeHierarchy
-    IRGraph
-    IREval
-    IRStepObj
-    IRGraphFrames
-    Canonicalization
-    (* ConditionalElimination *)
-    ATVA2021
-  document_files
+    SemanticsSnippets
+  document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"
-*)
+
+session ValidationPaper in "Papers/Validation" = Tests +
+  description
+    "Content for paper on validation efforts"
+  options [document = pdf, document_output = "output",
+           show_question_marks = false]
+  theories
+    ValidationSnippets
+  document_files (in "../../latex")
+    "root.tex"
+    "mathpartir.sty"

@@ -44,19 +44,19 @@ Within the context of a graph, the configuration triple, (ID, MethodState, Heap)
 is related to the subsequent configuration.
 \<close>
 
-inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> bool"
-  ("_ \<turnstile> _ \<rightarrow> _" 55) for g where
+inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> bool"
+  ("_, _ \<turnstile> _ \<rightarrow> _" 55) for g p where
 
   SequentialNode:
   "\<lbrakk>is_sequential_node (kind g nid);
     nid' = (successors_of (kind g nid))!0\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
   IfNode:
   "\<lbrakk>kind g nid = (IfNode cond tb fb);
-    g m \<turnstile> (kind g cond) \<mapsto> val;
+    [g, m, p] \<turnstile> (kind g cond) \<mapsto> val;
     nid' = (if val_to_bool val then tb else fb)\<rbrakk>
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |  
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |  
 
   EndNodes:
   "\<lbrakk>is_AbstractEndNode (kind g nid);
@@ -66,62 +66,62 @@ inductive step :: "IRGraph \<Rightarrow> (ID \<times> MapState \<times> FieldRef
     i = find_index nid (inputs_of (kind g merge));
     phis = (phi_list g merge);
     inps = (phi_inputs g i phis);
-    g m \<turnstile> inps \<longmapsto> vs;
+    [g, m, p] \<turnstile> inps \<longmapsto> vs;
 
     m' = set_phis phis vs m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
 
   NewInstanceNode:
     "\<lbrakk>kind g nid = (NewInstanceNode nid f obj nid');
       (h', ref) = h_new_inst h;
-      m' = m_set nid ref m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
+      m' = m(nid := ref)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
   LoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nid');
-      g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
+      [g, m, p] \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h_load_field f ref h = v;
-      m' = m_set nid v m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
+      m' = m(nid := v)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
   SignedDivNode:
     "\<lbrakk>kind g nid = (SignedDivNode nid x y zero sb nxt);
-      g m \<turnstile> (kind g x) \<mapsto> v1;
-      g m \<turnstile> (kind g y) \<mapsto> v2;
+      [g, m, p] \<turnstile> (kind g x) \<mapsto> v1;
+      [g, m, p] \<turnstile> (kind g y) \<mapsto> v2;
       v = (intval_div v1 v2);
-      m' = m_set nid v m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+      m' =  m(nid := v)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   SignedRemNode:
     "\<lbrakk>kind g nid = (SignedRemNode nid x y zero sb nxt);
-      g m \<turnstile> (kind g x) \<mapsto> v1;
-      g m \<turnstile> (kind g y) \<mapsto> v2;
+      [g, m, p] \<turnstile> (kind g x) \<mapsto> v1;
+      [g, m, p] \<turnstile> (kind g y) \<mapsto> v2;
       v = (intval_mod v1 v2);
-      m' = m_set nid v m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+      m' =  m(nid := v)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   StaticLoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f None nid');
       h_load_field f None h = v;
-      m' = m_set nid v m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
+      m' =  m(nid := v)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
   StoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ (Some obj) nid');
-      g m \<turnstile> (kind g newval) \<mapsto> val;
-      g m \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
+      [g, m, p] \<turnstile> (kind g newval) \<mapsto> val;
+      [g, m, p] \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
       h' = h_store_field f ref val h;
-      m' = m_set nid val m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
+      m' =  m(nid := val)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
   StaticStoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ None nid');
-      g m \<turnstile> (kind g newval) \<mapsto> val;
+      [g, m, p] \<turnstile> (kind g newval) \<mapsto> val;
       h' = h_store_field f None val h;
-      m' = m_set nid val m\<rbrakk> 
-    \<Longrightarrow> g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
+      m' =  m(nid := val)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
 
-code_pred (modes: i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
 text \<open>
 We prove that within the same graph, a configuration triple will always
@@ -130,8 +130,8 @@ is deterministic.
 \<close>
 
 theorem stepDet:
-   "(g \<turnstile> (nid,m,h) \<rightarrow> next) \<Longrightarrow>
-   (\<forall> next'. ((g \<turnstile> (nid,m,h) \<rightarrow> next') \<longrightarrow> next = next'))"
+   "(g, p \<turnstile> (nid,m,h) \<rightarrow> next) \<Longrightarrow>
+   (\<forall> next'. ((g, p \<turnstile> (nid,m,h) \<rightarrow> next') \<longrightarrow> next = next'))"
 proof (induction rule: "step.induct")
   case (SequentialNode nid "next" m h)
   have notif: "\<not>(is_IfNode (kind g nid))"
@@ -304,13 +304,13 @@ next
 qed
 
 lemma stepRefNode:
-  "\<lbrakk>kind g nid = RefNode nid'\<rbrakk> \<Longrightarrow> g \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
+  "\<lbrakk>kind g nid = RefNode nid'\<rbrakk> \<Longrightarrow> g, p \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
   by (simp add: SequentialNode)
 
 lemma IfNodeStepCases: 
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "g m \<turnstile> kind g cond \<mapsto> v"
-  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> v"
+  assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid' \<in> {tb, fb}"
   using step.IfNode
   by (metis assms(1) assms(2) assms(3) insert_iff prod.inject stepDet)
@@ -321,12 +321,12 @@ lemma IfNodeSeq:
 
 lemma IfNodeCond:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
-  shows "\<exists> v. (g m \<turnstile> kind g cond \<mapsto> v)"
+  assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  shows "\<exists> v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
   using assms(2,1) by (induct "(nid,m,h)" "(nid',m,h)" rule: step.induct; auto)
 
 lemma step_in_ids:
-  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
+  assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
   shows "nid \<in> ids g"
   using assms apply (induct "(nid, m, h)" "(nid', m', h')" rule: step.induct)
   using is_sequential_node.simps(45) not_in_g 
@@ -342,89 +342,88 @@ subsection \<open>Interprocedural Semantics\<close>
 type_synonym Signature = "string"
 type_synonym Program = "Signature \<rightharpoonup> IRGraph"
 
-inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap \<Rightarrow> bool"
+inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> bool"
   ("_ \<turnstile> _ \<longrightarrow> _" 55) 
-  for p where
+  for P where
 
   Lift:
-  "\<lbrakk>g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((g,nid,m)#stk, h) \<longrightarrow> ((g,nid',m')#stk, h')" |
+  "\<lbrakk>g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
+    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((g,nid',m',p)#stk, h')" |
 
   InvokeNodeStep:
   "\<lbrakk>is_Invoke (kind g nid);
 
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
-    Some targetGraph = p targetMethod;
-
-    g m \<turnstile> arguments \<longmapsto> vs;
-    m' = set_params m vs\<rbrakk>
-    \<Longrightarrow> p \<turnstile> ((g,nid,m)#stk, h) \<longrightarrow> ((targetGraph,0,m')#(g,nid,m)#stk, h)" |
+    Some targetGraph = P targetMethod;
+    m' = new_map_state;
+    [g, m, p] \<turnstile> arguments \<longmapsto> p'\<rbrakk>
+    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
 
   ReturnNode:
   "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
-    g m \<turnstile> (kind g expr) \<mapsto> v;
+    [g, m, p] \<turnstile> (kind g expr) \<mapsto> v;
 
-    c_m' = m_set c_nid v c_m;
-    c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((g,nid,m)#(c_g,c_nid,c_m)#stk, h) \<longrightarrow> ((c_g,c_nid',c_m')#stk, h)" |
+    cm' = cm(cnid := v);
+    cnid' = (successors_of (kind cg cnid))!0\<rbrakk> 
+    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
 
   ReturnNodeVoid:
   "\<lbrakk>kind g nid = (ReturnNode None _);
-    c_m' = m_set c_nid (ObjRef (Some (2048))) c_m;
+    cm' = cm(cnid := (ObjRef (Some (2048))));
     
-    c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
-    \<Longrightarrow> p \<turnstile> ((g,nid,m)#(c_g,c_nid,c_m)#stk, h) \<longrightarrow> ((c_g,c_nid',c_m')#stk, h)" |
+    cnid' = (successors_of (kind cg cnid))!0\<rbrakk> 
+    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
 
   UnwindNode:
   "\<lbrakk>kind g nid = (UnwindNode exception);
 
-    g m \<turnstile> (kind g exception) \<mapsto> e;
+    [g, m, p] \<turnstile> (kind g exception) \<mapsto> e;
      
-    kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
+    kind cg cnid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 
-    c_m' = m_set c_nid e c_m\<rbrakk>
-  \<Longrightarrow> p \<turnstile> ((g,nid,m)#(c_g,c_nid,c_m)#stk, h) \<longrightarrow> ((c_g,exEdge,c_m')#stk, h)"
+    cm' = cm(cnid := e)\<rbrakk>
+  \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,exEdge,cm',cp)#stk, h)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 
 subsection \<open>Big-step Execution\<close>
 
-type_synonym Trace = "(IRGraph \<times> ID \<times> MapState) list"
+type_synonym Trace = "(IRGraph \<times> ID \<times> MapState \<times> Params) list"
 
 fun has_return :: "MapState \<Rightarrow> bool" where
-  "has_return m = ((m_val m 0) \<noteq> UndefVal)"
+  "has_return m = (m 0 \<noteq> UndefVal)"
 
 inductive exec :: "Program 
-      \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
       \<Rightarrow> Trace 
-      \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
       \<Rightarrow> Trace 
       \<Rightarrow> bool"
   ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
-  for p
+  for P
   where
-  "\<lbrakk>p \<turnstile> (((g,nid,m)#xs),h) \<longrightarrow> (((g',nid',m')#ys),h');
+  "\<lbrakk>P \<turnstile> (((g,nid,m,p)#xs),h) \<longrightarrow> (((g',nid',m',p')#ys),h');
     \<not>(has_return m');
 
-    l' = (l @ [(g, nid,m)]);
+    l' = (l @ [(g, nid,m,p)]);
 
-    exec p (((g',nid',m')#ys),h') l' next_state l''\<rbrakk> 
-    \<Longrightarrow> exec p (((g,nid,m)#xs),h) l next_state l''" 
+    exec P (((g',nid',m',p')#ys),h') l' next_state l''\<rbrakk> 
+    \<Longrightarrow> exec P (((g,nid,m,p)#xs),h) l next_state l''" 
 (* TODO: refactor this stopping condition to be more abstract *)
   |
-  "\<lbrakk>p \<turnstile> (((g,nid,m)#xs),h) \<longrightarrow> (((g',nid',m')#ys),h');
+  "\<lbrakk>P \<turnstile> (((g,nid,m,p)#xs),h) \<longrightarrow> (((g',nid',m',p')#ys),h');
     has_return m';
 
-    l' = (l @ [(g,nid,m)])\<rbrakk>
-    \<Longrightarrow> exec p (((g,nid,m)#xs),h) l (((g',nid',m')#ys),h') l'"
+    l' = (l @ [(g,nid,m,p)])\<rbrakk>
+    \<Longrightarrow> exec P (((g,nid,m,p)#xs),h) l (((g',nid',m',p')#ys),h') l'"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool as Exec) "exec" .
 
 
 inductive exec_debug :: "Program
-     \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
+     \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
      \<Rightarrow> nat
-     \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
+     \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
      \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>*_* _")
   where
@@ -440,12 +439,12 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 
 subsubsection \<open>Heap Testing\<close>
 
-definition p3:: MapState where
-  "p3 = set_params new_map_state [IntVal 32 3]"
+definition p3:: Params where
+  "p3 = [IntVal 32 3]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
-values "{m_val (prod.snd (prod.snd (hd (prod.fst res)))) 0 
-        | res. (\<lambda>x . Some eg2_sq) \<turnstile> ([(eg2_sq,0, p3), (eg2_sq,0, p3)], new_heap) \<rightarrow>*2* res}"
+values "{(prod.fst(prod.snd (prod.snd (hd (prod.fst res))))) 0 
+        | res. (\<lambda>x . Some eg2_sq) \<turnstile> ([(eg2_sq,0,new_map_state,p3), (eg2_sq,0,new_map_state,p3)], new_heap) \<rightarrow>*2* res}"
 
 definition field_sq :: string where
   "field_sq = ''sq''"
@@ -461,7 +460,7 @@ definition eg3_sq :: IRGraph where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
 values "{h_load_field field_sq None (prod.snd res)
-        | res. (\<lambda>x. Some eg3_sq) \<turnstile> ([(eg3_sq, 0, p3), (eg3_sq, 0, p3)], new_heap) \<rightarrow>*3* res}"
+        | res. (\<lambda>x. Some eg3_sq) \<turnstile> ([(eg3_sq, 0, new_map_state, p3), (eg3_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
 
 definition eg4_sq :: IRGraph where
   "eg4_sq = irgraph [
@@ -475,6 +474,6 @@ definition eg4_sq :: IRGraph where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
 values "{h_load_field field_sq (Some 0) (prod.snd res)
-        | res. (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, p3), (eg4_sq, 0, p3)], new_heap) \<rightarrow>*3* res}"
+        | res. (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
 end
 

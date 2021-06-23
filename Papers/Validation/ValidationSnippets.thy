@@ -1,4 +1,4 @@
-theory ASE2021
+theory ValidationSnippets
   imports
     Tests.UnitTesting
     Graph.Values

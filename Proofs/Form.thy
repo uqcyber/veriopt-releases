@@ -44,11 +44,11 @@ lemmas wf_folds =
 
 fun wf_stamps :: "IRGraph \<Rightarrow> bool" where
   "wf_stamps g = (\<forall> n \<in> ids g . 
-    (\<forall> v m . (g m \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (stamp g n) v))"
+    (\<forall> v m p . ([g, m, p] \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (stamp g n) v))"
 
 fun wf_stamp :: "IRGraph \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> bool" where
   "wf_stamp g s = (\<forall> n \<in> ids g . 
-    (\<forall> v m . (g m \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (s n) v))"
+    (\<forall> v m p . ([g, m, p] \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (s n) v))"
 
 lemma wf_empty: "wf_graph start_end_graph"
   unfolding start_end_graph_def wf_folds by simp
@@ -58,11 +58,11 @@ lemma wf_eg2_sq: "wf_graph eg2_sq"
 
 fun wf_logic_node_inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where 
 "wf_logic_node_inputs g n =
-  (\<forall> inp \<in> set (inputs_of (kind g n)) . (\<forall> v m . (g m \<turnstile> kind g inp \<mapsto> v) \<longrightarrow> wf_bool v))"
+  (\<forall> inp \<in> set (inputs_of (kind g n)) . (\<forall> v m p . ([g, m, p] \<turnstile> kind g inp \<mapsto> v) \<longrightarrow> wf_bool v))"
 
 fun wf_values :: "IRGraph \<Rightarrow> bool" where
   "wf_values g = (\<forall> n \<in> ids g .
-    (\<forall> v m . (g m \<turnstile> kind g n \<mapsto> v) \<longrightarrow> 
+    (\<forall> v m p . ([g, m, p] \<turnstile> kind g n \<mapsto> v) \<longrightarrow> 
       (wf_value v \<and> 
       (is_LogicNode (kind g n) \<longrightarrow> 
         wf_bool v \<and> wf_logic_node_inputs g n))))"

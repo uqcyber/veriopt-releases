@@ -513,6 +513,14 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
   LeafExprE
 
 
+(* Reverse form of evaltree.LeafExpr, because evaltree is deterministic. *)
+lemma LeafExprRev: 
+  "(m \<turnstile> LeafExpr nid s \<mapsto> val)
+   \<Longrightarrow> (val = m_values m nid \<and>
+        valid_value s val)"
+  by auto
+
+
 text \<open>Evaluation of expression trees is deterministic.\<close>
 lemma evaltree_det:
   fixes m e v1
@@ -546,7 +554,7 @@ lemma evaltree_not_undef:
 subsection \<open>Data-flow Tree Refinement\<close>
 
 (* This is the induced semantic equivalence relation between expressions.
-   Note that syntactic equality implies semantics equivalence, but not vice versa.
+   Note that syntactic equality implies semantic equivalence, but not vice versa.
 *)
 definition equiv_exprs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<doteq> _" 55) where
   "(e1 \<doteq> e2) = (\<forall> m v. ((m \<turnstile> e1 \<mapsto> v) \<longleftrightarrow> (m \<turnstile> e2 \<mapsto> v)))"
@@ -573,6 +581,7 @@ instance proof
   show "x \<le> x" by simp
   show "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z" by simp 
 qed
+end
 
 
 lemma leafint32:
@@ -590,16 +599,30 @@ qed
 lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (- 2147483648) 2147483647"
   using default_stamp_def by auto
 
-lemma valid32:
+lemma valid32 [simp]:
   assumes a: "valid_value (IntegerStamp 32 lo hi) val"
-  shows "\<exists>v. val = (IntVal32 v)"
+  shows "\<exists>v. (val = (IntVal32 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
  using a "valid_value.cases"
-  by (metis constantAsStamp.cases valid_value.simps(14) valid_value.simps(21) valid_value.simps(22) valid_value.simps(23) valid_value.simps(24)) 
+  by (metis Stamp.distinct(1) valid_value.elims(2) valid_value.simps(1))
 
+
+
+subsection \<open>Example Data-flow Optimisations\<close>
 
 (* An example refinement: a + 0 \<le> a *)
+lemma a0a_helper [simp]:
+  assumes a: "valid_value (IntegerStamp 32 lo hi) v"
+  shows "intval_add v (IntVal32 0) = v"
+proof -
+  obtain v32 :: int32 where "v = (IntVal32 v32)" using a valid32 by blast
+  then show ?thesis by simp 
+qed
+
 lemma a0a: "(BinaryExpr BinAdd (LeafExpr 1 default_stamp) (ConstantExpr (IntVal32 0)))
               \<le> (LeafExpr 1 default_stamp)" (is "?L \<le> ?R")
+  by (auto simp add: evaltree.LeafExpr)
+
+(* OLD PROOF v2:
   apply auto
 proof -
   fix m
@@ -612,8 +635,9 @@ proof -
   then show "m \<turnstile> LeafExpr (Suc 0) ?S \<mapsto> intval_add ?E (IntVal32 0)"
     using evaltree.LeafExpr v by simp
 qed
+*)
 
-(* OLDER ATTEMPTS: 
+(* OLD PROOF v1: 
   unfolding le_expr_def 
 proof 
     assume a: "m \<turnstile> ?L \<mapsto> val" (is "m \<turnstile> BinaryExpr BinAdd ?R ?C \<mapsto> val")
@@ -640,13 +664,36 @@ m \<turnstile> BinaryExpr BinAdd
           m \<turnstile> LeafExpr (Suc 0) default_stamp \<mapsto> v
 *)
 
-   
+
+(* Another example refinement: x + (y - x) \<le> y *)
+lemma xyx_y_helper [simp]:
+  assumes "valid_value (IntegerStamp 32 lox hix) x"
+  assumes "valid_value (IntegerStamp 32 loy hiy) y"
+  shows "intval_add x (intval_sub y x) = y"
+proof -
+  obtain x32 :: int32 where x: "x = (IntVal32 x32)" using assms valid32 by blast
+  obtain y32 :: int32 where y: "y = (IntVal32 y32)" using assms valid32 by blast
+  show ?thesis using x y by simp
+qed
+
+lemma xyx_y: 
+  "(BinaryExpr BinAdd
+     (LeafExpr x (IntegerStamp 32 lox hix))
+     (BinaryExpr BinSub
+       (LeafExpr y (IntegerStamp 32 loy hiy))
+       (LeafExpr x (IntegerStamp 32 lox hix))))
+   \<le> (LeafExpr y (IntegerStamp 32 loy hiy))"
+  by (auto simp add: LeafExpr)
+
+
+
 
 (*
 Step 2b: prove monotonicity rules for each subexpression position?
  
 Step 3: if e1 isrefby e2 then g[e1] isREFby g[e2]
-*)
+   Note: This needs to go after IRStepObj.thy.
+
 
 lemma graph_refined:
   assumes "e1 \<le> e2"
@@ -654,6 +701,6 @@ lemma graph_refined:
   assumes "g \<triangleleft> e2 \<leadsto> (g2, x2)"
   shows "\<forall> m m' h h'. (g \<turnstile> (x1, m, h) \<rightarrow> (nid, m', h'))
                   \<longrightarrow> (g \<turnstile> (x2, m, h) \<rightarrow> (nid, m', h'))"
-end
+*)
 end
 

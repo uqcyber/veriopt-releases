@@ -26,14 +26,14 @@ value of a node and maps the node identifier to the value within the method stat
 The data-flow semantics then just reads the value stored in the method state for the node.
 \<close>
 
-datatype MapState =
-  MapState
-    (m_values: "ID \<Rightarrow> Value")
-    (m_params: "Value list")
+type_synonym MapState = "ID \<Rightarrow> Value"
+type_synonym Params = "Value list"
+
 
 definition new_map_state :: "MapState" where
-  "new_map_state = MapState (\<lambda>x. UndefVal) []"
+  "new_map_state = (\<lambda>x. UndefVal)"
 
+(*
 fun m_val :: "MapState \<Rightarrow> ID \<Rightarrow> Value" where
   "m_val m nid = (m_values m) nid"
 
@@ -50,7 +50,7 @@ fun set_params :: "MapState \<Rightarrow> Value list \<Rightarrow> MapState" whe
 
 fun new_map :: "Value list \<Rightarrow> MapState" where
   "new_map ps = set_params new_map_state ps"
-
+*)
 
 (* =========== TODO: move into IRGraph? ============== *)
 
@@ -64,13 +64,13 @@ fun f_ids :: "IRGraph \<Rightarrow> ID fset" where
 lemma f_ids[code]: "f_ids (irgraph m) = fset_of_list (map fst (no_node m))"
   sorry 
   (* TODO: apply (simp add: as_list.rep_eq) *)
-
+(*
 export_code f_ids
-
+*)
 
 fun find_node_and_stamp :: "IRGraph \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> ID option" where
   "find_node_and_stamp g (n,s) =
-     find (\<lambda>i. kind g i = n \<and> stamp g i = s) (sorted_list_of_fset(f_ids g))"
+     find (\<lambda>i. kind g i = n \<and> stamp g i = s) (sorted_list_of_set(ids g))"
 
 export_code find_node_and_stamp
 
@@ -277,9 +277,9 @@ fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_eval UnaryNot (IntVal32 v1) = IntVal32 (NOT v1)" |
   "unary_eval UnaryNot (IntVal64 v1) = IntVal64 (NOT v1)" |
 
-  "unary_eval UnaryLogicNegation (IntVal32 v1) = (if v1 = 0 then (IntVal32 1) else (IntVal32 0))"
+  "unary_eval UnaryLogicNegation (IntVal32 v1) = (if v1 = 0 then (IntVal32 1) else (IntVal32 0))" |
 
-(*  "unary_eval op v1 = UndefVal" *)
+  "unary_eval op v1 = UndefVal"
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "bin_eval BinAdd v1 v2 = intval_add v1 v2" |
@@ -322,7 +322,7 @@ inductive
   unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<triangleleft> _ \<leadsto> _" 55)
   and
   unrepList :: "IRGraph \<Rightarrow> IRExpr list \<Rightarrow> (IRGraph \<times> ID list) \<Rightarrow> bool" ("_ \<triangleleft>\<triangleleft> _ \<leadsto> _" 55)
-  for g where
+   where
 
   ConstantNodeSame:
   "\<lbrakk>find_node_and_stamp g (ConstantNode c, constantAsStamp c) = Some nid\<rbrakk>
@@ -398,8 +398,8 @@ inductive
 *)
   ConsList:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g \<triangleleft>\<triangleleft> xes \<leadsto> (g2, xs)\<rbrakk>
-    \<Longrightarrow> g \<triangleleft>\<triangleleft> (xe#xes) \<leadsto> (g2, x#xs)"
+    g2 \<triangleleft>\<triangleleft> xes \<leadsto> (g3, xs)\<rbrakk>
+    \<Longrightarrow> g \<triangleleft>\<triangleleft> (xe#xes) \<leadsto> (g3, x#xs)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE)
 (*
@@ -428,42 +428,57 @@ definition sq_param0 :: IRExpr where
     (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))
     (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))"
 
+(*
+instantiation IRGraph :: equal begin
+
+definition "(g1 = g2) \<longleftrightarrow> 
+              (f_ids g1 = f_ids g2 \<and>
+               (\<forall>n. (n \<in> ids g1 \<Longrightarrow> (Rep_IRGraph g1 n = Rep_IRGraph g2 n))))"
+instance proof 
+  fix x y :: IRGraph
+  show "x = y \<longleftrightarrow> x \<le> y \<and> \<not> (y \<le> x)" by (simp add: equiv_exprs_def; auto)
+  show "x \<le> x" by simp
+  show "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z" by simp 
+qed
+end
+*)
+
 values "{(nid, g) . (eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, nid))}"
 
 
 subsection \<open>Data-flow Tree Evaluation\<close>
 
 inductive
-  evaltree :: "MapState \<Rightarrow> IRExpr \<Rightarrow> Value \<Rightarrow> bool" ("_ \<turnstile> _ \<mapsto> _" 55)
-  for m where
+  evaltree :: "MapState \<Rightarrow> Params \<Rightarrow> IRExpr \<Rightarrow> Value \<Rightarrow> bool" ("[_,_] \<turnstile> _ \<mapsto> _" 55)
+  for m p where
 
   ConstantExpr:
   "\<lbrakk>c \<noteq> UndefVal\<rbrakk>
-    \<Longrightarrow> m \<turnstile> (ConstantExpr c) \<mapsto> c" |
+    \<Longrightarrow> [m,p] \<turnstile> (ConstantExpr c) \<mapsto> c" |
 
   ParameterExpr:
-  "\<lbrakk>valid_value s ((m_params m)!i)\<rbrakk>
-    \<Longrightarrow> m \<turnstile> (ParameterExpr i s) \<mapsto> (m_params m)!i" |
+  "\<lbrakk>valid_value s (p!i)\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (ParameterExpr i s) \<mapsto> p!i" |
 
   ConditionalExpr:
-  "\<lbrakk>m \<turnstile> ce \<mapsto> cond;
+  "\<lbrakk>[m,p] \<turnstile> ce \<mapsto> cond;
     branch = (if val_to_bool cond then te else fe);
-    m \<turnstile> branch \<mapsto> v\<rbrakk>
-    \<Longrightarrow> m \<turnstile> (ConditionalExpr ce te fe) \<mapsto> v" |
+    [m,p] \<turnstile> branch \<mapsto> v\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr ce te fe) \<mapsto> v" |
 
   UnaryExpr:
-  "\<lbrakk>m \<turnstile> xe \<mapsto> v\<rbrakk>
-    \<Longrightarrow> m \<turnstile> (UnaryExpr op xe) \<mapsto> unary_eval op v" |
+  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> unary_eval op v" |
 
   BinaryExpr:
-  "\<lbrakk>m \<turnstile> xe \<mapsto> x;
-    m \<turnstile> ye \<mapsto> y\<rbrakk>
-    \<Longrightarrow> m \<turnstile> (BinaryExpr op xe ye) \<mapsto> bin_eval op x y" |
+  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> x;
+    [m,p] \<turnstile> ye \<mapsto> y\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> bin_eval op x y" |
 
   LeafExpr:
-  "\<lbrakk>val = m_values m nid;
+  "\<lbrakk>val = m nid;
     valid_value s val\<rbrakk>
-    \<Longrightarrow> m \<turnstile> LeafExpr nid s \<mapsto> val"
+    \<Longrightarrow> [m,p] \<turnstile> LeafExpr nid s \<mapsto> val"
 
 text_raw \<open>\Snip{evalRules}%
 \begin{center}
@@ -476,7 +491,7 @@ text_raw \<open>\Snip{evalRules}%
 \end{center}
 \EndSnip\<close>
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalT)
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalT)
   [show_steps,show_mode_inference,show_intermediate_results] 
   evaltree .
 
@@ -486,22 +501,22 @@ code\_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE
   evaltree .
 \EndSnip\<close>
 
-values "{v. evaltree (new_map [IntVal32 5]) sq_param0 v}"
+values "{v. evaltree new_map_state [IntVal32 5] sq_param0 v}"
 
 
 (* derive a forward reasoning rule for each case. *)
 inductive_cases ConstantExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "m \<turnstile> (ConstantExpr c) \<mapsto> val"
+  "[m,p] \<turnstile> (ConstantExpr c) \<mapsto> val"
 inductive_cases ParameterExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "m \<turnstile> (ParameterExpr i s) \<mapsto> val"
+  "[m,p] \<turnstile> (ParameterExpr i s) \<mapsto> val"
 inductive_cases ConditionalExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "m \<turnstile> (ConditionalExpr c t f) \<mapsto> val"
+  "[m,p] \<turnstile> (ConditionalExpr c t f) \<mapsto> val"
 inductive_cases UnaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "m \<turnstile> (UnaryExpr op xe) \<mapsto> val"
+  "[m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> val"
 inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "m \<turnstile> (BinaryExpr op xe ye) \<mapsto> val"
+  "[m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> val"
 inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "m \<turnstile> (LeafExpr nid s) \<mapsto> val"
+  "[m,p] \<turnstile> (LeafExpr nid s) \<mapsto> val"
 
 (* group those forward rules into a named set *)
 lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> = 
@@ -515,17 +530,17 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
 
 (* Reverse form of evaltree.LeafExpr, because evaltree is deterministic. *)
 lemma LeafExprRev: 
-  "(m \<turnstile> LeafExpr nid s \<mapsto> val)
-   \<Longrightarrow> (val = m_values m nid \<and>
+  "([m,p] \<turnstile> LeafExpr nid s \<mapsto> val)
+   \<Longrightarrow> (val = m nid \<and>
         valid_value s val)"
   by auto
 
 
 text \<open>Evaluation of expression trees is deterministic.\<close>
 lemma evaltree_det:
-  fixes m e v1
-  shows "(m \<turnstile> e \<mapsto> v1) \<Longrightarrow> 
-         (\<forall> v2. ((m \<turnstile> e \<mapsto> v2) \<longrightarrow> v1 = v2))"
+  fixes m p e v1
+  shows "([m,p] \<turnstile> e \<mapsto> v1) \<Longrightarrow> 
+         (\<forall> v2. (([m,p] \<turnstile> e \<mapsto> v2) \<longrightarrow> v1 = v2))"
   apply (induction rule: "evaltree.induct")
   by (rule allI; rule impI; elim EvalTreeE; auto)+
 
@@ -544,8 +559,8 @@ text \<open>TODO: could we prove that expression evaluation never returns $Undef
 \<close>
 (*
 lemma evaltree_not_undef:
-  fixes m e v
-  shows "(m \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
+  fixes m p e v
+  shows "([m,p] \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
   apply (induction rule: "evaltree.induct")
   using valid_not_undef apply auto
 *)
@@ -557,7 +572,7 @@ subsection \<open>Data-flow Tree Refinement\<close>
    Note that syntactic equality implies semantic equivalence, but not vice versa.
 *)
 definition equiv_exprs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<doteq> _" 55) where
-  "(e1 \<doteq> e2) = (\<forall> m v. ((m \<turnstile> e1 \<mapsto> v) \<longleftrightarrow> (m \<turnstile> e2 \<mapsto> v)))"
+  "(e1 \<doteq> e2) = (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longleftrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
 
 
 (* We define a refinement ordering over IRExpr and show that it is a preorder.
@@ -565,7 +580,7 @@ definition equiv_exprs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \
 instantiation IRExpr :: preorder begin
 
 definition
-  le_expr_def [simp]: "(e1 \<le> e2) \<longleftrightarrow> (\<forall> m v. ((m \<turnstile> e1 \<mapsto> v) \<longrightarrow> (m \<turnstile> e2 \<mapsto> v)))"
+  le_expr_def [simp]: "(e1 \<le> e2) \<longleftrightarrow> (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
 
 definition
   lt_expr_def [simp]: "(e1 < e2) \<longleftrightarrow> (e1 \<le> e2 \<and> \<not> (e1 \<doteq> e2))"
@@ -585,7 +600,7 @@ end
 
 
 lemma leafint32:
-  assumes ev: "m \<turnstile> LeafExpr i (IntegerStamp 32 lo hi) \<mapsto> val"
+  assumes ev: "[m,p] \<turnstile> LeafExpr i (IntegerStamp 32 lo hi) \<mapsto> val"
   shows "\<exists>v. val = (IntVal32 v)"
 (* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
 proof - 

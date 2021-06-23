@@ -29,44 +29,9 @@ The data-flow semantics then just reads the value stored in the method state for
 type_synonym MapState = "ID \<Rightarrow> Value"
 type_synonym Params = "Value list"
 
-
 definition new_map_state :: "MapState" where
   "new_map_state = (\<lambda>x. UndefVal)"
 
-(*
-fun m_val :: "MapState \<Rightarrow> ID \<Rightarrow> Value" where
-  "m_val m nid = (m_values m) nid"
-
-fun m_set :: "ID \<Rightarrow> Value \<Rightarrow> MapState \<Rightarrow> MapState" where
-  "m_set nid v (MapState m p) = MapState (m(nid := v)) p"
-
-fun m_param :: "IRGraph \<Rightarrow> MapState \<Rightarrow> ID \<Rightarrow> Value" where
-  "m_param g m nid = (case (kind g nid) of
-    (ParameterNode i) \<Rightarrow> (m_params m)!i |
-    _ \<Rightarrow> UndefVal)"
-
-fun set_params :: "MapState \<Rightarrow> Value list \<Rightarrow> MapState" where
-  "set_params (MapState m _) vs = MapState m vs"
-
-fun new_map :: "Value list \<Rightarrow> MapState" where
-  "new_map ps = set_params new_map_state ps"
-*)
-
-(* =========== TODO: move into IRGraph? ============== *)
-
-(* A finite version of 'ids'.  There should be an easier way... *)
-fun f_ids :: "IRGraph \<Rightarrow> ID fset" where
-  "f_ids g = fset_of_list(sorted_list_of_set (dom (Rep_IRGraph g)))"
-(* NOTE: above does not remove NoNode?
-  "f_ids g = \<lbrace> nid |\<in>| dom g . (\<nexists>s. g nid = (Some (NoNode, s))) \<rbrace>"
-*)
-
-lemma f_ids[code]: "f_ids (irgraph m) = fset_of_list (map fst (no_node m))"
-  sorry 
-  (* TODO: apply (simp add: as_list.rep_eq) *)
-(*
-export_code f_ids
-*)
 
 fun find_node_and_stamp :: "IRGraph \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> ID option" where
   "find_node_and_stamp g (n,s) =
@@ -305,7 +270,7 @@ fun get_fresh_id :: "IRGraph \<Rightarrow> ID" where
   "get_fresh_id g = fst(last(as_list g))"
   "get_fresh_id g = last(sorted_list_of_set (dom (Rep_IRGraph g)))"
 *)
-  "get_fresh_id g = last(sorted_list_of_fset(f_ids g)) + 1"
+  "get_fresh_id g = last(sorted_list_of_set(ids g)) + 1"
 
 export_code get_fresh_id
 (* these examples return 6 and 7 respectively *)
@@ -636,48 +601,6 @@ qed
 lemma a0a: "(BinaryExpr BinAdd (LeafExpr 1 default_stamp) (ConstantExpr (IntVal32 0)))
               \<le> (LeafExpr 1 default_stamp)" (is "?L \<le> ?R")
   by (auto simp add: evaltree.LeafExpr)
-
-(* OLD PROOF v2:
-  apply auto
-proof -
-  fix m
-  assume v: "valid_value
-          (IntegerStamp 32 (- 2147483648) 2147483647)
-          (m_values m (Suc 0))" (is "valid_value ?S ?E")
-  obtain xv :: int32 where "?E = (IntVal32 xv)" 
-     using v valid32 by blast 
-  then have "intval_add ?E (IntVal32 0) = ?E" by simp
-  then show "m \<turnstile> LeafExpr (Suc 0) ?S \<mapsto> intval_add ?E (IntVal32 0)"
-    using evaltree.LeafExpr v by simp
-qed
-*)
-
-(* OLD PROOF v1: 
-  unfolding le_expr_def 
-proof 
-    assume a: "m \<turnstile> ?L \<mapsto> val" (is "m \<turnstile> BinaryExpr BinAdd ?R ?C \<mapsto> val")
-  (* First we work down to the leaves of the left tree, deducing facts. *)
-    obtain x :: Value where x: "m \<turnstile> ?R \<mapsto> x" by (meson a BinaryExprE) 
-    obtain y :: Value where y: "m \<turnstile> ?C \<mapsto> y" by (meson a BinaryExprE) 
-    have "val = bin_eval BinAdd x y"
-      using BinaryExprE[OF a] x y by blast
-    then have add: "val = intval_add x y" by auto
-    have y0: "y = (IntVal32 0)" using y by auto
-    obtain xv :: int32 where "x = (IntVal32 xv)" using x leafint32 default_stamp by metis
-  (* Now work up the right tree, deducing values. *)
-    then have "intval_add x y = x" using y0 by simp
-    then have "val = x" using add by simp
-    then show "m \<turnstile> ?R \<mapsto> val" using x by auto
-  qed
-    then show "?STMT"  
-    qed
-*)
-(*
-m \<turnstile> BinaryExpr BinAdd
-                (LeafExpr (Suc 0) default_stamp)
-                (ConstantExpr (IntVal32 0)) \<mapsto> v \<longrightarrow>
-          m \<turnstile> LeafExpr (Suc 0) default_stamp \<mapsto> v
-*)
 
 
 (* Another example refinement: x + (y - x) \<le> y *)

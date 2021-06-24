@@ -6,18 +6,18 @@ begin
 
 lemma CanonicalizeConditionalProof:
   assumes "CanonicalizeConditional g before after"
-  assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
+  assumes "wf_graph g \<and> wf_stamps g"
   assumes "[g, m, p] \<turnstile> before \<mapsto> res"
   assumes "[g, m, p] \<turnstile> after \<mapsto> res'"
   shows "res = res'"
   using assms(1) assms 
 proof (induct rule: CanonicalizeConditional.induct)
   case (negate_condition g cond flip tb fb)
-  obtain condv where condv: "[g, m, p] \<turnstile> kind g cond \<mapsto> IntVal 1 condv"
+  obtain condv where condv: "[g, m, p] \<turnstile> kind g cond \<mapsto> IntVal32 condv"
     using negate_condition.prems(3) by blast
-  then obtain flipv where flipv: "[g, m, p] \<turnstile> kind g flip \<mapsto> IntVal 1 flipv"
+  then obtain flipv where flipv: "[g, m, p] \<turnstile> kind g flip \<mapsto> IntVal32 flipv"
     by (metis LogicNegationNodeE negate_condition.hyps)
-  have invert: "(val_to_bool (IntVal 1 condv)) \<longleftrightarrow> \<not>(val_to_bool (IntVal 1 flipv))" 
+  have invert: "(val_to_bool (IntVal32 condv)) \<longleftrightarrow> \<not>(val_to_bool (IntVal32 flipv))" 
     by (metis bool_to_val.simps(1) bool_to_val.simps(2) condv eval.LogicNegationNode evalDet flipv negate_condition.hyps val_to_bool.simps(1) zero_neq_one)
   obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> tbval"
     using negate_condition.prems(3) by blast
@@ -155,11 +155,40 @@ lemma
   shows "((IntVal b 0) - (IntVal b x)) + (IntVal b y) = (IntVal b y) - (IntVal b x)"
   using assms unfolding plus_Value_def minus_Value_def wf_value.simps by simp
 
+lemma
+  fixes xval yval :: "32 word"
+  shows "(0 - xval) + yval = yval - xval"
+  by simp
+
+lemma add_int32_typesafe:
+  fixes x y :: Value
+  shows "(\<exists>res. x + y = IntVal32 res) = (\<exists>xval yval. x = IntVal32 xval \<and> y = IntVal32 yval)"
+  unfolding plus_Value_def
+  by (induction rule: intval_add.induct; simp)
+
+lemma sub_int32_typesafe:
+  fixes x y :: Value
+  shows "\<exists>res. x - y = IntVal32 res = (\<exists>xval yval. x = IntVal32 xval \<and> y = IntVal32 yval)"
+  unfolding minus_Value_def
+  by (induction rule: intval_add.induct; simp)
+
+lemma add_int64_typesafe:
+  fixes x y :: Value
+  shows "\<exists>res. x + y = IntVal64 res = (\<exists>xval yval. x = IntVal64 xval \<and> y = IntVal64 yval)"
+  unfolding plus_Value_def
+  by (induction rule: intval_add.induct; simp)
+
+lemma sub_int64_typesafe:
+  fixes x y :: Value
+  shows "\<exists>res. x - y = IntVal64 res = (\<exists>xval yval. x = IntVal64 xval \<and> y = IntVal64 yval)"
+  unfolding minus_Value_def
+  by (induction rule: intval_add.induct; simp)
+
 lemma CanonicalizeAddProof:
   assumes "CanonicalizeAdd g before after"
-  assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
-  assumes "[g, m, p] \<turnstile> before \<mapsto> IntVal b res"
-  assumes "[g, m, p] \<turnstile> after \<mapsto> IntVal b' res'"
+  assumes "wf_graph g \<and> wf_stamps g"
+  assumes "[g, m, p] \<turnstile> before \<mapsto> IntVal32 res"
+  assumes "[g, m, p] \<turnstile> after \<mapsto> IntVal32 res'"
   shows "res = res'"
 proof -
   obtain x y where addkind: "before = AddNode x y"
@@ -170,7 +199,7 @@ proof -
   from addkind
   obtain yval where yval: "[g, m, p] \<turnstile> kind g y \<mapsto> yval"
     using assms(3) by blast
-  have res: "IntVal b res = intval_add xval yval"
+  have res: "IntVal32 res = intval_add xval yval"
     using assms(3) eval.AddNode
     using addkind evalDet xval yval plus_Value_def by metis
   show ?thesis
@@ -181,57 +210,123 @@ case (add_both_const x c_1 y c_2 val)
     by (metis ConstantNodeE IRNode.inject(2) Value.inject(1))
 next
   case (add_xzero x c_1 y)
-  have xeval: "[g, m, p] \<turnstile> kind g x \<mapsto> (IntVal 32 0)"
+  have xeval: "[g, m, p] \<turnstile> kind g x \<mapsto> (IntVal32 0)"
     by (simp add: ConstantNode add_xzero.hyps(1) add_xzero.hyps(3))
   have yeval: "[g, m, p] \<turnstile> kind g y \<mapsto> yval"
     using add_xzero.prems(4) yval by blast
-  have ywf: "wf_value yval"
-    using yeval add_xzero.prems(1) eval_in_ids wf_values.simps by blast 
-  then have y: "IntVal b' res' = yval"
+  have y: "IntVal32 res' = yval"
     by (meson RefNodeE add_xzero.prems(3) evalDet yeval)
-  then have bpBits: "b' = 32"
-    using ywf wf_int32 by auto
-  then have res_val: "IntVal b res = intval_add (IntVal 32 0) yval"
+  then have res_val: "IntVal32 res = intval_add (IntVal32 0) yval"
     using eval.AddNode eval.ConstantNode add_xzero(1,3,5)
     using evalDet by (metis IRNode.inject(2) add_xzero.prems(4) res xval) 
-  then have bBits: "b = 32"
-    using ywf intval_add_bits bpBits y by force 
   then show ?case
-    using eval.RefNode yval res_val ywf add32_0 y plus_Value_def
-    by (metis Value.inject(1) add_zero_32 bpBits)
+    using eval.RefNode yval res_val y plus_Value_def
+    by fastforce
 next
   case (add_yzero x y c_2)
-  have yeval: "[g, m, p] \<turnstile> kind g y \<mapsto> (IntVal 32 0)"
+  have yeval: "[g, m, p] \<turnstile> kind g y \<mapsto> (IntVal32 0)"
     by (simp add: ConstantNode add_yzero.hyps(2) add_yzero.hyps(3))
   have xeval: "[g, m, p] \<turnstile> kind g x \<mapsto> xval"
     using add_yzero.prems(4) xval by fastforce
-  then have xwf: "wf_value xval" 
-    using yeval add_yzero.prems(1) eval_in_ids wf_values.simps by blast 
-  then have y: "IntVal b' res' = xval"
+  then have y: "IntVal32 res' = xval"
     by (meson RefNodeE add_yzero.prems(3) evalDet xeval)
-  then have bpBits: "b' = 32"
-    using xwf wf_int32 by auto
-  then have "IntVal b res = intval_add xval (IntVal 32 0)"
+  then have "IntVal32 res = intval_add xval (IntVal32 0)"
     using eval.AddNode eval.ConstantNode add_yzero(2,3,5) 
     using evalDet xeval plus_Value_def by metis
-  then have res: "IntVal b res = intval_add (IntVal 32 0) xval"
+  then have res: "IntVal32 res = intval_add (IntVal32 0) xval"
     by (simp add: intval_add_sym)
-  then have "b = 32"
-    using xwf intval_add_bits bpBits y by force 
-  then show ?case using eval.RefNode xval wf_int32 intval_add_bits plus_Value_def
-    by (metis Value.inject(1) res add_zero_32 xwf y) 
+  then show ?case using eval.RefNode xval plus_Value_def
+    using y by force
 next
   case (add_xsub x a y)
-  then show ?case sorry
+  obtain yv where "yval = IntVal32 yv"
+    using eval.AddNode add_xsub(3,5,6,7) add_int32_typesafe evalDet
+    by metis
+  obtain xv where "xval = IntVal32 xv"
+    using eval.AddNode add_xsub(3,5,6,7) add_int32_typesafe evalDet
+    by metis
+  obtain aval where aval: "aval = IntVal32 res'"
+    by blast
+  then have "(aval - yval) + yval = aval"
+    using add_int32_typesafe sub_int32_typesafe
+    by (simp add: \<open>yval = IntVal32 yv\<close> minus_Value_def plus_Value_def)
+  then show ?case using eval.AddNode eval.SubNode eval.RefNode
+    by (metis (no_types, lifting) IRNode.inject(2) SubNodeE Value.sel(1) add_xsub.hyps add_xsub.prems(3) add_xsub.prems(4) addkind assms(3) aval evalDet xval yval)
 next
   case (add_ysub y a x)
-  then show ?case sorry
+  obtain yv where "yval = IntVal32 yv"
+    using eval.AddNode add_ysub(3,5,6,7) add_int32_typesafe evalDet
+    by metis
+  obtain xv where "xval = IntVal32 xv"
+    using eval.AddNode add_ysub(3,5,6,7) add_int32_typesafe evalDet
+    by metis
+  obtain aval where aval: "aval = IntVal32 res'"
+    by blast
+  then have "xval + (aval - xval) = aval"
+    using add_int32_typesafe sub_int32_typesafe
+    by (simp add: \<open>xval = IntVal32 xv\<close> minus_Value_def plus_Value_def)
+  then show ?case using eval.AddNode eval.SubNode eval.RefNode
+    by (metis IRNode.inject(2) RefNodeE Value.sel(1) add_ysub.hyps add_ysub.prems(3) add_ysub.prems(4) add_ysub.prems(5) add_ysub.prems(6) aval evalDet plus_Value_def res)
 next
   case (add_xnegate nx x y)
-  then show ?case sorry
+  obtain yv where yv: "yval = IntVal32 yv"
+    using eval.AddNode add_xnegate(3,5,6,7) add_int32_typesafe evalDet
+    by metis
+  obtain xv where xv: "xval = IntVal32 xv"
+    using eval.AddNode add_xnegate(3,5,6,7) add_int32_typesafe evalDet
+    by metis
+  obtain oxval where oxval: "[g, m, p] \<turnstile> kind g x \<mapsto> oxval"
+    using add_xnegate.prems(3) by blast
+  have negdef: "xval = (IntVal32 0) - oxval"
+    by (metis IRNode.inject(2) add_xnegate.hyps add_xnegate.prems(4) eval.NegateNode evalDet oxval xval)
+  then have "\<exists>res. IntVal32 res = IntVal32 0 - oxval"
+    using xv by fastforce
+  then have "\<exists>oxv. oxval = IntVal32 oxv"
+    using sub_int32_typesafe negdef sorry (* should be easy *)
+  then obtain oxv where oxv: "oxval = IntVal32 oxv"
+    using sub_int32_typesafe xv
+    by blast
+  obtain negx where negx: "negx = (IntVal32 0) - oxval"
+    by blast
+  then have "[g, m, p] \<turnstile> NegateNode x \<mapsto> negx"
+    using eval.NegateNode
+    using oxval by blast
+  have "((IntVal32 0) - oxval) + yval = yval - oxval"
+    using add_int32_typesafe sub_int32_typesafe yv oxv
+    using plus_Value_def minus_Value_def by simp
+  then show ?case using eval.NegateNode eval.AddNode eval.SubNode
+    by (metis IRNode.inject(2) Value.sel(1) add_xnegate.prems(3) add_xnegate.prems(4) evalDet negdef oxval plus_Value_def res yval)
 next
   case (add_ynegate ny y x)
-  then show ?case sorry
+  obtain yv where yv: "yval = IntVal32 yv"
+    using eval.AddNode add_ynegate(3,5,6,7) add_int32_typesafe evalDet
+    by metis
+  obtain xv where xv: "xval = IntVal32 xv"
+    using eval.AddNode add_ynegate(3,5,6,7) add_int32_typesafe evalDet
+    by metis
+  obtain oyval where oyval: "[g, m, p] \<turnstile> kind g y \<mapsto> oyval"
+    using add_ynegate.prems(3) by blast
+  have negdef: "yval = (IntVal32 0) - oyval"
+    using eval.NegateNode
+    by (metis IRNode.inject(2) add_ynegate.hyps add_ynegate.prems(4) add_ynegate.prems(6) evalDet oyval)
+  then have "\<exists>res. IntVal32 res = IntVal32 0 - oyval"
+    using yv by fastforce
+  then have "\<exists>oyv. oyval = IntVal32 oyv"
+    using sub_int32_typesafe negdef sorry (* should be easy *)
+  then obtain oyv where oyv: "oyval = IntVal32 oyv"
+    using sub_int32_typesafe yv
+    by blast
+  obtain negy where negx: "negy = (IntVal32 0) - oyval"
+    by blast
+  then have "[g, m, p] \<turnstile> NegateNode y \<mapsto> negy"
+    using eval.NegateNode
+    using oyval by blast
+  have "(xval + ((IntVal32 0) - oyval)) = xval - oyval"
+    using add_int32_typesafe sub_int32_typesafe yv oyv
+    using plus_Value_def minus_Value_def
+    by (metis (mono_tags, hide_lams) add.group_left_neutral diff_add_eq intval_add.simps(1) intval_add_sym intval_sub.simps(1) negdef res)
+  then show ?case using eval.NegateNode eval.AddNode eval.SubNode
+    by (metis IRNode.inject(2) Value.sel(1) add_ynegate.prems(3) add_ynegate.prems(4) add_ynegate.prems(5) evalDet negdef oyval plus_Value_def res)
 qed
 qed
 

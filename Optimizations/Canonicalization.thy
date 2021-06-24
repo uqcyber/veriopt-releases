@@ -66,13 +66,13 @@ inductive CanonicalizeAdd :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   add_xzero: (* AddNode.canonical (100) *)
   "\<lbrakk>kind g x = ConstantNode c_1;
     \<not>(is_ConstantNode (kind g y));
-    c_1 = (IntVal 32 0)\<rbrakk>
+    c_1 = (IntVal32 0)\<rbrakk>
     \<Longrightarrow> CanonicalizeAdd g (AddNode x y) (RefNode y)" |
 
   add_yzero: (* AddNode.canonical (100) *)
   "\<lbrakk>\<not>(is_ConstantNode (kind g x));
     kind g y = ConstantNode c_2;
-    c_2 = (IntVal 32 0)\<rbrakk>
+    c_2 = (IntVal32 0)\<rbrakk>
     \<Longrightarrow> CanonicalizeAdd g (AddNode x y) (RefNode x)" |
 
   add_xsub:  (* AddNode.canonical (85) *)
@@ -213,7 +213,7 @@ inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   sub_same: (* SubNode.canonical(76) *)
   "\<lbrakk>x = y;
     stamp g x = (IntegerStamp b l h)\<rbrakk>
-    \<Longrightarrow> CanonicalizeSub g (SubNode x y) (ConstantNode (IntVal b 0))" |
+    \<Longrightarrow> CanonicalizeSub g (SubNode x y) (ConstantNode (IntVal32 0))" |
 
   sub_both_const:
   "\<lbrakk>kind g x = ConstantNode c_1;
@@ -253,12 +253,12 @@ inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
 
   sub_yzero: (* SubNode.canonical(121) *)
   (* x - 0 \<Rightarrow> x *)
-  "\<lbrakk>kind g y = ConstantNode (IntVal _ 0)\<rbrakk>
+  "\<lbrakk>kind g y = ConstantNode (IntVal32 0)\<rbrakk>
     \<Longrightarrow> CanonicalizeSub g (SubNode x y) (RefNode x)" |
 
   sub_xzero: (* SubNode.canonical(146) *)
   (* 0 - x \<Rightarrow> (-x). Assuming here y is not a float. *)
-  "\<lbrakk>kind g x = ConstantNode (IntVal _ 0)\<rbrakk>
+  "\<lbrakk>kind g x = ConstantNode (IntVal32 0)\<rbrakk>
     \<Longrightarrow> CanonicalizeSub g (SubNode x y) (NegateNode y)" |
 
   sub_y_negate: (* SubNode.canonical(152) *)
@@ -279,37 +279,37 @@ inductive CanonicalizeMul :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
   mul_xzero: (* MulNode.canonical(124) *) 
   "\<lbrakk>kind g x = ConstantNode c_1;
     \<not>(is_ConstantNode (kind g y));
-    c_1 = (IntVal b 0)\<rbrakk>
+    c_1 = (IntVal32 0)\<rbrakk>
     \<Longrightarrow> CanonicalizeMul g (MulNode x y) (ConstantNode c_1)" |
 
   mul_yzero: (* MulNode.canonical(124) *) 
   "\<lbrakk>kind g y = ConstantNode c_1;
     \<not>(is_ConstantNode (kind g x));
-    c_1 = (IntVal b 0)\<rbrakk>
+    c_1 = (IntVal32 0)\<rbrakk>
     \<Longrightarrow> CanonicalizeMul g (MulNode x y) (ConstantNode c_1)" | 
 
   mul_xone: (* MulNode.canonical(126) *) 
   "\<lbrakk>kind g x = ConstantNode c_1;
     \<not>(is_ConstantNode (kind g y));
-    c_1 = (IntVal b 1)\<rbrakk>
+    c_1 = (IntVal32 1)\<rbrakk>
     \<Longrightarrow> CanonicalizeMul g (MulNode x y) (RefNode y)" |
 
   mul_yone:  (* MulNode.canonical(126) *)
   "\<lbrakk>kind g y = ConstantNode c_1;
     \<not>(is_ConstantNode (kind g x));
-    c_1 = (IntVal b 1)\<rbrakk>
+    c_1 = (IntVal32 1)\<rbrakk>
     \<Longrightarrow> CanonicalizeMul g (MulNode x y) (RefNode x)" |
 
    mul_xnegate: (* MulNode.canonical(128) *)
   "\<lbrakk>kind g x = ConstantNode c_1;
     \<not>(is_ConstantNode (kind g y));
-    c_1 = (IntVal b (-1))\<rbrakk>
+    c_1 = (IntVal32 (-1))\<rbrakk>
     \<Longrightarrow> CanonicalizeMul g (MulNode x y) (NegateNode y)" |
 
   mul_ynegate: (* MulNode.canonical(128) *)
   "\<lbrakk>kind g y = ConstantNode c_1;
     \<not>(is_ConstantNode (kind g x));
-    c_1 = (IntVal b (-1))\<rbrakk>
+    c_1 = (IntVal32 (-1))\<rbrakk>
     \<Longrightarrow> CanonicalizeMul g (MulNode x y) (NegateNode x)" 
 
   (* NOTE: Skipping bit shift optimisations at MulNode.canonical(130) for now *)
@@ -332,8 +332,8 @@ inductive CanonicalizeNegate :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNo
   for g where
   negate_const:
   "\<lbrakk>kind g nx = (ConstantNode val);
-    val = (IntVal b v);
-    neg_val = intval_sub (IntVal b 0) val \<rbrakk>
+    val = (IntVal32 v);
+    neg_val = intval_sub (IntVal32 0) val \<rbrakk>
     \<Longrightarrow> CanonicalizeNegate g (NegateNode nx) (ConstantNode neg_val)" |
 
   negate_negate: (* NegateNode.canonical(88) *)
@@ -454,11 +454,11 @@ inductive CanonicalizeIntegerEquals :: "IRGraph \<Rightarrow> IRNode \<Rightarro
   for g where
   int_equals_same_node: (* IntegerEqualsNode.canonical(139) *)
   "\<lbrakk>x = y\<rbrakk>
-    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode x y) (ConstantNode (IntVal 1 1))" |
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode x y) (ConstantNode (IntVal32 1))" |
 
   int_equals_distinct: (* IntegerEqualsNode.canonical(143) *)
   "\<lbrakk>alwaysDistinct (stamp g x) (stamp g y)\<rbrakk>
-    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode x y) (ConstantNode (IntVal 1 0))" |
+    \<Longrightarrow> CanonicalizeIntegerEquals g (IntegerEqualsNode x y) (ConstantNode (IntVal32 0))" |
 
   int_equals_add_first_both_same: (* IntegerEqualsNode.canonical(152) *)
   (* (x+y) == (x+z) \<Rightarrow> (y == z) *)
@@ -511,7 +511,7 @@ inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarr
   "\<lbrakk>kind g nid = IntegerEqualsNode left x;
     kind g left = AddNode x y;
     const_id = nextNid g;
-    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g' = add_node const_id ((ConstantNode (IntVal32 0)), constantAsStamp (IntVal32 0)) g; 
     g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" |
 
@@ -521,7 +521,7 @@ inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarr
   "\<lbrakk>kind g nid = IntegerEqualsNode left y;
     kind g left = AddNode x y;
     const_id = nextNid g;
-    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g' = add_node const_id ((ConstantNode (IntVal32 0)), constantAsStamp (IntVal32 0)) g; 
     g'' = replace_node const_id ((IntegerEqualsNode x const_id), stamp g nid) g'\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" | 
 
@@ -531,7 +531,7 @@ inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarr
   "\<lbrakk>kind g nid = IntegerEqualsNode x right;
     kind g right = AddNode x y;
     const_id = nextNid g;
-    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g' = add_node const_id ((ConstantNode (IntVal32 0)), constantAsStamp (IntVal32 0)) g; 
     g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" |
 
@@ -541,7 +541,7 @@ inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarr
   "\<lbrakk>kind g nid = IntegerEqualsNode y right;
     kind g right = AddNode x y;
     const_id = nextNid g;
-    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g' = add_node const_id ((ConstantNode (IntVal32 0)), constantAsStamp (IntVal32 0)) g; 
     g'' = replace_node const_id ((IntegerEqualsNode x const_id), stamp g nid) g'\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" |
 
@@ -551,7 +551,7 @@ inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarr
   "\<lbrakk>kind g nid = IntegerEqualsNode left x;
     kind g left = SubNode x y;
     const_id = nextNid g;
-    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g' = add_node const_id ((ConstantNode (IntVal32 0)), constantAsStamp (IntVal32 0)) g; 
     g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''" |
 
@@ -561,7 +561,7 @@ inductive CanonicalizeIntegerEqualsGraph :: "ID \<Rightarrow> IRGraph \<Rightarr
   "\<lbrakk>kind g nid = IntegerEqualsNode x right;
     kind g right = SubNode x y;
     const_id = nextNid g;
-    g' = add_node const_id ((ConstantNode (IntVal 1 0)), constantAsStamp (IntVal 1 0)) g; 
+    g' = add_node const_id ((ConstantNode (IntVal32 0)), constantAsStamp (IntVal32 0)) g; 
     g'' = replace_node const_id ((IntegerEqualsNode y const_id), stamp g nid) g'\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEqualsGraph nid g g''"
 

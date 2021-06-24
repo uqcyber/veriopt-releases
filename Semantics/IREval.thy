@@ -32,14 +32,6 @@ type_synonym Params = "Value list"
 definition new_map_state :: "MapState" where
   "new_map_state = (\<lambda>x. UndefVal)"
 
-fun val_to_bool :: "Value \<Rightarrow> bool" where
-  "val_to_bool (IntVal bits val) = (if val = 0 then False else True)" |
-  "val_to_bool v = False"
-
-fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal 1 1)" |
-  "bool_to_val False = (IntVal 1 0)"
-
 
 (* TODO: move the following phi helpers to step semantics? *)
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
@@ -84,12 +76,12 @@ inductive
   \<comment> \<open>Unary arithmetic operators\<close>
 
   AbsNode:
-  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b v\<rbrakk> 
-    \<Longrightarrow> [g, m, p] \<turnstile> (AbsNode x) \<mapsto> if v < 0 then (intval_sub (IntVal b 0) (IntVal b v)) else (IntVal b v)" |
+  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal32 v\<rbrakk> 
+    \<Longrightarrow> [g, m, p] \<turnstile> (AbsNode x) \<mapsto> if v < 0 then (intval_sub (IntVal32 0) (IntVal32 v)) else (IntVal32 v)" |
 
   NegateNode:
   "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> v\<rbrakk> 
-    \<Longrightarrow> [g, m, p] \<turnstile> (NegateNode x) \<mapsto> (IntVal (v_bits v) 0) - v" |
+    \<Longrightarrow> [g, m, p] \<turnstile> (NegateNode x) \<mapsto> (IntVal32 0) - v" |
 
   NotNode:
   "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> v;
@@ -139,14 +131,14 @@ inductive
   \<comment> \<open>Comparison operators\<close>
 (* NOTE: if we use IntVal(bool_to_int(v1=v2)), then code generation does not work! *)
   IntegerEqualsNode:
-  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    [g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal b v2;
+  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal32 v1;
+    [g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal32 v2;
     val = bool_to_val(v1 = v2)\<rbrakk> 
     \<Longrightarrow> [g, m, p] \<turnstile> (IntegerEqualsNode x y) \<mapsto> val" |
 
   IntegerLessThanNode:
-  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    [g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal b v2;
+  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal32 v1;
+    [g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal32 v2;
     val = bool_to_val(v1 < v2)\<rbrakk> 
     \<Longrightarrow> [g, m, p] \<turnstile> (IntegerLessThanNode x y) \<mapsto> val" |
 
@@ -160,23 +152,23 @@ inductive
    This is not an issue as evaluation is total (but may return UnDef) *)
 
   ConditionalNode:
-  "\<lbrakk>[g, m, p] \<turnstile> (kind g condition) \<mapsto> IntVal 1 cond;
-    [g, m, p] \<turnstile> (kind g trueExp) \<mapsto> IntVal b trueVal;
-    [g, m, p] \<turnstile> (kind g falseExp) \<mapsto> IntVal b falseVal;
-    val = IntVal b (if cond \<noteq> 0 then trueVal else falseVal)\<rbrakk> 
+  "\<lbrakk>[g, m, p] \<turnstile> (kind g condition) \<mapsto> IntVal32 cond;
+    [g, m, p] \<turnstile> (kind g trueExp) \<mapsto> IntVal32 trueVal;
+    [g, m, p] \<turnstile> (kind g falseExp) \<mapsto> IntVal32 falseVal;
+    val = IntVal32 (if cond \<noteq> 0 then trueVal else falseVal)\<rbrakk> 
     \<Longrightarrow> [g, m, p] \<turnstile> (ConditionalNode condition trueExp falseExp) \<mapsto> val" |
 
 (* Note that v2 may evaluate to UnDef but is not used if v1 is true *)
 
   ShortCircuitOrNode:
-  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal b v1;
-    [g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal b v2;
-    val = IntVal b (if v1 \<noteq> 0 then v1 else v2)\<rbrakk> 
+  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal32 v1;
+    [g, m, p] \<turnstile> (kind g y) \<mapsto> IntVal32 v2;
+    val = IntVal32 (if v1 \<noteq> 0 then v1 else v2)\<rbrakk> 
     \<Longrightarrow> [g, m, p] \<turnstile> (ShortCircuitOrNode x y) \<mapsto> val" |
 
   LogicNegationNode:
-  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal 1 v1;
-    neg_v1 = (\<not>(val_to_bool (IntVal 1 v1)));
+  "\<lbrakk>[g, m, p] \<turnstile> (kind g x) \<mapsto> IntVal32 v1;
+    neg_v1 = (\<not>(val_to_bool (IntVal32 v1)));
     val = bool_to_val neg_v1\<rbrakk> 
     \<Longrightarrow> [g, m, p] \<turnstile> (LogicNegationNode x) \<mapsto> val" |
 
@@ -235,7 +227,7 @@ inductive eval_graph :: "IRGraph \<Rightarrow> ID \<Rightarrow> Value list \<Rig
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) "eval_graph" .
 
 (* 5*5 \<Rightarrow> 25 *)
-values "{v. eval_graph eg2_sq 4 [IntVal 32 5] v}"
+values "{v. eval_graph eg2_sq 4 [IntVal32 5] v}"
 
 fun has_control_flow :: "IRNode \<Rightarrow> bool" where
   "has_control_flow n = (is_AbstractEndNode n

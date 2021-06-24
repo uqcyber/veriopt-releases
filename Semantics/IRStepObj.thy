@@ -238,7 +238,7 @@ next
     by (simp add: LoadFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using LoadFieldNode step.cases
-    by (smt (z3) IRNode.distinct(1333) IRNode.distinct(1347) IRNode.distinct(1349) IRNode.distinct(1353) IRNode.distinct(1367) IRNode.distinct(893) IRNode.inject(18) Pair_inject Value.inject(3) evalDet option.distinct(1) option.inject)
+    by (smt (z3) IRNode.distinct(1333) IRNode.distinct(1347) IRNode.distinct(1349) IRNode.distinct(1353) IRNode.distinct(893) IRNode.inject(18) Pair_inject Value.inject(4) evalDet option.distinct(1) option.inject)
 next
   case (StaticLoadFieldNode nid f nxt h v m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -264,7 +264,7 @@ next
     by (simp add: StoreFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using StoreFieldNode step.cases
-    by (smt (z3) IRNode.distinct(1353) IRNode.distinct(1783) IRNode.distinct(1965) IRNode.distinct(1983) IRNode.distinct(2027) IRNode.distinct(933) IRNode.distinct(1315) IRNode.distinct(1725) IRNode.distinct(1937) IRNode.distinct(909) IRNode.inject(38) Pair_inject Value.inject(3) evalDet option.distinct(1) option.inject)
+    by (smt (z3) IRNode.distinct(1353) IRNode.distinct(1783) IRNode.distinct(1965) IRNode.distinct(1983) IRNode.distinct(933) IRNode.inject(38) Pair_inject Value.inject(4) evalDet option.distinct(1) option.inject)
 next
   case (StaticStoreFieldNode nid f newval uv nxt m val h' h m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -440,7 +440,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 subsubsection \<open>Heap Testing\<close>
 
 definition p3:: Params where
-  "p3 = [IntVal 32 3]"
+  "p3 = [IntVal32 3]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{(prod.fst(prod.snd (prod.snd (hd (prod.fst res))))) 0 

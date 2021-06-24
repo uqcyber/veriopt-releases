@@ -42,7 +42,7 @@ type_synonym int1 = "1 word" \<comment> \<open>boolean\<close>
 
 type_synonym objref = "nat option"
 
-datatype Value  =
+datatype (discs_sels) Value  =
   UndefVal |
   IntVal32 int32 |  (* includes boolean *)
   IntVal64 int64 |
@@ -171,6 +171,15 @@ definition modulo_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 
 instance proof qed
 end
+
+
+fun val_to_bool :: "Value \<Rightarrow> bool" where
+  "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
+  "val_to_bool v = False"
+
+fun bool_to_val :: "bool \<Rightarrow> Value" where
+  "bool_to_val True = (IntVal32 1)" |
+  "bool_to_val False = (IntVal32 0)"
 
 
 fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "&&*" 64) where

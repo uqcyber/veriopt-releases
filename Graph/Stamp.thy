@@ -1,7 +1,7 @@
 section \<open>Stamp Typing\<close>
 
 theory Stamp
-  imports Values
+  imports Values2
 begin
 
 text \<open>
@@ -122,7 +122,7 @@ In certain circumstances a stamp provides enough information to evaluate a value
 the asConstant function converts the stamp to a value where one can be inferred.
 \<close>
 fun asConstant :: "Stamp \<Rightarrow> Value" where
-  "asConstant (IntegerStamp b l h) = (if l = h then IntVal b l else UndefVal)" |
+  "asConstant (IntegerStamp b l h) = (if l = h then IntVal32 (word_of_int l) else UndefVal)" |
   "asConstant _ = UndefVal"
 
 \<comment> \<open>Determine if two stamps never have value overlaps i.e. their join is empty\<close>
@@ -134,13 +134,13 @@ fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
 
 fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
-  "constantAsStamp (IntVal b v) = (IntegerStamp (nat b) v v)" |
+  "constantAsStamp (IntVal32 v) = (IntegerStamp 32 (sint v) (sint v))" |
   (* TODO *)
   "constantAsStamp _ = IllegalStamp"
 
 \<comment> \<open>Define when a runtime value is valid for a stamp\<close>
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
-  "valid_value (IntegerStamp b1 l h) (IntVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" |
+  "valid_value (IntegerStamp b1 l h) (IntVal32 v) = ((sint v \<ge> l) \<and> (sint v \<le> h))" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
   "valid_value (VoidStamp) (UndefVal) = True" |
   "valid_value stamp val = False"
@@ -152,21 +152,19 @@ integer stamp with an unrestricted range. We use @{text default_stamp} as it is 
 definition default_stamp :: "Stamp" where
   "default_stamp = (unrestricted_stamp (IntegerStamp 32 0 0))"
 
-(* Theories/Lemmas *)
+(* Theories/Lemmas
 lemma int_valid_range:
-  assumes "stamp = IntegerStamp bits lower upper"
-  shows "{x . valid_value stamp x} = {(IntVal bits val) | val . val \<in> {lower..upper}}"
+  assumes "stamp = IntegerStamp 32 lower upper"
+  shows "{x . valid_value stamp x} = {(IntVal32 (word_of_int val)) | val . val \<in> {lower..upper}}"
   using assms valid_value.simps apply auto
-  using valid_value.elims(2) by blast
+  using valid_value.elims(2) sorry (* fix *)
 
-(*
 lemma float_valid_range:
   assumes "stamp = FloatStamp bits lower upper"
   shows "{x . valid_value stamp x} = {(FloatVal bits val) | val . val \<in> {lower..upper}}"
   using assms valid_value.simps apply auto
   using valid_value.simps
   by (metis less_eq_float.rep_eq valid_value.elims(2))
-*)
 
 lemma disjoint_empty:
   assumes "joined = (join x_stamp y_stamp)"
@@ -234,7 +232,7 @@ lemma intstamp_bits_eq_empty:
   shows "b1 = b2"
   using assms by auto
 
-(*
+
 lemma floatstamp_bits_eq_meet:
   assumes "(meet (FloatStamp b1 l1 u1) (FloatStamp b2 l2 u2)) = (FloatStamp b3 l3 u3)"
   shows "b1 = b3 \<and> b2 = b3"

@@ -3,7 +3,7 @@ subsection \<open>Types of Nodes\<close>
 
 theory IRNodes
   imports
-    Values
+    Values2
 begin
 
 text \<open>

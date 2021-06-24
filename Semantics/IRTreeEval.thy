@@ -625,10 +625,44 @@ lemma xyx_y:
 
 
 
+subsection \<open>Monotonicity of Optimizing Expressions\<close>
+
+text \<open>We prove that each subexpression position is monotonic.
+That is, optimizing a subexpression anywhere deep inside a top-level expression
+also optimizes that top-level expression.\<close>
+
+
+lemma mono_unary: 
+  assumes "e \<le> e'"
+  shows "(UnaryExpr op e) \<le> (UnaryExpr op e')"
+  using UnaryExpr assms by auto
+
+lemma mono_binary: 
+  assumes "x \<le> x'"
+  assumes "y \<le> y'"
+  shows "(BinaryExpr op x y) \<le> (BinaryExpr op x' y')"
+  using BinaryExpr assms by auto 
+
+lemma mono_conditional: 
+  assumes "ce \<le> ce'"
+  assumes "te \<le> te'"
+  assumes "fe \<le> fe'"
+  shows "(ConditionalExpr ce te fe) \<le> (ConditionalExpr ce' te' fe')"
+proof (simp only: le_expr_def; (rule allI)+; rule impI)
+  fix m p v
+  assume a: "[m,p] \<turnstile> ConditionalExpr ce te fe \<mapsto> v"
+  then obtain cond where ce: "[m,p] \<turnstile> ce \<mapsto> cond" by auto
+  then have ce': "[m,p] \<turnstile> ce' \<mapsto> cond" using assms by auto
+  define branch  where b:  "branch  = (if val_to_bool cond then te else fe)"
+  define branch' where b': "branch' = (if val_to_bool cond then te' else fe')"
+  then have "[m,p] \<turnstile> branch \<mapsto> v" using a b ce evaltree_det by blast 
+  then have "[m,p] \<turnstile> branch' \<mapsto> v" using assms b b' by auto
+  then show "[m,p] \<turnstile> ConditionalExpr ce' te' fe' \<mapsto> v"
+    using ConditionalExpr ce' b' by auto 
+qed
+
 
 (*
-Step 2b: prove monotonicity rules for each subexpression position?
- 
 Step 3: if e1 isrefby e2 then g[e1] isREFby g[e2]
    Note: This needs to go after IRStepObj.thy.
 

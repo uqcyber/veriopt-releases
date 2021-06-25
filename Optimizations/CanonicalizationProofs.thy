@@ -4,6 +4,7 @@ imports
   Canonicalization
 begin
 
+experiment begin
 lemma CanonicalizeConditionalProof:
   assumes "CanonicalizeConditional g before after"
   assumes "wf_graph g \<and> wf_stamps g"
@@ -19,37 +20,59 @@ proof (induct rule: CanonicalizeConditional.induct)
     by (metis LogicNegationNodeE negate_condition.hyps)
   have invert: "(val_to_bool (IntVal32 condv)) \<longleftrightarrow> \<not>(val_to_bool (IntVal32 flipv))" 
     by (metis bool_to_val.simps(1) bool_to_val.simps(2) condv eval.LogicNegationNode evalDet flipv negate_condition.hyps val_to_bool.simps(1) zero_neq_one)
-  obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> tbval"
+  obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
     using negate_condition.prems(3) by blast
-  obtain fbval where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> fbval"
+  obtain fbval where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal32 fbval"
     using negate_condition.prems(3) by blast
   show ?case proof (cases "condv = 0")
     case True
     have "flipv \<noteq> 0"
       using eval.LogicNegationNode condv flipv
       using True evalDet negate_condition.hyps by fastforce
-    then have "fbval = res"
-      using eval.ConditionalNode tbval fbval flipv negate_condition
-      by (smt (verit, del_insts) ConditionalNodeE True Value.inject(1) condv evalDet)
+    then have "res' = IntVal32 (if (val_to_bool (IntVal32 flipv)) then fbval else tbval)"
+      using eval.ConditionalNode tbval fbval negate_condition(5)
+      evalDet
+      by (meson flipv)
+    then have "IntVal32 fbval = res'"
+      using True invert by auto
+    have "res = IntVal32 (if (val_to_bool (IntVal32 condv)) then tbval else fbval)"
+      using eval.ConditionalNode tbval fbval condv negate_condition(4)
+      by (meson evalDet)
+    then have "IntVal32 fbval = res"
+      using eval.ConditionalNode tbval fbval True condv
+      negate_condition(4) evalDet ConditionalNodeE
+      by fastforce
     then show ?thesis
-      by (smt (verit, best) ConditionalNodeE True Value.inject(1) bit.compl_zero evalDet fbval flipv invert negate_condition.prems(4))
+      using \<open>IntVal32 fbval = res'\<close> by blast
   next
     case False
-    have flipv_range: "flipv \<in> {0, 1}"
-      using assms(2) flipv wf_value_bit_range
-      by (metis False insertI1 invert val_to_bool.simps(1))
-    have "(NOT flipv) \<noteq> 0"
-      using False invert
-      by (metis bit.compl_zero val_to_bool.simps(1) zero_neq_neg_one)
-    then have "flipv \<noteq> 1"
-      using not_eq_complement False invert by force
-    then have "flipv = 0"
-      using flipv_range by auto
-    then have "tbval = res"
-      using eval.ConditionalNode tbval fbval flipv negate_condition
-      by (smt (verit, del_insts) ConditionalNodeE False Value.inject(1) condv evalDet)
+    have "\<exists>x. bool_to_val x = IntVal32 condv"
+      using eval.LogicNegationNode flipv negate_condition(1)
+      bool_to_val.simps
+      by (metis LogicNegationNodeE condv)
+    have "condv \<in> {0, 1}"
+      using eval.LogicNegationNode flipv negate_condition(1)
+      bool_to_val.simps
+      by (metis (mono_tags, lifting) Value.inject(1) \<open>\<exists>x. bool_to_val x = IntVal32 condv\<close> insertCI)
+    have "val_to_bool (IntVal32 condv)"
+      using eval.LogicNegationNode condv flipv
+      using False evalDet negate_condition.hyps invert
+      by (metis Value.sel(1) bool_to_val.elims)
+    then have "res' = IntVal32 (if (val_to_bool (IntVal32 flipv)) then fbval else tbval)"
+      using eval.ConditionalNode tbval fbval negate_condition(5)
+      evalDet
+      by (meson flipv)
+    then have "IntVal32 tbval = res'"
+      using \<open>val_to_bool (IntVal32 condv)\<close> invert by presburger
+    have "res = IntVal32 (if (val_to_bool (IntVal32 condv)) then tbval else fbval)"
+      using eval.ConditionalNode tbval fbval condv negate_condition(4)
+      by (meson evalDet)
+    then have "IntVal32 tbval = res"
+      using eval.ConditionalNode tbval fbval False condv
+      negate_condition(4) evalDet ConditionalNodeE
+      using \<open>val_to_bool (IntVal32 condv)\<close> by presburger
     then show ?thesis
-      using \<open>flipv = 0\<close> evalDet flipv negate_condition.prems(4) tbval by fastforce
+      by (simp add: \<open>IntVal32 tbval = res'\<close>)
   qed
 next
   case (const_true g cond val tb fb)
@@ -58,102 +81,108 @@ next
 next
   case (const_false g cond val tb fb)
   then show ?case
-    using eval.RefNode evalDet by force
+    using eval.RefNode evalDet eval.ConditionalNode
+    by auto
 next
   case (eq_branches tb fb g cond)
   then show ?case
     using eval.RefNode evalDet by force
 next
   case (cond_eq g cond tb fb)
-  then obtain condv where condv: "[g, m, p] \<turnstile> kind g cond \<mapsto> condv"
+  then obtain condv where condv: "[g, m, p] \<turnstile> kind g cond \<mapsto> IntVal32 condv"
     by blast
-  obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> tbval"
+  obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
     using cond_eq.prems(3) by blast
-  obtain fbval where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> fbval"
+  obtain fbval where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal32 fbval"
     using cond_eq.prems(3) by blast
-  from cond_eq show ?case proof (cases "val_to_bool condv")
+  from cond_eq show ?case proof (cases "condv \<noteq> 0")
     case True
     have "tbval = fbval" using IntegerEqualsNodeE condv cond_eq(1)
-      by (smt (z3) True bool_to_val.simps(2) evalDet fbval tbval val_to_bool.simps(1))
+      tbval fbval True
+      by (metis (full_types) Value.inject(1) bool_to_val.simps(2) evalDet)
+    have "res' = IntVal32 tbval"
+      using RefNode \<open>tbval = fbval\<close> cond_eq.prems(4) evalDet fbval by presburger
+    have "res' = IntVal32 fbval"
+      by (simp add: \<open>res' = IntVal32 tbval\<close> \<open>tbval = fbval\<close>)
+    have "res = IntVal32 (if val_to_bool (IntVal32 condv) then tbval else fbval)"
+      by (meson cond_eq.prems(3) condv eval.ConditionalNode evalDet fbval tbval)
+    then have "res = IntVal32 tbval \<or> res = IntVal32 fbval"
+      using eval.ConditionalNode evalDet tbval fbval condv cond_eq.prems(3)
+      by (simp add: \<open>[g, m, p] \<turnstile> ConditionalNode cond tb fb \<mapsto> res\<close> \<open>res = IntVal32 (if val_to_bool (IntVal32 condv) then tbval else fbval)\<close> condv eval.ConditionalNode evalDet fbval tbval)
     then show ?thesis using cond_eq
-      by (smt (verit, ccfv_threshold) ConditionalNodeE eval.RefNode evalDet fbval tbval)
+      evalDet fbval tbval eval.ConditionalNode eval.IntegerEqualsNode
+      using \<open>res' = IntVal32 fbval\<close> \<open>res' = IntVal32 tbval\<close> by fastforce
   next
     case False
-    then show ?thesis
-      by (smt (verit) ConditionalNodeE cond_eq.prems(3) cond_eq.prems(4) condv eval.RefNode evalDet val_to_bool.simps(1))
+    have "\<not>(val_to_bool (IntVal32 condv))"
+      using False by auto
+    have "(val_to_bool (IntVal32 condv)) = (tbval = fbval)"
+    proof -
+      have "bool_to_val True \<noteq> IntVal32 condv"
+        using \<open>\<not> val_to_bool (IntVal32 condv)\<close> by fastforce
+      then have "\<not> [g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 fbval"
+        by (metis (full_types) IntegerEqualsNode cond_eq.hyps condv evalDet fbval)
+      then show ?thesis
+        using \<open>\<not> val_to_bool (IntVal32 condv)\<close> tbval by force
+    qed
+    then have "tbval \<noteq> fbval" 
+      using eval.IntegerEqualsNode condv cond_eq(1)
+      tbval fbval False
+      using \<open>\<not> val_to_bool (IntVal32 condv)\<close> by linarith
+    have "res' = IntVal32 fbval"
+      by (meson RefNode cond_eq.prems(4) evalDet fbval)
+    have "res = IntVal32 (if val_to_bool (IntVal32 condv) then tbval else fbval)"
+      by (meson cond_eq.prems(3) condv eval.ConditionalNode evalDet fbval tbval)
+    then have "res = IntVal32 fbval"
+      using eval.ConditionalNode evalDet tbval fbval condv cond_eq.prems(3)
+      using \<open>\<not> val_to_bool (IntVal32 condv)\<close> by presburger
+    then show ?thesis using cond_eq
+        evalDet fbval tbval eval.ConditionalNode eval.IntegerEqualsNode
+      using \<open>res' = IntVal32 fbval\<close> by force
   qed
 next
   case (condition_bounds_x g cond tb fb)
-  obtain tbval b where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal b tbval"
+  obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
     using condition_bounds_x.prems(3) by blast
-  obtain fbval b where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal b fbval"
+  obtain fbval where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal32 fbval"
     using condition_bounds_x.prems(3) by blast
   have "tbval \<le> fbval"
     using condition_bounds_x.prems(2) tbval fbval condition_bounds_x.hyps(2) int_valid_range
-    unfolding wf_stamps.simps 
-    by (smt (verit, best) Stamp.sel(2) Stamp.sel(3) Value.inject(1) eval_in_ids valid_value.elims(2) valid_value.simps(3))
-  then have "res = IntVal b tbval"
+    unfolding wf_stamps.simps using valid_value.simps
+    sorry
+  then have "res = IntVal32 tbval"
     using ConditionalNodeE tbval fbval
-    by (smt (verit, del_insts) IntegerLessThanNodeE Value.inject(1) bool_to_val.simps(1) condition_bounds_x.hyps(1) condition_bounds_x.prems(3) evalDet)
+    eval.IntegerLessThanNode
+    sorry
   then show ?case
     using condition_bounds_x.prems(3) eval.RefNode evalDet tbval
     using ConditionalNodeE Value.sel(1) condition_bounds_x.prems(4) by blast
 next
   case (condition_bounds_y g cond fb tb)
-  obtain tbval b where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal b tbval"
+  obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
     using condition_bounds_y.prems(3) by blast
-  obtain fbval b where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal b fbval"
+  obtain fbval where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal32 fbval"
     using condition_bounds_y.prems(3) by blast
   have "tbval \<ge> fbval"
     using condition_bounds_y.prems(2) tbval fbval condition_bounds_y.hyps(2) int_valid_range
     unfolding wf_stamps.simps 
-    by (smt (verit, ccfv_SIG) Stamp.disc(2) boundsAlwaysOverlap eval_in_ids valid_value.elims(2) valid_value.simps(3))
-  then have "res = IntVal b tbval"
+    sorry
+  then have "res = IntVal32 tbval"
     using ConditionalNodeE tbval fbval
-    by (smt (verit) IntegerLessThanNodeE Value.inject(1) bool_to_val.simps(1) condition_bounds_y.hyps(1) condition_bounds_y.prems(3) evalDet)
+    sorry
   then show ?case
     using condition_bounds_y.prems(3) eval.RefNode evalDet tbval
     using ConditionalNodeE Value.sel(1) condition_bounds_y.prems(4) by blast
 qed
+end
 
 lemma add_zero_32:
-  assumes "wf_value (IntVal 32 y)"
-  shows "(IntVal 32 0) + (IntVal 32 y) = (IntVal 32 y)"
-proof -
-  have "-(2^31) \<le> y \<and> y < 2^31"
-    using assms unfolding wf_value.simps by simp
-  then show ?thesis unfolding plus_Value_def intval_add.simps apply auto
-    using \<open>- (2 ^ 31) \<le> y \<and> y < 2 ^ 31\<close> signed_take_bit_int_eq_self by blast
-qed
+  shows "(IntVal32 0) + (IntVal32 y) = (IntVal32 y)"
+  using plus_Value_def by auto
 
 lemma add_zero_64:
-  assumes "wf_value (IntVal 64 y)"
-  shows "(IntVal 64 0) + (IntVal 64 y) = (IntVal 64 y)"
-proof -
-  have "-(2^63) \<le> y \<and> y < 2^63"
-    using assms unfolding wf_value.simps by simp
-  then show ?thesis unfolding plus_Value_def intval_add.simps apply auto
-    using \<open>- (2 ^ 63) \<le> y \<and> y < 2 ^ 63\<close> signed_take_bit_int_eq_self by blast
-qed
-
-lemma 
-  assumes "wf_value (IntVal bc y)"
-  assumes "bc \<in> {32,64}"
-  shows "(IntVal bc 0) + (IntVal bc y) = (IntVal bc y)"
-proof -
-  have bounds: "-(2^((nat bc)-1)) \<le> y \<and> y < 2^((nat bc)-1)"
-    using assms unfolding wf_value.simps by auto
-  then show ?thesis unfolding intval_add.simps apply auto
-    using bounds signed_take_bit_int_eq_self assms plus_Value_def
-    by auto
-qed
-
-
-(* (-x + y) \<Rightarrow> (y - x) *)
-lemma 
-  assumes "wf_value (IntVal b x) \<and> wf_value (IntVal b y)"
-  shows "((IntVal b 0) - (IntVal b x)) + (IntVal b y) = (IntVal b y) - (IntVal b x)"
-  using assms unfolding plus_Value_def minus_Value_def wf_value.simps by simp
+  shows "(IntVal64 0) + (IntVal64 y) = (IntVal64 y)"
+  using plus_Value_def by auto
 
 lemma
   fixes xval yval :: "32 word"
@@ -168,19 +197,19 @@ lemma add_int32_typesafe:
 
 lemma sub_int32_typesafe:
   fixes x y :: Value
-  shows "\<exists>res. x - y = IntVal32 res = (\<exists>xval yval. x = IntVal32 xval \<and> y = IntVal32 yval)"
+  shows "(\<exists>res. x - y = IntVal32 res) = (\<exists>xval yval. x = IntVal32 xval \<and> y = IntVal32 yval)"
   unfolding minus_Value_def
   by (induction rule: intval_add.induct; simp)
 
 lemma add_int64_typesafe:
   fixes x y :: Value
-  shows "\<exists>res. x + y = IntVal64 res = (\<exists>xval yval. x = IntVal64 xval \<and> y = IntVal64 yval)"
+  shows "(\<exists>res. x + y = IntVal64 res) = (\<exists>xval yval. x = IntVal64 xval \<and> y = IntVal64 yval)"
   unfolding plus_Value_def
   by (induction rule: intval_add.induct; simp)
 
 lemma sub_int64_typesafe:
   fixes x y :: Value
-  shows "\<exists>res. x - y = IntVal64 res = (\<exists>xval yval. x = IntVal64 xval \<and> y = IntVal64 yval)"
+  shows "(\<exists>res. x - y = IntVal64 res) = (\<exists>xval yval. x = IntVal64 xval \<and> y = IntVal64 yval)"
   unfolding minus_Value_def
   by (induction rule: intval_add.induct; simp)
 
@@ -334,12 +363,32 @@ experiment begin
 lemma CanonicalizeSubProof:
   assumes "CanonicalizeSub g before after"
   assumes "wf_stamps g"
-  assumes "[g, m, p] \<turnstile> before \<mapsto> IntVal b1 res"
-  assumes "[g, m, p] \<turnstile> after \<mapsto> IntVal b2 res'"
+  assumes "[g, m, p] \<turnstile> before \<mapsto> IntVal32 res"
+  assumes "[g, m, p] \<turnstile> after \<mapsto> IntVal32 res'"
   shows "res = res'"
-  using assms proof (induct rule: CanonicalizeSub.induct)
-case (sub_same x y b l h)
-then show ?case sorry
+proof -
+  obtain x y where subkind: "before = SubNode x y"
+    using CanonicalizeSub.simps assms by auto
+  from subkind
+  obtain xval where xval: "[g, m, p] \<turnstile> kind g x \<mapsto> xval"
+    using assms(3) by blast
+  from subkind
+  obtain yval where yval: "[g, m, p] \<turnstile> kind g y \<mapsto> yval"
+    using assms(3) by blast
+  have res: "IntVal32 res = intval_sub xval yval"
+    using assms(3) eval.SubNode
+    using subkind evalDet xval yval minus_Value_def by metis
+  show ?thesis
+    using assms subkind xval yval res
+proof (induct rule: "CanonicalizeSub.induct")
+  case (sub_same x y b l h)
+  have "xval = yval" 
+    using evalDet sub_same(1) xval yval sub_same(6)
+    by (metis IRNode.inject(39))
+  then have "xval - yval = IntVal32 0"
+    using sub_int32_typesafe res minus_Value_def
+    sorry
+  then show ?case sorry
 next
   case (sub_both_const x c_1 y c_2 val)
   then show ?case sorry
@@ -362,14 +411,15 @@ next
   case (sub_right_sub right a b)
   then show ?case sorry
 next
-  case (sub_yzero y uu x)
+  case (sub_yzero y x)
   then show ?case sorry
 next
-  case (sub_xzero x uv y)
+  case (sub_xzero x y)
   then show ?case sorry
 next
   case (sub_y_negate nb b a)
   then show ?case sorry
+qed
 qed
 end
 
@@ -414,12 +464,14 @@ next
     using lockstep_strong_bisimilulation assms(3) by simp
 next
   case (eqCondition cond x tb fb)
-  have cval: "\<exists>v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
+  obtain condv where condval: "([g, m, p] \<turnstile> kind g cond \<mapsto> condv)"
     using IfNodeCond
     by (meson eqCondition.prems(1) eqCondition.prems(4))
-  have gstep: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
-    using step.IfNode eval.IntegerEqualsNode
-    by (smt (z3) IntegerEqualsNodeE bool_to_val.simps(1) cval eqCondition.hyps eqCondition.prems(1) val_to_bool.simps(1))
+  have "val_to_bool condv"
+    using condval eqCondition.hyps evalDet by fastforce
+  then have gstep: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+    using step.IfNode
+    using condval eqCondition.prems(1) by presburger
   have g'step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using replace_node_lookup
     using IRNode.simps(2114) eqCondition.prems(3) stepRefNode by presburger
@@ -433,8 +485,8 @@ lemma double_negate:
   \<Longrightarrow> bool_to_val (\<not>(val_to_bool (bool_to_val (\<not>(val_to_bool x))))) = x" 
   using wf_bool.elims(2) by fastforce
 
+(*
 lemma logic_negation_bool_inputs:
-  assumes "wf_values g"
   assumes "[g, m, p] \<turnstile> kind g inp \<mapsto> inp_val"
   assumes "kind g n = LogicNegationNode inp"
   assumes "[g, m, p] \<turnstile> kind g n \<mapsto> val"
@@ -453,19 +505,20 @@ proof -
   then show ?thesis 
     using assms(2) inp_is_input wf_logic_node_inputs.simps by blast
 qed
+*)
 
+experiment begin
 lemma CanonicalizeLogicNegationProof:
   assumes "CanonicalizeLogicNegation g before after"
   assumes "wf_stamps g"
   assumes "[g, m, p] \<turnstile> before \<mapsto> IntVal b res"
   assumes "[g, m, p] \<turnstile> after \<mapsto> IntVal b' res'"
-  assumes "wf_values g"
   shows "res = res'"
   using assms 
 proof (induct rule: CanonicalizeLogicNegation.induct)
   case (logical_not_const nx val neg_val)
   then show ?case 
-    by (smt (verit) ConstantNodeE LogicNegationNodeE Value.inject(1) val_to_bool.simps(1))
+    sorry
 next
   case (logical_not_not nx x)
   obtain nxval where nxval: "[g, m, p] \<turnstile> kind g nx \<mapsto> nxval"
@@ -477,19 +530,20 @@ next
   obtain refval where refval: "[g, m, p] \<turnstile> after \<mapsto> refval"
     using assms(4) by auto
   then have "wf_bool xval" 
-    using logic_negation_bool_inputs logical_not_not.hyps logical_not_not.prems(4) nxval xval by blast
-  then have ref_xval_eq: "refval = xval" 
+    sorry
+  then have ref_xval_eq: "refval = xval"
     by (metis RefNode assms(4) evalDet logical_not_not.prems(3) refval xval)
   then have "nxval = bool_to_val (\<not>(val_to_bool xval))"
-    by (smt (verit) LogicNegationNodeE evalDet logical_not_not.hyps nxval val_to_bool.simps(1) xval)
+    sorry
   then have "beforeval = bool_to_val (\<not>(val_to_bool nxval))"
-    by (smt (verit) LogicNegationNodeE assms(3) beforeval evalDet logical_not_not.prems(2) nxval val_to_bool.simps(1))
+    sorry
   then have double_negate_xval: "bool_to_val (\<not>(val_to_bool (bool_to_val (\<not>(val_to_bool xval))))) = xval"
     by (simp add: \<open>wf_bool xval\<close> double_negate)
   then have node_eq_eq: "beforeval = xval"
     by (simp add: \<open>beforeval = bool_to_val (\<not> val_to_bool nxval)\<close> \<open>nxval = bool_to_val (\<not> val_to_bool xval)\<close>)
   show ?thesis 
-    by (metis Value.inject(1) assms(3) assms(4) beforeval evalDet node_eq_eq ref_xval_eq refval)
+    sorry
 qed
+end
 
 end

@@ -155,7 +155,7 @@ inductive
   "\<lbrakk>[g, m, p] \<turnstile> (kind g condition) \<mapsto> IntVal32 cond;
     [g, m, p] \<turnstile> (kind g trueExp) \<mapsto> IntVal32 trueVal;
     [g, m, p] \<turnstile> (kind g falseExp) \<mapsto> IntVal32 falseVal;
-    val = IntVal32 (if cond \<noteq> 0 then trueVal else falseVal)\<rbrakk> 
+    val = IntVal32 (if (val_to_bool (IntVal32 cond)) then trueVal else falseVal)\<rbrakk> 
     \<Longrightarrow> [g, m, p] \<turnstile> (ConditionalNode condition trueExp falseExp) \<mapsto> val" |
 
 (* Note that v2 may evaluate to UnDef but is not used if v1 is true *)

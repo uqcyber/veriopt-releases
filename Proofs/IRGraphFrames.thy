@@ -247,7 +247,7 @@ proof -
     then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> v1"
       using node.hyps(1) by blast
     have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis IRNodes.inputs_of_AddNode child_member_in child_unchanged member_rec(1) node.hyps(5) node.prems(1) node.prems(2))
+      by (metis IRNodes2.inputs_of_AddNode child_member_in child_unchanged member_rec(1) node.hyps(5) node.prems(1) node.prems(2))
     have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> v2"
       using node.hyps(3) by blast
     show ?case
@@ -372,21 +372,21 @@ proof -
   next
     case node:(ConditionalNode condition cond trueExp trueVal falseExp falseVal val)
     have c: "condition \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
+      by (metis IRNodes2.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
     then have "unchanged (eval_usages g1 condition) g1 g2"
       using child_unchanged node.prems(2) by blast
     then have cond: "[g2, m, p] \<turnstile> (kind g2 condition) \<mapsto> IntVal32 cond"
       using node c inp_in_g_wf wf by blast
 
     have t: "trueExp \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
+      by (metis IRNodes2.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
     then have utrue: "unchanged (eval_usages g1 trueExp) g1 g2"
       using node.prems(2) child_unchanged by blast
     then have trueVal: "[g2, m, p] \<turnstile> (kind g2 trueExp) \<mapsto> IntVal32 (trueVal)"
       using node.hyps node t inp_in_g_wf wf by blast
 
     have f: "falseExp \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
+      by (metis IRNodes2.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
     then have ufalse: "unchanged (eval_usages g1 falseExp) g1 g2"
       using node.prems(2) child_unchanged by blast
     then have falseVal: "[g2, m, p] \<turnstile> (kind g2 falseExp) \<mapsto> IntVal32 (falseVal)"
@@ -401,7 +401,7 @@ proof -
   next
     case (RefNode x val nid)
     have x: "x \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_RefNode RefNode.hyps(3) RefNode.prems(1) child_member_in member_rec(1))
+      by (metis IRNodes2.inputs_of_RefNode RefNode.hyps(3) RefNode.prems(1) child_member_in member_rec(1))
     then have ref: "[g2, m, p] \<turnstile> (kind g2 x) \<mapsto> val"
       using RefNode.hyps(2) RefNode.prems(2) child_unchanged inp_in_g_wf wf by blast
     then show ?case
@@ -429,7 +429,7 @@ proof -
   next
     case (IsNullNode obj ref val)
     have obj: "obj \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_IsNullNode IsNullNode.hyps(4) inputs.simps list.set_intros(1))
+      by (metis IRNodes2.inputs_of_IsNullNode IsNullNode.hyps(4) inputs.simps list.set_intros(1))
     then have ref: "[g2, m, p] \<turnstile> (kind g2 obj) \<mapsto> ObjRef ref"
       using IsNullNode.hyps(1) IsNullNode.hyps(2) IsNullNode.prems(2) child_unchanged eval_in_ids by blast
     then show ?case

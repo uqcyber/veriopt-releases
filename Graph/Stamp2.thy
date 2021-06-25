@@ -175,7 +175,7 @@ lemma float_valid_range:
   using assms valid_value.simps apply auto
   using valid_value.simps
   by (metis less_eq_float.rep_eq valid_value.elims(2))
-*)
+
 
 lemma disjoint_empty:
   assumes "joined = (join x_stamp y_stamp)"
@@ -223,6 +223,8 @@ lemma boundsAlwaysOverlap:
   shows "\<not>(xval < yval)"
   using assms is_IntegerStamp_def
   by fastforce
+
+*)
 
 lemma intstamp_bits_eq_meet:
   assumes "(meet (IntegerStamp b1 l1 u1) (IntegerStamp b2 l2 u2)) = (IntegerStamp b3 l3 u3)"

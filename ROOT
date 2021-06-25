@@ -15,9 +15,14 @@ session Graph in Graph = "HOL-Library" +
 session Semantics in Semantics = Graph +
   description
     "Semantics of GraalVM graphs"
+  options [quick_and_dirty, document = pdf,
+           document_output = "output",
+           show_question_marks = false]
   theories
-    IREval
-    IRStepObj
+    IRTreeEval
+  document_files (in "../latex")
+    "root.tex"
+    "mathpartir.sty"
 
 session Proofs in Proofs = Semantics +
   description
@@ -35,6 +40,7 @@ session Optimizations in Optimizations = Proofs +
   options [quick_and_dirty]
   theories
     Canonicalization
+    CanonicalizationTree
     CanonicalizationProofs
     ConditionalElimination
     Construction

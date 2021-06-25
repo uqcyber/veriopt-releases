@@ -357,33 +357,33 @@ inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapSt
     kind g callTarget = (MethodCallTargetNode targetMethod arguments);
     Some targetGraph = P targetMethod;
     m' = new_map_state;
-    [g, m, p] \<turnstile> arguments \<longmapsto> ps\<rbrakk>
-    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',ps)#(g,nid,m,p)#stk, h)" |
+    [g, m, p] \<turnstile> arguments \<longmapsto> p'\<rbrakk>
+    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
 
   ReturnNode:
   "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
     [g, m, p] \<turnstile> (kind g expr) \<mapsto> v;
 
-    c_m' = c_m(c_nid := v);
-    c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
-    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(c_g,c_nid,c_m,c_p)#stk, h) \<longrightarrow> ((c_g,c_nid',c_m',c_p)#stk, h)" |
+    cm' = cm(cnid := v);
+    cnid' = (successors_of (kind cg cnid))!0\<rbrakk> 
+    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
 
   ReturnNodeVoid:
   "\<lbrakk>kind g nid = (ReturnNode None _);
-    c_m' = c_m(c_nid := (ObjRef (Some (2048))));
+    cm' = cm(cnid := (ObjRef (Some (2048))));
     
-    c_nid' = (successors_of (kind c_g c_nid))!0\<rbrakk> 
-    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(c_g,c_nid,c_m,c_p)#stk, h) \<longrightarrow> ((c_g,c_nid',c_m',c_p)#stk, h)" |
+    cnid' = (successors_of (kind cg cnid))!0\<rbrakk> 
+    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
 
   UnwindNode:
   "\<lbrakk>kind g nid = (UnwindNode exception);
 
     [g, m, p] \<turnstile> (kind g exception) \<mapsto> e;
      
-    kind c_g c_nid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
+    kind cg cnid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 
-    c_m' = c_m(c_nid := e)\<rbrakk>
-  \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(c_g,c_nid,c_m,c_p)#stk, h) \<longrightarrow> ((c_g,exEdge,c_m',c_p)#stk, h)"
+    cm' = cm(cnid := e)\<rbrakk>
+  \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,exEdge,cm',cp)#stk, h)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 

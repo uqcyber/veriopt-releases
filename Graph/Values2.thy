@@ -66,6 +66,13 @@ fun wf_bool :: "Value \<Rightarrow> bool" where
   "wf_bool (IntVal32 v) = (v = 0 \<or> v = 1)" |
   "wf_bool _ = False" 
 
+fun val_to_bool :: "Value \<Rightarrow> bool" where
+  "val_to_bool (IntVal32 v) = (v = 1)" |
+  "val_to_bool _ = False"
+
+fun bool_to_val :: "bool \<Rightarrow> Value" where
+  "bool_to_val True = (IntVal32 1)" |
+  "bool_to_val False = (IntVal32 0)"
 
 value "sint(word_of_int (1) :: int1)"
 
@@ -201,6 +208,16 @@ fun intval_not :: "Value \<Rightarrow> Value" where
   "intval_not (IntVal32 v) = (IntVal32 (NOT v))" |
   "intval_not (IntVal64 v) = (IntVal64 (NOT v))" |
   "intval_not _ = UndefVal"
+
+fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_equals (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |
+  "intval_equals (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 = v2)" |
+  "intval_equals _ _ = UndefVal"
+
+fun intval_less_than :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_less_than (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 < v2)" |
+  "intval_less_than (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 < v2)" |
+  "intval_less_than _ _ = UndefVal"
 
 (* Other possibly-helpful lemmas from WORD and its ancestors:
 

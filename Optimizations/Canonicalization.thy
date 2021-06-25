@@ -35,7 +35,7 @@ inductive CanonicalizeConditional :: "IRGraph \<Rightarrow> IRNode \<Rightarrow>
 
   condition_bounds_x: (* ConditionalNode.canonicalizeConditional (169) *)
   "\<lbrakk>kind g cond = IntegerLessThanNode tb fb;
-    stpi_upper (stamp g tb) < stpi_lower (stamp g fb)\<rbrakk>
+    stpi_upper (stamp g tb) \<le> stpi_lower (stamp g fb)\<rbrakk>
   \<Longrightarrow> CanonicalizeConditional g (ConditionalNode cond tb fb) (RefNode tb)" |
 
   condition_bounds_y: (* ConditionalNode.canonicalizeConditional (174) *)

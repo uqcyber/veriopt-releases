@@ -3,6 +3,7 @@ chapter "veriopt"
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM IR structure"
+  options [quick_and_dirty]
   theories
     Values
     IRNodes
@@ -19,7 +20,8 @@ session Semantics in Semantics = Graph +
            document_output = "output",
            show_question_marks = false]
   theories
-    IRTreeEval
+    IREval
+    IRStepObj
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
@@ -42,8 +44,8 @@ session Optimizations in Optimizations = Proofs +
     Canonicalization
     CanonicalizationTree
     CanonicalizationProofs
-    ConditionalElimination
-    Construction
+    (*ConditionalElimination
+    Construction*)
 
 session Tests in Tests = Optimizations +
   description

@@ -21,15 +21,15 @@ type_synonym Free = "nat"
 type_synonym ('a, 'b) DynamicHeap = "('a, 'b) Heap \<times> Free"
 
 fun h_load_field :: "'a \<Rightarrow> 'b \<Rightarrow> ('a, 'b) DynamicHeap \<Rightarrow> Value" where
-  "h_load_field f r (h, n) = h f r"
+  "h_load_field r f (h, n) = h r f"
 
 fun h_store_field :: "'a \<Rightarrow> 'b \<Rightarrow> Value \<Rightarrow> ('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap" where
-  "h_store_field f r v (h, n) = (h(f := ((h f)(r := v))), n)"
+  "h_store_field r f v (h, n) = (h(r := ((h r)(f := v))), n)"
 
 fun h_new_inst :: "('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap \<times> Value" where
   "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some n)))"
 
-type_synonym FieldRefHeap = "(string, objref) DynamicHeap"
+type_synonym FieldRefHeap = "(objref, string) DynamicHeap"
 text_raw \<open>\EndSnip\<close>
 
 definition new_heap :: "('a, 'b) DynamicHeap" where
@@ -80,7 +80,7 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
   LoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nid');
       [g, m, p] \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
-      h_load_field f ref h = v;
+      h_load_field ref f h = v;
       m' = m(nid := v)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
@@ -102,7 +102,7 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
 
   StaticLoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f None nid');
-      h_load_field f None h = v;
+      h_load_field None f h = v;
       m' =  m(nid := v)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
@@ -110,14 +110,14 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ (Some obj) nid');
       [g, m, p] \<turnstile> (kind g newval) \<mapsto> val;
       [g, m, p] \<turnstile> (kind g obj) \<mapsto> ObjRef ref;
-      h' = h_store_field f ref val h;
+      h' = h_store_field ref f val h;
       m' =  m(nid := val)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
   StaticStoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ None nid');
       [g, m, p] \<turnstile> (kind g newval) \<mapsto> val;
-      h' = h_store_field f None val h;
+      h' = h_store_field None f val h;
       m' =  m(nid := val)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
 
@@ -459,7 +459,7 @@ definition eg3_sq :: IRGraph where
    ]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
-values "{h_load_field field_sq None (prod.snd res)
+values "{h_load_field None field_sq (prod.snd res)
         | res. (\<lambda>x. Some eg3_sq) \<turnstile> ([(eg3_sq, 0, new_map_state, p3), (eg3_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
 
 definition eg4_sq :: IRGraph where
@@ -473,7 +473,7 @@ definition eg4_sq :: IRGraph where
    ]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
-values "{h_load_field field_sq (Some 0) (prod.snd res)
+values "{h_load_field (Some 0) field_sq (prod.snd res)
         | res. (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
 end
 

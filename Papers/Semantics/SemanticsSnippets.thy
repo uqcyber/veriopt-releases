@@ -255,8 +255,4 @@ text_raw \<open>\Snip{example2}%
 notation (latex output)
   Pure.dummy_pattern ("-")
 
-(* take out bits from intvals - changes if we change to deal with bits *)
-notation (latex output)
-  IntVal ("IntVal (2 _)")
-
 end

@@ -32,6 +32,38 @@ type_synonym Params = "Value list"
 definition new_map_state :: "MapState" where
   "new_map_state = (\<lambda>x. UndefVal)"
 
+fun val_to_bool :: "Value \<Rightarrow> bool" where
+  "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
+  "val_to_bool v = False"
+
+fun bool_to_val :: "bool \<Rightarrow> Value" where
+  "bool_to_val True = (IntVal32  1)" |
+  "bool_to_val False = (IntVal32 0)"
+
+
+(* TODO: move the following phi helpers to step semantics? *)
+(* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
+fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
+  "find_index _ [] = 0" |
+  "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
+
+fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "phi_list g nid = 
+    (filter (\<lambda>x.(is_PhiNode (kind g x)))
+      (sorted_list_of_set (usages g nid)))"
+
+fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
+  "input_index g n n' = find_index n' (inputs_of (kind g n))"
+
+fun phi_inputs :: "IRGraph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
+  "phi_inputs g i nodes = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) nodes)"
+
+fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
+  "set_phis [] [] m = m" |
+  "set_phis (nid # xs) (v # vs) m = (set_phis xs vs (m(nid := v)))" |
+  "set_phis [] (v # vs) m = m" |
+  "set_phis (x # xs) [] m = m"
+
 
 fun find_node_and_stamp :: "IRGraph \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> ID option" where
   "find_node_and_stamp g (n,s) =
@@ -85,101 +117,117 @@ datatype (discs_sels) IRExpr =
 
 
 inductive
-  rep :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ _ \<triangleright> _" 55)
+  rep :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<turnstile> _ \<triangleright> _" 55)
   for g where
 
   ConstantNode:
   "\<lbrakk>kind g n = ConstantNode c\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (ConstantExpr c)" |
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (ConstantExpr c)" |
 
   ParameterNode:
   "\<lbrakk>kind g n = ParameterNode i;
     stamp g n = s\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (ParameterExpr i s)" |
+    \<Longrightarrow> g  \<turnstile> n \<triangleright> (ParameterExpr i s)" |
 
   ConditionalNode:
   "\<lbrakk>kind g n = ConditionalNode c t f;
-    g c \<triangleright> ce;
-    g t \<triangleright> te;
-    g f \<triangleright> fe\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (ConditionalExpr ce te fe)" |
+    g \<turnstile> c \<triangleright> ce;
+    g \<turnstile> t \<triangleright> te;
+    g \<turnstile> f \<triangleright> fe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (ConditionalExpr ce te fe)" |
 
 (* Unary nodes *)
   AbsNode:
   "\<lbrakk>kind g n = AbsNode x;
-    g x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryAbs xe)" |
+    g \<turnstile> x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr UnaryAbs xe)" |
 
   NotNode:
   "\<lbrakk>kind g n = NotNode x;
-    g x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryNot xe)" |
+    g \<turnstile> x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr UnaryNot xe)" |
 
   NegateNode:
   "\<lbrakk>kind g n = NegateNode x;
-    g x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryNeg xe)" |
+    g \<turnstile> x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr UnaryNeg xe)" |
 
   LogicNegationNode:
   "\<lbrakk>kind g n = LogicNegationNode x;
-    g x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (UnaryExpr UnaryLogicNegation xe)" |
+    g \<turnstile> x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr UnaryLogicNegation xe)" |
 
 (* Binary nodes *)
   AddNode:
   "\<lbrakk>kind g n = AddNode x y;
-    g x \<triangleright> xe;
-    g y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinAdd xe ye)" |
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinAdd xe ye)" |
 
   MulNode:
   "\<lbrakk>kind g n = MulNode x y;
-    g x \<triangleright> xe;
-    g y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinMul xe ye)" |
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinMul xe ye)" |
 
   SubNode:
   "\<lbrakk>kind g n = SubNode x y;
-    g x \<triangleright> xe;
-    g y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinSub xe ye)" |
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinSub xe ye)" |
 
   AndNode:
   "\<lbrakk>kind g n = AndNode x y;
-    g x \<triangleright> xe;
-    g y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinAnd xe ye)" |
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinAnd xe ye)" |
 
   OrNode:
   "\<lbrakk>kind g n = OrNode x y;
-    g x \<triangleright> xe;
-    g y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinOr xe ye)" |
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinOr xe ye)" |
 
   XorNode:
   "\<lbrakk>kind g n = XorNode x y;
-    g x \<triangleright> xe;
-    g y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinXor xe ye)" |
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinXor xe ye)" |
 
   IntegerEqualsNode:
   "\<lbrakk>kind g n = IntegerEqualsNode x y;
-    g x \<triangleright> xe;
-    g y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)" |
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)" |
 
   IntegerLessThanNode:
   "\<lbrakk>kind g n = IntegerLessThanNode x y;
-    g x \<triangleright> xe;
-    g y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)" |
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)" |
 
   LoadFieldNode: (* TODO others *)
   "\<lbrakk>kind g n = LoadFieldNode nid f obj nxt;
     stamp g n = s\<rbrakk>
-    \<Longrightarrow> g n \<triangleright> (LeafExpr nid s)"
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (LeafExpr nid s)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
+
+
+inductive
+  replist :: "IRGraph \<Rightarrow> ID list \<Rightarrow> IRExpr list \<Rightarrow> bool" ("_ \<turnstile> _ \<triangleright>\<^sub>L _" 55)
+  for g where
+
+  RepNil:
+  "g \<turnstile> [] \<triangleright>\<^sub>L []" |
+
+  RepCons:
+  "\<lbrakk>g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> xs \<triangleright>\<^sub>L xse\<rbrakk>
+    \<Longrightarrow> g \<turnstile> x#xs \<triangleright>\<^sub>L xe#xse"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprListE) replist .
+
 
 text_raw \<open>\Snip{repRules}%
 \begin{center}
@@ -193,8 +241,59 @@ text_raw \<open>\Snip{repRules}%
 \end{center}
 \EndSnip\<close>
 
-values "{t. eg2_sq 4  \<triangleright> t}"
+values "{t. eg2_sq \<turnstile> 4 \<triangleright> t}"
 
+inductive_cases ConstantNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (ConstantExpr c)"
+inductive_cases ParameterNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (ParameterExpr i s)"
+inductive_cases ConditionalNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (ConditionalExpr ce te fe)"
+inductive_cases AbsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (UnaryExpr UnaryAbs xe)"
+inductive_cases NotNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (UnaryExpr UnaryNot xe)"
+inductive_cases NegateNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (UnaryExpr UnaryNeg xe)"
+inductive_cases LogicNegationNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (UnaryExpr UnaryLogicNegation xe)"
+inductive_cases AddNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinAdd xe ye)"
+inductive_cases MulNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinMul xe ye)"
+inductive_cases SubNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinSub xe ye)"
+inductive_cases AndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinAnd xe ye)"
+inductive_cases OrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinOr xe ye)"
+inductive_cases XorNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinXor xe ye)"
+inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)"
+inductive_cases IntegerLessThanNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)"
+inductive_cases LoadFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (LeafExpr nid s)"
+
+(* group those forward rules into a named set *)
+lemmas RepE\<^marker>\<open>tag invisible\<close> = 
+  ConstantNodeE
+  ParameterNodeE
+  ConditionalNodeE
+  AbsNodeE
+  NotNodeE
+  NegateNodeE
+  LogicNegationNodeE
+  AddNodeE
+  MulNodeE
+  SubNodeE
+  AndNodeE
+  OrNodeE
+  XorNodeE
+  IntegerEqualsNodeE
+  IntegerLessThanNodeE
+  LoadFieldNodeE
 
 (* ======== TODO: Functions for re-calculating stamps ========== *)
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
@@ -286,7 +385,7 @@ value "get_fresh_id (add_node 6 (ParameterNode 2, default_stamp) eg2_sq)"
 inductive
   unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<triangleleft> _ \<leadsto> _" 55)
   and
-  unrepList :: "IRGraph \<Rightarrow> IRExpr list \<Rightarrow> (IRGraph \<times> ID list) \<Rightarrow> bool" ("_ \<triangleleft>\<triangleleft> _ \<leadsto> _" 55)
+  unrepList :: "IRGraph \<Rightarrow> IRExpr list \<Rightarrow> (IRGraph \<times> ID list) \<Rightarrow> bool" ("_ \<triangleleft>\<^sub>L _ \<leadsto> _" 55)
    where
 
   ConstantNodeSame:
@@ -310,13 +409,13 @@ inductive
     \<Longrightarrow> g \<triangleleft> (ParameterExpr i s) \<leadsto> (g', nid)" |
 
   ConditionalNodeSame:
-  "\<lbrakk>g \<triangleleft>\<triangleleft> [ce, te, fe] \<leadsto> (g2, [c, t, f]);
+  "\<lbrakk>g \<triangleleft>\<^sub>L [ce, te, fe] \<leadsto> (g2, [c, t, f]);
     s' = meet (stamp g2 t) (stamp g2 f);
     find_node_and_stamp g2 (ConditionalNode c t f, s') = Some nid\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ConditionalExpr ce te fe) \<leadsto> (g2, nid)" |
 
   ConditionalNodeNew:
-  "\<lbrakk>g \<triangleleft>\<triangleleft> [ce, te, fe] \<leadsto> (g2, [c, t, f]);
+  "\<lbrakk>g \<triangleleft>\<^sub>L [ce, te, fe] \<leadsto> (g2, [c, t, f]);
     s' = meet (stamp g2 t) (stamp g2 f);
     find_node_and_stamp g2 (ConditionalNode c t f, s') = None;
     nid = get_fresh_id g2;
@@ -338,13 +437,13 @@ inductive
     \<Longrightarrow> g \<triangleleft> (UnaryExpr op xe) \<leadsto> (g', nid)" |
 
   BinaryNodeSame:
-  "\<lbrakk>g \<triangleleft>\<triangleleft> [xe, ye] \<leadsto> (g2, [x, y]);
+  "\<lbrakk>g \<triangleleft>\<^sub>L [xe, ye] \<leadsto> (g2, [x, y]);
     s' = stamp_binary op (stamp g2 x) (stamp g2 y);
     find_node_and_stamp g2 (bin_node op x y, s') = Some nid\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g2, nid)" |
 
   BinaryNodeNew:
-  "\<lbrakk>g \<triangleleft>\<triangleleft> [xe, ye] \<leadsto> (g2, [x, y]);
+  "\<lbrakk>g \<triangleleft>\<^sub>L [xe, ye] \<leadsto> (g2, [x, y]);
     s' = stamp_binary op (stamp g2 x) (stamp g2 y);
     find_node_and_stamp g2 (bin_node op x y, s') = None;
     nid = get_fresh_id g2;
@@ -355,16 +454,16 @@ inductive
   "stamp g nid = s
     \<Longrightarrow> g \<triangleleft> (LeafExpr nid s) \<leadsto> (g, nid)" |
 
-  NilList:
-  "g \<triangleleft>\<triangleleft> [] \<leadsto> (g, [])" |
+  UnrepNil:
+  "g \<triangleleft>\<^sub>L [] \<leadsto> (g, [])" |
 
 (* TODO: this will fail for [xe,ye] where they are not equal.
          Figure out how to generate code for this?
 *)
-  ConsList:
+  UnrepCons:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g2 \<triangleleft>\<triangleleft> xes \<leadsto> (g3, xs)\<rbrakk>
-    \<Longrightarrow> g \<triangleleft>\<triangleleft> (xe#xes) \<leadsto> (g3, x#xs)"
+    g2 \<triangleleft>\<^sub>L xes \<leadsto> (g3, xs)\<rbrakk>
+    \<Longrightarrow> g \<triangleleft>\<^sub>L (xe#xes) \<leadsto> (g3, x#xs)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE)
 (*
@@ -460,6 +559,24 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
   [show_steps,show_mode_inference,show_intermediate_results] 
   evaltree .
 
+
+
+inductive
+  evaltrees :: "MapState \<Rightarrow> Params \<Rightarrow> IRExpr list \<Rightarrow> Value list \<Rightarrow> bool" ("[_,_] \<turnstile> _ \<mapsto>\<^sub>L _" 55)
+  for m p where
+
+  EvalNil:
+  "[m,p] \<turnstile> [] \<mapsto>\<^sub>L []" |
+
+  EvalCons:
+  "\<lbrakk>[m,p] \<turnstile> x \<mapsto> xval;
+    [m,p] \<turnstile> yy \<mapsto>\<^sub>L yyval\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (x#yy) \<mapsto>\<^sub>L (xval#yyval)"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalTs)
+  evaltrees .
+
+
 text_raw \<open>\Snip{evalCode}%
 code\_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE)
   [show\_steps,show\_mode_inference,show\_intermediate\_results] 
@@ -483,6 +600,11 @@ inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (LeafExpr nid s) \<mapsto> val"
 
+inductive_cases EvalNilE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> [] \<mapsto>\<^sub>L []"
+inductive_cases EvalConsE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (x#yy) \<mapsto>\<^sub>L (xval#yyval)"
+
 (* group those forward rules into a named set *)
 lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> = 
   ConstantExprE
@@ -491,6 +613,8 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
   UnaryExprE
   BinaryExprE
   LeafExprE
+  EvalNilE
+  EvalConsE
 
 
 (* Reverse form of evaltree.LeafExpr, because evaltree is deterministic. *)
@@ -501,13 +625,39 @@ lemma LeafExprRev:
   by auto
 
 
-text \<open>Evaluation of expression trees is deterministic.\<close>
-lemma evaltree_det:
+text \<open>Extraction and Evaluation of expression trees is deterministic.\<close>
+
+(* TODO: prove that rep is deterministic? 
+lemma repDet:
+  fixes g n e1
+  shows "(g \<turnstile> n \<triangleright> e1) \<Longrightarrow> 
+         (\<forall> e2. ((g \<turnstile> n \<triangleright> e2) \<longrightarrow> e1 = e2))"
+  apply (rule allI; rule impI)
+  apply (contradiction "e1 \<noteq> e2")
+    apply (induction rule: "rep.induct")
+  apply (rule allI; rule impI)+
+  apply (smt (z3) ConstantNodeE IRNode.disc IRNode.discI(7) IRNode.sel(62) rep.simps) 
+                apply (rule allI; rule impI)
+  using ParameterNodeE 
+*)             
+
+(* apply (rule allI; rule impI)+; elim RepE; auto*) 
+
+lemma evalDet:
   fixes m p e v1
   shows "([m,p] \<turnstile> e \<mapsto> v1) \<Longrightarrow> 
          (\<forall> v2. (([m,p] \<turnstile> e \<mapsto> v2) \<longrightarrow> v1 = v2))"
   apply (induction rule: "evaltree.induct")
   by (rule allI; rule impI; elim EvalTreeE; auto)+
+
+lemma evalAllDet:
+  fixes m p e v1
+  shows "([m,p] \<turnstile> e \<mapsto>\<^sub>L v1) \<Longrightarrow> 
+         (\<forall> v2. (([m,p] \<turnstile> e \<mapsto>\<^sub>L v2) \<longrightarrow> v1 = v2))"
+  apply (induction rule: "evaltrees.induct")
+   apply (rule allI; rule impI)+
+  using evaltrees.cases apply blast
+  by (metis evalDet evaltrees.cases list.discI list.inject)
 
 
 text \<open>A valid value cannot be $UndefVal$.\<close>
@@ -655,7 +805,7 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
   then have ce': "[m,p] \<turnstile> ce' \<mapsto> cond" using assms by auto
   define branch  where b:  "branch  = (if val_to_bool cond then te else fe)"
   define branch' where b': "branch' = (if val_to_bool cond then te' else fe')"
-  then have "[m,p] \<turnstile> branch \<mapsto> v" using a b ce evaltree_det by blast 
+  then have "[m,p] \<turnstile> branch \<mapsto> v" using a b ce evalDet by blast 
   then have "[m,p] \<turnstile> branch' \<mapsto> v" using assms b b' by auto
   then show "[m,p] \<turnstile> ConditionalExpr ce' te' fe' \<mapsto> v"
     using ConditionalExpr ce' b' by auto 

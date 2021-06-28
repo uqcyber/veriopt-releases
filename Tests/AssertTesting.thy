@@ -5,7 +5,7 @@ begin
 declare [[ML_source_trace]]
 
 (* Heap with asserts enabled *)
-definition assertEnabledHeap :: FieldRefHeap where
+definition assertEnabledHeap :: RefFieldHeap where
   "assertEnabledHeap = h_store_field ''VerifyProgram.$assertionsDisabled'' None (IntVal 32 0) new_heap"
 
 (* Dependencies for the AssertionError class *)
@@ -30,7 +30,7 @@ datatype ExitCause =
   Exception ID Value
 
 inductive assert_test :: "Program 
-      \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> RefFieldHeap
       \<Rightarrow> ExitCause
       \<Rightarrow> bool"
   for p where

@@ -8,9 +8,9 @@ begin
 
 (* WIP strong bisimilar
 fun strongly_bisimilar :: "
-(IRGraph \<times> ID \<times> MapState \<times> FieldRefHeap) rel
-\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> FieldRefHeap)
-\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> FieldRefHeap)
+(IRGraph \<times> ID \<times> MapState \<times> RefFieldHeap) rel
+\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> RefFieldHeap)
+\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> RefFieldHeap)
 \<Rightarrow> bool"
   where
   "strongly_bisimilar \<R> (g1, nid1, m1, h1) (g2, nid2, m2, h2) =

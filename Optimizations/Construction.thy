@@ -492,7 +492,7 @@ fun create_if :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> ID \<R
 text_raw \<open>\EndSnip\<close>
 
 lemma if_node_create_bisimulation:
-  fixes h :: FieldRefHeap
+  fixes h :: RefFieldHeap
   assumes wf: "wf_graph g"
   assumes cv: "[g, m, p] \<turnstile> (kind g cond) \<mapsto> cv"
   assumes fresh: "nid \<notin> ids g"

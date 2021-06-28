@@ -8,9 +8,9 @@ begin
 
 (* WIP strong bisimilar
 fun strongly_bisimilar :: "
-(IRGraph \<times> ID \<times> MapState \<times> FieldRefHeap) rel
-\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> FieldRefHeap)
-\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> FieldRefHeap)
+(IRGraph \<times> ID \<times> MapState \<times> RefFieldHeap) rel
+\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> RefFieldHeap)
+\<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> RefFieldHeap)
 \<Rightarrow> bool"
   where
   "strongly_bisimilar \<R> (g1, nid1, m1, h1) (g2, nid2, m2, h2) =
@@ -26,7 +26,7 @@ inductive weak_bisimilar :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Ri
   \<Longrightarrow> nid . g \<sim> g'"
 
 text \<open>A strong bisimilution between no-op transitions\<close>
-inductive strong_noop_bisimilar :: "ID \<Rightarrow> MapState \<Rightarrow> FieldRefHeap \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
+inductive strong_noop_bisimilar :: "ID \<Rightarrow> MapState \<Rightarrow> RefFieldHeap \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
   ("_ _ _ | _ \<sim> _") for nid where
   "\<lbrakk>\<forall>P'. (g \<turnstile> (nid, m, h) \<rightarrow> P') \<longrightarrow> (\<exists>Q' . (g' \<turnstile> (nid, m, h) \<rightarrow> Q') \<and> P' = Q');
     \<forall>Q'. (g' \<turnstile> (nid, m, h) \<rightarrow> Q') \<longrightarrow> (\<exists>P' . (g \<turnstile> (nid, m, h) \<rightarrow> P') \<and> P' = Q')\<rbrakk>

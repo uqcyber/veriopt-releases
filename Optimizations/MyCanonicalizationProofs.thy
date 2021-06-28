@@ -1,5 +1,5 @@
 theory
-  CanonicalizationProofs
+  MyCanonicalizationProofs
 imports
   Canonicalization
 begin
@@ -295,7 +295,7 @@ qed
 
 
 lemma CanonicalizeIfProof:
-  fixes m::MapState and h::FieldRefHeap
+  fixes m::MapState and h::RefFieldHeap
   assumes "kind g nid = (IfNode cond tb fb)"
   assumes "CanonicalizeIf g (IfNode cond tb fb) after"
   assumes "g' = replace_node nid (after, s) g"

@@ -120,7 +120,7 @@ fun h_store_field :: "'a \<Rightarrow> 'b \<Rightarrow> Value \<Rightarrow> ('a,
 fun h_new_inst :: "('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap \<times> Value" where
   "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some n)))"
 
-type_synonym FieldRefHeap = "(string, objref) DynamicHeap"
+type_synonym RefFieldHeap = "(string, objref) DynamicHeap"
 *)
 
 (* TODO: add heap here *)
@@ -226,7 +226,7 @@ text_raw \<open>\Snip{CanonicalizeIfNodeRules}%
 definition replace_node_fake :: "ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "replace_node_fake nid node g = replace_node nid (node,default_stamp) g"
 lemma CanonicalizeIfProof_fake:
-  fixes m::MapState and h::FieldRefHeap
+  fixes m::MapState and h::RefFieldHeap
   assumes "kind g nid = before"
   assumes "CanonicalizeIf g before after"
   assumes "g' = replace_node_fake nid after g"

@@ -424,7 +424,7 @@ qed
 end
 
 lemma CanonicalizeIfProof:
-  fixes m::MapState and h::FieldRefHeap
+  fixes m::MapState and h::RefFieldHeap
   assumes "kind g nid = before"
   assumes "CanonicalizeIf g before after"
   assumes "g' = replace_node nid (after, s) g"

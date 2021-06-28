@@ -29,7 +29,7 @@ fun h_store_field :: "'a \<Rightarrow> 'b \<Rightarrow> Value \<Rightarrow> ('a,
 fun h_new_inst :: "('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap \<times> Value" where
   "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some n)))"
 
-type_synonym FieldRefHeap = "(objref, string) DynamicHeap"
+type_synonym RefFieldHeap = "(objref, string) DynamicHeap"
 text_raw \<open>\EndSnip\<close>
 
 definition new_heap :: "('a, 'b) DynamicHeap" where
@@ -44,7 +44,7 @@ Within the context of a graph, the configuration triple, (ID, MethodState, Heap)
 is related to the subsequent configuration.
 \<close>
 
-inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> bool"
+inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapState \<times> RefFieldHeap) \<Rightarrow> (ID \<times> MapState \<times> RefFieldHeap) \<Rightarrow> bool"
   ("_, _ \<turnstile> _ \<rightarrow> _" 55) for g p where
 
   SequentialNode:
@@ -342,7 +342,7 @@ subsection \<open>Interprocedural Semantics\<close>
 type_synonym Signature = "string"
 type_synonym Program = "Signature \<rightharpoonup> IRGraph"
 
-inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> bool"
+inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> RefFieldHeap \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> RefFieldHeap \<Rightarrow> bool"
   ("_ \<turnstile> _ \<longrightarrow> _" 55) 
   for P where
 
@@ -395,9 +395,9 @@ fun has_return :: "MapState \<Rightarrow> bool" where
   "has_return m = (m 0 \<noteq> UndefVal)"
 
 inductive exec :: "Program 
-      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> RefFieldHeap
       \<Rightarrow> Trace 
-      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> RefFieldHeap
       \<Rightarrow> Trace 
       \<Rightarrow> bool"
   ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
@@ -421,9 +421,9 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 
 
 inductive exec_debug :: "Program
-     \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
+     \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> RefFieldHeap
      \<Rightarrow> nat
-     \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
+     \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> RefFieldHeap
      \<Rightarrow> bool"
   ("_\<turnstile>_\<rightarrow>*_* _")
   where

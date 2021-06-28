@@ -125,18 +125,18 @@ type_synonym FieldRefHeap = "(string, objref) DynamicHeap"
 
 (* TODO: add heap here *)
 text_raw \<open>\Snip{heapdef}%\<close>
-type_synonym Heap = "string \<Rightarrow> objref \<Rightarrow> Value"
+type_synonym Heap = "objref \<Rightarrow> string \<Rightarrow> Value"
 type_synonym Free = "nat"
 type_synonym DynamicHeap = "Heap \<times> Free"
 
 text_raw \<open>
 \\[0.75em]
 
-@{text \<open>h_load_field :: \<close>} @{typ[source] "string \<Rightarrow> objref \<Rightarrow> DynamicHeap \<Rightarrow> Value"}
+@{text \<open>h_load_field :: \<close>} @{typ[source] "objref \<Rightarrow> string \<Rightarrow> DynamicHeap \<Rightarrow> Value"}
 
 @{thm h_load_field.simps}\\[0.75em]
 
-@{text \<open>h_store_field :: \<close>} @{typ[source] "string \<Rightarrow> objref \<Rightarrow> Value \<Rightarrow> DynamicHeap \<Rightarrow> DynamicHeap"}
+@{text \<open>h_store_field :: \<close>} @{typ[source] "objref \<Rightarrow> string \<Rightarrow> Value \<Rightarrow> DynamicHeap \<Rightarrow> DynamicHeap"}
 
 @{thm h_store_field.simps}\\[0.75em]
 

@@ -583,8 +583,12 @@ code\_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE
 
 values "{v. evaltree new_map_state [IntVal32 5] sq_param0 v}"
 
+(* We add all the inductive rules as unsafe intro rules. *)
+declare evaltree.intros [intro]
+declare evaltrees.intros [intro]
 
-(* derive a forward reasoning rule for each case. *)
+(* We derive a safe elimination (forward) reasoning rule for each case.
+  Note that each pattern is as general as possible. *)
 inductive_cases ConstantExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (ConstantExpr c) \<mapsto> val"
 inductive_cases ParameterExprE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -599,11 +603,11 @@ inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (LeafExpr nid s) \<mapsto> val"
 
 inductive_cases EvalNilE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> [] \<mapsto>\<^sub>L []"
+  "[m,p] \<turnstile> [] \<mapsto>\<^sub>L vals"
 inductive_cases EvalConsE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (x#yy) \<mapsto>\<^sub>L (xval#yyval)"
+  "[m,p] \<turnstile> (x#yy) \<mapsto>\<^sub>L vals"
 
-(* group those forward rules into a named set *)
+(* group these forward rules into a named set *)
 lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> = 
   ConstantExprE
   ParameterExprE
@@ -617,15 +621,24 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
 
 subsection \<open>Data-flow Tree Refinement\<close>
 
-(* This is the induced semantic equivalence relation between expressions.
-   Note that syntactic equality implies semantic equivalence, but not vice versa.
-*)
+text \<open>We define the induced semantic equivalence relation between expressions.
+  Note that syntactic equality implies semantic equivalence, but not vice versa.
+\<close>
 definition equiv_exprs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<doteq> _" 55) where
   "(e1 \<doteq> e2) = (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longleftrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
 
 
-(* We define a refinement ordering over IRExpr and show that it is a preorder.
-  Note that it is asymmetric because e2 may refer to fewer variables than e1. *)
+text \<open>We also prove that this is a total equivalence relation (@{term "equivp equiv_exprs"})
+  (HOL.Equiv_Relations), so that we can reuse standard results about equivalence relations.
+\<close>
+lemma "equivp equiv_exprs"
+  apply (auto simp add: equivp_def equiv_exprs_def)
+  by (metis equiv_exprs_def)+
+
+
+text \<open>We define a refinement ordering over IRExpr and show that it is a preorder.
+  Note that it is asymmetric because e2 may refer to fewer variables than e1.
+\<close>
 instantiation IRExpr :: preorder begin
 
 definition
@@ -634,11 +647,6 @@ definition
 definition
   lt_expr_def [simp]: "(e1 < e2) \<longleftrightarrow> (e1 \<le> e2 \<and> \<not> (e1 \<doteq> e2))"
 
-(*
-  assumes less_le_not_le: "x < y \<longleftrightarrow> x \<le> y \<and> \<not> (y \<le> x)"
-  and order_refl [iff]: "x \<le> x"
-  and order_trans: "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z"
-*)
 instance proof 
   fix x y z :: IRExpr
   show "x < y \<longleftrightarrow> x \<le> y \<and> \<not> (y \<le> x)" by (simp add: equiv_exprs_def; auto)
@@ -646,7 +654,6 @@ instance proof
   show "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z" by simp 
 qed
 end
-
 
 end
 

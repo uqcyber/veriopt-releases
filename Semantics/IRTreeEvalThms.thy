@@ -6,48 +6,198 @@ theory IRTreeEvalThms
 begin
 
 
+subsection \<open>Extraction and Evaluation of Expression Trees is Deterministic.\<close>
 
-(* Reverse form of evaltree.LeafExpr, because evaltree is deterministic. *)
-lemma LeafExprRev: 
-  "([m,p] \<turnstile> LeafExpr nid s \<mapsto> val)
-   \<Longrightarrow> (val = m nid \<and>
-        valid_value s val)"
-  by auto
+text \<open>First, we prove some extra rules that relate each
+  type of IRNode to the corresponding IRExpr type that 'rep' will produce.
+  These are very helpful for proving that 'rep' is deterministic.
+\<close>
+
+lemma rep_constant: 
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow> 
+   kind g n = ConstantNode c \<Longrightarrow> 
+   e = ConstantExpr c"
+  by (induction rule: rep.induct; auto)
+  
+lemma rep_parameter: 
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow> 
+   kind g n = ParameterNode i \<Longrightarrow>
+   (\<exists>s. e = ParameterExpr i s)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_conditional:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = ConditionalNode c t f \<Longrightarrow>
+   (\<exists> ce te fe. e = ConditionalExpr ce te fe)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_abs:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = AbsNode x \<Longrightarrow>
+   (\<exists>xe. e = UnaryExpr UnaryAbs xe)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_not:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = NotNode x \<Longrightarrow>
+   (\<exists>xe. e = UnaryExpr UnaryNot xe)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_negate:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = NegateNode x \<Longrightarrow>
+   (\<exists>xe. e = UnaryExpr UnaryNeg xe)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_logicnegation:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = LogicNegationNode x \<Longrightarrow>
+   (\<exists>xe. e = UnaryExpr UnaryLogicNegation xe)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_add:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = AddNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinAdd xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_sub:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = SubNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinSub xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_mul:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = MulNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinMul xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_and:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = AndNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinAnd xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_or:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = OrNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinOr xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_xor:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = XorNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinXor xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_integer_equals:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = IntegerEqualsNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinIntegerEquals xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_integer_less_than:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = IntegerLessThanNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinIntegerLessThan xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_load_field:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = LoadFieldNode nid f obj nxt \<Longrightarrow>
+   (\<exists>s. e = LeafExpr nid s)"
+  by (induction rule: rep.induct; auto)
+
+(* group these rules into a named set? *)
+lemmas RepCases\<^marker>\<open>tag invisible\<close> = 
+  rep_constant
+  rep_parameter
+  rep_conditional
+  rep_abs
 
 
-text \<open>Extraction and Evaluation of expression trees is deterministic.\<close>
-
-(* TODO: prove that rep is deterministic? 
+(* TODO: prove that rep is deterministic? *)
 lemma repDet:
-  fixes g n e1
-  shows "(g \<turnstile> n \<triangleright> e1) \<Longrightarrow> 
-         (\<forall> e2. ((g \<turnstile> n \<triangleright> e2) \<longrightarrow> e1 = e2))"
-  apply (rule allI; rule impI)
-  apply (contradiction "e1 \<noteq> e2")
-    apply (induction rule: "rep.induct")
-  apply (rule allI; rule impI)+
-  apply (smt (z3) ConstantNodeE IRNode.disc IRNode.discI(7) IRNode.sel(62) rep.simps) 
-                apply (rule allI; rule impI)
-  using ParameterNodeE 
-*)             
+  shows "(g \<turnstile> n \<triangleright> e1) \<Longrightarrow> (g \<turnstile> n \<triangleright> e2) \<Longrightarrow> e1 = e2"
+proof (induction arbitrary: e2 rule: "rep.induct")
+  case (ConstantNode n c)
+  then show ?case using rep_constant by auto
+next
+  case (ParameterNode n i s)
+  then show ?case using rep_parameter by auto
+next
+case (ConditionalNode n c t f ce te fe)
+  then show ?case 
+    by (metis rep_conditional ConditionalNodeE IRNode.inject(6)) 
+next
+  case (AbsNode n x xe)
+  then show ?case 
+    by (metis rep_abs AbsNodeE IRNode.inject(1))
+next
+  case (NotNode n x xe)
+  then show ?case
+    by (metis rep_not NotNodeE IRNode.inject(29)) 
+next
+case (NegateNode n x xe)
+  then show ?case
+    by (metis  IRNode.inject(26) NegateNodeE rep_negate) 
+next
+  case (LogicNegationNode n x xe)
+  then show ?case
+    by (metis IRNode.inject(19) LogicNegationNodeE rep_logicnegation) 
+next
+  case (AddNode n x y xe ye)
+  then show ?case
+    by (metis AddNodeE IRNode.inject(2) rep_add) 
+next
+case (MulNode n x y xe ye)
+  then show ?case
+    by (metis IRNode.inject(25) MulNodeE rep_mul) 
+next
+  case (SubNode n x y xe ye)
+  then show ?case
+    by (metis IRNode.inject(39) SubNodeE rep_sub) 
+next
+  case (AndNode n x y xe ye)
+  then show ?case
+    by (metis AndNodeE IRNode.inject(3) rep_and) 
+next
+case (OrNode n x y xe ye)
+then show ?case
+  by (metis IRNode.inject(30) OrNodeE rep_or) 
+next
+  case (XorNode n x y xe ye)
+  then show ?case
+    by (metis IRNode.inject(43) XorNodeE rep_xor) 
+next
+  case (IntegerEqualsNode n x y xe ye)
+  then show ?case
+    by (metis IRNode.inject(12) IntegerEqualsNodeE rep_integer_equals) 
+next
+case (IntegerLessThanNode n x y xe ye)
+then show ?case
+  by (metis IRNode.inject(13) IntegerLessThanNodeE rep_integer_less_than) 
+next
+  case (LoadFieldNode n nid f obj nxt s)
+  then show ?case using rep_load_field LoadFieldNodeE by blast 
+qed
 
-(* apply (rule allI; rule impI)+; elim RepE; auto*) 
 
 lemma evalDet:
-  fixes m p e v1
-  shows "([m,p] \<turnstile> e \<mapsto> v1) \<Longrightarrow> 
-         (\<forall> v2. (([m,p] \<turnstile> e \<mapsto> v2) \<longrightarrow> v1 = v2))"
-  apply (induction rule: "evaltree.induct")
-  by (rule allI; rule impI; elim EvalTreeE; auto)+
+  "[m,p] \<turnstile> e \<mapsto> v1 \<Longrightarrow> 
+   [m,p] \<turnstile> e \<mapsto> v2 \<Longrightarrow>
+   v1 = v2"
+  apply (induction arbitrary: v2 rule: "evaltree.induct")
+  by (elim EvalTreeE; auto)+
 
 lemma evalAllDet:
-  fixes m p e v1
-  shows "([m,p] \<turnstile> e \<mapsto>\<^sub>L v1) \<Longrightarrow> 
-         (\<forall> v2. (([m,p] \<turnstile> e \<mapsto>\<^sub>L v2) \<longrightarrow> v1 = v2))"
-  apply (induction rule: "evaltrees.induct")
-   apply (rule allI; rule impI)+
-  using evaltrees.cases apply blast
-  by (metis evalDet evaltrees.cases list.discI list.inject)
+  "[m,p] \<turnstile> e \<mapsto>\<^sub>L v1 \<Longrightarrow> 
+   [m,p] \<turnstile> e \<mapsto>\<^sub>L v2 \<Longrightarrow>
+   v1 = v2"
+  apply (induction arbitrary: v2 rule: "evaltrees.induct")
+   apply (elim EvalTreeE; auto)
+  using evalDet by force
 
 
 text \<open>A valid value cannot be $UndefVal$.\<close>
@@ -133,12 +283,16 @@ lemma xyx_y:
 
 
 
-subsection \<open>Monotonicity of Optimizing Expressions\<close>
+subsection \<open>Monotonicity of Expression Optimization\<close>
 
 text \<open>We prove that each subexpression position is monotonic.
 That is, optimizing a subexpression anywhere deep inside a top-level expression
-also optimizes that top-level expression.\<close>
+also optimizes that top-level expression.  
 
+Note that we might also be able to do
+this via reusing Isabelle's 'mono' operator (HOL.Orderings theory), proving instantiations
+like 'mono (UnaryExpr op)', but it is not obvious how to do this for both arguments
+of the binary expressions.\<close>
 
 lemma mono_unary: 
   assumes "e \<le> e'"

@@ -576,7 +576,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 
 
 text_raw \<open>\Snip{evalCode}%
-code\_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalE)
+code\_pred (modes: i \Rightarrow i \Rightarrow o \Rightarrow bool as evalE)
   [show\_steps,show\_mode_inference,show\_intermediate\_results] 
   evaltree .
 \EndSnip\<close>
@@ -629,7 +629,7 @@ definition equiv_exprs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \
 
 
 text \<open>We also prove that this is a total equivalence relation (@{term "equivp equiv_exprs"})
-  (HOL.Equiv_Relations), so that we can reuse standard results about equivalence relations.
+  (HOL.Equiv\_Relations), so that we can reuse standard results about equivalence relations.
 \<close>
 lemma "equivp equiv_exprs"
   apply (auto simp add: equivp_def equiv_exprs_def)

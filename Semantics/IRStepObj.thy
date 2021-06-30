@@ -59,11 +59,6 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     nid' = (if val_to_bool val then tb else fb)\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |  
 
-(* THIS CLAUSE COMPLAINS ABOUT: "Additional type variables 'a 'b.  Why?
-   Makarius says: https://lists.cam.ac.uk/pipermail/cl-isabelle-users/2016-May/msg00120.html
-     See Sections 2.2 (Aux. connectives) and 2.3.3 (Sort hyps) of Implementation manual.
-     The issue is implicit polymorphism over sorts?
-*)
   EndNodes:
   "\<lbrakk>is_AbstractEndNode (kind g nid);
     merge = any_usage g nid;

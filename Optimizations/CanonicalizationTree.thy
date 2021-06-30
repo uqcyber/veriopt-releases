@@ -3,11 +3,6 @@ section \<open>Canonicalization Phase\<close>
 theory CanonicalizationTree
   imports
     Semantics.IRTreeEval
-    Proofs.IRGraphFrames
-    Proofs.Stuttering
-    Proofs.Bisimulation
-    Proofs.Form
-    Graph.Traversal
 begin
 
 (* TODO: these functions below could be made more precise (but complicated)

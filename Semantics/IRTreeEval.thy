@@ -575,12 +575,6 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
   evaltrees .
 
 
-text_raw \<open>\Snip{evalCode}%
-code\_pred (modes: i \Rightarrow i \Rightarrow o \Rightarrow bool as evalE)
-  [show\_steps,show\_mode_inference,show\_intermediate\_results] 
-  evaltree .
-\EndSnip\<close>
-
 values "{v. evaltree new_map_state [IntVal32 5] sq_param0 v}"
 
 (* We add all the inductive rules as unsafe intro rules. *)

@@ -6,7 +6,7 @@ declare [[ML_source_trace]]
 
 (* Heap with asserts enabled *)
 definition assertEnabledHeap :: FieldRefHeap where
-  "assertEnabledHeap = h_store_field ''VerifyProgram.$assertionsDisabled'' None (IntVal 32 0) new_heap"
+  "assertEnabledHeap = h_store_field ''VerifyProgram.$assertionsDisabled'' None (IntVal32 0) new_heap"
 
 (* Dependencies for the AssertionError class *)
 definition assertClass :: Program where
@@ -30,26 +30,23 @@ datatype ExitCause =
   Exception ID Value
 
 inductive assert_test :: "Program 
-      \<Rightarrow> (IRGraph \<times> ID \<times> MapState) list \<times> FieldRefHeap
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Value list) list \<times> FieldRefHeap
       \<Rightarrow> ExitCause
       \<Rightarrow> bool"
   for p where
   "\<lbrakk>kind g nid = (UnwindNode exception);
-
-    [g, m] \<turnstile> kind g exception \<mapsto> ObjRef e;
+    g \<turnstile> exception \<triangleright> ex;
+    [m, ps] \<turnstile> ex \<mapsto> ObjRef e;
     details = h_load_field ''assertFailure'' e h\<rbrakk>
+    \<Longrightarrow> assert_test p (((g,nid,m,ps)#stk),h) (Exception exception details)" |
 
-    \<Longrightarrow> assert_test p (((g,nid,m)#stk),h) (Exception exception details)" |
+  "\<lbrakk>p \<turnstile> (((g,nid,m,ps)#stk),h) \<longrightarrow> (((g',nid',m',ps')#stk'),h');
+    assert_test p (((g',nid',m',ps')#stk'),h') es\<rbrakk> 
+    \<Longrightarrow> assert_test p (((g,nid,m,ps)#stk),h) es" |
 
-  "\<lbrakk>p \<turnstile> (((g,nid,m)#stk),h) \<longrightarrow> (((g',nid',m')#stk'),h');
-
-    assert_test p (((g',nid',m')#stk'),h') es\<rbrakk> 
-    \<Longrightarrow> assert_test p (((g,nid,m)#stk),h) es" |
-
-  "\<lbrakk>p \<turnstile> (((g,nid,m)#stk),h) \<longrightarrow> (((g',nid',m')#stk'),h');
+  "\<lbrakk>p \<turnstile> (((g,nid,m,ps)#stk),h) \<longrightarrow> (((g',nid',m',ps')#stk'),h');
     has_return m'\<rbrakk>
-
-    \<Longrightarrow> assert_test p (((g,nid,m)#stk),h) NormalReturn"
+    \<Longrightarrow> assert_test p (((g,nid,m,ps)#stk),h) NormalReturn"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as assertTest,
                   i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as assertTestOut)
@@ -63,14 +60,14 @@ definition prog :: Program where
  (0, (StartNode ((Some 1)) (2)), VoidStamp),
  (1, (FrameState ([]) (None) (None) (None)), IllegalStamp),
  (2, (LoadFieldNode (2) (''VerifyProgram.$assertionsDisabled'') (None) (7)), IntegerStamp 32 (0) (1)),
- (3, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+ (3, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
  (4, (IntegerEqualsNode (2) (3)), VoidStamp),
  (5, (BeginNode (20)), VoidStamp),
  (6, (BeginNode (15)), VoidStamp),
  (7, (IfNode (4) (6) (5)), VoidStamp),
- (8, (ConstantNode (IntVal 32 (10))), IntegerStamp 32 (10) (10)),
- (9, (ConstantNode (IntVal 32 (4))), IntegerStamp 32 (4) (4)),
- (10, (ConstantNode (IntVal 32 (6))), IntegerStamp 32 (6) (6)),
+ (8, (ConstantNode (IntVal32 (10))), IntegerStamp 32 (10) (10)),
+ (9, (ConstantNode (IntVal32 (4))), IntegerStamp 32 (4) (4)),
+ (10, (ConstantNode (IntVal32 (6))), IntegerStamp 32 (6) (6)),
  (11, (MethodCallTargetNode (''VerifyProgram.add(II)I'') ([9, 10])), VoidStamp),
  (12, (ExceptionObjectNode ((Some 13)) (30)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (13, (FrameState ([]) (None) ((Some [12])) (None)), IllegalStamp),
@@ -103,9 +100,9 @@ definition prog :: Program where
  (42, (BeginNode (57)), VoidStamp),
  (43, (BeginNode (52)), VoidStamp),
  (44, (IfNode (41) (43) (42)), VoidStamp),
- (45, (ConstantNode (IntVal 32 (100))), IntegerStamp 32 (100) (100)),
- (46, (ConstantNode (IntVal 32 (20))), IntegerStamp 32 (20) (20)),
- (47, (ConstantNode (IntVal 32 (80))), IntegerStamp 32 (80) (80)),
+ (45, (ConstantNode (IntVal32 (100))), IntegerStamp 32 (100) (100)),
+ (46, (ConstantNode (IntVal32 (20))), IntegerStamp 32 (20) (20)),
+ (47, (ConstantNode (IntVal32 (80))), IntegerStamp 32 (80) (80)),
  (48, (MethodCallTargetNode (''VerifyProgram.add(II)I'') ([46, 47])), VoidStamp),
  (49, (ExceptionObjectNode ((Some 50)) (51)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (50, (FrameState ([]) (None) ((Some [49])) (None)), IllegalStamp),
@@ -135,8 +132,8 @@ definition prog :: Program where
  (75, (BeginNode (89)), VoidStamp),
  (76, (BeginNode (84)), VoidStamp),
  (77, (IfNode (74) (76) (75)), VoidStamp),
- (78, (ConstantNode (IntVal 32 (99))), IntegerStamp 32 (99) (99)),
- (79, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (78, (ConstantNode (IntVal32 (99))), IntegerStamp 32 (99) (99)),
+ (79, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
  (80, (MethodCallTargetNode (''VerifyProgram.add(II)I'') ([78, 79])), VoidStamp),
  (81, (ExceptionObjectNode ((Some 82)) (83)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (82, (FrameState ([]) (None) ((Some [81])) (None)), IllegalStamp),
@@ -166,8 +163,8 @@ definition prog :: Program where
  (107, (BeginNode (121)), VoidStamp),
  (108, (BeginNode (116)), VoidStamp),
  (109, (IfNode (106) (108) (107)), VoidStamp),
- (110, (ConstantNode (IntVal 32 (23))), IntegerStamp 32 (23) (23)),
- (111, (ConstantNode (IntVal 32 (3))), IntegerStamp 32 (3) (3)),
+ (110, (ConstantNode (IntVal32 (23))), IntegerStamp 32 (23) (23)),
+ (111, (ConstantNode (IntVal32 (3))), IntegerStamp 32 (3) (3)),
  (112, (MethodCallTargetNode (''VerifyProgram.add(II)I'') ([46, 111])), VoidStamp),
  (113, (ExceptionObjectNode ((Some 114)) (115)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (114, (FrameState ([]) (None) ((Some [113])) (None)), IllegalStamp),
@@ -204,8 +201,11 @@ definition prog :: Program where
  (5, (ReturnNode ((Some 4)) (None)), VoidStamp)])
 "
 
-value "assert_test prog ([(the (prog ''VerifyProgram.verify()V''), 0, new_map []),(the (prog ''VerifyProgram.verify()V''), 0, new_map [])], assertEnabledHeap) NormalReturn"
-values "{m | m . assert_test prog ([(the (prog ''VerifyProgram.verify()V''), 0, new_map [])], assertEnabledHeap) m}"
+definition prog_state0 where
+  "prog_state0 = (the (prog ''VerifyProgram.verify()V''), 0, new_map_state, [])"
+value "assert_test prog ([prog_state0,prog_state0], assertEnabledHeap) NormalReturn"
+
+values "{m | m . assert_test prog ([(the (prog ''VerifyProgram.verify()V''), 0, new_map_state, [])], assertEnabledHeap) m}"
 
 
 end

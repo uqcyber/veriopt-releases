@@ -231,19 +231,42 @@ proof -
     using ev by (rule LeafExprE; simp)
   then show ?thesis
     using "valid_value.cases"
-    by (metis valid_value.elims(2) valid_value.simps(14)) 
+    sorry
+qed
+
+
+lemma leafint64:
+  assumes ev: "[m,p] \<turnstile> LeafExpr i (IntegerStamp 64 lo hi) \<mapsto> val"
+  shows "\<exists>v. val = (IntVal64 v)"
+(* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
+proof -
+  have "valid_value (IntegerStamp 64 lo hi) val"
+    using ev by (rule LeafExprE; simp)
+  then show ?thesis
+    using "valid_value.cases"
+    sorry
 qed
 
 lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (- 2147483648) 2147483647"
   using default_stamp_def by auto
 
 lemma valid32 [simp]:
-  assumes a: "valid_value (IntegerStamp 32 lo hi) val"
+  assumes "valid_value (IntegerStamp 32 lo hi) val"
   shows "\<exists>v. (val = (IntVal32 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
- using a "valid_value.cases"
-  by (metis Stamp.distinct(1) valid_value.elims(2) valid_value.simps(1))
+  using assms "valid_value.cases"
+  sorry
 
+lemma valid64 [simp]:
+  assumes "valid_value (IntegerStamp 64 lo hi) val"
+  shows "\<exists>v. (val = (IntVal64 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
+  using assms "valid_value.cases"
+  sorry
 
+lemma int_stamp_implies_valid_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "stamp_expr expr = IntegerStamp b lo hi"
+  shows "valid_value (IntegerStamp b lo hi) val"
+  sorry
 
 subsection \<open>Example Data-flow Optimisations\<close>
 

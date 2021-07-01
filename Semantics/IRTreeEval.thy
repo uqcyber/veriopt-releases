@@ -295,10 +295,15 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
 
 (* ======== TODO: Functions for re-calculating stamps ========== *)
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
-  "stamp_unary op s1 = s1"
+  "stamp_unary op (IntegerStamp b lo hi) = unrestricted_stamp (IntegerStamp b lo hi)" |
+  (* for now... *)
+  "stamp_unary op _ = IllegalStamp"
 
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
-  "stamp_binary op s1 s2 = s1"
+  "stamp_binary op (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
+    (if (b1 = b2) then unrestricted_stamp (IntegerStamp b1 lo1 hi1) else IllegalStamp)" |
+  (* for now... *)
+  "stamp_binary op _ _ = IllegalStamp"
 
 fun stamp_expr :: "IRExpr \<Rightarrow> Stamp" where
   "stamp_expr (UnaryExpr op x) = stamp_unary op (stamp_expr x)" |

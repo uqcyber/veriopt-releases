@@ -143,6 +143,7 @@ fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
 \<comment> \<open>Define when a runtime value is valid for a stamp\<close>
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
   "valid_value (IntegerStamp b l h) (IntVal32 v) = ((sint v \<ge> l) \<and> (sint v \<le> h))" |
+  "valid_value (IntegerStamp b l h) (IntVal64 v) = ((sint v \<ge> l) \<and> (sint v \<le> h))" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
   "valid_value (VoidStamp) (UndefVal) = True" |
   "valid_value stamp val = False"

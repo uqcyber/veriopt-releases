@@ -142,11 +142,19 @@ fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
 
 \<comment> \<open>Define when a runtime value is valid for a stamp\<close>
 fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
-  "valid_value (IntegerStamp b l h) (IntVal32 v) = ((sint v \<ge> l) \<and> (sint v \<le> h))" |
-  "valid_value (IntegerStamp b l h) (IntVal64 v) = ((sint v \<ge> l) \<and> (sint v \<le> h))" |
+  "valid_value (IntegerStamp b l h) (IntVal32 v) = (b=32 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
+  "valid_value (IntegerStamp b l h) (IntVal64 v) = (b=64 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
   "valid_value (VoidStamp) (UndefVal) = True" |
+  "valid_value (ObjectStamp klass exact nonNull alwaysNull) (ObjRef ref) =
+     (if nonNull then ref\<noteq>None else True)" |
   "valid_value stamp val = False"
+(* TODO: add the other stamps:
+  | KlassPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
+  | MethodCountersPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
+  | MethodPointersStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
+  | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
+*)
 
 \<comment> \<open>
 The most common type of stamp within the compiler (apart from the VoidStamp) is a 32 bit

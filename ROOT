@@ -20,6 +20,7 @@ session Semantics in Semantics = Graph +
            show_question_marks = false]
   theories
     IRTreeEval
+    IRTreeEvalThms
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
@@ -45,7 +46,7 @@ session Optimizations in Optimizations = Proofs +
     ConditionalElimination
     Construction
 
-session Tests in Tests = Optimizations +
+session Tests in Tests = Semantics +
   description
     "Miscellaneous project testing"
   theories

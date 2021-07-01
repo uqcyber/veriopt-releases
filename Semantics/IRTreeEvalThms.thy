@@ -105,8 +105,8 @@ lemma rep_integer_less_than:
 
 lemma rep_load_field:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
-   kind g n = LoadFieldNode nid f obj nxt \<Longrightarrow>
-   (\<exists>s. e = LeafExpr nid s)"
+   is_preevaluated (kind g n) \<Longrightarrow>
+   (\<exists>s. e = LeafExpr n s)"
   by (induction rule: rep.induct; auto)
 
 (* group these rules into a named set? *)
@@ -179,8 +179,8 @@ case (IntegerLessThanNode n x y xe ye)
 then show ?case
   by (metis IRNode.inject(13) IntegerLessThanNodeE rep_integer_less_than) 
 next
-  case (LoadFieldNode n nid f obj nxt s)
-  then show ?case using rep_load_field LoadFieldNodeE by blast 
+  case (LeafNode n s)
+  then show ?case using rep_load_field LeafNodeE by blast 
 qed
 
 
@@ -208,7 +208,31 @@ lemma valid_not_undef:
   apply (rule valid_value.elims(1)[of s val True])
   using a1 a2 by auto
 
+(* Elimination rules for valid_value, for each kind of stamp. *)
+lemma valid_VoidStamp[elim]:
+  shows "valid_value VoidStamp val \<Longrightarrow>
+      val = UndefVal"
+  using valid_value.simps by (metis IRTreeEval.val_to_bool.cases)
 
+lemma valid_ObjStamp[elim]:
+  shows "valid_value (ObjectStamp klass exact nonNull alwaysNull) val \<Longrightarrow>
+      (\<exists>v. val = ObjRef v)"
+  using valid_value.simps by (metis IRTreeEval.val_to_bool.cases)
+
+lemma valid_int32[elim]:
+  shows "valid_value (IntegerStamp 32 l h) val \<Longrightarrow>
+      (\<exists>v. val = IntVal32 v)"
+  apply (rule IRTreeEval.val_to_bool.cases[of val])
+  using Value.distinct by simp+
+                    
+lemma valid_int64[elim]:
+  shows "valid_value (IntegerStamp 64 l h) val \<Longrightarrow>
+      (\<exists>v. val = IntVal64 v)"
+  apply (rule IRTreeEval.val_to_bool.cases[of val])
+  using Value.distinct by simp+
+
+  
+  
 text \<open>TODO: could we prove that expression evaluation never returns $UndefVal$?
   But this might require restricting unary and binary operators to be total...
 \<close>
@@ -229,9 +253,7 @@ lemma leafint32:
 proof - 
   have "valid_value (IntegerStamp 32 lo hi) val"
     using ev by (rule LeafExprE; simp)
-  then show ?thesis
-    using "valid_value.cases"
-    sorry
+  then show ?thesis by auto
 qed
 
 
@@ -242,31 +264,46 @@ lemma leafint64:
 proof -
   have "valid_value (IntegerStamp 64 lo hi) val"
     using ev by (rule LeafExprE; simp)
-  then show ?thesis
-    using "valid_value.cases"
-    sorry
+  then show ?thesis by auto
 qed
 
-lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (- 2147483648) 2147483647"
+lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (-2147483648) 2147483647"
   using default_stamp_def by auto
 
 lemma valid32 [simp]:
   assumes "valid_value (IntegerStamp 32 lo hi) val"
   shows "\<exists>v. (val = (IntVal32 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
-  using assms "valid_value.cases"
-  sorry
+  using assms valid_int32 by force 
 
 lemma valid64 [simp]:
   assumes "valid_value (IntegerStamp 64 lo hi) val"
   shows "\<exists>v. (val = (IntVal64 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
-  using assms "valid_value.cases"
-  sorry
+  using assms valid_int64 by force
 
 lemma int_stamp_implies_valid_value:
-  assumes "[m,p] \<turnstile> expr \<mapsto> val"
-  assumes "stamp_expr expr = IntegerStamp b lo hi"
-  shows "valid_value (IntegerStamp b lo hi) val"
-  sorry
+  "[m,p] \<turnstile> expr \<mapsto> val \<Longrightarrow>
+   valid_value (stamp_expr expr) val"
+proof (induction rule: evaltree.induct)
+case (ConstantExpr c)
+then show ?case sorry
+next
+  case (ParameterExpr s i)
+then show ?case sorry
+next
+  case (ConditionalExpr ce cond branch te fe v)
+  then show ?case sorry
+next
+  case (UnaryExpr xe v op)
+  then show ?case sorry
+next
+  case (BinaryExpr xe x ye y op)
+then show ?case sorry
+next
+  case (LeafExpr val nid s)
+  then show ?case sorry
+qed
+
+
 
 subsection \<open>Example Data-flow Optimisations\<close>
 

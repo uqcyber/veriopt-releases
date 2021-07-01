@@ -207,7 +207,7 @@ inductive exec :: "Program
   "\<lbrakk>P \<turnstile> (((g,nid,m,p)#xs),h) \<longrightarrow> (((g',nid',m',p')#ys),h');
     \<not>(has_return m');
 
-    l' = (l @ [(g, nid,m,p)]);
+    l' = (l @ [(g,nid,m,p)]);
 
     exec P (((g',nid',m',p')#ys),h') l' next_state l''\<rbrakk> 
     \<Longrightarrow> exec P (((g,nid,m,p)#xs),h) l next_state l''" 
@@ -274,7 +274,8 @@ definition eg4_sq :: IRGraph where
    ]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
-values "{h_load_field field_sq (Some 0) (prod.snd res)
-        | res. (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
+values "{h_load_field field_sq (Some 0) (prod.snd res) | res.
+          (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*4* res}"
+
 end
 

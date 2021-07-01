@@ -99,7 +99,7 @@ datatype (discs_sels) IRExpr =
   | ConstantExpr (ir_const: Value) 
 (* TODO
   | IsNullNode (ir_value: IRExpr) 
-  | LogicNegationNode (ir_value: IRExpr)
+  | RefNode ?
 *)
   | ParameterExpr (ir_index: nat) (ir_stamp: Stamp)
 (* Not needed?
@@ -112,6 +112,18 @@ datatype (discs_sels) IRExpr =
 *)
   | LeafExpr (ir_nid: ID) (ir_stamp: Stamp)
   (* LeafExpr is for pre-evaluated nodes, like LoadFieldNode, SignedDivNode. *) 
+
+
+(* These kinds of nodes are evaluated during the control flow, so are already in MapState. *)
+fun is_preevaluated :: "IRNode \<Rightarrow> bool" where
+  "is_preevaluated (InvokeNode nid _ _ _ _ _) = True" |
+  "is_preevaluated (InvokeWithExceptionNode nid _ _ _ _ _ _) = True" |
+  "is_preevaluated (NewInstanceNode nid _ _ _) = True" |
+  "is_preevaluated (LoadFieldNode nid _ _ _) = True" |
+  "is_preevaluated (SignedDivNode nid _ _ _ _ _) = True" |
+  "is_preevaluated (SignedRemNode nid _ _ _ _ _) = True" |
+  "is_preevaluated (ValuePhiNode nid _ _) = True" |
+  "is_preevaluated _ = False"
 
 
 inductive
@@ -204,10 +216,10 @@ inductive
     g \<turnstile> y \<triangleright> ye\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)" |
 
-  LoadFieldNode: (* TODO others *)
-  "\<lbrakk>kind g n = LoadFieldNode nid f obj nxt;
+  LeafNode:
+  "\<lbrakk>is_preevaluated (kind g n);
     stamp g n = s\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (LeafExpr nid s)"
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (LeafExpr n s)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
 
@@ -235,7 +247,7 @@ text_raw \<open>\Snip{repRules}%
 @{thm[mode=Rule] rep.AddNode [no_vars]}\\[8px]
 @{thm[mode=Rule] rep.MulNode [no_vars]}\\[8px]
 @{thm[mode=Rule] rep.SubNode [no_vars]}\\[8px]
-@{thm[mode=Rule] rep.LoadFieldNode [no_vars]}\\[8px]
+@{thm[mode=Rule] rep.LeafNode [no_vars]}\\[8px]
 \end{center}
 \EndSnip\<close>
 
@@ -271,7 +283,7 @@ inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)"
 inductive_cases IntegerLessThanNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)"
-inductive_cases LoadFieldNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+inductive_cases LeafNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (LeafExpr nid s)"
 
 (* group those forward rules into a named set *)
@@ -291,7 +303,7 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   XorNodeE
   IntegerEqualsNodeE
   IntegerLessThanNodeE
-  LoadFieldNodeE
+  LeafNodeE
 
 (* ======== TODO: Functions for re-calculating stamps ========== *)
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where

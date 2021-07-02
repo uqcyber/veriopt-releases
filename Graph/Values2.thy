@@ -206,8 +206,8 @@ fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_equals _ _ = UndefVal"
 
 fun intval_less_than :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_less_than (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 < v2)" |
-  "intval_less_than (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 < v2)" |
+  "intval_less_than (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 <s v2)" |
+  "intval_less_than (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 <s v2)" |
   "intval_less_than _ _ = UndefVal"
 
 (* Other possibly-helpful lemmas from WORD and its ancestors:

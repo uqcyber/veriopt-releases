@@ -504,7 +504,24 @@ next
   with res show ?case using sub_det by blast 
 next
   case (sub_y_negate nb b a)
-  then show ?case sorry
+  obtain bval where bval: "[g, m, p] \<turnstile> kind g b \<mapsto> bval"
+    using sub_y_negate(4) by auto
+  have xtype: "\<exists>v . xval = IntVal32 v"
+    using sub_y_negate(8) sub_int32_typesafe unfolding minus_Value_def by metis
+  have ytype: "\<exists>v . yval = IntVal32 v"
+    using sub_y_negate(8) sub_int32_typesafe unfolding minus_Value_def by metis
+  have yeval: "yval = (IntVal32 0) - bval"
+    using sub_y_negate(1,5) eval.NegateNode bval evalDet yval by simp
+  then have btype: "\<exists>v . bval = IntVal32 v"
+    using sub_int32_typesafe ytype by simp
+  have 1: "IntVal32 res = xval - ((IntVal32 0) - bval)"
+    using sub_y_negate(8) yeval unfolding minus_Value_def by simp
+  have 2: "... = xval + bval"
+    using xtype btype unfolding minus_Value_def plus_Value_def by auto
+  have 3: "... = IntVal32 res'"
+    using sub_y_negate(4,5) xval bval eval.AddNode
+    by (metis IRNode.inject(39) evalDet)
+  then show ?case using 1 2 3 by simp
 qed
 qed
 end

@@ -151,12 +151,17 @@ inductive CanonicalizeSub :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" wh
 inductive CanonicalizeNegate :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   negate_negate: (* NegateNode.canonical(88) *)
   (* -(-x) \<Rightarrow> x *)
-  "\<lbrakk>nx = (UnaryExpr UnaryNeg x)\<rbrakk>
+  "\<lbrakk>nx = (UnaryExpr UnaryNeg x);
+    is_IntegerStamp (stamp_expr x)\<rbrakk>
     \<Longrightarrow> CanonicalizeNegate (UnaryExpr UnaryNeg nx) x" |
 
   negate_sub: (* NegateNode.canonical(91) *)
   (* -(x - y) \<Rightarrow> (y - x) *)
-  "\<lbrakk>e = (BinaryExpr BinSub x y)\<rbrakk>
+  "\<lbrakk>e = (BinaryExpr BinSub x y);
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
+    stp_bits stampx = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeNegate (UnaryExpr UnaryNeg e) (BinaryExpr BinSub y x)"
 
 inductive CanonicalizeNot :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where

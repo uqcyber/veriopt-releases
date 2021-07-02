@@ -220,6 +220,10 @@ lemma plus_dist:
   for v w :: \<open>'a::len word\<close>
 *)
 
+fun intval_negate :: "Value \<Rightarrow> Value" where
+  "intval_negate (IntVal32 v) = IntVal32 (- v)" |
+  "intval_negate (IntVal64 v) = IntVal64 ( - v)" |
+  "intval_negate _ = UndefVal"
 
 
 (* ========================================================================

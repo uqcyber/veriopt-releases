@@ -1,6 +1,8 @@
 name: Isabelle Build
 
-on: [workflow_dispatch, push, pull_request]
+on:
+  workflow_dispatch:
+  push:
 
 jobs:
 
@@ -53,7 +55,8 @@ jobs:
         name: VerioptHTML
         path: ./veriopt
       
-    - name: Deploy
+    - name: Deploy Main
+      if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
         deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}

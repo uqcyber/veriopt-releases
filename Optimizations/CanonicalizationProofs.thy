@@ -311,7 +311,8 @@ next
   then have "\<exists>res. IntVal32 res = IntVal32 0 - oxval"
     using xv by fastforce
   then have "\<exists>oxv. oxval = IntVal32 oxv"
-    using sub_int32_typesafe negdef sorry (* should be easy *)
+    using sub_int32_typesafe negdef
+    by metis
   then obtain oxv where oxv: "oxval = IntVal32 oxv"
     using sub_int32_typesafe xv
     by blast
@@ -341,7 +342,8 @@ next
   then have "\<exists>res. IntVal32 res = IntVal32 0 - oyval"
     using yv by fastforce
   then have "\<exists>oyv. oyval = IntVal32 oyv"
-    using sub_int32_typesafe negdef sorry (* should be easy *)
+    using sub_int32_typesafe negdef
+    by metis
   then obtain oyv where oyv: "oyval = IntVal32 oyv"
     using sub_int32_typesafe yv
     by blast
@@ -358,6 +360,24 @@ next
     by (metis IRNode.inject(2) Value.sel(1) add_ynegate.prems(3) add_ynegate.prems(4) add_ynegate.prems(5) evalDet negdef oyval plus_Value_def res)
 qed
 qed
+
+lemma add_det:
+  fixes r x y :: Value
+  shows "r = x + y \<Longrightarrow> r' = x + y \<Longrightarrow> r = r'"
+  by simp
+
+lemma sub_det:
+  fixes r x y :: Value
+  shows "r = x - y \<Longrightarrow> r' = x - y \<Longrightarrow> r = r'"
+  by simp
+
+lemma add_sub:
+  fixes x y :: Value
+  assumes "x = IntVal32 xval"
+  and "y = IntVal32 yval"
+  shows "(x + y) - y = x"
+  unfolding plus_Value_def minus_Value_def using assms by simp
+
 
 experiment begin
 lemma CanonicalizeSubProof:
@@ -386,18 +406,64 @@ proof (induct rule: "CanonicalizeSub.induct")
     using evalDet sub_same(1) xval yval sub_same(6)
     by (metis IRNode.inject(39))
   then have "xval - yval = IntVal32 0"
-    using sub_int32_typesafe res minus_Value_def
-    sorry
-  then show ?case sorry
+    using sub_int32_typesafe res unfolding minus_Value_def
+    by (cases xval; cases yval; auto)
+  then have res: "res = 0"
+    using sub_same(9) unfolding minus_Value_def by simp
+  have "res' = 0"
+    using sub_same(5) eval.ConstantNode by auto
+  with res show ?case by simp
 next
   case (sub_both_const x c_1 y c_2 val)
-  then show ?case sorry
+  have res: "IntVal32 res = xval - yval"
+    using sub_both_const(5) xval yval sub_both_const(7) eval.SubNode
+    by (simp add: eval.SubNode sub_both_const.prems(2) sub_both_const.prems(4) xval yval minus_Value_def res)
+  have "IntVal32 res' = xval - yval"
+    using sub_both_const(6) sub_both_const(1,2,3) xval yval sub_both_const(7) minus_Value_def
+    by (metis ConstantNodeE IRNode.inject(39))
+  with res show ?case using sub_det by blast
 next
   case (sub_left_add1 left a b)
-  then show ?case sorry
+  have ytype: "\<exists>v . yval = IntVal32 v"
+    using yval sub_int32_typesafe res unfolding minus_Value_def by metis
+  obtain aval where aval: "[g, m, p] \<turnstile> kind g a \<mapsto> aval"
+    using sub_left_add1.prems(3) by blast
+  then have atype: "\<exists>v . aval = IntVal32 v"
+    using sub_int32_typesafe sub_left_add1
+    by (meson RefNode evalDet)
+  have "[g, m, p] \<turnstile> kind g b \<mapsto> yval"
+    using evalDet sub_left_add1(5) yval by simp
+  have "xval = aval + yval"
+    using sub_left_add1(1,5,6,7) eval.AddNode aval
+    by (metis IRNode.inject(39) evalDet)
+  then have "IntVal32 res = (aval + yval) - yval"
+    using sub_left_add1(8) unfolding minus_Value_def plus_Value_def by simp
+  then have res: "IntVal32 res = aval"
+    using add_sub atype ytype by metis
+  have "IntVal32 res' = aval"
+    using sub_left_add1(4) eval.RefNode aval evalDet by simp
+  with res show ?case by auto
 next
   case (sub_left_add2 left a b)
-  then show ?case sorry
+    have ytype: "\<exists>v . yval = IntVal32 v"
+    using yval sub_int32_typesafe res unfolding minus_Value_def by metis
+  obtain bval where bval: "[g, m, p] \<turnstile> kind g b \<mapsto> bval"
+    using sub_left_add2.prems(3) by blast
+  then have atype: "\<exists>v . bval = IntVal32 v"
+    using sub_left_add2(4) eval.RefNode
+    by (meson evalDet)
+  have "[g, m, p] \<turnstile> kind g a \<mapsto> yval"
+    using evalDet sub_left_add2(5) yval by simp
+  then have "xval = yval + bval"
+    using sub_left_add2(1,5,6,7) eval.AddNode bval
+    using IRNode.inject(39) evalDet by simp
+  then have "IntVal32 res = (yval + bval) - yval"
+    using sub_left_add2(8) unfolding minus_Value_def plus_Value_def by simp
+  then have res: "IntVal32 res = bval"
+    using atype ytype unfolding plus_Value_def minus_Value_def by auto
+  have "IntVal32 res' = bval"
+    using sub_left_add2(4) eval.RefNode bval evalDet by simp
+  with res show ?case by auto
 next
   case (sub_left_sub left a b)
   then show ?case sorry
@@ -412,10 +478,30 @@ next
   then show ?case sorry
 next
   case (sub_yzero y x)
-  then show ?case sorry
+  have 0: "IntVal32 res = xval - yval"
+    using sub_yzero(8) unfolding minus_Value_def by simp
+  then have 1: "\<exists>v . xval = IntVal32 v"
+    using sub_int32_typesafe by metis
+  have "yval = IntVal32 0"
+    using eval.ConstantNode yval sub_yzero(1,5) by auto
+  then have res: "IntVal32 res = xval"
+    using 0 1 unfolding minus_Value_def by auto
+  have "IntVal32 res' = xval"
+    using sub_yzero(4,5) xval eval.RefNode evalDet by simp
+  with res show ?case by auto
 next
   case (sub_xzero x y)
-  then show ?case sorry
+  have 0: "\<exists>v . xval = IntVal32 v"
+    using sub_xzero(8) sub_int32_typesafe unfolding minus_Value_def by metis
+  have 1: "\<exists>v . yval = IntVal32 v"
+    using sub_xzero(8) sub_int32_typesafe unfolding minus_Value_def by metis
+  have "xval = IntVal32 0"
+    using sub_xzero(1,5) eval.ConstantNode xval by auto
+  then have res: "IntVal32 res = (IntVal32 0) - yval"
+    using sub_xzero(8) xval unfolding minus_Value_def by simp
+  have "IntVal32 res' = (IntVal32 0) - yval"
+    using eval.NegateNode sub_xzero(4,5) yval evalDet by simp
+  with res show ?case using sub_det by blast 
 next
   case (sub_y_negate nb b a)
   then show ?case sorry
@@ -479,71 +565,5 @@ next
     using lockstep_strong_bisimilulation assms(3) by simp
 qed
 
-
-lemma double_negate: 
- "\<lbrakk>wf_bool x\<rbrakk> 
-  \<Longrightarrow> bool_to_val (\<not>(val_to_bool (bool_to_val (\<not>(val_to_bool x))))) = x" 
-  using wf_bool.elims(2) by fastforce
-
-(*
-lemma logic_negation_bool_inputs:
-  assumes "[g, m, p] \<turnstile> kind g inp \<mapsto> inp_val"
-  assumes "kind g n = LogicNegationNode inp"
-  assumes "[g, m, p] \<turnstile> kind g n \<mapsto> val"
-  shows "wf_bool inp_val" 
-  using assms
-proof - 
-  have is_logic_node: "is_LogicNode (kind g n)"
-    using is_LogicNode.simps
-    by (simp add: assms(3))
-  have inp_is_input: "inp \<in> set (inputs_of (kind g n))" 
-    by (simp add: assms(3))
-  have n_is_id: "n \<in> ids g" 
-    by (simp add: assms(3))
-  then have wflni: "wf_logic_node_inputs g n" 
-    using wf_values.simps assms(1) is_logic_node inp_is_input assms(2) assms(4) by blast
-  then show ?thesis 
-    using assms(2) inp_is_input wf_logic_node_inputs.simps by blast
-qed
-*)
-
-experiment begin
-lemma CanonicalizeLogicNegationProof:
-  assumes "CanonicalizeLogicNegation g before after"
-  assumes "wf_stamps g"
-  assumes "[g, m, p] \<turnstile> before \<mapsto> IntVal b res"
-  assumes "[g, m, p] \<turnstile> after \<mapsto> IntVal b' res'"
-  shows "res = res'"
-  using assms 
-proof (induct rule: CanonicalizeLogicNegation.induct)
-  case (logical_not_const nx val neg_val)
-  then show ?case 
-    sorry
-next
-  case (logical_not_not nx x)
-  obtain nxval where nxval: "[g, m, p] \<turnstile> kind g nx \<mapsto> nxval"
-    using logical_not_not.prems(2) by blast
-  obtain xval where xval: "[g, m, p] \<turnstile> kind g x \<mapsto> xval"
-    using logical_not_not.prems(3) by blast
-  obtain beforeval where beforeval: "[g, m, p] \<turnstile> before \<mapsto> beforeval"
-    using assms(3) by auto
-  obtain refval where refval: "[g, m, p] \<turnstile> after \<mapsto> refval"
-    using assms(4) by auto
-  then have "wf_bool xval" 
-    sorry
-  then have ref_xval_eq: "refval = xval"
-    by (metis RefNode assms(4) evalDet logical_not_not.prems(3) refval xval)
-  then have "nxval = bool_to_val (\<not>(val_to_bool xval))"
-    sorry
-  then have "beforeval = bool_to_val (\<not>(val_to_bool nxval))"
-    sorry
-  then have double_negate_xval: "bool_to_val (\<not>(val_to_bool (bool_to_val (\<not>(val_to_bool xval))))) = xval"
-    by (simp add: \<open>wf_bool xval\<close> double_negate)
-  then have node_eq_eq: "beforeval = xval"
-    by (simp add: \<open>beforeval = bool_to_val (\<not> val_to_bool nxval)\<close> \<open>nxval = bool_to_val (\<not> val_to_bool xval)\<close>)
-  show ?thesis 
-    sorry
-qed
-end
 
 end

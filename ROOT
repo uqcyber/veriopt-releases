@@ -47,6 +47,7 @@ session Optimizations in Optimizations = Proofs +
     (*ConditionalElimination
     Construction*)
 
+(*
 session Tests in Tests = Optimizations +
   description
     "Miscellaneous project testing"
@@ -55,6 +56,7 @@ session Tests in Tests = Optimizations +
     ExecExamples
     UnitTesting
     (*ConditionalEliminationTests*)
+*)
 
 \<comment>\<open>All documentation sessions\<close>
 
@@ -83,12 +85,12 @@ session Document in "Papers/Main" = Optimizations +
     Proofs.IRGraphFrames
     Proofs.Rewrites
     Proofs.Stuttering
-    Graph.Traversal
 
     Optimizations.Canonicalization
     Optimizations.CanonicalizationProofs
-    Optimizations.ConditionalElimination
-    Optimizations.Construction
+(*    Optimizations.ConditionalElimination
+    Optimizations.Construction*)
+
   document_files (in ".")
     "root.tex"
   document_files (in "../../latex")
@@ -107,7 +109,7 @@ session SemanticsPaper in "Papers/Semantics" = Optimizations +
     "root.tex"
     "mathpartir.sty"
 
-session ValidationPaper in "Papers/Validation" = Tests +
+(*session ValidationPaper in "Papers/Validation" = Tests +
   description
     "Content for paper on validation efforts"
   options [document = pdf, document_output = "output",
@@ -116,4 +118,4 @@ session ValidationPaper in "Papers/Validation" = Tests +
     ValidationSnippets
   document_files (in "../../latex")
     "root.tex"
-    "mathpartir.sty"
+    "mathpartir.sty"*)

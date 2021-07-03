@@ -17,6 +17,11 @@
 <span class="keyword1"><span class="command">theory</span></span> CanonicalizationTree
   <span class="keyword2"><span class="keyword">imports</span></span>
     <a href="../Semantics/IRTreeEval.html">Semantics.IRTreeEval</a>
+    <a href="../Proofs/IRGraphFrames.html">Proofs.IRGraphFrames</a>
+    <a href="../Proofs/Stuttering.html">Proofs.Stuttering</a>
+    <a href="../Proofs/Bisimulation.html">Proofs.Bisimulation</a>
+    <a href="../Proofs/Form.html">Proofs.Form</a>
+    <a href="../Graph/Traversal.html">Graph.Traversal</a>
 <span class="keyword2"><span class="keyword">begin</span></span>
 
 <span class="comment1">(* TODO: these functions below could be made more precise (but complicated)
@@ -165,17 +170,12 @@
 <span class="keyword1"><span class="command">inductive</span></span> <span class="entity">CanonicalizeNegate</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"IRExpr <span class="main">⇒</span> IRExpr <span class="main">⇒</span> bool"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
   negate_negate<span class="main">:</span> <span class="comment1">(* NegateNode.canonical(88) *)</span>
   <span class="comment1">(* -(-x) ⇒ x *)</span>
-  <span class="quoted"><span class="quoted">"<span class="main">⟦</span><span class="free"><span class="bound"><span class="entity">nx</span></span></span> <span class="main">=</span> <span class="main">(</span>UnaryExpr UnaryNeg <span class="free"><span class="bound"><span class="entity">x</span></span></span><span class="main">)</span><span class="main">;</span>
-    is_IntegerStamp <span class="main">(</span>stamp_expr <span class="free"><span class="bound"><span class="entity">x</span></span></span><span class="main">)</span><span class="main">⟧</span>
+  <span class="quoted"><span class="quoted">"<span class="main">⟦</span><span class="free"><span class="bound"><span class="entity">nx</span></span></span> <span class="main">=</span> <span class="main">(</span>UnaryExpr UnaryNeg <span class="free"><span class="bound"><span class="entity">x</span></span></span><span class="main">)</span><span class="main">⟧</span>
     <span class="main">⟹</span> <span class="free">CanonicalizeNegate</span> <span class="main">(</span>UnaryExpr UnaryNeg <span class="free"><span class="bound"><span class="entity">nx</span></span></span><span class="main">)</span> <span class="free"><span class="bound"><span class="entity">x</span></span></span>"</span></span> <span class="main">|</span>
 
   negate_sub<span class="main">:</span> <span class="comment1">(* NegateNode.canonical(91) *)</span>
   <span class="comment1">(* -(x - y) ⇒ (y - x) *)</span>
-  <span class="quoted"><span class="quoted">"<span class="main">⟦</span><span class="free"><span class="bound"><span class="entity">e</span></span></span> <span class="main">=</span> <span class="main">(</span>BinaryExpr BinSub <span class="free"><span class="bound"><span class="entity">x</span></span></span> <span class="free"><span class="bound"><span class="entity">y</span></span></span><span class="main">)</span><span class="main">;</span>
-    <span class="free"><span class="bound"><span class="entity">stampx</span></span></span> <span class="main">=</span> stamp_expr <span class="free"><span class="bound"><span class="entity">x</span></span></span><span class="main">;</span>
-    <span class="free"><span class="bound"><span class="entity">stampy</span></span></span> <span class="main">=</span> stamp_expr <span class="free"><span class="bound"><span class="entity">y</span></span></span><span class="main">;</span>
-    is_IntegerStamp <span class="free"><span class="bound"><span class="entity">stampx</span></span></span> <span class="main">∧</span> is_IntegerStamp <span class="free"><span class="bound"><span class="entity">stampy</span></span></span><span class="main">;</span>
-    stp_bits <span class="free"><span class="bound"><span class="entity">stampx</span></span></span> <span class="main">=</span> stp_bits <span class="free"><span class="bound"><span class="entity">stampy</span></span></span><span class="main">⟧</span>
+  <span class="quoted"><span class="quoted">"<span class="main">⟦</span><span class="free"><span class="bound"><span class="entity">e</span></span></span> <span class="main">=</span> <span class="main">(</span>BinaryExpr BinSub <span class="free"><span class="bound"><span class="entity">x</span></span></span> <span class="free"><span class="bound"><span class="entity">y</span></span></span><span class="main">)</span><span class="main">⟧</span>
     <span class="main">⟹</span> <span class="free">CanonicalizeNegate</span> <span class="main">(</span>UnaryExpr UnaryNeg <span class="free"><span class="bound"><span class="entity">e</span></span></span><span class="main">)</span> <span class="main">(</span>BinaryExpr BinSub <span class="free"><span class="bound"><span class="entity">y</span></span></span> <span class="free"><span class="bound"><span class="entity">x</span></span></span><span class="main">)</span>"</span></span>
 
 <span class="keyword1"><span class="command">inductive</span></span> <span class="entity">CanonicalizeNot</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"IRExpr <span class="main">⇒</span> IRExpr <span class="main">⇒</span> bool"</span></span> <span class="keyword2"><span class="keyword">where</span></span>

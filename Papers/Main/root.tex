@@ -1,7 +1,7 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{isabelle,isabellesym}
 \usepackage{amssymb}
-
+\usepackage{mathpartir}
 % further packages required for unusual symbols (see also
 % isabellesym.sty), use only when needed
 
@@ -71,24 +71,26 @@ by the Veriopt project.
 \parindent 0pt\parskip 0.5ex
 
 % generated text of all theories
-\input{Values}
-\input{IRNodes}
+\input{Values2}
+\input{IRNodes2}
 \input{IRNodeHierarchy}
-\input{Stamp}
+\input{Stamp2}
 \input{IRGraph}
 
-\input{IREval}
+\input{IRTreeEval}
+\input{IRTreeEvalThms}
 \input{IRStepObj}
 
-\input{Bisimulation}
-\input{Form}
-\input{IRGraphFrames}
-\input{Rewrites}
-\input{Stuttering}
+%\input{Bisimulation}
+%\input{Form}
+%\input{IRGraphFrames}
+%\input{Rewrites}
+%\input{Stuttering}
 
-\input{Canonicalization}
-\input{ConditionalElimination}
-\input{Construction}
+\input{CanonicalizationTree}
+\input{CanonicalizationTreeProofs}
+%\input{ConditionalElimination}
+%\input{Construction}
 
 % optional bibliography
 %\bibliographystyle{abbrv}

@@ -4,12 +4,12 @@ session Graph in Graph = "HOL-Library" +
   description
     "GraalVM IR structure"
   theories
-    Values
-    IRNodes
+    Values2
+    IRNodes2
     IRNodeHierarchy
-    Stamp
+    Stamp2
     IRGraph
-    Comparison
+    (*Comparison*)
     (* CFG -- will add back once sorries are fixed *)
 
 session Semantics in Semantics = Graph +
@@ -21,11 +21,13 @@ session Semantics in Semantics = Graph +
   theories
     IRTreeEval
     IRTreeEvalThms
+    IRStepObj
+    (*IRStepThms*)
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
 
-session Proofs in Proofs = Semantics +
+(*session Proofs in Proofs = Semantics +
   description
     "Supporting proof theories and definitions"
   theories
@@ -33,18 +35,18 @@ session Proofs in Proofs = Semantics +
     Form
     IRGraphFrames
     Rewrites
-    Stuttering
+    Stuttering*)
 
-session Optimizations in Optimizations = Proofs +
+session Optimizations in Optimizations = Semantics +
   description
     "Graph transformation optimizations"
   options [quick_and_dirty]
   theories
-    Canonicalization
+    (*Canonicalization*)
     CanonicalizationTree
-    CanonicalizationProofs
-    ConditionalElimination
-    Construction
+    CanonicalizationTreeProofs
+    (*ConditionalElimination
+    Construction*)
 
 session Tests in Tests = Semantics +
   description
@@ -65,29 +67,29 @@ session Document in "Papers/Main" = Optimizations +
   sessions
     Graph
     Semantics
-    Proofs
+    (*Proofs*)
     Optimizations
   document_theories
-    Graph.Values
-    Graph.IRNodes
+    Graph.Values2
+    Graph.IRNodes2
     Graph.IRNodeHierarchy
-    Graph.Stamp
+    Graph.Stamp2
     Graph.IRGraph
 
-    Semantics.IREval
+    Semantics.IRTreeEval
+    Semantics.IRTreeEvalThms
     Semantics.IRStepObj
+    (*Semantics.IRStepThms*)
 
-    Proofs.Bisimulation
+    (*Proofs.Bisimulation
     Proofs.Form
     Proofs.IRGraphFrames
     Proofs.Rewrites
     Proofs.Stuttering
-    Graph.Traversal
+    Graph.Traversal*)
 
-    Optimizations.Canonicalization
-    Optimizations.CanonicalizationProofs
-    Optimizations.ConditionalElimination
-    Optimizations.Construction
+    Optimizations.CanonicalizationTree
+    Optimizations.CanonicalizationTreeProofs
   document_files (in ".")
     "root.tex"
   document_files (in "../../latex")
@@ -95,6 +97,7 @@ session Document in "Papers/Main" = Optimizations +
 
 \<comment>\<open>Snippets for papers\<close>
 
+(* Currently preserved in atva branch 
 session SemanticsPaper in "Papers/Semantics" = Optimizations +
   description
     "Content for IR semantics description paper"
@@ -105,6 +108,7 @@ session SemanticsPaper in "Papers/Semantics" = Optimizations +
   document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"
+*)
 
 session ValidationPaper in "Papers/Validation" = Tests +
   description

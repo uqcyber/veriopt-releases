@@ -25,39 +25,33 @@ jobs:
     - name: Build Sessions
       uses: NieDzejkob/isabelle-action@v1.8
       with:
-        args: "build -b -P. -D . -v"
+        args: "build -b -P site -D . -v"
         heapCacheDir: .heaps
         
     - name: Check State
       run: ls -R .
 
-    - name: Upload Document Artifact
+    - name: Setup ID
+      id: vars
+      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+
+    - name: Upload Documents
       uses: actions/upload-artifact@v2
       with:
-        name: VerioptDoc
-        path: ./veriopt/Document/document.pdf
+        name: veriopt-docs-${{ steps.vars.outputs.sha_short }}
+        path: |
+          ./site/veriopt/**/document.pdf
+          ./site/veriopt/**/outline.pdf
         
-    - name: Upload Document Outline Artifact
+    - name: Upload HTML
       uses: actions/upload-artifact@v2
       with:
-        name: VerioptOutline
-        path: ./veriopt/Document/outline.pdf
-        
-    - name: Upload Session Documents
-      uses: actions/upload-artifact@v2
-      with:
-        name: VerioptDocuments
-        path: ./veriopt/*/document.pdf
-        
-    - name: Upload HTML Documentation
-      uses: actions/upload-artifact@v2
-      with:
-        name: VerioptHTML
-        path: ./veriopt
+        name: veriopt-${{ steps.vars.outputs.sha_short }}
+        path: ./site/veriopt
       
     - name: Deploy Main
       if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
         deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-        publish_dir: ./veriopt
+        publish_dir: ./site/veriopt

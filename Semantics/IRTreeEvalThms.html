@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><link rel="stylesheet" type="text/css" href="isabelle.css"/>
+<title>Theory IRTreeEvalThms</title>
+</head>
+
+
+<body>
+<div class="head">
+<h1>Theory IRTreeEvalThms</h1>
+</div>
+
+<pre class="source"><span class="keyword1"><span class="command">section</span></span> <span class="quoted"><span class="plain_text">‹Data-flow Expression-Tree Theorems›</span></span>
+
+<span class="keyword1"><span class="command">theory</span></span> IRTreeEvalThms
+  <span class="keyword2"><span class="keyword">imports</span></span>
+    <a href="IRTreeEval.html">Semantics.IRTreeEval</a>
+<span class="keyword2"><span class="keyword">begin</span></span>
+
+
+<span class="keyword1"><span class="command">subsection</span></span> <span class="quoted"><span class="plain_text">‹Extraction and Evaluation of Expression Trees is Deterministic.›</span></span>
+
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹First, we prove some extra rules that relate each
+  type of IRNode to the corresponding IRExpr type that 'rep' will produce.
+  These are very helpful for proving that 'rep' is deterministic.
+›</span></span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_constant<span class="main">:</span> 
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span> 
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> ConstantNode <span class="free">c</span> <span class="main">⟹</span> 
+   <span class="free">e</span> <span class="main">=</span> ConstantExpr <span class="free">c</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+  
+<span class="keyword1"><span class="command">lemma</span></span> rep_parameter<span class="main">:</span> 
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span> 
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> ParameterNode <span class="free">i</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">s</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> ParameterExpr <span class="free">i</span> <span class="bound">s</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_conditional<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> ConditionalNode <span class="free">c</span> <span class="free">t</span> <span class="free">f</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span> <span class="bound">ce</span> <span class="bound">te</span> <span class="bound">fe</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> ConditionalExpr <span class="bound">ce</span> <span class="bound">te</span> <span class="bound">fe</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_abs<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> AbsNode <span class="free">x</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> UnaryExpr UnaryAbs <span class="bound">xe</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_not<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> NotNode <span class="free">x</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> UnaryExpr UnaryNot <span class="bound">xe</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_negate<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> NegateNode <span class="free">x</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> UnaryExpr UnaryNeg <span class="bound">xe</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_logicnegation<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> LogicNegationNode <span class="free">x</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> UnaryExpr UnaryLogicNegation <span class="bound">xe</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_add<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> AddNode <span class="free">x</span> <span class="free">y</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span> <span class="bound">ye</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> BinaryExpr BinAdd <span class="bound">xe</span> <span class="bound">ye</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_sub<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> SubNode <span class="free">x</span> <span class="free">y</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span> <span class="bound">ye</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> BinaryExpr BinSub <span class="bound">xe</span> <span class="bound">ye</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_mul<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> MulNode <span class="free">x</span> <span class="free">y</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span> <span class="bound">ye</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> BinaryExpr BinMul <span class="bound">xe</span> <span class="bound">ye</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_and<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> AndNode <span class="free">x</span> <span class="free">y</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span> <span class="bound">ye</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> BinaryExpr BinAnd <span class="bound">xe</span> <span class="bound">ye</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_or<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> OrNode <span class="free">x</span> <span class="free">y</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span> <span class="bound">ye</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> BinaryExpr BinOr <span class="bound">xe</span> <span class="bound">ye</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_xor<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> XorNode <span class="free">x</span> <span class="free">y</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span> <span class="bound">ye</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> BinaryExpr BinXor <span class="bound">xe</span> <span class="bound">ye</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_integer_equals<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> IntegerEqualsNode <span class="free">x</span> <span class="free">y</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span> <span class="bound">ye</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> BinaryExpr BinIntegerEquals <span class="bound">xe</span> <span class="bound">ye</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_integer_less_than<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   kind <span class="free">g</span> <span class="free">n</span> <span class="main">=</span> IntegerLessThanNode <span class="free">x</span> <span class="free">y</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">xe</span> <span class="bound">ye</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> BinaryExpr BinIntegerLessThan <span class="bound">xe</span> <span class="bound">ye</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> rep_load_field<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e</span> <span class="main">⟹</span>
+   is_preevaluated <span class="main">(</span>kind <span class="free">g</span> <span class="free">n</span><span class="main">)</span> <span class="main">⟹</span>
+   <span class="main">(</span><span class="main">∃</span><span class="bound">s</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> LeafExpr <span class="free">n</span> <span class="bound">s</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+
+<span class="comment1">(* group these rules into a named set? *)</span>
+<span class="keyword1"><span class="command">lemmas</span></span> RepCases<span class="comment1">✐<span class="quoted">‹tag invisible›</span></span> <span class="main">=</span> 
+  rep_constant
+  rep_parameter
+  rep_conditional
+  rep_abs
+
+
+<span class="comment1">(* TODO: prove that rep is deterministic? *)</span>
+<span class="keyword1"><span class="command">lemma</span></span> repDet<span class="main">:</span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span><span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e1</span><span class="main">)</span> <span class="main">⟹</span> <span class="main">(</span><span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e2</span><span class="main">)</span> <span class="main">⟹</span> <span class="free">e1</span> <span class="main">=</span> <span class="free">e2</span>"</span></span>
+<span class="keyword1"><span class="command">proof</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">arbitrary</span><span class="main"><span class="main">:</span></span> <span class="quoted"><span class="free">e2</span></span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> <span class="quoted">"rep.induct"</span><span class="main">)</span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>ConstantNode <span class="skolem">n</span> <span class="skolem">c</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">using</span></span> rep_constant <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>ParameterNode <span class="skolem">n</span> <span class="skolem">i</span> <span class="skolem">s</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">using</span></span> rep_parameter <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+<span class="keyword1"><span class="command">next</span></span>
+<span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>ConditionalNode <span class="skolem">n</span> <span class="skolem">c</span> <span class="skolem">t</span> <span class="skolem">f</span> <span class="skolem">ce</span> <span class="skolem">te</span> <span class="skolem">fe</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> 
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> rep_conditional ConditionalNodeE IRNode.inject<span class="main"><span class="main">(</span></span>6<span class="main"><span class="main">)</span></span><span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>AbsNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">xe</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> 
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> rep_abs AbsNodeE IRNode.inject<span class="main"><span class="main">(</span></span>1<span class="main"><span class="main">)</span></span><span class="main">)</span>
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>NotNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">xe</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> rep_not NotNodeE IRNode.inject<span class="main"><span class="main">(</span></span>29<span class="main"><span class="main">)</span></span><span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+<span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>NegateNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">xe</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span>  IRNode.inject<span class="main"><span class="main">(</span></span>26<span class="main"><span class="main">)</span></span> NegateNodeE rep_negate<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>LogicNegationNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">xe</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRNode.inject<span class="main"><span class="main">(</span></span>19<span class="main"><span class="main">)</span></span> LogicNegationNodeE rep_logicnegation<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>AddNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">y</span> <span class="skolem">xe</span> <span class="skolem">ye</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> AddNodeE IRNode.inject<span class="main"><span class="main">(</span></span>2<span class="main"><span class="main">)</span></span> rep_add<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+<span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>MulNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">y</span> <span class="skolem">xe</span> <span class="skolem">ye</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRNode.inject<span class="main"><span class="main">(</span></span>25<span class="main"><span class="main">)</span></span> MulNodeE rep_mul<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>SubNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">y</span> <span class="skolem">xe</span> <span class="skolem">ye</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRNode.inject<span class="main"><span class="main">(</span></span>39<span class="main"><span class="main">)</span></span> SubNodeE rep_sub<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>AndNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">y</span> <span class="skolem">xe</span> <span class="skolem">ye</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> AndNodeE IRNode.inject<span class="main"><span class="main">(</span></span>3<span class="main"><span class="main">)</span></span> rep_and<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+<span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>OrNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">y</span> <span class="skolem">xe</span> <span class="skolem">ye</span><span class="main">)</span>
+<span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRNode.inject<span class="main"><span class="main">(</span></span>30<span class="main"><span class="main">)</span></span> OrNodeE rep_or<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>XorNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">y</span> <span class="skolem">xe</span> <span class="skolem">ye</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRNode.inject<span class="main"><span class="main">(</span></span>43<span class="main"><span class="main">)</span></span> XorNodeE rep_xor<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>IntegerEqualsNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">y</span> <span class="skolem">xe</span> <span class="skolem">ye</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRNode.inject<span class="main"><span class="main">(</span></span>12<span class="main"><span class="main">)</span></span> IntegerEqualsNodeE rep_integer_equals<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+<span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>IntegerLessThanNode <span class="skolem">n</span> <span class="skolem">x</span> <span class="skolem">y</span> <span class="skolem">xe</span> <span class="skolem">ye</span><span class="main">)</span>
+<span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRNode.inject<span class="main"><span class="main">(</span></span>13<span class="main"><span class="main">)</span></span> IntegerLessThanNodeE rep_integer_less_than<span class="main">)</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>LeafNode <span class="skolem">n</span> <span class="skolem">s</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">using</span></span> rep_load_field LeafNodeE <span class="keyword1"><span class="command">by</span></span> <span class="operator">blast</span> 
+<span class="keyword1"><span class="command">qed</span></span>
+
+
+<span class="keyword1"><span class="command">lemma</span></span> evalDet<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="free">m</span><span class="main">,</span><span class="free">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="free">e</span> <span class="main">↦</span> <span class="free">v1</span> <span class="main">⟹</span> 
+   <span class="main">[</span><span class="free">m</span><span class="main">,</span><span class="free">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="free">e</span> <span class="main">↦</span> <span class="free">v2</span> <span class="main">⟹</span>
+   <span class="free">v1</span> <span class="main">=</span> <span class="free">v2</span>"</span></span>
+  <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">arbitrary</span><span class="main"><span class="main">:</span></span> <span class="quoted"><span class="free">v2</span></span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> <span class="quoted">"evaltree.induct"</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">elim</span> EvalTreeE<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span><span class="main"><span class="keyword3">+</span></span>
+
+<span class="keyword1"><span class="command">lemma</span></span> evalAllDet<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="free">m</span><span class="main">,</span><span class="free">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="free">e</span> <span class="keyword1">↦<span class="hidden">⇩</span><sub>L</sub></span> <span class="free">v1</span> <span class="main">⟹</span> 
+   <span class="main">[</span><span class="free">m</span><span class="main">,</span><span class="free">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="free">e</span> <span class="keyword1">↦<span class="hidden">⇩</span><sub>L</sub></span> <span class="free">v2</span> <span class="main">⟹</span>
+   <span class="free">v1</span> <span class="main">=</span> <span class="free">v2</span>"</span></span>
+  <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">arbitrary</span><span class="main"><span class="main">:</span></span> <span class="quoted"><span class="free">v2</span></span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> <span class="quoted">"evaltrees.induct"</span><span class="main">)</span>
+   <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">elim</span> EvalTreeE<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">using</span></span> evalDet <span class="keyword1"><span class="command">by</span></span> <span class="operator">force</span>
+
+
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹A valid value cannot be $UndefVal$.›</span></span>
+<span class="keyword1"><span class="command">lemma</span></span> valid_not_undef<span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> a1<span class="main">:</span> <span class="quoted"><span class="quoted">"valid_value <span class="free">s</span> <span class="free">val</span>"</span></span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> a2<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="free">s</span> <span class="main">≠</span> VoidStamp"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="free">val</span> <span class="main">≠</span> UndefVal"</span></span>
+  <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">rule</span> valid_value.elims<span class="main"><span class="main">(</span></span>1<span class="main"><span class="main">)</span></span><span class="main"><span class="main">[</span></span><span class="operator">of</span> <span class="quoted"><span class="free"><span class="quoted"><span class="free">s</span></span></span></span> <span class="quoted"><span class="free"><span class="quoted"><span class="free">val</span></span></span></span> <span class="quoted"><span class="quoted">True</span></span><span class="main"><span class="main">]</span></span><span class="main">)</span>
+  <span class="keyword1"><span class="command">using</span></span> a1 a2 <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+
+<span class="comment1">(* Elimination rules for valid_value, for each kind of stamp. *)</span>
+<span class="keyword1"><span class="command">lemma</span></span> valid_VoidStamp<span class="main">[</span><span class="operator">elim</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"valid_value VoidStamp <span class="free">val</span> <span class="main">⟹</span>
+      <span class="free">val</span> <span class="main">=</span> UndefVal"</span></span>
+  <span class="keyword1"><span class="command">using</span></span> valid_value.simps <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRTreeEval.val_to_bool.cases<span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> valid_ObjStamp<span class="main">[</span><span class="operator">elim</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>ObjectStamp <span class="free">klass</span> <span class="free">exact</span> <span class="free">nonNull</span> <span class="free">alwaysNull</span><span class="main">)</span> <span class="free">val</span> <span class="main">⟹</span>
+      <span class="main">(</span><span class="main">∃</span><span class="bound">v</span><span class="main">.</span> <span class="free">val</span> <span class="main">=</span> ObjRef <span class="bound">v</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">using</span></span> valid_value.simps <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> IRTreeEval.val_to_bool.cases<span class="main">)</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> valid_int32<span class="main">[</span><span class="operator">elim</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">l</span> <span class="free">h</span><span class="main">)</span> <span class="free">val</span> <span class="main">⟹</span>
+      <span class="main">(</span><span class="main">∃</span><span class="bound">v</span><span class="main">.</span> <span class="free">val</span> <span class="main">=</span> IntVal32 <span class="bound">v</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">rule</span> IRTreeEval.val_to_bool.cases<span class="main"><span class="main">[</span></span><span class="operator">of</span> <span class="quoted"><span class="free"><span class="quoted"><span class="free">val</span></span></span></span><span class="main"><span class="main">]</span></span><span class="main">)</span>
+  <span class="keyword1"><span class="command">using</span></span> Value.distinct <span class="keyword1"><span class="command">by</span></span> <span class="operator">simp</span><span class="main"><span class="keyword3">+</span></span>
+                    
+<span class="keyword1"><span class="command">lemma</span></span> valid_int64<span class="main">[</span><span class="operator">elim</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">64</span> <span class="free">l</span> <span class="free">h</span><span class="main">)</span> <span class="free">val</span> <span class="main">⟹</span>
+      <span class="main">(</span><span class="main">∃</span><span class="bound">v</span><span class="main">.</span> <span class="free">val</span> <span class="main">=</span> IntVal64 <span class="bound">v</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="main">(</span><span class="operator">rule</span> IRTreeEval.val_to_bool.cases<span class="main"><span class="main">[</span></span><span class="operator">of</span> <span class="quoted"><span class="free"><span class="quoted"><span class="free">val</span></span></span></span><span class="main"><span class="main">]</span></span><span class="main">)</span>
+  <span class="keyword1"><span class="command">using</span></span> Value.distinct <span class="keyword1"><span class="command">by</span></span> <span class="operator">simp</span><span class="main"><span class="keyword3">+</span></span>
+
+  
+  
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹TODO: could we prove that expression evaluation never returns $UndefVal$?
+  But this might require restricting unary and binary operators to be total...
+›</span></span>
+<span class="comment1">(*
+lemma evaltree_not_undef:
+  fixes m p e v
+  shows "([m,p] ⊢ e ↦ v) ⟹ v ≠ UndefVal"
+  apply (induction rule: "evaltree.induct")
+  using valid_not_undef apply auto
+*)</span>
+
+
+
+<span class="keyword1"><span class="command">lemma</span></span> leafint32<span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> ev<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="free">m</span><span class="main">,</span><span class="free">p</span><span class="main">]</span> <span class="main">⊢</span> LeafExpr <span class="free">i</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">lo</span> <span class="free">hi</span><span class="main">)</span> <span class="main">↦</span> <span class="free">val</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">∃</span><span class="bound">v</span><span class="main">.</span> <span class="free">val</span> <span class="main">=</span> <span class="main">(</span>IntVal32 <span class="bound">v</span><span class="main">)</span>"</span></span>
+<span class="comment1">(* Note: we could also add: ...∧ lo ≤ sint v ∧ sint v ≤ hi *)</span>
+<span class="keyword1"><span class="command">proof</span></span> <span class="operator">-</span> 
+  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">lo</span> <span class="free">hi</span><span class="main">)</span> <span class="free">val</span>"</span></span>
+    <span class="keyword1"><span class="command">using</span></span> ev <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">rule</span> LeafExprE<span class="main"><span class="keyword3">;</span></span> <span class="operator">simp</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?thesis</span></span></span> <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+<span class="keyword1"><span class="command">qed</span></span>
+
+
+<span class="keyword1"><span class="command">lemma</span></span> leafint64<span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> ev<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="free">m</span><span class="main">,</span><span class="free">p</span><span class="main">]</span> <span class="main">⊢</span> LeafExpr <span class="free">i</span> <span class="main">(</span>IntegerStamp <span class="numeral">64</span> <span class="free">lo</span> <span class="free">hi</span><span class="main">)</span> <span class="main">↦</span> <span class="free">val</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">∃</span><span class="bound">v</span><span class="main">.</span> <span class="free">val</span> <span class="main">=</span> <span class="main">(</span>IntVal64 <span class="bound">v</span><span class="main">)</span>"</span></span>
+<span class="comment1">(* Note: we could also add: ...∧ lo ≤ sint v ∧ sint v ≤ hi *)</span>
+<span class="keyword1"><span class="command">proof</span></span> <span class="operator">-</span>
+  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">64</span> <span class="free">lo</span> <span class="free">hi</span><span class="main">)</span> <span class="free">val</span>"</span></span>
+    <span class="keyword1"><span class="command">using</span></span> ev <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">rule</span> LeafExprE<span class="main"><span class="keyword3">;</span></span> <span class="operator">simp</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?thesis</span></span></span> <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+<span class="keyword1"><span class="command">qed</span></span>
+
+<span class="keyword1"><span class="command">lemma</span></span> default_stamp <span class="main">[</span><span class="operator">simp</span><span class="main">]</span><span class="main">:</span> <span class="quoted"><span class="quoted">"default_stamp <span class="main">=</span> IntegerStamp <span class="numeral">32</span> <span class="main">(</span><span class="main">-</span><span class="numeral">2147483648</span><span class="main">)</span> <span class="numeral">2147483647</span>"</span></span>
+  <span class="keyword1"><span class="command">using</span></span> default_stamp_def <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> valid32 <span class="main">[</span><span class="operator">simp</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">lo</span> <span class="free">hi</span><span class="main">)</span> <span class="free">val</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">∃</span><span class="bound">v</span><span class="main">.</span> <span class="main">(</span><span class="free">val</span> <span class="main">=</span> <span class="main">(</span>IntVal32 <span class="bound">v</span><span class="main">)</span> <span class="main">∧</span> <span class="free">lo</span> <span class="main">≤</span> sint <span class="bound">v</span> <span class="main">∧</span> sint <span class="bound">v</span> <span class="main">≤</span> <span class="free">hi</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">using</span></span> assms valid_int32 <span class="keyword1"><span class="command">by</span></span> <span class="operator">force</span> 
+
+<span class="keyword1"><span class="command">lemma</span></span> valid64 <span class="main">[</span><span class="operator">simp</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">64</span> <span class="free">lo</span> <span class="free">hi</span><span class="main">)</span> <span class="free">val</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">∃</span><span class="bound">v</span><span class="main">.</span> <span class="main">(</span><span class="free">val</span> <span class="main">=</span> <span class="main">(</span>IntVal64 <span class="bound">v</span><span class="main">)</span> <span class="main">∧</span> <span class="free">lo</span> <span class="main">≤</span> sint <span class="bound">v</span> <span class="main">∧</span> sint <span class="bound">v</span> <span class="main">≤</span> <span class="free">hi</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">using</span></span> assms valid_int64 <span class="keyword1"><span class="command">by</span></span> <span class="operator">force</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> int_stamp_implies_valid_value<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="free">m</span><span class="main">,</span><span class="free">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="free">expr</span> <span class="main">↦</span> <span class="free">val</span> <span class="main">⟹</span>
+   valid_value <span class="main">(</span>stamp_expr <span class="free">expr</span><span class="main">)</span> <span class="free">val</span>"</span></span>
+<span class="keyword1"><span class="command">proof</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> evaltree.induct<span class="main">)</span>
+<span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>ConstantExpr <span class="skolem">c</span><span class="main">)</span>
+<span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">sorry</span></span>
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>ParameterExpr <span class="skolem">s</span> <span class="skolem">i</span><span class="main">)</span>
+<span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">sorry</span></span>
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>ConditionalExpr <span class="skolem">ce</span> <span class="skolem">cond</span> <span class="skolem">branch</span> <span class="skolem">te</span> <span class="skolem">fe</span> <span class="skolem">v</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">sorry</span></span>
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>UnaryExpr <span class="skolem">xe</span> <span class="skolem">v</span> <span class="skolem">op</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">sorry</span></span>
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>BinaryExpr <span class="skolem">xe</span> <span class="skolem">x</span> <span class="skolem">ye</span> <span class="skolem">y</span> <span class="skolem">op</span><span class="main">)</span>
+<span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">sorry</span></span>
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>LeafExpr <span class="skolem">val</span> <span class="skolem">nid</span> <span class="skolem">s</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">sorry</span></span>
+<span class="keyword1"><span class="command">qed</span></span>
+
+
+
+<span class="keyword1"><span class="command">subsection</span></span> <span class="quoted"><span class="plain_text">‹Example Data-flow Optimisations›</span></span>
+
+<span class="comment1">(* An example refinement: a + 0 ≤ a *)</span>
+<span class="keyword1"><span class="command">lemma</span></span> a0a_helper <span class="main">[</span><span class="operator">simp</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> a<span class="main">:</span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">lo</span> <span class="free">hi</span><span class="main">)</span> <span class="free">v</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"intval_add <span class="free">v</span> <span class="main">(</span>IntVal32 <span class="main">0</span><span class="main">)</span> <span class="main">=</span> <span class="free">v</span>"</span></span>
+<span class="keyword1"><span class="command">proof</span></span> <span class="operator">-</span>
+  <span class="keyword3"><span class="command">obtain</span></span> <span class="skolem"><span class="skolem">v32</span></span> <span class="main">::</span> <span class="quoted">int32</span> <span class="keyword2"><span class="keyword">where</span></span> <span class="quoted"><span class="quoted">"<span class="free">v</span> <span class="main">=</span> <span class="main">(</span>IntVal32 <span class="skolem">v32</span><span class="main">)</span>"</span></span> <span class="keyword1"><span class="command">using</span></span> a valid32 <span class="keyword1"><span class="command">by</span></span> <span class="operator">blast</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?thesis</span></span></span> <span class="keyword1"><span class="command">by</span></span> <span class="operator">simp</span> 
+<span class="keyword1"><span class="command">qed</span></span>
+
+<span class="keyword1"><span class="command">lemma</span></span> a0a<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="main">(</span>BinaryExpr BinAdd <span class="main">(</span>LeafExpr <span class="main">1</span> default_stamp<span class="main">)</span> <span class="main">(</span>ConstantExpr <span class="main">(</span>IntVal32 <span class="main">0</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
+              <span class="main">≤</span> <span class="main">(</span>LeafExpr <span class="main">1</span> default_stamp<span class="main">)</span>"</span></span> <span class="main">(</span><span class="keyword2"><span class="keyword">is</span></span> <span class="quoted"><span class="quoted">"<span class="var">?L</span> <span class="main">≤</span> <span class="var">?R</span>"</span></span><span class="main">)</span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">auto</span> <span class="quasi_keyword">simp</span> <span class="quasi_keyword">add</span><span class="main"><span class="main">:</span></span> evaltree.LeafExpr<span class="main">)</span>
+
+
+<span class="comment1">(* Another example refinement: x + (y - x) ≤ y *)</span>
+<span class="keyword1"><span class="command">lemma</span></span> xyx_y_helper <span class="main">[</span><span class="operator">simp</span><span class="main">]</span><span class="main">:</span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">lox</span> <span class="free">hix</span><span class="main">)</span> <span class="free">x</span>"</span></span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"valid_value <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">loy</span> <span class="free">hiy</span><span class="main">)</span> <span class="free">y</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"intval_add <span class="free">x</span> <span class="main">(</span>intval_sub <span class="free">y</span> <span class="free">x</span><span class="main">)</span> <span class="main">=</span> <span class="free">y</span>"</span></span>
+<span class="keyword1"><span class="command">proof</span></span> <span class="operator">-</span>
+  <span class="keyword3"><span class="command">obtain</span></span> <span class="skolem"><span class="skolem">x32</span></span> <span class="main">::</span> <span class="quoted">int32</span> <span class="keyword2"><span class="keyword">where</span></span> x<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="free">x</span> <span class="main">=</span> <span class="main">(</span>IntVal32 <span class="skolem">x32</span><span class="main">)</span>"</span></span> <span class="keyword1"><span class="command">using</span></span> assms valid32 <span class="keyword1"><span class="command">by</span></span> <span class="operator">blast</span>
+  <span class="keyword3"><span class="command">obtain</span></span> <span class="skolem"><span class="skolem">y32</span></span> <span class="main">::</span> <span class="quoted">int32</span> <span class="keyword2"><span class="keyword">where</span></span> y<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="free">y</span> <span class="main">=</span> <span class="main">(</span>IntVal32 <span class="skolem">y32</span><span class="main">)</span>"</span></span> <span class="keyword1"><span class="command">using</span></span> assms valid32 <span class="keyword1"><span class="command">by</span></span> <span class="operator">blast</span>
+  <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?thesis</span></span></span> <span class="keyword1"><span class="command">using</span></span> x y <span class="keyword1"><span class="command">by</span></span> <span class="operator">simp</span>
+<span class="keyword1"><span class="command">qed</span></span>
+
+<span class="keyword1"><span class="command">lemma</span></span> xyx_y<span class="main">:</span> 
+  <span class="quoted"><span class="quoted">"<span class="main">(</span>BinaryExpr BinAdd
+     <span class="main">(</span>LeafExpr <span class="free">x</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">lox</span> <span class="free">hix</span><span class="main">)</span><span class="main">)</span>
+     <span class="main">(</span>BinaryExpr BinSub
+       <span class="main">(</span>LeafExpr <span class="free">y</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">loy</span> <span class="free">hiy</span><span class="main">)</span><span class="main">)</span>
+       <span class="main">(</span>LeafExpr <span class="free">x</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">lox</span> <span class="free">hix</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
+   <span class="main">≤</span> <span class="main">(</span>LeafExpr <span class="free">y</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="free">loy</span> <span class="free">hiy</span><span class="main">)</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">auto</span> <span class="quasi_keyword">simp</span> <span class="quasi_keyword">add</span><span class="main"><span class="main">:</span></span> LeafExpr<span class="main">)</span>
+
+
+
+<span class="keyword1"><span class="command">subsection</span></span> <span class="quoted"><span class="plain_text">‹Monotonicity of Expression Optimization›</span></span>
+
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹We prove that each subexpression position is monotonic.
+That is, optimizing a subexpression anywhere deep inside a top-level expression
+also optimizes that top-level expression.  
+
+Note that we might also be able to do
+this via reusing Isabelle's 'mono' operator (HOL.Orderings theory), proving instantiations
+like 'mono (UnaryExpr op)', but it is not obvious how to do this for both arguments
+of the binary expressions.›</span></span>
+
+<span class="keyword1"><span class="command">lemma</span></span> mono_unary<span class="main">:</span> 
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="free">e</span> <span class="main">≤</span> <span class="free">e'</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span>UnaryExpr <span class="free">op</span> <span class="free">e</span><span class="main">)</span> <span class="main">≤</span> <span class="main">(</span>UnaryExpr <span class="free">op</span> <span class="free">e'</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">using</span></span> UnaryExpr assms <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+
+<span class="keyword1"><span class="command">lemma</span></span> mono_binary<span class="main">:</span> 
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="free">x</span> <span class="main">≤</span> <span class="free">x'</span>"</span></span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="free">y</span> <span class="main">≤</span> <span class="free">y'</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span>BinaryExpr <span class="free">op</span> <span class="free">x</span> <span class="free">y</span><span class="main">)</span> <span class="main">≤</span> <span class="main">(</span>BinaryExpr <span class="free">op</span> <span class="free">x'</span> <span class="free">y'</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">using</span></span> BinaryExpr assms <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span> 
+
+<span class="keyword1"><span class="command">lemma</span></span> mono_conditional<span class="main">:</span> 
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="free">ce</span> <span class="main">≤</span> <span class="free">ce'</span>"</span></span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="free">te</span> <span class="main">≤</span> <span class="free">te'</span>"</span></span>
+  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="free">fe</span> <span class="main">≤</span> <span class="free">fe'</span>"</span></span>
+  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span>ConditionalExpr <span class="free">ce</span> <span class="free">te</span> <span class="free">fe</span><span class="main">)</span> <span class="main">≤</span> <span class="main">(</span>ConditionalExpr <span class="free">ce'</span> <span class="free">te'</span> <span class="free">fe'</span><span class="main">)</span>"</span></span>
+<span class="keyword1"><span class="command">proof</span></span> <span class="main">(</span><span class="operator">simp</span> <span class="quasi_keyword">only</span><span class="main"><span class="main">:</span></span> le_expr_def<span class="main"><span class="keyword3">;</span></span> <span class="main">(</span><span class="operator">rule</span> allI<span class="main">)</span><span class="main"><span class="keyword3">+</span></span><span class="main"><span class="keyword3">;</span></span> <span class="operator">rule</span> impI<span class="main">)</span>
+  <span class="keyword3"><span class="command">fix</span></span> <span class="skolem">m</span> <span class="skolem">p</span> <span class="skolem">v</span>
+  <span class="keyword3"><span class="command">assume</span></span> a<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="skolem">m</span><span class="main">,</span><span class="skolem">p</span><span class="main">]</span> <span class="main">⊢</span> ConditionalExpr <span class="free">ce</span> <span class="free">te</span> <span class="free">fe</span> <span class="main">↦</span> <span class="skolem">v</span>"</span></span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">obtain</span></span> <span class="skolem"><span class="skolem">cond</span></span> <span class="keyword2"><span class="keyword">where</span></span> ce<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="skolem">m</span><span class="main">,</span><span class="skolem">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="free">ce</span> <span class="main">↦</span> <span class="skolem">cond</span>"</span></span> <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword1"><span class="command">have</span></span> ce'<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="skolem">m</span><span class="main">,</span><span class="skolem">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="free">ce'</span> <span class="main">↦</span> <span class="skolem">cond</span>"</span></span> <span class="keyword1"><span class="command">using</span></span> assms <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+  <span class="keyword3"><span class="command">define</span></span> <span class="skolem"><span class="skolem">branch</span></span>  <span class="keyword2"><span class="keyword">where</span></span> b<span class="main">:</span>  <span class="quoted"><span class="quoted">"<span class="skolem">branch</span>  <span class="main">=</span> <span class="main">(</span><span class="keyword1">if</span> val_to_bool <span class="skolem">cond</span> <span class="keyword1">then</span> <span class="free">te</span> <span class="keyword1">else</span> <span class="free">fe</span><span class="main">)</span>"</span></span>
+  <span class="keyword3"><span class="command">define</span></span> <span class="skolem"><span class="skolem">branch'</span></span> <span class="keyword2"><span class="keyword">where</span></span> b'<span class="main">:</span> <span class="quoted"><span class="quoted">"<span class="skolem">branch'</span> <span class="main">=</span> <span class="main">(</span><span class="keyword1">if</span> val_to_bool <span class="skolem">cond</span> <span class="keyword1">then</span> <span class="free">te'</span> <span class="keyword1">else</span> <span class="free">fe'</span><span class="main">)</span>"</span></span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="skolem">m</span><span class="main">,</span><span class="skolem">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="skolem">branch</span> <span class="main">↦</span> <span class="skolem">v</span>"</span></span> <span class="keyword1"><span class="command">using</span></span> a b ce evalDet <span class="keyword1"><span class="command">by</span></span> <span class="operator">blast</span> 
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="skolem">m</span><span class="main">,</span><span class="skolem">p</span><span class="main">]</span> <span class="main">⊢</span> <span class="skolem">branch'</span> <span class="main">↦</span> <span class="skolem">v</span>"</span></span> <span class="keyword1"><span class="command">using</span></span> assms b b' <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="quoted"><span class="quoted">"<span class="main">[</span><span class="skolem">m</span><span class="main">,</span><span class="skolem">p</span><span class="main">]</span> <span class="main">⊢</span> ConditionalExpr <span class="free">ce'</span> <span class="free">te'</span> <span class="free">fe'</span> <span class="main">↦</span> <span class="skolem">v</span>"</span></span>
+    <span class="keyword1"><span class="command">using</span></span> ConditionalExpr ce' b' <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span> 
+<span class="keyword1"><span class="command">qed</span></span>
+
+
+<span class="comment1">(*
+Step 3: if e1 isrefby e2 then g[e1] isREFby g[e2]
+   Note: This needs to go after IRStepObj.thy.
+
+
+lemma graph_refined:
+  assumes "e1 ≤ e2"
+  assumes "g ◃ e1 ↝ (g1, x1)"
+  assumes "g ◃ e2 ↝ (g2, x2)"
+  shows "∀ m m' h h'. (g ⊢ (x1, m, h) → (nid, m', h'))
+                  ⟶ (g ⊢ (x2, m, h) → (nid, m', h'))"
+*)</span>
+<span class="keyword2"><span class="keyword">end</span></span>
+
+</pre>
+</body>
+
+</html>

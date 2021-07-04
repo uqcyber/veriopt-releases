@@ -156,10 +156,19 @@ the asConstant function converts the stamp to a value where one can be inferred.
 
 <span class="comment1">― ‹Define when a runtime value is valid for a stamp›</span>
 <span class="keyword1"><span class="command">fun</span></span> <span class="entity">valid_value</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Stamp <span class="main">⇒</span> Value <span class="main">⇒</span> bool"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
-  <span class="quoted"><span class="quoted">"<span class="free">valid_value</span> <span class="main">(</span>IntegerStamp <span class="free"><span class="bound"><span class="entity">b</span></span></span> <span class="free"><span class="bound"><span class="entity">l</span></span></span> <span class="free"><span class="bound"><span class="entity">h</span></span></span><span class="main">)</span> <span class="main">(</span>IntVal32 <span class="free"><span class="bound"><span class="entity">v</span></span></span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span><span class="main">(</span>sint <span class="free"><span class="bound"><span class="entity">v</span></span></span> <span class="main">≥</span> <span class="free"><span class="bound"><span class="entity">l</span></span></span><span class="main">)</span> <span class="main">∧</span> <span class="main">(</span>sint <span class="free"><span class="bound"><span class="entity">v</span></span></span> <span class="main">≤</span> <span class="free"><span class="bound"><span class="entity">h</span></span></span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
+  <span class="quoted"><span class="quoted">"<span class="free">valid_value</span> <span class="main">(</span>IntegerStamp <span class="free"><span class="bound"><span class="entity">b</span></span></span> <span class="free"><span class="bound"><span class="entity">l</span></span></span> <span class="free"><span class="bound"><span class="entity">h</span></span></span><span class="main">)</span> <span class="main">(</span>IntVal32 <span class="free"><span class="bound"><span class="entity">v</span></span></span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">b</span></span></span><span class="main">=</span><span class="numeral">32</span> <span class="main">∧</span> <span class="main">(</span>sint <span class="free"><span class="bound"><span class="entity">v</span></span></span> <span class="main">≥</span> <span class="free"><span class="bound"><span class="entity">l</span></span></span><span class="main">)</span> <span class="main">∧</span> <span class="main">(</span>sint <span class="free"><span class="bound"><span class="entity">v</span></span></span> <span class="main">≤</span> <span class="free"><span class="bound"><span class="entity">h</span></span></span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
+  <span class="quoted"><span class="quoted">"<span class="free">valid_value</span> <span class="main">(</span>IntegerStamp <span class="free"><span class="bound"><span class="entity">b</span></span></span> <span class="free"><span class="bound"><span class="entity">l</span></span></span> <span class="free"><span class="bound"><span class="entity">h</span></span></span><span class="main">)</span> <span class="main">(</span>IntVal64 <span class="free"><span class="bound"><span class="entity">v</span></span></span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">b</span></span></span><span class="main">=</span><span class="numeral">64</span> <span class="main">∧</span> <span class="main">(</span>sint <span class="free"><span class="bound"><span class="entity">v</span></span></span> <span class="main">≥</span> <span class="free"><span class="bound"><span class="entity">l</span></span></span><span class="main">)</span> <span class="main">∧</span> <span class="main">(</span>sint <span class="free"><span class="bound"><span class="entity">v</span></span></span> <span class="main">≤</span> <span class="free"><span class="bound"><span class="entity">h</span></span></span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
   <span class="comment1">(* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) ∧ (v ≥ l) ∧ (v ≤ h))" | *)</span>
   <span class="quoted"><span class="quoted">"<span class="free">valid_value</span> <span class="main">(</span>VoidStamp<span class="main">)</span> <span class="main">(</span>UndefVal<span class="main">)</span> <span class="main">=</span> True"</span></span> <span class="main">|</span>
+  <span class="quoted"><span class="quoted">"<span class="free">valid_value</span> <span class="main">(</span>ObjectStamp <span class="free"><span class="bound"><span class="entity">klass</span></span></span> <span class="free"><span class="bound"><span class="entity">exact</span></span></span> <span class="free"><span class="bound"><span class="entity">nonNull</span></span></span> <span class="free"><span class="bound"><span class="entity">alwaysNull</span></span></span><span class="main">)</span> <span class="main">(</span>ObjRef <span class="free"><span class="bound"><span class="entity">ref</span></span></span><span class="main">)</span> <span class="main">=</span>
+     <span class="main">(</span><span class="keyword1">if</span> <span class="free"><span class="bound"><span class="entity">nonNull</span></span></span> <span class="keyword1">then</span> <span class="free"><span class="bound"><span class="entity">ref</span></span></span><span class="main">≠</span>None <span class="keyword1">else</span> True<span class="main">)</span>"</span></span> <span class="main">|</span>
   <span class="quoted"><span class="quoted">"<span class="free">valid_value</span> <span class="free"><span class="bound"><span class="entity">stamp</span></span></span> <span class="free"><span class="bound"><span class="entity">val</span></span></span> <span class="main">=</span> False"</span></span>
+<span class="comment1">(* TODO: add the other stamps:
+  | KlassPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
+  | MethodCountersPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
+  | MethodPointersStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
+  | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
+*)</span>
 
 <span class="comment1">― ‹
 The most common type of stamp within the compiler (apart from the VoidStamp) is a 32 bit
@@ -167,163 +176,6 @@ integer stamp with an unrestricted range. We use <span class="antiquoted"><span 
 ›</span>
 <span class="keyword1"><span class="command">definition</span></span> <span class="entity">default_stamp</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Stamp"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
   <span class="quoted"><span class="quoted">"<span class="free">default_stamp</span> <span class="main">=</span> <span class="main">(</span>unrestricted_stamp <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">0</span> <span class="main">0</span><span class="main">)</span><span class="main">)</span>"</span></span>
-
-<span class="comment1">(* Theories/Lemmas *)</span>
-<span class="comment1">(* TODO: should we have separate 32 and 64 versions of this? *)</span>
-<span class="keyword1"><span class="command">lemma</span></span> int_valid_range<span class="main">:</span>
-  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="free">stamp</span> <span class="main">=</span> IntegerStamp <span class="numeral">32</span> <span class="free">lower</span> <span class="free">upper</span>"</span></span>
-  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">{</span><span class="bound">x</span> <span class="main">.</span> valid_value <span class="free">stamp</span> <span class="bound">x</span><span class="main">}</span> <span class="main">=</span> <span class="main">{</span><span class="main">(</span>IntVal32 <span class="main">(</span><span class="free">word_of</span> <span class="bound">val</span><span class="main">)</span><span class="main">)</span> <span class="main">|</span> <span class="bound">val</span> <span class="main">.</span> <span class="bound">val</span> <span class="main">∈</span> <span class="main">{</span><span class="free">lower</span><span class="main">..</span><span class="free">upper</span><span class="main">}</span><span class="main">}</span>"</span></span>
-  <span class="keyword1"><span class="command">using</span></span> assms valid_value.simps <span class="keyword1"><span class="command"><span class="improper"><span class="command">apply</span></span></span></span> <span class="operator">auto</span>
-  <span class="comment1">(* TODO: here we need to prove: sint (word_of val) = val
-    To do that, we need to know that the stamp is well-formed,
-    so its lower and upper bounds fit within 32 bits.
-
-  using valid_value.elims(2) by blast
-*)</span>
-  <span class="keyword1"><span class="command">sorry</span></span>
-
-<span class="comment1">(*
-lemma float_valid_range:
-  assumes "stamp = FloatStamp bits lower upper"
-  shows "{x . valid_value stamp x} = {(FloatVal bits val) | val . val ∈ {lower..upper}}"
-  using assms valid_value.simps apply auto
-  using valid_value.simps
-  by (metis less_eq_float.rep_eq valid_value.elims(2))
-
-
-lemma disjoint_empty:
-  assumes "joined = (join x_stamp y_stamp)"
-  assumes "is_stamp_empty joined"
-  shows "{x . valid_value x_stamp x} ∩ {y . valid_value y_stamp y} = {}"
-  using assms int_valid_range (*float_valid_range*)
-  apply (induction "x_stamp"; induction "y_stamp"; auto)
-  sorry
-
-lemma join_unequal:
-  assumes "joined = (join x_stamp y_stamp)"
-  assumes "is_stamp_empty joined"
-  shows "∄ x y . x = y ∧ valid_value x_stamp x ∧ valid_value y_stamp y"
-  using assms disjoint_empty by auto
-
-lemma neverDistinctEqual:
-  assumes "neverDistinct x_stamp y_stamp"
-  shows "∄ x y . x ≠ y ∧ valid_value x_stamp x ∧ valid_value y_stamp y"
-  using assms
-  by (smt (verit, best) asConstant.simps(1) asConstant.simps(2) asConstant.simps(3) neverDistinct.elims(2) valid_value.elims(2))
-
-lemma boundsNoOverlapNoEqual:
-  assumes "stpi_upper x_stamp &lt; stpi_lower y_stamp"
-  assumes "is_IntegerStamp x_stamp ∧ is_IntegerStamp y_stamp"
-  shows "∄ x y . x = y ∧ valid_value x_stamp x ∧ valid_value y_stamp y"
-  using assms apply (cases "x_stamp"; auto)
-  using int_valid_range
-  by (smt (verit, ccfv_threshold) Stamp.collapse(1) mem_Collect_eq valid_value.simps(1))
-
-lemma boundsNoOverlap:
-  assumes "stpi_upper x_stamp &lt; stpi_lower y_stamp"
-  assumes "x = IntVal b1 xval"
-  assumes "y = IntVal b2 yval"
-  assumes "is_IntegerStamp x_stamp ∧ is_IntegerStamp y_stamp"
-  assumes "valid_value x_stamp x ∧ valid_value y_stamp y"
-  shows "xval &lt; yval"
-  using assms is_IntegerStamp_def by force
-
-lemma boundsAlwaysOverlap:
-  assumes "stpi_lower x_stamp ≥ stpi_upper y_stamp"
-  assumes "x = IntVal b1 xval"
-  assumes "y = IntVal b2 yval"
-  assumes "is_IntegerStamp x_stamp ∧ is_IntegerStamp y_stamp"
-  assumes "valid_value x_stamp x ∧ valid_value y_stamp y"
-  shows "¬(xval &lt; yval)"
-  using assms is_IntegerStamp_def
-  by fastforce
-
-*)</span>
-
-<span class="keyword1"><span class="command">lemma</span></span> intstamp_bits_eq_meet<span class="main">:</span>
-  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span>meet <span class="main">(</span>IntegerStamp <span class="free">b1</span> <span class="free">l1</span> <span class="free">u1</span><span class="main">)</span> <span class="main">(</span>IntegerStamp <span class="free">b2</span> <span class="free">l2</span> <span class="free">u2</span><span class="main">)</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="free">b3</span> <span class="free">l3</span> <span class="free">u3</span><span class="main">)</span>"</span></span>
-  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="free">b1</span> <span class="main">=</span> <span class="free">b3</span> <span class="main">∧</span> <span class="free">b2</span> <span class="main">=</span> <span class="free">b3</span>"</span></span>
-  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> Stamp.distinct<span class="main"><span class="main">(</span></span>25<span class="main"><span class="main">)</span></span> assms meet.simps<span class="main"><span class="main">(</span></span>2<span class="main"><span class="main">)</span></span><span class="main">)</span>
-
-<span class="keyword1"><span class="command">lemma</span></span> intstamp_bits_eq_join<span class="main">:</span>
-  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span>join <span class="main">(</span>IntegerStamp <span class="free">b1</span> <span class="free">l1</span> <span class="free">u1</span><span class="main">)</span> <span class="main">(</span>IntegerStamp <span class="free">b2</span> <span class="free">l2</span> <span class="free">u2</span><span class="main">)</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="free">b3</span> <span class="free">l3</span> <span class="free">u3</span><span class="main">)</span>"</span></span>
-  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="free">b1</span> <span class="main">=</span> <span class="free">b3</span> <span class="main">∧</span> <span class="free">b2</span> <span class="main">=</span> <span class="free">b3</span>"</span></span>
-  <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> Stamp.distinct<span class="main"><span class="main">(</span></span>25<span class="main"><span class="main">)</span></span> assms join.simps<span class="main"><span class="main">(</span></span>2<span class="main"><span class="main">)</span></span><span class="main">)</span>
-
-<span class="keyword1"><span class="command">lemma</span></span> intstamp_bites_eq_unrestricted<span class="main">:</span>
-  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span>unrestricted_stamp <span class="main">(</span>IntegerStamp <span class="free">b1</span> <span class="free">l1</span> <span class="free">u1</span><span class="main">)</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="free">b2</span> <span class="free">l2</span> <span class="free">u2</span><span class="main">)</span>"</span></span>
-  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="free">b1</span> <span class="main">=</span> <span class="free">b2</span>"</span></span>
-  <span class="keyword1"><span class="command">using</span></span> assms <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-
-<span class="keyword1"><span class="command">lemma</span></span> intstamp_bits_eq_empty<span class="main">:</span>
-  <span class="keyword2"><span class="keyword">assumes</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span>empty_stamp <span class="main">(</span>IntegerStamp <span class="free">b1</span> <span class="free">l1</span> <span class="free">u1</span><span class="main">)</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="free">b2</span> <span class="free">l2</span> <span class="free">u2</span><span class="main">)</span>"</span></span>
-  <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="free">b1</span> <span class="main">=</span> <span class="free">b2</span>"</span></span>
-  <span class="keyword1"><span class="command">using</span></span> assms <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-
-<span class="comment1">(*
-lemma floatstamp_bits_eq_meet:
-  assumes "(meet (FloatStamp b1 l1 u1) (FloatStamp b2 l2 u2)) = (FloatStamp b3 l3 u3)"
-  shows "b1 = b3 ∧ b2 = b3"
-  by (metis Stamp.distinct(42) assms meet.simps(3))
-
-lemma floatstamp_bits_eq_join:
-  assumes "(join (FloatStamp b1 l1 u1) (FloatStamp b2 l2 u2)) = (FloatStamp b3 l3 u3)"
-  shows "b1 = b3 ∧ b2 = b3"
-  by (metis Stamp.distinct(42) assms join.simps(3))
-
-lemma floatstamp_bites_eq_unrestricted:
-  assumes "(unrestricted_stamp (FloatStamp b1 l1 u1)) = (FloatStamp b2 l2 u2)"
-  shows "b1 = b2"
-  using assms by auto
-
-lemma floatstamp_bits_eq_empty:
-  assumes "(empty_stamp (FloatStamp b1 l1 u1)) = (FloatStamp b2 l2 u2)"
-  shows "b1 = b2"
-  using assms by auto
-*)</span>
-
-<span class="comment1">(* Manual sanity checks *)</span>
-<span class="keyword1"><span class="command">notepad</span></span>
-<span class="keyword2"><span class="keyword">begin</span></span>
-  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"unrestricted_stamp <span class="main">(</span>IntegerStamp <span class="numeral">8</span> <span class="main">0</span> <span class="numeral">10</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="numeral">8</span> <span class="main">(</span><span class="main">-</span> <span class="numeral">128</span><span class="main">)</span> <span class="numeral">127</span><span class="main">)</span>"</span></span>
-    <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"unrestricted_stamp <span class="main">(</span>IntegerStamp <span class="numeral">16</span> <span class="main">0</span> <span class="numeral">10</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="numeral">16</span> <span class="main">(</span><span class="main">-</span> <span class="numeral">32768</span><span class="main">)</span> <span class="numeral">32767</span><span class="main">)</span>"</span></span>
-    <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"unrestricted_stamp <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">0</span> <span class="numeral">10</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">(</span><span class="main">-</span> <span class="numeral">2147483648</span><span class="main">)</span> <span class="numeral">2147483647</span><span class="main">)</span>"</span></span>
-    <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"empty_stamp <span class="main">(</span>IntegerStamp <span class="numeral">8</span> <span class="main">0</span> <span class="numeral">10</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="numeral">8</span> <span class="numeral">127</span> <span class="main">(</span><span class="main">-</span> <span class="numeral">128</span><span class="main">)</span><span class="main">)</span>"</span></span>
-    <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"empty_stamp <span class="main">(</span>IntegerStamp <span class="numeral">16</span> <span class="main">0</span> <span class="numeral">10</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="numeral">16</span> <span class="numeral">32767</span> <span class="main">(</span><span class="main">-</span> <span class="numeral">32768</span><span class="main">)</span><span class="main">)</span>"</span></span>
-    <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"empty_stamp <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">0</span> <span class="numeral">10</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="numeral">2147483647</span> <span class="main">(</span><span class="main">-</span> <span class="numeral">2147483648</span><span class="main">)</span><span class="main">)</span>"</span></span>
-    <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"join <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">0</span> <span class="numeral">20</span><span class="main">)</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">(</span><span class="main">-</span><span class="numeral">100</span><span class="main">)</span> <span class="numeral">10</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">0</span> <span class="numeral">10</span><span class="main">)</span>"</span></span>
-    <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-  <span class="keyword1"><span class="command">have</span></span> <span class="quoted"><span class="quoted">"meet <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">0</span> <span class="numeral">20</span><span class="main">)</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">(</span><span class="main">-</span><span class="numeral">100</span><span class="main">)</span> <span class="numeral">10</span><span class="main">)</span> <span class="main">=</span> <span class="main">(</span>IntegerStamp <span class="numeral">32</span> <span class="main">(</span><span class="main">-</span> <span class="numeral">100</span><span class="main">)</span> <span class="numeral">20</span><span class="main">)</span>"</span></span>
-    <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span>
-<span class="keyword2"><span class="keyword">end</span></span>
-
-<span class="comment1">(*
-notepad
-begin
-  have "unrestricted_stamp (FloatStamp 8 0 10) = (FloatStamp 8 neg_infinity pos_infinity)"
-    by auto
-  have "unrestricted_stamp (FloatStamp 16 0 10) = (FloatStamp 16 neg_infinity pos_infinity)"
-    by auto
-  have "unrestricted_stamp (FloatStamp 32 0 10) = (FloatStamp 32 neg_infinity pos_infinity)"
-    by auto
-  have "empty_stamp (FloatStamp 8 0 10) = (FloatStamp 8 pos_infinity neg_infinity)"
-    by auto
-  have "empty_stamp (FloatStamp 16 0 10) = (FloatStamp 16 pos_infinity neg_infinity)"
-    by auto
-  have "empty_stamp (FloatStamp 32 0 10) = (FloatStamp 32 pos_infinity neg_infinity)"
-    by auto
-  have "join (FloatStamp 32 0 20) (FloatStamp 32 (-100) 10) = (FloatStamp 32 0 10)"
-    by auto
-  have "meet (FloatStamp 32 0 20) (FloatStamp 32 (-100) 10) = (FloatStamp 32 (- 100) 20)"
-    by auto
-end
-*)</span>
 
 <span class="keyword2"><span class="keyword">end</span></span></pre>
 </body>

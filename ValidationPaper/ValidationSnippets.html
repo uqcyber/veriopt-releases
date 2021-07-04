@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><link rel="stylesheet" type="text/css" href="isabelle.css"/>
+<title>Theory ValidationSnippets</title>
+</head>
+
+
+<body>
+<div class="head">
+<h1>Theory ValidationSnippets</h1>
+</div>
+
+<pre class="source"><span class="keyword1"><span class="command">theory</span></span> ValidationSnippets
+  <span class="keyword2"><span class="keyword">imports</span></span>
+    <a href="../Tests/UnitTesting.html">Tests.UnitTesting</a>
+    <a href="../Graph/Values2.html">Graph.Values2</a>
+<span class="keyword2"><span class="keyword">begin</span></span>
+
+<span class="keyword1"><span class="command">notation</span></span> <span class="main">(</span>latex<span class="main">)</span>
+  kind <span class="main">(</span><span class="quoted">"_<span class="keyword1">⟪</span>_<span class="keyword1">⟫</span>"</span><span class="main">)</span>
+
+<span class="keyword1"><span class="command">text_raw</span></span> <span class="quoted"><span class="plain_text">‹\Snip{StepSemantics}%›</span></span>
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹
+<span class="antiquoted"><span class="antiquoted"><span class="antiquote"><span class="antiquote">@{</span></span><span class="operator"><span class="operator">thm</span></span>[display,margin=60] intval_mod.simps<span class="main"><span class="main">(</span></span>1<span class="main"><span class="main">)</span></span><span class="antiquote"><span class="antiquote">}</span></span></span></span>
+
+\induct{<span class="antiquoted"><span class="antiquoted"><span class="antiquote"><span class="antiquote">@{</span></span><span class="operator"><span class="operator">thm</span></span>[mode=Rule] step.SignedRemNode <span class="main"><span class="main">[</span></span><span class="operator"><span class="operator">no_vars</span></span><span class="main"><span class="main">]</span></span><span class="antiquote"><span class="antiquote">}</span></span></span></span>}{eval:rem}
+›</span></span>
+<span class="keyword1"><span class="command">text_raw</span></span> <span class="quoted"><span class="plain_text">‹\EndSnip›</span></span>
+
+<span class="comment1">(* moduloSnippet not checked in
+text_raw ‹\Snip{ModuloSnippet}%
+@{thm[display,margin=80] moduloSnippet_def}
+\EndSnip›
+*)</span>
+
+<span class="keyword1"><span class="command">text_raw</span></span> <span class="quoted"><span class="plain_text">‹\Snip{ModuloTestSnippet}%
+<span class="antiquoted"><span class="antiquoted"><span class="antiquote"><span class="antiquote">@{</span></span><span class="operator"><span class="operator">theory_text</span></span> <span class="raw_text"><span class="raw_text">"static_test moduloSnippet <span class="main"><span class="main">[</span></span><span class="main"><span class="main">(</span></span>IntVal 32 <span class="main"><span class="main">(</span></span>1<span class="main"><span class="main">)</span></span><span class="main"><span class="main">)</span></span><span class="main"><span class="main">,</span></span> <span class="main"><span class="main">(</span></span>Intval 32 <span class="main"><span class="main">(</span></span>-2147483648<span class="main"><span class="main">)</span></span><span class="main"><span class="main">)</span></span><span class="main"><span class="main">]</span></span> <span class="main"><span class="main">(</span></span>IntVal 32 <span class="main"><span class="main">(</span></span>1<span class="main"><span class="main">)</span></span><span class="main"><span class="main">)</span></span>"</span></span><span class="antiquote"><span class="antiquote">}</span></span></span></span>
+\EndSnip›</span></span>
+
+<span class="keyword2"><span class="keyword">end</span></span></pre>
+</body>
+
+</html>

@@ -20,7 +20,7 @@ proof -
     using stampdef sorry
 qed
 
-lemma
+lemma intstamp_bounds:
   assumes "wf_stamps g"
   assumes "stpi_upper (stamp g tb) \<le> stpi_lower (stamp g fb)"
   assumes "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"

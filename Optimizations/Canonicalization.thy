@@ -248,8 +248,8 @@ inductive CanonicalizeSub :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNode 
 
   sub_right_sub: (* SubNode.canonical(111) *)
   (* a - (a - b) \<Rightarrow> b *)
-  "\<lbrakk>kind g right = AddNode a b\<rbrakk> 
-    \<Longrightarrow> CanonicalizeSub g (SubNode a right) (RefNode a)" |
+  "\<lbrakk>kind g right = SubNode a b\<rbrakk> 
+    \<Longrightarrow> CanonicalizeSub g (SubNode a right) (RefNode b)" |
 
   sub_yzero: (* SubNode.canonical(121) *)
   (* x - 0 \<Rightarrow> x *)

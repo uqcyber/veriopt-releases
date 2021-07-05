@@ -230,7 +230,7 @@ lemma CanonicalizeIfProof_fake:
   assumes "kind g nid = before"
   assumes "CanonicalizeIf g before after"
   assumes "g' = replace_node_fake nid after g"
-  assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  assumes "[g, p] \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid | g \<sim> g'"
   by (metis CanonicalizeIfProof assms(1) assms(2) assms(3) assms(4) replace_node_fake_def)
 

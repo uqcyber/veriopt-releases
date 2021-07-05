@@ -3,7 +3,6 @@ chapter "veriopt"
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM IR structure"
-  options [quick_and_dirty]
   theories
     Values
     IRNodes
@@ -16,7 +15,7 @@ session Graph in Graph = "HOL-Library" +
 session Semantics in Semantics = Graph +
   description
     "Semantics of GraalVM graphs"
-  options [quick_and_dirty, document = pdf,
+  options [document = pdf,
            document_output = "output",
            show_question_marks = false]
   theories

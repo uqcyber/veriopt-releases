@@ -155,18 +155,17 @@ definition default_stamp :: "Stamp" where
   "default_stamp = (unrestricted_stamp (IntegerStamp 32 0 0))"
 
 (* Theories/Lemmas *)
-(* TODO: should we have separate 32 and 64 versions of this? *)
+(* TODO: should we have separate 32 and 64 versions of this?
 lemma int_valid_range:
   assumes "stamp = IntegerStamp 32 lower upper"
-  shows "{x . valid_value stamp x} = {(IntVal32 (word_of val)) | val . val \<in> {lower..upper}}"
+  shows "{x . valid_value stamp x} = {(IntVal32 (word_of_int val)) | val . val \<in> {lower..upper}}"
   using assms valid_value.simps apply auto
-  (* TODO: here we need to prove: sint (word_of val) = val
+   TODO: here we need to prove: sint (word_of val) = val
     To do that, we need to know that the stamp is well-formed,
     so its lower and upper bounds fit within 32 bits.
 
   using valid_value.elims(2) by blast
 *)
-  sorry
 
 (*
 lemma float_valid_range:

@@ -72,7 +72,7 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     \<Longrightarrow> [g, p] \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
 
   NewInstanceNode:
-    "\<lbrakk>kind g nid = (NewInstanceNode nid f obj nid');
+    "\<lbrakk>kind g nid = (NewInstanceNode nid class frame nid');
       (h', ref) = h_new_inst h;
       m' = m(nid := ref)\<rbrakk> 
     \<Longrightarrow> [g, p] \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |

@@ -4,6 +4,32 @@ imports
   Canonicalization
 begin
 
+lemma intstamp:
+  assumes "wf_stamps g"
+  assumes "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
+  shows "stamp g tb = (IntegerStamp x l h) \<and> sint tbval \<ge> l \<and> sint tbval \<le> h"
+  using assms unfolding wf_stamps.simps
+proof -
+  obtain x l h where stampdef: "stamp g tb = IntegerStamp x l h"
+    using assms
+    by (metis Value.distinct(1) eval_in_ids valid_value.elims(2) wf_stamps.elims(2))
+  then have "sint tbval \<ge> l \<and> sint tbval \<le> h"
+    using valid_value.simps assms
+    by (metis eval_in_ids wf_stamps.elims(2))
+  then show ?thesis
+    using stampdef sorry
+qed
+
+lemma
+  assumes "wf_stamps g"
+  assumes "stpi_upper (stamp g tb) \<le> stpi_lower (stamp g fb)"
+  assumes "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
+  assumes "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal32 fbval"
+  shows "tbval \<le> fbval"
+  using assms intstamp
+  by (metis Stamp.sel(1) one_neq_zero)
+
+
 experiment begin
 lemma CanonicalizeConditionalProof:
   assumes "CanonicalizeConditional g before after"
@@ -379,7 +405,6 @@ lemma add_sub:
   unfolding plus_Value_def minus_Value_def using assms by simp
 
 
-experiment begin
 lemma CanonicalizeSubProof:
   assumes "CanonicalizeSub g before after"
   assumes "wf_stamps g"
@@ -466,16 +491,67 @@ next
   with res show ?case by auto
 next
   case (sub_left_sub left a b)
-  then show ?case sorry
+  obtain bval where bval: "[g, m, p] \<turnstile> kind g b \<mapsto> bval"
+    using sub_left_sub(4) eval.NegateNode by auto
+  then have resdef: "IntVal32 res = (yval - bval) - yval"
+    using sub_left_sub(3,1) bval yval sub_left_sub(5) eval.SubNode
+    using evalDet by auto
+  have ytype: "\<exists> v. yval = IntVal32 v" using resdef sub_int32_typesafe by metis
+  have btype: "\<exists> v. bval = IntVal32 v" using resdef sub_int32_typesafe by metis
+  have res: "IntVal32 res = (IntVal32 0) - bval"
+    using resdef unfolding minus_Value_def 
+    using ytype btype by auto
+  have "IntVal32 res' = (IntVal32 0) - bval"
+    using sub_left_sub(4) eval.NegateNode bval evalDet by simp
+  with res show ?case
+    by (metis Value.inject(1))
 next
   case (sub_right_add1 right a b)
-  then show ?case sorry
+  obtain bval where bval: "[g, m, p] \<turnstile> kind g b \<mapsto> bval"
+    using sub_right_add1(4) eval.NegateNode by auto
+  then have resdef: "IntVal32 res = xval - (xval + bval)"
+    using sub_right_add1(3,1) bval xval sub_right_add1(5) eval.SubNode eval.AddNode
+    using evalDet by simp
+  have xtype: "\<exists> v. xval = IntVal32 v" using resdef sub_int32_typesafe by metis
+  have btype: "\<exists> v. bval = IntVal32 v" using resdef sub_int32_typesafe add_int32_typesafe by metis
+  have res: "IntVal32 res = (IntVal32 0) - bval"
+    using resdef unfolding minus_Value_def plus_Value_def
+    using xtype btype by auto
+  have "IntVal32 res' = (IntVal32 0) - bval"
+    using sub_right_add1(4) eval.NegateNode bval evalDet by simp
+  with res show ?case
+    by (metis Value.inject(1))
 next
   case (sub_right_add2 right a b)
-  then show ?case sorry
+  obtain aval where aval: "[g, m, p] \<turnstile> kind g a \<mapsto> aval"
+    using sub_right_add2(4) eval.NegateNode by auto
+  then have resdef: "IntVal32 res = xval - (aval + xval)"
+    using sub_right_add2(3,1) aval xval sub_right_add2(5) eval.SubNode eval.AddNode
+    using evalDet by simp
+  have xtype: "\<exists> v. xval = IntVal32 v" using resdef sub_int32_typesafe by metis
+  have btype: "\<exists> v. aval = IntVal32 v" using resdef sub_int32_typesafe add_int32_typesafe by metis
+  have res: "IntVal32 res = (IntVal32 0) - aval"
+    using resdef unfolding minus_Value_def plus_Value_def
+    using xtype btype by auto
+  have "IntVal32 res' = (IntVal32 0) - aval"
+    using sub_right_add2(4) eval.NegateNode aval evalDet by simp
+  with res show ?case
+    by (metis Value.inject(1))
 next
   case (sub_right_sub right a b)
-  then show ?case sorry
+  obtain bval where bval: "[g, m, p] \<turnstile> kind g b \<mapsto> bval"
+    using sub_right_sub(4) eval.RefNode by auto
+  then have resdef: "IntVal32 res = xval - (xval - bval)"
+    using sub_right_sub(3,1) bval xval sub_right_sub(5) eval.SubNode
+    using evalDet by simp
+  have xtype: "\<exists> v. xval = IntVal32 v" using resdef sub_int32_typesafe by metis
+  have btype: "\<exists> v. bval = IntVal32 v" using resdef sub_int32_typesafe by metis
+  have res: "IntVal32 res = bval"
+    using resdef unfolding minus_Value_def plus_Value_def
+    using xtype btype by auto
+  have "IntVal32 res' = bval"
+    using sub_right_sub(4) eval.RefNode bval evalDet by simp
+  with res show ?case by auto
 next
   case (sub_yzero y x)
   have 0: "IntVal32 res = xval - yval"
@@ -524,7 +600,6 @@ next
   then show ?case using 1 2 3 by simp
 qed
 qed
-end
 
 lemma CanonicalizeIfProof:
   fixes m::MapState and h::RefFieldHeap

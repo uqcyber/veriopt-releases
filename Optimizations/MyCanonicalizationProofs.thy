@@ -7,8 +7,8 @@ begin
 lemma CanonicalizeConditionalProof:
   assumes "CanonicalizeConditional g before after"
   assumes "wf_graph g \<and> wf_stamps g \<and> wf_values g"
-  assumes "g m \<turnstile> before \<mapsto> res"
-  assumes "g m \<turnstile> after \<mapsto> res'"
+  assumes "[g, m] \<turnstile> before \<mapsto> res"
+  assumes "[g, m] \<turnstile> after \<mapsto> res'"
   shows "res = res'"
   using assms(1) assms 
 proof (induct rule: CanonicalizeConditional.induct)

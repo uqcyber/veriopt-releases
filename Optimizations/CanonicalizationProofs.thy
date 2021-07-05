@@ -531,25 +531,25 @@ lemma CanonicalizeIfProof:
   assumes "kind g nid = before"
   assumes "CanonicalizeIf g before after"
   assumes "g' = replace_node nid (after, s) g"
-  assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  assumes "[g, p] \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid | g \<sim> g'"
   using assms(2) assms 
 proof (induct rule: CanonicalizeIf.induct)
   case (trueConst cond condv tb fb)
-  have gstep: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+  have gstep: "[g, p] \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using ConstantNode IfNode trueConst.hyps(1) trueConst.hyps(2) trueConst.prems(1)
     using step.IfNode by presburger
-  have g'step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+  have g'step: "[g', p] \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using replace_node_lookup
     by (simp add: stepRefNode trueConst.prems(3))
   from gstep g'step show ?case
     using lockstep_strong_bisimilulation assms(3) by simp
 next
   case (falseConst cond condv tb fb)
-  have gstep: "g, p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
+  have gstep: "[g, p] \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     using ConstantNode IfNode falseConst.hyps(1) falseConst.hyps(2) falseConst.prems(1)
     using step.IfNode by presburger
-  have g'step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
+  have g'step: "[g', p] \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     using replace_node_lookup
     by (simp add: falseConst.prems(3) stepRefNode)
   from gstep g'step show ?case
@@ -559,9 +559,9 @@ next
   have cval: "\<exists>v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
     using IfNodeCond
     by (meson eqBranch.prems(1) eqBranch.prems(4))
-  then have gstep: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+  then have gstep: "[g, p] \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using eqBranch(2,3) assms(4) IfNodeStepCases by blast
-  have g'step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+  have g'step: "[g', p] \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     by (simp add: eqBranch.prems(3) stepRefNode)
   from gstep g'step show ?thesis
     using lockstep_strong_bisimilulation assms(3) by simp
@@ -572,10 +572,10 @@ next
     by (meson eqCondition.prems(1) eqCondition.prems(4))
   have "val_to_bool condv"
     using condval eqCondition.hyps evalDet by fastforce
-  then have gstep: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+  then have gstep: "[g, p] \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using step.IfNode
     using condval eqCondition.prems(1) by presburger
-  have g'step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
+  have g'step: "[g', p] \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using replace_node_lookup
     using IRNode.simps(2114) eqCondition.prems(3) stepRefNode by presburger
   from gstep g'step show ?thesis

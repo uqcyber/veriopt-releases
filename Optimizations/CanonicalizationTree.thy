@@ -61,87 +61,153 @@ inductive CanonicalizeBinaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> boo
 
 inductive CanonicalizeUnaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   unary_const_fold:
-  "\<lbrakk>x = (ConstantExpr val);
-    val' = unary_eval op val\<rbrakk>
-    \<Longrightarrow> CanonicalizeUnaryOp (UnaryExpr op x) (ConstantExpr val')"
+  "\<lbrakk>val' = unary_eval op val\<rbrakk>
+    \<Longrightarrow> CanonicalizeUnaryOp (UnaryExpr op (ConstantExpr val)) (ConstantExpr val')"
 
 inductive CanonicalizeMul :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
-  mul_negate:
- "\<lbrakk>y = ConstantExpr c;
-   c = (IntVal32 (-1)) \<or> c = (IntVal64 (-1))\<rbrakk>
+  (* y * (-1) = -y *)
+  mul_negate32:
+ "\<lbrakk>y = ConstantExpr (IntVal32 (-1));
+   stamp_expr x = IntegerStamp 32 lo hi\<rbrakk>
+   \<Longrightarrow> CanonicalizeMul (BinaryExpr BinMul x y) (UnaryExpr UnaryNeg x)" |
+  mul_negate64:
+ "\<lbrakk>y = ConstantExpr (IntVal64 (-1));
+   stamp_expr x = IntegerStamp 64 lo hi\<rbrakk>
    \<Longrightarrow> CanonicalizeMul (BinaryExpr BinMul x y) (UnaryExpr UnaryNeg x)"
-
   (* NOTE: Skipping bit shift optimisations at MulNode.canonical(130) for now *)
 
 inductive CanonicalizeAdd :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
    add_xsub:  (* AddNode.canonical (85) *)
   (* (a - y) + y \<Rightarrow> a *)
-  "\<lbrakk>x = (BinaryExpr BinSub a y)\<rbrakk>
+  "\<lbrakk>x = (BinaryExpr BinSub a y);
+    stampa = stamp_expr a;
+    stampy = stamp_expr y;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampy;
+    stp_bits stampa = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeAdd (BinaryExpr BinAdd x y) a" |
 
    add_ysub:  (* AddNode.canonical (92) *)
   (*  x + (a - x) \<Rightarrow> a *)
-  "\<lbrakk>y = (BinaryExpr BinSub a x)\<rbrakk>
+  "\<lbrakk>y = (BinaryExpr BinSub a x);
+    stampa = stamp_expr a;
+    stampx = stamp_expr x;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampx;
+    stp_bits stampa = stp_bits stampx\<rbrakk>
     \<Longrightarrow> CanonicalizeAdd (BinaryExpr BinAdd x y) a" |
 
   (* NOTE: skipping AddNode.canonical (113) for now: No ZeroExtendNode currently in IR *)
 
   add_xnegate:  (* AddNode.canonical (160) *)
   (* (-x + y) \<Rightarrow> (y - x) *)
-  "\<lbrakk>nx = (UnaryExpr UnaryNeg x)\<rbrakk>
+  "\<lbrakk>nx = (UnaryExpr UnaryNeg x);
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
+    stp_bits stampx = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeAdd (BinaryExpr BinAdd nx y) (BinaryExpr BinSub y x)"  |
 
   add_ynegate:  (* AddNode.canonical (165) *)
   (* (x + (-y)) \<Rightarrow> (x - y) *)
-  "\<lbrakk>ny = (UnaryExpr UnaryNeg y)\<rbrakk>
+  "\<lbrakk>ny = (UnaryExpr UnaryNeg y);
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
+    stp_bits stampx = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeAdd (BinaryExpr BinAdd x ny) (BinaryExpr BinSub x y)"
 
 inductive CanonicalizeSub :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
+  (*
   sub_same: (* SubNode.canonical(76) *)
   (* (x - x) = 0 *)
-  "\<lbrakk>x = y;
-    b = stp_bits (stamp_expr x);
+  "\<lbrakk>stampx = stamp_expr x;
+    is_IntegerStamp stampx;
+    b = stp_bits stampx;
     zero = (if b = 32 then (IntVal32 0) else (IntVal64 0))\<rbrakk>
-    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x y) (ConstantExpr zero)" |
+    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x x) (ConstantExpr zero)" |
+  *)
+  sub_same32: (* SubNode.canonical(76) *)
+  (* (x - x) = 0 *)
+  "\<lbrakk>stampx = stamp_expr x;
+    stampx = IntegerStamp 32 lo hi\<rbrakk>
+    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x x) (ConstantExpr (IntVal32 0))" |
+  sub_same64: (* SubNode.canonical(76) *)
+  (* (x - x) = 0 *)
+  "\<lbrakk>stampx = stamp_expr x;
+    stampx = IntegerStamp 64 lo hi\<rbrakk>
+    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x x) (ConstantExpr (IntVal64 0))" |
 
   sub_left_add1: (* SubNode.canonical(86) *)
   (* (a + b) - b \<Rightarrow> a *)
-  "\<lbrakk>x = (BinaryExpr BinAdd a b)\<rbrakk>
+  "\<lbrakk>x = (BinaryExpr BinAdd a b);
+    stampa = stamp_expr a;
+    stampb = stamp_expr b;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampb;
+    stp_bits stampa = stp_bits stampb\<rbrakk>
     \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x b) a" |
 
   sub_left_add2: (* SubNode.canonical(90) *)
   (* (a + b) - a \<Rightarrow> b *)
-  "\<lbrakk>x = (BinaryExpr BinAdd a b)\<rbrakk>
+  "\<lbrakk>x = (BinaryExpr BinAdd a b);
+    stampa = stamp_expr a;
+    stampb = stamp_expr b;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampb;
+    stp_bits stampa = stp_bits stampb\<rbrakk>
     \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x a) b" |
 
   sub_left_sub: (* SubNode.canonical(94) *)
   (* (a - b) - a \<Rightarrow> (-b) *)
-  "\<lbrakk>x = (BinaryExpr BinSub a b)\<rbrakk>
+  "\<lbrakk>x = (BinaryExpr BinSub a b);
+    stampa = stamp_expr a;
+    stampb = stamp_expr b;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampb;
+    stp_bits stampa = stp_bits stampb\<rbrakk>
     \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x a) (UnaryExpr UnaryNeg b)" |
 
   sub_right_add1: (* SubNode.canonical(103) *)
   (* a - (a + b) \<Rightarrow> (-b) *)
-  "\<lbrakk>y = (BinaryExpr BinAdd a b)\<rbrakk>
+  "\<lbrakk>y = (BinaryExpr BinAdd a b);
+    stampa = stamp_expr a;
+    stampb = stamp_expr b;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampb;
+    stp_bits stampa = stp_bits stampb\<rbrakk>
     \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub a y) (UnaryExpr UnaryNeg b)" |
 
   sub_right_add2: (* SubNode.canonical(107) *)
   (* b - (a + b) \<Rightarrow> (-a) *)
-  "\<lbrakk>y = (BinaryExpr BinAdd a b)\<rbrakk>
+  "\<lbrakk>y = (BinaryExpr BinAdd a b);
+    stampa = stamp_expr a;
+    stampb = stamp_expr b;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampb;
+    stp_bits stampa = stp_bits stampb\<rbrakk>
     \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub b y) (UnaryExpr UnaryNeg a)" |
 
   sub_right_sub: (* SubNode.canonical(111) *)
   (* a - (a - b) \<Rightarrow> b *)
-  "\<lbrakk>y = (BinaryExpr BinSub a b)\<rbrakk>
+  "\<lbrakk>y = (BinaryExpr BinSub a b);
+    stampa = stamp_expr a;
+    stampb = stamp_expr b;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampb;
+    stp_bits stampa = stp_bits stampb\<rbrakk>
     \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub a y) b" |
 
-  sub_xzero: (* SubNode.canonical(146) *)
+  (* SubNode.canonical(146) *)
   (* 0 - x \<Rightarrow> (-x) *)
-  "\<lbrakk>z = (ConstantExpr (IntVal32 0)) \<or> z = (ConstantExpr (IntVal64 0))\<rbrakk>
-    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub z x) (UnaryExpr UnaryNeg x)" |
+  sub_xzero32:
+  "\<lbrakk>stampx = stamp_expr x;
+    stampx = IntegerStamp 32 lo hi\<rbrakk>
+    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub (ConstantExpr (IntVal32 0)) x) (UnaryExpr UnaryNeg x)" |
+  sub_xzero64:
+  "\<lbrakk>stampx = stamp_expr x;
+    stampx = IntegerStamp 64 lo hi\<rbrakk>
+    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub (ConstantExpr (IntVal64 0)) x) (UnaryExpr UnaryNeg x)" |
 
   sub_y_negate: (* SubNode.canonical(152) *)
   (* a - (-b) \<Rightarrow> a + b *)
-  "\<lbrakk>nb = (UnaryExpr UnaryNeg b)\<rbrakk>
+  "\<lbrakk>nb = (UnaryExpr UnaryNeg b);
+    stampa = stamp_expr a;
+    stampb = stamp_expr b;
+    is_IntegerStamp stampa \<and> is_IntegerStamp stampb;
+    stp_bits stampa = stp_bits stampb\<rbrakk>
     \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub a nb) (BinaryExpr BinAdd a b)"
 
   (* x - 0 \<Rightarrow> x in SubNode.canonical(121), handled by is_neutral case in CanonicalizeBinaryOp *)
@@ -164,33 +230,40 @@ inductive CanonicalizeNegate :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool"
     stp_bits stampx = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeNegate (UnaryExpr UnaryNeg e) (BinaryExpr BinSub y x)"
 
-inductive CanonicalizeNot :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
-  not_not: (* NotNode.canonical(75) *)
-  (* ~(~x) \<Rightarrow> x *)
-  "\<lbrakk>nx = (UnaryExpr UnaryNot x)\<rbrakk>
-    \<Longrightarrow> CanonicalizeNot (UnaryExpr UnaryNot nx) x"
-
 inductive CanonicalizeAbs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   abs_abs:  (* AbsNode.canonical(68) *)
   (* abs(abs(x)) = abs(x) *)
-  "\<lbrakk>ax = (UnaryExpr UnaryAbs x)\<rbrakk>
+  "\<lbrakk>ax = (UnaryExpr UnaryAbs x);
+    is_IntegerStamp (stamp_expr x)\<rbrakk>
     \<Longrightarrow> CanonicalizeAbs (UnaryExpr UnaryAbs ax) ax" |
 
   abs_neg:  (* AbsNode.canonical(68) *)
   (* abs(-x) = abs(x) *)
-  "\<lbrakk>nx = (UnaryExpr UnaryNeg x)\<rbrakk>
+  "\<lbrakk>nx = (UnaryExpr UnaryNeg x);
+    is_IntegerStamp (stamp_expr x)\<rbrakk>
     \<Longrightarrow> CanonicalizeAbs (UnaryExpr UnaryAbs nx) (UnaryExpr UnaryAbs x)"
+
+inductive CanonicalizeNot :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
+  not_not: (* NotNode.canonical(75) *)
+  (* ~(~x) \<Rightarrow> x *)
+  "\<lbrakk>nx = (UnaryExpr UnaryNot x);
+    is_IntegerStamp (stamp_expr x)\<rbrakk>
+    \<Longrightarrow> CanonicalizeNot (UnaryExpr UnaryNot nx) x"
 
 inductive CanonicalizeAnd :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   and_same: (* AndNode.canonical(82) *)
   (* (x & x) \<Rightarrow> x *)
-  "\<lbrakk>x = y\<rbrakk>
-    \<Longrightarrow> CanonicalizeAnd (BinaryExpr BinAnd x y) x" |
+  "\<lbrakk>is_IntegerStamp (stamp_expr x)\<rbrakk>
+    \<Longrightarrow> CanonicalizeAnd (BinaryExpr BinAnd x x) x" |
 
   and_demorgans: (* AndNode.canonical(119) *)
   (* (~x) & (~y) \<Rightarrow> ~(x | y) *)
   "\<lbrakk>nx = (UnaryExpr UnaryNot x);
-    ny = (UnaryExpr UnaryNot y)\<rbrakk>
+    ny = (UnaryExpr UnaryNot y);
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
+    stp_bits stampx = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeAnd (BinaryExpr BinAnd nx ny) (UnaryExpr UnaryNot (BinaryExpr BinOr x y))"
 
   (* NOTE: Skipping AndNode.canonical(103).... Should be put in CanonicalizeBinaryOp via is_neutral  *)
@@ -200,13 +273,17 @@ inductive CanonicalizeAnd :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" wh
 inductive CanonicalizeOr :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   or_same: (* OrNode.canonical(93) *)
   (* (x | x) \<Rightarrow> x *)
-  "\<lbrakk>x = y\<rbrakk>
-    \<Longrightarrow> CanonicalizeOr (BinaryExpr BinOr x y) x" |
+  "\<lbrakk>is_IntegerStamp (stamp_expr x)\<rbrakk>
+    \<Longrightarrow> CanonicalizeOr (BinaryExpr BinOr x x) x" |
 
   or_demorgans: (* OrNode.canonical(120) *)
   (* (~x) | (~y) \<Rightarrow> ~(x & y) *)
   "\<lbrakk>nx = (UnaryExpr UnaryNot x);
-    ny = (UnaryExpr UnaryNot y)\<rbrakk>
+    ny = (UnaryExpr UnaryNot y);
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
+    stp_bits stampx = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeOr (BinaryExpr BinOr nx ny) (UnaryExpr UnaryNot (BinaryExpr BinAnd x y))"
 
   (* NOTE: Skipping OrNode.canonical(103). Should be put in CanonicalizeBinaryOp via is_neutral *)
@@ -220,7 +297,6 @@ inductive CanonicalizeIntegerEquals :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow
     \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals x y) (ConstantExpr (IntVal32 1))" |
 
   int_equals_distinct: (* IntegerEqualsNode.canonical(143) *)
-  (* (x == x) \<Rightarrow> T *)
   "\<lbrakk>alwaysDistinct (stamp_expr x) (stamp_expr y)\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals x y) (ConstantExpr (IntVal32 0))" |
 
@@ -308,7 +384,11 @@ inductive CanonicalizeConditional :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> 
 
   cond_eq: (* ConditionalNode.canonicalizeConditional (155) *)
   (* (x==y) ? x : y \<Longrightarrow> y *)
-  "\<lbrakk>c = (BinaryExpr BinIntegerEquals x y)\<rbrakk>
+  "\<lbrakk>c = (BinaryExpr BinIntegerEquals x y);
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
+    stp_bits stampx = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeConditional (ConditionalExpr c x y) y" |
 
   condition_bounds_x: (* ConditionalNode.canonicalizeConditional (170) *)
@@ -329,7 +409,9 @@ inductive CanonicalizeConditional :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> 
 
   negate_condition: (* ConditionalNode.findSynonym (284) *)
   (* (\<not>c ? x : y) \<Rightarrow> (c ? y : x) *)
-  "\<lbrakk>nc = (UnaryExpr UnaryLogicNegation c)\<rbrakk>
+  "\<lbrakk>nc = (UnaryExpr UnaryLogicNegation c);
+    stampc = stamp_expr c;
+    stampc = IntegerStamp 32 lo hi\<rbrakk>
     \<Longrightarrow> CanonicalizeConditional (ConditionalExpr nc x y) (ConditionalExpr c y x)" |
 
   const_true:  (* ConditionalNode.findSynonym (286) *)
@@ -342,7 +424,7 @@ inductive CanonicalizeConditional :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> 
   (* FALSE ? t : f \<Rightarrow> f*)
   "\<lbrakk>c = ConstantExpr val;
     \<not>(val_to_bool val)\<rbrakk>
-    \<Longrightarrow> CanonicalizeConditional (ConditionalExpr c t f) t"
+    \<Longrightarrow> CanonicalizeConditional (ConditionalExpr c t f) f"
 
   (* ConditionalNode.canonicalizeConditional (188) skipping for now:
       Currently don't have ZeroExtendNode, IntegerConvertNode *)

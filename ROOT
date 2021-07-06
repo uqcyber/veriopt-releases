@@ -3,11 +3,13 @@ chapter "veriopt"
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM IR structure"
+  options [quick_and_dirty]
   theories
     Values2
     IRNodes2
     IRNodeHierarchy
     Stamp2
+    Stamp4
     IRGraph
     (*Comparison*)
     (* CFG -- will add back once sorries are fixed *)
@@ -93,6 +95,8 @@ session Document in "Papers/Main" = Optimizations +
     Optimizations.CanonicalizationTreeProofs
   document_files (in ".")
     "root.tex"
+  document_files (in "../Stamps")
+    "lattice.tex"
   document_files (in "../../latex")
     "mathpartir.sty"
 
@@ -120,4 +124,20 @@ session ValidationPaper in "Papers/Validation" = Tests +
     ValidationSnippets
   document_files (in "../../latex")
     "root.tex"
+    "mathpartir.sty"
+
+session Stamps in "Papers/Stamps" = Graph +
+  description
+    "GraalVM Stamp Theory"
+  options [document = pdf,
+           document_output = "document",
+           document_variants="document:outline=/proof"]
+  sessions
+    Graph
+  document_theories
+    Graph.Stamp4
+  document_files (in ".")
+    "root.tex"
+    "lattice.tex"
+  document_files (in "../../latex")
     "mathpartir.sty"

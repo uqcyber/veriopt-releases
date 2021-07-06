@@ -195,11 +195,6 @@ fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "^*" 59
   "intval_xor (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 XOR v2))" |
   "intval_xor _ _ = UndefVal"
 
-fun intval_not :: "Value \<Rightarrow> Value" where
-  "intval_not (IntVal32 v) = (IntVal32 (NOT v))" |
-  "intval_not (IntVal64 v) = (IntVal64 (NOT v))" |
-  "intval_not _ = UndefVal"
-
 fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_equals (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |
   "intval_equals (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 = v2)" |
@@ -210,6 +205,22 @@ fun intval_less_than :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_less_than (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 <s v2)" |
   "intval_less_than _ _ = UndefVal"
 
+fun intval_not :: "Value \<Rightarrow> Value" where
+  "intval_not (IntVal32 v) = (IntVal32 (NOT v))" |
+  "intval_not (IntVal64 v) = (IntVal64 (NOT v))" |
+  "intval_not _ = UndefVal"
+
+fun intval_negate :: "Value \<Rightarrow> Value" where
+  "intval_negate (IntVal32 v) = IntVal32 (- v)" |
+  "intval_negate (IntVal64 v) = IntVal64 (- v)" |
+  "intval_negate _ = UndefVal"
+
+fun intval_abs :: "Value \<Rightarrow> Value" where
+  "intval_abs (IntVal32 v) = (if (v) <s 0 then (IntVal32 (- v)) else (IntVal32 v))" |
+  "intval_abs (IntVal64 v) = (if (v) <s 0 then (IntVal64 (- v)) else (IntVal64 v))" |
+  "intval_abs _ = UndefVal"
+
+
 (* Other possibly-helpful lemmas from WORD and its ancestors:
 
 lemma signed_take_bit_add:
@@ -219,12 +230,6 @@ lemma plus_dist:
   \<open>Word.the_int (v + w) = take_bit LENGTH('a) (Word.the_int v + Word.the_int w)\<close>
   for v w :: \<open>'a::len word\<close>
 *)
-
-fun intval_negate :: "Value \<Rightarrow> Value" where
-  "intval_negate (IntVal32 v) = IntVal32 (- v)" |
-  "intval_negate (IntVal64 v) = IntVal64 ( - v)" |
-  "intval_negate _ = UndefVal"
-
 
 (* ========================================================================
    Commutative and Associative results.  (Not used yet).

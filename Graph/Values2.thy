@@ -42,7 +42,7 @@ type_synonym int1 = "1 word" \<comment> \<open>boolean\<close>
 
 type_synonym objref = "nat option"
 
-datatype (discs_sels) Value  =
+datatype Value  =
   UndefVal |
   IntVal32 int32 |  (* includes boolean *)
   IntVal64 int64 |

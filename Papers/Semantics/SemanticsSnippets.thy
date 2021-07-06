@@ -195,12 +195,6 @@ text \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
-text_raw \<open>\Snip{CanonicalDataObligation}%
-\begin{center}
-@{term[source] "\<forall>m. ([g\<^sub>1, m] \<turnstile> g\<^sub>1\<llangle>nid\<rrangle> \<mapsto> v) \<longleftrightarrow> ([g\<^sub>2, m] \<turnstile> g\<^sub>2\<llangle>nid\<rrangle> \<mapsto> v)"}.
-\end{center}
-\EndSnip\<close>
-
 text_raw \<open>\Snip{AddNodeRules}%
 \begin{center}
 @{thm[mode=Rule] CanonicalizeAdd.add_both_const [no_vars]}\\[8px]

@@ -70,7 +70,7 @@ proof -
     using assms(2) replace_node_unchanged
     by (metis DiffI IRNode.distinct(585) \<open>bool_to_val True = IntVal 1 1\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE insertE not_in_g)
   from if' c' show ?thesis using IfNode
-    by (metis (mono_tags, hide_lams) ConstantNode val_to_bool.simps(1) zero_neq_one)    
+    by (smt (z3) ConstantNode val_to_bool.simps(1))
 qed
 
 lemma constantConditionFalse:
@@ -88,7 +88,7 @@ proof -
     using assms(2) replace_node_unchanged
     by (metis DiffI IRNode.distinct(585) \<open>bool_to_val False = IntVal 1 0\<close> add_node_lookup assms(1) constantCondition.simps(1) emptyE insertE not_in_g)
   from if' c' show ?thesis using IfNode
-    by (metis (no_types, hide_lams) ConstantNode val_to_bool.simps(1))
+    by (smt (z3) ConstantNode val_to_bool.simps(1))
 qed
 
 lemma diff_forall:

@@ -36,7 +36,7 @@ proof (induct rule: CanonicalizeConditional.induct)
   next
     case False
     have flipv_range: "flipv \<in> {0, 1}"
-      using assms(2) flipv 
+      using assms(2) flipv wf_value_bit_range
       by (metis False insertI1 invert val_to_bool.simps(1))
     have "(NOT flipv) \<noteq> 0"
       using False invert

@@ -67,7 +67,6 @@ fun wf_values :: "IRGraph \<Rightarrow> bool" where
       (is_LogicNode (kind g n) \<longrightarrow> 
         wf_bool v \<and> wf_logic_node_inputs g n))))"
 
-(*
 lemma wf_value_range:
   "b > 1 \<and> b \<in> int_bits_allowed \<longrightarrow> {v. wf_value (IntVal b v)} = {v. ((-(2^(b-1)) \<le> v) \<and> (v < (2^(b-1))))}"
   unfolding wf_value.simps
@@ -77,6 +76,5 @@ lemma wf_value_bit_range:
   "b = 1 \<longrightarrow> {v. wf_value (IntVal b v)} = {}"
   unfolding wf_value.simps
   by (simp add: int_bits_allowed_def)
-*)
 
 end

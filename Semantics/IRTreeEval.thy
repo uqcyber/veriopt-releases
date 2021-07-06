@@ -347,16 +347,10 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
 
 (* TODO: switch these to new Values2 *)
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
-  "unary_eval UnaryAbs (IntVal32 v1)  = IntVal32 ( (if sint(v1) < 0 then - v1 else v1) )" |
-  "unary_eval UnaryAbs (IntVal64 v1)  = IntVal64 ( (if sint(v1) < 0 then - v1 else v1) )" |
-
-  "unary_eval UnaryNot (IntVal32 v1) = IntVal32 (NOT v1)" |
-  "unary_eval UnaryNot (IntVal64 v1) = IntVal64 (NOT v1)" |
-
-  "unary_eval UnaryLogicNegation (IntVal32 v1) = (if v1 = 0 then (IntVal32 1) else (IntVal32 0))" |
-
+  "unary_eval UnaryAbs v = intval_abs v" |
   "unary_eval UnaryNeg v = intval_negate v" |
-
+  "unary_eval UnaryNot v = intval_not v" |
+  "unary_eval UnaryLogicNegation (IntVal32 v1) = (if v1 = 0 then (IntVal32 1) else (IntVal32 0))" |
   "unary_eval op v1 = UndefVal"
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where

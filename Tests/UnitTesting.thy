@@ -47,7 +47,7 @@ definition unit_booleanSnippet_21 :: IRGraph where  "unit_booleanSnippet_21 = ir
   (2, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
   (3, (ReturnNode (Some 2) None), VoidStamp)
   ]"
-value "static_test unit_booleanSnippet_21 [] (IntVal32 (0))"
+value "static_test unit_booleanSnippet_21 [] (IntVal32 (1))"
 
 
 (* Lorg/graalvm/compiler/api/directives/test/BlackholeDirectiveTest;.booleanSnippet*)

@@ -4,33 +4,7 @@ imports
   Canonicalization
 begin
 
-lemma intstamp:
-  assumes "wf_stamps g"
-  assumes "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
-  shows "stamp g tb = (IntegerStamp x l h) \<and> sint tbval \<ge> l \<and> sint tbval \<le> h"
-  using assms unfolding wf_stamps.simps
-proof -
-  obtain x l h where stampdef: "stamp g tb = IntegerStamp x l h"
-    using assms
-    by (metis Value.distinct(1) eval_in_ids valid_value.elims(2) wf_stamps.elims(2))
-  then have "sint tbval \<ge> l \<and> sint tbval \<le> h"
-    using valid_value.simps assms
-    by (metis eval_in_ids wf_stamps.elims(2))
-  then show ?thesis
-    using stampdef sorry
-qed
 
-lemma intstamp_bounds:
-  assumes "wf_stamps g"
-  assumes "stpi_upper (stamp g tb) \<le> stpi_lower (stamp g fb)"
-  assumes "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
-  assumes "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal32 fbval"
-  shows "tbval \<le> fbval"
-  using assms intstamp
-  by (metis Stamp.sel(1) one_neq_zero)
-
-
-experiment begin
 lemma CanonicalizeConditionalProof:
   assumes "CanonicalizeConditional g before after"
   assumes "wf_graph g \<and> wf_stamps g"
@@ -166,41 +140,7 @@ next
         evalDet fbval tbval eval.ConditionalNode eval.IntegerEqualsNode
       using \<open>res' = IntVal32 fbval\<close> by force
   qed
-next
-  case (condition_bounds_x g cond tb fb)
-  obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
-    using condition_bounds_x.prems(3) by blast
-  obtain fbval where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal32 fbval"
-    using condition_bounds_x.prems(3) by blast
-  have "tbval \<le> fbval"
-    using condition_bounds_x.prems(2) tbval fbval condition_bounds_x.hyps(2) int_valid_range
-    unfolding wf_stamps.simps using valid_value.simps
-    sorry
-  then have "res = IntVal32 tbval"
-    using ConditionalNodeE tbval fbval
-    eval.IntegerLessThanNode
-    sorry
-  then show ?case
-    using condition_bounds_x.prems(3) eval.RefNode evalDet tbval
-    using ConditionalNodeE Value.sel(1) condition_bounds_x.prems(4) by blast
-next
-  case (condition_bounds_y g cond fb tb)
-  obtain tbval where tbval: "[g, m, p] \<turnstile> kind g tb \<mapsto> IntVal32 tbval"
-    using condition_bounds_y.prems(3) by blast
-  obtain fbval where fbval: "[g, m, p] \<turnstile> kind g fb \<mapsto> IntVal32 fbval"
-    using condition_bounds_y.prems(3) by blast
-  have "tbval \<ge> fbval"
-    using condition_bounds_y.prems(2) tbval fbval condition_bounds_y.hyps(2) int_valid_range
-    unfolding wf_stamps.simps 
-    sorry
-  then have "res = IntVal32 tbval"
-    using ConditionalNodeE tbval fbval
-    sorry
-  then show ?case
-    using condition_bounds_y.prems(3) eval.RefNode evalDet tbval
-    using ConditionalNodeE Value.sel(1) condition_bounds_y.prems(4) by blast
 qed
-end
 
 lemma add_zero_32:
   shows "(IntVal32 0) + (IntVal32 y) = (IntVal32 y)"

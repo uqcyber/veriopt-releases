@@ -38,7 +38,6 @@ session Proofs in Proofs = Semantics +
 session Optimizations in Optimizations = Proofs +
   description
     "Graph transformation optimizations"
-  options [quick_and_dirty]
   theories
     Canonicalization
     CanonicalizationTree

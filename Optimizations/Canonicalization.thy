@@ -31,17 +31,13 @@ inductive CanonicalizeConditional :: "IRGraph \<Rightarrow> IRNode \<Rightarrow>
 
   cond_eq: (* ConditionalNode.canonicalizeConditional (155) *)
   "\<lbrakk>kind g cond = IntegerEqualsNode tb fb\<rbrakk>
-  \<Longrightarrow> CanonicalizeConditional g (ConditionalNode cond tb fb) (RefNode fb)" |
+  \<Longrightarrow> CanonicalizeConditional g (ConditionalNode cond tb fb) (RefNode fb)"
 
-  condition_bounds_x: (* ConditionalNode.canonicalizeConditional (169) *)
-  "\<lbrakk>kind g cond = IntegerLessThanNode tb fb;
-    stpi_upper (stamp g tb) \<le> stpi_lower (stamp g fb)\<rbrakk>
-  \<Longrightarrow> CanonicalizeConditional g (ConditionalNode cond tb fb) (RefNode tb)" |
+  (* ConditionalNode.canonicalizeConditional (169) skipping for now:
+      Currently have an incomplete representation of stamps *)
 
-  condition_bounds_y: (* ConditionalNode.canonicalizeConditional (174) *)
-  "\<lbrakk>kind g cond = IntegerLessThanNode fb tb;
-    stpi_upper (stamp g fb) \<le> stpi_lower (stamp g tb)\<rbrakk>
-  \<Longrightarrow> CanonicalizeConditional g (ConditionalNode cond tb fb) (RefNode tb)"
+  (* ConditionalNode.canonicalizeConditional (174) skipping for now:
+      Currently have an incomplete representation of stamps *)
 
   (* ConditionalNode.canonicalizeConditional (188) skipping for now:
       Currently don't have ZeroExtendNode, IntegerConvertNode *)

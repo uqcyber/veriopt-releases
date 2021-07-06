@@ -55,6 +55,7 @@ session Tests in Tests = Semantics +
     AssertTesting
     ExecExamples
     UnitTesting
+    ArithmeticTesting
     (*ConditionalEliminationTests*)
 
 \<comment>\<open>All documentation sessions\<close>

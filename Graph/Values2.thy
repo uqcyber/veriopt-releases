@@ -66,6 +66,13 @@ fun wf_bool :: "Value \<Rightarrow> bool" where
   "wf_bool (IntVal32 v) = (v = 0 \<or> v = 1)" |
   "wf_bool _ = False" 
 
+fun val_to_bool :: "Value \<Rightarrow> bool" where
+  "val_to_bool (IntVal32 v) = (v = 1)" |
+  "val_to_bool _ = False"
+
+fun bool_to_val :: "bool \<Rightarrow> Value" where
+  "bool_to_val True = (IntVal32 1)" |
+  "bool_to_val False = (IntVal32 0)"
 
 value "sint(word_of_int (1) :: int1)"
 
@@ -193,6 +200,16 @@ fun intval_not :: "Value \<Rightarrow> Value" where
   "intval_not (IntVal64 v) = (IntVal64 (NOT v))" |
   "intval_not _ = UndefVal"
 
+fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_equals (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |
+  "intval_equals (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 = v2)" |
+  "intval_equals _ _ = UndefVal"
+
+fun intval_less_than :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_less_than (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 <s v2)" |
+  "intval_less_than (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 <s v2)" |
+  "intval_less_than _ _ = UndefVal"
+
 (* Other possibly-helpful lemmas from WORD and its ancestors:
 
 lemma signed_take_bit_add:
@@ -203,35 +220,10 @@ lemma plus_dist:
   for v w :: \<open>'a::len word\<close>
 *)
 
-fun val_to_bool :: "Value \<Rightarrow> bool" where
-  "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
-  "val_to_bool v = False"
-
-fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal32 1)" |
-  "bool_to_val False = (IntVal32 0)"
-
-
-fun abs_value :: "Value \<Rightarrow> Value" where
-  "abs_value (IntVal32 v) = (if v < 0 then (intval_sub (IntVal32 0) (IntVal32 v)) else (IntVal32 v))" |
-  "abs_value (IntVal64 v) = (if v < 0 then (intval_sub (IntVal64 0) (IntVal64 v)) else (IntVal64 v))" |
-  "abs_value _ = UndefVal"
-
-fun negate_value :: "Value \<Rightarrow> Value" where
-  "negate_value (IntVal32 v) = (IntVal32 0) - (IntVal32 v)" |
-  "negate_value (IntVal64 v) = (IntVal64 0) - (IntVal64 v)" |
-  "negate_value _ = UndefVal"
-
-fun equal_value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "equal_value (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |
-  "equal_value (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 = v2)" |
-  "equal_value _ _ = UndefVal"
-
-fun less_than_value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "less_than_value (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 < v2)" |
-  "less_than_value (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 < v2)" |
-  "less_than_value _ _ = UndefVal"
-
+fun intval_negate :: "Value \<Rightarrow> Value" where
+  "intval_negate (IntVal32 v) = IntVal32 (- v)" |
+  "intval_negate (IntVal64 v) = IntVal64 ( - v)" |
+  "intval_negate _ = UndefVal"
 
 
 (* ========================================================================

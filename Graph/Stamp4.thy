@@ -619,6 +619,11 @@ restricting the datatype to only allow valid ranges and
 the bottom integer element (max\_int..min\_int).
 \<close>
 
+lemma 
+  assumes "(x::int) > 0"
+  shows "(2 ^ x)/2 = (2 ^ (x - 1))"
+  sorry
+
 definition max_signed_int :: "'a::len word" where
   "max_signed_int = (2 ^ (LENGTH('a) - 1)) - 1"
 
@@ -641,6 +646,20 @@ definition signed_gt :: "'a::len word \<Rightarrow> 'a word \<Rightarrow> bool" 
 interpretation wor: ordering_top \<open>signed_gt_eq\<close> \<open>signed_gt\<close> \<open>max_signed_int :: 'a::len word\<close>
   apply (standard) sledgehammer
 *)
+
+lemma
+  fixes x :: "'a::len word"
+  shows "sint x \<le> sint (((2 ^ (LENGTH('a) - 1)) - 1)::'a word)"
+  using sint_greater_eq sorry (*
+  by (smt (z3) Euclidean_Division.pos_mod_bound int_word_sint sint_0 sint_lt two_less_eq_exp_length word_of_int_2p_len)
+  *)
+
+(* helpful: sint_greater_eq *)
+value "sint (0::1 word)"
+value "sint (1::1 word)"
+value "sint (((2 ^ 0) - 1)::1 word)"
+
+value "sint (((2 ^ 31) - 1)::32 word)"
 
 lemma max_signed:
   fixes a :: "'a::len word"
@@ -666,8 +685,9 @@ value "sint (2147483647::32 word)"
 value "sint (2147483648::32 word)"
 
 
+
 typedef (overloaded) ('a::len) intstamp = 
-  "{bounds :: ('a word, 'a word) prod . (sint (fst bounds) \<le> sint (snd bounds) \<or> bounds = int_bottom)}"
+  "{bounds :: ('a word, 'a word) prod . ((fst bounds) \<le>s (snd bounds) \<or> bounds = int_bottom)}"
 proof -
   show ?thesis
     by (smt (z3) mem_Collect_eq prod.sel(1) prod.sel(2) signed_minus_1 sint_0)
@@ -698,6 +718,7 @@ lift_definition is_bottom :: "('a::len) intstamp \<Rightarrow> bool"
 
 lift_definition from_bounds :: "('a::len word \<times> 'a word) \<Rightarrow> 'a intstamp"
   is "Abs_intstamp" .
+
 
 instantiation intstamp :: (len) order
 begin
@@ -758,7 +779,8 @@ lemma bottom_unique:
 proof -
   have "\<forall>x. sint (fst (bounds x)) \<le> sint (snd (bounds x)) \<or> is_bottom x"
     unfolding bounds_def is_bottom_def
-    using Rep_intstamp by auto
+    using Rep_intstamp
+    using word_sle_eq by auto
   then have "\<forall>x. (card (range x)) > 0 \<or> is_bottom x"
     unfolding range_def using bounds_has_value
     by (simp add: bounds.transfer case_prod_beta)
@@ -868,7 +890,8 @@ lemma always_valid:
   fixes s1 s2 :: "'a intstamp"
   shows "Rep_intstamp (from_bounds (join_or_bottom s1 s2)) = join_or_bottom s1 s2"
   unfolding join_or_bottom_def join_bounds_def from_bounds_def
-  by (simp add: Abs_intstamp_inverse)
+  using Abs_intstamp_inverse
+  by (smt (z3) from_bounds.transfer from_bounds_def mem_Collect_eq word_sle_eq)
 
 lemma invalid_join:
   fixes s1 s2 :: "'a intstamp"

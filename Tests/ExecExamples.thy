@@ -14,23 +14,26 @@ declare [[ML_source_trace]]
    Discuss ways to fix this
  *)
 
+fun id_and_state :: "IRGraph \<times> ID \<times> MapState \<times> Value list \<Rightarrow> ID \<times> MapState" where
+  "id_and_state (g,i,m,ps) = (i,m)"
+
 inductive exec_graph :: "IRGraph \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> Trace \<Rightarrow> bool" ("_|_\<leadsto>_|_")
   where
-  "\<lbrakk>state = new_map ps;
-    (\<lambda>x. Some g) \<turnstile> ([(g, 0, state), (g, 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
-    \<Longrightarrow> exec_graph g ps (prod.snd end) l"
+  "\<lbrakk>s0 = (g, 0, new_map_state, ps);
+    (\<lambda>x. Some g) \<turnstile> ([s0, s0], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
+    \<Longrightarrow> exec_graph g ps (id_and_state end) l"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> o \<Rightarrow> bool as execE) "exec_graph" .
 
 
 definition simple_return :: IRGraph where
   "simple_return = irgraph [
     (2, (ReturnNode (Some 1) None), default_stamp),
-    (1, (ConstantNode (IntVal 32 42)), default_stamp),
+    (1, (ConstantNode (IntVal32 42)), default_stamp),
     (0, (StartNode None 2), VoidStamp)
   ]"
 
 (* IntVal 42 *)
-values "{m_val m 0 |n m l. simple_return | [] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. simple_return | [] \<leadsto> (n, m) | l}"
 
 values "{l | x l . simple_return | [] \<leadsto> x | l}"
 
@@ -43,14 +46,14 @@ definition double_param :: IRGraph where
   ]"
 
 (* IntVal 10 *)
-values "{m_val m 0 |n m l. double_param | [IntVal 32 5] \<leadsto> (n, m) | l}"
-values "{l | x l . double_param | [IntVal 32 5] \<leadsto> x | l}"
+values "{m 0 |n m l. double_param | [IntVal32 5] \<leadsto> (n, m) | l}"
+values "{l | x l . double_param | [IntVal32 5] \<leadsto> x | l}"
 (* IntVal 50 *)
-values "{m_val m 0 |n m l. double_param | [IntVal 32 25] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. double_param | [IntVal32 25] \<leadsto> (n, m) | l}"
 (* IntVal 256 *)
-values "{m_val m 0 |n m l. double_param | [IntVal 32 128] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. double_param | [IntVal32 128] \<leadsto> (n, m) | l}"
 (* IntVal 198 *)
-values "{m_val m 0 |n m l. double_param | [IntVal 32 99] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. double_param | [IntVal32 99] \<leadsto> (n, m) | l}"
 
 definition simple_if :: IRGraph where
   "simple_if = irgraph [
@@ -70,11 +73,11 @@ definition simple_if :: IRGraph where
   ]"
 
 (* IntVal 20 *)
-values "{m_val m 0 |n m l. simple_if | [IntVal 32 0, IntVal 32 20, IntVal 32 100] \<leadsto> (n, m) | l}"
-values "{l | x l . simple_if | [IntVal 32 0, IntVal 32 20, IntVal 32 100] \<leadsto> x | l}"
+values "{m 0 |n m l. simple_if | [IntVal32 0, IntVal32 20, IntVal32 100] \<leadsto> (n, m) | l}"
+values "{l | x l . simple_if | [IntVal32 0, IntVal32 20, IntVal32 100] \<leadsto> x | l}"
 (* IntVal 120 *)
-values "{m_val m 0 |n m l. simple_if | [IntVal 32 1, IntVal 32 20, IntVal 32 100] \<leadsto> (n, m) | l}"
-values "{l | x l . simple_if | [IntVal 32 1, IntVal 32 20, IntVal 32 100] \<leadsto> x | l}"
+values "{m 0 |n m l. simple_if | [IntVal32 1, IntVal32 20, IntVal32 100] \<leadsto> (n, m) | l}"
+values "{l | x l . simple_if | [IntVal32 1, IntVal32 20, IntVal32 100] \<leadsto> x | l}"
 
 
 definition loop :: IRGraph where
@@ -87,8 +90,8 @@ definition loop :: IRGraph where
     (8, (AddNode 7 5), default_stamp),
     (7, (ValuePhiNode 7 [4,8] 3), default_stamp),
     (6, (ParameterNode 0), default_stamp),
-    (5, (ConstantNode (IntVal 32 1)), default_stamp),
-    (4, (ConstantNode (IntVal 32 0)), default_stamp),
+    (5, (ConstantNode (IntVal32 1)), default_stamp),
+    (4, (ConstantNode (IntVal32 0)), default_stamp),
     (3, (LoopBeginNode [2,12] None None 10), VoidStamp),
     (2, (EndNode), VoidStamp),
     (1, (BeginNode 2), VoidStamp),
@@ -96,16 +99,16 @@ definition loop :: IRGraph where
   ]"
 
 (* IntVal 0 *)
-values "{m_val m 0 |n m l. loop | [IntVal 32 0] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. loop | [IntVal32 0] \<leadsto> (n, m) | l}"
 (* IntVal 1 *)
-values "{m_val m 0 |n m l. loop | [IntVal 32 1] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. loop | [IntVal32 1] \<leadsto> (n, m) | l}"
 (* IntVal 2 *)
-values "{m_val m 0 |n m l. loop | [IntVal 32 2] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. loop | [IntVal32 2] \<leadsto> (n, m) | l}"
 (* IntVal 5 *)
-values "{m_val m 0 |n m l. loop | [IntVal 32 5] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. loop | [IntVal32 5] \<leadsto> (n, m) | l}"
 (* IntVal 10 *)
-values "{m_val m 0 |n m l. loop | [IntVal 32 10] \<leadsto> (n, m) | l}"
-values "{l | x l . loop | [IntVal 32 10] \<leadsto> x | l}"
+values "{m 0 |n m l. loop | [IntVal32 10] \<leadsto> (n, m) | l}"
+values "{l | x l . loop | [IntVal32 10] \<leadsto> x | l}"
 
 definition sum :: IRGraph where
   "sum = irgraph [
@@ -119,8 +122,8 @@ definition sum :: IRGraph where
     (8, (ValuePhiNode 8 [4,10] 3), default_stamp),
     (7, (ValuePhiNode 7 [4,9] 3), default_stamp),
     (6, (ParameterNode 0), default_stamp),
-    (5, (ConstantNode (IntVal 32 1)), default_stamp),
-    (4, (ConstantNode (IntVal 32 0)), default_stamp),
+    (5, (ConstantNode (IntVal32 1)), default_stamp),
+    (4, (ConstantNode (IntVal32 0)), default_stamp),
     (3, (LoopBeginNode [2,14] None None 12), VoidStamp),
     (2, (EndNode), VoidStamp),
     (1, (BeginNode 2), VoidStamp),
@@ -128,23 +131,23 @@ definition sum :: IRGraph where
   ]"
 
 (* IntVal 1 *)
-values "{m_val m 0 |n m l. sum | [IntVal 32 1] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. sum | [IntVal32 1] \<leadsto> (n, m) | l}"
 (* IntVal 3 *)
-values "{m_val m 0 |n m l. sum | [IntVal 32 2] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. sum | [IntVal32 2] \<leadsto> (n, m) | l}"
 (* IntVal 15 *)
-values "{m_val m 0 |n m l. sum | [IntVal 32 5] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. sum | [IntVal32 5] \<leadsto> (n, m) | l}"
 (* IntVal 28 *)
-values "{m_val m 0 |n m l. sum | [IntVal 32 7] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. sum | [IntVal32 7] \<leadsto> (n, m) | l}"
 (* IntVal 210 *)
-values "{m_val m 0 |n m l. sum | [IntVal 32 20] \<leadsto> (n, m) | l}"
+values "{m 0 |n m l. sum | [IntVal32 20] \<leadsto> (n, m) | l}"
 
 
 inductive exec_prog :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> (ID \<times> MapState) \<Rightarrow> bool" ("_|_|_\<leadsto>_")
   where
-  "\<lbrakk>state = new_map ps;
-    Some main_g = p main;
-    p \<turnstile> ([(main_g, 0, state), (main_g, 0, state)], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
-    \<Longrightarrow> exec_prog p main ps (prod.snd end)"
+  "\<lbrakk>Some main_g = p main;
+    state0 = (main_g, 0, new_map_state, ps);
+    p \<turnstile> ([state0, state0], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l\<rbrakk>
+    \<Longrightarrow> exec_prog p main ps (id_and_state end)"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o * o \<Rightarrow> bool as execProgE) "exec_prog" .
 
 
@@ -155,19 +158,19 @@ definition prog :: Program where
  (0, (StartNode ((Some 2)) (8)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
- (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
- (4, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+ (3, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
+ (4, (ConstantNode (IntVal32 (2))), IntegerStamp 32 (2) (2)),
  (5, (IntegerLessThanNode (1) (4)), VoidStamp),
  (6, (BeginNode (13)), VoidStamp),
  (7, (BeginNode (9)), VoidStamp),
  (8, (IfNode (5) (7) (6)), VoidStamp),
  (9, (ReturnNode ((Some 1)) (None)), VoidStamp),
- (10, (ConstantNode (IntVal 32 (-1))), IntegerStamp 32 (-1) (-1)),
+ (10, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
  (11, (AddNode (1) (10)), IntegerStamp 32 (-2147483648) (2147483647)),
  (12, (MethodCallTargetNode (''Fib.fib(I)I'') ([11])), VoidStamp),
  (13, (InvokeNode (13) (12) (None) (None) ((Some 14)) (18)), IntegerStamp 32 (-2147483648) (2147483647)),
  (14, (FrameState ([]) (None) ((Some [1, 13])) (None)), IllegalStamp),
- (15, (ConstantNode (IntVal 32 (-2))), IntegerStamp 32 (-2) (-2)),
+ (15, (ConstantNode (IntVal32 (-2))), IntegerStamp 32 (-2) (-2)),
  (16, (AddNode (1) (15)), IntegerStamp 32 (-2147483648) (2147483647)),
  (17, (MethodCallTargetNode (''Fib.fib(I)I'') ([16])), VoidStamp),
  (18, (InvokeNode (18) (17) (None) (None) ((Some 19)) (21)), IntegerStamp 32 (-2147483648) (2147483647)),
@@ -178,19 +181,19 @@ definition prog :: Program where
 "
 
 (* IntVal 1 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 1] \<leadsto> (n, m)}"
+values "{m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal32 1] \<leadsto> (n, m)}"
 (* IntVal 1 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 2] \<leadsto> (n, m)}"
+values "{m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal32 2] \<leadsto> (n, m)}"
 (* IntVal 2 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 3] \<leadsto> (n, m)}"
+values "{m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal32 3] \<leadsto> (n, m)}"
 (* IntVal 3 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 4] \<leadsto> (n, m)}"
+values "{m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal32 4] \<leadsto> (n, m)}"
 (* IntVal 5 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 5] \<leadsto> (n, m)}"
+values "{m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal32 5] \<leadsto> (n, m)}"
 (* IntVal 8 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 6] \<leadsto> (n, m)}"
+values "{m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal32 6] \<leadsto> (n, m)}"
 (* IntVal 13 *)
-values "{m_val m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal 32 7] \<leadsto> (n, m)}"
+values "{m 0 |n m l. prog | ''Fib.fib(I)I'' | [IntVal32 7] \<leadsto> (n, m)}"
 
 
 
@@ -219,13 +222,13 @@ definition combs :: Program where
  (0, (StartNode ((Some 2)) (5)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
- (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (3, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
  (5, (EndNode), VoidStamp),
  (6, (LoopBeginNode ([5, 21]) (None) ((Some 9)) (17)), VoidStamp),
  (7, (ValuePhiNode (7) ([1, 20, 9]) (6)), IntegerStamp 32 (-2147483648) (2147483647)),
  (8, (ValuePhiNode (8) ([3, 18, 9]) (6)), IntegerStamp 32 (-2147483648) (2147483647)),
  (9, (FrameState ([]) (None) ((Some [7, 8])) (None)), IllegalStamp),
- (10, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+ (10, (ConstantNode (IntVal32 (2))), IntegerStamp 32 (2) (2)),
  (11, (IntegerLessThanNode (7) (10)), VoidStamp),
  (12, (BeginNode (21)), VoidStamp),
  (14, (LoopExitNode (6) ((Some 16)) (22)), VoidStamp),
@@ -233,7 +236,7 @@ definition combs :: Program where
  (16, (FrameState ([]) (None) ((Some [15])) (None)), IllegalStamp),
  (17, (IfNode (11) (14) (12)), VoidStamp),
  (18, (MulNode (7) (8)), IntegerStamp 32 (-2147483648) (2147483647)),
- (19, (ConstantNode (IntVal 32 (-1))), IntegerStamp 32 (-1) (-1)),
+ (19, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
  (20, (AddNode (7) (19)), IntegerStamp 32 (-2147483648) (2147483647)),
  (21, (LoopEndNode (6)), VoidStamp),
  (22, (ReturnNode ((Some 15)) (None)), VoidStamp)
@@ -241,15 +244,17 @@ definition combs :: Program where
 "
 
 
-definition combs_params where "combs_params = new_map [IntVal 32 10, IntVal 32 6]"
+definition combs_params where "combs_params = [IntVal32 10, IntVal32 6]"
 definition combs_main where "combs_main = ''Combinations.combinations(I, I)I''"
 definition combs_main_g where "combs_main_g = the (combs combs_main)"
+definition combs_state0 where "combs_state0 = (combs_main_g, 0, new_map_state, combs_params)"
 
-values "{m_val m 0 |n m l. combs | combs_main | [IntVal 32 10, IntVal 32 6] \<leadsto> (n, m)}"
+values "{m 0 |n m l. combs | combs_main | combs_params \<leadsto> (n, m)}"
 
-values "{l |x h l. combs \<turnstile> ([(combs_main_g, 0, combs_params), (combs_main_g, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
-values "{x |x h l. combs \<turnstile> ([(combs_main_g, 0, combs_params), (combs_main_g, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
-values "{m_values (prod.snd (prod.snd (x!0))) 12 |x h l. combs \<turnstile> ([(combs_main_g, 0, combs_params), (combs_main_g, 0, combs_params)], new_heap) | [] \<longrightarrow>* (x, h) | l}"
+values "{l |x h l. combs \<turnstile> ([combs_state0, combs_state0], new_heap) | [] \<longrightarrow>* (x, h) | l}"
+values "{x |x h l. combs \<turnstile> ([combs_state0, combs_state0], new_heap) | [] \<longrightarrow>* (x, h) | l}"
+values "{snd (id_and_state (x!0)) 12 |x h l. combs \<turnstile>
+                           ([combs_state0, combs_state0], new_heap) | [] \<longrightarrow>* (x, h) | l}"
 
 
 definition native_combs :: Program where
@@ -284,7 +289,7 @@ definition native_combs :: Program where
  (27, (FrameState ([]) (None) ((Some [8, 18, 26])) (None)), IllegalStamp),
  (28, (KillingBeginNode (35)), VoidStamp),
  (29, (MulNode (18) (26)), IntegerStamp 32 (-2147483648) (2147483647)),
- (30, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+ (30, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
  (31, (IntegerEqualsNode (29) (30)), VoidStamp),
  (32, (BytecodeExceptionNode ([]) ((Some 36)) (38)), ObjectStamp ''Ljava/lang/ArithmeticException;'' True True False),
  (33, (BeginNode (39)), VoidStamp),
@@ -301,13 +306,13 @@ definition native_combs :: Program where
  (0, (StartNode ((Some 2)) (5)), VoidStamp),
  (1, (ParameterNode (0)), IntegerStamp 32 (-2147483648) (2147483647)),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
- (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (3, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
  (5, (EndNode), VoidStamp),
  (6, (LoopBeginNode ([5,21]) (None) ((Some 9)) (17)), VoidStamp),
  (7, (ValuePhiNode (7) ([1, 20, 9]) (6)), IntegerStamp 32 (-2147483648) (2147483647)),
  (8, (ValuePhiNode (8) ([3, 18, 9]) (6)), IntegerStamp 32 (-2147483648) (2147483647)),
  (9, (FrameState ([]) (None) ((Some [7, 8])) (None)), IllegalStamp),
- (10, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+ (10, (ConstantNode (IntVal32 (2))), IntegerStamp 32 (2) (2)),
  (11, (IntegerLessThanNode (7) (10)), VoidStamp),
  (12, (BeginNode (21)), VoidStamp),
  (14, (LoopExitNode (6) ((Some 16)) (22)), VoidStamp),
@@ -315,21 +320,22 @@ definition native_combs :: Program where
  (16, (FrameState ([]) (None) ((Some [15])) (None)), IllegalStamp),
  (17, (IfNode (11) (14) (12)), VoidStamp),
  (18, (MulNode (7) (8)), IntegerStamp 32 (-2147483648) (2147483647)),
- (19, (ConstantNode (IntVal 32 (-1))), IntegerStamp 32 (-1) (-1)),
+ (19, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
  (20, (AddNode (7) (19)), IntegerStamp 32 (-2147483648) (2147483647)),
  (21, (LoopEndNode (6)), VoidStamp),
  (22, (ReturnNode ((Some 15)) (None)), VoidStamp)
 ])
 "
 
-definition native_combs_params where "native_combs_params = new_map [IntVal 32 10, IntVal 32 6]"
+definition native_combs_params where "native_combs_params = [IntVal32 10, IntVal32 6]"
 definition native_combs_main where "native_combs_main = ''Combinations.combinations(II)I''"
 definition native_combs_main_g where "native_combs_main_g = the (native_combs native_combs_main)"
+definition native_combs_state0 where "native_combs_state0 = (native_combs_main_g, 0, new_map_state, native_combs_params)"
 
 
-values "{m_val m 0 |n m l. native_combs | native_combs_main | [IntVal 32 10, IntVal 32 6] \<leadsto> (n, m)}"
+values "{m 0 |n m l. native_combs | native_combs_main | native_combs_params \<leadsto> (n, m)}"
 
-values "{m | m . native_combs \<turnstile> ([(native_combs_main_g, 0, native_combs_params)], new_heap) \<rightarrow>*7* m}"
+values "{m | m . native_combs \<turnstile> ([native_combs_state0], new_heap) \<rightarrow>*7* m}"
 
 
 definition simple_obj :: Program where
@@ -382,7 +388,7 @@ definition simple_obj :: Program where
  (11, (StoreFieldNode (11) (''SimpleObject.objField'') (3) ((Some 12)) ((Some 1)) (13)), VoidStamp),
  (12, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
  (13, (LoadFieldNode (13) (''SimpleObject.objField'') ((Some 1)) (19)), ObjectStamp ''LSimpleObject;'' True False False),
- (14, (ConstantNode (IntVal 32 (160))), IntegerStamp 32 (160) (160)),
+ (14, (ConstantNode (IntVal32 (160))), IntegerStamp 32 (160) (160)),
  (15, (IsNullNode (13)), VoidStamp),
  (16, (BytecodeExceptionNode ([]) ((Some 20)) (24)), ObjectStamp ''Ljava/lang/NullPointerException;'' True True False),
  (17, (BeginNode (27)), VoidStamp),
@@ -404,7 +410,7 @@ definition simple_obj :: Program where
  (0, (StartNode ((Some 2)) (4)), VoidStamp),
  (1, (ParameterNode (0)), ObjectStamp ''LSimpleObject;'' True True False),
  (2, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
- (3, (ConstantNode (IntVal 32 (42))), IntegerStamp 32 (42) (42)),
+ (3, (ConstantNode (IntVal32 (42))), IntegerStamp 32 (42) (42)),
  (4, (StoreFieldNode (4) (''SimpleObject.intField'') (3) ((Some 5)) ((Some 1)) (7)), VoidStamp),
  (5, (FrameState ([]) (None) ((Some [1])) (None)), IllegalStamp),
  (6, (ConstantNode (ObjRef None)), ObjectStamp '''' False False True),
@@ -414,13 +420,11 @@ definition simple_obj :: Program where
 ])
 "
 
-definition empty_params where "empty_params = new_map []"
-
 definition simple_obj_main where "simple_obj_main = ''SimpleObject.objExample()I''"
 
-values "{m_val m 0 |n m l. simple_obj | simple_obj_main | [] \<leadsto> (n, m)}"
+values "{m 0 |n m l. simple_obj | simple_obj_main | [] \<leadsto> (n, m)}"
 
-values "{m | m . simple_obj \<turnstile> ([(the (simple_obj simple_obj_main), 0, empty_params)], new_heap) \<rightarrow>*21* m}"
+values "{m | m . simple_obj \<turnstile> ([(the (simple_obj simple_obj_main), 0, new_map_state, [])], new_heap) \<rightarrow>*21* m}"
 
 
 definition multiple_obj :: Program where
@@ -438,7 +442,7 @@ definition multiple_obj :: Program where
  (0, (StartNode ((Some 1)) (2)), VoidStamp),
  (1, (FrameState ([]) (None) (None) (None)), IllegalStamp),
  (2, (NewInstanceNode (2) (''MultipleObject'') (None) (8)), ObjectStamp ''LMultipleObject;'' True True False),
- (3, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (3, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
  (4, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([2, 3])), VoidStamp),
  (5, (ExceptionObjectNode ((Some 6)) (16)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (6, (FrameState ([]) (None) ((Some [5])) (None)), IllegalStamp),
@@ -446,7 +450,7 @@ definition multiple_obj :: Program where
  (9, (FrameState ([]) (None) ((Some [2])) (None)), IllegalStamp),
  (10, (KillingBeginNode (11)), VoidStamp),
  (11, (NewInstanceNode (11) (''MultipleObject'') (None) (20)), ObjectStamp ''LMultipleObject;'' True True False),
- (12, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+ (12, (ConstantNode (IntVal32 (2))), IntegerStamp 32 (2) (2)),
  (13, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([11, 12])), VoidStamp),
  (14, (ExceptionObjectNode ((Some 15)) (18)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (15, (FrameState ([]) (None) ((Some [2, 14])) (None)), IllegalStamp),
@@ -458,7 +462,7 @@ definition multiple_obj :: Program where
  (21, (FrameState ([]) (None) ((Some [2, 11])) (None)), IllegalStamp),
  (22, (KillingBeginNode (23)), VoidStamp),
  (23, (NewInstanceNode (23) (''MultipleObject'') (None) (29)), ObjectStamp ''LMultipleObject;'' True True False),
- (24, (ConstantNode (IntVal 32 (3))), IntegerStamp 32 (3) (3)),
+ (24, (ConstantNode (IntVal32 (3))), IntegerStamp 32 (3) (3)),
  (25, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([23, 24])), VoidStamp),
  (26, (ExceptionObjectNode ((Some 27)) (28)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (27, (FrameState ([]) (None) ((Some [2, 11, 26])) (None)), IllegalStamp),
@@ -467,7 +471,7 @@ definition multiple_obj :: Program where
  (30, (FrameState ([]) (None) ((Some [2, 11, 23])) (None)), IllegalStamp),
  (31, (KillingBeginNode (32)), VoidStamp),
  (32, (NewInstanceNode (32) (''MultipleObject'') (None) (38)), ObjectStamp ''LMultipleObject;'' True True False),
- (33, (ConstantNode (IntVal 32 (4))), IntegerStamp 32 (4) (4)),
+ (33, (ConstantNode (IntVal32 (4))), IntegerStamp 32 (4) (4)),
  (34, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([32, 33])), VoidStamp),
  (35, (ExceptionObjectNode ((Some 36)) (37)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (36, (FrameState ([]) (None) ((Some [2, 11, 23, 35])) (None)), IllegalStamp),
@@ -476,7 +480,7 @@ definition multiple_obj :: Program where
  (39, (FrameState ([]) (None) ((Some [2, 11, 23, 32])) (None)), IllegalStamp),
  (40, (KillingBeginNode (41)), VoidStamp),
  (41, (NewInstanceNode (41) (''MultipleObject'') (None) (47)), ObjectStamp ''LMultipleObject;'' True True False),
- (42, (ConstantNode (IntVal 32 (5))), IntegerStamp 32 (5) (5)),
+ (42, (ConstantNode (IntVal32 (5))), IntegerStamp 32 (5) (5)),
  (43, (MethodCallTargetNode (''MultipleObject.<init>(I)V'') ([41, 42])), VoidStamp),
  (44, (ExceptionObjectNode ((Some 45)) (46)), ObjectStamp ''Ljava/lang/Throwable;'' False True False),
  (45, (FrameState ([]) (None) ((Some [2, 11, 23, 32, 44])) (None)), IllegalStamp),
@@ -500,7 +504,7 @@ definition multiple_obj :: Program where
 "
 definition multiple_obj_main where "multiple_obj_main = ''MultipleObject.objExample()I''"
 
-values "{m_val m 0 |n m l. multiple_obj | multiple_obj_main | [] \<leadsto> (n, m)}"
+values "{m 0 |n m l. multiple_obj | multiple_obj_main | [] \<leadsto> (n, m)}"
 
 
 definition pass_the_parcel :: Program where
@@ -527,7 +531,7 @@ definition pass_the_parcel :: Program where
  (1, (ParameterNode (0)), ObjectStamp ''LParcel;'' True True False),
  (2, (ParameterNode (1)), ObjectStamp ''LParcel;'' True False False),
  (3, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
- (4, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+ (4, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
  (5, (StoreFieldNode (5) (''Parcel.contents'') (4) ((Some 6)) ((Some 1)) (7)), VoidStamp),
  (6, (FrameState ([]) (None) ((Some [1, 2])) (None)), IllegalStamp),
  (7, (StoreFieldNode (7) (''Parcel.wrapping'') (2) ((Some 8)) ((Some 1)) (9)), VoidStamp),
@@ -624,7 +628,7 @@ definition pass_the_parcel :: Program where
  (8, (InvokeWithExceptionNode (8) (4) (None) (None) ((Some 9)) (10) (5)), ObjectStamp ''LParcel;'' True False False),
  (9, (FrameState ([]) (None) ((Some [2, 8])) (None)), IllegalStamp),
  (10, (KillingBeginNode (13)), VoidStamp),
- (11, (ConstantNode (IntVal 32 (0))), IntegerStamp 32 (0) (0)),
+ (11, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
  (13, (EndNode), VoidStamp),
  (14, (LoopBeginNode ([13, 41]) (None) ((Some 17)) (24)), VoidStamp),
  (15, (ValuePhiNode (15) ([8, 25, 17]) (14)), ObjectStamp '''' False False False),
@@ -650,7 +654,7 @@ definition pass_the_parcel :: Program where
  (36, (InvokeWithExceptionNode (36) (26) (None) (None) ((Some 37)) (38) (27)), VoidStamp),
  (37, (FrameState ([]) (None) ((Some [2, 16, 25])) (None)), IllegalStamp),
  (38, (KillingBeginNode (41)), VoidStamp),
- (39, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+ (39, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
  (40, (AddNode (16) (39)), IntegerStamp 32 (-2147483648) (2147483647)),
  (41, (LoopEndNode (14)), VoidStamp),
  (42, (ReturnNode ((Some 21)) (None)), VoidStamp),
@@ -661,9 +665,9 @@ definition pass_the_parcel :: Program where
 
 definition parcel_main where "parcel_main = ''PassTheParcel.test(II)I''"
 
-values "{m_val m 0 |n m l. pass_the_parcel | parcel_main | [IntVal 32 5, IntVal 32 20] \<leadsto> (n, m)}"
+values "{m 0 |n m l. pass_the_parcel | parcel_main | [IntVal32 5, IntVal32 20] \<leadsto> (n, m)}"
 
-definition parcel_params where "parcel_params = new_map [IntVal 32 2, IntVal 32 3]"
-values "{m | m . pass_the_parcel \<turnstile> ([(the (pass_the_parcel parcel_main), 0, parcel_params)], new_heap) \<rightarrow>*98* m}"
+definition parcel_params where "parcel_params = [IntVal32 2, IntVal32 3]"
+values "{m | m . pass_the_parcel \<turnstile> ([(the (pass_the_parcel parcel_main), 0, new_map_state, parcel_params)], new_heap) \<rightarrow>*98* m}"
 
 end

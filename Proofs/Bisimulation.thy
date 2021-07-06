@@ -21,28 +21,28 @@ fun strongly_bisimilar :: "
 
 inductive weak_bisimilar :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
   ("_ . _ \<sim> _") for nid where
-  "\<lbrakk>\<forall>P'. (g m h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (g' m h \<turnstile> nid \<leadsto> Q') \<and> P' = Q');
-    \<forall>Q'. (g' m h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (g m h \<turnstile> nid \<leadsto> P') \<and> P' = Q')\<rbrakk>
+  "\<lbrakk>\<forall>P'. (g m p h \<turnstile> nid \<leadsto> P') \<longrightarrow> (\<exists>Q' . (g' m p h \<turnstile> nid \<leadsto> Q') \<and> P' = Q');
+    \<forall>Q'. (g' m p h \<turnstile> nid \<leadsto> Q') \<longrightarrow> (\<exists>P' . (g m p h \<turnstile> nid \<leadsto> P') \<and> P' = Q')\<rbrakk>
   \<Longrightarrow> nid . g \<sim> g'"
 
 text \<open>A strong bisimilution between no-op transitions\<close>
 inductive strong_noop_bisimilar :: "ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
   ("_ | _ \<sim> _") for nid where
-  "\<lbrakk>\<forall>P'. (g \<turnstile> (nid, m, h) \<rightarrow> P') \<longrightarrow> (\<exists>Q' . (g' \<turnstile> (nid, m, h) \<rightarrow> Q') \<and> P' = Q');
-    \<forall>Q'. (g' \<turnstile> (nid, m, h) \<rightarrow> Q') \<longrightarrow> (\<exists>P' . (g \<turnstile> (nid, m, h) \<rightarrow> P') \<and> P' = Q')\<rbrakk>
+  "\<lbrakk>\<forall>P'. (g, p \<turnstile> (nid, m, h) \<rightarrow> P') \<longrightarrow> (\<exists>Q' . (g', p \<turnstile> (nid, m, h) \<rightarrow> Q') \<and> P' = Q');
+    \<forall>Q'. (g', p \<turnstile> (nid, m, h) \<rightarrow> Q') \<longrightarrow> (\<exists>P' . (g, p \<turnstile> (nid, m, h) \<rightarrow> P') \<and> P' = Q')\<rbrakk>
   \<Longrightarrow> nid | g \<sim> g'"
 
 lemma lockstep_strong_bisimilulation:
   fixes m h
   assumes "g' = replace_node nid node g"
-  assumes "g \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
-  assumes "g' \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
+  assumes "g', p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid | g \<sim> g'"
-  using assms(2) assms(3) stepDet strong_noop_bisimilar.simps by blast
+  using assms(2) assms(3) stepDet strong_noop_bisimilar.simps by metis
 
 lemma no_step_bisimulation:
-  assumes "\<forall>m h nid' m' h'. \<not>(g \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
-  assumes "\<forall>m h nid' m' h'. \<not>(g' \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
+  assumes "\<forall>m p h nid' m' h'. \<not>(g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
+  assumes "\<forall>m p h nid' m' h'. \<not>(g', p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
   shows "nid | g \<sim> g'"
   using assms
   by (simp add: assms(1) assms(2) strong_noop_bisimilar.intros)

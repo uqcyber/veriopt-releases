@@ -128,7 +128,7 @@ session ValidationPaper in "Papers/Validation" = Tests +
 session Stamps in "Papers/Stamps" = Graph +
   description
     "GraalVM Stamp Theory"
-  options [quick_and_dirty, document = pdf,
+  options [document = pdf,
            document_output = "document",
            document_variants="document:outline=/proof"]
   sessions

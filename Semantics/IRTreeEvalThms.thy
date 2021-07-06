@@ -303,6 +303,16 @@ next
   then show ?case sorry
 qed
 
+lemma valid32or64:
+  assumes "valid_value (IntegerStamp b lo hi) x"
+  shows "(\<exists> v1. (x = IntVal32 v1)) \<or> (\<exists> v2. (x = IntVal64 v2))"
+  using valid32 valid64 assms valid_value.elims(2) by blast
+
+lemma valid32or64_both:
+  assumes "valid_value (IntegerStamp b lox hix) x"
+  and "valid_value (IntegerStamp b loy hiy) y"
+  shows "(\<exists> v1 v2. x = IntVal32 v1 \<and> y = IntVal32 v2) \<or> (\<exists> v3 v4. x = IntVal64 v3 \<and> y = IntVal64 v4)"
+  using assms valid32or64 valid32 valid_value.elims(2) valid_value.simps(1) by metis
 
 
 subsection \<open>Example Data-flow Optimisations\<close>

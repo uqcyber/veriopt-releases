@@ -384,7 +384,11 @@ inductive CanonicalizeConditional :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> 
 
   cond_eq: (* ConditionalNode.canonicalizeConditional (155) *)
   (* (x==y) ? x : y \<Longrightarrow> y *)
-  "\<lbrakk>c = (BinaryExpr BinIntegerEquals x y)\<rbrakk>
+  "\<lbrakk>c = (BinaryExpr BinIntegerEquals x y);
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
+    stp_bits stampx = stp_bits stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeConditional (ConditionalExpr c x y) y" |
 
   condition_bounds_x: (* ConditionalNode.canonicalizeConditional (170) *)
@@ -405,7 +409,9 @@ inductive CanonicalizeConditional :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> 
 
   negate_condition: (* ConditionalNode.findSynonym (284) *)
   (* (\<not>c ? x : y) \<Rightarrow> (c ? y : x) *)
-  "\<lbrakk>nc = (UnaryExpr UnaryLogicNegation c)\<rbrakk>
+  "\<lbrakk>nc = (UnaryExpr UnaryLogicNegation c);
+    stampc = stamp_expr c;
+    stampc = IntegerStamp 32 lo hi\<rbrakk>
     \<Longrightarrow> CanonicalizeConditional (ConditionalExpr nc x y) (ConditionalExpr c y x)" |
 
   const_true:  (* ConditionalNode.findSynonym (286) *)
@@ -418,7 +424,7 @@ inductive CanonicalizeConditional :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> 
   (* FALSE ? t : f \<Rightarrow> f*)
   "\<lbrakk>c = ConstantExpr val;
     \<not>(val_to_bool val)\<rbrakk>
-    \<Longrightarrow> CanonicalizeConditional (ConditionalExpr c t f) t"
+    \<Longrightarrow> CanonicalizeConditional (ConditionalExpr c t f) f"
 
   (* ConditionalNode.canonicalizeConditional (188) skipping for now:
       Currently don't have ZeroExtendNode, IntegerConvertNode *)

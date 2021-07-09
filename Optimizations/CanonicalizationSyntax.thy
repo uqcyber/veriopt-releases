@@ -3,6 +3,13 @@ imports CanonicalizationTreeProofs
 begin
 
 
+datatype 'a Rewrite =
+  Transformation 'a 'a |
+  Conditional 'a 'a "'a \<Rightarrow> 'a \<Rightarrow> bool" |
+  Sequential "'a Rewrite" "'a Rewrite" |
+  Transitive "'a Rewrite"
+
+
 ML \<open>
 fun translateConst (str, typ) =
   case (str, typ) of
@@ -31,6 +38,16 @@ fun baseTransform ctxt [pre, post] =
 
   | baseTransform _ ts = raise TERM ("baseTransform", ts)
 
+fun conditionTransform ctxt [pre, post, cond] =
+  Const ("HOL.implies", @{typ "bool \<Rightarrow> bool \<Rightarrow> bool"}) $
+    cond $
+  (Const
+     ("Orderings.ord_class.less_eq", @{typ "IRExpr => IRExpr \<Rightarrow> bool"})
+    $ expandNode ctxt pre
+    $ expandNode ctxt post)
+
+  | conditionTransform _ ts = raise TERM ("conditionTransform", ts)
+
 fun constantValues _ [trm] =
   (case trm of
     c as Const _ =>
@@ -42,7 +59,7 @@ fun constantValues _ [trm] =
 
 \<close>
 
-syntax "_constantValues" :: "term \<Rightarrow> term" ("C _" 100)
+syntax "_constantValues" :: "term \<Rightarrow> term" ("C\<langle>_\<rangle>" 100)
 parse_translation \<open> [( @{syntax_const "_constantValues"} , constantValues)] \<close>
 
 syntax "_expandNodes" :: "term \<Rightarrow> term" ("exp[_]")
@@ -51,8 +68,10 @@ parse_translation \<open> [( @{syntax_const "_expandNodes"} , expandNodes)] \<cl
 syntax "_baseTransform" :: "term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _" 40)
 parse_translation \<open> [( @{syntax_const "_baseTransform"} , baseTransform)] \<close>
 
+syntax "_conditionalTransform" :: "term \<Rightarrow> term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _ when _" 70)
+parse_translation \<open> [( @{syntax_const "_conditionalTransform"} , conditionTransform)] \<close>
 
-ML_val \<open>@{term "C 1"}\<close>
+ML_val \<open>@{term "C\<langle>1\<rangle>"}\<close>
 
 (*declare [[show_types,show_sorts,names_long,show_consts,show_brackets]]
 declare [[eta_contract]]*)
@@ -95,7 +114,7 @@ proof -
 qed
 
 
-lemma 
+lemma assume_proof:
   assumes "type x = Integer"
   assumes "type_safe x y"
   shows "x + (-y) \<mapsto> x - y"
@@ -105,20 +124,30 @@ lemma
   proof -
     have "\<forall>i f cs vs. \<not> [f,vs] \<turnstile> i \<mapsto> ObjStr cs"
       by (meson int_stamp_implies_valid_value valid_value.simps(42))
-    then show "\<forall>m p v. [m,p] \<turnstile> BinaryExpr BinAdd x (UnaryExpr UnaryNeg y) \<mapsto> v \<longrightarrow> [m,p] \<turnstile> BinaryExpr BinSub x y \<mapsto> v"
+    then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinAdd x (UnaryExpr UnaryNeg y) \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> BinaryExpr BinSub x y \<mapsto> v)"
       by blast
   qed
 
 
+lemma "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
+  apply simp using assume_proof
+  by (meson le_expr_def unfold_type)
+
+
 (* CODE GENERATION ATTEMPTS *)
-definition replace :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool"
-where
+definition replace :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
 [code_abbrev]: "replace a b = (a \<mapsto> b)"
 
-definition sub_to_add where
-  "sub_to_add = (C 0 + C 1 \<mapsto> C 0 - C 1)"
+definition conditional_replace :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool \<Rightarrow> bool" where
+[code_abbrev]: "conditional_replace a b c = (a \<mapsto> b when c)"
 
-export_code sub_to_add in Scala
+definition zero_add where
+  "zero_add c = ((c + C\<langle>0\<rangle>) \<mapsto> c)"
 
+definition zero_add_typed where
+  "zero_add_typed c = ((c + C\<langle>0\<rangle>) \<mapsto> c when (type c = Integer))"
+
+export_code zero_add in Scala
+export_code zero_add_typed in Scala
 
 end

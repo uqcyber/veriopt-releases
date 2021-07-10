@@ -1,5 +1,9 @@
 theory CanonicalizationSyntax
 imports CanonicalizationTreeProofs
+keywords
+  "phase" :: thy_decl and
+  "optimization" :: thy_goal_defn and
+  "print_optimizations" :: diag
 begin
 
 
@@ -149,5 +153,142 @@ definition zero_add_typed where
 
 export_code zero_add in Scala
 export_code zero_add_typed in Scala
+
+
+ML \<open>
+type rewrite =
+  {name: string, rule: term}
+
+signature RewriteList =
+sig
+  val get: theory -> rewrite list
+  val add: rewrite -> theory -> theory
+  val reset: theory -> theory
+end;
+
+structure RWList: RewriteList =
+struct
+
+structure RewriteStore = Theory_Data
+(
+  type T = rewrite list;
+  val empty = [];
+  val extend = I;
+  val merge = Library.merge (fn (_) => true);
+);
+
+val get = RewriteStore.get;
+
+fun add t thy = RewriteStore.map (cons t) thy
+
+val reset = RewriteStore.put [];
+
+end;
+
+val t = @{term "world"}
+fun after_qed' _ _ =
+    Toplevel.theory o fold
+      (fn _ => (RWList.add {name="hello", rule=t}))
+
+
+fun goals
+  ((
+    (bind: binding, name)),
+    opt: string)
+   ctxt = 
+  let
+    val prop = Syntax.read_prop ctxt opt;
+    val term = Syntax.read_term ctxt opt;
+
+    val register = RWList.add {name=Binding.print bind, rule=term}
+
+    (*fun after_qed thms ctxt' =
+      Proof_Context.transfer_facts (register (Proof_Context.theory_of ctxt')) ctxt'
+    *)
+
+    fun after_qed _ ctxt =
+      let
+        val _ = @{print} "why"
+        val _ = @{print} (RWList.get (Proof_Context.theory_of ctxt))
+      in
+        Proof_Context.background_theory register ctxt
+      end
+
+    
+      (*(Toplevel.keep (fn _ => Toplevel.theory_toplevel (register (Toplevel.theory_of ctxt))));*)
+(*
+      let
+        val thy' = ((Local_Theory.note (name, (flat thms)) lthy) |> snd)
+      in
+        (Local_Theory.note (name, flat thms) lthy) |> snd
+      end
+*)
+    (*val compilation = Predicate_Compile_Core.code_pred
+      Predicate_Compile_Aux.default_options
+      "flip_negation"
+      ctxt*)
+
+    val _ = @{print} {name = name, term = term}
+  in
+    Proof.theorem NONE after_qed [[(prop, [])]] 
+      (Proof_Context.background_theory register ctxt)
+  end
+
+
+val parse_optimization_declaration =
+  Parse_Spec.thm_name ":"
+
+val parse_optimization =
+  Parse.term
+
+val _ =
+  Outer_Syntax.local_theory_to_proof \<^command_keyword>\<open>optimization\<close>
+    "define an optimization and open proof obligation"
+    (parse_optimization_declaration
+     -- parse_optimization
+     >> goals);
+
+fun do_nothing _ = (Local_Theory.background_theory I)
+
+val _ =
+  Outer_Syntax.local_theory \<^command_keyword>\<open>phase\<close>
+    "Whole optimization phase definition"
+    (
+      Parse.name
+      -- Parse.$$$ "begin"
+    >> do_nothing);
+
+
+fun print_optimizations ctxt =
+  let
+    fun print_rule tact =
+      Pretty.block [
+        Pretty.str ((#name tact) ^ ": "),
+        Syntax.pretty_term @{context} (#rule tact)
+      ];
+  in
+    [Pretty.big_list "optimizations:" (map print_rule (RWList.get ctxt))]
+  end |> Pretty.writeln_chunks;
+
+val _ =
+  Outer_Syntax.command \<^command_keyword>\<open>print_optimizations\<close>
+    "print debug information for optimizations"
+    (Scan.succeed
+      (Toplevel.keep (print_optimizations o Toplevel.theory_of)));
+\<close>
+
+setup \<open>RWList.reset\<close>
+
+phase Canonicalization begin
+
+optimization add_ynegate:
+  "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
+  using assume_proof
+  print_optimizations
+  by blast 
+
+print_optimizations
+ML_val \<open>RWList.get (Proof_Context.theory_of @{context})\<close>
+
 
 end

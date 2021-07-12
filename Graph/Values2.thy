@@ -205,6 +205,11 @@ fun intval_less_than :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_less_than (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 <s v2)" |
   "intval_less_than _ _ = UndefVal"
 
+fun intval_below :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_below (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 < v2)" |
+  "intval_below (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 < v2)" |
+  "intval_below _ _ = UndefVal"
+
 fun intval_not :: "Value \<Rightarrow> Value" where
   "intval_not (IntVal32 v) = (IntVal32 (NOT v))" |
   "intval_not (IntVal64 v) = (IntVal64 (NOT v))" |

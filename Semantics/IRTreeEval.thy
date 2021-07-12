@@ -90,6 +90,7 @@ datatype IRBinaryOp =
   | BinXor
   | BinIntegerEquals
   | BinIntegerLessThan
+  | BinIntegerBelow
 
 
 datatype (discs_sels) IRExpr =
@@ -204,6 +205,12 @@ inductive
     g \<turnstile> y \<triangleright> ye\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinXor xe ye)" |
 
+  IntegerBelowNode:
+  "\<lbrakk>kind g n = IntegerBelowNode x y;
+    g \<turnstile> x \<triangleright> xe;
+    g \<turnstile> y \<triangleright> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerBelow xe ye)" |
+
   IntegerEqualsNode:
   "\<lbrakk>kind g n = IntegerEqualsNode x y;
     g \<turnstile> x \<triangleright> xe;
@@ -279,6 +286,8 @@ inductive_cases OrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (BinaryExpr BinOr xe ye)"
 inductive_cases XorNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (BinaryExpr BinXor xe ye)"
+inductive_cases IntegerBelowNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerBelow xe ye)"
 inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)"
 inductive_cases IntegerLessThanNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -301,6 +310,7 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   AndNodeE
   OrNodeE
   XorNodeE
+  IntegerBelowNodeE
   IntegerEqualsNodeE
   IntegerLessThanNodeE
   LeafNodeE
@@ -343,7 +353,9 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinOr  x y = OrNode x y" |
   "bin_node BinXor x y = XorNode x y" |
   "bin_node BinIntegerEquals x y = IntegerEqualsNode x y" |
-  "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y"
+  "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y" |
+  "bin_node BinIntegerBelow x y = IntegerBelowNode x y"
+
 
 (* TODO: switch these to new Values2 *)
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
@@ -361,7 +373,8 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinOr  v1 v2 = intval_or v1 v2" |
   "bin_eval BinXor v1 v2 = intval_xor v1 v2" |
   "bin_eval BinIntegerEquals v1 v2 = intval_equals v1 v2" |
-  "bin_eval BinIntegerLessThan v1 v2 = intval_less_than v1 v2"
+  "bin_eval BinIntegerLessThan v1 v2 = intval_less_than v1 v2" |
+  "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where

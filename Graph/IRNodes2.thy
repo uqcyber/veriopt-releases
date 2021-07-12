@@ -49,6 +49,7 @@ datatype (discs_sels) IRNode =
   | ExceptionObjectNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | FrameState (ir_monitorIds: "INPUT_ASSOC list") (ir_outerFrameState_opt: "INPUT_STATE option") (ir_values_opt: "INPUT list option") (ir_virtualObjectMappings_opt: "INPUT_STATE list option") 
   | IfNode (ir_condition: "INPUT_COND") (ir_trueSuccessor: "SUCC") (ir_falseSuccessor: "SUCC") 
+  | IntegerBelowNode (ir_x: "INPUT") (ir_y: "INPUT")
   | IntegerEqualsNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | IntegerLessThanNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | InvokeNode (ir_nid: ID) (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -128,6 +129,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (FrameState monitorIds outerFrameState values virtualObjectMappings) = monitorIds @ (opt_to_list outerFrameState) @ (opt_list_to_list values) @ (opt_list_to_list virtualObjectMappings)" |
   inputs_of_IfNode:
   "inputs_of (IfNode condition trueSuccessor falseSuccessor) = [condition]" |
+  inputs_of_IntegerBelowNode:
+  "inputs_of (IntegerBelowNode x y) = [x, y]" |
   inputs_of_IntegerEqualsNode:
   "inputs_of (IntegerEqualsNode x y) = [x, y]" |
   inputs_of_IntegerLessThanNode:
@@ -223,6 +226,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (FrameState monitorIds outerFrameState values virtualObjectMappings) = []" |
   successors_of_IfNode:
   "successors_of (IfNode condition trueSuccessor falseSuccessor) = [trueSuccessor, falseSuccessor]" |
+  successors_of_IntegerBelowNode:
+  "successors_of (IntegerBelowNode x y) = []" |
   successors_of_IntegerEqualsNode:
   "successors_of (IntegerEqualsNode x y) = []" |
   successors_of_IntegerLessThanNode:

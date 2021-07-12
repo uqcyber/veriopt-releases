@@ -93,7 +93,7 @@ fun is_PhiNode :: "IRNode \<Rightarrow> bool" where
   "is_PhiNode n = ((is_ValuePhiNode n))"
 
 fun is_IntegerLowerThanNode :: "IRNode \<Rightarrow> bool" where
-  "is_IntegerLowerThanNode n = ((is_IntegerLessThanNode n))"
+  "is_IntegerLowerThanNode n = ((is_IntegerLessThanNode n) \<or> (is_IntegerBelowNode n))"
 
 fun is_CompareNode :: "IRNode \<Rightarrow> bool" where
   "is_CompareNode n = ((is_IntegerEqualsNode n) \<or> (is_IntegerLowerThanNode n))"
@@ -253,6 +253,7 @@ fun is_same_ir_node_type :: "IRNode \<Rightarrow> IRNode \<Rightarrow> bool" whe
   ((is_ExceptionObjectNode n1) \<and> (is_ExceptionObjectNode n2)) \<or>
   ((is_FrameState n1) \<and> (is_FrameState n2)) \<or>
   ((is_IfNode n1) \<and> (is_IfNode n2)) \<or>
+  ((is_IntegerBelowNode n1) \<and> (is_IntegerBelowNode n2)) \<or>
   ((is_IntegerEqualsNode n1) \<and> (is_IntegerEqualsNode n2)) \<or>
   ((is_IntegerLessThanNode n1) \<and> (is_IntegerLessThanNode n2)) \<or>
   ((is_InvokeNode n1) \<and> (is_InvokeNode n2)) \<or>

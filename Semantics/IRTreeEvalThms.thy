@@ -91,6 +91,12 @@ lemma rep_xor:
    (\<exists>xe ye. e = BinaryExpr BinXor xe ye)"
   by (induction rule: rep.induct; auto)
 
+lemma rep_integer_below:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = IntegerBelowNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinIntegerBelow xe ye)"
+  by (induction rule: rep.induct; auto)
+
 lemma rep_integer_equals:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
    kind g n = IntegerEqualsNode x y \<Longrightarrow>
@@ -137,15 +143,15 @@ next
 next
   case (NotNode n x xe)
   then show ?case
-    by (metis rep_not NotNodeE IRNode.inject(29)) 
+    by (metis IRNode.inject(30) NotNodeE rep_not)
 next
 case (NegateNode n x xe)
   then show ?case
-    by (metis  IRNode.inject(26) NegateNodeE rep_negate) 
+    by (metis  IRNode.inject(27) NegateNodeE rep_negate)
 next
   case (LogicNegationNode n x xe)
   then show ?case
-    by (metis IRNode.inject(19) LogicNegationNodeE rep_logicnegation) 
+    by (metis IRNode.inject(20) LogicNegationNodeE rep_logicnegation)
 next
   case (AddNode n x y xe ye)
   then show ?case
@@ -153,31 +159,35 @@ next
 next
 case (MulNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(25) MulNodeE rep_mul) 
+    by (metis IRNode.inject(26) MulNodeE rep_mul)
 next
   case (SubNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(39) SubNodeE rep_sub) 
+    by (metis IRNode.inject(40) SubNodeE rep_sub)
 next
   case (AndNode n x y xe ye)
   then show ?case
-    by (metis AndNodeE IRNode.inject(3) rep_and) 
+    by (metis AndNodeE IRNode.inject(3) rep_and)
 next
 case (OrNode n x y xe ye)
 then show ?case
-  by (metis IRNode.inject(30) OrNodeE rep_or) 
+  by (metis IRNode.inject(31) OrNodeE rep_or)
 next
   case (XorNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(43) XorNodeE rep_xor) 
+    by (metis IRNode.inject(44) XorNodeE rep_xor)
+next
+  case (IntegerBelowNode n x y xe ye)
+  then show ?case
+    by (metis IRNode.inject(12) IntegerBelowNodeE rep_integer_below)
 next
   case (IntegerEqualsNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(12) IntegerEqualsNodeE rep_integer_equals) 
+    by (metis IRNode.inject(13) IntegerEqualsNodeE rep_integer_equals)
 next
-case (IntegerLessThanNode n x y xe ye)
-then show ?case
-  by (metis IRNode.inject(13) IntegerLessThanNodeE rep_integer_less_than) 
+  case (IntegerLessThanNode n x y xe ye)
+  then show ?case
+    by (metis IRNode.inject(14) IntegerLessThanNodeE rep_integer_less_than)
 next
   case (LeafNode n s)
   then show ?case using rep_load_field LeafNodeE by blast 

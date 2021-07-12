@@ -3,6 +3,7 @@ section \<open>Properties of Control-flow Semantics\<close>
 theory IRStepThms
   imports
     IRStepObj
+    IRTreeEvalThms
 begin
 
 text \<open>
@@ -48,9 +49,7 @@ next
   have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))" 
     using is_AbstractEndNode.simps
     by (simp add: IfNode.hyps(1))
-  from notseq notend notdivrem show ?case using IfNode evalDet IRNode.distinct IRNode.inject(11) Pair_inject step.simps
-(* TODO: update these cases.  May need a repDet thm as well as evalDet? *)
-    
+  from notseq notend notdivrem show ?case using IfNode repDet evalDet IRNode.distinct IRNode.inject(11) Pair_inject step.simps
     by (smt (z3) IRNode.distinct IRNode.inject(11) Pair_inject step.simps)
 next
   case (EndNodes nid merge i phis inputs m vs m' h)
@@ -80,7 +79,7 @@ next
     using IRNode.distinct_disc(1498) IRNode.distinct_disc(1500) is_IntegerDivRemNode.simps is_EndNode.simps(36) is_EndNode.simps(37) 
     by auto
   from notseq notif notref notnew notload notstore notdivrem
-  show ?case using EndNodes evalAllDet
+  show ?case using EndNodes repAllDet evalAllDet
     by (smt (z3) is_IfNode_def is_LoadFieldNode_def is_NewInstanceNode_def is_RefNode_def is_StoreFieldNode_def is_SignedDivNode_def is_SignedRemNode_def  Pair_inject is_IntegerDivRemNode.elims(3) step.cases)
 next
   case (NewInstanceNode nid f obj nxt h' ref h m' m)
@@ -120,8 +119,8 @@ next
     using is_AbstractEndNode.simps
     by (simp add: LoadFieldNode.hyps(1))
   from notseq notend notdivrem
-  show ?case using LoadFieldNode step.cases
-    by (smt (z3) IRNode.distinct(1333) IRNode.distinct(1347) IRNode.distinct(1349) IRNode.distinct(1353) IRNode.distinct(1367) IRNode.distinct(893) IRNode.inject(18) Pair_inject Value.inject(3) evalDet option.distinct(1) option.inject)
+  show ?case using LoadFieldNode step.cases repDet evalDet
+    by (smt (z3) IRNode.distinct(1333) IRNode.distinct(1347) IRNode.distinct(1349) IRNode.distinct(1353) IRNode.distinct(893) IRNode.inject(18) Pair_inject Value.inject(4) option.distinct(1) option.inject)
 next
   case (StaticLoadFieldNode nid f nxt h v m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -146,8 +145,8 @@ next
   have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
     by (simp add: StoreFieldNode.hyps(1))
   from notseq notend notdivrem
-  show ?case using StoreFieldNode step.cases
-    by (smt (z3) IRNode.distinct(1353) IRNode.distinct(1783) IRNode.distinct(1965) IRNode.distinct(1983) IRNode.distinct(2027) IRNode.distinct(933) IRNode.distinct(1315) IRNode.distinct(1725) IRNode.distinct(1937) IRNode.distinct(909) IRNode.inject(38) Pair_inject Value.inject(3) evalDet option.distinct(1) option.inject)
+  show ?case using StoreFieldNode step.cases repDet evalDet
+    by (smt (z3) IRNode.distinct(1353) IRNode.distinct(1783) IRNode.distinct(1965) IRNode.distinct(1983) IRNode.distinct(933) IRNode.inject(38) Pair_inject Value.inject(4) option.distinct(1) option.inject)
 next
   case (StaticStoreFieldNode nid f newval uv nxt m val h' h m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -159,9 +158,8 @@ next
   have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
     by (simp add: StaticStoreFieldNode.hyps(1))
   from notseq notend notdivrem
-  show ?case using StoreFieldNode step.cases
-    by (smt (z3) IRNode.distinct(1315) IRNode.distinct(1353) IRNode.distinct(1783) IRNode.distinct(1965) 
-        IRNode.distinct(1983) IRNode.distinct(2027) IRNode.distinct(933) IRNode.inject(38) IRNode.distinct(1725) Pair_inject StaticStoreFieldNode.hyps(1) StaticStoreFieldNode.hyps(2) StaticStoreFieldNode.hyps(3) StaticStoreFieldNode.hyps(4) evalDet option.discI)
+  show ?case using StoreFieldNode step.cases repDet evalDet
+    by (smt (z3) IRNode.distinct(1353) IRNode.distinct(1783) IRNode.distinct(1965) IRNode.distinct(1983) IRNode.distinct(933) IRNode.inject(38) Pair_inject StaticStoreFieldNode.hyps(1) StaticStoreFieldNode.hyps(2) StaticStoreFieldNode.hyps(3) StaticStoreFieldNode.hyps(4) StaticStoreFieldNode.hyps(5) option.distinct(1))
 next
   case (SignedDivNode nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -171,8 +169,8 @@ next
     using is_AbstractEndNode.simps
     by (simp add: SignedDivNode.hyps(1))
   from notseq notend
-  show ?case using SignedDivNode step.cases
-    by (smt (z3) IRNode.distinct(1347) IRNode.distinct(1777) IRNode.distinct(1961) IRNode.distinct(1965) IRNode.distinct(1979) IRNode.distinct(927) IRNode.inject(35) Pair_inject evalDet) 
+  show ?case using SignedDivNode step.cases repDet evalDet
+    by (smt (z3) IRNode.distinct(1347) IRNode.distinct(1777) IRNode.distinct(1961) IRNode.distinct(1965) IRNode.distinct(927) IRNode.inject(35) Pair_inject)
 next
   case (SignedRemNode nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -182,8 +180,8 @@ next
     using is_AbstractEndNode.simps
     by (simp add: SignedRemNode.hyps(1))
   from notseq notend
-  show ?case using SignedRemNode step.cases
-    by (smt (z3) IRNode.distinct(1349) IRNode.distinct(1779) IRNode.distinct(1961) IRNode.distinct(1983) IRNode.distinct(1997) IRNode.distinct(929) IRNode.inject(36) Pair_inject evalDet)
+  show ?case using SignedRemNode step.cases repDet evalDet
+    by (smt (z3) IRNode.distinct(1349) IRNode.distinct(1779) IRNode.distinct(1961) IRNode.distinct(1983) IRNode.distinct(929) IRNode.inject(36) Pair_inject)
 qed
 
 lemma stepRefNode:
@@ -196,18 +194,19 @@ lemma IfNodeStepCases:
   assumes "[m, p] \<turnstile> condE \<mapsto> v"
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid' \<in> {tb, fb}"
-  using step.IfNode
-  by (metis assms(1) assms(2) assms(3) insert_iff prod.inject stepDet)
+  using step.IfNode repDet stepDet assms
+  by (metis insert_iff old.prod.inject)
 
 lemma IfNodeSeq:
   shows "kind g nid = IfNode cond tb fb \<longrightarrow> \<not>(is_sequential_node (kind g nid))"
   unfolding is_sequential_node.simps by simp
-
+  
 lemma IfNodeCond:
   assumes "kind g nid = IfNode cond tb fb"
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
-  shows "\<exists> v. ((g \<turnstile> cond \<triangleright> condE) \<and> ([m, p] \<turnstile> condE \<mapsto> v))"
+  shows "\<exists> condE v. ((g \<turnstile> cond \<triangleright> condE) \<and> ([m, p] \<turnstile> condE \<mapsto> v))"
   using assms(2,1) by (induct "(nid,m,h)" "(nid',m,h)" rule: step.induct; auto)
+
 
 lemma step_in_ids:
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
@@ -220,6 +219,5 @@ lemma step_in_ids:
   using EndNodes(1) is_AbstractEndNode.simps is_EndNode.simps(45) ids_some
   apply (metis IRNode.disc(965))
   by simp+
-
 
 end

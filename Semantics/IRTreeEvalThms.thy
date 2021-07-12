@@ -115,15 +115,9 @@ lemma rep_load_field:
    (\<exists>s. e = LeafExpr n s)"
   by (induction rule: rep.induct; auto)
 
-(* group these rules into a named set? *)
-lemmas RepCases\<^marker>\<open>tag invisible\<close> = 
-  rep_constant
-  rep_parameter
-  rep_conditional
-  rep_abs
 
-
-(* TODO: prove that rep is deterministic? *)
+text \<open>Now we can prove that 'rep' and 'eval', and their list versions, are deterministic.
+\<close>
 lemma repDet:
   shows "(g \<turnstile> n \<triangleright> e1) \<Longrightarrow> (g \<turnstile> n \<triangleright> e2) \<Longrightarrow> e1 = e2"
 proof (induction arbitrary: e2 rule: "rep.induct")
@@ -191,6 +185,20 @@ next
 next
   case (LeafNode n s)
   then show ?case using rep_load_field LeafNodeE by blast 
+qed
+
+lemma repAllDet:
+  "g \<turnstile> xs \<triangleright>\<^sub>L e1 \<Longrightarrow>
+   g \<turnstile> xs \<triangleright>\<^sub>L e2 \<Longrightarrow>
+   e1 = e2"
+proof (induction arbitrary: e2 rule: "replist.induct")
+  case RepNil
+  then show ?case
+    using replist.cases by auto 
+next
+  case (RepCons x xe xs xse)
+  then show ?case
+    by (metis list.distinct(1) list.sel(1) list.sel(3) repDet replist.cases) 
 qed
 
 

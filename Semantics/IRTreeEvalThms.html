@@ -129,15 +129,9 @@
    <span class="main">(</span><span class="main">∃</span><span class="bound">s</span><span class="main">.</span> <span class="free">e</span> <span class="main">=</span> LeafExpr <span class="free">n</span> <span class="bound">s</span><span class="main">)</span>"</span></span>
   <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> rep.induct<span class="main"><span class="keyword3">;</span></span> <span class="operator">auto</span><span class="main">)</span>
 
-<span class="comment1">(* group these rules into a named set? *)</span>
-<span class="keyword1"><span class="command">lemmas</span></span> RepCases<span class="comment1">✐<span class="quoted">‹tag invisible›</span></span> <span class="main">=</span> 
-  rep_constant
-  rep_parameter
-  rep_conditional
-  rep_abs
 
-
-<span class="comment1">(* TODO: prove that rep is deterministic? *)</span>
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹Now we can prove that 'rep' and 'eval', and their list versions, are deterministic.
+›</span></span>
 <span class="keyword1"><span class="command">lemma</span></span> repDet<span class="main">:</span>
   <span class="keyword2"><span class="keyword">shows</span></span> <span class="quoted"><span class="quoted">"<span class="main">(</span><span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e1</span><span class="main">)</span> <span class="main">⟹</span> <span class="main">(</span><span class="free">g</span> <span class="main">⊢</span> <span class="free">n</span> <span class="main">▹</span> <span class="free">e2</span><span class="main">)</span> <span class="main">⟹</span> <span class="free">e1</span> <span class="main">=</span> <span class="free">e2</span>"</span></span>
 <span class="keyword1"><span class="command">proof</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">arbitrary</span><span class="main"><span class="main">:</span></span> <span class="quoted"><span class="free">e2</span></span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> <span class="quoted">"rep.induct"</span><span class="main">)</span>
@@ -205,6 +199,20 @@
 <span class="keyword1"><span class="command">next</span></span>
   <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>LeafNode <span class="skolem">n</span> <span class="skolem">s</span><span class="main">)</span>
   <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span> <span class="keyword1"><span class="command">using</span></span> rep_load_field LeafNodeE <span class="keyword1"><span class="command">by</span></span> <span class="operator">blast</span> 
+<span class="keyword1"><span class="command">qed</span></span>
+
+<span class="keyword1"><span class="command">lemma</span></span> repAllDet<span class="main">:</span>
+  <span class="quoted"><span class="quoted">"<span class="free">g</span> <span class="main">⊢</span> <span class="free">xs</span> <span class="keyword1">▹<span class="hidden">⇩</span><sub>L</sub></span> <span class="free">e1</span> <span class="main">⟹</span>
+   <span class="free">g</span> <span class="main">⊢</span> <span class="free">xs</span> <span class="keyword1">▹<span class="hidden">⇩</span><sub>L</sub></span> <span class="free">e2</span> <span class="main">⟹</span>
+   <span class="free">e1</span> <span class="main">=</span> <span class="free">e2</span>"</span></span>
+<span class="keyword1"><span class="command">proof</span></span> <span class="main">(</span><span class="operator">induction</span> <span class="quasi_keyword">arbitrary</span><span class="main"><span class="main">:</span></span> <span class="quoted"><span class="free">e2</span></span> <span class="quasi_keyword">rule</span><span class="main"><span class="main">:</span></span> <span class="quoted">"replist.induct"</span><span class="main">)</span>
+  <span class="keyword3"><span class="command">case</span></span> RepNil
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">using</span></span> replist.cases <span class="keyword1"><span class="command">by</span></span> <span class="operator">auto</span> 
+<span class="keyword1"><span class="command">next</span></span>
+  <span class="keyword3"><span class="command">case</span></span> <span class="main">(</span>RepCons <span class="skolem">x</span> <span class="skolem">xe</span> <span class="skolem">xs</span> <span class="skolem">xse</span><span class="main">)</span>
+  <span class="keyword1"><span class="command">then</span></span> <span class="keyword3"><span class="command">show</span></span> <span class="var"><span class="quoted"><span class="var">?case</span></span></span>
+    <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">metis</span> list.distinct<span class="main"><span class="main">(</span></span>1<span class="main"><span class="main">)</span></span> list.sel<span class="main"><span class="main">(</span></span>1<span class="main"><span class="main">)</span></span> list.sel<span class="main"><span class="main">(</span></span>3<span class="main"><span class="main">)</span></span> repDet replist.cases<span class="main">)</span> 
 <span class="keyword1"><span class="command">qed</span></span>
 
 

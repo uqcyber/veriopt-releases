@@ -10,27 +10,27 @@ begin
   https://github.com/oracle/graal/blob/fbab70f9d788f997c862bdee186ef1d8e6c435f1/compiler/src/org.graalvm.compiler.core.common/src/org/graalvm/compiler/core/common/type/IntegerStamp.java#L602
 *)
 
-(* is_neutral (\<oplus>, n) \<Longleftrightarrow> \<forall> x. x \<oplus> n = x *)
+(* is_neutral (\<oplus>, n) \<Longrightarrow> \<forall> x. x \<oplus> n = x *)
 fun is_neutral :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
 (* x * 1 = x*)
-"is_neutral BinMul (IntVal32 x) = (sint (x) = 1)" |
-"is_neutral BinMul (IntVal64 x) = (sint (x) = 1)" |
+"is_neutral BinMul (IntVal32 x) = (x = 1)" |
+"is_neutral BinMul (IntVal64 x) = (x = 1)" |
 (* x + 0 = x*)
-"is_neutral BinAdd (IntVal32 x) = (sint (x) = 0)" |
-"is_neutral BinAdd (IntVal64 x) = (sint (x) = 0)" |
+"is_neutral BinAdd (IntVal32 x) = (x = 0)" |
+"is_neutral BinAdd (IntVal64 x) = (x = 0)" |
 (* x ^ 0 = x *)
-"is_neutral BinXor (IntVal32 x) = (sint (x) = 0)" |
-"is_neutral BinXor (IntVal64 x) = (sint (x) = 0)" |
+"is_neutral BinXor (IntVal32 x) = (x = 0)" |
+"is_neutral BinXor (IntVal64 x) = (x = 0)" |
 (* x - 0 = x *)
-"is_neutral BinSub (IntVal32 x) = (sint (x) = 0)" |
-"is_neutral BinSub (IntVal64 x) = (sint (x) = 0)" |
+"is_neutral BinSub (IntVal32 x) = (x = 0)" |
+"is_neutral BinSub (IntVal64 x) = (x = 0)" |
 
 "is_neutral _ _ = False"
 
-(* is_neutral (\<oplus>, z) \<Longleftrightarrow> \<forall> x. x \<oplus> z = 0 *)
+(* is_zerp (\<oplus>, z) \<Longrightarrow> \<forall> x. x \<oplus> z = 0 *)
 fun is_zero :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
-"is_zero BinMul (IntVal32 x) = (sint (x) = 0)" |
-"is_zero BinMul (IntVal64 x) = (sint (x) = 0)" |
+"is_zero BinMul (IntVal32 x) = (x = 0)" |
+"is_zero BinMul (IntVal64 x) = (x = 0)" |
 "is_zero _ _ = False"
 
 fun int_to_value :: "Value \<Rightarrow> int \<Rightarrow> Value" where
@@ -45,12 +45,17 @@ inductive CanonicalizeBinaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> boo
   binary_const_fold:
   "\<lbrakk>x = (ConstantExpr val1);
    y = (ConstantExpr val2);
-   val = bin_eval op val1 val2\<rbrakk>
+   val = bin_eval op val1 val2;
+   val \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr val)" |
 
   binary_fold_yneutral:
   "\<lbrakk>y = (ConstantExpr c);
-   is_neutral op c\<rbrakk>
+   is_neutral op c;
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    stp_bits stampx = stp_bits stampy;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
      \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) x" |
 
   binary_fold_yzero:
@@ -61,7 +66,8 @@ inductive CanonicalizeBinaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> boo
 
 inductive CanonicalizeUnaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   unary_const_fold:
-  "\<lbrakk>val' = unary_eval op val\<rbrakk>
+  "\<lbrakk>val' = unary_eval op val;
+    val' \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> CanonicalizeUnaryOp (UnaryExpr op (ConstantExpr val)) (ConstantExpr val')"
 
 inductive CanonicalizeMul :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
@@ -394,24 +400,32 @@ inductive CanonicalizeConditional :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> 
   condition_bounds_x: (* ConditionalNode.canonicalizeConditional (170) *)
   (* (x < y ? x : y) \<Rightarrow> x    in case we know that x < y via stamps *)
   "\<lbrakk>c = (BinaryExpr BinIntegerLessThan x y);
-    stamp_x = stamp_expr x;
-    stamp_y = stamp_expr y;
-    stpi_upper stamp_x \<le> stpi_lower stamp_y\<rbrakk>
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    stpi_upper stampx \<le> stpi_lower stampy;
+    stp_bits stampx = stp_bits stampy;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeConditional (ConditionalExpr c x y) x" |
 
   condition_bounds_y: (* ConditionalNode.canonicalizeConditional (175) *)
   (* (x < y ? y : x) \<Rightarrow> y    in case we know that x < y via stamps *)
   "\<lbrakk>c = (BinaryExpr BinIntegerLessThan x y);
-    stamp_x = stamp_expr x;
-    stamp_y = stamp_expr y;
-    stpi_upper stamp_x \<le> stpi_lower stamp_y\<rbrakk>
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    stpi_upper stampx \<le> stpi_lower stampy;
+    stp_bits stampx = stp_bits stampy;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeConditional (ConditionalExpr c y x) y" |
 
   negate_condition: (* ConditionalNode.findSynonym (284) *)
   (* (\<not>c ? x : y) \<Rightarrow> (c ? y : x) *)
   "\<lbrakk>nc = (UnaryExpr UnaryLogicNegation c);
     stampc = stamp_expr c;
-    stampc = IntegerStamp 32 lo hi\<rbrakk>
+    stampc = IntegerStamp 32 lo hi;
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    stp_bits stampx = stp_bits stampy;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeConditional (ConditionalExpr nc x y) (ConditionalExpr c y x)" |
 
   const_true:  (* ConditionalNode.findSynonym (286) *)

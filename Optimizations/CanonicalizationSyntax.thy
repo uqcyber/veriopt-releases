@@ -3,7 +3,8 @@ imports CanonicalizationTreeProofs
 keywords
   "phase" :: thy_decl and
   "optimization" :: thy_goal_defn and
-  "print_optimizations" :: diag
+  "print_optimizations" :: diag and
+  "debug_optimizations" :: diag
 begin
 
 
@@ -156,8 +157,14 @@ export_code zero_add_typed in Scala
 
 
 ML \<open>
+datatype 'a Rewrite =
+  Transform of 'a * 'a |
+  Conditional of 'a * 'a * 'a -> 'a -> bool |
+  Sequential of 'a Rewrite * 'a Rewrite |
+  Transitive of 'a Rewrite
+
 type rewrite =
-  {name: string, rule: term}
+  {name: string, rule: term, rewrite: term Rewrite}
 
 signature RewriteList =
 sig
@@ -186,9 +193,10 @@ val reset = RewriteStore.put [];
 end;
 
 val t = @{term "world"}
+val trans = Transform (t, t)
 fun after_qed' _ _ =
     Toplevel.theory o fold
-      (fn _ => (RWList.add {name="hello", rule=t}))
+      (fn _ => (RWList.add {name="hello", rule=t, rewrite=trans}))
 
 
 fun goals
@@ -199,8 +207,10 @@ fun goals
   let
     val prop = Syntax.read_prop ctxt opt;
     val term = Syntax.read_term ctxt opt;
+    val rewrite = Transform (term, term);
+    val _ = @{print} (Toplevel.theory_toplevel (Proof_Context.theory_of ctxt));
 
-    val register = RWList.add {name=Binding.print bind, rule=term}
+    val register = RWList.add {name=Binding.print bind, rule=term, rewrite=rewrite}
 
     (*fun after_qed thms ctxt' =
       Proof_Context.transfer_facts (register (Proof_Context.theory_of ctxt')) ctxt'
@@ -208,10 +218,12 @@ fun goals
 
     fun after_qed _ ctxt =
       let
-        val _ = @{print} "why"
         val _ = @{print} (RWList.get (Proof_Context.theory_of ctxt))
+        val _ = @{print} register (Proof_Context.theory_of ctxt)
+        val register' = register (Proof_Context.theory_of ctxt)
       in
-        Proof_Context.background_theory register ctxt
+        Context.raw_transfer register' ctxt
+        (*Proof_Context.background_theory register ctxt*)
       end
 
     
@@ -230,6 +242,9 @@ fun goals
 
     val _ = @{print} {name = name, term = term}
   in
+    (*Specification.theorem true Thm.theoremK NONE
+      (fn thmss => (Local_Theory.background_theory register))
+      (bind, []) [] ctxt stmt false lthy*)
     Proof.theorem NONE after_qed [[(prop, [])]] 
       (Proof_Context.background_theory register ctxt)
   end
@@ -250,14 +265,41 @@ val _ =
 
 fun do_nothing _ = (Local_Theory.background_theory I)
 
-val _ =
+(*val _ =
   Outer_Syntax.local_theory \<^command_keyword>\<open>phase\<close>
     "Whole optimization phase definition"
     (
       Parse.name
       -- Parse.$$$ "begin"
-    >> do_nothing);
+    >> do_nothing);*)
 
+(*val _ =
+  Outer_Syntax.command \<^command_keyword>\<open>phase\<close> "begin local theory context"
+    (((Parse.name_position -- Scan.optional Parse_Spec.opening [])
+        >> (fn (name, incls) => Toplevel.begin_main_target true (Target_Context.context_begin_named_cmd incls name)) ||
+      Scan.optional Parse_Spec.includes [] -- Scan.repeat Parse_Spec.context_element
+        >> (fn (incls, elems) => Toplevel.begin_nested_target (Target_Context.context_begin_nested_cmd incls elems)))
+      --| Parse.begin);*)
+
+fun exit_phase thy =
+  let
+    val _ = @{print} "Leaving phase"
+    val term = @{term a}
+    val rewrite = Transform (term, term)
+    val register = RWList.add {name="help", rule=term, rewrite=rewrite}
+  in
+    Proof_Context.background_theory register thy
+  end
+
+fun begin_phase thy =
+  let
+    val _ = @{print} "Beginning phase"
+    val term = @{term a}
+    val rewrite = Transform (term, term)
+    val register = RWList.add {name="help", rule=term, rewrite=rewrite}
+  in
+    Proof_Context.init_global (register thy)
+  end
 
 fun print_optimizations ctxt =
   let
@@ -268,27 +310,73 @@ fun print_optimizations ctxt =
       ];
   in
     [Pretty.big_list "optimizations:" (map print_rule (RWList.get ctxt))]
-  end |> Pretty.writeln_chunks;
+  end
+
+fun print_phase name thy =
+  [Pretty.str ("phase: " ^ name)] 
+  @ (print_optimizations (Proof_Context.theory_of thy))
+
+fun phase_theory_init name thy = 
+  Local_Theory.init 
+    {background_naming = Sign.naming_of thy,
+        setup = begin_phase,
+        conclude = exit_phase}
+    {define = Generic_Target.define Generic_Target.theory_target_foundation,
+        notes = Generic_Target.notes Generic_Target.theory_target_notes,
+        abbrev = Generic_Target.abbrev Generic_Target.theory_target_abbrev,
+        declaration = K Generic_Target.theory_declaration,
+        theory_registration = Locale.add_registration_theory,
+        locale_dependency = fn _ => error "Not possible in instantiation target",
+        pretty = print_phase name}
+    thy
+
+val _ =
+  Outer_Syntax.command \<^command_keyword>\<open>phase\<close> "instantiate and prove type arity"
+   (Parse.name --| Parse.begin
+     >> (fn name => Toplevel.begin_main_target true (phase_theory_init name)));
+
+
+fun apply_print_optimizations thy =
+  (print_optimizations thy |> Pretty.writeln_chunks)
+
 
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>print_optimizations\<close>
     "print debug information for optimizations"
     (Scan.succeed
-      (Toplevel.keep (print_optimizations o Toplevel.theory_of)));
+      (Toplevel.keep (apply_print_optimizations o Toplevel.theory_of)));
+
+val _ =
+  Outer_Syntax.command \<^command_keyword>\<open>debug_optimizations\<close>
+    "debug the optimization state by adding dummy data"
+    (Scan.succeed
+      (Toplevel.keep (fn ctxt => apply_print_optimizations (Toplevel.theory_of ctxt))));
 \<close>
 
-setup \<open>RWList.reset\<close>
+debug_optimizations
+
+setup \<open>RWList.add 
+((fn (rule, rewrite) => {name="base", rule=rule, rewrite=rewrite})
+(@{term x}, Transform (@{term x}, @{term y})))\<close>
 
 phase Canonicalization begin
+
+print_context
+print_optimizations
 
 optimization add_ynegate:
   "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
   using assume_proof
+  print_context
   print_optimizations
+  ML_val \<open>RWList.get (Proof_Context.theory_of @{context})\<close>
   by blast 
 
 print_optimizations
 ML_val \<open>RWList.get (Proof_Context.theory_of @{context})\<close>
 
+end
+
+print_optimizations
 
 end

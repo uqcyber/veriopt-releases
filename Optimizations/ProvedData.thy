@@ -45,10 +45,9 @@ fun open_data_goal
     val register = DataList.add {name=Binding.print bind, expression=term}
 
     fun after_qed _ ctxt =
-      (Proof_Context.background_theory register ctxt)
+      (Local_Theory.background_theory register ctxt)
   in
-    Proof.theorem NONE after_qed [[(prop, [])]] 
-      (Proof_Context.background_theory register ctxt)
+    Proof.theorem NONE after_qed [[(prop, [])]] ctxt
   end
 
 val _ =

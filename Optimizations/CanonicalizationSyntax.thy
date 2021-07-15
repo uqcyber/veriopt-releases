@@ -3,16 +3,8 @@ imports CanonicalizationTreeProofs
 keywords
   "phase" :: thy_decl and
   "optimization" :: thy_goal_defn and
-  "print_optimizations" :: diag and
-  "debug_optimizations" :: diag
+  "print_optimizations" :: diag
 begin
-
-
-datatype 'a Rewrite =
-  Transformation 'a 'a |
-  Conditional 'a 'a "'a \<Rightarrow> 'a \<Rightarrow> bool" |
-  Sequential "'a Rewrite" "'a Rewrite" |
-  Transitive "'a Rewrite"
 
 
 ML \<open>
@@ -76,12 +68,6 @@ parse_translation \<open> [( @{syntax_const "_baseTransform"} , baseTransform)] 
 syntax "_conditionalTransform" :: "term \<Rightarrow> term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _ when _" 70)
 parse_translation \<open> [( @{syntax_const "_conditionalTransform"} , conditionTransform)] \<close>
 
-ML_val \<open>@{term "C\<langle>1\<rangle>"}\<close>
-
-(*declare [[show_types,show_sorts,names_long,show_consts,show_brackets]]
-declare [[eta_contract]]*)
-(*declare [[syntax_ast_trace]]*)
-
 
 datatype Type =
   Integer |
@@ -135,36 +121,18 @@ lemma assume_proof:
 
 
 lemma "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
-  apply simp using assume_proof
-  by (meson le_expr_def unfold_type)
-
-
-(* CODE GENERATION ATTEMPTS *)
-definition replace :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
-[code_abbrev]: "replace a b = (a \<mapsto> b)"
-
-definition conditional_replace :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool \<Rightarrow> bool" where
-[code_abbrev]: "conditional_replace a b c = (a \<mapsto> b when c)"
-
-definition zero_add where
-  "zero_add c = ((c + C\<langle>0\<rangle>) \<mapsto> c)"
-
-definition zero_add_typed where
-  "zero_add_typed c = ((c + C\<langle>0\<rangle>) \<mapsto> c when (type c = Integer))"
-
-export_code zero_add in Scala
-export_code zero_add_typed in Scala
+  using assume_proof by blast
 
 
 ML \<open>
 datatype 'a Rewrite =
   Transform of 'a * 'a |
-  Conditional of 'a * 'a * 'a -> 'a -> bool |
+  Conditional of 'a * 'a * ('a -> 'a -> bool) |
   Sequential of 'a Rewrite * 'a Rewrite |
   Transitive of 'a Rewrite
 
 type rewrite =
-  {name: string, rule: term, rewrite: term Rewrite}
+  {name: string, rewrite: term Rewrite}
 
 signature RewriteList =
 sig
@@ -192,121 +160,51 @@ val reset = RewriteStore.put [];
 
 end;
 
-val t = @{term "world"}
-val trans = Transform (t, t)
-fun after_qed' _ _ =
-    Toplevel.theory o fold
-      (fn _ => (RWList.add {name="hello", rule=t, rewrite=trans}))
-
-
-fun goals
-  ((
-    (bind: binding, name)),
-    opt: string)
-   ctxt = 
+fun register_optimization 
+  ((bind: binding, _), opt: string) ctxt = 
   let
     val prop = Syntax.read_prop ctxt opt;
     val term = Syntax.read_term ctxt opt;
     val rewrite = Transform (term, term);
     val _ = @{print} (Toplevel.theory_toplevel (Proof_Context.theory_of ctxt));
 
-    val register = RWList.add {name=Binding.print bind, rule=term, rewrite=rewrite}
-
-    (*fun after_qed thms ctxt' =
-      Proof_Context.transfer_facts (register (Proof_Context.theory_of ctxt')) ctxt'
-    *)
+    val register = RWList.add {name=Binding.print bind, rewrite=rewrite}
 
     fun after_qed _ ctxt =
-      let
-        val _ = @{print} (RWList.get (Proof_Context.theory_of ctxt))
-        val _ = @{print} register (Proof_Context.theory_of ctxt)
-        val register' = register (Proof_Context.theory_of ctxt)
-      in
-        Context.raw_transfer register' ctxt
-        (*Proof_Context.background_theory register ctxt*)
-      end
-
-    
-      (*(Toplevel.keep (fn _ => Toplevel.theory_toplevel (register (Toplevel.theory_of ctxt))));*)
-(*
-      let
-        val thy' = ((Local_Theory.note (name, (flat thms)) lthy) |> snd)
-      in
-        (Local_Theory.note (name, flat thms) lthy) |> snd
-      end
-*)
-    (*val compilation = Predicate_Compile_Core.code_pred
-      Predicate_Compile_Aux.default_options
-      "flip_negation"
-      ctxt*)
-
-    val _ = @{print} {name = name, term = term}
+      Local_Theory.background_theory register ctxt
   in
-    (*Specification.theorem true Thm.theoremK NONE
-      (fn thmss => (Local_Theory.background_theory register))
-      (bind, []) [] ctxt stmt false lthy*)
-    Proof.theorem NONE after_qed [[(prop, [])]] 
-      (Proof_Context.background_theory register ctxt)
+    Proof.theorem NONE after_qed [[(prop, [])]] ctxt
   end
 
 
 val parse_optimization_declaration =
   Parse_Spec.thm_name ":"
 
-val parse_optimization =
-  Parse.term
-
 val _ =
   Outer_Syntax.local_theory_to_proof \<^command_keyword>\<open>optimization\<close>
     "define an optimization and open proof obligation"
     (parse_optimization_declaration
-     -- parse_optimization
-     >> goals);
-
-fun do_nothing _ = (Local_Theory.background_theory I)
-
-(*val _ =
-  Outer_Syntax.local_theory \<^command_keyword>\<open>phase\<close>
-    "Whole optimization phase definition"
-    (
-      Parse.name
-      -- Parse.$$$ "begin"
-    >> do_nothing);*)
-
-(*val _ =
-  Outer_Syntax.command \<^command_keyword>\<open>phase\<close> "begin local theory context"
-    (((Parse.name_position -- Scan.optional Parse_Spec.opening [])
-        >> (fn (name, incls) => Toplevel.begin_main_target true (Target_Context.context_begin_named_cmd incls name)) ||
-      Scan.optional Parse_Spec.includes [] -- Scan.repeat Parse_Spec.context_element
-        >> (fn (incls, elems) => Toplevel.begin_nested_target (Target_Context.context_begin_nested_cmd incls elems)))
-      --| Parse.begin);*)
+     -- Parse.term
+     >> register_optimization);
 
 fun exit_phase thy =
-  let
-    val _ = @{print} "Leaving phase"
-    val term = @{term a}
-    val rewrite = Transform (term, term)
-    val register = RWList.add {name="help", rule=term, rewrite=rewrite}
-  in
-    Proof_Context.background_theory register thy
-  end
+  thy
 
 fun begin_phase thy =
-  let
-    val _ = @{print} "Beginning phase"
-    val term = @{term a}
-    val rewrite = Transform (term, term)
-    val register = RWList.add {name="help", rule=term, rewrite=rewrite}
-  in
-    Proof_Context.init_global (register thy)
-  end
+  Proof_Context.init_global thy
+
+fun
+  pretty_rewrite (Transform (x, y)) = Syntax.pretty_term @{context} x
+  | pretty_rewrite (Conditional (x, y, cond)) = Syntax.pretty_term @{context} x
+  | pretty_rewrite (Sequential (x, y)) = pretty_rewrite x
+  | pretty_rewrite (Transitive x) = pretty_rewrite x
 
 fun print_optimizations ctxt =
   let
     fun print_rule tact =
       Pretty.block [
         Pretty.str ((#name tact) ^ ": "),
-        Syntax.pretty_term @{context} (#rule tact)
+        pretty_rewrite (#rewrite tact)
       ];
   in
     [Pretty.big_list "optimizations:" (map print_rule (RWList.get ctxt))]
@@ -345,38 +243,22 @@ val _ =
     "print debug information for optimizations"
     (Scan.succeed
       (Toplevel.keep (apply_print_optimizations o Toplevel.theory_of)));
-
-val _ =
-  Outer_Syntax.command \<^command_keyword>\<open>debug_optimizations\<close>
-    "debug the optimization state by adding dummy data"
-    (Scan.succeed
-      (Toplevel.keep (fn ctxt => apply_print_optimizations (Toplevel.theory_of ctxt))));
 \<close>
 
-debug_optimizations
-
-setup \<open>RWList.add 
-((fn (rule, rewrite) => {name="base", rule=rule, rewrite=rewrite})
-(@{term x}, Transform (@{term x}, @{term y})))\<close>
+setup \<open>RWList.reset\<close>
 
 phase Canonicalization begin
-
-print_context
-print_optimizations
 
 optimization add_ynegate:
   "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
   using assume_proof
-  print_context
-  print_optimizations
-  ML_val \<open>RWList.get (Proof_Context.theory_of @{context})\<close>
   by blast 
 
-print_optimizations
-ML_val \<open>RWList.get (Proof_Context.theory_of @{context})\<close>
+print_context
 
 end
 
+print_context
 print_optimizations
 
 end

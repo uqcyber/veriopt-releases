@@ -58,11 +58,25 @@ inductive CanonicalizeBinaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> boo
     is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
      \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) x" |
 
-  binary_fold_yzero:
+  binary_fold_yzero32:
   "\<lbrakk>y = ConstantExpr c;
     is_zero op c;
-    zero = (int_to_value c (int 0))\<rbrakk>
-    \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr zero)"
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    stp_bits stampx = stp_bits stampy;
+    stp_bits stampx = 32;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
+    \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr (IntVal32 0))" |
+
+  binary_fold_yzero64:
+  "\<lbrakk>y = ConstantExpr c;
+    is_zero op c;
+    stampx = stamp_expr x;
+    stampy = stamp_expr y;
+    stp_bits stampx = stp_bits stampy;
+    stp_bits stampx = 64;
+    is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
+    \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr (IntVal64 0))"
 
 inductive CanonicalizeUnaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   unary_const_fold:

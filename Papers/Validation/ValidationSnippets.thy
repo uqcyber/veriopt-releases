@@ -1,7 +1,7 @@
 theory ValidationSnippets
   imports
     Tests.UnitTesting
-    Graph.Values2
+    Graph.Values
     Optimizations.CanonicalizationTree
 begin
 

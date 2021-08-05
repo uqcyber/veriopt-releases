@@ -293,6 +293,9 @@ inductive_cases FrameStateE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases IfNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[g, m, p] \<turnstile> (IfNode condition trueSuccessor falseSuccessor) \<mapsto> val"
 
+inductive_cases IntegerBelowNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[g, m, p] \<turnstile> (IntegerBelowNode x y) \<mapsto> val"
+
 inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[g, m, p] \<turnstile> (IntegerEqualsNode x y) \<mapsto> val"
 

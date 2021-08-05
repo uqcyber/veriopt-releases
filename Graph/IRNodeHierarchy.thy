@@ -36,7 +36,7 @@ fun is_UnaryOpLogicNode :: "IRNode \<Rightarrow> bool" where
   "is_UnaryOpLogicNode n = ((is_IsNullNode n))"
 
 fun is_IntegerLowerThanNode :: "IRNode \<Rightarrow> bool" where
-  "is_IntegerLowerThanNode n = ((is_IntegerLessThanNode n))"
+  "is_IntegerLowerThanNode n = ((is_IntegerBelowNode n) \<or> (is_IntegerLessThanNode n))"
 
 fun is_CompareNode :: "IRNode \<Rightarrow> bool" where
   "is_CompareNode n = ((is_IntegerEqualsNode n) \<or> (is_IntegerLowerThanNode n))"

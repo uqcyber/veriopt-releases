@@ -1,7 +1,7 @@
 subsection \<open>Hierarchy of Nodes\<close>
 
 theory IRNodeHierarchy
-imports IRNodes2
+imports IRNodes
 begin
 
 text \<open>

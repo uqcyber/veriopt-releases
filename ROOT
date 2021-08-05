@@ -6,7 +6,7 @@ session Graph in Graph = "HOL-Library" +
   options [quick_and_dirty]
   theories
     Values2
-    IRNodes2
+    IRNodes
     IRNodeHierarchy
     Stamp2
     Stamp4
@@ -74,7 +74,7 @@ session Document in "Papers/Main" = Optimizations +
     Optimizations
   document_theories
     Graph.Values2
-    Graph.IRNodes2
+    Graph.IRNodes
     Graph.IRNodeHierarchy
     Graph.Stamp2
     Graph.IRGraph

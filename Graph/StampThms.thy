@@ -1,7 +1,7 @@
 section \<open>Stamp Typing\<close>
 
-theory Stamp2Thms
-  imports Stamp2
+theory StampThms
+  imports Stamp
 begin
 
 (* Theories/Lemmas *)

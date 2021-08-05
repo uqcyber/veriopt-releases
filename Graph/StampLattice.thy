@@ -1,8 +1,8 @@
 section \<open>Stamps: Type and Range Information\<close>
 
-theory Stamp4
+theory StampLattice
 imports
-  Values2
+  Values
   HOL.Lattices
 begin
 

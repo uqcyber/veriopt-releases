@@ -120,6 +120,8 @@ session ValidationPaper in "Papers/Validation" = Tests +
     "Content for paper on validation efforts"
   options [document = pdf, document_output = "output",
            show_question_marks = false]
+  sessions
+    Optimizations
   theories
     ValidationSnippets
   document_files (in "../../latex")

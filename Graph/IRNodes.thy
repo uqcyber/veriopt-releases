@@ -63,6 +63,7 @@ datatype (discs_sels) IRNode =
   | MergeNode (ir_ends: "INPUT_ASSOC list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | MethodCallTargetNode (ir_targetMethod: string) (ir_arguments: "INPUT list") 
   | MulNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | NarrowNode (ir_value: "INPUT") 
   | NegateNode (ir_value: "INPUT") 
   | NewArrayNode (ir_length: "INPUT") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | NewInstanceNode (ir_nid: ID) (ir_instanceClass: string) (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -72,6 +73,7 @@ datatype (discs_sels) IRNode =
   | PiNode (ir_object: "INPUT") (ir_guard_opt: "INPUT_GUARD option") 
   | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
+  | SignExtendNode (ir_value: "INPUT") 
   | SignedDivNode (ir_nid: ID) (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | SignedRemNode (ir_nid: ID) (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -81,6 +83,7 @@ datatype (discs_sels) IRNode =
   | ValuePhiNode (ir_nid: ID) (ir_values: "INPUT list") (ir_merge: "INPUT_ASSOC") 
   | ValueProxyNode (ir_value: "INPUT") (ir_loopExit: "INPUT_ASSOC") 
   | XorNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | ZeroExtendNode (ir_value: "INPUT") 
   | NoNode
 (* nodeout *)
 
@@ -156,6 +159,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (MethodCallTargetNode targetMethod arguments) = arguments" |
   inputs_of_MulNode:
   "inputs_of (MulNode x y) = [x, y]" |
+  inputs_of_NarrowNode:
+  "inputs_of (NarrowNode value) = [value]" |
   inputs_of_NegateNode:
   "inputs_of (NegateNode value) = [value]" |
   inputs_of_NewArrayNode:
@@ -174,6 +179,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
   inputs_of_ShortCircuitOrNode:
   "inputs_of (ShortCircuitOrNode x y) = [x, y]" |
+  inputs_of_SignExtendNode:
+  "inputs_of (SignExtendNode value) = [value]" |
   inputs_of_SignedDivNode:
   "inputs_of (SignedDivNode nid0 x y zeroCheck stateBefore next) = [x, y] @ (opt_to_list zeroCheck) @ (opt_to_list stateBefore)" |
   inputs_of_SignedRemNode:
@@ -187,11 +194,13 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_UnwindNode:
   "inputs_of (UnwindNode exception) = [exception]" |
   inputs_of_ValuePhiNode:
-  "inputs_of (ValuePhiNode nid values merge) = merge # values" |
+  "inputs_of (ValuePhiNode nid0 values merge) = merge # values" |
   inputs_of_ValueProxyNode:
   "inputs_of (ValueProxyNode value loopExit) = [value, loopExit]" |
   inputs_of_XorNode:
   "inputs_of (XorNode x y) = [x, y]" |
+  inputs_of_ZeroExtendNode:
+  "inputs_of (ZeroExtendNode value) = [value]" |
   inputs_of_NoNode: "inputs_of (NoNode) = []" |
 (* nodeout *)
 
@@ -251,6 +260,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (MethodCallTargetNode targetMethod arguments) = []" |
   successors_of_MulNode:
   "successors_of (MulNode x y) = []" |
+  successors_of_NarrowNode:
+  "successors_of (NarrowNode value) = []" |
   successors_of_NegateNode:
   "successors_of (NegateNode value) = []" |
   successors_of_NewArrayNode:
@@ -269,6 +280,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (ReturnNode result memoryMap) = []" |
   successors_of_ShortCircuitOrNode:
   "successors_of (ShortCircuitOrNode x y) = []" |
+  successors_of_SignExtendNode:
+  "successors_of (SignExtendNode value) = []" |
   successors_of_SignedDivNode:
   "successors_of (SignedDivNode nid0 x y zeroCheck stateBefore next) = [next]" |
   successors_of_SignedRemNode:
@@ -287,6 +300,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (ValueProxyNode value loopExit) = []" |
   successors_of_XorNode:
   "successors_of (XorNode x y) = []" |
+  successors_of_ZeroExtendNode:
+  "successors_of (ZeroExtendNode value) = []" |
   successors_of_NoNode: "successors_of (NoNode) = []" |
 (* nodeout *)
 

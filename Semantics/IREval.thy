@@ -335,6 +335,9 @@ inductive_cases MethodCallTargetNodeE[elim!]:\<^marker>\<open>tag invisible\<clo
 inductive_cases MulNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[g, m, p] \<turnstile> (MulNode x y) \<mapsto> val"
 
+inductive_cases NarrowNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[g, m, p] \<turnstile> (NarrowNode value) \<mapsto> val"
+
 inductive_cases NegateNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[g, m, p] \<turnstile> (NegateNode value) \<mapsto> val"
 
@@ -362,6 +365,9 @@ inductive_cases ReturnNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases ShortCircuitOrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[g, m, p] \<turnstile> (ShortCircuitOrNode x y) \<mapsto> val"
 
+inductive_cases SignExtendNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[g, m, p] \<turnstile> (SignExtendNode value) \<mapsto> val"
+
 inductive_cases SignedDivNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[g, m, p] \<turnstile> (SignedDivNode nid0 x y zeroCheck stateBefore next) \<mapsto> val"
 
@@ -388,6 +394,9 @@ inductive_cases ValueProxyNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
 
 inductive_cases XorNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[g, m, p] \<turnstile> (XorNode x y) \<mapsto> val"
+
+inductive_cases ZeroExtendNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[g, m, p] \<turnstile> (ZeroExtendNode value) \<mapsto> val"
 
 inductive_cases NoNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[g, m, p] \<turnstile> (NoNode) \<mapsto> val"

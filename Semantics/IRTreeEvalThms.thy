@@ -109,6 +109,24 @@ lemma rep_integer_less_than:
    (\<exists>xe ye. e = BinaryExpr BinIntegerLessThan xe ye)"
   by (induction rule: rep.induct; auto)
 
+lemma rep_narrow:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = NarrowNode x \<Longrightarrow>
+   (\<exists>x. e = ConvertExpr ConvertNarrow x)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_sign_extend:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = SignExtendNode x \<Longrightarrow>
+   (\<exists>x. e = ConvertExpr ConvertSignExtend x)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_zero_extend:
+  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+   kind g n = ZeroExtendNode x \<Longrightarrow>
+   (\<exists>x. e = ConvertExpr ConvertZeroExtend x)"
+  by (induction rule: rep.induct; auto)
+
 lemma rep_load_field:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
    is_preevaluated (kind g n) \<Longrightarrow>
@@ -127,7 +145,7 @@ next
   case (ParameterNode n i s)
   then show ?case using rep_parameter by auto
 next
-case (ConditionalNode n c t f ce te fe)
+  case (ConditionalNode n c t f ce te fe)
   then show ?case 
     by (metis rep_conditional ConditionalNodeE IRNode.inject(6)) 
 next
@@ -137,11 +155,11 @@ next
 next
   case (NotNode n x xe)
   then show ?case
-    by (metis IRNode.inject(30) NotNodeE rep_not)
+    by (metis IRNode.inject(31) NotNodeE rep_not)
 next
-case (NegateNode n x xe)
+  case (NegateNode n x xe)
   then show ?case
-    by (metis  IRNode.inject(27) NegateNodeE rep_negate)
+    by (metis  IRNode.inject(28) NegateNodeE rep_negate)
 next
   case (LogicNegationNode n x xe)
   then show ?case
@@ -151,25 +169,25 @@ next
   then show ?case
     by (metis AddNodeE IRNode.inject(2) rep_add) 
 next
-case (MulNode n x y xe ye)
+  case (MulNode n x y xe ye)
   then show ?case
     by (metis IRNode.inject(26) MulNodeE rep_mul)
 next
   case (SubNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(40) SubNodeE rep_sub)
+    by (metis IRNode.inject(42) SubNodeE rep_sub)
 next
   case (AndNode n x y xe ye)
   then show ?case
     by (metis AndNodeE IRNode.inject(3) rep_and)
 next
-case (OrNode n x y xe ye)
-then show ?case
-  by (metis IRNode.inject(31) OrNodeE rep_or)
+  case (OrNode n x y xe ye)
+  then show ?case
+  by (metis IRNode.inject(32) OrNodeE rep_or)
 next
   case (XorNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(44) XorNodeE rep_xor)
+    by (metis IRNode.inject(46) XorNodeE rep_xor)
 next
   case (IntegerBelowNode n x y xe ye)
   then show ?case
@@ -182,6 +200,18 @@ next
   case (IntegerLessThanNode n x y xe ye)
   then show ?case
     by (metis IRNode.inject(14) IntegerLessThanNodeE rep_integer_less_than)
+next
+  case (NarrowNode n x xe)
+  then show ?case
+    by (metis IRNode.inject(27) NarrowNodeE rep_narrow)
+next
+  case (SignExtendNode n x xe)
+  then show ?case
+    by (metis IRNode.inject(37) SignExtendNodeE rep_sign_extend)
+next
+  case (ZeroExtendNode n x xe)
+  then show ?case
+    by (metis IRNode.inject(47) ZeroExtendNodeE rep_zero_extend)
 next
   case (LeafNode n s)
   then show ?case using rep_load_field LeafNodeE by blast 
@@ -302,11 +332,11 @@ lemma int_stamp_implies_valid_value:
   "[m,p] \<turnstile> expr \<mapsto> val \<Longrightarrow>
    valid_value (stamp_expr expr) val"
 proof (induction rule: evaltree.induct)
-case (ConstantExpr c)
-then show ?case sorry
+  case (ConstantExpr c)
+  then show ?case sorry
 next
   case (ParameterExpr s i)
-then show ?case sorry
+  then show ?case sorry
 next
   case (ConditionalExpr ce cond branch te fe v)
   then show ?case sorry
@@ -314,8 +344,11 @@ next
   case (UnaryExpr xe v op)
   then show ?case sorry
 next
+  case (ConvertExpr xe v op)
+  then show ?case sorry
+next
   case (BinaryExpr xe x ye y op)
-then show ?case sorry
+  then show ?case sorry
 next
   case (LeafExpr val nid s)
   then show ?case sorry

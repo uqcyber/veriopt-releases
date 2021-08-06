@@ -5,7 +5,7 @@ theory UnitTesting
     Semantics.IRStepObj
 begin
 
-declare [[ML_source_trace]]
+declare [[ML_source_trace, ML_debugger]]
 
 inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
   where
@@ -15,10 +15,16 @@ inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE) static_test .
 
-(* program_test runs a static initialisation block first (to initialise static fields etc.),
-   then a named method.
+(* get the return value of the top-most function *)
+fun get_result :: "(IRGraph \<times> ID \<times> MapState \<times> Params) \<Rightarrow> Value" where
+  "get_result (g,i,m,p) = m 0"
+(* export_code get_result *)
+
+
+(* object_test and program_test run a static initialisation block first
+   (to initialise static fields etc.), then a named method.
 *)
-inductive program_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
+inductive object_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> (Value \<Rightarrow> FieldRefHeap \<Rightarrow> bool) => bool"
   where
   InitStatics:
   "\<lbrakk>Some init = prog '''';
@@ -27,17 +33,86 @@ inductive program_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value l
     
     Some g = prog m;
     config1 = (g, 0, new_map_state, ps);
-    prog \<turnstile> ([config1, config1], heap1) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2 \<rbrakk>
-    \<Longrightarrow> program_test prog m ps ((prod.fst(prod.snd(prod.snd end2))) 0)" |
+    prog \<turnstile> ([config1, config1], heap1) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2;
+    result = get_result end2;
+    checker result heap2 \<rbrakk>
+    \<Longrightarrow> object_test prog m ps checker" |
 
   NoStatics:
   "\<lbrakk>'''' \<notin> dom prog;
     Some g = prog m;
     config1 = (g, 0, new_map_state, ps);
-    prog \<turnstile> ([config1, config1], new_heap) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2 \<rbrakk>
-    \<Longrightarrow> program_test prog m ps ((prod.fst(prod.snd(prod.snd end2))) 0)"
+    prog \<turnstile> ([config1, config1], new_heap) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2;
+    result = get_result end2;
+    checker result heap2 \<rbrakk>
+    \<Longrightarrow> object_test prog m ps checker"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testObj) object_test .
+
+inductive program_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> Value => bool"
+  where
+  "object_test prog m ps (\<lambda> x h. x = result)
+    \<Longrightarrow> program_test prog m ps result"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testP) program_test .
+
+(* Lorg/graalvm/compiler/core/test/VeriOptFactorialTest;.factAsAnObject*)
+definition unit_factAsAnObject_2 :: Program where
+  "unit_factAsAnObject_2 = Map.empty (
+  ''org.graalvm.compiler.core.test.VeriOptFactorialTest.factAsAnObject(I)Lorg/graalvm/compiler/core/test/VeriOptFactorialTest$FactResult;'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 3), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NewInstanceNode 3 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' None 6), ObjectStamp ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' True True False),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
+  (6, (StoreFieldNode 6 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' 5 (Some 8) (Some 3) 10), VoidStamp),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (FrameState [] (Some 7) None None), IllegalStamp),
+  (10, (EndNode), VoidStamp),
+  (11, (LoopBeginNode [10] None (Some 13) 20), VoidStamp),
+  (12, (ValuePhiNode 12 [1, 25] 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (FrameState [] None None None), IllegalStamp),
+  (14, (ConstantNode (IntVal32 (2))), IntegerStamp 32 (2) (2)),
+  (15, (IntegerLessThanNode 12 14), VoidStamp),
+  (16, (BeginNode 22), VoidStamp),
+  (18, (LoopExitNode 11 (Some 19) 27), VoidStamp),
+  (19, (FrameState [] None None None), IllegalStamp),
+  (20, (IfNode 15 18 16), VoidStamp),
+  (21, (MethodCallTargetNode ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult.multiply(I)V'' [3, 12]), VoidStamp),
+  (22, (InvokeNode 22 21 None None (Some 23) 26), VoidStamp),
+  (23, (FrameState [] None None None), IllegalStamp),
+  (24, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (25, (AddNode 12 24), IntegerStamp 32 (-2147483648) (2147483647)),
+  (26, (LoopEndNode 11), VoidStamp),
+  (27, (ReturnNode (Some 3) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult.multiply(I)V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 4), VoidStamp),
+  (1, (ParameterNode 0), ObjectStamp ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' True True False),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (LoadFieldNode 4 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' (Some 1) 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (MulNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (6, (StoreFieldNode 6 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' 5 (Some 7) (Some 1) 8), VoidStamp),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+fun check_result_2 :: "Value \<Rightarrow> FieldRefHeap \<Rightarrow> bool" where
+  "check_result_2 (ObjRef x) h = (h_load_field ''value'' x h = (IntVal32 (120)))" |
+  "check_result_2 _ _ = False"
+(* code_thms check_result_2 *)
+(* export_code check_result_2 *)
+(* declare [[code_preproc_trace]] *)
+value "object_test unit_factAsAnObject_2 
+    ''org.graalvm.compiler.core.test.VeriOptFactorialTest.factAsAnObject(I)Lorg/graalvm/compiler/core/test/VeriOptFactorialTest$FactResult;''
+    [(IntVal32 (5))]
+    check_result_2"
+(* But this gives the following error:
+     exception Match raised (line 8104 of "generated code")'
+*)
+
 
 
 (* Lorg/graalvm/compiler/api/directives/test/OpaqueDirectiveTest;.booleanSnippet*)

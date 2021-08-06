@@ -346,7 +346,7 @@ proof -
     by simp
   have "?thesis = (?subset_thesis)"
     using ydef joindef sup_stamp.simps less_eq_stamp.simps
-    by (metis Stamp4.sup_ge1 max.commute min.commute sup_stamp.elims)
+    by (metis StampLattice.sup_ge1 max.commute min.commute sup_stamp.elims)
   then show "?thesis"
     using leq
     by fastforce
@@ -757,7 +757,7 @@ proof -
     unfolding range_def bounds_def
     by (simp add: \<open>bounds s = (max, min)\<close> bounds.transfer)
   then show ?thesis
-    by (simp add: Stamp4.less_eq_intstamp_def)
+    by (simp add: StampLattice.less_eq_intstamp_def)
 qed
 
 lemma bounds_has_value:
@@ -794,9 +794,9 @@ proof -
   then have "card (range s) = 0"
     using nooverlap bounds_has_no_value by simp
   then have "\<forall>x. (card (range x)) > 0 \<longrightarrow> s < x"
-    using \<open>Stamp4.range s = {sint max..sint min}\<close> atLeastatMost_empty less_intstamp_def by auto
+    using \<open>StampLattice.range s = {sint max..sint min}\<close> atLeastatMost_empty less_intstamp_def by auto
   then show ?thesis
-    by (meson \<open>\<forall>x. 0 < card (Stamp4.range x) \<or> is_bottom x\<close> bottom_is_bottom leD less_eq_intstamp_def less_intstamp_def)
+    by (meson \<open>\<forall>x. 0 < card (StampLattice.range x) \<or> is_bottom x\<close> bottom_is_bottom leD less_eq_intstamp_def less_intstamp_def)
 qed
 
 
@@ -922,12 +922,12 @@ next
   have joindef: "x \<sqinter> y = from_bounds ((smax l1 l2, smin u1 u2))"
     (is "x \<sqinter> y = from_bounds (?l3, ?u3)")
     using False
-    by (smt (z3) Stamp4.inf_intstamp_def Stamp4.join_bounds_def always_valid is_bottom.rep_eq join_or_bottom_def xdef ydef)
+    by (smt (z3) StampLattice.inf_intstamp_def StampLattice.join_bounds_def always_valid is_bottom.rep_eq join_or_bottom_def xdef ydef)
   have leq: "{sint ?l3..sint ?u3} \<subseteq> {sint l1..sint u1}"
     by (smt (z3) atLeastatMost_subset_iff smax.transfer smin.transfer)
   have "(x \<sqinter> y) \<le> x = ({sint ?l3..sint ?u3} \<subseteq> {sint l1..sint u1})"
     using xdef joindef range_def less_eq_intstamp_def
-    by (smt (z3) False Stamp4.always_valid Stamp4.join_or_bottom_def bounds.abs_eq case_prod_conv inf_intstamp_def is_bottom.rep_eq join_bounds_def range.rep_eq unfold_bounds ydef)
+    by (smt (z3) False StampLattice.always_valid StampLattice.join_or_bottom_def bounds.abs_eq case_prod_conv inf_intstamp_def is_bottom.rep_eq join_bounds_def range.rep_eq unfold_bounds ydef)
   then show "(x \<sqinter> y) \<le> x"
     using leq
     by fastforce
@@ -952,12 +952,12 @@ next
   have joindef: "x \<sqinter> y = from_bounds ((smax l1 l2, smin u1 u2))"
     (is "x \<sqinter> y = from_bounds (?l3, ?u3)")
     using False
-    by (smt (z3) Stamp4.inf_intstamp_def Stamp4.join_bounds_def always_valid is_bottom.rep_eq join_or_bottom_def xdef ydef)
+    by (smt (z3) StampLattice.inf_intstamp_def StampLattice.join_bounds_def always_valid is_bottom.rep_eq join_or_bottom_def xdef ydef)
   have leq: "{sint ?l3..sint ?u3} \<subseteq> {sint l1..sint u1}"
     by (smt (z3) atLeastatMost_subset_iff smax.transfer smin.transfer)
   have "(x \<sqinter> y) \<le> y = ({sint ?l3..sint ?u3} \<subseteq> {sint l2..sint u2})"
     using xdef joindef range_def less_eq_intstamp_def
-    by (smt (z3) False Stamp4.always_valid Stamp4.join_or_bottom_def bounds.abs_eq case_prod_conv inf_intstamp_def is_bottom.rep_eq join_bounds_def range.rep_eq unfold_bounds ydef)
+    by (smt (z3) False StampLattice.always_valid StampLattice.join_or_bottom_def bounds.abs_eq case_prod_conv inf_intstamp_def is_bottom.rep_eq join_bounds_def range.rep_eq unfold_bounds ydef)
   then show "(x \<sqinter> y) \<le> y"
     using leq
     by (smt (z3) atLeastatMost_subset_iff smax.transfer smin.transfer)

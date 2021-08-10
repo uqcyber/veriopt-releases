@@ -5,11 +5,11 @@ session Graph in Graph = "HOL-Library" +
     "GraalVM IR structure"
   options [quick_and_dirty]
   theories
-    Values2
-    IRNodes2
+    Values
+    IRNodes
     IRNodeHierarchy
-    Stamp2
-    Stamp4
+    Stamp
+    StampLattice
     IRGraph
     (*Comparison*)
     (* CFG -- will add back once sorries are fixed *)
@@ -73,10 +73,10 @@ session Document in "Papers/Main" = Optimizations +
     (*Proofs*)
     Optimizations
   document_theories
-    Graph.Values2
-    Graph.IRNodes2
+    Graph.Values
+    Graph.IRNodes
     Graph.IRNodeHierarchy
-    Graph.Stamp2
+    Graph.Stamp
     Graph.IRGraph
 
     Semantics.IRTreeEval
@@ -137,7 +137,7 @@ session Stamps in "Papers/Stamps" = Graph +
   sessions
     Graph
   document_theories
-    Graph.Stamp4
+    Graph.StampLattice
   document_files (in ".")
     "root.tex"
     "lattice.tex"

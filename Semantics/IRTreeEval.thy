@@ -92,12 +92,17 @@ datatype IRBinaryOp =
   | BinIntegerLessThan
   | BinIntegerBelow
 
+datatype IRConvertOp =
+    ConvertNarrow 
+  | ConvertSignExtend 
+  | ConvertZeroExtend
 
 datatype (discs_sels) IRExpr =
     UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
   | BinaryExpr (ir_op: IRBinaryOp) (ir_x: IRExpr) (ir_y: IRExpr)
   | ConditionalExpr (ir_condition: IRExpr) (ir_trueValue: IRExpr) (ir_falseValue: IRExpr)
-  | ConstantExpr (ir_const: Value) 
+  | ConstantExpr (ir_const: Value)
+  | ConvertExpr (ir_cop: IRConvertOp) (ir_input: IRExpr) (*(ir_input_bits: nat) (ir_result_bits: nat)*)
 (* TODO
   | IsNullNode (ir_value: IRExpr) 
   | RefNode ?
@@ -223,6 +228,23 @@ inductive
     g \<turnstile> y \<triangleright> ye\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)" |
 
+(* Convert Nodes *)
+  NarrowNode:
+  "\<lbrakk>kind g n = NarrowNode x;
+    g \<turnstile> x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (ConvertExpr ConvertNarrow xe)" |
+
+  SignExtendNode:
+  "\<lbrakk>kind g n = SignExtendNode x;
+    g \<turnstile> x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (ConvertExpr ConvertSignExtend xe)" |
+
+  ZeroExtendNode:
+  "\<lbrakk>kind g n = ZeroExtendNode x;
+    g \<turnstile> x \<triangleright> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<triangleright> (ConvertExpr ConvertZeroExtend xe)" |
+
+(* Leaf Node *)
   LeafNode:
   "\<lbrakk>is_preevaluated (kind g n);
     stamp g n = s\<rbrakk>
@@ -292,6 +314,12 @@ inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)"
 inductive_cases IntegerLessThanNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)"
+inductive_cases NarrowNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (ConvertExpr ConvertNarrow xe)"
+inductive_cases SignExtendNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (ConvertExpr ConvertSignExtend xe)"
+inductive_cases ZeroExtendNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (ConvertExpr ConvertZeroExtend xe)"
 inductive_cases LeafNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<triangleright> (LeafExpr nid s)"
 
@@ -313,6 +341,9 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   IntegerBelowNodeE
   IntegerEqualsNodeE
   IntegerLessThanNodeE
+  NarrowNodeE
+  SignExtendNodeE
+  ZeroExtendNodeE
   LeafNodeE
 
 (* ======== TODO: Functions for re-calculating stamps ========== *)
@@ -327,8 +358,14 @@ fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Righta
   (* for now... *)
   "stamp_binary op _ _ = IllegalStamp"
 
+(* TODO: we may need to put stamp information into expression trees somehow.. *)
+fun stamp_convert_op :: "IRConvertOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where 
+  "stamp_convert_op op (IntegerStamp b lo hi) = unrestricted_stamp (IntegerStamp b lo hi)" |
+  "stamp_convert_op op _ = IllegalStamp"
+
 fun stamp_expr :: "IRExpr \<Rightarrow> Stamp" where
   "stamp_expr (UnaryExpr op x) = stamp_unary op (stamp_expr x)" |
+  "stamp_expr (ConvertExpr cop x) = stamp_convert_op cop (stamp_expr x)" |
   "stamp_expr (BinaryExpr bop x y) = stamp_binary bop (stamp_expr x) (stamp_expr y)" |
   "stamp_expr (ConstantExpr val) = constantAsStamp val" |
   "stamp_expr (LeafExpr i s) = s" |
@@ -356,6 +393,11 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y" |
   "bin_node BinIntegerBelow x y = IntegerBelowNode x y"
 
+(*fun convert_node :: "IRConvertOp \<Rightarrow> ID \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> IRNode" where*)
+fun convert_node :: "IRConvertOp \<Rightarrow> ID \<Rightarrow> IRNode" where
+  "convert_node ConvertNarrow v = NarrowNode v" |
+  "convert_node ConvertSignExtend v = SignExtendNode v"  |
+  "convert_node ConvertZeroExtend v = ZeroExtendNode v"
 
 (* TODO: switch these to new Values2 *)
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
@@ -376,6 +418,14 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinIntegerLessThan v1 v2 = intval_less_than v1 v2" |
   "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
+
+
+value "word_of_int (sint (240 :: 32 word)) :: 8 word" 
+
+fun convert_eval :: "IRConvertOp \<Rightarrow> Value \<Rightarrow> Value" where
+  "convert_eval ConvertNarrow v = v" | 
+  "convert_eval ConvertSignExtend v = v" | 
+  "convert_eval ConvertZeroExtend v = v" 
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "nid \<notin> ids g \<Longrightarrow> fresh_id g nid"
@@ -471,6 +521,20 @@ inductive
     g' = add_node nid (bin_node op x y, s') g2\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g', nid)" |
 
+  ConvertNodeSame:
+  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
+    s' = stamp_convert_op op (stamp g2 x);
+    find_node_and_stamp g2 (convert_node op x, s') = Some nid\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (ConvertExpr op xe) \<leadsto> (g2, nid)" |
+
+  ConvertNodeNew:
+  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
+    s' = stamp_convert_op op (stamp g2 x);
+    find_node_and_stamp g2 (convert_node op x, s') = None;
+    nid = get_fresh_id g2;
+    g' = add_node nid (convert_node op x, s') g2\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (ConvertExpr op xe) \<leadsto> (g', nid)" |
+
   AllLeafNodes:
   "stamp g nid = s
     \<Longrightarrow> g \<triangleleft> (LeafExpr nid s) \<leadsto> (g, nid)" |
@@ -555,6 +619,10 @@ inductive
   "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> unary_eval op v" |
 
+  ConvertExpr:
+  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (ConvertExpr op xe) \<mapsto> convert_eval op v" |
+
   BinaryExpr:
   "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> x;
     [m,p] \<turnstile> ye \<mapsto> y\<rbrakk>
@@ -614,6 +682,8 @@ inductive_cases ConditionalExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (ConditionalExpr c t f) \<mapsto> val"
 inductive_cases UnaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> val"
+inductive_cases ConvertExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (ConvertExpr op xe) \<mapsto> val"
 inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> val"
 inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -631,6 +701,7 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
   ConditionalExprE
   UnaryExprE
   BinaryExprE
+  ConvertExprE
   LeafExprE
   EvalNilE
   EvalConsE

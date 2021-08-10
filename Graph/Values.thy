@@ -21,14 +21,6 @@ points to the static fields. This is examined more closely in our
 definition of the heap.
 \<close>
 
-type_synonym objref = "nat option"
-
-datatype Value  =
-  UndefVal | (* TODO: still required? *)
-  IntVal (v_bits: int) (v_int: int) |
-  FloatVal (v_bits: int) (v_float: float) |
-  ObjRef objref |
-  ObjStr string
 
 text \<open>
 Java supports 64, 32, 16, 8 signed ints, plus 1 bit (boolean) ints.
@@ -48,6 +40,16 @@ type_synonym int16 = "16 word" \<comment> \<open>short\<close>
 type_synonym int8 = "8 word" \<comment> \<open>char\<close>
 type_synonym int1 = "1 word" \<comment> \<open>boolean\<close>
 
+type_synonym objref = "nat option"
+
+datatype Value  =
+  UndefVal |
+  IntVal32 int32 |  (* includes boolean *)
+  IntVal64 int64 |
+  FloatVal float |
+  ObjRef objref |
+  ObjStr string
+
 
 text \<open>
 We define integer values to be well-formed when their bit size is valid
@@ -59,40 +61,18 @@ This is defined using the @{text wf_value} function.
 fun fits_into_n :: "nat \<Rightarrow> int \<Rightarrow> bool" where
   "fits_into_n b val = ((-(2^(b-1)) \<le> val) \<and> (val < (2^(b-1))))"
 
-definition int_bits_allowed :: "int set" where
-  "int_bits_allowed = {32}"
-
-(* was:   (nat b \<in> {1,8,16,32,64} \<and> ...
-   But we temporarily reduce this to 32/64 until we use stamps more statically.
-*)
-fun wf_value :: "Value \<Rightarrow> bool" where
-  "wf_value (IntVal b v) = 
-    (b \<in> int_bits_allowed \<and>
-    (nat b = 1 \<longrightarrow> (v = 0 \<or> v = 1)) \<and>
-    (nat b > 1 \<longrightarrow> fits_into_n (nat b) v))" |
-  "wf_value _ = True"
 
 fun wf_bool :: "Value \<Rightarrow> bool" where
-  "wf_bool (IntVal b v) = (b = 1 \<and> (v = 0 \<or> v = 1))" |
+  "wf_bool (IntVal32 v) = (v = 0 \<or> v = 1)" |
   "wf_bool _ = False" 
 
-(* boolean values  TODO
-lemma "\<not> (wf_value (IntVal 1 (-1)))" by simp
-lemma wf_false: "wf_value (IntVal 1 0)" by simp
-lemma wf_true: "wf_value (IntVal 1 1)" by simp
-lemma "\<not> (wf_value (IntVal 1 2))" by simp
+fun val_to_bool :: "Value \<Rightarrow> bool" where
+  "val_to_bool (IntVal32 v) = (v = 1)" |
+  "val_to_bool _ = False"
 
-value "(-7::int) div (4::int)"   (* gives -2.  Truncates towards negative infinity, unlike Java. *)
-value "(-7::int) mod (4::int)"   (* gives 1.  Whereas Java gives -3. *)
-*)
-
-(* byte values TODO
-lemma wf_byte__neg129: "i < -128 \<longrightarrow> \<not> (wf_value (IntVal 8 i))" by simp
-lemma wf_byte__neg: "-128 \<le> i \<and> i < 0 \<longrightarrow> wf_value (IntVal 8 i)" by simp
-lemma wf_byte_0: "wf_value (IntVal 8 0)" by simp
-lemma wf_byte_pos: "0 < i \<and> i < 128 \<longrightarrow> wf_value (IntVal 8 i)" by simp
-lemma wf_byte_128: "i \<ge> 128 \<longrightarrow> \<not> (wf_value (IntVal 8 i))" by simp
-*)
+fun bool_to_val :: "bool \<Rightarrow> Value" where
+  "bool_to_val True = (IntVal32 1)" |
+  "bool_to_val False = (IntVal32 0)"
 
 value "sint(word_of_int (1) :: int1)"
 
@@ -106,12 +86,25 @@ The following collection of intval functions correspond to the JVM
 arithmetic operations.
 \<close>
 
-(* Corresponds to JVM iadd and ladd instructions. *)
+(* Corresponds to JVM iadd instruction. *)
+fun intval_add32 :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_add32 (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1+v2))" |
+  "intval_add32 _ _ = UndefVal"
+
+(* NOTE: this should not need to do widening, since an explicit node does that. *) 
+(* Corresponds to JVM ladd instruction. *)
+fun intval_add64 :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_add64 (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1+v2))" |
+  "intval_add64 _ _ = UndefVal"
+
+
+(* OR: We could define a general add function for 32 AND 64 bit ints?
+  This makes it easier to do the instantiation of Value as 'plus'.
+  But might be worse for reasoning, because it causes more case analysis.
+ *)
 fun intval_add :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_add (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32 
-       then (IntVal 32 (sint((word_of_int v1 :: int32) + (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))" |
+  "intval_add (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1+v2))" |
+  "intval_add (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1+v2))" |
   "intval_add _ _ = UndefVal"
 
 instantiation Value :: plus
@@ -125,10 +118,8 @@ end
 
 (* Corresponds to JVM isub and lsub instructions. *)
 fun intval_sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_sub (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32 
-       then (IntVal 32 (sint((word_of_int v1 :: int32) - (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) - (word_of_int v2 :: int64)))))" |
+  "intval_sub (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1-v2))" |
+  "intval_sub (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1-v2))" |
   "intval_sub _ _ = UndefVal"
 
 instantiation Value :: minus
@@ -142,10 +133,8 @@ end
 
 (* Corresponds to JVM imul and lmul instructions. *)
 fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_mul (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (sint((word_of_int v1 :: int32) * (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) * (word_of_int v2 :: int64)))))" |
+  "intval_mul (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1*v2))" |
+  "intval_mul (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1*v2))" |
   "intval_mul _ _ = UndefVal"
 
 instantiation Value :: times
@@ -157,12 +146,11 @@ definition times_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 instance proof qed
 end
 
-(* Java division rounds towards 0. *)
+(* Java division rounds towards 0, so we use sdiv, not div. *)
+(* TODO: find a signed division operator in the Word library? *)
 fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_div (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (sint((word_of_int(v1 sdiv v2) :: int32))))
-       else (IntVal 64 (sint((word_of_int(v1 sdiv v2) :: int64)))))" |
+  "intval_div (IntVal32 v1) (IntVal32 v2) = (IntVal32 (word_of_int((sint v1) sdiv (sint v2))))" |
+  "intval_div (IntVal64 v1) (IntVal64 v2) = (IntVal64 (word_of_int((sint v1) sdiv (sint v2))))" |
   "intval_div _ _ = UndefVal"
 
 instantiation Value :: divide
@@ -176,11 +164,11 @@ end
 
 (* Java % is a modulo operator that can give negative results, since div rounds towards 0. *)
 fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_mod (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (sint((word_of_int(v1 smod v2) :: int32))))
-       else (IntVal 64 (sint((word_of_int(v1 smod v2) :: int64)))))" |
+  "intval_mod (IntVal32 v1) (IntVal32 v2) = (IntVal32 (word_of_int((sint v1) smod (sint v2))))" |
+  "intval_mod (IntVal64 v1) (IntVal64 v2) = (IntVal64 (word_of_int((sint v1) smod (sint v2))))" |
   "intval_mod _ _ = UndefVal"
+  (* WAS: (IntVal 32 (sint((word_of_int(v1 smod v2) :: int32))))  *)
+  (*      (IntVal 64 (sint((word_of_int(v1 smod v2) :: int64)))))  *)
 
 instantiation Value :: modulo
 begin
@@ -191,42 +179,52 @@ definition modulo_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 instance proof qed
 end
 
-(* unsuccessful try at a bitwise generic binary operator:
-fun intval_binary :: "('a word \<Rightarrow> 'a word \<Rightarrow> 'a word) \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_binary op (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (sint(op (word_of_int v1 :: 32 word) (word_of_int v2 :: 32 word))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))" |
-  "intval_binary _ _ _ = UndefVal"
-*)
 
 fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "&&*" 64) where
-  "intval_and (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (sint((word_of_int v1 :: int32) AND (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) AND (word_of_int v2 :: int64)))))" |
+  "intval_and (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 AND v2))" |
+  "intval_and (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 AND v2))" |
   "intval_and _ _ = UndefVal"
 
 fun intval_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "||*" 59) where
-  "intval_or (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (sint((word_of_int v1 :: int32) OR (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) OR (word_of_int v2 :: int64)))))" |
+  "intval_or (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 OR v2))" |
+  "intval_or (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 OR v2))" |
   "intval_or _ _ = UndefVal"
 
 fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "^*" 59) where
-  "intval_xor (IntVal b1 v1) (IntVal b2 v2) = 
-     (if b1 \<le> 32 \<and> b2 \<le> 32
-       then (IntVal 32 (sint((word_of_int v1 :: int32) XOR (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) XOR (word_of_int v2 :: int64)))))" |
+  "intval_xor (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 XOR v2))" |
+  "intval_xor (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 XOR v2))" |
   "intval_xor _ _ = UndefVal"
 
+fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_equals (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |
+  "intval_equals (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 = v2)" |
+  "intval_equals _ _ = UndefVal"
+
+fun intval_less_than :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_less_than (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 <s v2)" |
+  "intval_less_than (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 <s v2)" |
+  "intval_less_than _ _ = UndefVal"
+
+fun intval_below :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_below (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 < v2)" |
+  "intval_below (IntVal64 v1) (IntVal64 v2) = bool_to_val (v1 < v2)" |
+  "intval_below _ _ = UndefVal"
+
 fun intval_not :: "Value \<Rightarrow> Value" where
-  "intval_not (IntVal b v) = 
-     (if b \<le> 32
-       then (IntVal 32 (sint(NOT (word_of_int v :: int32))))
-       else (IntVal 64 (sint(NOT (word_of_int v :: int64)))))" |
+  "intval_not (IntVal32 v) = (IntVal32 (NOT v))" |
+  "intval_not (IntVal64 v) = (IntVal64 (NOT v))" |
   "intval_not _ = UndefVal"
+
+fun intval_negate :: "Value \<Rightarrow> Value" where
+  "intval_negate (IntVal32 v) = IntVal32 (- v)" |
+  "intval_negate (IntVal64 v) = IntVal64 (- v)" |
+  "intval_negate _ = UndefVal"
+
+fun intval_abs :: "Value \<Rightarrow> Value" where
+  "intval_abs (IntVal32 v) = (if (v) <s 0 then (IntVal32 (- v)) else (IntVal32 v))" |
+  "intval_abs (IntVal64 v) = (if (v) <s 0 then (IntVal64 (- v)) else (IntVal64 v))" |
+  "intval_abs _ = UndefVal"
+
 
 (* Other possibly-helpful lemmas from WORD and its ancestors:
 
@@ -238,41 +236,6 @@ lemma plus_dist:
   for v w :: \<open>'a::len word\<close>
 *)
 
-(* this follows from the definition of intval_add. *)
-lemma intval_add_bits:
-  assumes b: "IntVal b res = intval_add x y"
-  shows "b = 32 \<or> b = 64"
-proof -
-  have def: "intval_add x y \<noteq> UndefVal"
-    using b by auto
-  obtain b1 v1 where x: "x = IntVal b1 v1"
-    by (metis Value.exhaust_sel def intval_add.simps(2,3,4,5))
-  obtain b2 v2 where y: "y = IntVal b2 v2"
-    by (metis Value.exhaust_sel def intval_add.simps(6,7,8,9))
-  have
-     ax: "intval_add (IntVal b1 v1) (IntVal b2 v2) = 
-       (if b1 \<le> 32 \<and> b2 \<le> 32 
-       then (IntVal 32 (sint((word_of_int v1 :: int32) + (word_of_int v2 :: int32))))
-       else (IntVal 64 (sint((word_of_int v1 :: int64) + (word_of_int v2 :: int64)))))"
-      (is "?L = (if ?C then (IntVal 32 ?A) else (IntVal 64 ?B))")
-    by simp
-  then have l: "IntVal b res = ?L" using b x y by simp 
-  have "(b1 \<le> 32 \<and> b2 \<le> 32) \<or> \<not>(b1 \<le> 32 \<and> b2 \<le> 32)" by auto
-  then show ?thesis
-  proof
-    assume "(b1 \<le> 32 \<and> b2 \<le> 32)"
-    then have r32: "?L = (IntVal 32 ?A)" using ax by auto
-    then have "b = 32" using r32 l b by auto
-    then show ?thesis by simp 
-  next
-    assume "\<not>(b1 \<le> 32 \<and> b2 \<le> 32)"
-    then have r64: "?L = (IntVal 64 ?B)" using ax by auto
-    then have "b = 64" using r64 l b by auto
-    then show ?thesis by simp 
-  qed
-qed
-
-
 (* ========================================================================
    Commutative and Associative results.  (Not used yet).
    ======================================================================== *)
@@ -281,73 +244,50 @@ lemma word_add_sym:
   by simp
 
 (* commutative rules to be used when needed. *)
-lemma intval_add_sym1:
-  shows "intval_add (IntVal b1 v1) (IntVal b2 v2) = intval_add (IntVal b2 v2) (IntVal b1 v1)"
-  by (simp add: word_add_sym)
-
 lemma intval_add_sym:
-  shows "intval_add x y = intval_add y x"
-  using intval_add_sym1 apply simp
-  apply (induction "x")
-      apply auto
-  apply (induction "y")
-      apply auto
-  done
+  shows "intval_add a b = intval_add b a"
+  by (induction a; induction b; auto)
 
 
 lemma word_add_assoc: 
   shows "(word_of_int v1 + word_of_int v2) + word_of_int v3 
        = word_of_int v1 + (word_of_int v2 + word_of_int v3)"
   by simp
-(* =========================== end ========================*)
 
+lemma intval_bad1 [simp]: "intval_add (IntVal32 x) (IntVal64 y) = UndefVal"
+  by auto
+lemma intval_bad2 [simp]: "intval_add (IntVal64 x) (IntVal32 y) = UndefVal"
+  by auto
 
-lemma wf_int32:
-  assumes wf: "wf_value (IntVal b v)"
-  shows "b = 32"
-proof -
-  have "b \<in> int_bits_allowed"
-    using wf wf_value.simps(1) by blast 
-  then show ?thesis
-    by (simp add: int_bits_allowed_def)
-qed
-
-(*
-lemma int32_mod [simp]:
-  assumes wf: "wf_value (IntVal w b)"
-  assumes notbool: "w > 1"
-  shows "((b + 2^(w-1)) mod 2^w) = (b + 2^(w-1))"
-  using wf notbool by auto
+(* this should be provable, but is not trivial. 
+lemma intval_assoc: "intval_add (intval_add x y) z = intval_add x (intval_add y z)"
+  apply (induction x)
+       apply auto
+   apply (induction y)
+        apply auto
+    apply (induction z)
+  apply auto
 *)
 
-(* Any well-formed IntVal is equal to its underlying integer value. *)
-lemma wf_int [simp]:
-  assumes wf: "wf_value (IntVal w n)"
-  assumes notbool: "w = 32"
-  shows "sint((word_of_int n) :: int32) = n"
-  apply (simp only: int_word_sint)
-  using wf notbool apply simp
-  done
+(* Whereas the individual 32-bit version is easier to prove. *)
+lemma intval_assoc: "intval_add32 (intval_add32 x y) z = intval_add32 x (intval_add32 y z)"
+  apply (induction x)
+       apply auto
+   apply (induction y)
+       apply auto
+    apply (induction z)
+  by auto
+(* =========================== end ========================*)
 
-
-(* Adding 0 is the identity, if (IntVal 32 b) is well-formed. *)
-lemma add32_0: 
-  assumes z:"wf_value (IntVal 32 0)"
-  assumes b:"wf_value (IntVal 32 b)"
-  shows "intval_add (IntVal 32 0) (IntVal 32 b) = (IntVal 32 (b))"
-  apply (simp only: intval_add.simps word_of_int_0)
-  apply (simp only: order_class.order.refl conj_absorb if_True)
-  apply (simp only: word_add_def uint_0_eq add_0)
-  apply (simp only: word_of_int_uint int_word_sint)
-  using b apply simp
-  done
 
 code_deps intval_add  (* view dependency graph of code definitions *)
 code_thms intval_add  (* print all code definitions used by intval_add *)
 
-lemma "intval_add (IntVal 32 (2^31-1)) (IntVal 32 (2^31-1)) = IntVal 32 (-2)"
+
+(* Some example tests. *)
+lemma "intval_add (IntVal32 (2^31-1)) (IntVal32 (2^31-1)) = IntVal32 (-2)"
   by eval
-lemma "intval_add (IntVal 64 (2^31-1)) (IntVal 32 (2^31-1)) = IntVal 64 4294967294"
+lemma "intval_add (IntVal64 (2^31-1)) (IntVal64 (2^31-1)) = IntVal64 4294967294"
   by eval
 
 end

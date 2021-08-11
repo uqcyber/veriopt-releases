@@ -11,6 +11,7 @@ session Graph in Graph = "HOL-Library" +
     Stamp
     StampLattice
     IRGraph
+    Traversal
     (*Comparison*)
     (* CFG -- will add back once sorries are fixed *)
 
@@ -29,7 +30,7 @@ session Semantics in Semantics = Graph +
     "root.tex"
     "mathpartir.sty"
 
-(*session Proofs in Proofs = Semantics +
+session Proofs in Proofs = Semantics +
   description
     "Supporting proof theories and definitions"
   theories
@@ -37,9 +38,9 @@ session Semantics in Semantics = Graph +
     Form
     IRGraphFrames
     Rewrites
-    Stuttering*)
+    Stuttering
 
-session Optimizations in Optimizations = Semantics +
+session Optimizations in Optimizations = Proofs +
   description
     "Graph transformation optimizations"
   options [quick_and_dirty]
@@ -70,7 +71,7 @@ session Document in "Papers/Main" = Optimizations +
   sessions
     Graph
     Semantics
-    (*Proofs*)
+    Proofs
     Optimizations
   document_theories
     Graph.Values
@@ -82,14 +83,14 @@ session Document in "Papers/Main" = Optimizations +
     Semantics.IRTreeEval
     Semantics.IRTreeEvalThms
     Semantics.IRStepObj
-    (*Semantics.IRStepThms*)
+    Semantics.IRStepThms
 
-    (*Proofs.Bisimulation
+    Proofs.Bisimulation
     Proofs.Form
     Proofs.IRGraphFrames
     Proofs.Rewrites
     Proofs.Stuttering
-    Graph.Traversal*)
+    Graph.Traversal
 
     Optimizations.CanonicalizationTree
     Optimizations.CanonicalizationTreeProofs

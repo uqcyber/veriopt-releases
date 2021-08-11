@@ -11,17 +11,17 @@ dependencies and sharing without restrictions", In FM 2006.
 theory IRGraphFrames
   imports
     Form
-    Semantics.IREval
+    Semantics.IRTreeEval
 begin
 
 fun unchanged :: "ID set \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "unchanged ns g1 g2 = (\<forall> n . n \<in> ns \<longrightarrow> 
-    (n \<in> ids g1 \<and> n \<in> ids g2 \<and> kind g1 n = kind g2 n))"
+    (n \<in> ids g1 \<and> n \<in> ids g2 \<and> kind g1 n = kind g2 n \<and> stamp g1 n = stamp g2 n))"
 
 (* This allows new nodes to be added to g2, but only ns can change. *)
 fun changeonly :: "ID set \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "changeonly ns g1 g2 = (\<forall> n . n \<in> ids g1 \<and> n \<notin> ns \<longrightarrow> 
-    (n \<in> ids g1 \<and> n \<in> ids g2 \<and> kind g1 n = kind g2 n))"
+    (n \<in> ids g1 \<and> n \<in> ids g2 \<and> kind g1 n = kind g2 n \<and> stamp g1 n = stamp g2 n))"
 
 lemma node_unchanged:
   assumes "unchanged ns g1 g2"
@@ -123,6 +123,13 @@ proof -
     using unchanged.simps by blast
 qed
 
+lemma stamp_unchanged:
+  assumes "nid \<in> ids g1"
+  assumes "unchanged (eval_usages g1 nid) g1 g2"
+  shows "stamp g1 nid = stamp g2 nid"
+  by (meson assms(1) assms(2) eval_usages_self unchanged.elims(2))
+  
+
 lemma child_unchanged:
   assumes "child \<in> inputs g1 nid"
   assumes "unchanged (eval_usages g1 nid) g1 g2"
@@ -148,6 +155,12 @@ lemma inputs_are_usages:
   shows "nid' \<in> eval_usages g nid"
   using assms(1) assms(2) eval_usages inputs_are_uses by blast
 
+lemma inputs_of_are_usages:
+  assumes "List.member (inputs_of (kind g nid)) nid'"
+  assumes "nid' \<in> ids g"
+  shows "nid' \<in> eval_usages g nid"
+  by (metis assms(1) assms(2) in_set_member inputs.elims inputs_are_usages)
+
 lemma usage_includes_inputs:
   assumes "us = eval_usages g nid"
   assumes "ls = inputs g nid"
@@ -163,299 +176,274 @@ lemma elim_inp_set:
   shows "child \<in> inputs g nid"
   using assms by auto
 
-lemma eval_in_ids:
-  assumes "[g, m, p] \<turnstile> (kind g nid) \<mapsto> v"
+lemma encode_in_ids:
+  assumes "g \<turnstile> nid \<triangleright> e"
   shows "nid \<in> ids g"
-  using assms by (cases "kind g nid = NoNode"; auto)
+  using assms
+  apply (induction rule: rep.induct)
+  apply simp+
+  by fastforce
+
+lemma eval_in_ids:
+  assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
+  shows "nid \<in> ids g"
+  using assms using encodeeval_def encode_in_ids
+  by auto
+
+lemma transitive_kind_same:
+  assumes "unchanged (eval_usages g1 nid) g1 g2"
+  shows "\<forall> nid' \<in> (eval_usages g1 nid) . kind g1 nid' = kind g2 nid'"
+  using assms
+  by (meson unchanged.elims(1))
+
+theorem stay_same_encoding:
+  assumes nc: "unchanged (eval_usages g1 nid) g1 g2"
+  assumes g1: "g1 \<turnstile> nid \<triangleright> e"
+  assumes wf: "wf_graph g1"
+  shows "g2 \<turnstile> nid \<triangleright> e"
+proof -
+  have dom: "nid \<in> ids g1"
+    using g1 encode_in_ids by simp
+  show ?thesis 
+using g1 nc wf dom proof (induction e rule: rep.induct)
+  case (ConstantNode n c)
+  then have "kind g2 n = ConstantNode c"
+    using dom nc kind_unchanged
+    by metis
+  then show ?case using rep.ConstantNode
+    by presburger
+next
+  case (ParameterNode n i s)
+  then have "kind g2 n = ParameterNode i"
+    by (metis kind_unchanged)
+  then show ?case
+    by (metis ParameterNode.hyps(2) ParameterNode.prems(1) ParameterNode.prems(3) rep.ParameterNode stamp_unchanged)
+next
+  case (ConditionalNode n c t f ce te fe)
+  then have "kind g2 n = ConditionalNode c t f"
+    by (metis kind_unchanged)
+  have "c \<in> eval_usages g1 n \<and> t \<in> eval_usages g1 n \<and> f \<in> eval_usages g1 n"
+    using inputs_of_ConditionalNode
+    by (metis ConditionalNode.hyps(1) ConditionalNode.hyps(2) ConditionalNode.hyps(3) ConditionalNode.hyps(4) encode_in_ids inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons subset_code(1))
+  then show ?case using transitive_kind_same
+    by (metis ConditionalNode.hyps(1) ConditionalNode.prems(1) IRNodes.inputs_of_ConditionalNode \<open>kind g2 n = ConditionalNode c t f\<close> child_unchanged inputs.simps list.set_intros(1) local.ConditionalNode(5) local.ConditionalNode(6) local.ConditionalNode(7) local.ConditionalNode(9) rep.ConditionalNode set_subset_Cons subset_code(1) unchanged.elims(2))
+next
+  case (AbsNode n x xe)
+  then have "kind g2 n = AbsNode x"
+    using kind_unchanged
+    by metis
+  then have "x \<in> eval_usages g1 n"
+    using inputs_of_AbsNode
+    by (metis AbsNode.hyps(1) AbsNode.hyps(2) encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
+  then show ?case
+    by (metis AbsNode.IH AbsNode.hyps(1) AbsNode.prems(1) AbsNode.prems(3) IRNodes.inputs_of_AbsNode \<open>kind g2 n = AbsNode x\<close> child_member_in child_unchanged local.wf member_rec(1) rep.AbsNode unchanged.simps)
+next
+  case (NotNode n x xe)
+  then have "kind g2 n = NotNode x"
+    using kind_unchanged
+    by metis
+  then have "x \<in> eval_usages g1 n"
+    using inputs_of_NotNode
+    by (metis NotNode.hyps(1) NotNode.hyps(2) encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
+  then show ?case
+    by (metis NotNode.IH NotNode.hyps(1) NotNode.prems(1) NotNode.prems(3) IRNodes.inputs_of_NotNode \<open>kind g2 n = NotNode x\<close> child_member_in child_unchanged local.wf member_rec(1) rep.NotNode unchanged.simps)
+next
+  case (NegateNode n x xe)
+  then have "kind g2 n = NegateNode x"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n"
+    using inputs_of_NegateNode
+    by (metis NegateNode.hyps(1) NegateNode.hyps(2) encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
+  then show ?case
+    by (metis IRNodes.inputs_of_NegateNode NegateNode.IH NegateNode.hyps(1) NegateNode.prems(1) NegateNode.prems(3) \<open>kind g2 n = NegateNode x\<close> child_member_in child_unchanged local.wf member_rec(1) rep.NegateNode unchanged.elims(1))
+next
+  case (LogicNegationNode n x xe)
+  then have "kind g2 n = LogicNegationNode x"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n"
+    using inputs_of_LogicNegationNode inputs_of_are_usages
+    by (metis LogicNegationNode.hyps(1) LogicNegationNode.hyps(2) encode_in_ids member_rec(1))
+  then show ?case
+    by (metis IRNodes.inputs_of_LogicNegationNode LogicNegationNode.IH LogicNegationNode.hyps(1) LogicNegationNode.hyps(2) LogicNegationNode.prems(1) \<open>kind g2 n = LogicNegationNode x\<close> child_unchanged encode_in_ids inputs.simps list.set_intros(1) local.wf rep.LogicNegationNode)
+next
+  case (AddNode n x y xe ye)
+  then have "kind g2 n = AddNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_LogicNegationNode inputs_of_are_usages
+    by (metis AddNode.hyps(1) AddNode.hyps(2) AddNode.hyps(3) IRNodes.inputs_of_AddNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case
+    by (metis AddNode.IH(1) AddNode.IH(2) AddNode.hyps(1) AddNode.hyps(2) AddNode.hyps(3) AddNode.prems(1) IRNodes.inputs_of_AddNode \<open>kind g2 n = AddNode x y\<close> child_unchanged encode_in_ids in_set_member inputs.simps local.wf member_rec(1) rep.AddNode)
+next
+  case (MulNode n x y xe ye)
+  then have "kind g2 n = MulNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_LogicNegationNode inputs_of_are_usages
+    by (metis MulNode.hyps(1) MulNode.hyps(2) MulNode.hyps(3) IRNodes.inputs_of_MulNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using MulNode inputs_of_MulNode
+    by (metis \<open>kind g2 n = MulNode x y\<close> child_unchanged inputs.simps list.set_intros(1) rep.MulNode set_subset_Cons subset_iff unchanged.elims(2))
+next
+  case (SubNode n x y xe ye)
+  then have "kind g2 n = SubNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_LogicNegationNode inputs_of_are_usages
+    by (metis SubNode.hyps(1) SubNode.hyps(2) SubNode.hyps(3) IRNodes.inputs_of_SubNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using SubNode inputs_of_SubNode
+    by (metis \<open>kind g2 n = SubNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.SubNode)
+next
+  case (AndNode n x y xe ye)
+  then have "kind g2 n = AndNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_LogicNegationNode inputs_of_are_usages
+    by (metis AndNode.hyps(1) AndNode.hyps(2) AndNode.hyps(3) IRNodes.inputs_of_AndNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using AndNode inputs_of_AndNode
+    by (metis \<open>kind g2 n = AndNode x y\<close> child_unchanged inputs.simps list.set_intros(1) rep.AndNode set_subset_Cons subset_iff unchanged.elims(2))
+next
+  case (OrNode n x y xe ye)
+  then have "kind g2 n = OrNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_OrNode inputs_of_are_usages
+    by (metis OrNode.hyps(1) OrNode.hyps(2) OrNode.hyps(3) IRNodes.inputs_of_OrNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using OrNode inputs_of_OrNode
+    by (metis \<open>kind g2 n = OrNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.OrNode)
+next
+  case (XorNode n x y xe ye)
+  then have "kind g2 n = XorNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_XorNode inputs_of_are_usages
+    by (metis XorNode.hyps(1) XorNode.hyps(2) XorNode.hyps(3) IRNodes.inputs_of_XorNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using XorNode inputs_of_XorNode
+    by (metis \<open>kind g2 n = XorNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.XorNode)
+next
+  case (IntegerBelowNode n x y xe ye)
+  then have "kind g2 n = IntegerBelowNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_IntegerBelowNode inputs_of_are_usages
+    by (metis IntegerBelowNode.hyps(1) IntegerBelowNode.hyps(2) IntegerBelowNode.hyps(3) IRNodes.inputs_of_IntegerBelowNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using IntegerBelowNode inputs_of_IntegerBelowNode
+    by (metis \<open>kind g2 n = IntegerBelowNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.IntegerBelowNode)
+next
+  case (IntegerEqualsNode n x y xe ye)
+  then have "kind g2 n = IntegerEqualsNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_IntegerEqualsNode inputs_of_are_usages
+    by (metis IntegerEqualsNode.hyps(1) IntegerEqualsNode.hyps(2) IntegerEqualsNode.hyps(3) IRNodes.inputs_of_IntegerEqualsNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using IntegerEqualsNode inputs_of_IntegerEqualsNode
+    by (metis \<open>kind g2 n = IntegerEqualsNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.IntegerEqualsNode)
+next
+  case (IntegerLessThanNode n x y xe ye)
+  then have "kind g2 n = IntegerLessThanNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_IntegerLessThanNode inputs_of_are_usages
+    by (metis IntegerLessThanNode.hyps(1) IntegerLessThanNode.hyps(2) IntegerLessThanNode.hyps(3) IRNodes.inputs_of_IntegerLessThanNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using IntegerLessThanNode inputs_of_IntegerLessThanNode
+    by (metis \<open>kind g2 n = IntegerLessThanNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.IntegerLessThanNode)
+next
+  case (NarrowNode n x xe)
+  then have "kind g2 n = NarrowNode x"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n"
+    using inputs_of_NarrowNode inputs_of_are_usages
+    by (metis NarrowNode.hyps(1) NarrowNode.hyps(2) IRNodes.inputs_of_NarrowNode encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
+  then show ?case using NarrowNode inputs_of_NarrowNode
+    by (metis \<open>kind g2 n = NarrowNode x\<close> child_unchanged inputs.elims list.set_intros(1) rep.NarrowNode unchanged.simps)
+next
+  case (SignExtendNode n x xe)
+  then have "kind g2 n = SignExtendNode x"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n"
+    using inputs_of_SignExtendNode inputs_of_are_usages
+    by (metis SignExtendNode.hyps(1) SignExtendNode.hyps(2) IRNodes.inputs_of_NarrowNode encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
+  then show ?case using SignExtendNode inputs_of_SignExtendNode
+    by (metis \<open>kind g2 n = SignExtendNode x\<close> child_member_in child_unchanged in_set_member list.set_intros(1) rep.SignExtendNode unchanged.elims(2))
+next
+  case (ZeroExtendNode n x xe)
+  then have "kind g2 n = ZeroExtendNode x"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n"
+    using inputs_of_ZeroExtendNode inputs_of_are_usages
+    by (metis ZeroExtendNode.hyps(1) ZeroExtendNode.hyps(2) IRNodes.inputs_of_ZeroExtendNode encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
+  then show ?case using ZeroExtendNode inputs_of_ZeroExtendNode
+    by (metis \<open>kind g2 n = ZeroExtendNode x\<close> child_member_in child_unchanged member_rec(1) rep.ZeroExtendNode unchanged.simps)
+next
+  case (LeafNode n s)
+  then show ?case
+    by (metis kind_unchanged rep.LeafNode stamp_unchanged)
+qed
+qed
+
 
 (* Main theorem that we want. *)
 theorem stay_same:
   assumes nc: "unchanged (eval_usages g1 nid) g1 g2"
-  assumes g1: "[g1, m, p] \<turnstile> (kind g1 nid) \<mapsto> v1"
+  assumes g1: "[g1, m, p] \<turnstile> nid \<mapsto> v1"
   assumes wf: "wf_graph g1"
-  shows "[g2, m, p] \<turnstile> (kind g2 nid) \<mapsto> v1"
+  shows "[g2, m, p] \<turnstile> nid \<mapsto> v1"
 proof -
   have nid: "nid \<in> ids g1"
     using g1 eval_in_ids by simp
   then have "nid \<in> eval_usages g1 nid" 
     using eval_usages_self by blast
   then have kind_same: "kind g1 nid = kind g2 nid"
-    using nc node_unchanged by blast 
-  show ?thesis using g1 nid nc (* kind_same *)
-  proof (induct "(kind g1 nid)" v1 arbitrary: nid rule: "eval.induct")
-    print_cases
-    case const: (ConstantNode c)
-    then have "(kind g2 nid) = ConstantNode c"
-      using kind_unchanged by metis
-    then show ?case using eval.ConstantNode const.hyps(1) by metis
-  next
-    case param: (ParameterNode val i)
-    show ?case
-      by (metis eval.ParameterNode kind_unchanged param.hyps(1) param.prems(1) param.prems(2))
-  next
-    case (ValuePhiNode nida vals merges)
-    then have kind: "(kind g2 nid) = ValuePhiNode nida vals merges"
-      using kind_unchanged by metis
+    using nc node_unchanged by blast
+  obtain e where e: "(g1 \<turnstile> nid \<triangleright> e) \<and> ([m,p] \<turnstile> e \<mapsto> v1)"
+    using encodeeval_def g1
+    by auto
+  then have val: "[m,p] \<turnstile> e \<mapsto> v1"
+    using g1 encodeeval_def
+    by simp
+  then show ?thesis using e nid nc (* kind_same *)
+    unfolding encodeeval_def
+  proof (induct e v1 arbitrary: nid rule: "evaltree.induct")
+    case (ConstantExpr c)
     then show ?case
-      using eval.ValuePhiNode kind ValuePhiNode.hyps(1) by metis 
+      by (metis ConstantNode ConstantNodeE kind_unchanged)
   next
-    case (ValueProxyNode child val _ nid)
-    from ValueProxyNode.prems(1) ValueProxyNode.hyps(3)
-    have inp_in: "child \<in> inputs g1 nid"
-      using child_member_in inputs_of_ValueProxyNode
-      by (metis member_rec(1))
-    then have cin: "child \<in> ids g1" 
-      using wf inp_in_g_wf by blast
-    from inp_in have unc: "unchanged (eval_usages g1 child) g1 g2"
-      using child_unchanged ValueProxyNode.prems(2) by metis
-    then have "[g2, m, p] \<turnstile> (kind g2 child) \<mapsto> val"
-      using ValueProxyNode.hyps(2) cin
-      by blast
+    case (ParameterExpr s i)
+    have "g2 \<turnstile> nid \<triangleright> ParameterExpr i s"
+      using stay_same_encoding ParameterExpr
+      by (meson local.wf)
+    then show ?case using evaltree.ParameterExpr
+      by (meson ParameterExpr.hyps)
+  next
+    case (ConditionalExpr ce cond branch te fe v)
+    then have "g2 \<turnstile> nid \<triangleright> ConditionalExpr ce te fe"
+      using ConditionalExpr.prems(1) ConditionalExpr.prems(3) local.wf stay_same_encoding by presburger
     then show ?case
-      by (metis ValueProxyNode.hyps(3) ValueProxyNode.prems(1) ValueProxyNode.prems(2) eval.ValueProxyNode kind_unchanged)
+      by (metis ConditionalExpr.hyps(1) ConditionalExpr.hyps(3) ConditionalExpr.hyps(4) evaltree.ConditionalExpr)
   next
-    case (AbsNode x b v _)
-    then have "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_unchanged elim_inp_set ids_some inputs_of.simps(1) list.set_intros(1))
-    then have "[g2, m, p] \<turnstile> (kind g2 x) \<mapsto> IntVal b v"
-      using AbsNode.hyps(1) AbsNode.hyps(2) not_in_g
-      by (metis AbsNode.hyps(3) AbsNode.prems(1) elim_inp_set ids_some inp_in_g_wf inputs_of.simps(1) list.set_intros(1) wf)
+    case (UnaryExpr xe v op)
+    then have "g2 \<turnstile> nid \<triangleright> UnaryExpr op xe"
+      using stay_same_encoding
+      using local.wf by presburger
     then show ?case
-      by (metis AbsNode.hyps(3) AbsNode.prems(1) AbsNode.prems(2) eval.AbsNode kind_unchanged)
+      using UnaryExpr.hyps(1) by blast
   next
-    case Node: (NegateNode x v _)
-    from inputs_of_NegateNode Node.hyps(3) Node.prems(1) 
-    have xinp: "x \<in> inputs g1 nid" 
-      using child_member_in by (metis member_rec(1))
-    then have xin: "x \<in> ids g1" 
-      using wf inp_in_g_wf by blast
-    from xinp child_unchanged Node.prems(2)
-      have ux: "unchanged (eval_usages g1 x) g1 g2" by blast
-    have x1:"[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> v"
-      using Node.hyps(1) Node.hyps(2)
-      by blast
-    have x2: "[g2, m, p] \<turnstile> (kind g2 x) \<mapsto> v"
-      using kind_unchanged ux xin Node.hyps
-      by blast
+    case (ConvertExpr xe v op)
+    then have "g2 \<turnstile> nid \<triangleright> ConvertExpr op xe"
+      using stay_same_encoding
+      using local.wf by presburger
     then show ?case
-      using kind_same Node.hyps(1,3) eval.NegateNode
-      by (metis Node.prems(1) Node.prems(2) kind_unchanged ux xin)
+      using ConvertExpr.hyps(1) by blast
   next
-    case node:(AddNode x v1 y v2)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_unchanged inputs.simps inputs_of_AddNode list.set_intros(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> v1"
-      using node.hyps(1) by blast
-    have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis IRNodes.inputs_of_AddNode child_member_in child_unchanged member_rec(1) node.hyps(5) node.prems(1) node.prems(2))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> v2"
-      using node.hyps(3) by blast
-    show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis AddNode inputs.simps inp_in_g_wf inputs_of_AddNode kind_unchanged list.set_intros(1) set_subset_Cons subset_iff wf)
-  next
-    case node:(SubNode x v1 y v2)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_SubNode member_rec(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> v1"
-      using node.hyps(1) by blast
-    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_SubNode member_rec(1))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> v2"
-      using node.hyps(3) by blast
-    show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis SubNode inputs.simps inputs_of_SubNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
-  next
-    case node:(MulNode x v1 y v2)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_MulNode member_rec(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> v1"
-      using node.hyps(1) by blast
-    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_MulNode member_rec(1))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> v2"
-      using node.hyps(3) by blast
-    show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis MulNode inputs.simps inputs_of_MulNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
-  next
-    case node:(AndNode x v1 y v2)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_AndNode member_rec(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> v1"
-      using node.hyps(1) by blast
-    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_AndNode member_rec(1))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> v2"
-      using node.hyps(3) by blast
-    show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis AndNode inputs.simps inputs_of_AndNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
-  next
-    case node: (OrNode x v1 y v2)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_OrNode member_rec(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> v1"
-      using node.hyps(1) by blast
-    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_OrNode member_rec(1))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> v2"
-      using node.hyps(3) by blast
-    show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis OrNode inputs.simps inputs_of_OrNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
-  next
-    case node: (XorNode x v1 y v2)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_XorNode member_rec(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> v1"
-      using node.hyps(1) by blast
-    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_XorNode member_rec(1))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> v2"
-      using node.hyps(3) by blast
-    show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis XorNode inputs.simps inputs_of_XorNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
-  next
-    case node: (IntegerEqualsNode x b v1 y v2 val)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_IntegerEqualsNode member_rec(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> IntVal b v1"
-      using node.hyps(1) by blast
-    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_IntegerEqualsNode member_rec(1))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> IntVal b v2"
-      using node.hyps(3) by blast
-    show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis (full_types) IntegerEqualsNode child_member_in in_set_member inputs_of_IntegerEqualsNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
-  next
-    case node: (IntegerLessThanNode x b v1 y v2 val)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_IntegerLessThanNode member_rec(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> IntVal b v1"
-      using node.hyps(1) by blast
-    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_IntegerLessThanNode member_rec(1))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> IntVal b v2"
-      using node.hyps(3) by blast
-    show ?case
-      using node.hyps node.prems ux x uy y
-      by (metis (full_types) IntegerLessThanNode child_member_in in_set_member inputs_of_IntegerLessThanNode kind_unchanged list.set_intros(1) set_subset_Cons subsetD wf wf_folds(1,3))
-  next
-    case node: (ShortCircuitOrNode x b v1 y v2 val)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_ShortCircuitOrNode member_rec(1))
-    then have x: "[g1, m, p] \<turnstile> (kind g1 x) \<mapsto> IntVal b v1"
-      using node.hyps(1) by blast
-    from node have uy: "unchanged (eval_usages g1 y) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_ShortCircuitOrNode member_rec(1))
-    have y: "[g1, m, p] \<turnstile> (kind g1 y) \<mapsto> IntVal b v2"
-      using node.hyps(3) by blast
-    have x2: "[g2, m, p] \<turnstile> (kind g2 x) \<mapsto> IntVal b v1"
-      by (metis inputs.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(2) node.hyps(6) node.prems(1) subsetD ux wf wf_folds(1,3))
-    have y2: "[g2, m, p] \<turnstile> (kind g2 y) \<mapsto> IntVal b v2"
-      by (metis basic_trans_rules(31) inputs.simps inputs_of_ShortCircuitOrNode list.set_intros(1) node.hyps(4) node.hyps(6) node.prems(1) set_subset_Cons uy wf wf_folds(1,3))
-    show ?case
-      using node.hyps node.prems ux x uy y x2 y2
-      by (metis ShortCircuitOrNode kind_unchanged)
-  next
-    case node: (LogicNegationNode x v1 val nida)
-    then have ux: "unchanged (eval_usages g1 x) g1 g2"
-      by (metis child_member_in child_unchanged inputs_of_LogicNegationNode member_rec(1))
-    then have x:"[g2, m, p] \<turnstile> (kind g2 x) \<mapsto> IntVal 1 v1"
-      using eval_in_ids node.hyps(1) node.hyps(2) by blast
+    case (BinaryExpr xe x ye y op)
+    then have "g2 \<turnstile> nid \<triangleright> BinaryExpr op xe ye"
+      using stay_same_encoding
+      using local.wf by presburger
     then show ?case
-      by (metis LogicNegationNode kind_unchanged node.hyps(3) node.hyps(4) node.hyps(5) node.prems(1) node.prems(2))
+      using BinaryExpr.hyps(1,3) by blast
   next
-    case node:(ConditionalNode condition cond trueExp b trueVal falseExp falseVal val)
-    have c: "condition \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
-    then have "unchanged (eval_usages g1 condition) g1 g2"
-      using child_unchanged node.prems(2) by blast
-    then have cond: "[g2, m, p] \<turnstile> (kind g2 condition) \<mapsto> IntVal 1 cond"
-      using node c inp_in_g_wf wf by blast
-
-    have t: "trueExp \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
-    then have utrue: "unchanged (eval_usages g1 trueExp) g1 g2"
-      using node.prems(2) child_unchanged by blast
-    then have trueVal: "[g2, m, p] \<turnstile> (kind g2 trueExp) \<mapsto> IntVal b (trueVal)"
-      using node.hyps node t inp_in_g_wf wf by blast
-
-    have f: "falseExp \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_ConditionalNode child_member_in member_rec(1) node.hyps(8) node.prems(1))
-    then have ufalse: "unchanged (eval_usages g1 falseExp) g1 g2"
-      using node.prems(2) child_unchanged by blast
-    then have falseVal: "[g2, m, p] \<turnstile> (kind g2 falseExp) \<mapsto> IntVal b (falseVal)"
-      using node.hyps node f inp_in_g_wf wf by blast
-
-    have "[g2, m, p] \<turnstile> (kind g2 nid) \<mapsto> val"
-      using kind_same trueVal falseVal cond
-      by (metis ConditionalNode kind_unchanged node.hyps(7) node.hyps(8) node.prems(1) node.prems(2))
+    case (LeafExpr val nid s)
     then show ?case
-      by blast
-
-  next
-    case (RefNode x val nid)
-    have x: "x \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_RefNode RefNode.hyps(3) RefNode.prems(1) child_member_in member_rec(1))
-    then have ref: "[g2, m, p] \<turnstile> (kind g2 x) \<mapsto> val"
-      using RefNode.hyps(2) RefNode.prems(2) child_unchanged inp_in_g_wf wf by blast
-    then show ?case
-      by (metis RefNode.hyps(3) RefNode.prems(1) RefNode.prems(2) eval.RefNode kind_unchanged)
-  next
-    case (InvokeNodeEval val _ callTarget classInit stateDuring stateAfter nex)
-    then show ?case
-      by (metis eval.InvokeNodeEval kind_unchanged)
-  next
-    case (SignedDivNode x v1 y v2 zeroCheck frameState nex)
-      then show ?case
-        by (metis eval.SignedDivNode kind_unchanged)
-  next
-    case (SignedRemNode x v1 y v2 zeroCheck frameState nex)
-      then show ?case
-        by (metis eval.SignedRemNode kind_unchanged)
-  next
-    case (InvokeWithExceptionNodeEval val _ callTarget classInit stateDuring stateAfter nex exceptionEdge)
-    then show ?case
-      by (metis eval.InvokeWithExceptionNodeEval kind_unchanged)
-  next
-    case (NewInstanceNode nid clazz stateBefore nex)
-    then show ?case
-      by (metis eval.NewInstanceNode kind_unchanged)
-  next
-    case (IsNullNode obj ref val)
-    have obj: "obj \<in> inputs g1 nid"
-      by (metis IRNodes.inputs_of_IsNullNode IsNullNode.hyps(4) inputs.simps list.set_intros(1))
-    then have ref: "[g2, m, p] \<turnstile> (kind g2 obj) \<mapsto> ObjRef ref"
-      using IsNullNode.hyps(1) IsNullNode.hyps(2) IsNullNode.prems(2) child_unchanged eval_in_ids by blast
-    then show ?case
-      by (metis (full_types) IsNullNode.hyps(3) IsNullNode.hyps(4) IsNullNode.prems(1) IsNullNode.prems(2) eval.IsNullNode kind_unchanged)
-  next
-    case (LoadFieldNode)
-    then show ?case
-      by (metis eval.LoadFieldNode kind_unchanged)
-  next
-    case (PiNode object val)
-    have object: "object \<in> inputs g1 nid"
-      using inputs_of_PiNode inputs.simps
-      by (metis PiNode.hyps(3) list.set_intros(1))
-    then have ref: "[g2, m, p] \<turnstile> (kind g2 object) \<mapsto> val"
-      using PiNode.hyps(1) PiNode.hyps(2) PiNode.prems(2) child_unchanged eval_in_ids by blast
-    then show ?case
-      by (metis PiNode.hyps(3) PiNode.prems(1) PiNode.prems(2) eval.PiNode kind_unchanged)
-  next
-    case (NotNode x val not_val)
-    have object: "x \<in> inputs g1 nid"
-      using inputs_of_NotNode inputs.simps
-      by (metis NotNode.hyps(4) list.set_intros(1))
-    then have ref: "[g2, m, p] \<turnstile> (kind g2 x) \<mapsto> val"
-      using NotNode.hyps(1) NotNode.hyps(2) NotNode.prems(2) child_unchanged eval_in_ids by blast
-    then show ?case
-      by (metis NotNode.hyps(3) NotNode.hyps(4) NotNode.prems(1) NotNode.prems(2) eval.NotNode kind_unchanged)
+      by (metis local.wf stay_same_encoding)
   qed
 qed
 
@@ -464,7 +452,7 @@ lemma add_changed:
   assumes "gup = add_node new k g"
   shows "changeonly {new} g gup"
   using assms unfolding add_node_def changeonly.simps
-  using add_node.rep_eq add_node_def kind.rep_eq by auto
+  using add_node.rep_eq add_node_def kind.rep_eq stamp.rep_eq by simp
 
 lemma disjoint_change:
   assumes "changeonly change g gup"

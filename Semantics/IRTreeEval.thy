@@ -665,6 +665,21 @@ inductive
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalTs)
   evaltrees .
 
+(*
+inductive
+  encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
+  for g m p where
+  "\<lbrakk>g \<turnstile> nid \<triangleright> n; [m,p] \<turnstile> n \<mapsto> v\<rbrakk> \<Longrightarrow> [g, m, p] \<turnstile> nid \<mapsto> v"
+*)
+
+definition encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" 
+  ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
+  where
+  "encodeeval g m p nid v = (\<exists> n. (g \<turnstile> nid \<triangleright> n) \<and> ([m,p] \<turnstile> n \<mapsto> v))"
+
+(*lemma "([g, m, p] \<turnstile> nid \<mapsto> v) = (g \<turnstile> nid \<triangleright> n) \<and> ([m,p] \<turnstile> n \<mapsto> v)"
+   sledgehammer
+*)
 
 values "{v. evaltree new_map_state [IntVal32 5] sq_param0 v}"
 

@@ -2,7 +2,7 @@ subsection \<open>Formedness Properties\<close>
 
 theory Form
 imports
-  Semantics.IREval
+  Semantics.IRTreeEval
 begin
 
 definition wf_start where
@@ -44,11 +44,11 @@ lemmas wf_folds =
 
 fun wf_stamps :: "IRGraph \<Rightarrow> bool" where
   "wf_stamps g = (\<forall> n \<in> ids g . 
-    (\<forall> v m p . ([g, m, p] \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (stamp g n) v))"
+    (\<forall> v m p e . (g \<turnstile> n \<triangleright> e) \<and> ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value (stamp_expr e) v))"
 
 fun wf_stamp :: "IRGraph \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> bool" where
   "wf_stamp g s = (\<forall> n \<in> ids g . 
-    (\<forall> v m p . ([g, m, p] \<turnstile> (kind g n) \<mapsto> v) \<longrightarrow> valid_value (s n) v))"
+    (\<forall> v m p e . (g \<turnstile> n \<triangleright> e) \<and> ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value (s n) v))"
 
 lemma wf_empty: "wf_graph start_end_graph"
   unfolding start_end_graph_def wf_folds by simp
@@ -58,23 +58,12 @@ lemma wf_eg2_sq: "wf_graph eg2_sq"
 
 fun wf_logic_node_inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where 
 "wf_logic_node_inputs g n =
-  (\<forall> inp \<in> set (inputs_of (kind g n)) . (\<forall> v m p . ([g, m, p] \<turnstile> kind g inp \<mapsto> v) \<longrightarrow> wf_bool v))"
+  (\<forall> inp \<in> set (inputs_of (kind g n)) . (\<forall> v m p . ([g, m, p] \<turnstile> inp \<mapsto> v) \<longrightarrow> wf_bool v))"
 
 fun wf_values :: "IRGraph \<Rightarrow> bool" where
   "wf_values g = (\<forall> n \<in> ids g .
-    (\<forall> v m p . ([g, m, p] \<turnstile> kind g n \<mapsto> v) \<longrightarrow> 
-      (wf_value v \<and> 
-      (is_LogicNode (kind g n) \<longrightarrow> 
-        wf_bool v \<and> wf_logic_node_inputs g n))))"
-
-lemma wf_value_range:
-  "b > 1 \<and> b \<in> int_bits_allowed \<longrightarrow> {v. wf_value (IntVal b v)} = {v. ((-(2^(b-1)) \<le> v) \<and> (v < (2^(b-1))))}"
-  unfolding wf_value.simps
-  by auto
-
-lemma wf_value_bit_range:
-  "b = 1 \<longrightarrow> {v. wf_value (IntVal b v)} = {}"
-  unfolding wf_value.simps
-  by (simp add: int_bits_allowed_def)
+    (\<forall> v m p . ([g, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> 
+       (is_LogicNode (kind g n) \<longrightarrow> 
+        wf_bool v \<and> wf_logic_node_inputs g n)))"
 
 end

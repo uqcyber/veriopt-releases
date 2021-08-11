@@ -2,7 +2,7 @@ subsection \<open>Stuttering\<close>
 
 theory Stuttering
   imports
-    Semantics.IRStepObj
+    Semantics.IRStepThms
 begin
 
 inductive stutter:: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> FieldRefHeap \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> bool" ("_ _ _ _ \<turnstile> _ \<leadsto> _" 55)

@@ -247,6 +247,12 @@ lemma evalAllDet:
    apply (elim EvalTreeE; auto)
   using evalDet by force
 
+lemma encodeEvalDet:
+  "[g,m,p] \<turnstile> e \<mapsto> v1 \<Longrightarrow> 
+   [g,m,p] \<turnstile> e \<mapsto> v2 \<Longrightarrow>
+   v1 = v2"
+  by (metis encodeeval_def evalDet repDet)
+
 
 text \<open>A valid value cannot be $UndefVal$.\<close>
 lemma valid_not_undef:
@@ -328,6 +334,7 @@ lemma valid64 [simp]:
   shows "\<exists>v. (val = (IntVal64 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
   using assms valid_int64 by force
 
+experiment begin
 lemma int_stamp_implies_valid_value:
   "[m,p] \<turnstile> expr \<mapsto> val \<Longrightarrow>
    valid_value (stamp_expr expr) val"
@@ -353,6 +360,7 @@ next
   case (LeafExpr val nid s)
   then show ?case sorry
 qed
+end
 
 lemma valid32or64:
   assumes "valid_value (IntegerStamp b lo hi) x"

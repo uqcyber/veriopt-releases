@@ -112,19 +112,19 @@ lemma rep_integer_less_than:
 lemma rep_narrow:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
    kind g n = NarrowNode x \<Longrightarrow>
-   (\<exists>x. e = ConvertExpr ConvertNarrow x)"
+   (\<exists>x ib rb. e = ConvertExpr ConvertNarrow x ib rb)"
   by (induction rule: rep.induct; auto)
-
+ 
 lemma rep_sign_extend:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
    kind g n = SignExtendNode x \<Longrightarrow>
-   (\<exists>x. e = ConvertExpr ConvertSignExtend x)"
+   (\<exists>x ib rb. e = ConvertExpr ConvertSignExtend x ib rb)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_zero_extend:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
    kind g n = ZeroExtendNode x \<Longrightarrow>
-   (\<exists>x. e = ConvertExpr ConvertZeroExtend x)"
+   (\<exists>x ib rb. e = ConvertExpr ConvertZeroExtend x ib rb)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_load_field:

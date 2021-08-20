@@ -430,36 +430,44 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
+(* cast a signed result into the desired finite bit width *)
+fun choose_32_64 :: "int \<Rightarrow> int64 \<Rightarrow> Value" where
+  "choose_32_64 bits val = 
+      (if bits = 32 
+       then (IntVal32 (ucast val))
+       else (IntVal64 (val)))"
+
 fun convert_eval :: "IRConvertOp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
-  (* assuming that ib \<le> rb *)
-  "convert_eval ConvertNarrow ib rb (IntVal32 val) = 
-    (if rb = 8 then (IntVal32 (word_of_int (sint (word_of_int (sint val) :: 8 word)))) 
-     else (if rb = 16 then (IntVal32 (word_of_int (sint (word_of_int (sint val) :: 16 word)))) 
+  "convert_eval ConvertNarrow ib rb (IntVal32 val) =
+    (if rb = 8 then (IntVal32 (val AND (255 :: int32)))
+     else (if rb = 16 then (IntVal32 (val AND 65535))
      else (IntVal32 val)))" |
   "convert_eval ConvertNarrow ib rb (IntVal64 val) = 
-    (if rb = 8 then (IntVal64 (word_of_int (sint (word_of_int (sint val) :: 8 word)))) 
-     else (if rb = 16 then (IntVal64 (word_of_int (sint (word_of_int (sint val) :: 16 word)))) 
-     else (if rb = 32 then (IntVal64 (word_of_int (sint (word_of_int (sint val) :: 32 word)))) 
+    (if rb = 8 then (IntVal64 (val AND 255))
+     else (if rb = 16 then (IntVal64 (val AND 65535))
+     else (if rb = 32 then (IntVal64 (val AND 4294967295))
      else (IntVal64 val))))" |
 
   "convert_eval ConvertSignExtend ib rb (IntVal32 val) =
-    (if (rb \<le> 32) then (IntVal32 (word_of_int (sint val))) else (IntVal64 (word_of_int (sint val))))" |
-  (* extending from 64\<rightarrow>64 doesn't do anything *)
-  "convert_eval ConvertSignExtend ib rb (IntVal64 val) = (IntVal64 val)" |
+    (if ib = 8 then (choose_32_64 rb (scast(ucast val ::int8)))
+     else (if ib = 16 then (choose_32_64 rb (scast(ucast val ::int16)))
+     else choose_32_64 rb (scast(val :: int32))))" |
+  "convert_eval ConvertSignExtend ib rb (IntVal64 val) =
+    (if ib = 8 then (choose_32_64 rb (scast(ucast val :: int8)))
+     else (if ib = 16 then (choose_32_64 rb (scast(ucast val :: int16)))
+     else (if ib = 32 then (choose_32_64 rb (scast(ucast val :: int32)))
+     else choose_32_64 rb (scast(val :: int64)))))" |
 
   "convert_eval ConvertZeroExtend ib rb (IntVal32 val) =
-    (if (rb \<le> 32) then 
-      (if ib = 8 then (IntVal32 (word_of_int (uint (word_of_int (sint val) :: 8 word))))
-       else (if ib = 16 then (IntVal32 (word_of_int (uint (word_of_int (sint val) :: 16 word))))
-       else (IntVal32 val)))
-     else 
-      (if ib = 8 then (IntVal64 (word_of_int (uint (word_of_int (sint val) :: 8 word))))
-       else (if ib = 16 then (IntVal64 (word_of_int (uint (word_of_int (sint val) :: 16 word))))
-       else (if ib = 32 then (IntVal64 (word_of_int (uint (word_of_int (sint val) :: 32 word))))
-       else UndefVal))))" |
+    (if ib = 8 then (choose_32_64 rb (ucast(ucast val :: int8)))
+     else (if ib = 16 then (choose_32_64 rb (ucast(ucast val :: int16)))
+     else choose_32_64 rb (ucast(val :: int32))))" |
+  "convert_eval ConvertZeroExtend ib rb (IntVal64 val) =
+    (if ib = 8 then (choose_32_64 rb (ucast(ucast val :: int8)))
+     else (if ib = 16 then (choose_32_64 rb (ucast(ucast val :: int16)))
+     else (if ib = 32 then (choose_32_64 rb (ucast(ucast val :: int32)))
+     else choose_32_64 rb (ucast(val :: int64)))))"
 
-  (* extending from 64\<rightarrow>64 doesn't do anything *)
-  "convert_eval ConvertZeroExtend ib rb (IntVal64 val) = (IntVal64 val)" 
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "nid \<notin> ids g \<Longrightarrow> fresh_id g nid"

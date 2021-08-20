@@ -3,6 +3,7 @@ section \<open>Data-flow Semantics\<close>
 theory IRTreeEval
   imports
     Graph.IRGraph
+    "HOL-Library.Word"
 begin
 
 text \<open>
@@ -429,13 +430,36 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
-
-value "word_of_int (sint (240 :: 32 word)) :: 8 word" 
-
 fun convert_eval :: "IRConvertOp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
-  "convert_eval ConvertNarrow ib rb v = v" | 
-  "convert_eval ConvertSignExtend ib rb v = v" | 
-  "convert_eval ConvertZeroExtend ib rb v = v" 
+  (* assuming that ib \<le> rb *)
+  "convert_eval ConvertNarrow ib rb (IntVal32 val) = 
+    (if rb = 8 then (IntVal32 (word_of_int (sint (word_of_int (sint val) :: 8 word)))) 
+     else (if rb = 16 then (IntVal32 (word_of_int (sint (word_of_int (sint val) :: 16 word)))) 
+     else (IntVal32 val)))" |
+  "convert_eval ConvertNarrow ib rb (IntVal64 val) = 
+    (if rb = 8 then (IntVal64 (word_of_int (sint (word_of_int (sint val) :: 8 word)))) 
+     else (if rb = 16 then (IntVal64 (word_of_int (sint (word_of_int (sint val) :: 16 word)))) 
+     else (if rb = 32 then (IntVal64 (word_of_int (sint (word_of_int (sint val) :: 32 word)))) 
+     else (IntVal64 val))))" |
+
+  "convert_eval ConvertSignExtend ib rb (IntVal32 val) =
+    (if (rb \<le> 32) then (IntVal32 (word_of_int (sint val))) else (IntVal64 (word_of_int (sint val))))" |
+  (* extending from 64\<rightarrow>64 doesn't do anything *)
+  "convert_eval ConvertSignExtend ib rb (IntVal64 val) = (IntVal64 val)" |
+
+  "convert_eval ConvertZeroExtend ib rb (IntVal32 val) =
+    (if (rb \<le> 32) then 
+      (if ib = 8 then (IntVal32 (word_of_int (uint (word_of_int (sint val) :: 8 word))))
+       else (if ib = 16 then (IntVal32 (word_of_int (uint (word_of_int (sint val) :: 16 word))))
+       else (IntVal32 val)))
+     else 
+      (if ib = 8 then (IntVal64 (word_of_int (uint (word_of_int (sint val) :: 8 word))))
+       else (if ib = 16 then (IntVal64 (word_of_int (uint (word_of_int (sint val) :: 16 word))))
+       else (if ib = 32 then (IntVal64 (word_of_int (uint (word_of_int (sint val) :: 32 word))))
+       else UndefVal))))" |
+
+  (* extending from 64\<rightarrow>64 doesn't do anything *)
+  "convert_eval ConvertZeroExtend ib rb (IntVal64 val) = (IntVal64 val)" 
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "nid \<notin> ids g \<Longrightarrow> fresh_id g nid"

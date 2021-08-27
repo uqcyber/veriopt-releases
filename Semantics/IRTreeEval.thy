@@ -717,7 +717,7 @@ inductive
 definition encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" 
   ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
   where
-  "encodeeval g m p nid v = (\<exists> n. (g \<turnstile> nid \<triangleright> n) \<and> ([m,p] \<turnstile> n \<mapsto> v))"
+  "encodeeval g m p nid v = (\<exists> e. (g \<turnstile> nid \<triangleright> e) \<and> ([m,p] \<turnstile> e \<mapsto> v))"
 
 (*lemma "([g, m, p] \<turnstile> nid \<mapsto> v) = (g \<turnstile> nid \<triangleright> n) \<and> ([m,p] \<turnstile> n \<mapsto> v)"
    sledgehammer

@@ -144,3 +144,14 @@ session Stamps in "Papers/Stamps" = Graph +
     "lattice.tex"
   document_files (in "../../latex")
     "mathpartir.sty"
+
+session TreePaper in "Papers/Tree" = Semantics +
+  description
+    "Content for paper on validation efforts"
+  options [document = pdf, document_output = "output",
+           show_question_marks = false]
+  theories
+    TreeSnippets
+  document_files (in "../../latex")
+    "root.tex"
+    "mathpartir.sty"

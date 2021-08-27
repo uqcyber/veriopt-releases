@@ -253,6 +253,8 @@ lemma encodeEvalDet:
    v1 = v2"
   by (metis encodeeval_def evalDet repDet)
 
+lemma graphDet: "([g,m,p] \<turnstile> nid \<mapsto> v1) \<and> ([g,m,p] \<turnstile> nid \<mapsto> v2) \<Longrightarrow> v1 = v2"
+  using encodeEvalDet by blast
 
 text \<open>A valid value cannot be $UndefVal$.\<close>
 lemma valid_not_undef:

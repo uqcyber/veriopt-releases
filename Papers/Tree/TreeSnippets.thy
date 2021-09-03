@@ -1,5 +1,7 @@
 theory TreeSnippets
-  imports Semantics.IRTreeEvalThms
+  imports 
+    Semantics.IRTreeEvalThms
+    HOL.Relation
 begin
 
 notation (latex)
@@ -73,7 +75,7 @@ text_raw \<open>\Snip{graph-semantics-deterministic}
 
 definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "graph_refinement g1 g2 = (\<forall> nid \<in> ids g1. (\<exists> e. (g1 \<turnstile> nid \<triangleright> e) \<longrightarrow> 
-        (\<forall>m p v. ([g1, m, p] \<turnstile> nid \<mapsto> v) \<longrightarrow> ([g1, m, p] \<turnstile> nid \<mapsto> v))))"
+        (\<forall>m p v. ([g1, m, p] \<turnstile> nid \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> nid \<mapsto> v))))"
 
 text_raw \<open>\Snip{graph-refinement}
 \begin{center}
@@ -81,9 +83,23 @@ text_raw \<open>\Snip{graph-refinement}
 \end{center}
 \EndSnip\<close>
 
+definition as_set :: "IRGraph \<Rightarrow> (ID \<times> IRNode) set" where
+  "as_set g = {(nid, kind g nid) | nid . nid \<in> ids g}"
+
+(* hide as_set, should treat IRGraph as a set of pairs in paper *)
+translations
+  "n" <= "CONST as_set n"
+
+definition domain_subtraction :: "'a set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> ('a \<times> 'b) set"
+  (infix "\<unlhd>" 30) where
+  "domain_subtraction s r = {(x, y) . (x, y) \<in> r | x \<notin> s}"
+
+notation (latex)
+  domain_subtraction ("_ \<^latex>\<open>$\\ndres$\<close> _")
+
 lemma graph_semantics_preservation:
-  "e1 \<le> e2 \<and> (g1 \<turnstile> nid \<triangleright> e1) \<and> (g2 \<turnstile> nid \<triangleright> e2) \<and> (ids g1 \<subseteq> ids g2) \<Longrightarrow> graph_refinement g1 g2"
-  by (meson graph_refinement_def)
+  "e1 \<le> e2 \<and> (g1 \<turnstile> nid \<triangleright> e1) \<and> (g2 \<turnstile> nid \<triangleright> e2) \<and> (({nid} \<unlhd> as_set g1) \<subseteq> as_set g2) \<Longrightarrow> graph_refinement g1 g2"
+  by (smt (z3) IRExpr.simps(13) graph_refinement_def repDet)
 
 text_raw \<open>\Snip{graph-semantics-preservation}
 \begin{center}

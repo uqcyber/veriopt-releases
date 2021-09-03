@@ -7,6 +7,9 @@ begin
 notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 
+notation (latex)
+  IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr ("_ \<longmapsto> _")
+
 text_raw \<open>\Snip{abstract-syntax-tree}%
 @{datatype[display,margin=45] IRExpr}
 \EndSnip\<close>
@@ -21,8 +24,8 @@ text_raw \<open>\Snip{tree-semantics}%
 \induct{@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}}{semantics:leaf}
 \EndSnip\<close>
 
-text_raw \<open>\Snip{semantics-deterministic}%
-@{thm evalDet [no_vars]}
+text_raw \<open>\Snip{tree-evaluation-deterministic}%
+@{thm[display] evalDet [no_vars]}
 \EndSnip\<close>
 
 text_raw \<open>\Snip{expression-refinement}%
@@ -113,6 +116,35 @@ definition maximal_sharing:
 
 text_raw \<open>\Snip{maximal-sharing}
 @{thm[display, margin=50] maximal_sharing [no_vars]}
+\EndSnip\<close>
+
+lemma tree_to_graph_rewriting:
+  "e1 \<le> e2 
+  \<and> (g1 \<turnstile> nid \<triangleright> e1) \<and> maximal_sharing g1
+  \<and> ({nid} \<unlhd> as_set g1) \<subseteq> as_set g2 
+  \<and> (g2 \<turnstile> nid \<triangleright> e2) \<and> maximal_sharing g2
+  \<Longrightarrow> graph_refinement g1 g2"
+  using graph_semantics_preservation by blast
+
+text_raw \<open>\Snip{tree-to-graph-rewriting}
+\begin{center}
+@{thm[display, margin=40] tree_to_graph_rewriting [no_vars]}
+\end{center}
+\EndSnip\<close>
+
+lemma graph_construction:
+  "e1 \<le> e2
+  \<and> as_set g1 \<subseteq> as_set g2
+  \<and> maximal_sharing g1
+  \<and> (g2 \<turnstile> nid \<triangleright> e2)
+  \<and> maximal_sharing g2
+  \<Longrightarrow> graph_refinement g1 g2"
+  by (smt (z3) IRExpr.simps(13) graph_refinement_def repDet)
+
+text_raw \<open>\Snip{graph-construction}
+\begin{center}
+@{thm[display, margin=40] graph_construction [no_vars]}
+\end{center}
 \EndSnip\<close>
 
 end

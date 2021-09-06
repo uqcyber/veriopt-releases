@@ -23,6 +23,7 @@ session Semantics in Semantics = Graph +
            show_question_marks = false]
   theories
     IRTreeEval
+    TreeToGraph
     IRTreeEvalThms
     IRStepObj
     (*IRStepThms*)

@@ -8,7 +8,7 @@ notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 
 notation (latex)
-  IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr ("_ \<longmapsto> _")
+  TreeToGraph.ord_IRExpr_inst.less_eq_IRExpr ("_ \<longmapsto> _")
 
 text_raw \<open>\Snip{abstract-syntax-tree}%
 @{datatype[display,margin=45] IRExpr}
@@ -19,10 +19,10 @@ text_raw \<open>\Snip{tree-semantics}%
 \induct{@{thm[mode=Rule] evaltree.ParameterExpr [no_vars]}}{semantics:parameter}
 \induct{@{thm[mode=Rule] evaltree.ConditionalExpr [no_vars]}}{semantics:conditional}
 \induct{@{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}}{semantics:unary}
-\induct{@{thm[mode=Rule] evaltree.ConvertExpr [no_vars]}}{semantics:convert}
 \induct{@{thm[mode=Rule] evaltree.BinaryExpr [no_vars]}}{semantics:binary}
 \induct{@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}}{semantics:leaf}
 \EndSnip\<close>
+(*\induct{@{thm[mode=Rule] evaltree.ConvertExpr [no_vars]}}{semantics:convert}*)
 
 text_raw \<open>\Snip{tree-evaluation-deterministic}%
 @{thm[display] evalDet [no_vars]}
@@ -77,8 +77,8 @@ text_raw \<open>\Snip{graph-semantics-deterministic}
 \EndSnip\<close>
 
 definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "graph_refinement g1 g2 = (\<forall> nid \<in> ids g1. (\<exists> e. (g1 \<turnstile> nid \<triangleright> e) \<longrightarrow> 
-        (\<forall>m p v. ([g1, m, p] \<turnstile> nid \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> nid \<mapsto> v))))"
+  "graph_refinement g1 g2 = (\<forall> n \<in> ids g1. 
+        (\<forall>m p v. ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v)))"
 
 text_raw \<open>\Snip{graph-refinement}
 \begin{center}
@@ -87,7 +87,7 @@ text_raw \<open>\Snip{graph-refinement}
 \EndSnip\<close>
 
 definition as_set :: "IRGraph \<Rightarrow> (ID \<times> IRNode) set" where
-  "as_set g = {(nid, kind g nid) | nid . nid \<in> ids g}"
+  "as_set g = {(n, kind g n) | n . n \<in> ids g}"
 
 (* hide as_set, should treat IRGraph as a set of pairs in paper *)
 translations
@@ -101,8 +101,17 @@ notation (latex)
   domain_subtraction ("_ \<^latex>\<open>$\\ndres$\<close> _")
 
 lemma graph_semantics_preservation:
-  "e1 \<le> e2 \<and> (g1 \<turnstile> nid \<triangleright> e1) \<and> (g2 \<turnstile> nid \<triangleright> e2) \<and> (({nid} \<unlhd> as_set g1) \<subseteq> as_set g2) \<Longrightarrow> graph_refinement g1 g2"
-  by (smt (z3) IRExpr.simps(13) graph_refinement_def repDet)
+  "e1 \<le> e2 \<and> (g1 \<turnstile> n \<triangleright> e1) \<and> (g2 \<turnstile> n \<triangleright> e2) \<and> (({n} \<unlhd> as_set g1) \<subseteq> as_set g2) \<Longrightarrow>
+     graph_refinement g1 g2"
+  unfolding domain_subtraction_def as_set_def
+proof (cases "n \<in> ids g")
+  case True
+  then show ?thesis  sorry
+next
+  case False
+  then show ?thesis sorry
+qed
+
 
 text_raw \<open>\Snip{graph-semantics-preservation}
 \begin{center}
@@ -111,8 +120,8 @@ text_raw \<open>\Snip{graph-semantics-preservation}
 \EndSnip\<close>
 
 definition maximal_sharing:
-  "maximal_sharing g = (\<forall> nid1 nid2 . nid1 \<in> ids g \<and> nid2 \<in> ids g \<longrightarrow> 
-      (\<forall> e. (g \<turnstile> nid1 \<triangleright> e) \<and> (g \<turnstile> nid2 \<triangleright> e) \<longrightarrow> nid1 = nid2))"
+  "maximal_sharing g = (\<forall> n1 n2 . n1 \<in> ids g \<and> n2 \<in> ids g \<longrightarrow> 
+      (\<forall> e. (g \<turnstile> n1 \<triangleright> e) \<and> (g \<turnstile> n2 \<triangleright> e) \<longrightarrow> n1 = n2))"
 
 text_raw \<open>\Snip{maximal-sharing}
 @{thm[display, margin=50] maximal_sharing [no_vars]}
@@ -120,9 +129,9 @@ text_raw \<open>\Snip{maximal-sharing}
 
 lemma tree_to_graph_rewriting:
   "e1 \<le> e2 
-  \<and> (g1 \<turnstile> nid \<triangleright> e1) \<and> maximal_sharing g1
-  \<and> ({nid} \<unlhd> as_set g1) \<subseteq> as_set g2 
-  \<and> (g2 \<turnstile> nid \<triangleright> e2) \<and> maximal_sharing g2
+  \<and> (g1 \<turnstile> n \<triangleright> e1) \<and> maximal_sharing g1
+  \<and> ({n} \<unlhd> as_set g1) \<subseteq> as_set g2 
+  \<and> (g2 \<turnstile> n \<triangleright> e2) \<and> maximal_sharing g2
   \<Longrightarrow> graph_refinement g1 g2"
   using graph_semantics_preservation by blast
 
@@ -136,7 +145,7 @@ lemma graph_construction:
   "e1 \<le> e2
   \<and> as_set g1 \<subseteq> as_set g2
   \<and> maximal_sharing g1
-  \<and> (g2 \<turnstile> nid \<triangleright> e2)
+  \<and> (g2 \<turnstile> n \<triangleright> e2)
   \<and> maximal_sharing g2
   \<Longrightarrow> graph_refinement g1 g2"
   by (smt (z3) IRExpr.simps(13) graph_refinement_def repDet)

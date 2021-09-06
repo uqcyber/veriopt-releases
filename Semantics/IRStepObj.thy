@@ -2,7 +2,7 @@ section \<open>Control-flow Semantics\<close>
 
 theory IRStepObj
   imports
-    IRTreeEval
+    TreeToGraph
 begin
 
 subsection \<open>Heap\<close> (* TODO: find a better location for heap definition *)
@@ -36,6 +36,30 @@ definition new_heap :: "('a, 'b) DynamicHeap" where
   "new_heap =  ((\<lambda>f. \<lambda>p. UndefVal), 0)"
 
 subsection \<open>Intraprocedural Semantics\<close>
+
+
+(* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
+fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
+  "find_index _ [] = 0" |
+  "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
+
+fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "phi_list g n = 
+    (filter (\<lambda>x.(is_PhiNode (kind g x)))
+      (sorted_list_of_set (usages g n)))"
+
+fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
+  "input_index g n n' = find_index n' (inputs_of (kind g n))"
+
+fun phi_inputs :: "IRGraph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
+  "phi_inputs g i nodes = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) nodes)"
+
+fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
+  "set_phis [] [] m = m" |
+  "set_phis (n # xs) (v # vs) m = (set_phis xs vs (m(n := v)))" |
+  "set_phis [] (v # vs) m = m" |
+  "set_phis (x # xs) [] m = m"
+
 
 text \<open>
 Intraprocedural semantics are given as a small-step semantics.

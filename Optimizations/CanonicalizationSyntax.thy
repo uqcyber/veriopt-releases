@@ -7,6 +7,16 @@ keywords
 begin
 
 
+fun size :: "IRExpr \<Rightarrow> int" where
+  "size (UnaryExpr op e) = (size e) + 2" |
+  "size (BinaryExpr op x y) = (size x) + (size y) + 2" |
+  "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
+  "size (ConstantExpr const) = 1" |
+  "size (ConvertExpr op inp inbit rbit) = (size inp) + 2" |
+  "size (ParameterExpr ind s) = 2" |
+  "size (LeafExpr nid s) = 2"
+
+
 ML \<open>
 fun translateConst (str, typ) =
   case (str, typ) of
@@ -105,24 +115,62 @@ proof -
 qed
 
 
+lemma add_intstamp_prop:
+  assumes "type x = Integer"
+  assumes "type_safe x y"
+  shows "type exp[x + y] = Integer"
+  using assms unfolding type_def type_safe_def
+  using stamp_expr.simps(3) stamp_binary.simps(1)
+  by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
+
+lemma sub_intstamp_prop:
+  assumes "type x = Integer"
+  assumes "type_safe x y"
+  shows "type exp[x - y] = Integer"
+  using assms unfolding type_def type_safe_def
+  using stamp_expr.simps(3) stamp_binary.simps(1)
+  by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
+
+lemma uminus_intstamp_prop:
+  assumes "type x = Integer"
+  shows "type exp[-x] = Integer"
+  using assms unfolding type_def type_safe_def
+  using stamp_expr.simps(1) stamp_unary.simps(1)
+  by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
+
+
 lemma assume_proof:
   assumes "type x = Integer"
   assumes "type_safe x y"
-  shows "x + (-y) \<mapsto> x - y"
-  using assms apply simp
-  using BinaryExprE Stamp.sel(1) UnaryExprE add_rewrites_helper(4) bin_eval.simps(1) 
-        bin_eval.simps(3) evalDet int_stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(2)
-  proof -
-    have "\<forall>i f cs vs. \<not> [f,vs] \<turnstile> i \<mapsto> ObjStr cs"
-      by (meson int_stamp_implies_valid_value valid_value.simps(42))
-    then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinAdd x (UnaryExpr UnaryNeg y) \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> BinaryExpr BinSub x y \<mapsto> v)"
-      by blast
-  qed
+  shows "x + (-y) \<mapsto> x - y" (is "?lhs \<le> ?rhs")
+  unfolding le_expr_def sorry (*
+proof (induction rule: evaltree.induct)
+  fix m p
+  have "is_IntegerStamp (stamp_expr ?lhs)"
+    using assms unfolding type_def
+    by (smt (z3) Stamp.collapse(1) Stamp.sel(1) add_intstamp_prop assms(1) stamp_expr.simps(1) stamp_unary.simps(1) uminus_intstamp_prop unfold_int_typesafe unfold_type unrestricted_stamp.simps(2))
+  obtain v where lhs: "[m,p] \<turnstile> ?lhs \<mapsto> v"
+    using BinaryExprE evalDet sorry
+  obtain v2 where rhs: "[m,p] \<turnstile> ?rhs \<mapsto> v2"
+    sorry
+  then show "v = v2"
+    sorry
+  then show ?thesis
+*)
 
 
 lemma "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
   using assume_proof by blast
 
+lemma "(size exp[x + (-y)]) > (size exp[x - y])"
+  using size.simps(1,2)
+  by force
+
+datatype 'a Rewrite =
+  Transform 'a 'a |
+  Conditional 'a 'a "'a \<Rightarrow> 'a \<Rightarrow> bool" |
+  Sequential "'a Rewrite" "'a Rewrite" |
+  Transitive "'a Rewrite"
 
 ML \<open>
 datatype 'a Rewrite =
@@ -163,17 +211,19 @@ end;
 fun register_optimization 
   ((bind: binding, _), opt: string) ctxt = 
   let
-    val prop = Syntax.read_prop ctxt opt;
+    val semantics_preserving = Syntax.read_prop ctxt opt;
+    val terminating = @{prop "size exp[(x + (-y))] > size exp[(x - y)]"};
+
     val term = Syntax.read_term ctxt opt;
     val rewrite = Transform (term, term);
-    val _ = @{print} (Toplevel.theory_toplevel (Proof_Context.theory_of ctxt));
+    (*val _ = @{print} (Toplevel.theory_toplevel (Proof_Context.theory_of ctxt));*)
 
     val register = RWList.add {name=Binding.print bind, rewrite=rewrite}
 
     fun after_qed _ ctxt =
       Local_Theory.background_theory register ctxt
   in
-    Proof.theorem NONE after_qed [[(prop, [])]] ctxt
+    Proof.theorem NONE after_qed [[(semantics_preserving, []), (terminating, [])]] ctxt
   end
 
 
@@ -249,10 +299,33 @@ setup \<open>RWList.reset\<close>
 
 phase Canonicalization begin
 
+optimization constant_add:
+  "(e1 + e2) \<mapsto> r when (e1 = ConstantExpr v1 \<and> e2 = ConstantExpr v2 \<and> r = ConstantExpr (intval_add v1 v2))"
+  unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer
+   apply simp
+  sorry
+
+optimization constant_shift:
+  "(c + e) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e) \<and> type e = Integer)"
+  sorry
+
+optimization neutral_zero:
+  "(e + C\<langle>0\<rangle>) \<mapsto> e when (type e = Integer)"
+   defer apply simp
+  sorry
+
+optimization neutral_left_add_sub:
+  "(e1 - e2) + e2 \<mapsto> e1"
+  sorry
+
+optimization neutral_right_add_sub:
+  "e1 + (e2 - e1) \<mapsto> e2"
+  sorry
+
 optimization add_ynegate:
   "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
-  using assume_proof
-  by blast 
+  using assume_proof apply blast
+  by simp
 
 print_context
 

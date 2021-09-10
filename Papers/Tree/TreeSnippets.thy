@@ -30,7 +30,15 @@ text_raw \<open>\Snip{tree-evaluation-deterministic}%
 
 text_raw \<open>\Snip{expression-refinement}%
 \begin{center}
-@{thm le_expr_def [no_vars]}
+@{thm le_expr_def [no_vars]} 
+\end{center}
+\EndSnip\<close>
+
+text_raw \<open>\Snip{expression-refinement-monotone}%
+\begin{center}
+@{thm mono_unary [no_vars]} \\
+@{thm mono_binary [no_vars]} \\
+@{thm mono_conditional [no_vars]}
 \end{center}
 \EndSnip\<close>
 
@@ -141,6 +149,7 @@ text_raw \<open>\Snip{tree-to-graph-rewriting}
 \end{center}
 \EndSnip\<close>
 
+(*
 lemma graph_construction:
   "e1 \<le> e2
   \<and> as_set g1 \<subseteq> as_set g2
@@ -155,5 +164,6 @@ text_raw \<open>\Snip{graph-construction}
 @{thm[display, margin=40] graph_construction [no_vars]}
 \end{center}
 \EndSnip\<close>
+*)
 
 end

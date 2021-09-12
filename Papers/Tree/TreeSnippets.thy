@@ -205,18 +205,6 @@ notation (latex)
   domain_subtraction ("_ \<^latex>\<open>$\\ndres$\<close> _")
 
 
-lemma this_is_true:
-  assumes "n \<notin> ids g"
-  shows "\<not>(g \<turnstile> n \<triangleright> e)"
-proof -
-  have "kind g n = NoNode"
-    using assms ids_some by simp
-  show ?thesis
-  apply (rule notI)
-    apply (induct n e rule: rep.induct) apply auto
-    sorry
-qed
-
 lemma encodes_contains:
   assumes "g \<turnstile> n \<triangleright> e"
   shows "kind g n \<noteq> NoNode"
@@ -241,32 +229,12 @@ lemma encodes_contains:
   using IRNode.distinct(2315) apply presburger
   using IRNode.distinct(2445) apply presburger
   by (metis is_preevaluated.simps(49))
-(*
-  using assms 
-proof -
-  fix n
-  assume "n \<notin> ids g"
-  then have "kind g n = NoNode"
-    using ids_some by simp
-  show "\<not>(g \<turnstile> n \<triangleright> e)"
-    apply (rule notI) apply (induct arbitrary: n e rule: rep.induct)
-  apply (rule notI)
-  apply (induct arbitrary: n e rule: rep.induct) apply auto
-proof -
-  fix n
-  show "kind g n = NoNode"
-qed
-  using ids_some assms sorry
 
-lemma unchanged_encoding:
-  assumes "\<forall>n \<in> (ids g1 - {n}). ([g1,m,p] \<turnstile> n \<mapsto> v) \<and> ([g2,m,p] \<turnstile> n \<mapsto> v)"
-  assumes "kind g1 n = kind g2 n"
-  assumes "stamp g1 n = stamp g2 n"
-  assumes "[g1,m,p] \<turnstile> n \<mapsto> v"
-  shows "[g2,m,p] \<turnstile> n \<mapsto> v"
-  using assms(4) unfolding encodeeval_def
-  using assms(1,2,3) sorry
-*)
+definition is_convert_node :: "IRNode \<Rightarrow> bool" where
+  "is_convert_node n = ((is_NarrowNode n) \<or> (is_SignExtendNode n) \<or> (is_ZeroExtendNode n))"
+
+experiment begin
+text \<open>Experimental embedding into a simplier but usable form for expression nodes in a graph\<close>
 
 datatype ExprIRNode =
   ExprUnaryNode IRUnaryOp ID |
@@ -301,31 +269,6 @@ fun embed_expr :: "IRNode \<Rightarrow> ExprIRNode" where
 *)
   "embed_expr _ = NotExpr"
 
-definition is_convert_node :: "IRNode \<Rightarrow> bool" where
-  "is_convert_node n = ((is_NarrowNode n) \<or> (is_SignExtendNode n) \<or> (is_ZeroExtendNode n))"
-
-lemmas reps =
-  rep_constant
-  rep_parameter
-  rep_conditional
-  rep_abs
-  rep_not
-  rep_negate
-  rep_logicnegation
-  rep_add
-  rep_sub
-  rep_mul
-  rep_and
-  rep_or
-  rep_xor
-  rep_integer_below
-  rep_integer_equals
-  rep_integer_less_than
-  rep_narrow
-  rep_sign_extend
-  rep_zero_extend
-  rep_load_field
-
 lemma unary_embed:
   assumes "g \<turnstile> n \<triangleright> UnaryExpr op x"
   assumes "\<not>(is_convert_node (kind g n))"
@@ -349,6 +292,36 @@ lemma blah:
   using rep.LogicNegationNode apply blast
   using rep.NegateNode apply blast
   using rep.NotNode by blast
+end
+
+
+lemmas reps =
+  rep_constant
+  rep_parameter
+  rep_conditional
+  rep_abs
+  rep_not
+  rep_negate
+  rep_logicnegation
+  rep_add
+  rep_sub
+  rep_mul
+  rep_and
+  rep_or
+  rep_xor
+  rep_integer_below
+  rep_integer_equals
+  rep_integer_less_than
+  rep_narrow
+  rep_sign_extend
+  rep_zero_extend
+  rep_load_field
+
+
+lemma no_encoding:
+  assumes "n \<notin> ids g"
+  shows "\<not>(g \<turnstile> n \<triangleright> e)"
+  using assms apply simp apply (rule notI) by (induction e; simp add: encodes_contains)
 
 lemma not_excluded_keep_type:
   assumes "n \<in> ids g1"
@@ -386,8 +359,422 @@ proof -
     then have i: "kind g1 n = kind g2 n \<and> stamp g1 n = stamp g2 n"
       using not_excluded_keep_type
       using b e by presburger
-    show ?thesis using f
-      proof (cases e1)
+    show ?thesis using f i
+    proof (induction e1)
+      case (ConstantNode n c)
+      then show ?case
+        by (metis eq_refl rep.ConstantNode)
+    next
+      case (ParameterNode n i s)
+      then show ?case
+        by (metis eq_refl rep.ParameterNode)
+    next
+      case (ConditionalNode n c t f ce1 te1 fe1)
+      have k: "g1 \<turnstile> n \<triangleright> ConditionalExpr ce1 te1 fe1" using f ConditionalNode
+        by (simp add: ConditionalNode.hyps(2) rep.ConditionalNode)
+      obtain cn tn fn where l: "kind g1 n = ConditionalNode cn tn fn"
+        using ConditionalNode.hyps(1) by blast
+      then have mc: "g1 \<turnstile> cn \<triangleright> ce1"
+        using ConditionalNode.hyps(1) ConditionalNode.hyps(2) by fastforce
+      from l have mt: "g1 \<turnstile> tn \<triangleright> te1"
+        using ConditionalNode.hyps(1) ConditionalNode.hyps(3) by fastforce
+      from l have mf: "g1 \<turnstile> fn \<triangleright> fe1"
+        using ConditionalNode.hyps(1) ConditionalNode.hyps(4) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> cn \<triangleright> ce1" using mc by simp
+        have "g1 \<turnstile> tn \<triangleright> te1" using mt by simp
+        have "g1 \<turnstile> fn \<triangleright> fe1" using mf by simp
+        have cer: "\<exists> ce2. (g2 \<turnstile> cn \<triangleright> ce2) \<and> ce1 \<le> ce2"
+          using ConditionalNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(6))
+        have ter: "\<exists> te2. (g2 \<turnstile> tn \<triangleright> te2) \<and> te1 \<le> te2"
+          using ConditionalNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(6))
+        have "\<exists> fe2. (g2 \<turnstile> fn \<triangleright> fe2) \<and> fe1 \<le> fe2"
+          using ConditionalNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(6))
+        then have "\<exists> ce2 te2 fe2. (g2 \<turnstile> n \<triangleright> ConditionalExpr ce2 te2 fe2) \<and> ConditionalExpr ce1 te1 fe1 \<le> ConditionalExpr ce2 te2 fe2"
+          using ConditionalNode.prems l mono_conditional rep.ConditionalNode cer ter
+          by (smt (verit) IRTreeEvalThms.mono_conditional)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (AbsNode n x xe1)
+      have k: "g1 \<turnstile> n \<triangleright> UnaryExpr UnaryAbs xe1" using f AbsNode
+        by (simp add: AbsNode.hyps(2) rep.AbsNode)
+      obtain xn where l: "kind g1 n = AbsNode xn"
+        using AbsNode.hyps(1) by blast
+      then have m: "g1 \<turnstile> xn \<triangleright> xe1"
+        using AbsNode.hyps(1) AbsNode.hyps(2) by fastforce
+      then show ?case
+      proof (cases "xn = n'")
+        case True
+        then have n: "xe1 = e1'" using c m repDet by simp
+        then have ev: "g2 \<turnstile> n \<triangleright> UnaryExpr UnaryAbs e2'" using AbsNode.hyps(1) l m n
+          using AbsNode.prems True d rep.AbsNode by simp
+        then have r: "UnaryExpr UnaryAbs e1' \<le> UnaryExpr UnaryAbs e2'"
+          by (meson a mono_unary)
+        then show ?thesis using ev r
+          by (metis n)
+      next
+        case False
+        have "g1 \<turnstile> xn \<triangleright> xe1" using m by simp
+        have "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using AbsNode
+          by (metis False IRNode.inject(1) b encodes_contains l not_excluded_keep_type not_in_g singleton_iff)
+        then have "\<exists> xe2. (g2 \<turnstile> n \<triangleright> UnaryExpr UnaryAbs xe2) \<and> UnaryExpr UnaryAbs xe1 \<le> UnaryExpr UnaryAbs xe2"
+          by (metis AbsNode.prems l mono_unary rep.AbsNode)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (NotNode n x xe1)
+      have k: "g1 \<turnstile> n \<triangleright> UnaryExpr UnaryNot xe1" using f NotNode
+        by (simp add: NotNode.hyps(2) rep.NotNode)
+      obtain xn where l: "kind g1 n = NotNode xn"
+        using NotNode.hyps(1) by blast
+      then have m: "g1 \<turnstile> xn \<triangleright> xe1"
+        using NotNode.hyps(1) NotNode.hyps(2) by fastforce
+      then show ?case
+      proof (cases "xn = n'")
+        case True
+        then have n: "xe1 = e1'" using c m repDet by simp
+        then have ev: "g2 \<turnstile> n \<triangleright> UnaryExpr UnaryNot e2'" using NotNode.hyps(1) l m n
+          using NotNode.prems True d rep.NotNode by simp
+        then have r: "UnaryExpr UnaryNot e1' \<le> UnaryExpr UnaryNot e2'"
+          by (meson a mono_unary)
+        then show ?thesis using ev r
+          by (metis n)
+      next
+        case False
+        have "g1 \<turnstile> xn \<triangleright> xe1" using m by simp
+        have "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using NotNode
+          by (metis False IRNode.inject(31) b l not_excluded_keep_type singletonD no_encoding)
+        then have "\<exists> xe2. (g2 \<turnstile> n \<triangleright> UnaryExpr UnaryNot xe2) \<and> UnaryExpr UnaryNot xe1 \<le> UnaryExpr UnaryNot xe2"
+          by (metis NotNode.prems l mono_unary rep.NotNode)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (NegateNode n x xe1)
+      have k: "g1 \<turnstile> n \<triangleright> UnaryExpr UnaryNeg xe1" using f NegateNode
+        by (simp add: NegateNode.hyps(2) rep.NegateNode)
+      obtain xn where l: "kind g1 n = NegateNode xn"
+        using NegateNode.hyps(1) by blast
+      then have m: "g1 \<turnstile> xn \<triangleright> xe1"
+        using NegateNode.hyps(1) NegateNode.hyps(2) by fastforce
+      then show ?case
+      proof (cases "xn = n'")
+        case True
+        then have n: "xe1 = e1'" using c m repDet by simp
+        then have ev: "g2 \<turnstile> n \<triangleright> UnaryExpr UnaryNeg e2'" using NegateNode.hyps(1) l m n
+          using NegateNode.prems True d rep.NegateNode by simp
+        then have r: "UnaryExpr UnaryNeg e1' \<le> UnaryExpr UnaryNeg e2'"
+          by (meson a mono_unary)
+        then show ?thesis using ev r
+          by (metis n)
+      next
+        case False
+        have "g1 \<turnstile> xn \<triangleright> xe1" using m by simp
+        have "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using NegateNode
+          by (metis False IRNode.inject(28) b l not_excluded_keep_type singleton_iff no_encoding)
+        then have "\<exists> xe2. (g2 \<turnstile> n \<triangleright> UnaryExpr UnaryNeg xe2) \<and> UnaryExpr UnaryNeg xe1 \<le> UnaryExpr UnaryNeg xe2"
+          by (metis NegateNode.prems l mono_unary rep.NegateNode)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (LogicNegationNode n x xe1)
+      have k: "g1 \<turnstile> n \<triangleright> UnaryExpr UnaryLogicNegation xe1" using f LogicNegationNode
+        by (simp add: LogicNegationNode.hyps(2) rep.LogicNegationNode)
+      obtain xn where l: "kind g1 n = LogicNegationNode xn"
+        using LogicNegationNode.hyps(1) by blast
+      then have m: "g1 \<turnstile> xn \<triangleright> xe1"
+        using LogicNegationNode.hyps(1) LogicNegationNode.hyps(2) by fastforce
+      then show ?case
+      proof (cases "xn = n'")
+        case True
+        then have n: "xe1 = e1'" using c m repDet by simp
+        then have ev: "g2 \<turnstile> n \<triangleright> UnaryExpr UnaryLogicNegation e2'" using LogicNegationNode.hyps(1) l m n
+          using LogicNegationNode.prems True d rep.LogicNegationNode by simp
+        then have r: "UnaryExpr UnaryLogicNegation e1' \<le> UnaryExpr UnaryLogicNegation e2'"
+          by (meson a mono_unary)
+        then show ?thesis using ev r
+          by (metis n)
+      next
+        case False
+        have "g1 \<turnstile> xn \<triangleright> xe1" using m by simp
+        have "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using LogicNegationNode
+          by (metis False IRNode.inject(20) b encodes_contains ids_some l not_excluded_keep_type singleton_iff)
+        then have "\<exists> xe2. (g2 \<turnstile> n \<triangleright> UnaryExpr UnaryLogicNegation xe2) \<and> UnaryExpr UnaryLogicNegation xe1 \<le> UnaryExpr UnaryLogicNegation xe2"
+          by (metis LogicNegationNode.prems l mono_unary rep.LogicNegationNode)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (AddNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinAdd xe1 ye1" using f AddNode
+        by (simp add: AddNode.hyps(2) rep.AddNode)
+      obtain xn yn where l: "kind g1 n = AddNode xn yn"
+        using AddNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using AddNode.hyps(1) AddNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using AddNode.hyps(1) AddNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using AddNode
+          by (metis IRNode.inject(2) a b c d l no_encoding not_excluded_keep_type repDet singletonD)
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using AddNode
+          by (metis IRNode.inject(2) a b c d l no_encoding not_excluded_keep_type repDet singletonD)
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinAdd xe2 ye2) \<and> BinaryExpr BinAdd xe1 ye1 \<le> BinaryExpr BinAdd xe2 ye2"
+          by (metis AddNode.prems l mono_binary rep.AddNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (MulNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinMul xe1 ye1" using f MulNode
+        by (simp add: MulNode.hyps(2) rep.MulNode)
+      obtain xn yn where l: "kind g1 n = MulNode xn yn"
+        using MulNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using MulNode.hyps(1) MulNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using MulNode.hyps(1) MulNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using MulNode
+          by (metis IRNode.inject(26) a b c d l no_encoding not_excluded_keep_type repDet singletonD)
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using MulNode
+          by (metis IRNode.inject(26) a b c d l no_encoding not_excluded_keep_type repDet singletonD)
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinMul xe2 ye2) \<and> BinaryExpr BinMul xe1 ye1 \<le> BinaryExpr BinMul xe2 ye2"
+          by (metis MulNode.prems l mono_binary rep.MulNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (SubNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinSub xe1 ye1" using f SubNode
+        by (simp add: SubNode.hyps(2) rep.SubNode)
+      obtain xn yn where l: "kind g1 n = SubNode xn yn"
+        using SubNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using SubNode.hyps(1) SubNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using SubNode.hyps(1) SubNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using SubNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(42))
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using SubNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(42))
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinSub xe2 ye2) \<and> BinaryExpr BinSub xe1 ye1 \<le> BinaryExpr BinSub xe2 ye2"
+          by (metis SubNode.prems l mono_binary rep.SubNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (AndNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinAnd xe1 ye1" using f AndNode
+        by (simp add: AndNode.hyps(2) rep.AndNode)
+      obtain xn yn where l: "kind g1 n = AndNode xn yn"
+        using AndNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using AndNode.hyps(1) AndNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using AndNode.hyps(1) AndNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using AndNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(3))
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using AndNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(3))
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinAnd xe2 ye2) \<and> BinaryExpr BinAnd xe1 ye1 \<le> BinaryExpr BinAnd xe2 ye2"
+          by (metis AndNode.prems l mono_binary rep.AndNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (OrNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinOr xe1 ye1" using f OrNode
+        by (simp add: OrNode.hyps(2) rep.OrNode)
+      obtain xn yn where l: "kind g1 n = OrNode xn yn"
+        using OrNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using OrNode.hyps(1) OrNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using OrNode.hyps(1) OrNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using OrNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(32))
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using OrNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(32))
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinOr xe2 ye2) \<and> BinaryExpr BinOr xe1 ye1 \<le> BinaryExpr BinOr xe2 ye2"
+          by (metis OrNode.prems l mono_binary rep.OrNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (XorNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinXor xe1 ye1" using f XorNode
+        by (simp add: XorNode.hyps(2) rep.XorNode)
+      obtain xn yn where l: "kind g1 n = XorNode xn yn"
+        using XorNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using XorNode.hyps(1) XorNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using XorNode.hyps(1) XorNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using XorNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(46))
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using XorNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(46))
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinXor xe2 ye2) \<and> BinaryExpr BinXor xe1 ye1 \<le> BinaryExpr BinXor xe2 ye2"
+          by (metis XorNode.prems l mono_binary rep.XorNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (IntegerBelowNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinIntegerBelow xe1 ye1" using f IntegerBelowNode
+        by (simp add: IntegerBelowNode.hyps(2) rep.IntegerBelowNode)
+      obtain xn yn where l: "kind g1 n = IntegerBelowNode xn yn"
+        using IntegerBelowNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using IntegerBelowNode.hyps(1) IntegerBelowNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using IntegerBelowNode.hyps(1) IntegerBelowNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using IntegerBelowNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(12))
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using IntegerBelowNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(12))
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinIntegerBelow xe2 ye2) \<and> BinaryExpr BinIntegerBelow xe1 ye1 \<le> BinaryExpr BinIntegerBelow xe2 ye2"
+          by (metis IntegerBelowNode.prems l mono_binary rep.IntegerBelowNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (IntegerEqualsNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinIntegerEquals xe1 ye1" using f IntegerEqualsNode
+        by (simp add: IntegerEqualsNode.hyps(2) rep.IntegerEqualsNode)
+      obtain xn yn where l: "kind g1 n = IntegerEqualsNode xn yn"
+        using IntegerEqualsNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using IntegerEqualsNode.hyps(1) IntegerEqualsNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using IntegerEqualsNode.hyps(1) IntegerEqualsNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using IntegerEqualsNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(13))
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using IntegerEqualsNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(13))
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinIntegerEquals xe2 ye2) \<and> BinaryExpr BinIntegerEquals xe1 ye1 \<le> BinaryExpr BinIntegerEquals xe2 ye2"
+          by (metis IntegerEqualsNode.prems l mono_binary rep.IntegerEqualsNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (IntegerLessThanNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<triangleright> BinaryExpr BinIntegerLessThan xe1 ye1" using f IntegerLessThanNode
+        by (simp add: IntegerLessThanNode.hyps(2) rep.IntegerLessThanNode)
+      obtain xn yn where l: "kind g1 n = IntegerLessThanNode xn yn"
+        using IntegerLessThanNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<triangleright> xe1"
+        using IntegerLessThanNode.hyps(1) IntegerLessThanNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<triangleright> ye1"
+        using IntegerLessThanNode.hyps(1) IntegerLessThanNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<triangleright> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<triangleright> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using IntegerLessThanNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(14))
+        have "\<exists> ye2. (g2 \<turnstile> yn \<triangleright> ye2) \<and> ye1 \<le> ye2"
+          using IntegerLessThanNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(14))
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<triangleright> BinaryExpr BinIntegerLessThan xe2 ye2) \<and> BinaryExpr BinIntegerLessThan xe1 ye1 \<le> BinaryExpr BinIntegerLessThan xe2 ye2"
+          by (metis IntegerLessThanNode.prems l mono_binary rep.IntegerLessThanNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (NarrowNode n x inputStamp inputBits nodeStamp resultBits xe)
+      show ?case using hack NarrowNode(1) ids_some unfolding is_convert_node_def
+        by (metis IRNode.disc(1349) IRNode.discI(27))
+    next
+      case (SignExtendNode n x inputStamp inputBits nodeStamp resultBits xe)
+      then show ?case using hack SignExtendNode(1) ids_some unfolding is_convert_node_def
+        by (metis IRNode.disc(1849) IRNode.discI(37))
+    next
+      case (ZeroExtendNode n x inputStamp inputBits nodeStamp resultBits xe)
+      then show ?case using hack ZeroExtendNode(1) ids_some unfolding is_convert_node_def
+        by (metis IRNode.disc(2348) IRNode.distinct(2446))
+    next
+      case (LeafNode n s)
+    then show ?case
+      by (metis eq_refl rep.LeafNode)
+    qed
+  qed
+qed
+      
+
+
+
+
+
+(*
         case (UnaryExpr op xe1)
         from UnaryExpr have k: "g1 \<turnstile> n \<triangleright> UnaryExpr op xe1" using f by blast
         have "\<not>(is_convert_node (kind g1 n))"
@@ -438,6 +825,7 @@ proof -
       qed
   qed
 qed
+*)
 
 (*
 lemma graph_semantics_preservation:
@@ -472,7 +860,7 @@ next
     assume a0: "n \<in> ids g1"
     assume a1: "([g1,m,p] \<turnstile> n \<mapsto> v)"
     have "\<not>(\<exists>e. (g1 \<turnstile> n \<triangleright> e))"
-      using this_is_true
+      using no_encoding
       by (meson False a)
     then show "([g2,m,p] \<turnstile> n \<mapsto> v)" using a0 a1 a unfolding encodeeval_def
       by blast

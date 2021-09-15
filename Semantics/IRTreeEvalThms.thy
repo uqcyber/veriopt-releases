@@ -2,7 +2,7 @@ section \<open>Data-flow Expression-Tree Theorems\<close>
 
 theory IRTreeEvalThms
   imports
-    Semantics.IRTreeEval
+    TreeToGraph
 begin
 
 
@@ -112,19 +112,19 @@ lemma rep_integer_less_than:
 lemma rep_narrow:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
    kind g n = NarrowNode x \<Longrightarrow>
-   (\<exists>x ib rb. e = ConvertExpr ConvertNarrow x ib rb)"
+   (\<exists>x ib rb. e = UnaryExpr (UnaryNarrow ib rb) x)"
   by (induction rule: rep.induct; auto)
  
 lemma rep_sign_extend:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
    kind g n = SignExtendNode x \<Longrightarrow>
-   (\<exists>x ib rb. e = ConvertExpr ConvertSignExtend x ib rb)"
+   (\<exists>x ib rb. e = UnaryExpr (UnarySignExtend ib rb) x)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_zero_extend:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
    kind g n = ZeroExtendNode x \<Longrightarrow>
-   (\<exists>x ib rb. e = ConvertExpr ConvertZeroExtend x ib rb)"
+   (\<exists>x ib rb. e = UnaryExpr (UnaryZeroExtend ib rb) x)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_load_field:
@@ -353,9 +353,11 @@ next
   case (UnaryExpr xe v op)
   then show ?case sorry
 next
+(*
   case (ConvertExpr xe v op)
   then show ?case sorry
 next
+*)
   case (BinaryExpr xe x ye y op)
   then show ?case sorry
 next

@@ -23,6 +23,7 @@ session Semantics in Semantics = Graph +
            show_question_marks = false]
   theories
     IRTreeEval
+    TreeToGraph
     IRTreeEvalThms
     IRStepObj
     (*IRStepThms*)
@@ -148,7 +149,7 @@ session Stamps in "Papers/Stamps" = Graph +
 session TreePaper in "Papers/Tree" = Semantics +
   description
     "Content for paper on validation efforts"
-  options [document = pdf, document_output = "output",
+  options [quick_and_dirty, document = pdf, document_output = "output",
            show_question_marks = false]
   theories
     TreeSnippets

@@ -3,6 +3,7 @@ section \<open>Canonicalization Phase\<close>
 theory CanonicalizationTreeProofs
   imports
     CanonicalizationTree
+    Semantics.TreeToGraph
     Semantics.IRTreeEvalThms
 begin
 

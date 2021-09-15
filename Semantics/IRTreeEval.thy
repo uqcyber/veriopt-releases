@@ -69,18 +69,11 @@ datatype IRBinaryOp =
   | BinIntegerLessThan
   | BinIntegerBelow
 
-datatype IRConvertOp =
-    ConvertNarrow 
-  | ConvertSignExtend 
-  | ConvertZeroExtend
-
 datatype (discs_sels) IRExpr =
     UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
   | BinaryExpr (ir_op: IRBinaryOp) (ir_x: IRExpr) (ir_y: IRExpr)
   | ConditionalExpr (ir_condition: IRExpr) (ir_trueValue: IRExpr) (ir_falseValue: IRExpr)
   | ConstantExpr (ir_const: Value)
-(*  | ConvertExpr (ir_cop: IRConvertOp) (ir_input: IRExpr) (ir_inputBits: nat) (ir_resultBits: nat)
-*)
 (* TODO
   | IsNullNode (ir_value: IRExpr) 
   | RefNode ?
@@ -140,11 +133,7 @@ inductive
   UnaryExpr:
   "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> unary_eval op v" |
-(*
-  ConvertExpr:
-  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v\<rbrakk>
-    \<Longrightarrow> [m,p] \<turnstile> (ConvertExpr op xe ib rb) \<mapsto> convert_eval op ib rb v" |
-*)
+
   BinaryExpr:
   "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> x;
     [m,p] \<turnstile> ye \<mapsto> y\<rbrakk>

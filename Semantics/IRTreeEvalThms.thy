@@ -353,11 +353,6 @@ next
   case (UnaryExpr xe v op)
   then show ?case sorry
 next
-(*
-  case (ConvertExpr xe v op)
-  then show ?case sorry
-next
-*)
   case (BinaryExpr xe x ye y op)
   then show ?case sorry
 next

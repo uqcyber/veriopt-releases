@@ -262,19 +262,13 @@ fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Righta
   (* for now... *)
   "stamp_binary op _ _ = IllegalStamp"
 
-fun stamp_convert_op :: "IRConvertOp \<Rightarrow> Stamp \<Rightarrow> nat \<Rightarrow> Stamp" where 
-  "stamp_convert_op op (IntegerStamp b lo hi) resultBits = unrestricted_stamp (IntegerStamp resultBits lo hi)" |
-  "stamp_convert_op op _ k = IllegalStamp"
-
 fun stamp_expr :: "IRExpr \<Rightarrow> Stamp" where
   "stamp_expr (UnaryExpr op x) = stamp_unary op (stamp_expr x)" |
-(*  "stamp_expr (UnaryExpr cop x ib rb) = stamp_convert_op cop (stamp_expr x) rb" | *)
   "stamp_expr (BinaryExpr bop x y) = stamp_binary bop (stamp_expr x) (stamp_expr y)" |
   "stamp_expr (ConstantExpr val) = constantAsStamp val" |
   "stamp_expr (LeafExpr i s) = s" |
   "stamp_expr (ParameterExpr i s) = s" |
   "stamp_expr (ConditionalExpr c t f) = meet (stamp_expr t) (stamp_expr f)"
-
 
 export_code stamp_unary stamp_binary stamp_expr
 
@@ -299,12 +293,6 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinIntegerEquals x y = IntegerEqualsNode x y" |
   "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y" |
   "bin_node BinIntegerBelow x y = IntegerBelowNode x y"
-(*
-fun convert_node :: "IRConvertOp \<Rightarrow> ID \<Rightarrow> IRNode" where
-  "convert_node ConvertNarrow v = NarrowNode v" |
-  "convert_node ConvertSignExtend v = SignExtendNode v"  |
-  "convert_node ConvertZeroExtend v = ZeroExtendNode v"
-*)
 
 
 (* cast a signed result into the desired finite bit width *)
@@ -313,38 +301,7 @@ fun choose_32_64 :: "int \<Rightarrow> int64 \<Rightarrow> Value" where
       (if bits = 32 
        then (IntVal32 (ucast val))
        else (IntVal64 (val)))"
-(*
-fun convert_eval :: "IRConvertOp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
-  "convert_eval ConvertNarrow ib rb (IntVal32 val) =
-    (if rb = 8 then (IntVal32 (val AND (255 :: int32)))
-     else (if rb = 16 then (IntVal32 (val AND 65535))
-     else (IntVal32 val)))" |
-  "convert_eval ConvertNarrow ib rb (IntVal64 val) = 
-    (if rb = 8 then (IntVal64 (val AND 255))
-     else (if rb = 16 then (IntVal64 (val AND 65535))
-     else (if rb = 32 then (IntVal64 (val AND 4294967295))
-     else (IntVal64 val))))" |
 
-  "convert_eval ConvertSignExtend ib rb (IntVal32 val) =
-    (if ib = 8 then (choose_32_64 rb (scast(ucast val ::int8)))
-     else (if ib = 16 then (choose_32_64 rb (scast(ucast val ::int16)))
-     else choose_32_64 rb (scast(val :: int32))))" |
-  "convert_eval ConvertSignExtend ib rb (IntVal64 val) =
-    (if ib = 8 then (choose_32_64 rb (scast(ucast val :: int8)))
-     else (if ib = 16 then (choose_32_64 rb (scast(ucast val :: int16)))
-     else (if ib = 32 then (choose_32_64 rb (scast(ucast val :: int32)))
-     else choose_32_64 rb (scast(val :: int64)))))" |
-
-  "convert_eval ConvertZeroExtend ib rb (IntVal32 val) =
-    (if ib = 8 then (choose_32_64 rb (ucast(ucast val :: int8)))
-     else (if ib = 16 then (choose_32_64 rb (ucast(ucast val :: int16)))
-     else choose_32_64 rb (ucast(val :: int32))))" |
-  "convert_eval ConvertZeroExtend ib rb (IntVal64 val) =
-    (if ib = 8 then (choose_32_64 rb (ucast(ucast val :: int8)))
-     else (if ib = 16 then (choose_32_64 rb (ucast(ucast val :: int16)))
-     else (if ib = 32 then (choose_32_64 rb (ucast(ucast val :: int32)))
-     else choose_32_64 rb (ucast(val :: int64)))))"
-*)
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "n \<notin> ids g \<Longrightarrow> fresh_id g n"
@@ -439,21 +396,7 @@ inductive
     n = get_fresh_id g2;
     g' = add_node n (bin_node op x y, s') g2\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g', n)" |
-(*
-  ConvertNodeSame:
-  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    s' = stamp_convert_op op (stamp g2 x) rb;
-    find_node_and_stamp g2 (convert_node op x, s') = Some n\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ConvertExpr op xe ib rb) \<leadsto> (g2, n)" |
 
-  ConvertNodeNew:
-  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    s' = stamp_convert_op op (stamp g2 x) rb;
-    find_node_and_stamp g2 (convert_node op x, s') = None;
-    n = get_fresh_id g2;
-    g' = add_node n (convert_node op x, s') g2\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ConvertExpr op xe ib rb) \<leadsto> (g', n)" |
-*)
   AllLeafNodes:
   "stamp g n = s
     \<Longrightarrow> g \<triangleleft> (LeafExpr n s) \<leadsto> (g, n)" |
@@ -546,10 +489,6 @@ inductive_cases ConditionalExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (ConditionalExpr c t f) \<mapsto> val"
 inductive_cases UnaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> val"
-(*
-inductive_cases ConvertExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (ConvertExpr op xe ib rb) \<mapsto> val"
-*)
 inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> val"
 inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -567,7 +506,6 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
   ConditionalExprE
   UnaryExprE
   BinaryExprE
-(*  ConvertExprE *)
   LeafExprE
   EvalNilE
   EvalConsE

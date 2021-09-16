@@ -126,8 +126,7 @@ lemma mono_logic_negation:
   by (metis LogicNegationNode assms(1) assms(2) assms(3) assms(4) mono_unary repDet)
 
 lemma mono_narrow:
-  assumes "kind g1 n = NarrowNode x \<and> kind g2 n = NarrowNode x"
-  assumes "stamp g1 n = stamp g2 n \<and> stamp g1 x = stamp g2 x"
+  assumes "kind g1 n = NarrowNode ib rb x \<and> kind g2 n = NarrowNode ib rb x"
   assumes "(g1 \<turnstile> x \<triangleright> xe1) \<and> (g2 \<turnstile> x \<triangleright> xe2)"
   assumes "xe1 \<le> xe2"
   assumes "(g1 \<turnstile> n \<triangleright> e1) \<and> (g2 \<turnstile> n \<triangleright> e2)"
@@ -136,17 +135,15 @@ lemma mono_narrow:
   by metis
 
 lemma mono_sign_extend:
-  assumes "kind g1 n = SignExtendNode x \<and> kind g2 n = SignExtendNode x"
-  assumes "stamp g1 n = stamp g2 n \<and> stamp g1 x = stamp g2 x"
+  assumes "kind g1 n = SignExtendNode ib rb x \<and> kind g2 n = SignExtendNode ib rb x"
   assumes "(g1 \<turnstile> x \<triangleright> xe1) \<and> (g2 \<turnstile> x \<triangleright> xe2)"
   assumes "xe1 \<le> xe2"
   assumes "(g1 \<turnstile> n \<triangleright> e1) \<and> (g2 \<turnstile> n \<triangleright> e2)"
   shows "e1 \<le> e2"
-  by (metis SignExtendNode assms(1) assms(2) assms(3) assms(4) assms(5) mono_unary repDet)
+  by (metis SignExtendNode assms(1) assms(2) assms(3) assms(4) mono_unary repDet)
 
 lemma mono_zero_extend:
-  assumes "kind g1 n = ZeroExtendNode x \<and> kind g2 n = ZeroExtendNode x"
-  assumes "stamp g1 n = stamp g2 n \<and> stamp g1 x = stamp g2 x"
+  assumes "kind g1 n = ZeroExtendNode ib rb x \<and> kind g2 n = ZeroExtendNode ib rb x"
   assumes "(g1 \<turnstile> x \<triangleright> xe1) \<and> (g2 \<turnstile> x \<triangleright> xe2)"
   assumes "xe1 \<le> xe2"
   assumes "(g1 \<turnstile> n \<triangleright> e1) \<and> (g2 \<turnstile> n \<triangleright> e2)"
@@ -262,20 +259,15 @@ fun embed_expr :: "IRNode \<Rightarrow> ExprIRNode" where
   "embed_expr (IntegerBelowNode x y) = ExprBinaryNode BinIntegerBelow x y" |
   "embed_expr (IntegerEqualsNode x y) = ExprBinaryNode BinIntegerEquals x y" |
   "embed_expr (IntegerLessThanNode x y) = ExprBinaryNode BinIntegerLessThan x y" |
-(*
-  "embed_expr (NarrowNode x) = ExprUnaryNode (UnaryNarrow 0 0) x" |
-  "embed_expr (SignExtendNode x) = ExprUnaryNode (UnarySignExtend 0 0) x" |
-  "embed_expr (ZeroExtendNode x) = ExprUnaryNode (UnaryZeroExtend 0 0) x" |
-*)
+  "embed_expr (NarrowNode ib rb x) = ExprUnaryNode (UnaryNarrow ib rb) x" |
+  "embed_expr (SignExtendNode ib rb x) = ExprUnaryNode (UnarySignExtend ib rb) x" |
+  "embed_expr (ZeroExtendNode ib rb x) = ExprUnaryNode (UnaryZeroExtend ib rb) x" |
   "embed_expr _ = NotExpr"
 
 lemma unary_embed:
   assumes "g \<turnstile> n \<triangleright> UnaryExpr op x"
-  assumes "\<not>(is_convert_node (kind g n))"
   shows "\<exists> x' . embed_expr (kind g n) = ExprUnaryNode op x'"
-  using assms apply (induction "UnaryExpr op x" rule: rep.induct; simp)
-  unfolding is_convert_node_def
-  using is_NarrowNode_def is_SignExtendNode_def is_ZeroExtendNode_def by blast+
+  using assms by (induction "UnaryExpr op x" rule: rep.induct; simp)
 
 lemma equal_embedded_x:
   assumes "g \<turnstile> n \<triangleright> UnaryExpr op xe"
@@ -290,8 +282,11 @@ lemma blah:
   using assms(2,1) apply (cases "kind g n"; auto)
   using rep.AbsNode apply blast
   using rep.LogicNegationNode apply blast
+  using NarrowNode apply presburger
   using rep.NegateNode apply blast
-  using rep.NotNode by blast
+  using rep.NotNode apply blast
+  using rep.SignExtendNode apply blast
+  using rep.ZeroExtendNode by blast
 end
 
 
@@ -335,7 +330,6 @@ lemma graph_semantics_preservation:
   assumes b: "({n'} \<unlhd> as_set g1) \<subseteq> as_set g2"
   assumes c: "g1 \<turnstile> n' \<triangleright> e1'"
   assumes d: "g2 \<turnstile> n' \<triangleright> e2'"
-  assumes hack: "(\<forall> n. n \<in> ids g1 \<longrightarrow> \<not>(is_convert_node (kind g1 n)))"
   shows "graph_refinement g1 g2"
   unfolding graph_refinement_def 
   apply (rule allI) apply (rule impI) apply (rule allI) apply (rule impI)
@@ -750,17 +744,95 @@ proof -
           by meson
       qed
     next
-      case (NarrowNode n x inputStamp inputBits nodeStamp resultBits xe)
-      show ?case using hack NarrowNode(1) ids_some unfolding is_convert_node_def
-        by (metis IRNode.disc(1349) IRNode.discI(27))
+      case (NarrowNode n inputBits resultBits x xe1)
+      have k: "g1 \<turnstile> n \<triangleright> UnaryExpr (UnaryNarrow inputBits resultBits) xe1" using f NarrowNode
+        by (simp add: NarrowNode.hyps(2) rep.NarrowNode)
+      obtain xn where l: "kind g1 n = NarrowNode inputBits resultBits xn"
+        using NarrowNode.hyps(1) by blast
+      then have m: "g1 \<turnstile> xn \<triangleright> xe1"
+        using NarrowNode.hyps(1) NarrowNode.hyps(2)
+        by auto
+      then show ?case
+      proof (cases "xn = n'")
+        case True
+        then have n: "xe1 = e1'" using c m repDet by simp
+        then have ev: "g2 \<turnstile> n \<triangleright> UnaryExpr (UnaryNarrow inputBits resultBits) e2'" using NarrowNode.hyps(1) l m n
+          using NarrowNode.prems True d rep.NarrowNode by simp
+        then have r: "UnaryExpr (UnaryNarrow inputBits resultBits) e1' \<le> UnaryExpr (UnaryNarrow inputBits resultBits) e2'"
+          by (meson a mono_unary)
+        then show ?thesis using ev r
+          by (metis n)
+      next
+        case False
+        have "g1 \<turnstile> xn \<triangleright> xe1" using m by simp
+        have "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using NarrowNode
+          by (metis False IRNode.inject(27) b encodes_contains l not_excluded_keep_type not_in_g singleton_iff)
+        then have "\<exists> xe2. (g2 \<turnstile> n \<triangleright> UnaryExpr (UnaryNarrow inputBits resultBits) xe2) \<and> UnaryExpr (UnaryNarrow inputBits resultBits) xe1 \<le> UnaryExpr (UnaryNarrow inputBits resultBits) xe2"
+          by (metis NarrowNode.prems l mono_unary rep.NarrowNode)
+        then show ?thesis
+          by meson
+      qed
     next
-      case (SignExtendNode n x inputStamp inputBits nodeStamp resultBits xe)
-      then show ?case using hack SignExtendNode(1) ids_some unfolding is_convert_node_def
-        by (metis IRNode.disc(1849) IRNode.discI(37))
+      case (SignExtendNode n inputBits resultBits x xe1)
+      have k: "g1 \<turnstile> n \<triangleright> UnaryExpr (UnarySignExtend inputBits resultBits) xe1" using f SignExtendNode
+        by (simp add: SignExtendNode.hyps(2) rep.SignExtendNode)
+      obtain xn where l: "kind g1 n = SignExtendNode inputBits resultBits xn"
+        using SignExtendNode.hyps(1) by blast
+      then have m: "g1 \<turnstile> xn \<triangleright> xe1"
+        using SignExtendNode.hyps(1) SignExtendNode.hyps(2)
+        by auto
+      then show ?case
+      proof (cases "xn = n'")
+        case True
+        then have n: "xe1 = e1'" using c m repDet by simp
+        then have ev: "g2 \<turnstile> n \<triangleright> UnaryExpr (UnarySignExtend inputBits resultBits) e2'" using SignExtendNode.hyps(1) l m n
+          using SignExtendNode.prems True d rep.SignExtendNode by simp
+        then have r: "UnaryExpr (UnarySignExtend inputBits resultBits) e1' \<le> UnaryExpr (UnarySignExtend inputBits resultBits) e2'"
+          by (meson a mono_unary)
+        then show ?thesis using ev r
+          by (metis n)
+      next
+        case False
+        have "g1 \<turnstile> xn \<triangleright> xe1" using m by simp
+        have "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using SignExtendNode
+          by (metis False IRNode.inject(37) b encodes_contains l not_excluded_keep_type not_in_g singleton_iff)
+        then have "\<exists> xe2. (g2 \<turnstile> n \<triangleright> UnaryExpr (UnarySignExtend inputBits resultBits) xe2) \<and> UnaryExpr (UnarySignExtend inputBits resultBits) xe1 \<le> UnaryExpr (UnarySignExtend inputBits resultBits) xe2"
+          by (metis SignExtendNode.prems l mono_unary rep.SignExtendNode)
+        then show ?thesis
+          by meson
+      qed
     next
-      case (ZeroExtendNode n x inputStamp inputBits nodeStamp resultBits xe)
-      then show ?case using hack ZeroExtendNode(1) ids_some unfolding is_convert_node_def
-        by (metis IRNode.disc(2348) IRNode.distinct(2446))
+      case (ZeroExtendNode n inputBits resultBits x xe1)
+      have k: "g1 \<turnstile> n \<triangleright> UnaryExpr (UnaryZeroExtend inputBits resultBits) xe1" using f ZeroExtendNode
+        by (simp add: ZeroExtendNode.hyps(2) rep.ZeroExtendNode)
+      obtain xn where l: "kind g1 n = ZeroExtendNode inputBits resultBits xn"
+        using ZeroExtendNode.hyps(1) by blast
+      then have m: "g1 \<turnstile> xn \<triangleright> xe1"
+        using ZeroExtendNode.hyps(1) ZeroExtendNode.hyps(2)
+        by auto
+      then show ?case
+      proof (cases "xn = n'")
+        case True
+        then have n: "xe1 = e1'" using c m repDet by simp
+        then have ev: "g2 \<turnstile> n \<triangleright> UnaryExpr (UnaryZeroExtend inputBits resultBits) e2'" using ZeroExtendNode.hyps(1) l m n
+          using ZeroExtendNode.prems True d rep.ZeroExtendNode by simp
+        then have r: "UnaryExpr (UnaryZeroExtend inputBits resultBits) e1' \<le> UnaryExpr (UnaryZeroExtend inputBits resultBits) e2'"
+          by (meson a mono_unary)
+        then show ?thesis using ev r
+          by (metis n)
+      next
+        case False
+        have "g1 \<turnstile> xn \<triangleright> xe1" using m by simp
+        have "\<exists> xe2. (g2 \<turnstile> xn \<triangleright> xe2) \<and> xe1 \<le> xe2"
+          using ZeroExtendNode
+          by (metis False IRNode.inject(47) b encodes_contains l not_excluded_keep_type not_in_g singleton_iff)
+        then have "\<exists> xe2. (g2 \<turnstile> n \<triangleright> UnaryExpr (UnaryZeroExtend inputBits resultBits) xe2) \<and> UnaryExpr (UnaryZeroExtend inputBits resultBits) xe1 \<le> UnaryExpr (UnaryZeroExtend inputBits resultBits) xe2"
+          by (metis ZeroExtendNode.prems l mono_unary rep.ZeroExtendNode)
+        then show ?thesis
+          by meson
+      qed
     next
       case (LeafNode n s)
     then show ?case
@@ -889,7 +961,8 @@ lemma tree_to_graph_rewriting:
   \<and> ({n} \<unlhd> as_set g1) \<subseteq> as_set g2 
   \<and> (g2 \<turnstile> n \<triangleright> e2) \<and> maximal_sharing g2
   \<Longrightarrow> graph_refinement g1 g2"
-  using graph_semantics_preservation sorry
+  using graph_semantics_preservation
+  by auto
 
 text_raw \<open>\Snip{tree-to-graph-rewriting}
 \begin{center}

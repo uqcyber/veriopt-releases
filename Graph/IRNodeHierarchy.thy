@@ -26,8 +26,26 @@ fun is_EndNode :: "IRNode \<Rightarrow> bool" where
 fun is_VirtualState :: "IRNode \<Rightarrow> bool" where
   "is_VirtualState n = ((is_FrameState n))"
 
-fun is_CallTargetNode :: "IRNode \<Rightarrow> bool" where
-  "is_CallTargetNode n = ((is_MethodCallTargetNode n))"
+fun is_BinaryArithmeticNode :: "IRNode \<Rightarrow> bool" where
+  "is_BinaryArithmeticNode n = ((is_AddNode n) \<or> (is_AndNode n) \<or> (is_MulNode n) \<or> (is_OrNode n) \<or> (is_SubNode n) \<or> (is_XorNode n))"
+
+fun is_BinaryNode :: "IRNode \<Rightarrow> bool" where
+  "is_BinaryNode n = ((is_BinaryArithmeticNode n))"
+
+fun is_AbstractLocalNode :: "IRNode \<Rightarrow> bool" where
+  "is_AbstractLocalNode n = ((is_ParameterNode n))"
+
+fun is_IntegerConvertNode :: "IRNode \<Rightarrow> bool" where
+  "is_IntegerConvertNode n = ((is_NarrowNode n) \<or> (is_SignExtendNode n) \<or> (is_ZeroExtendNode n))"
+
+fun is_UnaryArithmeticNode :: "IRNode \<Rightarrow> bool" where
+  "is_UnaryArithmeticNode n = ((is_AbsNode n) \<or> (is_NegateNode n) \<or> (is_NotNode n))"
+
+fun is_UnaryNode :: "IRNode \<Rightarrow> bool" where
+  "is_UnaryNode n = ((is_IntegerConvertNode n) \<or> (is_UnaryArithmeticNode n))"
+
+fun is_PhiNode :: "IRNode \<Rightarrow> bool" where
+  "is_PhiNode n = ((is_ValuePhiNode n))"
 
 fun is_FloatingGuardedNode :: "IRNode \<Rightarrow> bool" where
   "is_FloatingGuardedNode n = ((is_PiNode n))"
@@ -47,35 +65,35 @@ fun is_BinaryOpLogicNode :: "IRNode \<Rightarrow> bool" where
 fun is_LogicNode :: "IRNode \<Rightarrow> bool" where
   "is_LogicNode n = ((is_BinaryOpLogicNode n) \<or> (is_LogicNegationNode n) \<or> (is_ShortCircuitOrNode n) \<or> (is_UnaryOpLogicNode n))"
 
-fun is_PhiNode :: "IRNode \<Rightarrow> bool" where
-  "is_PhiNode n = ((is_ValuePhiNode n))"
-
-fun is_UnaryArithmeticNode :: "IRNode \<Rightarrow> bool" where
-  "is_UnaryArithmeticNode n = ((is_AbsNode n) \<or> (is_NegateNode n) \<or> (is_NotNode n))"
-
-fun is_IntegerConvertNode :: "IRNode \<Rightarrow> bool" where
-  "is_IntegerConvertNode n = ((is_NarrowNode n) \<or> (is_SignExtendNode n) \<or> (is_ZeroExtendNode n))"
-
-fun is_UnaryNode :: "IRNode \<Rightarrow> bool" where
-  "is_UnaryNode n = ((is_IntegerConvertNode n) \<or> (is_UnaryArithmeticNode n))"
-
-fun is_BinaryArithmeticNode :: "IRNode \<Rightarrow> bool" where
-  "is_BinaryArithmeticNode n = ((is_AddNode n) \<or> (is_AndNode n) \<or> (is_MulNode n) \<or> (is_OrNode n) \<or> (is_SubNode n) \<or> (is_XorNode n))"
-
-fun is_BinaryNode :: "IRNode \<Rightarrow> bool" where
-  "is_BinaryNode n = ((is_BinaryArithmeticNode n))"
-
 fun is_ProxyNode :: "IRNode \<Rightarrow> bool" where
   "is_ProxyNode n = ((is_ValueProxyNode n))"
-
-fun is_AbstractLocalNode :: "IRNode \<Rightarrow> bool" where
-  "is_AbstractLocalNode n = ((is_ParameterNode n))"
 
 fun is_FloatingNode :: "IRNode \<Rightarrow> bool" where
   "is_FloatingNode n = ((is_AbstractLocalNode n) \<or> (is_BinaryNode n) \<or> (is_ConditionalNode n) \<or> (is_ConstantNode n) \<or> (is_FloatingGuardedNode n) \<or> (is_LogicNode n) \<or> (is_PhiNode n) \<or> (is_ProxyNode n) \<or> (is_UnaryNode n))"
 
 fun is_AccessFieldNode :: "IRNode \<Rightarrow> bool" where
   "is_AccessFieldNode n = ((is_LoadFieldNode n) \<or> (is_StoreFieldNode n))"
+
+fun is_AbstractNewArrayNode :: "IRNode \<Rightarrow> bool" where
+  "is_AbstractNewArrayNode n = ((is_DynamicNewArrayNode n) \<or> (is_NewArrayNode n))"
+
+fun is_AbstractNewObjectNode :: "IRNode \<Rightarrow> bool" where
+  "is_AbstractNewObjectNode n = ((is_AbstractNewArrayNode n) \<or> (is_NewInstanceNode n))"
+
+fun is_IntegerDivRemNode :: "IRNode \<Rightarrow> bool" where
+  "is_IntegerDivRemNode n = ((is_SignedDivNode n) \<or> (is_SignedRemNode n))"
+
+fun is_FixedBinaryNode :: "IRNode \<Rightarrow> bool" where
+  "is_FixedBinaryNode n = ((is_IntegerDivRemNode n))"
+
+fun is_DeoptimizingFixedWithNextNode :: "IRNode \<Rightarrow> bool" where
+  "is_DeoptimizingFixedWithNextNode n = ((is_AbstractNewObjectNode n) \<or> (is_FixedBinaryNode n))"
+
+fun is_AbstractMemoryCheckpoint :: "IRNode \<Rightarrow> bool" where
+  "is_AbstractMemoryCheckpoint n = ((is_BytecodeExceptionNode n) \<or> (is_InvokeNode n))"
+
+fun is_AbstractStateSplit :: "IRNode \<Rightarrow> bool" where
+  "is_AbstractStateSplit n = ((is_AbstractMemoryCheckpoint n))"
 
 fun is_AbstractMergeNode :: "IRNode \<Rightarrow> bool" where
   "is_AbstractMergeNode n = ((is_LoopBeginNode n) \<or> (is_MergeNode n))"
@@ -85,27 +103,6 @@ fun is_BeginStateSplitNode :: "IRNode \<Rightarrow> bool" where
 
 fun is_AbstractBeginNode :: "IRNode \<Rightarrow> bool" where
   "is_AbstractBeginNode n = ((is_BeginNode n) \<or> (is_BeginStateSplitNode n) \<or> (is_KillingBeginNode n))"
-
-fun is_AbstractMemoryCheckpoint :: "IRNode \<Rightarrow> bool" where
-  "is_AbstractMemoryCheckpoint n = ((is_BytecodeExceptionNode n) \<or> (is_InvokeNode n))"
-
-fun is_AbstractStateSplit :: "IRNode \<Rightarrow> bool" where
-  "is_AbstractStateSplit n = ((is_AbstractMemoryCheckpoint n))"
-
-fun is_IntegerDivRemNode :: "IRNode \<Rightarrow> bool" where
-  "is_IntegerDivRemNode n = ((is_SignedDivNode n) \<or> (is_SignedRemNode n))"
-
-fun is_FixedBinaryNode :: "IRNode \<Rightarrow> bool" where
-  "is_FixedBinaryNode n = ((is_IntegerDivRemNode n))"
-
-fun is_AbstractNewArrayNode :: "IRNode \<Rightarrow> bool" where
-  "is_AbstractNewArrayNode n = ((is_DynamicNewArrayNode n) \<or> (is_NewArrayNode n))"
-
-fun is_AbstractNewObjectNode :: "IRNode \<Rightarrow> bool" where
-  "is_AbstractNewObjectNode n = ((is_AbstractNewArrayNode n) \<or> (is_NewInstanceNode n))"
-
-fun is_DeoptimizingFixedWithNextNode :: "IRNode \<Rightarrow> bool" where
-  "is_DeoptimizingFixedWithNextNode n = ((is_AbstractNewObjectNode n) \<or> (is_FixedBinaryNode n))"
 
 fun is_FixedWithNextNode :: "IRNode \<Rightarrow> bool" where
   "is_FixedWithNextNode n = ((is_AbstractBeginNode n) \<or> (is_AbstractStateSplit n) \<or> (is_AccessFieldNode n) \<or> (is_DeoptimizingFixedWithNextNode n))"
@@ -124,6 +121,9 @@ fun is_AbstractEndNode :: "IRNode \<Rightarrow> bool" where
 
 fun is_FixedNode :: "IRNode \<Rightarrow> bool" where
   "is_FixedNode n = ((is_AbstractEndNode n) \<or> (is_ControlSinkNode n) \<or> (is_ControlSplitNode n) \<or> (is_FixedWithNextNode n))"
+
+fun is_CallTargetNode :: "IRNode \<Rightarrow> bool" where
+  "is_CallTargetNode n = ((is_MethodCallTargetNode n))"
 
 fun is_ValueNode :: "IRNode \<Rightarrow> bool" where
   "is_ValueNode n = ((is_CallTargetNode n) \<or> (is_FixedNode n) \<or> (is_FloatingNode n))"

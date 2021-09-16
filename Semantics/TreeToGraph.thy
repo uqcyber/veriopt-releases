@@ -122,29 +122,17 @@ inductive
 
 (* Convert Nodes *)
   NarrowNode:
-  "\<lbrakk>kind g n = NarrowNode x;
-    stamp g x = inputStamp;
-    inputBits = stp_bits inputStamp;
-    stamp g n = nodeStamp;
-    resultBits = stp_bits nodeStamp;
+  "\<lbrakk>kind g n = NarrowNode inputBits resultBits x;
     g \<turnstile> x \<triangleright> xe\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr (UnaryNarrow inputBits resultBits) xe)" |
 
   SignExtendNode:
-  "\<lbrakk>kind g n = SignExtendNode x;
-    stamp g x = inputStamp;
-    inputBits = stp_bits inputStamp;
-    stamp g n = nodeStamp;
-    resultBits = stp_bits nodeStamp;
+  "\<lbrakk>kind g n = SignExtendNode inputBits resultBits x;
     g \<turnstile> x \<triangleright> xe\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr (UnarySignExtend inputBits resultBits) xe)" |
 
   ZeroExtendNode:
-  "\<lbrakk>kind g n = ZeroExtendNode x;
-    stamp g x = inputStamp;
-    inputBits = stp_bits inputStamp;
-    stamp g n = nodeStamp;
-    resultBits = stp_bits nodeStamp;
+  "\<lbrakk>kind g n = ZeroExtendNode inputBits resultBits x;
     g \<turnstile> x \<triangleright> xe\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr (UnaryZeroExtend inputBits resultBits) xe)" |
 
@@ -277,9 +265,9 @@ fun unary_node :: "IRUnaryOp \<Rightarrow> ID \<Rightarrow> IRNode" where
   "unary_node UnaryNot v = NotNode v" |
   "unary_node UnaryNeg v = NegateNode v" |
   "unary_node UnaryLogicNegation v = LogicNegationNode v" |
-  "unary_node (UnaryNarrow ib rb) v = NarrowNode v" |
-  "unary_node (UnarySignExtend ib rb) v = SignExtendNode v" |
-  "unary_node (UnaryZeroExtend ib rb) v = ZeroExtendNode v"
+  "unary_node (UnaryNarrow ib rb) v = NarrowNode ib rb v" |
+  "unary_node (UnarySignExtend ib rb) v = SignExtendNode ib rb v" |
+  "unary_node (UnaryZeroExtend ib rb) v = ZeroExtendNode ib rb v"
 
 
 (* Creates the appropriate IRNode for a given binary operator. *)

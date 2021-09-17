@@ -537,4 +537,12 @@ qed
 
 end
 
+definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "graph_refinement g1 g2 = 
+        (\<forall> n . n \<in> ids g1 \<longrightarrow> (\<forall>e1. (g1 \<turnstile> n \<triangleright> e1) \<longrightarrow> (\<exists>e2. (g2 \<turnstile> n \<triangleright> e2) \<and> e1 \<le> e2)))"
+
+lemma graph_refinement:
+  "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
+  by (meson encodeeval_def graph_refinement_def le_expr_def)
+
 end

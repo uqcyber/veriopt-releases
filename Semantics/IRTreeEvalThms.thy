@@ -111,20 +111,20 @@ lemma rep_integer_less_than:
 
 lemma rep_narrow:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
-   kind g n = NarrowNode x \<Longrightarrow>
-   (\<exists>x ib rb. e = UnaryExpr (UnaryNarrow ib rb) x)"
+   kind g n = NarrowNode ib rb x \<Longrightarrow>
+   (\<exists>x. e = UnaryExpr (UnaryNarrow ib rb) x)"
   by (induction rule: rep.induct; auto)
  
 lemma rep_sign_extend:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
-   kind g n = SignExtendNode x \<Longrightarrow>
-   (\<exists>x ib rb. e = UnaryExpr (UnarySignExtend ib rb) x)"
+   kind g n = SignExtendNode ib rb x \<Longrightarrow>
+   (\<exists>x. e = UnaryExpr (UnarySignExtend ib rb) x)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_zero_extend:
   "g \<turnstile> n \<triangleright> e \<Longrightarrow>
-   kind g n = ZeroExtendNode x \<Longrightarrow>
-   (\<exists>x ib rb. e = UnaryExpr (UnaryZeroExtend ib rb) x)"
+   kind g n = ZeroExtendNode ib rb x \<Longrightarrow>
+   (\<exists>x. e = UnaryExpr (UnaryZeroExtend ib rb) x)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_load_field:
@@ -132,6 +132,28 @@ lemma rep_load_field:
    is_preevaluated (kind g n) \<Longrightarrow>
    (\<exists>s. e = LeafExpr n s)"
   by (induction rule: rep.induct; auto)
+
+lemmas reps =
+  rep_constant
+  rep_parameter
+  rep_conditional
+  rep_abs
+  rep_not
+  rep_negate
+  rep_logicnegation
+  rep_add
+  rep_sub
+  rep_mul
+  rep_and
+  rep_or
+  rep_xor
+  rep_integer_below
+  rep_integer_equals
+  rep_integer_less_than
+  rep_narrow
+  rep_sign_extend
+  rep_zero_extend
+  rep_load_field
 
 
 text \<open>Now we can prove that 'rep' and 'eval', and their list versions, are deterministic.

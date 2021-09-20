@@ -769,31 +769,78 @@ lemma equal_refines:
   by simp
 declare [[simp_trace=false]]
 
-lemma
+inductive_cases UnaryRepE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (UnaryExpr op xe)"
+inductive_cases BinaryRepE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<triangleright> (BinaryExpr op xe ye)"
+
+lemma subset_implies_evals:
   assumes "as_set g1 \<subseteq> as_set g2"
   shows "(g1 \<turnstile> n \<triangleright> e) \<Longrightarrow> (g2 \<turnstile> n \<triangleright> e)"
-  using assms
-proof (cases e)
-case (UnaryExpr op e)
-  then show ?thesis using assms sorry
+proof (induction e arbitrary: n)
+  case (UnaryExpr op e)
+  then have "n \<in> ids g1"
+    using no_encoding by force
+  then have "kind g1 n = kind g2 n"
+    using assms unfolding as_set_def
+    by blast
+  then show ?case using UnaryExpr UnaryRepE
+    by (smt (verit, ccfv_threshold) AbsNode LogicNegationNode NarrowNode NegateNode NotNode SignExtendNode ZeroExtendNode)
 next
-  case (BinaryExpr x21 x22 x23)
-  then show ?thesis sorry
+  case (BinaryExpr op e1 e2)
+  then have "n \<in> ids g1"
+    using no_encoding by force
+  then have "kind g1 n = kind g2 n"
+    using assms unfolding as_set_def
+    by blast
+  then show ?case using BinaryExpr BinaryRepE
+    by (smt (verit, ccfv_threshold) AddNode MulNode SubNode AndNode OrNode XorNode IntegerBelowNode IntegerEqualsNode IntegerLessThanNode)
 next
-  case (ConditionalExpr x31 x32 x33)
-  then show ?thesis sorry
+  case (ConditionalExpr e1 e2 e3)
+  then have "n \<in> ids g1"
+    using no_encoding by force
+  then have "kind g1 n = kind g2 n"
+    using assms unfolding as_set_def
+    by blast
+  then show ?case using ConditionalExpr ConditionalExprE
+    by (smt (verit, best) ConditionalNode ConditionalNodeE)
 next
-  case (ConstantExpr x4)
-  then show ?thesis sorry
+  case (ConstantExpr x)
+  then have "n \<in> ids g1"
+    using no_encoding by force
+  then have "kind g1 n = kind g2 n"
+    using assms unfolding as_set_def
+    by blast
+  then show ?case using ConstantExpr ConstantExprE
+    by (metis ConstantNode ConstantNodeE)
 next
-  case (ParameterExpr x51 x52)
-then show ?thesis sorry
+  case (ParameterExpr x1 x2)
+  then have in_g1: "n \<in> ids g1"
+    using no_encoding by force
+  then have kinds: "kind g1 n = kind g2 n"
+    using assms unfolding as_set_def
+    by blast
+  from in_g1 have stamps: "stamp g1 n = stamp g2 n"
+    using assms unfolding as_set_def
+    by blast
+  from kinds stamps show ?case using ParameterExpr ParameterExprE
+    by (metis ParameterNode ParameterNodeE)
 next
-  case (LeafExpr x61 x62)
-  then show ?thesis sorry
+  case (LeafExpr nid s)
+  then have in_g1: "n \<in> ids g1"
+    using no_encoding by force
+  then have kinds: "kind g1 n = kind g2 n"
+    using assms unfolding as_set_def
+    by blast
+  from in_g1 have stamps: "stamp g1 n = stamp g2 n"
+    using assms unfolding as_set_def
+    by blast
+  from kinds stamps show ?case using LeafExpr LeafExprE LeafNode
+    by (smt (verit) IRExpr.distinct(17) IRExpr.distinct(23) IRExpr.distinct(9) rep.simps) (*slow*)
 qed
 
-lemma
+
+lemma subset_refines:
   assumes "as_set g1 \<subseteq> as_set g2"
   shows "graph_refinement g1 g2"
 proof -
@@ -807,18 +854,18 @@ proof -
       assume 2:"g1 \<turnstile> n \<triangleright> e1"
   
       show "\<exists>e2. (g2 \<turnstile> n \<triangleright> e2) \<and> e1 \<le> e2"
-        using assms 1 2 apply (induction e1)
-        unfolding as_set_def sorry
+        using assms 1 2 using subset_implies_evals
+        by (meson equal_refines)
     qed
 qed
-  
+
 
 lemma graph_construction:
   "e1 \<le> e2
   \<and> as_set g1 \<subseteq> as_set g2 \<and> maximal_sharing g1
   \<and> (g2 \<turnstile> n \<triangleright> e2) \<and> maximal_sharing g2
   \<Longrightarrow> graph_refinement g1 g2"
-  using tree_to_graph_rewriting unfolding graph_refinement_def
-  apply (cases "n \<in> ids g1") defer sorry
+  using subset_refines
+  by blast
 
 end

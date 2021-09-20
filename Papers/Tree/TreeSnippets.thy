@@ -170,21 +170,11 @@ text_raw \<open>\Snip{tree-to-graph-rewriting}
 \end{center}
 \EndSnip\<close>
 
-(*
-lemma graph_construction:
-  "e1 \<le> e2
-  \<and> as_set g1 \<subseteq> as_set g2
-  \<and> maximal_sharing g1
-  \<and> (g2 \<turnstile> n \<triangleright> e2)
-  \<and> maximal_sharing g2
-  \<Longrightarrow> graph_refinement g1 g2"
-  by (smt (z3) IRExpr.simps(13) graph_refinement_def repDet)
-
 text_raw \<open>\Snip{graph-construction}
 \begin{center}
 @{thm[display, margin=40] graph_construction [no_vars]}
 \end{center}
 \EndSnip\<close>
-*)
+
 
 end

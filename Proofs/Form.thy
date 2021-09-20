@@ -2,7 +2,7 @@ subsection \<open>Formedness Properties\<close>
 
 theory Form
 imports
-  Semantics.IRTreeEval
+  Semantics.TreeToGraph
 begin
 
 definition wf_start where

@@ -347,32 +347,32 @@ next
   then show ?case using IntegerLessThanNode inputs_of_IntegerLessThanNode
     by (metis \<open>kind g2 n = IntegerLessThanNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.IntegerLessThanNode)
 next
-  case (NarrowNode n x xe)
-  then have "kind g2 n = NarrowNode x"
+  case (NarrowNode n ib rb x xe)
+  then have "kind g2 n = NarrowNode ib rb x"
     using kind_unchanged by metis
   then have "x \<in> eval_usages g1 n"
     using inputs_of_NarrowNode inputs_of_are_usages
     by (metis NarrowNode.hyps(1) NarrowNode.hyps(2) IRNodes.inputs_of_NarrowNode encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
   then show ?case using NarrowNode inputs_of_NarrowNode
-    by (metis \<open>kind g2 n = NarrowNode x\<close> child_unchanged inputs.elims list.set_intros(1) rep.NarrowNode unchanged.simps)
+    by (metis \<open>kind g2 n = NarrowNode ib rb x\<close> child_unchanged inputs.elims list.set_intros(1) rep.NarrowNode unchanged.simps)
 next
-  case (SignExtendNode n x xe)
-  then have "kind g2 n = SignExtendNode x"
+  case (SignExtendNode n ib rb x xe)
+  then have "kind g2 n = SignExtendNode ib rb x"
     using kind_unchanged by metis
   then have "x \<in> eval_usages g1 n"
     using inputs_of_SignExtendNode inputs_of_are_usages
-    by (metis SignExtendNode.hyps(1) SignExtendNode.hyps(2) IRNodes.inputs_of_NarrowNode encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
+    by (metis SignExtendNode.hyps(1) SignExtendNode.hyps(2) encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
   then show ?case using SignExtendNode inputs_of_SignExtendNode
-    by (metis \<open>kind g2 n = SignExtendNode x\<close> child_member_in child_unchanged in_set_member list.set_intros(1) rep.SignExtendNode unchanged.elims(2))
+    by (metis \<open>kind g2 n = SignExtendNode ib rb x\<close> child_member_in child_unchanged in_set_member list.set_intros(1) rep.SignExtendNode unchanged.elims(2))
 next
-  case (ZeroExtendNode n x xe)
-  then have "kind g2 n = ZeroExtendNode x"
+  case (ZeroExtendNode n ib rb x xe)
+  then have "kind g2 n = ZeroExtendNode ib rb x"
     using kind_unchanged by metis
   then have "x \<in> eval_usages g1 n"
     using inputs_of_ZeroExtendNode inputs_of_are_usages
     by (metis ZeroExtendNode.hyps(1) ZeroExtendNode.hyps(2) IRNodes.inputs_of_ZeroExtendNode encode_in_ids inputs.simps inputs_are_usages list.set_intros(1))
   then show ?case using ZeroExtendNode inputs_of_ZeroExtendNode
-    by (metis \<open>kind g2 n = ZeroExtendNode x\<close> child_member_in child_unchanged member_rec(1) rep.ZeroExtendNode unchanged.simps)
+    by (metis \<open>kind g2 n = ZeroExtendNode ib rb x\<close> child_member_in child_unchanged member_rec(1) rep.ZeroExtendNode unchanged.simps)
 next
   case (LeafNode n s)
   then show ?case
@@ -407,7 +407,7 @@ proof -
     then show ?case
       by (metis ConstantNode ConstantNodeE kind_unchanged)
   next
-    case (ParameterExpr s i)
+    case (ParameterExpr i s)
     have "g2 \<turnstile> nid \<triangleright> ParameterExpr i s"
       using stay_same_encoding ParameterExpr
       by (meson local.wf)
@@ -426,13 +426,6 @@ proof -
       using local.wf by presburger
     then show ?case
       using UnaryExpr.hyps(1) by blast
-  next
-    case (ConvertExpr xe v op)
-    then have "g2 \<turnstile> nid \<triangleright> ConvertExpr op xe"
-      using stay_same_encoding
-      using local.wf by presburger
-    then show ?case
-      using ConvertExpr.hyps(1) by blast
   next
     case (BinaryExpr xe x ye y op)
     then have "g2 \<turnstile> nid \<triangleright> BinaryExpr op xe ye"

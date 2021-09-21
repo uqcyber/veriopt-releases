@@ -545,4 +545,9 @@ lemma graph_refinement:
   "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
   by (meson encodeeval_def graph_refinement_def le_expr_def)
 
+definition graph_represents_expression :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRExpr \<Rightarrow> bool" 
+  ("_ \<turnstile> _ \<unlhd> _" 50)
+  where
+  "graph_represents_expression g n e = (\<forall> m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> ([g,m,p] \<turnstile> n \<mapsto> v))"
+
 end

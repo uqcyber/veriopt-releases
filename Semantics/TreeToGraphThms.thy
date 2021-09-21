@@ -857,15 +857,14 @@ proof -
         using assms 1 2 using subset_implies_evals
         by (meson equal_refines)
     qed
-qed
-
+  qed
 
 lemma graph_construction:
   "e1 \<ge> e2
   \<and> as_set g1 \<subseteq> as_set g2 \<and> maximal_sharing g1
   \<and> (g2 \<turnstile> n \<simeq> e2) \<and> maximal_sharing g2
-  \<Longrightarrow> graph_refinement g1 g2"
+  \<Longrightarrow> (g2 \<turnstile> n \<unlhd> e1) \<and> graph_refinement g1 g2"
   using subset_refines
-  by blast
+  by (meson encodeeval_def graph_represents_expression_def le_expr_def)
 
 end

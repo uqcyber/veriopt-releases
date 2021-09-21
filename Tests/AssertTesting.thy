@@ -35,7 +35,7 @@ inductive assert_test :: "Program
       \<Rightarrow> bool"
   for p where
   "\<lbrakk>kind g nid = (UnwindNode exception);
-    g \<turnstile> exception \<triangleright> ex;
+    g \<turnstile> exception \<simeq> ex;
     [m, ps] \<turnstile> ex \<mapsto> ObjRef e;
     details = h_load_field ''assertFailure'' e h\<rbrakk>
     \<Longrightarrow> assert_test p (((g,nid,m,ps)#stk),h) (Exception exception details)" |

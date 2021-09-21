@@ -177,7 +177,7 @@ lemma elim_inp_set:
   using assms by auto
 
 lemma encode_in_ids:
-  assumes "g \<turnstile> nid \<triangleright> e"
+  assumes "g \<turnstile> nid \<simeq> e"
   shows "nid \<in> ids g"
   using assms
   apply (induction rule: rep.induct)
@@ -198,9 +198,9 @@ lemma transitive_kind_same:
 
 theorem stay_same_encoding:
   assumes nc: "unchanged (eval_usages g1 nid) g1 g2"
-  assumes g1: "g1 \<turnstile> nid \<triangleright> e"
+  assumes g1: "g1 \<turnstile> nid \<simeq> e"
   assumes wf: "wf_graph g1"
-  shows "g2 \<turnstile> nid \<triangleright> e"
+  shows "g2 \<turnstile> nid \<simeq> e"
 proof -
   have dom: "nid \<in> ids g1"
     using g1 encode_in_ids by simp
@@ -394,7 +394,7 @@ proof -
     using eval_usages_self by blast
   then have kind_same: "kind g1 nid = kind g2 nid"
     using nc node_unchanged by blast
-  obtain e where e: "(g1 \<turnstile> nid \<triangleright> e) \<and> ([m,p] \<turnstile> e \<mapsto> v1)"
+  obtain e where e: "(g1 \<turnstile> nid \<simeq> e) \<and> ([m,p] \<turnstile> e \<mapsto> v1)"
     using encodeeval_def g1
     by auto
   then have val: "[m,p] \<turnstile> e \<mapsto> v1"
@@ -408,27 +408,27 @@ proof -
       by (metis ConstantNode ConstantNodeE kind_unchanged)
   next
     case (ParameterExpr i s)
-    have "g2 \<turnstile> nid \<triangleright> ParameterExpr i s"
+    have "g2 \<turnstile> nid \<simeq> ParameterExpr i s"
       using stay_same_encoding ParameterExpr
       by (meson local.wf)
     then show ?case using evaltree.ParameterExpr
       by (meson ParameterExpr.hyps)
   next
     case (ConditionalExpr ce cond branch te fe v)
-    then have "g2 \<turnstile> nid \<triangleright> ConditionalExpr ce te fe"
+    then have "g2 \<turnstile> nid \<simeq> ConditionalExpr ce te fe"
       using ConditionalExpr.prems(1) ConditionalExpr.prems(3) local.wf stay_same_encoding by presburger
     then show ?case
       by (metis ConditionalExpr.hyps(1) ConditionalExpr.hyps(3) ConditionalExpr.hyps(4) evaltree.ConditionalExpr)
   next
     case (UnaryExpr xe v op)
-    then have "g2 \<turnstile> nid \<triangleright> UnaryExpr op xe"
+    then have "g2 \<turnstile> nid \<simeq> UnaryExpr op xe"
       using stay_same_encoding
       using local.wf by presburger
     then show ?case
       using UnaryExpr.hyps(1) by blast
   next
     case (BinaryExpr xe x ye y op)
-    then have "g2 \<turnstile> nid \<triangleright> BinaryExpr op xe ye"
+    then have "g2 \<turnstile> nid \<simeq> BinaryExpr op xe ye"
       using stay_same_encoding
       using local.wf by presburger
     then show ?case

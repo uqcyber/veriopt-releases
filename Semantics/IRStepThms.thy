@@ -190,7 +190,7 @@ lemma stepRefNode:
 
 lemma IfNodeStepCases: 
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "g \<turnstile> cond \<triangleright> condE"
+  assumes "g \<turnstile> cond \<simeq> condE"
   assumes "[m, p] \<turnstile> condE \<mapsto> v"
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid' \<in> {tb, fb}"
@@ -204,7 +204,7 @@ lemma IfNodeSeq:
 lemma IfNodeCond:
   assumes "kind g nid = IfNode cond tb fb"
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
-  shows "\<exists> condE v. ((g \<turnstile> cond \<triangleright> condE) \<and> ([m, p] \<turnstile> condE \<mapsto> v))"
+  shows "\<exists> condE v. ((g \<turnstile> cond \<simeq> condE) \<and> ([m, p] \<turnstile> condE \<mapsto> v))"
   using assms(2,1) by (induct "(nid,m,h)" "(nid',m,h)" rule: step.induct; auto)
 
 

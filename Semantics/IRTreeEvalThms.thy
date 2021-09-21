@@ -14,121 +14,121 @@ text \<open>First, we prove some extra rules that relate each
 \<close>
 
 lemma rep_constant: 
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow> 
+  "g \<turnstile> n \<simeq> e \<Longrightarrow> 
    kind g n = ConstantNode c \<Longrightarrow> 
    e = ConstantExpr c"
   by (induction rule: rep.induct; auto)
   
 lemma rep_parameter: 
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow> 
+  "g \<turnstile> n \<simeq> e \<Longrightarrow> 
    kind g n = ParameterNode i \<Longrightarrow>
    (\<exists>s. e = ParameterExpr i s)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_conditional:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = ConditionalNode c t f \<Longrightarrow>
    (\<exists> ce te fe. e = ConditionalExpr ce te fe)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_abs:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = AbsNode x \<Longrightarrow>
    (\<exists>xe. e = UnaryExpr UnaryAbs xe)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_not:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = NotNode x \<Longrightarrow>
    (\<exists>xe. e = UnaryExpr UnaryNot xe)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_negate:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = NegateNode x \<Longrightarrow>
    (\<exists>xe. e = UnaryExpr UnaryNeg xe)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_logicnegation:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = LogicNegationNode x \<Longrightarrow>
    (\<exists>xe. e = UnaryExpr UnaryLogicNegation xe)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_add:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = AddNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinAdd xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_sub:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = SubNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinSub xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_mul:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = MulNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinMul xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_and:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = AndNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinAnd xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_or:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = OrNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinOr xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_xor:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = XorNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinXor xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_integer_below:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = IntegerBelowNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinIntegerBelow xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_integer_equals:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = IntegerEqualsNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinIntegerEquals xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_integer_less_than:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = IntegerLessThanNode x y \<Longrightarrow>
    (\<exists>xe ye. e = BinaryExpr BinIntegerLessThan xe ye)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_narrow:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = NarrowNode ib rb x \<Longrightarrow>
    (\<exists>x. e = UnaryExpr (UnaryNarrow ib rb) x)"
   by (induction rule: rep.induct; auto)
  
 lemma rep_sign_extend:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = SignExtendNode ib rb x \<Longrightarrow>
    (\<exists>x. e = UnaryExpr (UnarySignExtend ib rb) x)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_zero_extend:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = ZeroExtendNode ib rb x \<Longrightarrow>
    (\<exists>x. e = UnaryExpr (UnaryZeroExtend ib rb) x)"
   by (induction rule: rep.induct; auto)
 
 lemma rep_load_field:
-  "g \<turnstile> n \<triangleright> e \<Longrightarrow>
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
    is_preevaluated (kind g n) \<Longrightarrow>
    (\<exists>s. e = LeafExpr n s)"
   by (induction rule: rep.induct; auto)
@@ -159,7 +159,7 @@ lemmas reps =
 text \<open>Now we can prove that 'rep' and 'eval', and their list versions, are deterministic.
 \<close>
 lemma repDet:
-  shows "(g \<turnstile> n \<triangleright> e1) \<Longrightarrow> (g \<turnstile> n \<triangleright> e2) \<Longrightarrow> e1 = e2"
+  shows "(g \<turnstile> n \<simeq> e1) \<Longrightarrow> (g \<turnstile> n \<simeq> e2) \<Longrightarrow> e1 = e2"
 proof (induction arbitrary: e2 rule: "rep.induct")
   case (ConstantNode n c)
   then show ?case using rep_constant by auto
@@ -240,8 +240,8 @@ next
 qed
 
 lemma repAllDet:
-  "g \<turnstile> xs \<triangleright>\<^sub>L e1 \<Longrightarrow>
-   g \<turnstile> xs \<triangleright>\<^sub>L e2 \<Longrightarrow>
+  "g \<turnstile> xs \<simeq>\<^sub>L e1 \<Longrightarrow>
+   g \<turnstile> xs \<simeq>\<^sub>L e2 \<Longrightarrow>
    e1 = e2"
 proof (induction arbitrary: e2 rule: "replist.induct")
   case RepNil
@@ -397,7 +397,7 @@ lemma valid32or64_both:
 
 subsection \<open>Example Data-flow Optimisations\<close>
 
-(* An example refinement: a + 0 \<le> a *)
+(* An example refinement: a + 0 \<ge> a *)
 lemma a0a_helper [simp]:
   assumes a: "valid_value (IntegerStamp 32 lo hi) v"
   shows "intval_add v (IntVal32 0) = v"
@@ -407,11 +407,11 @@ proof -
 qed
 
 lemma a0a: "(BinaryExpr BinAdd (LeafExpr 1 default_stamp) (ConstantExpr (IntVal32 0)))
-              \<le> (LeafExpr 1 default_stamp)" (is "?L \<le> ?R")
+              \<ge> (LeafExpr 1 default_stamp)"
   by (auto simp add: evaltree.LeafExpr)
 
 
-(* Another example refinement: x + (y - x) \<le> y *)
+(* Another example refinement: x + (y - x) \<ge> y *)
 lemma xyx_y_helper [simp]:
   assumes "valid_value (IntegerStamp 32 lox hix) x"
   assumes "valid_value (IntegerStamp 32 loy hiy) y"
@@ -428,7 +428,7 @@ lemma xyx_y:
      (BinaryExpr BinSub
        (LeafExpr y (IntegerStamp 32 loy hiy))
        (LeafExpr x (IntegerStamp 32 lox hix))))
-   \<le> (LeafExpr y (IntegerStamp 32 loy hiy))"
+   \<ge> (LeafExpr y (IntegerStamp 32 loy hiy))"
   by (auto simp add: LeafExpr)
 
 
@@ -445,21 +445,21 @@ like 'mono (UnaryExpr op)', but it is not obvious how to do this for both argume
 of the binary expressions.\<close>
 
 lemma mono_unary: 
-  assumes "e \<le> e'"
-  shows "(UnaryExpr op e) \<le> (UnaryExpr op e')"
+  assumes "e \<ge> e'"
+  shows "(UnaryExpr op e) \<ge> (UnaryExpr op e')"
   using UnaryExpr assms by auto
 
 lemma mono_binary: 
-  assumes "x \<le> x'"
-  assumes "y \<le> y'"
-  shows "(BinaryExpr op x y) \<le> (BinaryExpr op x' y')"
+  assumes "x \<ge> x'"
+  assumes "y \<ge> y'"
+  shows "(BinaryExpr op x y) \<ge> (BinaryExpr op x' y')"
   using BinaryExpr assms by auto 
 
 lemma mono_conditional: 
-  assumes "ce \<le> ce'"
-  assumes "te \<le> te'"
-  assumes "fe \<le> fe'"
-  shows "(ConditionalExpr ce te fe) \<le> (ConditionalExpr ce' te' fe')"
+  assumes "ce \<ge> ce'"
+  assumes "te \<ge> te'"
+  assumes "fe \<ge> fe'"
+  shows "(ConditionalExpr ce te fe) \<ge> (ConditionalExpr ce' te' fe')"
 proof (simp only: le_expr_def; (rule allI)+; rule impI)
   fix m p v
   assume a: "[m,p] \<turnstile> ConditionalExpr ce te fe \<mapsto> v"
@@ -480,7 +480,7 @@ Step 3: if e1 isrefby e2 then g[e1] isREFby g[e2]
 
 
 lemma graph_refined:
-  assumes "e1 \<le> e2"
+  assumes "e1 \<ge> e2"
   assumes "g \<triangleleft> e1 \<leadsto> (g1, x1)"
   assumes "g \<triangleleft> e2 \<leadsto> (g2, x2)"
   shows "\<forall> m m' h h'. (g \<turnstile> (x1, m, h) \<rightarrow> (nid, m', h'))

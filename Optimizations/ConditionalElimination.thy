@@ -113,9 +113,9 @@ lemma logic_negation_relation:
   assumes "intval \<noteq> UndefVal"
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
 proof -
-  obtain yencode where "g \<turnstile> y \<triangleright> yencode"
+  obtain yencode where "g \<turnstile> y \<simeq> yencode"
     using assms(1) encodeeval_def by auto
-  then have "g \<turnstile> neg \<triangleright> UnaryExpr UnaryLogicNegation yencode"
+  then have "g \<turnstile> neg \<simeq> UnaryExpr UnaryLogicNegation yencode"
     using rep.intros(7) assms(2) by simp
   then have "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation yencode \<mapsto> invval"
     using assms(3) encodeeval_def
@@ -124,7 +124,7 @@ proof -
     using assms(1,2,3,4) using logic_negate_type sorry
   have "invval = bool_to_val (\<not>(val_to_bool val))"
     using assms(1,2,3) evalDet unary_eval.simps(4)
-    by (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) IRTreeEval.val_to_bool.simps(1) UnaryExprE \<open>[g,m,p] \<turnstile> y \<mapsto> IntVal32 v1\<close> \<open>[m,p] \<turnstile> UnaryExpr UnaryLogicNegation yencode \<mapsto> invval\<close> \<open>g \<turnstile> y \<triangleright> yencode\<close> encodeeval_def repDet)
+    by (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) IRTreeEval.val_to_bool.simps(1) UnaryExprE \<open>[g,m,p] \<turnstile> y \<mapsto> IntVal32 v1\<close> \<open>[m,p] \<turnstile> UnaryExpr UnaryLogicNegation yencode \<mapsto> invval\<close> \<open>g \<turnstile> y \<simeq> yencode\<close> encodeeval_def repDet)
   have "val_to_bool invval \<longleftrightarrow> \<not>(val_to_bool val)" 
     using \<open>invval = bool_to_val (\<not> val_to_bool val)\<close> by force
   then show ?thesis
@@ -477,14 +477,14 @@ inductive ConditionalEliminationStep ::
   "IRExpr set \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
   impliesTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
-    g \<turnstile> cid \<triangleright> cond;
+    g \<turnstile> cid \<simeq> cond;
     \<exists> ce \<in> conds . (ce & cond \<hookrightarrow> True);
     g' = constantCondition True ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
 
   impliesFalse:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
-    g \<turnstile> cid \<triangleright> cond;
+    g \<turnstile> cid \<simeq> cond;
     \<exists> ce \<in> conds . (ce & cond \<hookrightarrow> False);
     g' = constantCondition False ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |

@@ -25,137 +25,137 @@ fun is_preevaluated :: "IRNode \<Rightarrow> bool" where
 
 
 inductive
-  rep :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<turnstile> _ \<triangleright> _" 55)
+  rep :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<turnstile> _ \<simeq> _" 55)
   for g where
 
   ConstantNode:
   "\<lbrakk>kind g n = ConstantNode c\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (ConstantExpr c)" |
+    \<Longrightarrow> g \<turnstile> n \<simeq> (ConstantExpr c)" |
 
   ParameterNode:
   "\<lbrakk>kind g n = ParameterNode i;
     stamp g n = s\<rbrakk>
-    \<Longrightarrow> g  \<turnstile> n \<triangleright> (ParameterExpr i s)" |
+    \<Longrightarrow> g  \<turnstile> n \<simeq> (ParameterExpr i s)" |
 
   ConditionalNode:
   "\<lbrakk>kind g n = ConditionalNode c t f;
-    g \<turnstile> c \<triangleright> ce;
-    g \<turnstile> t \<triangleright> te;
-    g \<turnstile> f \<triangleright> fe\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (ConditionalExpr ce te fe)" |
+    g \<turnstile> c \<simeq> ce;
+    g \<turnstile> t \<simeq> te;
+    g \<turnstile> f \<simeq> fe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (ConditionalExpr ce te fe)" |
 
 (* Unary nodes *)
   AbsNode:
   "\<lbrakk>kind g n = AbsNode x;
-    g \<turnstile> x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr UnaryAbs xe)" |
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr UnaryAbs xe)" |
 
   NotNode:
   "\<lbrakk>kind g n = NotNode x;
-    g \<turnstile> x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr UnaryNot xe)" |
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr UnaryNot xe)" |
 
   NegateNode:
   "\<lbrakk>kind g n = NegateNode x;
-    g \<turnstile> x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr UnaryNeg xe)" |
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr UnaryNeg xe)" |
 
   LogicNegationNode:
   "\<lbrakk>kind g n = LogicNegationNode x;
-    g \<turnstile> x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr UnaryLogicNegation xe)" |
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr UnaryLogicNegation xe)" |
 
 (* Binary nodes *)
   AddNode:
   "\<lbrakk>kind g n = AddNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinAdd xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinAdd xe ye)" |
 
   MulNode:
   "\<lbrakk>kind g n = MulNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinMul xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinMul xe ye)" |
 
   SubNode:
   "\<lbrakk>kind g n = SubNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinSub xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinSub xe ye)" |
 
   AndNode:
   "\<lbrakk>kind g n = AndNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinAnd xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinAnd xe ye)" |
 
   OrNode:
   "\<lbrakk>kind g n = OrNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinOr xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinOr xe ye)" |
 
   XorNode:
   "\<lbrakk>kind g n = XorNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinXor xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinXor xe ye)" |
 
   IntegerBelowNode:
   "\<lbrakk>kind g n = IntegerBelowNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerBelow xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinIntegerBelow xe ye)" |
 
   IntegerEqualsNode:
   "\<lbrakk>kind g n = IntegerEqualsNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinIntegerEquals xe ye)" |
 
   IntegerLessThanNode:
   "\<lbrakk>kind g n = IntegerLessThanNode x y;
-    g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> y \<triangleright> ye\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)" |
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinIntegerLessThan xe ye)" |
 
 (* Convert Nodes *)
   NarrowNode:
   "\<lbrakk>kind g n = NarrowNode inputBits resultBits x;
-    g \<turnstile> x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr (UnaryNarrow inputBits resultBits) xe)" |
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr (UnaryNarrow inputBits resultBits) xe)" |
 
   SignExtendNode:
   "\<lbrakk>kind g n = SignExtendNode inputBits resultBits x;
-    g \<turnstile> x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr (UnarySignExtend inputBits resultBits) xe)" |
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr (UnarySignExtend inputBits resultBits) xe)" |
 
   ZeroExtendNode:
   "\<lbrakk>kind g n = ZeroExtendNode inputBits resultBits x;
-    g \<turnstile> x \<triangleright> xe\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (UnaryExpr (UnaryZeroExtend inputBits resultBits) xe)" |
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr (UnaryZeroExtend inputBits resultBits) xe)" |
 
 (* Leaf Node *)
   LeafNode:
   "\<lbrakk>is_preevaluated (kind g n);
     stamp g n = s\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<triangleright> (LeafExpr n s)"
+    \<Longrightarrow> g \<turnstile> n \<simeq> (LeafExpr n s)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
 
 
 inductive
-  replist :: "IRGraph \<Rightarrow> ID list \<Rightarrow> IRExpr list \<Rightarrow> bool" ("_ \<turnstile> _ \<triangleright>\<^sub>L _" 55)
+  replist :: "IRGraph \<Rightarrow> ID list \<Rightarrow> IRExpr list \<Rightarrow> bool" ("_ \<turnstile> _ \<simeq>\<^sub>L _" 55)
   for g where
 
   RepNil:
-  "g \<turnstile> [] \<triangleright>\<^sub>L []" |
+  "g \<turnstile> [] \<simeq>\<^sub>L []" |
 
   RepCons:
-  "\<lbrakk>g \<turnstile> x \<triangleright> xe;
-    g \<turnstile> xs \<triangleright>\<^sub>L xse\<rbrakk>
-    \<Longrightarrow> g \<turnstile> x#xs \<triangleright>\<^sub>L xe#xse"
+  "\<lbrakk>g \<turnstile> x \<simeq> xe;
+    g \<turnstile> xs \<simeq>\<^sub>L xse\<rbrakk>
+    \<Longrightarrow> g \<turnstile> x#xs \<simeq>\<^sub>L xe#xse"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprListE) replist .
 
@@ -172,48 +172,48 @@ text_raw \<open>\Snip{repRules}%
 \end{center}
 \EndSnip\<close>
 
-values "{t. eg2_sq \<turnstile> 4 \<triangleright> t}"
+values "{t. eg2_sq \<turnstile> 4 \<simeq> t}"
 
 inductive_cases ConstantNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (ConstantExpr c)"
+  "g \<turnstile> n \<simeq> (ConstantExpr c)"
 inductive_cases ParameterNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (ParameterExpr i s)"
+  "g \<turnstile> n \<simeq> (ParameterExpr i s)"
 inductive_cases ConditionalNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (ConditionalExpr ce te fe)"
+  "g \<turnstile> n \<simeq> (ConditionalExpr ce te fe)"
 inductive_cases AbsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (UnaryExpr UnaryAbs xe)"
+  "g \<turnstile> n \<simeq> (UnaryExpr UnaryAbs xe)"
 inductive_cases NotNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (UnaryExpr UnaryNot xe)"
+  "g \<turnstile> n \<simeq> (UnaryExpr UnaryNot xe)"
 inductive_cases NegateNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (UnaryExpr UnaryNeg xe)"
+  "g \<turnstile> n \<simeq> (UnaryExpr UnaryNeg xe)"
 inductive_cases LogicNegationNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (UnaryExpr UnaryLogicNegation xe)"
+  "g \<turnstile> n \<simeq> (UnaryExpr UnaryLogicNegation xe)"
 inductive_cases AddNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinAdd xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinAdd xe ye)"
 inductive_cases MulNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinMul xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinMul xe ye)"
 inductive_cases SubNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinSub xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinSub xe ye)"
 inductive_cases AndNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinAnd xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinAnd xe ye)"
 inductive_cases OrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinOr xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinOr xe ye)"
 inductive_cases XorNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinXor xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinXor xe ye)"
 inductive_cases IntegerBelowNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerBelow xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerBelow xe ye)"
 inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerEquals xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerEquals xe ye)"
 inductive_cases IntegerLessThanNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (BinaryExpr BinIntegerLessThan xe ye)"
+  "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerLessThan xe ye)"
 inductive_cases NarrowNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (UnaryExpr (UnaryNarrow ib rb) xe)"
+  "g \<turnstile> n \<simeq> (UnaryExpr (UnaryNarrow ib rb) xe)"
 inductive_cases SignExtendNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (UnaryExpr (UnarySignExtend ib rb) xe)"
+  "g \<turnstile> n \<simeq> (UnaryExpr (UnarySignExtend ib rb) xe)"
 inductive_cases ZeroExtendNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (UnaryExpr (UnaryZeroExtend ib rb) xe)"
+  "g \<turnstile> n \<simeq> (UnaryExpr (UnaryZeroExtend ib rb) xe)"
 inductive_cases LeafNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "g \<turnstile> n \<triangleright> (LeafExpr n s)"
+  "g \<turnstile> n \<simeq> (LeafExpr n s)"
 
 (* group those forward rules into a named set *)
 lemmas RepE\<^marker>\<open>tag invisible\<close> = 
@@ -449,15 +449,15 @@ values "{(n, g) . (eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, n))}"
 inductive
   encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
   for g m p where
-  "\<lbrakk>g \<turnstile> n \<triangleright> n; [m,p] \<turnstile> n \<mapsto> v\<rbrakk> \<Longrightarrow> [g, m, p] \<turnstile> n \<mapsto> v"
+  "\<lbrakk>g \<turnstile> n \<simeq> n; [m,p] \<turnstile> n \<mapsto> v\<rbrakk> \<Longrightarrow> [g, m, p] \<turnstile> n \<mapsto> v"
 *)
 
 definition encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" 
   ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
   where
-  "encodeeval g m p n v = (\<exists> e. (g \<turnstile> n \<triangleright> e) \<and> ([m,p] \<turnstile> e \<mapsto> v))"
+  "encodeeval g m p n v = (\<exists> e. (g \<turnstile> n \<simeq> e) \<and> ([m,p] \<turnstile> e \<mapsto> v))"
 
-(*lemma "([g, m, p] \<turnstile> n \<mapsto> v) = (g \<turnstile> n \<triangleright> n) \<and> ([m,p] \<turnstile> n \<mapsto> v)"
+(*lemma "([g, m, p] \<turnstile> n \<mapsto> v) = (g \<turnstile> n \<simeq> n) \<and> ([m,p] \<turnstile> n \<mapsto> v)"
    sledgehammer
 *)
 
@@ -523,7 +523,7 @@ text \<open>We define a refinement ordering over IRExpr and show that it is a pr
 instantiation IRExpr :: preorder begin
 
 definition
-  le_expr_def [simp]: "(e1 \<le> e2) \<longleftrightarrow> (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
+  le_expr_def [simp]: "(e2 \<le> e1) \<longleftrightarrow> (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
 
 definition
   lt_expr_def [simp]: "(e1 < e2) \<longleftrightarrow> (e1 \<le> e2 \<and> \<not> (e1 \<doteq> e2))"
@@ -539,7 +539,7 @@ end
 
 definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "graph_refinement g1 g2 = 
-        (\<forall> n . n \<in> ids g1 \<longrightarrow> (\<forall>e1. (g1 \<turnstile> n \<triangleright> e1) \<longrightarrow> (\<exists>e2. (g2 \<turnstile> n \<triangleright> e2) \<and> e1 \<le> e2)))"
+        (\<forall> n . n \<in> ids g1 \<longrightarrow> (\<forall>e1. (g1 \<turnstile> n \<simeq> e1) \<longrightarrow> (\<exists>e2. (g2 \<turnstile> n \<simeq> e2) \<and> e1 \<ge> e2)))"
 
 lemma graph_refinement:
   "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"

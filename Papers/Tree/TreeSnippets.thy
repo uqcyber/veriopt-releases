@@ -130,20 +130,20 @@ fun embed_expr :: "IRNode \<Rightarrow> ExprIRNode" where
   "embed_expr _ = NotExpr"
 
 lemma unary_embed:
-  assumes "g \<turnstile> n \<triangleright> UnaryExpr op x"
+  assumes "g \<turnstile> n \<simeq> UnaryExpr op x"
   shows "\<exists> x' . embed_expr (kind g n) = ExprUnaryNode op x'"
   using assms by (induction "UnaryExpr op x" rule: rep.induct; simp)
 
 lemma equal_embedded_x:
-  assumes "g \<turnstile> n \<triangleright> UnaryExpr op xe"
+  assumes "g \<turnstile> n \<simeq> UnaryExpr op xe"
   assumes "embed_expr (kind g n) = ExprUnaryNode op' x"
-  shows "g \<turnstile> x \<triangleright> xe"
+  shows "g \<turnstile> x \<simeq> xe"
   using assms by (induction "UnaryExpr op xe" rule: rep.induct; simp)
 
 lemma blah:
   assumes "embed_expr (kind g n) = ExprUnaryNode op n'"
-  assumes "g \<turnstile> n' \<triangleright> e"
-  shows "(g \<turnstile> n \<triangleright> UnaryExpr op e)"
+  assumes "g \<turnstile> n' \<simeq> e"
+  shows "(g \<turnstile> n \<simeq> UnaryExpr op e)"
   using assms(2,1) apply (cases "kind g n"; auto)
   using rep.AbsNode apply blast
   using rep.LogicNegationNode apply blast
@@ -167,6 +167,12 @@ text_raw \<open>\Snip{maximal-sharing}
 text_raw \<open>\Snip{tree-to-graph-rewriting}
 \begin{center}
 @{thm[display, margin=40] tree_to_graph_rewriting [no_vars]}
+\end{center}
+\EndSnip\<close>
+
+text_raw \<open>\Snip{graph-represents-expression}
+\begin{center}
+@{thm[display] graph_represents_expression_def [no_vars]}
 \end{center}
 \EndSnip\<close>
 

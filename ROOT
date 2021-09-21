@@ -23,10 +23,11 @@ session Semantics in Semantics = Graph +
            show_question_marks = false]
   theories
     IRTreeEval
-    TreeToGraph
     IRTreeEvalThms
+    TreeToGraph
+    TreeToGraphThms
     IRStepObj
-    (*IRStepThms*)
+    IRStepThms
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
@@ -83,6 +84,8 @@ session Document in "Papers/Main" = Optimizations +
 
     Semantics.IRTreeEval
     Semantics.IRTreeEvalThms
+    Semantics.TreeToGraph
+    Semantics.TreeToGraphThms
     Semantics.IRStepObj
     Semantics.IRStepThms
 

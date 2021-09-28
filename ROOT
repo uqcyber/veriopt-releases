@@ -156,6 +156,7 @@ session TreePaper in "Papers/Tree" = Semantics +
            show_question_marks = false]
   theories
     TreeSnippets
+    SlideSnippets
   document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"

@@ -29,7 +29,6 @@ text_raw \<open>\Snip{expression-refinement}%
 text_raw \<open>\Snip{graph2tree}
 \induct{@{thm[mode=Rule] rep.ConstantNode [no_vars]}}{semantics:constant}
 \induct{@{thm[mode=Rule] rep.AbsNode [no_vars]}}{semantics:unary}
-\induct{@{thm[mode=Rule] rep.SignExtendNode [no_vars]}}{semantics:convert}
 \induct{@{thm[mode=Rule] rep.AddNode [no_vars]}}{semantics:binary}
 \EndSnip\<close>
 

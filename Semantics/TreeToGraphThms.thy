@@ -67,7 +67,7 @@ lemma mono_zero_extend:
   using assms mono_unary repDet ZeroExtendNode
   by metis
 
-lemma mono_conditional:
+lemma mono_conditional_graph:
   assumes "kind g1 n = ConditionalNode c t f \<and> kind g2 n = ConditionalNode c t f"
   assumes "(g1 \<turnstile> c \<simeq> ce1) \<and> (g2 \<turnstile> c \<simeq> ce2)"
   assumes "(g1 \<turnstile> t \<simeq> te1) \<and> (g2 \<turnstile> t \<simeq> te2)"

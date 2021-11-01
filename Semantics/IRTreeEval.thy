@@ -73,7 +73,6 @@ datatype (discs_sels) IRExpr =
     UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
   | BinaryExpr (ir_op: IRBinaryOp) (ir_x: IRExpr) (ir_y: IRExpr)
   | ConditionalExpr (ir_condition: IRExpr) (ir_trueValue: IRExpr) (ir_falseValue: IRExpr)
-  | ConstantExpr (ir_const: Value)
 (* TODO
   | IsNullNode (ir_value: IRExpr) 
   | RefNode ?
@@ -89,7 +88,9 @@ datatype (discs_sels) IRExpr =
 *)
   | LeafExpr (ir_nid: ID) (ir_stamp: Stamp)
   (* LeafExpr is for pre-evaluated nodes, like LoadFieldNode, SignedDivNode. *) 
-
+  | ConstantExpr (ir_const: Value) (* Ground constant *)
+  | ConstantVar (ir_name: string)  (* Pattern variable for constant *)
+  | VariableExpr (ir_name: string) (ir_stamp: Stamp) (* Pattern variable for expression *)
 
 subsection \<open>Data-flow Tree Evaluation\<close>
 
@@ -173,5 +174,91 @@ inductive
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalTs)
   evaltrees .
+
+(*
+typedef Substitution = "{\<sigma> :: string \<Rightarrow> IRExpr option . finite (dom \<sigma>)}"
+proof -
+  have "finite(dom(Map.empty)) \<and> ran Map.empty = {}" by auto
+  then show ?thesis
+    by fastforce
+qed
+*)
+
+datatype SubValue = expr(s_expr: IRExpr) | const(s_val: Value) | SubNone
+
+type_synonym Substitution = "string \<Rightarrow> SubValue"
+
+fun substitute :: "Substitution \<Rightarrow> IRExpr \<Rightarrow> IRExpr" (infix "@@" 60) where
+  "substitute \<sigma> (UnaryExpr op e) = UnaryExpr op (\<sigma> @@ e)" |
+  "substitute \<sigma> (BinaryExpr op e1 e2) = BinaryExpr op (\<sigma> @@ e1) (\<sigma> @@ e2)" |
+  "substitute \<sigma> (ConditionalExpr b e1 e2) = ConditionalExpr (\<sigma> @@ b) (\<sigma> @@ e1) (\<sigma> @@ e2)" |
+  "substitute \<sigma> (ParameterExpr i s) = ParameterExpr i s" |
+  "substitute \<sigma> (LeafExpr n s) = LeafExpr n s" |
+  "substitute \<sigma> (ConstantExpr v) = ConstantExpr v" |
+  "substitute \<sigma> (ConstantVar x) = 
+      (case \<sigma> x of const v \<Rightarrow> ConstantExpr v | _ \<Rightarrow> ConstantVar x)" |
+  "substitute \<sigma> (VariableExpr x s) = 
+      (case \<sigma> x of SubNone \<Rightarrow> (VariableExpr x s) | expr y \<Rightarrow> y)"
+
+fun union :: "Substitution \<Rightarrow> Substitution \<Rightarrow> Substitution" where
+  "union \<sigma>1 \<sigma>2 = (\<lambda>name. if \<sigma>1 name = SubNone then \<sigma>2 name else \<sigma>1 name)"
+
+fun compatible :: "Substitution \<Rightarrow> Substitution \<Rightarrow> bool" where
+  "compatible \<sigma>1 \<sigma>2 = (\<forall>x. \<sigma>1 x \<noteq> SubNone \<and> \<sigma>2 x \<noteq> SubNone \<longrightarrow> \<sigma>1 x = \<sigma>2 x)"
+
+fun substitution_union :: "Substitution option \<Rightarrow> Substitution option \<Rightarrow> Substitution option" (infix "\<uplus>" 70) where
+  "substitution_union s1 s2 = 
+      (case s1 of
+       None \<Rightarrow> None |
+       Some \<sigma>1 \<Rightarrow> 
+           (case s2 of
+            None \<Rightarrow> None |
+            Some \<sigma>2 \<Rightarrow> (if compatible \<sigma>1 \<sigma>2 then Some (union \<sigma>1 \<sigma>2) else None)
+           )
+      )"
+
+definition EmptySubstitution :: "Substitution" where 
+  "EmptySubstitution = (\<lambda>x. SubNone)"
+
+fun match :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> Substitution option" where
+  "match (UnaryExpr op e) (UnaryExpr op' e') = 
+      (if op = op' then match e e' else None)" |
+  "match (BinaryExpr op e1 e2) (BinaryExpr op' e1' e2') = 
+      (if op = op' then (match e1 e1') \<uplus> (match e2 e2') else None)" |
+  "match (ConditionalExpr b e1 e2) (ConditionalExpr b' e1' e2') = 
+      (match b b') \<uplus> ((match e1 e1') \<uplus> (match e2 e2'))" |
+  "match (ParameterExpr i1 s1) (ParameterExpr i2 s2) = 
+      (if i1 = i2 \<and> s1 = s2 then Some EmptySubstitution else None)" |
+  "match (LeafExpr n1 s1) (LeafExpr n2 s2) = 
+      (if n1 = n2 \<and> s1 = s2 then Some EmptySubstitution else None)" |
+  "match (ConstantExpr v1) (ConstantExpr v2) = 
+      (if v1 = v2 then Some EmptySubstitution else None)" |
+  "match (ConstantVar name) (ConstantExpr v) = 
+      Some(\<lambda>x. if x = name then expr(ConstantExpr v) else SubNone)" |
+  "match (VariableExpr x s) e = Some (\<lambda> n. if n = x then expr e else SubNone)" |
+  "match _ _ = None"
+
+fun vars :: "IRExpr \<Rightarrow> string set" where
+  "vars (UnaryExpr op e) = vars e" |
+  "vars (BinaryExpr op e1 e2) = vars e1 \<union> vars e2" |
+  "vars (ConditionalExpr b e1 e2) = vars b \<union> vars e1 \<union> vars e2" |
+  "vars (ParameterExpr i s) = {}" |
+  "vars (LeafExpr n s) = {}" |
+  "vars (ConstantExpr v) = {}" |
+  "vars (ConstantVar x) = {x}" |
+  "vars (VariableExpr x s) = {x}"
+
+typedef Rewrite = "{ (e1,e2) :: IRExpr \<times> IRExpr | e1 e2 . vars e2 \<subseteq> vars e1 }" 
+proof -
+  have "\<exists>v. vars (ConstantExpr v) \<subseteq> vars (ConstantExpr v)" by simp
+  then show ?thesis
+    by blast
+qed
+
+fun rewrite :: "Rewrite \<Rightarrow> IRExpr \<Rightarrow> IRExpr option" where
+  "rewrite r e = (let (e1,e2) = Rep_Rewrite r in 
+                   (if (\<exists> \<sigma>. match e1 e = Some \<sigma>) 
+                         then Some ((SOME \<sigma>. match e1 e = Some \<sigma>) @@ e2) 
+                         else None))"
 
 end

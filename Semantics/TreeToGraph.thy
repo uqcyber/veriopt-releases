@@ -481,7 +481,10 @@ inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> val"
 inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> (LeafExpr n s) \<mapsto> val"
-
+inductive_cases ConstantVarE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (ConstantVar x) \<mapsto> val"
+inductive_cases VariableExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (VariableExpr x s) \<mapsto> val"
 inductive_cases EvalNilE[elim!]:\<^marker>\<open>tag invisible\<close>
   "[m,p] \<turnstile> [] \<mapsto>\<^sub>L vals"
 inductive_cases EvalConsE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -495,6 +498,8 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
   UnaryExprE
   BinaryExprE
   LeafExprE
+  ConstantVarE
+  VariableExprE
   EvalNilE
   EvalConsE
 

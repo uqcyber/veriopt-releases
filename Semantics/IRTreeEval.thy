@@ -92,6 +92,19 @@ datatype (discs_sels) IRExpr =
   | ConstantVar (ir_name: string)  (* Pattern variable for constant *)
   | VariableExpr (ir_name: string) (ir_stamp: Stamp) (* Pattern variable for expression *)
 
+fun is_ground :: "IRExpr \<Rightarrow> bool" where
+  "is_ground (UnaryExpr op e) = is_ground e" |
+  "is_ground (BinaryExpr op e1 e2) = (is_ground e1 \<and> is_ground e2)" |
+  "is_ground (ConditionalExpr b e1 e2) = (is_ground b \<and> is_ground e1 \<and> is_ground e2)" |
+  "is_ground (ParameterExpr i s) = True" |
+  "is_ground (LeafExpr n s) = True" |
+  "is_ground (ConstantExpr v) = True" |
+  "is_ground (ConstantVar name) = False" |
+  "is_ground (VariableExpr name s) = False"
+
+typedef GroundExpr = "{ e :: IRExpr . is_ground e }"
+  using is_ground.simps(6) by blast
+
 subsection \<open>Data-flow Tree Evaluation\<close>
 
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
@@ -184,7 +197,7 @@ proof -
 qed
 *)
 
-datatype SubValue = expr(s_expr: IRExpr) | const(s_val: Value) | SubNone
+datatype SubValue = SubExpr(s_expr: IRExpr) | SubConst(s_val: Value) | SubNone
 
 type_synonym Substitution = "string \<Rightarrow> SubValue"
 
@@ -196,9 +209,9 @@ fun substitute :: "Substitution \<Rightarrow> IRExpr \<Rightarrow> IRExpr" (infi
   "substitute \<sigma> (LeafExpr n s) = LeafExpr n s" |
   "substitute \<sigma> (ConstantExpr v) = ConstantExpr v" |
   "substitute \<sigma> (ConstantVar x) = 
-      (case \<sigma> x of const v \<Rightarrow> ConstantExpr v | _ \<Rightarrow> ConstantVar x)" |
+      (case \<sigma> x of SubConst v \<Rightarrow> ConstantExpr v | _ \<Rightarrow> ConstantVar x)" |
   "substitute \<sigma> (VariableExpr x s) = 
-      (case \<sigma> x of SubNone \<Rightarrow> (VariableExpr x s) | expr y \<Rightarrow> y)"
+      (case \<sigma> x of SubNone \<Rightarrow> (VariableExpr x s) | SubExpr y \<Rightarrow> y)"
 
 fun union :: "Substitution \<Rightarrow> Substitution \<Rightarrow> Substitution" where
   "union \<sigma>1 \<sigma>2 = (\<lambda>name. if \<sigma>1 name = SubNone then \<sigma>2 name else \<sigma>1 name)"
@@ -234,8 +247,8 @@ fun match :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> Substitution option" whe
   "match (ConstantExpr v1) (ConstantExpr v2) = 
       (if v1 = v2 then Some EmptySubstitution else None)" |
   "match (ConstantVar name) (ConstantExpr v) = 
-      Some(\<lambda>x. if x = name then expr(ConstantExpr v) else SubNone)" |
-  "match (VariableExpr x s) e = Some (\<lambda> n. if n = x then expr e else SubNone)" |
+      Some(\<lambda>x. if x = name then SubExpr(ConstantExpr v) else SubNone)" |
+  "match (VariableExpr x s) e = Some (\<lambda> n. if n = x then SubExpr e else SubNone)" |
   "match _ _ = None"
 
 fun vars :: "IRExpr \<Rightarrow> string set" where
@@ -257,8 +270,9 @@ qed
 
 fun rewrite :: "Rewrite \<Rightarrow> IRExpr \<Rightarrow> IRExpr option" where
   "rewrite r e = (let (e1,e2) = Rep_Rewrite r in 
-                   (if (\<exists> \<sigma>. match e1 e = Some \<sigma>) 
-                         then Some ((SOME \<sigma>. match e1 e = Some \<sigma>) @@ e2) 
-                         else None))"
+                   (case match e1 e of
+                    Some \<sigma> \<Rightarrow> Some (\<sigma> @@ e2) |
+                    None \<Rightarrow> None))"
+
 
 end

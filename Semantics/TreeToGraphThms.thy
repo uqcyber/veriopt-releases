@@ -835,8 +835,32 @@ next
   from in_g1 have stamps: "stamp g1 n = stamp g2 n"
     using assms unfolding as_set_def
     by blast
-  from kinds stamps show ?case using LeafExpr LeafExprE LeafNode
-    by (smt (verit) IRExpr.distinct(17) IRExpr.distinct(23) IRExpr.distinct(9) rep.simps) (*slow*)
+  from kinds stamps show ?case using LeafExpr LeafExprE LeafNode 
+    by (smt (z3) IRExpr.distinct(29) IRExpr.simps(16) IRExpr.simps(28) rep.simps)
+next
+  case (ConstantVar x)
+  then have in_g1: "n \<in> ids g1"
+    using no_encoding by force
+  then have kinds: "kind g1 n = kind g2 n"
+    using assms unfolding as_set_def
+    by blast
+  from in_g1 have stamps: "stamp g1 n = stamp g2 n"
+    using assms unfolding as_set_def
+    by blast
+  from kinds stamps show ?case using ConstantVar
+    using rep.simps by blast
+next 
+  case (VariableExpr x s)
+  then have in_g1: "n \<in> ids g1"
+    using no_encoding by force
+  then have kinds: "kind g1 n = kind g2 n"
+    using assms unfolding as_set_def
+    by blast
+  from in_g1 have stamps: "stamp g1 n = stamp g2 n"
+    using assms unfolding as_set_def
+    by blast
+  from kinds stamps show ?case using VariableExpr
+    using rep.simps by blast
 qed
 
 
@@ -866,5 +890,12 @@ lemma graph_construction:
   \<Longrightarrow> (g2 \<turnstile> n \<unlhd> e1) \<and> graph_refinement g1 g2"
   using subset_refines
   by (meson encodeeval_def graph_represents_expression_def le_expr_def)
+
+definition valid_rewrite :: "Rewrite \<Rightarrow> bool" where
+  "valid_rewrite r = (let (e1,e2) = Rep_Rewrite r in 
+      (\<forall>e. is_ground e \<longrightarrow> 
+          (case match e1 e of
+           None \<Rightarrow> True |
+           Some \<sigma> \<Rightarrow> (\<sigma> @@ e2) \<le> e)))"
 
 end

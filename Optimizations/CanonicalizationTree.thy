@@ -11,28 +11,48 @@ begin
   https://github.com/oracle/graal/blob/fbab70f9d788f997c862bdee186ef1d8e6c435f1/compiler/src/org.graalvm.compiler.core.common/src/org/graalvm/compiler/core/common/type/IntegerStamp.java#L602
 *)
 
+(* is_idempotent \<oplus> \<Longrightarrow> x \<oplus> x = x *)
+fun is_idempotent :: "IRBinaryOp \<Rightarrow> bool" where
+"is_idempotent BinAnd = True" |
+"is_idempotent BinOr  = True" |
+"is_idempotent _      = False"
+
 (* is_neutral (\<oplus>, n) \<Longrightarrow> \<forall> x. x \<oplus> n = x *)
 fun is_neutral :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
-(* x * 1 = x*)
-"is_neutral BinMul (IntVal32 x) = (x = 1)" |
-"is_neutral BinMul (IntVal64 x) = (x = 1)" |
 (* x + 0 = x*)
 "is_neutral BinAdd (IntVal32 x) = (x = 0)" |
 "is_neutral BinAdd (IntVal64 x) = (x = 0)" |
-(* x ^ 0 = x *)
-"is_neutral BinXor (IntVal32 x) = (x = 0)" |
-"is_neutral BinXor (IntVal64 x) = (x = 0)" |
 (* x - 0 = x *)
 "is_neutral BinSub (IntVal32 x) = (x = 0)" |
 "is_neutral BinSub (IntVal64 x) = (x = 0)" |
+(* x * 1 = x*)
+"is_neutral BinMul (IntVal32 x) = (x = 1)" |
+"is_neutral BinMul (IntVal64 x) = (x = 1)" |
+(* x & 1 = x *)(* TODO In Graal? *)
+"is_neutral BinAnd (IntVal32 x) = (x = 1)" |
+"is_neutral BinAnd (IntVal64 x) = (x = 1)" |
+(* x | 0 = x *)(* TODO In Graal? *)
+"is_neutral BinOr (IntVal32 x) = (x = 0)" |
+"is_neutral BinOr (IntVal64 x) = (x = 0)" |
+(* x ^ 0 = x *)(* TODO In Graal? *)
+"is_neutral BinXor (IntVal32 x) = (x = 0)" |
+"is_neutral BinXor (IntVal64 x) = (x = 0)" |
 
 "is_neutral _ _ = False"
 
-(* is_zerp (\<oplus>, z) \<Longrightarrow> \<forall> x. x \<oplus> z = 0 *)
-fun is_zero :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
-"is_zero BinMul (IntVal32 x) = (x = 0)" |
-"is_zero BinMul (IntVal64 x) = (x = 0)" |
-"is_zero _ _ = False"
+(* is_annihilator (\<oplus>, z) \<Longrightarrow> \<forall> x. x \<oplus> z = z *)
+fun is_annihilator :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
+(* x * 0 = 0 *)
+"is_annihilator BinMul (IntVal32 x) = (x = 0)" |
+"is_annihilator BinMul (IntVal64 x) = (x = 0)" |
+(* x & 0 = 0 *)(* TODO In Graal? *)
+"is_annihilator BinAnd (IntVal32 x) = (x = 0)" |
+"is_annihilator BinAnd (IntVal64 x) = (x = 0)" |
+(* x | 1 = 1 *)(* TODO In Graal? *)
+"is_annihilator BinOr  (IntVal32 x) = (x = 1)" |
+"is_annihilator BinOr  (IntVal64 x) = (x = 1)" |
+
+"is_annihilator _ _ = False"
 
 fun int_to_value :: "Value \<Rightarrow> int \<Rightarrow> Value" where
 "int_to_value (IntVal32 _) y = (IntVal32 (word_of_int y))" |
@@ -61,23 +81,27 @@ inductive CanonicalizeBinaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> boo
 
   binary_fold_yzero32:
   "\<lbrakk>y = ConstantExpr c;
-    is_zero op c;
+    is_annihilator op c;
     stampx = stamp_expr x;
     stampy = stamp_expr y;
     stp_bits stampx = stp_bits stampy;
     stp_bits stampx = 32;
     is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
-    \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr (IntVal32 0))" |
+    \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr c)" |
 
   binary_fold_yzero64:
   "\<lbrakk>y = ConstantExpr c;
-    is_zero op c;
+    is_annihilator op c;
     stampx = stamp_expr x;
     stampy = stamp_expr y;
     stp_bits stampx = stp_bits stampy;
     stp_bits stampx = 64;
     is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
-    \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr (IntVal64 0))"
+    \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr c)" |
+
+  binary_idempotent:
+  "\<lbrakk>is_idempotent op\<rbrakk>
+    \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x x) x"
 
 inductive CanonicalizeUnaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   unary_const_fold:

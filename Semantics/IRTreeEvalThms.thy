@@ -397,7 +397,7 @@ lemma valid32or64_both:
 
 subsection \<open>Example Data-flow Optimisations\<close>
 
-(* An example refinement: a + 0 \<ge> a *)
+(* An example refinement: a + 0 = a *)
 lemma a0a_helper [simp]:
   assumes a: "valid_value (IntegerStamp 32 lo hi) v"
   shows "intval_add v (IntVal32 0) = v"

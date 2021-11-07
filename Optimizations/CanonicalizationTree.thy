@@ -11,11 +11,23 @@ begin
   https://github.com/oracle/graal/blob/fbab70f9d788f997c862bdee186ef1d8e6c435f1/compiler/src/org.graalvm.compiler.core.common/src/org/graalvm/compiler/core/common/type/IntegerStamp.java#L602
 *)
 
-(* is_idempotent \<oplus> \<Longrightarrow> x \<oplus> x = x *)
-fun is_idempotent :: "IRBinaryOp \<Rightarrow> bool" where
-"is_idempotent BinAnd = True" |
-"is_idempotent BinOr  = True" |
-"is_idempotent _      = False"
+(* is_idempotent_binary \<oplus> \<Longrightarrow> x \<oplus> x = x *)(* TODO In Graal? *)
+fun is_idempotent_binary :: "IRBinaryOp \<Rightarrow> bool" where
+"is_idempotent_binary BinAnd = True" |
+"is_idempotent_binary BinOr  = True" |
+"is_idempotent_binary _      = False"
+
+(* is_idempotent_unary \<ominus> \<Longrightarrow> \<ominus> \<ominus> x = \<ominus> x *)(* TODO In Graal? *)
+fun is_idempotent_unary :: "IRUnaryOp \<Rightarrow> bool" where
+"is_idempotent_unary UnaryAbs = True" |
+"is_idempotent_unary _ = False"
+
+(* is_self_inverse \<ominus> \<Longrightarrow> \<ominus> \<ominus> x = x *)
+fun is_self_inverse :: "IRUnaryOp \<Rightarrow> bool" where
+"is_self_inverse UnaryNeg = True" |
+"is_self_inverse UnaryNot = True" |
+"is_self_inverse UnaryLogicNegation = True" |
+"is_self_inverse _ = False"
 
 (* is_neutral (\<oplus>, n) \<Longrightarrow> \<forall> x. x \<oplus> n = x *)
 fun is_neutral :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
@@ -40,7 +52,7 @@ fun is_neutral :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
 
 "is_neutral _ _ = False"
 
-(* is_annihilator (\<oplus>, z) \<Longrightarrow> \<forall> x. x \<oplus> z = z *)
+(* is_annihilator (\<oplus>, z) \<Longrightarrow> \<forall> x. x \<oplus> z = z (was know as is_zero)*)
 fun is_annihilator :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
 (* x * 0 = 0 *)
 "is_annihilator BinMul (IntVal32 x) = (x = 0)" |
@@ -99,8 +111,8 @@ inductive CanonicalizeBinaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> boo
     is_IntegerStamp stampx \<and> is_IntegerStamp stampy\<rbrakk>
     \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x y) (ConstantExpr c)" |
 
-  binary_idempotent:
-  "\<lbrakk>is_idempotent op\<rbrakk>
+  binary_idempotent: (* Does this need more assumptions? *)
+  "\<lbrakk>is_idempotent_binary op\<rbrakk>
     \<Longrightarrow> CanonicalizeBinaryOp (BinaryExpr op x x) x"
 
 inductive CanonicalizeUnaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where

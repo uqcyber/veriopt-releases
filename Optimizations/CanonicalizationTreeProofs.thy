@@ -24,6 +24,30 @@ lemma neutral_rewrite_helper:
   and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x (IntVal64 (0)) = x"
   using valid32or64_both by fastforce+
 
+lemma annihilator_rewrite_helper:
+  shows "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_mul x (IntVal32 0) = IntVal32 0"
+  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_mul x (IntVal64 0) = IntVal64 0"
+
+  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_and x (IntVal32 0) = IntVal32 0"
+  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_and x (IntVal64 0) = IntVal64 0"
+
+  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_or x (IntVal32 1) = IntVal32 1"
+  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x (IntVal64 1) = IntVal64 1"
+  using valid32or64_both
+  apply auto
+  apply (metis intval_mul.simps(1) mult_zero_right valid32)
+  sorry
+
+lemma idempotent_rewtite_helper:
+  shows "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_and x x = x"
+  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_and x x = x"
+
+  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_or x x = x"
+  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x x = x"
+  using valid32or64_both
+  apply auto 
+  sorry
+
 locale valid_stamps =
   assumes int_stamp_implies_valid_value:
   "[m,p] \<turnstile> expr \<mapsto> val \<Longrightarrow>
@@ -53,28 +77,33 @@ next
   case (binary_fold_yzero32 y c op stampx x stampy)
   obtain xval where x_eval: "[m, p] \<turnstile> x \<mapsto> xval"
     using binary_fold_yzero32.prems(1) by auto
-  have cdef: "c = (IntVal32 0) \<or> c = (IntVal64 0)"
-    using binary_fold_yzero32(2)
-    by (metis is_zero.elims(2))
-  have opdef: "op = BinMul"
-    using binary_fold_yzero32(2)
-    using is_zero.elims(2) by blast
-  have "bin_eval op xval c = (IntVal32 0)"
-    using cdef opdef bin_eval.simps(2) intval_mul.simps(1,2) x_eval
-    using binary_fold_yzero32.hyps(1) binary_fold_yzero32.hyps(3) binary_fold_yzero32.hyps(4) binary_fold_yzero32.hyps(5) binary_fold_yzero32.hyps(6) binary_fold_yzero32.hyps(7) int_stamp_implies_valid_value is_IntegerStamp_def valid_int32 by fastforce
+  then have "bin_eval op xval c = c"
+    using annihilator_rewrite_helper binary_fold_yzero32.hyps int_stamp_implies_valid_value is_IntegerStamp_def
+    sorry
   then show ?case
-    by (metis BinaryExpr ConstantExpr ConstantExprE binary_fold_yzero32.hyps(1) binary_fold_yzero32.hyps(2)
-        binary_fold_yzero32.prems(1) binary_fold_yzero32.prems(2) evalDet is_zero.simps(11) x_eval)
+    by (metis BinaryExprE ConstantExprE binary_fold_yzero32.hyps(1) binary_fold_yzero32.prems(1) binary_fold_yzero32.prems(2) evalDet x_eval)
+
 next
   case (binary_fold_yzero64 y c op stampx x stampy)
   obtain xval where x_eval: "[m, p] \<turnstile> x \<mapsto> xval"
     using binary_fold_yzero64.prems(1) by auto
-  then have "bin_eval op xval c = (IntVal64 0)" 
-    using ConstantExpr Value.distinct(5) int_stamp_implies_valid_value binary_fold_yzero64.hyps is_IntegerStamp_def
-    by (metis valid_value.simps(34))
+  then have "bin_eval op xval c = c"
+    using annihilator_rewrite_helper
+    sorry
   then show ?case
-    by (metis BinaryExprE ConstantExprE binary_fold_yzero64.hyps(1) binary_fold_yzero64.prems(1)
-        binary_fold_yzero64.prems(2) evalDet x_eval)
+    by (metis BinaryExprE ConstantExprE binary_fold_yzero64.hyps(1) 
+        binary_fold_yzero64.prems(1) binary_fold_yzero64.prems(2) evalDet x_eval)
+
+next
+  case (binary_idempotent op x)
+  obtain xval where x_eval: "[m, p] \<turnstile> x \<mapsto> xval"
+    using binary_idempotent.prems(1) by auto
+  then have "bin_eval op xval xval = xval"
+    using idempotent_rewtite_helper binary_idempotent.hyps 
+    sorry
+  then show ?case
+    by (metis BinaryExprE binary_idempotent.prems(1) binary_idempotent.prems(2) evalDet x_eval)
+
 qed
 
 lemma CanonicalizeUnaryProof:

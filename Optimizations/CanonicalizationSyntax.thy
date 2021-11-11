@@ -17,21 +17,43 @@ fun size :: "IRExpr \<Rightarrow> int" where
 
 
 ML \<open>
+val debugMode = false
+
+fun debugPrint value =
+  if debugMode then (@{print} value) else value
+
 fun translateConst (str, typ) =
   case (str, typ) of
     ("\<^const>Groups.plus_class.plus", _) => @{const BinaryExpr} $ @{const BinAdd}
     | ("\<^const>Groups.minus_class.minus", _) => @{const BinaryExpr} $ @{const BinSub}
     | ("\<^const>Groups.times_class.times", _) => @{const BinaryExpr} $ @{const BinMul}
+    | ("\<^const>HOL.conj", _) => @{const BinaryExpr} $ @{const BinAnd}
+    | ("\<^const>_binEquals", _) => @{const BinaryExpr} $ @{const BinIntegerEquals}
     | ("\<^const>Groups.uminus_class.uminus", _) => @{const UnaryExpr} $ @{const UnaryNeg}
     | _ => Const (str, typ)
 
+fun translateEquals ctxt terms =
+  @{const BinaryExpr} $ @{const BinIntegerEquals} $ hd terms $ hd (tl terms)
+
+(* A seemingly arbitrary distinction  *)
+fun translateFree (str, typ) =
+  case (str, typ) of
+    ("abs", _) => @{const UnaryExpr} $ @{const UnaryAbs}
+    | _ => Free (str, typ)
+
 fun expandNode ctxt trm =
+  let
+    val _ = debugPrint "Expanding node";
+    val _ = debugPrint trm;
+  in
   case trm of
     Const (str, typ) => translateConst (str, typ)
+    | Free (str, typ) => translateFree (str, typ)
     | Abs (str, typ, trm) => Abs (str, typ, expandNode ctxt trm)
     | e as ((Const ("\<^const>IRTreeEval.IRExpr.ConstantExpr",_)) $ _) => e
     | (x $ y) => (expandNode ctxt x $ expandNode ctxt y)
     | _ => trm
+  end
 
 fun expandNodes ctxt [trm] = expandNode ctxt trm
   | expandNodes _ ts = raise TERM ("expandNodes", ts)
@@ -65,18 +87,27 @@ fun constantValues _ [trm] =
 
 \<close>
 
-syntax "_constantValues" :: "term \<Rightarrow> term" ("const _" 100)
+syntax "_constantValues" :: "term \<Rightarrow> term" ("const _" 120)
 parse_translation \<open> [( @{syntax_const "_constantValues"} , constantValues)] \<close>
+
+notation ConditionalExpr ("_ ? _ : _")
+syntax "_binEquals" :: "term \<Rightarrow> term \<Rightarrow> term" ("_ == _" 100)
+parse_translation \<open> [( @{syntax_const "_binEquals"} , translateEquals)] \<close>
 
 syntax "_expandNodes" :: "term \<Rightarrow> term" ("exp[_]")
 parse_translation \<open> [( @{syntax_const "_expandNodes"} , expandNodes)] \<close>
 
-syntax "_baseTransform" :: "term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _" 40)
+syntax "_baseTransform" :: "term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _" 10)
 parse_translation \<open> [( @{syntax_const "_baseTransform"} , baseTransform)] \<close>
 
 syntax "_conditionalTransform" :: "term \<Rightarrow> term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _ when _" 70)
 parse_translation \<open> [( @{syntax_const "_conditionalTransform"} , conditionTransform)] \<close>
 
+value "exp[abs e]"
+ML_val \<open>@{term "abs e"}\<close>
+ML_val \<open>@{term "x & x"}\<close>
+ML_val \<open>@{term "cond ? tv : fv"}\<close>
+value "exp[x == y]"
 
 datatype Type =
   Integer |
@@ -346,5 +377,39 @@ end
 
 print_context
 print_optimizations
+
+
+
+
+phase DirectTranslationTest begin
+optimization AbsIdempotence: "abs(abs(e)) \<mapsto> abs(e)" sorry
+optimization AbsNegate: "abs(-e) \<mapsto> abs(e)" sorry
+optimization UnaryConstantFold: "UnaryExpr op (ConstantExpr e) \<mapsto> ConstantExpr (unary_eval op e)" sorry
+optimization AndEqual: "x & x \<mapsto> x" sorry
+optimization AndShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)" sorry
+(*
+optimization AndRightFallthrough: "x & y \<mapsto> y when (canBeZero x.stamp & canBeOne y.stamp) = 0" sorry
+optimization AndLeftFallthrough: "x & y \<mapsto> x when (canBeZero y.stamp & canBeOne x.stamp) = 0" sorry
+*)
+optimization AndNeutral: "x & (const (NOT 0)) \<mapsto> x" sorry
+optimization ConditionalEqualBranches: "(cond ? v : v) \<mapsto> v" sorry
+optimization ConditionalEqualIsRHS: "((x == y) ? x : y) \<mapsto> y" sorry
+(*
+optimization ConditionalEliminateKnownLess: "(x < y ? x : y) \<mapsto> x when (x.stamp.upper <= y.stamp.lower)" sorry
+optimization ConditionalEliminateKnownLess: "(x < y ? y : x) \<mapsto> y when (x.stamp.upper <= y.stamp.lower)" sorry
+*)
+optimization BinaryFoldConstant: "BinaryExpr op (ConstantExpr e1) (ConstantExpr e2) \<mapsto> ConstantExpr (bin_eval op e1 e2)" sorry
+optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)" sorry
+(*
+optimization RedundantSubAdd: "isAssociative + => (a - b) + b \<mapsto> a" sorry
+optimization RedundantAddSub: "isAssociative + => (b + a) - b \<mapsto> a" sorry
+*)
+optimization AddNeutral: "e + (const 0) \<mapsto> e" sorry
+optimization AddLeftNegateToSub: "-e + y \<mapsto> y - e" sorry
+optimization AddRightNegateToSub: "x + -e \<mapsto> x - e" sorry
+optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~ (is_ConstantExpr y)" sorry
+
+print_context
+end
 
 end

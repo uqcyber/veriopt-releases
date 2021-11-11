@@ -12,7 +12,6 @@ fun size :: "IRExpr \<Rightarrow> int" where
   "size (BinaryExpr op x y) = (size x) + (size y) + 2" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr const) = 1" |
-  "size (ConvertExpr op inp inbit rbit) = (size inp) + 2" |
   "size (ParameterExpr ind s) = 2" |
   "size (LeafExpr nid s) = 2"
 
@@ -66,7 +65,7 @@ fun constantValues _ [trm] =
 
 \<close>
 
-syntax "_constantValues" :: "term \<Rightarrow> term" ("C\<langle>_\<rangle>" 100)
+syntax "_constantValues" :: "term \<Rightarrow> term" ("const _" 100)
 parse_translation \<open> [( @{syntax_const "_constantValues"} , constantValues)] \<close>
 
 syntax "_expandNodes" :: "term \<Rightarrow> term" ("exp[_]")
@@ -121,7 +120,7 @@ lemma add_intstamp_prop:
   shows "type exp[x + y] = Integer"
   using assms unfolding type_def type_safe_def
   using stamp_expr.simps(3) stamp_binary.simps(1)
-  by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
+  using is_IntegerStamp_def type_def unfold_type by force
 
 lemma sub_intstamp_prop:
   assumes "type x = Integer"
@@ -129,7 +128,7 @@ lemma sub_intstamp_prop:
   shows "type exp[x - y] = Integer"
   using assms unfolding type_def type_safe_def
   using stamp_expr.simps(3) stamp_binary.simps(1)
-  by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
+  by (metis Stamp.collapse(1) Stamp.disc(2) stamp_expr.simps(2) type_def unfold_type unrestricted_stamp.simps(2))
 
 lemma uminus_intstamp_prop:
   assumes "type x = Integer"
@@ -139,11 +138,15 @@ lemma uminus_intstamp_prop:
   by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
 
 
-lemma assume_proof:
+lemma (in valid_stamps) assume_proof :
   assumes "type x = Integer"
   assumes "type_safe x y"
   shows "x + (-y) \<mapsto> x - y" (is "?lhs \<le> ?rhs")
-  unfolding le_expr_def sorry (*
+  unfolding le_expr_def apply (rule allI)+ apply (rule impI)
+  using assms unfolding type_def type_safe_def 
+  using CanonicalizeAddProof CanonicalizeAdd.intros
+  sorry
+(*
 proof (induction rule: evaltree.induct)
   fix m p
   have "is_IntegerStamp (stamp_expr ?lhs)"
@@ -159,8 +162,9 @@ proof (induction rule: evaltree.induct)
 *)
 
 
+
 lemma "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
-  using assume_proof by blast
+  sorry
 
 lemma "(size exp[x + (-y)]) > (size exp[x - y])"
   using size.simps(1,2)
@@ -297,7 +301,16 @@ val _ =
 
 setup \<open>RWList.reset\<close>
 
+
+
+notation BinaryExpr ("_ \<oplus>\<^sub>_ _")
+
+value "x \<oplus>\<^sub>s y"
+
 phase Canonicalization begin
+
+optimization constant_fold:
+  "(const(c\<^sub>1) \<oplus>\<^sub>x const(c\<^sub>2)) \<mapsto> (bin_eval c\<^sub>1 x c\<^sub>2)"
 
 optimization constant_add:
   "(e1 + e2) \<mapsto> r when (e1 = ConstantExpr v1 \<and> e2 = ConstantExpr v2 \<and> r = ConstantExpr (intval_add v1 v2))"
@@ -307,10 +320,11 @@ optimization constant_add:
 
 optimization constant_shift:
   "(c + e) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e) \<and> type e = Integer)"
+   apply (rule impI) defer apply simp
   sorry
 
 optimization neutral_zero:
-  "(e + C\<langle>0\<rangle>) \<mapsto> e when (type e = Integer)"
+  "(e + const(0)) \<mapsto> e when (type e = Integer)"
    defer apply simp
   sorry
 
@@ -324,8 +338,7 @@ optimization neutral_right_add_sub:
 
 optimization add_ynegate:
   "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
-  using assume_proof apply blast
-  by simp
+  sorry
 
 print_context
 

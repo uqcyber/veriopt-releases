@@ -13,7 +13,9 @@ fun size :: "IRExpr \<Rightarrow> int" where
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr const) = 1" |
   "size (ParameterExpr ind s) = 2" |
-  "size (LeafExpr nid s) = 2"
+  "size (LeafExpr nid s) = 2" |
+  "size (ConstantVar c) = 1" |
+  "size (VariableExpr x s) = 1"
 
 
 ML \<open>
@@ -333,16 +335,16 @@ val _ =
 setup \<open>RWList.reset\<close>
 
 
-
+(*
 notation BinaryExpr ("_ \<oplus>\<^sub>_ _")
 
 value "x \<oplus>\<^sub>s y"
-
+*)
 phase Canonicalization begin
-
+(*
 optimization constant_fold:
   "(const(c\<^sub>1) \<oplus>\<^sub>x const(c\<^sub>2)) \<mapsto> (bin_eval c\<^sub>1 x c\<^sub>2)"
-
+*)
 optimization constant_add:
   "(e1 + e2) \<mapsto> r when (e1 = ConstantExpr v1 \<and> e2 = ConstantExpr v2 \<and> r = ConstantExpr (intval_add v1 v2))"
   unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer

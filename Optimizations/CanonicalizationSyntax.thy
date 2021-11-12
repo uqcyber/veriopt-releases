@@ -18,6 +18,28 @@ fun size :: "IRExpr \<Rightarrow> int" where
   "size (VariableExpr x s) = 1"
 
 
+datatype 'a Rewrite =
+  Transform 'a 'a |
+  Conditional 'a 'a "bool" |
+  Sequential "'a Rewrite" "'a Rewrite" |
+  Transitive "'a Rewrite"
+
+
+ML_val \<open>@{term "Transform a a"}\<close>
+ML_val \<open>@{term "Conditional a b c"}\<close>
+ML_val \<open>@{term "Sequential a b"}\<close>
+ML_val \<open>@{term "Transitive a"}\<close>
+
+
+fun rewrite_obligation :: "IRExpr Rewrite \<Rightarrow> bool" where
+  "rewrite_obligation (Transform x y) = (x \<le> y)" |
+  "rewrite_obligation (Conditional x y cond) = (cond \<longrightarrow> (x \<le> y))" |
+  "rewrite_obligation (Sequential x y) = (rewrite_obligation x \<and> rewrite_obligation y)" |
+  "rewrite_obligation (Transitive x) = rewrite_obligation x"
+
+
+ML_val \<open>@{term "rewrite_obligation a"}\<close>
+
 ML \<open>
 val debugMode = false
 
@@ -34,7 +56,7 @@ fun translateConst (str, typ) =
     | ("\<^const>Groups.uminus_class.uminus", _) => @{const UnaryExpr} $ @{const UnaryNeg}
     | _ => Const (str, typ)
 
-fun translateEquals ctxt terms =
+fun translateEquals _ terms =
   @{const BinaryExpr} $ @{const BinIntegerEquals} $ hd terms $ hd (tl terms)
 
 (* A seemingly arbitrary distinction  *)
@@ -62,19 +84,17 @@ fun expandNodes ctxt [trm] = expandNode ctxt trm
 
 fun baseTransform ctxt [pre, post] =
   Const
-     ("Orderings.ord_class.less_eq", @{typ "IRExpr => IRExpr \<Rightarrow> bool"})
+     ("CanonicalizationSyntax.Rewrite.Transform", @{typ "IRExpr => IRExpr \<Rightarrow> IRExpr Rewrite"})
     $ expandNode ctxt pre
     $ expandNode ctxt post
 
   | baseTransform _ ts = raise TERM ("baseTransform", ts)
 
 fun conditionTransform ctxt [pre, post, cond] =
-  Const ("HOL.implies", @{typ "bool \<Rightarrow> bool \<Rightarrow> bool"}) $
-    cond $
-  (Const
-     ("Orderings.ord_class.less_eq", @{typ "IRExpr => IRExpr \<Rightarrow> bool"})
+  Const ("CanonicalizationSyntax.Rewrite.Conditional", @{typ "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool \<Rightarrow> IRExpr Rewrite"})
     $ expandNode ctxt pre
-    $ expandNode ctxt post)
+    $ expandNode ctxt post
+    $ cond
 
   | conditionTransform _ ts = raise TERM ("conditionTransform", ts)
 
@@ -105,10 +125,12 @@ parse_translation \<open> [( @{syntax_const "_baseTransform"} , baseTransform)] 
 syntax "_conditionalTransform" :: "term \<Rightarrow> term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _ when _" 70)
 parse_translation \<open> [( @{syntax_const "_conditionalTransform"} , conditionTransform)] \<close>
 
+
 value "exp[abs e]"
 ML_val \<open>@{term "abs e"}\<close>
 ML_val \<open>@{term "x & x"}\<close>
 ML_val \<open>@{term "cond ? tv : fv"}\<close>
+ML_val \<open>@{term "x < y"}\<close>
 value "exp[x == y]"
 
 datatype Type =
@@ -174,7 +196,8 @@ lemma uminus_intstamp_prop:
 lemma (in valid_stamps) assume_proof :
   assumes "type x = Integer"
   assumes "type_safe x y"
-  shows "x + (-y) \<mapsto> x - y" (is "?lhs \<le> ?rhs")
+  shows "rewrite_obligation ((x + (-y) \<mapsto> x - y))"
+  unfolding rewrite_obligation.simps 
   unfolding le_expr_def apply (rule allI)+ apply (rule impI)
   using assms unfolding type_def type_safe_def 
   using CanonicalizeAddProof CanonicalizeAdd.intros
@@ -195,72 +218,153 @@ proof (induction rule: evaltree.induct)
 *)
 
 
-
-lemma "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
+lemma "rewrite_obligation ((x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y))"
   sorry
+
 
 lemma "(size exp[x + (-y)]) > (size exp[x - y])"
   using size.simps(1,2)
   by force
 
-datatype 'a Rewrite =
-  Transform 'a 'a |
-  Conditional 'a 'a "'a \<Rightarrow> 'a \<Rightarrow> bool" |
-  Sequential "'a Rewrite" "'a Rewrite" |
-  Transitive "'a Rewrite"
+
 
 ML \<open>
 datatype 'a Rewrite =
   Transform of 'a * 'a |
-  Conditional of 'a * 'a * ('a -> 'a -> bool) |
+  Conditional of 'a * 'a * term |
   Sequential of 'a Rewrite * 'a Rewrite |
   Transitive of 'a Rewrite
 
 type rewrite =
   {name: string, rewrite: term Rewrite}
 
-signature RewriteList =
+type phase =
+  {name: string, rewrites: rewrite list, preconditions: term list}
+
+type phase_store = (string list * (string -> phase option))
+
+datatype phase_state =
+  NoPhase of phase_store |
+  InPhase of (string * phase_store)
+
+signature PhaseState =
 sig
-  val get: theory -> rewrite list
+  val get: theory -> phase_state
   val add: rewrite -> theory -> theory
   val reset: theory -> theory
+  val enter_phase: string -> theory -> theory
+  val exit_phase: theory -> theory
 end;
 
-structure RWList: RewriteList =
+structure RWList: PhaseState =
 struct
+
+val empty = NoPhase ([], (fn _ => NONE));
+
+fun merge_maps (left: 'a list * ('a -> 'b option)) (right: 'a list * ('a -> 'b option)) =
+  ((fst left) @ (fst right), fn x => (case (snd left) x of
+    NONE => (snd right) x |
+    SOME v => SOME v))
 
 structure RewriteStore = Theory_Data
 (
-  type T = rewrite list;
-  val empty = [];
+  type T = phase_state;
+  val empty = empty;
   val extend = I;
-  val merge = Library.merge (fn (_) => true);
+  fun merge (lhs, rhs) = 
+    case lhs of
+      NoPhase left_store => (case rhs of
+        NoPhase right_store => NoPhase (merge_maps left_store right_store) |
+        InPhase (name, right_store) => InPhase (name, (merge_maps left_store right_store))) |
+      InPhase (name, left_store) => (case rhs of
+        NoPhase right_store => InPhase (name, (merge_maps left_store right_store)) |
+        InPhase (name, right_store) => InPhase (name, (merge_maps left_store right_store)))
 );
 
 val get = RewriteStore.get;
 
-fun add t thy = RewriteStore.map (cons t) thy
+fun expand_phase rewrite (phase: phase) =
+  {name = (#name phase), rewrites = cons rewrite (#rewrites phase), preconditions = (#preconditions phase)}
 
-val reset = RewriteStore.put [];
+fun update_existing name (dom, map) rewrite =
+  let
+    val value = map name
+  in
+    case value of
+      NONE => raise TERM ("phase not in store", []) |
+      SOME v => InPhase (name, (dom, (fn id => (if id = name then SOME (expand_phase rewrite v) else map id))))
+  end
+
+fun add t thy = RewriteStore.map (fn state =>
+  case state of
+    NoPhase _ => raise TERM ("error", []) |
+    InPhase (name, store) => update_existing name store t
+  ) thy
+
+val reset = RewriteStore.put empty;
+
+fun new_phase name = {name = name, rewrites = ([] : rewrite list), preconditions = ([] : term list)};
+
+fun enter_phase name thy = RewriteStore.map (fn state =>
+  case state of
+    NoPhase (dom, store) => InPhase (name, ([name] @ dom, fn id => (if id = name then SOME (new_phase name) else store id))) |
+    InPhase (_, _) => raise TERM ("optimization phase already established", [])
+  ) thy
+
+fun exit_phase thy = RewriteStore.map (fn state =>
+  case state of
+    NoPhase _ => raise TERM ("phase already exited", []) |
+    InPhase (_, existing) => NoPhase existing
+  ) thy
 
 end;
+
+
+fun term_to_rewrite term =
+  case term of
+    (((Const ("CanonicalizationSyntax.Rewrite.Transform", _)) $ lhs) $ rhs) => Transform (lhs, rhs)
+    | ((((Const ("CanonicalizationSyntax.Rewrite.Conditional", _)) $ lhs) $ rhs) $ cond) => Conditional (lhs, rhs, cond)
+    | _ => raise TERM ("optimization is not a rewrite", [term])
+
+fun rewrite_to_term rewrite = 
+  case rewrite of
+    Transform (lhs, rhs) => 
+      (Const ("CanonicalizationSyntax.Rewrite.Transform", @{typ "'a => 'a"})) $ lhs $ rhs
+    | Conditional (lhs, rhs, cond) => 
+      (Const ("CanonicalizationSyntax.Rewrite.Conditional", @{typ "'a => 'a"})) $ lhs $ rhs $ cond
+    | _ => raise TERM ("rewrite cannot be translated yet", [])
+
+fun term_to_obligation ctxt term =
+  Syntax.check_prop ctxt (@{const Trueprop} $ (@{const rewrite_obligation} $ term))
+
+fun rewrite_to_termination rewrite = 
+  case rewrite of
+    Transform (lhs, rhs) => (
+      @{const Trueprop} 
+      $ (Const ("Orderings.ord_class.less", @{typ "int \<Rightarrow> int \<Rightarrow> bool"})
+      $ (@{const size} $ rhs) $ (@{const size} $ lhs)))
+    | Conditional (lhs, rhs, _) => (
+      @{const Trueprop} 
+      $ (Const ("Orderings.ord_class.less", @{typ "int \<Rightarrow> int \<Rightarrow> bool"})
+      $ (@{const size} $ rhs) $ (@{const size} $ lhs)))
+    | _ => raise TERM ("rewrite termination generation not implemented", [])
 
 fun register_optimization 
   ((bind: binding, _), opt: string) ctxt = 
   let
-    val semantics_preserving = Syntax.read_prop ctxt opt;
-    val terminating = @{prop "size exp[(x + (-y))] > size exp[(x - y)]"};
-
     val term = Syntax.read_term ctxt opt;
-    val rewrite = Transform (term, term);
-    (*val _ = @{print} (Toplevel.theory_toplevel (Proof_Context.theory_of ctxt));*)
+
+    val rewrite = term_to_rewrite term;
+
+    val obligation = term_to_obligation ctxt term;
+    val terminating = rewrite_to_termination rewrite;
 
     val register = RWList.add {name=Binding.print bind, rewrite=rewrite}
 
     fun after_qed _ ctxt =
       Local_Theory.background_theory register ctxt
   in
-    Proof.theorem NONE after_qed [[(semantics_preserving, []), (terminating, [])]] ctxt
+    Proof.theorem NONE after_qed [[(obligation, []), (terminating, [])]] ctxt
   end
 
 
@@ -275,18 +379,15 @@ val _ =
      >> register_optimization);
 
 fun exit_phase thy =
-  thy
+  Local_Theory.background_theory (RWList.exit_phase) thy
 
-fun begin_phase thy =
-  Proof_Context.init_global thy
+fun begin_phase name thy =
+  Proof_Context.init_global (RWList.enter_phase name thy)
 
 fun
-  pretty_rewrite (Transform (x, y)) = Syntax.pretty_term @{context} x
-  | pretty_rewrite (Conditional (x, y, cond)) = Syntax.pretty_term @{context} x
-  | pretty_rewrite (Sequential (x, y)) = pretty_rewrite x
-  | pretty_rewrite (Transitive x) = pretty_rewrite x
+  pretty_rewrite rewrite = Syntax.pretty_term @{context} (rewrite_to_term rewrite)
 
-fun print_optimizations ctxt =
+fun print_optimizations rewrites = 
   let
     fun print_rule tact =
       Pretty.block [
@@ -294,17 +395,32 @@ fun print_optimizations ctxt =
         pretty_rewrite (#rewrite tact)
       ];
   in
-    [Pretty.big_list "optimizations:" (map print_rule (RWList.get ctxt))]
+    [Pretty.big_list "optimizations:" (map print_rule rewrites)]
   end
 
-fun print_phase name thy =
-  [Pretty.str ("phase: " ^ name)] 
-  @ (print_optimizations (Proof_Context.theory_of thy))
+fun print_phase (phase: phase option) =
+  case phase of
+    NONE => [Pretty.str "no phase"] |
+    SOME phase =>
+  [Pretty.str ("phase: " ^ (#name phase))]
+  @ (print_optimizations (#rewrites phase))
+
+fun print_phase_state thy =
+  case RWList.get (Proof_Context.theory_of thy) of
+    NoPhase _ => [Pretty.str "not in a phase"] |
+    InPhase (name, (dom, map)) => print_phase (map name)
+
+fun print_all_phases thy =
+  case RWList.get thy of
+    NoPhase (dom, store) => 
+      let val _ = @{print} dom;
+      in List.foldr (fn (name, acc) => print_phase (store name) @ acc) [] dom end |
+    InPhase (name, (dom, store)) => List.foldr (fn (name, acc) => print_phase (store name) @ acc) [] dom
 
 fun phase_theory_init name thy = 
   Local_Theory.init 
     {background_naming = Sign.naming_of thy,
-        setup = begin_phase,
+        setup = begin_phase name,
         conclude = exit_phase}
     {define = Generic_Target.define Generic_Target.theory_target_foundation,
         notes = Generic_Target.notes Generic_Target.theory_target_notes,
@@ -312,7 +428,7 @@ fun phase_theory_init name thy =
         declaration = K Generic_Target.theory_declaration,
         theory_registration = Locale.add_registration_theory,
         locale_dependency = fn _ => error "Not possible in instantiation target",
-        pretty = print_phase name}
+        pretty = print_phase_state}
     thy
 
 val _ =
@@ -322,7 +438,7 @@ val _ =
 
 
 fun apply_print_optimizations thy =
-  (print_optimizations thy |> Pretty.writeln_chunks)
+  (print_all_phases thy |> Pretty.writeln_chunks)
 
 
 val _ =
@@ -341,6 +457,7 @@ notation BinaryExpr ("_ \<oplus>\<^sub>_ _")
 value "x \<oplus>\<^sub>s y"
 *)
 phase Canonicalization begin
+
 (*
 optimization constant_fold:
   "(const(c\<^sub>1) \<oplus>\<^sub>x const(c\<^sub>2)) \<mapsto> (bin_eval c\<^sub>1 x c\<^sub>2)"
@@ -351,15 +468,20 @@ optimization constant_add:
    apply simp
   sorry
 
+print_context
+print_optimizations
+
 optimization constant_shift:
   "(c + e) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e) \<and> type e = Integer)"
-   apply (rule impI) defer apply simp
+   unfolding rewrite_obligation.simps apply (rule impI) defer apply simp
   sorry
 
 optimization neutral_zero:
   "(e + const(0)) \<mapsto> e when (type e = Integer)"
-   defer apply simp
+   defer apply simp+
   sorry
+
+ML_val \<open>@{term "(e1 - e2) + e2 \<mapsto> e1"}\<close>
 
 optimization neutral_left_add_sub:
   "(e1 - e2) + e2 \<mapsto> e1"
@@ -374,6 +496,9 @@ optimization add_ynegate:
   sorry
 
 print_context
+print_optimizations
+
+
 
 end
 
@@ -384,7 +509,9 @@ print_optimizations
 
 
 phase DirectTranslationTest begin
+print_optimizations
 optimization AbsIdempotence: "abs(abs(e)) \<mapsto> abs(e)" sorry
+print_optimizations
 optimization AbsNegate: "abs(-e) \<mapsto> abs(e)" sorry
 optimization UnaryConstantFold: "UnaryExpr op (ConstantExpr e) \<mapsto> ConstantExpr (unary_eval op e)" sorry
 optimization AndEqual: "x & x \<mapsto> x" sorry
@@ -412,6 +539,9 @@ optimization AddRightNegateToSub: "x + -e \<mapsto> x - e" sorry
 optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~ (is_ConstantExpr y)" sorry
 
 print_context
+print_optimizations
 end
+
+print_optimizations
 
 end

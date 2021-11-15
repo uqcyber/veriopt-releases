@@ -46,7 +46,7 @@ datatype Value  =
   UndefVal |
   IntVal32 int32 |  (* includes boolean *)
   IntVal64 int64 |
-  FloatVal float |
+  (* FloatVal float | not supported *)
   ObjRef objref |
   ObjStr string
 

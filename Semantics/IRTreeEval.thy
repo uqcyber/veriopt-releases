@@ -131,7 +131,7 @@ inductive
   for m p where
 
   ConstantExpr:
-  "\<lbrakk>c \<noteq> UndefVal\<rbrakk>
+  "\<lbrakk>valid_value (constantAsStamp c) c\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ConstantExpr c) \<mapsto> c" |
 
   ParameterExpr:

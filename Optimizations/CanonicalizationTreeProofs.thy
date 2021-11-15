@@ -38,7 +38,7 @@ lemma annihilator_rewrite_helper:
   apply (metis intval_mul.simps(1) mult_zero_right valid32)
   sorry
 
-lemma idempotent_rewtite_helper:
+lemma idempotent_rewrite_helper:
   shows "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_and x x = x"
   and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_and x x = x"
 
@@ -48,12 +48,11 @@ lemma idempotent_rewtite_helper:
   apply auto 
   sorry
 
-locale valid_stamps =
-  assumes int_stamp_implies_valid_value:
-  "[m,p] \<turnstile> expr \<mapsto> val \<Longrightarrow>
-   valid_value (stamp_expr expr) val"
+lemma int_stamp_implies_valid_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  shows "valid_value (stamp_expr expr) val"
+  sorry
 
-begin
 lemma CanonicalizeBinaryProof:
   assumes "CanonicalizeBinaryOp before after"
   assumes "[m, p] \<turnstile> before \<mapsto> res"
@@ -69,7 +68,7 @@ next
     using binary_fold_yneutral.prems(2) by auto
   then have "bin_eval op xval c = xval"
     using neutral_rewrite_helper binary_fold_yneutral.hyps(2-3,6-) int_stamp_implies_valid_value is_IntegerStamp_def
-    by (metis ConstantExpr Value.distinct(5) valid_value.simps(34))
+    sorry (*by (metis ConstantExpr Value.distinct(5) valid_value.simps(34))*)
   then show ?case
     by (metis binary_fold_yneutral.hyps(1) binary_fold_yneutral.prems(1) binary_fold_yneutral.prems(2) x_eval
           BinaryExprE ConstantExprE evalDet)
@@ -99,7 +98,7 @@ next
   obtain xval where x_eval: "[m, p] \<turnstile> x \<mapsto> xval"
     using binary_idempotent.prems(1) by auto
   then have "bin_eval op xval xval = xval"
-    using idempotent_rewtite_helper binary_idempotent.hyps 
+    using idempotent_rewrite_helper binary_idempotent.hyps 
     sorry
   then show ?case
     by (metis BinaryExprE binary_idempotent.prems(1) binary_idempotent.prems(2) evalDet x_eval)
@@ -549,6 +548,5 @@ next
   case (const_false c val t f)
   then show ?case using evalDet by auto
 qed
-end
 
 end

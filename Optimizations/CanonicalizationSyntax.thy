@@ -63,7 +63,10 @@ fun translateEquals _ terms =
 fun translateFree (str, typ) =
   case (str, typ) of
     ("abs", _) => @{const UnaryExpr} $ @{const UnaryAbs}
-    | _ => Free (str, typ)
+    | (var, typ) => 
+      (if String.sub(var,0) = #"c" 
+        then @{const ConstantExpr} $ Free ("val_" ^ var, typ)
+        else Free (var, typ))
 
 fun expandNode ctxt trm =
   let
@@ -131,7 +134,8 @@ ML_val \<open>@{term "abs e"}\<close>
 ML_val \<open>@{term "x & x"}\<close>
 ML_val \<open>@{term "cond ? tv : fv"}\<close>
 ML_val \<open>@{term "x < y"}\<close>
-value "exp[x == y]"
+ML_val \<open>@{term "c < y"}\<close>
+value "exp[c1 + y]"
 
 datatype Type =
   Integer |
@@ -464,6 +468,12 @@ optimization constant_fold:
 *)
 optimization constant_add:
   "(e1 + e2) \<mapsto> r when (e1 = ConstantExpr v1 \<and> e2 = ConstantExpr v2 \<and> r = ConstantExpr (intval_add v1 v2))"
+  unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer
+   apply simp
+  sorry
+
+optimization constant_add:
+  "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2)"
   unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer
    apply simp
   sorry

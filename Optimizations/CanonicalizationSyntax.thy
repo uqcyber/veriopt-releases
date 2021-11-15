@@ -32,8 +32,8 @@ ML_val \<open>@{term "Transitive a"}\<close>
 
 
 fun rewrite_obligation :: "IRExpr Rewrite \<Rightarrow> bool" where
-  "rewrite_obligation (Transform x y) = (x \<le> y)" |
-  "rewrite_obligation (Conditional x y cond) = (cond \<longrightarrow> (x \<le> y))" |
+  "rewrite_obligation (Transform x y) = (y \<le> x)" |
+  "rewrite_obligation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |
   "rewrite_obligation (Sequential x y) = (rewrite_obligation x \<and> rewrite_obligation y)" |
   "rewrite_obligation (Transitive x) = rewrite_obligation x"
 
@@ -197,7 +197,7 @@ lemma uminus_intstamp_prop:
   by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
 
 
-lemma (in valid_stamps) assume_proof :
+lemma assume_proof :
   assumes "type x = Integer"
   assumes "type_safe x y"
   shows "rewrite_obligation ((x + (-y) \<mapsto> x - y))"
@@ -515,16 +515,44 @@ end
 print_context
 print_optimizations
 
-
-
-
 phase DirectTranslationTest begin
 print_optimizations
-optimization AbsIdempotence: "abs(abs(e)) \<mapsto> abs(e)" sorry
+optimization AbsIdempotence: "abs(abs(e)) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
+  apply auto
+  by (metis UnaryExpr abs_abs_is_abs stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(1))
+
 print_optimizations
-optimization AbsNegate: "abs(-e) \<mapsto> abs(e)" sorry
-optimization UnaryConstantFold: "UnaryExpr op (ConstantExpr e) \<mapsto> ConstantExpr (unary_eval op e)" sorry
-optimization AndEqual: "x & x \<mapsto> x" sorry
+optimization AbsNegate: "abs(-e) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
+  apply auto
+  by (metis UnaryExpr abs_neg_is_neg stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(1))
+
+optimization UnaryConstantFold: "UnaryExpr op (ConstantExpr c) \<mapsto> ConstantExpr (unary_eval op c) when is_int_val c"
+  apply auto
+proof (cases op)
+  case UnaryAbs
+  then show ?thesis sorry
+next
+  case UnaryNeg
+  then show ?thesis sorry
+next
+  case UnaryNot
+  then show ?thesis sorry
+next
+  case UnaryLogicNegation
+  then show ?thesis sorry
+next
+  case (UnaryNarrow x51 x52)
+  then show ?thesis sorry
+next
+  case (UnarySignExtend x61 x62)
+  then show ?thesis sorry
+next
+  case (UnaryZeroExtend x71 x72)
+  then show ?thesis sorry
+qed
+
+
+optimization AndEqual: "x & x \<mapsto> x when is_IntegerStamp (stamp_expr x)" sorry
 optimization AndShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)" sorry
 (*
 optimization AndRightFallthrough: "x & y \<mapsto> y when (canBeZero x.stamp & canBeOne y.stamp) = 0" sorry

@@ -76,6 +76,11 @@ fun bool_to_val :: "bool \<Rightarrow> Value" where
 
 value "sint(word_of_int (1) :: int1)"
 
+fun is_int_val :: "Value \<Rightarrow> bool" where
+  "is_int_val (IntVal32 v) = True" |
+  "is_int_val (IntVal64 v) = True" |
+  "is_int_val _ = False"
+
 text \<open>
 We need to introduce arithmetic operations which agree with the JVM.
 

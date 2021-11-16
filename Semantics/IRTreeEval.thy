@@ -315,4 +315,24 @@ fun rewrite :: "Rewrite \<Rightarrow> IRExpr \<Rightarrow> IRExpr option" where
                     None \<Rightarrow> None))"
 
 
+definition obligation :: "Rewrite \<Rightarrow> bool" where
+  "obligation r = (\<forall> e e'. rewrite r e = (Some e') \<longrightarrow> e' \<le> e)"
+
+
+definition NestedAbs where
+  "NestedAbs = Abs_Rewrite (UnaryExpr UnaryAbs (UnaryExpr UnaryAbs (VariableExpr ''e'' default_stamp)), UnaryExpr UnaryAbs (VariableExpr ''e'' default_stamp))"
+
+lemma "obligation NestedAbs"
+  unfolding obligation_def rewrite.simps NestedAbs_def apply (auto simp: Abs_Rewrite_inverse)
+proof -
+  fix e e' m p v
+  show "(case match (UnaryExpr UnaryAbs (UnaryExpr UnaryAbs (VariableExpr ''e'' default_stamp))) e of None \<Rightarrow> None
+        | Some \<sigma> \<Rightarrow> Some (\<sigma> @@ UnaryExpr UnaryAbs (VariableExpr ''e'' default_stamp))) =
+       Some e' \<Longrightarrow>
+       [m,p] \<turnstile> e \<mapsto> v \<Longrightarrow> [m,p] \<turnstile> e' \<mapsto> v"
+    apply (cases "match (UnaryExpr UnaryAbs (UnaryExpr UnaryAbs (VariableExpr ''e'' default_stamp))) e")
+     apply simp
+    unfolding substitute.simps apply auto sorry
+qed
+
 end

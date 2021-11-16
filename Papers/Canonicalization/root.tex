@@ -1,0 +1,61 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{isabelle,isabellesym}
+\usepackage{amssymb}
+\usepackage{tikz-cd}
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+% for uniform font size
+%\renewcommand{\isastyle}{\isastyleminor}
+
+% display anything in a snip without any markup
+\newcommand{\Snip}[1]{\isanewline\isanewline}
+\newcommand{\EndSnip}{\isanewline\isanewline}
+\newcommand{\induct}[1]{}
+
+
+\begin{document}
+
+\title{GraalVM Canonicalization Optimizations}
+\maketitle
+
+\begin{abstract}
+This document presents the canonicalization rules
+which are present in the GraalVM compiler.
+First, individual rules are encoded in a high-level
+domain specific language.
+As these optimizations are encoded, a proof of semantics
+preservation is given.
+Next, rules are combined via a tactic language.
+The combined rules are then proved to be terminating.
+Finally, optimization phases are composed of the combined rules
+and generated into Java code.
+\end{abstract}
+
+\pagebreak
+
+\tableofcontents
+
+\pagebreak
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+% generated text of all theories
+\input{CanonicalizationSyntax}
+
+% optional bibliography
+%\bibliographystyle{abbrv}
+%\bibliography{root}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

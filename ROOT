@@ -50,6 +50,7 @@ session Optimizations in Optimizations = Proofs +
     (*Canonicalization*)
     CanonicalizationTree
     CanonicalizationTreeProofs
+    CanonicalizationSyntax
     (*ConditionalElimination
     Construction*)
 
@@ -159,4 +160,17 @@ session TreePaper in "Papers/Tree" = Semantics +
     SlideSnippets
   document_files (in "../../latex")
     "root.tex"
+    "mathpartir.sty"
+
+
+session Canonicalization in "Papers/Canonicalization" = Optimizations +
+  description
+    "Canonicalization optimizations"
+  options [quick_and_dirty, document = pdf, document_output = "output",
+           show_question_marks = false]
+  document_theories
+    Optimizations.CanonicalizationSyntax
+  document_files (in ".")
+    "root.tex"
+  document_files (in "../../latex")
     "mathpartir.sty"

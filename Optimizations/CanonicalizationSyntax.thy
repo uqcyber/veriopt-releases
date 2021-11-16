@@ -139,6 +139,7 @@ value "exp[c1 + y]"
 
 datatype Type =
   Integer |
+  Float |
   Object |
   Unknown
 
@@ -517,40 +518,49 @@ print_optimizations
 
 phase DirectTranslationTest begin
 print_optimizations
+
 optimization AbsIdempotence: "abs(abs(e)) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
   apply auto
   by (metis UnaryExpr abs_abs_is_abs stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(1))
+
 
 print_optimizations
 optimization AbsNegate: "abs(-e) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
   apply auto
   by (metis UnaryExpr abs_neg_is_neg stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(1))
 
-optimization UnaryConstantFold: "UnaryExpr op (ConstantExpr c) \<mapsto> ConstantExpr (unary_eval op c) when is_int_val c"
-  apply auto
-proof (cases op)
-  case UnaryAbs
-  then show ?thesis sorry
-next
-  case UnaryNeg
-  then show ?thesis sorry
-next
-  case UnaryNot
-  then show ?thesis sorry
-next
-  case UnaryLogicNegation
-  then show ?thesis sorry
-next
-  case (UnaryNarrow x51 x52)
-  then show ?thesis sorry
-next
-  case (UnarySignExtend x61 x62)
-  then show ?thesis sorry
-next
-  case (UnaryZeroExtend x71 x72)
-  then show ?thesis sorry
-qed
+lemma
+  assumes "[m, p] \<turnstile> UnaryExpr op c \<mapsto> val"
+  shows "valid_value (stamp_expr (UnaryExpr op c)) val"
+  using stamp_implies_valid_value assms
+  by blast
 
+lemma int_constants_valid:
+  assumes "is_int_val val"  
+  shows "valid_value (constantAsStamp val) val"
+  using assms apply (cases val)
+  by simp+
+
+lemma unary_eval_preserves_validity:
+  assumes "is_int_val c"
+  shows "valid_value (constantAsStamp (unary_eval op c)) (unary_eval op c)"
+  using assms apply (cases c) apply simp
+     defer defer apply simp+
+  apply (cases op)
+  using int_constants_valid intval_abs.simps(1) is_int_val.simps(1) unary_eval.simps(1) apply presburger
+  using int_constants_valid intval_negate.simps(1) is_int_val.simps(1) unary_eval.simps(2) apply presburger
+  using int_constants_valid intval_not.simps(1) is_int_val.simps(1) unary_eval.simps(3) apply presburger
+  using int_constants_valid is_int_val.simps(1) unary_eval.simps(4) apply presburger
+     defer defer defer
+     apply (cases op)
+  using int_constants_valid intval_abs.simps(2) is_int_val.simps(2) unary_eval.simps(1) apply presburger
+  using int_constants_valid intval_negate.simps(2) is_int_val.simps(2) unary_eval.simps(2) apply presburger
+  using int_constants_valid intval_not.simps(2) is_int_val.simps(2) unary_eval.simps(3) apply presburger
+  sorry (* WARNING: TODO: WARNING: a whole bunch of unary operations aren't implemented making this false *)
+
+optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_eval op val_c) when is_int_val val_c"
+  apply (auto simp: int_constants_valid)
+  using evaltree.ConstantExpr int_constants_valid unary_eval_preserves_validity by simp
 
 optimization AndEqual: "x & x \<mapsto> x when is_IntegerStamp (stamp_expr x)" sorry
 optimization AndShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)" sorry
@@ -559,7 +569,7 @@ optimization AndRightFallthrough: "x & y \<mapsto> y when (canBeZero x.stamp & c
 optimization AndLeftFallthrough: "x & y \<mapsto> x when (canBeZero y.stamp & canBeOne x.stamp) = 0" sorry
 *)
 optimization AndNeutral: "x & (const (NOT 0)) \<mapsto> x" sorry
-optimization ConditionalEqualBranches: "(cond ? v : v) \<mapsto> v" sorry
+optimization ConditionalEqualBranches: "(b ? v : v) \<mapsto> v" sorry
 optimization ConditionalEqualIsRHS: "((x == y) ? x : y) \<mapsto> y" sorry
 (*
 optimization ConditionalEliminateKnownLess: "(x < y ? x : y) \<mapsto> x when (x.stamp.upper <= y.stamp.lower)" sorry

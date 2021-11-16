@@ -120,7 +120,7 @@ next
     by (simp add: LoadFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using LoadFieldNode step.cases repDet evalDet
-    by (smt (z3) IRNode.distinct(1541) IRNode.distinct(1557) IRNode.distinct(1559) IRNode.distinct(1563) IRNode.distinct(983) IRNode.inject(19) Pair_inject Value.inject(4) option.distinct(1) option.inject)
+    by (smt (verit) IRNode.distinct(1541) IRNode.distinct(1557) IRNode.distinct(1559) IRNode.distinct(1563) IRNode.distinct(983) IRNode.inject(19) Pair_inject Value.inject(3) option.discI option.inject)
 next
   case (StaticLoadFieldNode nid f nxt h v m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -146,7 +146,7 @@ next
     by (simp add: StoreFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using StoreFieldNode step.cases repDet evalDet
-    by (smt (z3) IRNode.distinct(1027) IRNode.distinct(1563) IRNode.distinct(2091) IRNode.distinct(2323) IRNode.distinct(2343) IRNode.inject(41) Pair_inject Value.inject(4) option.distinct(1) option.inject)
+    by (smt (verit) IRNode.distinct(1027) IRNode.distinct(1563) IRNode.distinct(2091) IRNode.distinct(2323) IRNode.distinct(2343) IRNode.inject(41) Pair_inject Value.inject(3) option.discI option.inject)
 next
   case (StaticStoreFieldNode nid f newval uv nxt m val h' h m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"

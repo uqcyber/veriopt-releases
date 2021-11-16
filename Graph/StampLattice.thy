@@ -570,10 +570,6 @@ next
   then show ?thesis
     using \<open>x = IntVal64 v\<close> xdef ydef by force
 next
-  case (FloatVal x4)
-  then show ?thesis
-    using valid_value.elims(2) by blast
-next
   case (ObjRef x5)
   then show ?thesis
     using valid_value.elims(2) by blast

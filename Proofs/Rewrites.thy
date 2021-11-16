@@ -70,8 +70,12 @@ proof -
     by (smt (z3) IRNode.distinct(641) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal32 1)"
     using truedef by simp
-  have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal32 1"
-    by (metis ConstantExpr ConstantNode Value.distinct(1) \<open>kind g' (nextNid g) = ConstantNode (IRTreeEval.bool_to_val True)\<close> encodeeval_def truedef)
+  have "valid_value (constantAsStamp (IntVal32 1)) (IntVal32 1)"
+    unfolding constantAsStamp.simps valid_value.simps
+    using nat_numeral by blast
+  then have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal32 1"
+    using ConstantExpr ConstantNode Value.distinct(1) \<open>kind g' (nextNid g) = ConstantNode (IRTreeEval.bool_to_val True)\<close> encodeeval_def truedef
+    by metis
   from if' c' show ?thesis using IfNode
     by (metis (no_types, hide_lams) IRTreeEval.val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nextNid g \<mapsto> IntVal32 1\<close> encodeeval_def zero_neq_one)
 qed
@@ -91,8 +95,11 @@ proof -
     by (smt (z3) IRNode.distinct(641) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal32 0)"
     using falsedef by simp
-  have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal32 0"
-    by (metis ConstantExpr ConstantNode Value.distinct(1) \<open>kind g' (nextNid g) = ConstantNode (IRTreeEval.bool_to_val False)\<close> encodeeval_def falsedef)
+  have "valid_value (constantAsStamp (IntVal32 0)) (IntVal32 0)"
+    unfolding constantAsStamp.simps valid_value.simps
+    using nat_numeral by blast
+  then have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal32 0"
+    by (metis ConstantExpr ConstantNode \<open>kind g' (nextNid g) = ConstantNode (IRTreeEval.bool_to_val False)\<close> encodeeval_def falsedef)
   from if' c' show ?thesis using IfNode
     by (metis (no_types, hide_lams) IRTreeEval.val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nextNid g \<mapsto> IntVal32 0\<close> encodeeval_def)
 qed

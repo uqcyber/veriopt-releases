@@ -505,42 +505,6 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
 
 
 
-subsection \<open>Data-flow Tree Refinement\<close>
-
-text \<open>We define the induced semantic equivalence relation between expressions.
-  Note that syntactic equality implies semantic equivalence, but not vice versa.
-\<close>
-definition equiv_exprs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<doteq> _" 55) where
-  "(e1 \<doteq> e2) = (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longleftrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
-
-
-text \<open>We also prove that this is a total equivalence relation (@{term "equivp equiv_exprs"})
-  (HOL.Equiv\_Relations), so that we can reuse standard results about equivalence relations.
-\<close>
-lemma "equivp equiv_exprs"
-  apply (auto simp add: equivp_def equiv_exprs_def)
-  by (metis equiv_exprs_def)+
-
-
-text \<open>We define a refinement ordering over IRExpr and show that it is a preorder.
-  Note that it is asymmetric because e2 may refer to fewer variables than e1.
-\<close>
-instantiation IRExpr :: preorder begin
-
-definition
-  le_expr_def [simp]: "(e2 \<le> e1) \<longleftrightarrow> (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
-
-definition
-  lt_expr_def [simp]: "(e1 < e2) \<longleftrightarrow> (e1 \<le> e2 \<and> \<not> (e1 \<doteq> e2))"
-
-instance proof 
-  fix x y z :: IRExpr
-  show "x < y \<longleftrightarrow> x \<le> y \<and> \<not> (y \<le> x)" by (simp add: equiv_exprs_def; auto)
-  show "x \<le> x" by simp
-  show "x \<le> y \<Longrightarrow> y \<le> z \<Longrightarrow> x \<le> z" by simp 
-qed
-
-end
 
 definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "graph_refinement g1 g2 = 

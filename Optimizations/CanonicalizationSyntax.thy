@@ -7,16 +7,24 @@ keywords
 begin
 
 
-fun size :: "IRExpr \<Rightarrow> int" where
+fun size :: "IRExpr \<Rightarrow> nat" where
   "size (UnaryExpr op e) = (size e) + 2" |
-  "size (BinaryExpr op x y) = (size x) + (size y) + 2" |
+  "size (BinaryExpr op x y) = (size x) + ((size y) * 2) + 2" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr const) = 1" |
   "size (ParameterExpr ind s) = 2" |
   "size (LeafExpr nid s) = 2" |
-  "size (ConstantVar c) = 1" |
-  "size (VariableExpr x s) = 1"
+  "size (ConstantVar c) = 2" |
+  "size (VariableExpr x s) = 2"
 
+lemma "size e = 1 \<Longrightarrow> is_ConstantExpr e"
+  by (cases e; auto)
+
+lemma nonconstants_gt_one: "\<not> (is_ConstantExpr e) \<Longrightarrow> size e > 1"
+  by (cases e; auto)
+
+lemma size_det: "x = y \<Longrightarrow> size x = size y"
+  by auto
 
 datatype 'a Rewrite =
   Transform 'a 'a |
@@ -135,6 +143,8 @@ ML_val \<open>@{term "x & x"}\<close>
 ML_val \<open>@{term "cond ? tv : fv"}\<close>
 ML_val \<open>@{term "x < y"}\<close>
 ML_val \<open>@{term "c < y"}\<close>
+ML_val \<open>@{term "a \<Longrightarrow> c < y"}\<close>
+
 value "exp[c1 + y]"
 
 datatype Type =
@@ -160,6 +170,11 @@ definition type_safe :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
     ((type e1 = type e2) 
     \<and> (is_IntegerStamp (stamp_expr e1) 
         \<longrightarrow> (stp_bits (stamp_expr e1) = stp_bits (stamp_expr e2))))"
+
+fun int_and_equal_bits :: "Value \<Rightarrow> Value \<Rightarrow> bool" where
+  "int_and_equal_bits (IntVal32 e1) (IntVal32 e2) = True" |
+  "int_and_equal_bits (IntVal64 e1) (IntVal64 e2) = True" |
+  "int_and_equal_bits _ _ = False"
 
 lemma unfold_int_typesafe[simp]:
   assumes "type e1 = Integer"
@@ -346,12 +361,13 @@ fun rewrite_to_termination rewrite =
   case rewrite of
     Transform (lhs, rhs) => (
       @{const Trueprop} 
-      $ (Const ("Orderings.ord_class.less", @{typ "int \<Rightarrow> int \<Rightarrow> bool"})
+      $ (Const ("Orderings.ord_class.less", @{typ "nat \<Rightarrow> nat \<Rightarrow> bool"})
       $ (@{const size} $ rhs) $ (@{const size} $ lhs)))
-    | Conditional (lhs, rhs, _) => (
-      @{const Trueprop} 
-      $ (Const ("Orderings.ord_class.less", @{typ "int \<Rightarrow> int \<Rightarrow> bool"})
-      $ (@{const size} $ rhs) $ (@{const size} $ lhs)))
+    | Conditional (lhs, rhs, condition) => (
+      Const ("Pure.imp", @{typ "prop \<Rightarrow> prop \<Rightarrow> prop"})
+      $ (@{const Trueprop} $ condition)
+      $ (@{const Trueprop} $ (Const ("Orderings.ord_class.less", @{typ "nat \<Rightarrow> nat \<Rightarrow> bool"})
+      $ (@{const size} $ rhs) $ (@{const size} $ lhs))))
     | _ => raise TERM ("rewrite termination generation not implemented", [])
 
 fun register_optimization 
@@ -517,23 +533,14 @@ print_context
 print_optimizations
 
 phase DirectTranslationTest begin
-print_optimizations
 
 optimization AbsIdempotence: "abs(abs(e)) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
   apply auto
   by (metis UnaryExpr abs_abs_is_abs stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(1))
 
-
-print_optimizations
 optimization AbsNegate: "abs(-e) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
   apply auto
   by (metis UnaryExpr abs_neg_is_neg stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(1))
-
-lemma
-  assumes "[m, p] \<turnstile> UnaryExpr op c \<mapsto> val"
-  shows "valid_value (stamp_expr (UnaryExpr op c)) val"
-  using stamp_implies_valid_value assms
-  by blast
 
 lemma int_constants_valid:
   assumes "is_int_val val"  
@@ -562,29 +569,113 @@ optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_ev
   apply (auto simp: int_constants_valid)
   using evaltree.ConstantExpr int_constants_valid unary_eval_preserves_validity by simp
 
-optimization AndEqual: "x & x \<mapsto> x when is_IntegerStamp (stamp_expr x)" sorry
-optimization AndShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)" sorry
+optimization AndEqual: "(x & x) \<mapsto> x when is_IntegerStamp (stamp_expr x)"
+  apply simp
+   apply (metis BinaryExprE CanonicalizeAndProof and_same)
+  unfolding size.simps by simp
+
+optimization AndShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)"
+  apply simp
+   apply (smt (verit, ccfv_threshold) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
+  unfolding size.simps using nonconstants_gt_one by auto
+
 (*
 optimization AndRightFallthrough: "x & y \<mapsto> y when (canBeZero x.stamp & canBeOne y.stamp) = 0" sorry
 optimization AndLeftFallthrough: "x & y \<mapsto> x when (canBeZero y.stamp & canBeOne x.stamp) = 0" sorry
 *)
-optimization AndNeutral: "x & (const (NOT 0)) \<mapsto> x" sorry
-optimization ConditionalEqualBranches: "(b ? v : v) \<mapsto> v" sorry
-optimization ConditionalEqualIsRHS: "((x == y) ? x : y) \<mapsto> y" sorry
+
+lemma neutral_and:
+  assumes "valid_value (IntegerStamp 32 lox hix) x"
+  shows "bin_eval BinAnd x (IntVal32 (-1)) = x"
+  using assms bin_eval.simps(4) by (cases x; auto)
+
+optimization AndNeutral: "(x & (const (NOT 0))) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
+   apply simp
+  using neutral_and stamp_implies_valid_value apply auto
+  by metis
+  
+optimization ConditionalEqualBranches: "(b ? v : v) \<mapsto> v"
+  apply simp
+   apply force
+  unfolding size.simps
+  by auto
+
+optimization ConditionalEqualIsRHS: "((x == y) ? x : y) \<mapsto> y when (type x = Integer \<and> type_safe x y)"
+   apply simp
+  apply (smt (verit, del_insts) BinaryExprE CanonicalizeConditionalProof ConditionalExprE cond_eq type_safe_def unfold_type)
+  unfolding size.simps by simp
 (*
 optimization ConditionalEliminateKnownLess: "(x < y ? x : y) \<mapsto> x when (x.stamp.upper <= y.stamp.lower)" sorry
 optimization ConditionalEliminateKnownLess: "(x < y ? y : x) \<mapsto> y when (x.stamp.upper <= y.stamp.lower)" sorry
 *)
-optimization BinaryFoldConstant: "BinaryExpr op (ConstantExpr e1) (ConstantExpr e2) \<mapsto> ConstantExpr (bin_eval op e1 e2)" sorry
-optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)" sorry
+
+lemma bool_is_int_val:
+  "is_int_val (bool_to_val x)"
+  using bool_to_val.simps is_int_val.simps by (metis (full_types))
+
+lemma bin_eval_preserves_validity:
+  assumes "int_and_equal_bits c1 c2"
+  shows "valid_value (constantAsStamp (bin_eval op c1 c2)) (bin_eval op c1 c2)"
+  using assms apply (cases c1; cases c2; auto)
+     apply (cases op; auto) 
+  using int_constants_valid bool_is_int_val
+  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+  using int_constants_valid bool_is_int_val
+  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+  using int_constants_valid bool_is_int_val
+  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+    apply (cases op; auto)  
+  using int_constants_valid bool_is_int_val
+  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+  using int_constants_valid bool_is_int_val
+  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+  using int_constants_valid bool_is_int_val
+  by (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+
+
+optimization BinaryFoldConstant: "BinaryExpr op (ConstantExpr e1) (ConstantExpr e2) \<mapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
+   apply simp using evaltree.BinaryExpr evaltree.ConstantExpr stamp_implies_valid_value
+  using bin_eval_preserves_validity by auto
+
+optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)"
+  apply simp
+   apply (smt (verit, del_insts) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
+  unfolding size.simps using nonconstants_gt_one by simp
 (*
 optimization RedundantSubAdd: "isAssociative + => (a - b) + b \<mapsto> a" sorry
 optimization RedundantAddSub: "isAssociative + => (b + a) - b \<mapsto> a" sorry
 *)
-optimization AddNeutral: "e + (const 0) \<mapsto> e" sorry
-optimization AddLeftNegateToSub: "-e + y \<mapsto> y - e" sorry
-optimization AddRightNegateToSub: "x + -e \<mapsto> x - e" sorry
-optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~ (is_ConstantExpr y)" sorry
+lemma neutral_add:
+  assumes "valid_value (IntegerStamp 32 lox hix) x"
+  shows "bin_eval BinAdd x (IntVal32 (0)) = x"
+  using assms bin_eval.simps(4) by (cases x; auto)
+
+optimization AddNeutral: "(e + (const 0)) \<mapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
+   apply simp using neutral_add stamp_implies_valid_value 
+  using evaltree.BinaryExpr evaltree.ConstantExpr
+   apply (metis (no_types, hide_lams) BinaryExprE ConstantExprE)
+  unfolding size.simps by simp
+
+lemma intval_negateadd_equals_sub_left: "bin_eval BinAdd (unary_eval UnaryNeg e) y = bin_eval BinSub y e"
+  by (cases e; auto; cases y; auto)
+
+lemma intval_negateadd_equals_sub_right: "bin_eval BinAdd x (unary_eval UnaryNeg e) = bin_eval BinSub x e"
+  by (cases e; auto; cases x; auto)
+
+optimization AddLeftNegateToSub: "-e + y \<mapsto> y - e"
+  apply simp using intval_negateadd_equals_sub_left
+   apply (metis BinaryExpr BinaryExprE UnaryExprE)
+  unfolding size.simps sorry (* TODO: termination is a problem *)
+
+optimization AddRightNegateToSub: "x + -e \<mapsto> x - e"
+  apply simp using intval_negateadd_equals_sub_right
+   apply (metis BinaryExpr BinaryExprE UnaryExprE)
+  unfolding size.simps sorry (* TODO: termination is still a problem *)
+
+optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~ (is_ConstantExpr y)"
+  apply simp
+   apply (metis BinaryExpr BinaryExprE bin_eval.simps(1) intval_add_sym)
+  unfolding size.simps using nonconstants_gt_one by simp
 
 print_context
 print_optimizations

@@ -9,7 +9,7 @@ notation (latex)
   IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr ("_ \<longmapsto> _")
 
 text_raw \<open>\Snip{abstract-syntax-tree}%
-@{datatype[display,margin=45] IRExpr}
+@{datatype[display,margin=40] IRExpr}
 \EndSnip\<close>
 
 text_raw \<open>\Snip{tree-semantics}%

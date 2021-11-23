@@ -470,7 +470,8 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
   then have "[m,p] \<turnstile> branch \<mapsto> v" using a b ce evalDet by blast 
   then have "[m,p] \<turnstile> branch' \<mapsto> v" using assms b b' by auto
   then show "[m,p] \<turnstile> ConditionalExpr ce' te' fe' \<mapsto> v"
-    using ConditionalExpr ce' b' by auto 
+    using ConditionalExpr ce' b'
+    using a by blast
 qed
 
 

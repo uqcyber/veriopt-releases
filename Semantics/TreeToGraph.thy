@@ -244,9 +244,14 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   (* for now... *)
   "stamp_unary op _ = IllegalStamp"
 
+definition fixed_32 :: "IRBinaryOp set" where
+  "fixed_32 = {BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
+
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_binary op (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
-    (if (b1 = b2) then unrestricted_stamp (IntegerStamp b1 lo1 hi1) else IllegalStamp)" |
+    (case op \<in> fixed_32 of True \<Rightarrow> unrestricted_stamp (IntegerStamp 32 lo1 hi1) |
+    False \<Rightarrow>
+    (if (b1 = b2) then unrestricted_stamp (IntegerStamp b1 lo1 hi1) else IllegalStamp))" |
   (* for now... *)
   "stamp_binary op _ _ = IllegalStamp"
 

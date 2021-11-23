@@ -31,12 +31,12 @@ lemma annihilator_rewrite_helper:
   and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_and x (IntVal32 0) = IntVal32 0"
   and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_and x (IntVal64 0) = IntVal64 0"
 
-  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_or x (IntVal32 1) = IntVal32 1"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x (IntVal64 1) = IntVal64 1"
+  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_or x (IntVal32 (-1)) = IntVal32 (-1)"
+  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x (IntVal64 (-1)) = IntVal64 (-1)"
   using valid32or64_both
   apply auto
   apply (metis intval_mul.simps(1) mult_zero_right valid32)
-  sorry
+  by fastforce+
 
 lemma idempotent_rewrite_helper:
   shows "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_and x x = x"
@@ -46,12 +46,316 @@ lemma idempotent_rewrite_helper:
   and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x x = x"
   using valid32or64_both
   apply auto 
-  sorry
+  by fastforce+
+
+value "size (v::32 word)"
+
+lemma signed_int_bottom32: "-(((2::int) ^ 31)) \<le> sint (v::int32)"
+proof -
+  have "size v = 32" apply (cases v; auto) sorry (* weird *)
+  then show ?thesis
+    using sint_range_size sorry (* it says proof found... *)
+qed
+
+lemma signed_int_top32: "(2 ^ 31) - 1 \<ge> sint (v::int32)"
+proof -
+  have "size v = 32" sorry (* weird *)
+  then show ?thesis
+    using sint_range_size sorry (* it says proof found... *)
+qed
+
+lemma lower_bounds_equiv32: "-(((2::int) ^ 31)) = (2::int) ^ 32 div 2 * - 1"
+  by fastforce
+
+lemma upper_bounds_equiv32: "(2::int) ^ 31 = (2::int) ^ 32 div 2"
+  by simp
+
+lemma bit_bounds_min32: "((fst (bit_bounds 32))) \<le> (sint (v::int32))"
+  unfolding bit_bounds.simps fst_def using signed_int_bottom32 lower_bounds_equiv32
+  by auto
+
+lemma bit_bounds_max32: "((snd (bit_bounds 32))) \<ge> (sint (v::int32))"
+  unfolding bit_bounds.simps fst_def using signed_int_top32 upper_bounds_equiv32
+  by auto
+
+value "size (v::64 word)"
+
+lemma signed_int_bottom64: "-(((2::int) ^ 63)) \<le> sint (v::int64)"
+proof -
+  have "size v = 64" apply (cases v; auto) sorry (* weird *)
+  then show ?thesis
+    using sint_range_size sorry (* it says proof found... *)
+qed
+
+lemma signed_int_top64: "(2 ^ 63) - 1 \<ge> sint (v::int64)"
+proof -
+  have "size v = 32" sorry (* weird *)
+  then show ?thesis
+    using sint_range_size sorry (* it says proof found... *)
+qed
+
+lemma lower_bounds_equiv64: "-(((2::int) ^ 63)) = (2::int) ^ 64 div 2 * - 1"
+  by fastforce
+
+lemma upper_bounds_equiv64: "(2::int) ^ 63 = (2::int) ^ 64 div 2"
+  by simp
+
+lemma bit_bounds_min64: "((fst (bit_bounds 64))) \<le> (sint (v::int64))"
+  unfolding bit_bounds.simps fst_def using signed_int_bottom64 lower_bounds_equiv64
+  by auto
+
+lemma bit_bounds_max64: "((snd (bit_bounds 64))) \<ge> (sint (v::int64))"
+  unfolding bit_bounds.simps fst_def using signed_int_top64 upper_bounds_equiv64
+  by auto
+
+lemma unrestricted_32bit_always_valid:
+  "valid_value (unrestricted_stamp (IntegerStamp 32 lo hi)) (IntVal32 v)"
+  using valid_value.simps(1) bit_bounds_min32 bit_bounds_max32
+  using unrestricted_stamp.simps(2) by presburger
+
+lemma unrestricted_64bit_always_valid:
+  "valid_value (unrestricted_stamp (IntegerStamp 64 lo hi)) (IntVal64 v)"
+  using valid_value.simps(2) bit_bounds_min64 bit_bounds_max64
+  using unrestricted_stamp.simps(2) by presburger
+
+lemma unary_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVal"
+  by (cases op; auto)
+
+lemma unary_obj: "val = ObjRef x \<Longrightarrow> unary_eval op val = UndefVal"
+  by (cases op; auto)
+
+lemma unary_eval_implies_valud_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "result = unary_eval op val"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value (stamp_expr expr) val"
+  shows "valid_value (stamp_expr (UnaryExpr op expr)) result"
+proof -
+  have is_IntVal: "\<exists> x y. result = IntVal32 x \<or> result = IntVal64 y"
+    using assms(2,3) apply (cases op; auto; cases val; auto)
+    by metis
+  then have "is_IntegerStamp (stamp_expr expr)"
+    using assms(2,3,4) apply (cases "(stamp_expr expr)"; auto) 
+    using valid_VoidStamp unary_undef apply simp
+    using valid_VoidStamp unary_undef apply simp
+    using valid_ObjStamp unary_obj apply fastforce
+    using valid_ObjStamp unary_obj by fastforce
+  then obtain b lo hi where stamp_expr_def: "stamp_expr expr = (IntegerStamp b lo hi)"
+    using is_IntegerStamp_def by auto
+  then have "stamp_expr (UnaryExpr op expr) = unrestricted_stamp (IntegerStamp b lo hi)"
+    using stamp_expr.simps(1) stamp_unary.simps(1) by presburger
+  from stamp_expr_def have bit32: "b = 32 \<Longrightarrow> \<exists> x. result = IntVal32 x"
+    using assms(2,3,4) by (cases op; auto; cases val; auto) 
+  from stamp_expr_def have bit64: "b = 64 \<Longrightarrow> \<exists> x. result = IntVal64 x" 
+    using assms(2,3,4) by (cases op; auto; cases val; auto) 
+
+  show ?thesis using valid_value.simps(1,2)
+    unrestricted_32bit_always_valid unrestricted_64bit_always_valid stamp_expr_def
+    bit32 bit64
+    by (metis \<open>stamp_expr (UnaryExpr op expr) = unrestricted_stamp (IntegerStamp b lo hi)\<close> assms(4) valid32or64_both)
+qed
+
+lemma binary_undef: "v1 = UndefVal \<or> v2 = UndefVal \<Longrightarrow> bin_eval op v1 v2 = UndefVal"
+  by (cases op; auto)
+
+lemma binary_obj: "v1 = ObjRef x \<or> v2 = ObjRef y \<Longrightarrow> bin_eval op v1 v2 = UndefVal"
+  by (cases op; auto)
+
+lemma binary_eval_bits_equal:
+  assumes "result = bin_eval op val1 val2"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value (IntegerStamp b1 lo1 hi1) val1"
+  assumes "valid_value (IntegerStamp b2 lo2 hi2) val2"
+  shows "b1 = b2"
+  using assms 
+  by (cases op; cases val1; cases val2; auto) (*slow*)
+
+lemma binary_eval_values:
+  assumes "\<exists>x y. result = IntVal32 x \<or> result = IntVal64 y"
+  assumes "result = bin_eval op val1 val2"
+  shows" \<exists>x32 x64 y32 y64. val1 = IntVal32 x32 \<and> val2 = IntVal32 y32 \<or> val1 = IntVal64 x64 \<and> val2 = IntVal64 y64"
+  using assms apply (cases result)
+      apply simp apply (cases op; cases val1; cases val2; auto)
+    apply (cases op; cases val1; cases val2; auto) by auto+
+
+lemma binary_eval_implies_valud_value:
+  assumes "[m,p] \<turnstile> expr1 \<mapsto> val1"
+  assumes "[m,p] \<turnstile> expr2 \<mapsto> val2"
+  assumes "result = bin_eval op val1 val2"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value (stamp_expr expr1) val1"
+  assumes "valid_value (stamp_expr expr2) val2"
+  shows "valid_value (stamp_expr (BinaryExpr op expr1 expr2)) result"
+proof -
+  have is_IntVal: "\<exists> x y. result = IntVal32 x \<or> result = IntVal64 y"
+    using assms(1,2,3,4) apply (cases op; auto; cases val1; auto; cases val2; auto)
+    by (meson Values.bool_to_val.elims)+
+  then have expr1_intstamp: "is_IntegerStamp (stamp_expr expr1)"
+    using assms(1,3,4,5) apply (cases "(stamp_expr expr1)"; auto simp: valid_VoidStamp binary_undef)
+    using valid_ObjStamp binary_obj apply (metis assms(4))
+    using valid_ObjStamp binary_obj by (metis assms(4))
+  from is_IntVal have expr2_intstamp: "is_IntegerStamp (stamp_expr expr2)"
+    using assms(2,3,4,6) apply (cases "(stamp_expr expr2)"; auto simp: valid_VoidStamp binary_undef)
+    using valid_ObjStamp binary_obj apply (metis assms(4))
+    using valid_ObjStamp binary_obj by (metis assms(4))
+  from expr1_intstamp obtain b1 lo1 hi1 where stamp_expr1_def: "stamp_expr expr1 = (IntegerStamp b1 lo1 hi1)"
+    using is_IntegerStamp_def by auto
+  from expr2_intstamp obtain b2 lo2 hi2 where stamp_expr2_def: "stamp_expr expr2 = (IntegerStamp b2 lo2 hi2)"
+    using is_IntegerStamp_def by auto
+
+  have "\<exists> x32 x64 y32 y64 . (val1 = IntVal32 x32 \<and> val2 = IntVal32 y32) \<or> (val1 = IntVal64 x64 \<and> val2 = IntVal64 y64)"
+    using is_IntVal assms(3) binary_eval_values
+    by presburger
+    
+  have "b1 = b2"
+    using assms(3,4,5,6) stamp_expr1_def stamp_expr2_def
+    using binary_eval_bits_equal
+    by auto 
+  then have stamp_def: "stamp_expr (BinaryExpr op expr1 expr2) = 
+    (case op \<in> fixed_32 of True \<Rightarrow> unrestricted_stamp (IntegerStamp 32 lo1 hi1)| False \<Rightarrow> unrestricted_stamp (IntegerStamp b1 lo1 hi1))"
+    using stamp_expr.simps(2) stamp_binary.simps(1)
+    using stamp_expr1_def stamp_expr2_def by presburger
+  from stamp_expr1_def have bit32: "b1 = 32 \<Longrightarrow> \<exists> x. result = IntVal32 x"
+    using assms apply (cases op; cases val1; cases val2; auto) (*slow*)
+    by (meson Values.bool_to_val.elims)+
+  from stamp_expr1_def have bit64: "b1 = 64 \<and> op \<notin> fixed_32 \<Longrightarrow> \<exists> x y. result = IntVal64 x" 
+    using assms apply (cases op; cases val1; cases val2; simp) (*slow*)
+    using fixed_32_def by auto+
+  from stamp_expr1_def have fixed: "op \<in> fixed_32 \<Longrightarrow> \<exists> x y. result = IntVal32 x" 
+    using assms unfolding fixed_32_def apply (cases op; auto)
+    apply (cases val1; cases val2; auto)
+    using bit32 apply fastforce 
+      apply (meson Values.bool_to_val.elims)
+     apply (cases val1; cases val2; auto) 
+    using bit32 apply fastforce
+     apply (meson Values.bool_to_val.elims)
+      apply (cases val1; cases val2; auto) 
+    using bit32 apply fastforce
+    by (meson Values.bool_to_val.elims)
+
+  show ?thesis apply (cases "op \<in> fixed_32") defer using valid_value.simps(1,2)
+    unrestricted_32bit_always_valid unrestricted_64bit_always_valid stamp_expr1_def
+    bit32 bit64 stamp_def apply auto
+    using \<open>\<exists>x32 x64 y32 y64. val1 = IntVal32 x32 \<and> val2 = IntVal32 y32 \<or> val1 = IntVal64 x64 \<and> val2 = IntVal64 y64\<close> assms(5) apply auto[1]
+    using fixed by force
+qed
+
+lemma stamp_meet_is_valid:
+  assumes "valid_value stamp1 val \<or> valid_value stamp2 val"
+  assumes "meet stamp1 stamp2 \<noteq> IllegalStamp"
+  shows "valid_value (meet stamp1 stamp2) val"
+  using assms proof (cases stamp1)
+  case VoidStamp
+  then show ?thesis
+    by (metis Stamp.exhaust assms(1) assms(2) meet.simps(1) meet.simps(37) meet.simps(44) meet.simps(51) meet.simps(58) meet.simps(65) meet.simps(66) meet.simps(67))
+next
+  case (IntegerStamp b lo hi)
+  obtain b2 lo2 hi2 where stamp2_def: "stamp2 = IntegerStamp b2 lo2 hi2"
+    by (metis IntegerStamp assms(2) meet.simps(45) meet.simps(52) meet.simps(59) meet.simps(6) meet.simps(65) meet.simps(66) meet.simps(67) unrestricted_stamp.cases)
+  then have "b = b2" using meet.simps(2) assms(2) 
+    by (metis IntegerStamp)
+  then have meet_def: "meet stamp1 stamp2 = (IntegerStamp b (min lo lo2) (max hi hi2))"
+    by (simp add: IntegerStamp stamp2_def)
+  then show ?thesis proof (cases "b = 32")
+    case True
+    then obtain x where val_def: "val = IntVal32 x"
+      using IntegerStamp assms(1) valid32
+      using \<open>b = b2\<close> stamp2_def by blast
+    have min: "sint x \<ge> min lo lo2" 
+      using val_def
+      using IntegerStamp assms(1)
+      using stamp2_def by force
+    have max: "sint x \<le> max hi hi2" 
+      using val_def
+      using IntegerStamp assms(1)
+      using stamp2_def by force
+    from min max show ?thesis
+      by (simp add: True meet_def val_def)
+  next
+    case False
+    then have bit64: "b = 64"
+      using assms(1) IntegerStamp valid_value.simps
+      valid32or64_both
+      by (metis \<open>b = b2\<close> stamp2_def)
+    then obtain x where val_def: "val = IntVal64 x"
+      using IntegerStamp assms(1) valid64
+      using \<open>b = b2\<close> stamp2_def by blast
+    have min: "sint x \<ge> min lo lo2" 
+      using val_def
+      using IntegerStamp assms(1)
+      using stamp2_def by force
+    have max: "sint x \<le> max hi hi2" 
+      using val_def
+      using IntegerStamp assms(1)
+      using stamp2_def by force
+    from min max show ?thesis
+      by (simp add: bit64 meet_def val_def)
+  qed
+next
+  case (KlassPointerStamp x31 x32)
+  then show ?thesis using assms
+    by (metis meet.simps(13) meet.simps(14) meet.simps(65) meet.simps(67) unrestricted_stamp.cases valid_value.simps(10) valid_value.simps(11) valid_value.simps(16) valid_value.simps(9))
+next
+  case (MethodCountersPointerStamp x41 x42)
+  then show ?thesis using assms
+    by (metis meet.simps(20) meet.simps(21) meet.simps(24) meet.simps(67) unrestricted_stamp.cases valid_value.simps(10) valid_value.simps(11) valid_value.simps(16) valid_value.simps(9))
+next
+  case (MethodPointersStamp x51 x52)
+then show ?thesis using assms
+  by (smt (z3) is_stamp_empty.elims(1) meet.simps(27) meet.simps(28) meet.simps(65) meet.simps(67) valid_value.simps(10) valid_value.simps(11) valid_value.simps(16) valid_value.simps(9))
+next
+  case (ObjectStamp x61 x62 x63 x64)
+  then show ?thesis using assms
+    using meet.simps(34) by blast
+next
+  case (RawPointerStamp x71 x72)
+  then show ?thesis using assms
+    using meet.simps(35) by blast
+next
+  case IllegalStamp
+  then show ?thesis using assms
+    using meet.simps(36) by blast
+qed
+
+
+lemma conditional_eval_implies_valud_value:
+  assumes "[m,p] \<turnstile> cond \<mapsto> condv"
+  assumes "expr = (if IRTreeEval.val_to_bool condv then expr1 else expr2)"
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "val \<noteq> UndefVal"
+  assumes "valid_value (stamp_expr cond) condv"
+  assumes "valid_value (stamp_expr expr) val"
+  shows "valid_value (stamp_expr (ConditionalExpr cond expr1 expr2)) val"
+proof -
+  have "meet (stamp_expr expr1) (stamp_expr expr2) \<noteq> IllegalStamp"
+    using assms apply (cases "stamp_expr expr"; auto)
+    using valid_VoidStamp apply blast sorry
+  then show ?thesis using stamp_meet_is_valid using stamp_expr.simps(6)
+    using assms(2) assms(6) by presburger
+qed
 
 lemma stamp_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   shows "valid_value (stamp_expr expr) val"
-  sorry
+  using assms proof (induction expr val)
+case (UnaryExpr expr val result op)
+  then show ?case using unary_eval_implies_valud_value by simp
+next
+  case (BinaryExpr expr1 val1 expr2 val2 result op)
+  then show ?case using binary_eval_implies_valud_value by simp
+next
+  case (ConditionalExpr cond condv expr expr1 expr2 val)
+  then show ?case using conditional_eval_implies_valud_value by simp
+next
+  case (ParameterExpr x1 x2)
+  then show ?case by auto
+next
+  case (LeafExpr x1 x2)
+  then show ?case by auto
+next
+  case (ConstantExpr x)
+  then show ?case by auto
+qed
 
 lemma CanonicalizeBinaryProof:
   assumes "CanonicalizeBinaryOp before after"
@@ -551,26 +855,30 @@ next
     obtain xval where xeval: "[m,p] \<turnstile> x \<mapsto> xval"
       by (metis (full_types) ConditionalExprE nceval evalDet True negate_condition.prems(1))
     then have "res = xval"
-      by (metis True nceval negate_condition.prems(1) evaltree.ConditionalExpr xeval evalDet)
-    moreover have "res' = xval"
-      by (metis (no_types, hide_lams) nceval negate_condition.prems(1) evaltree.ConditionalExpr xeval
-          evalDet IRTreeEval.val_to_bool.elims(2) True UnaryExpr Value.inject(1)
-          \<open>\<And>thesis. (\<And>cval. [m,p] \<turnstile> c \<mapsto> cval \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> negate_condition.hyps(1)
-          negate_condition.prems(2) unary_eval.simps(4))
-    ultimately show ?thesis by simp
+      by (metis (full_types) ConditionalExprE True evalDet nceval negate_condition.prems(1))
+    have "c \<noteq> nc"
+      by (simp add: negate_condition.hyps(1))
+    then have "\<not>(val_to_bool cval)"
+      by (metis IRTreeEval.val_to_bool.elims(2) IRTreeEval.val_to_bool.simps(1) True UnaryExprE ceval evalDet nceval negate_condition.hyps(1) unary_eval.simps(4))
+    then have "res' = xval"
+      using nceval ceval True negate_condition(1) negate_condition(9)
+      by (metis (full_types) ConditionalExprE evalDet xeval)
+    then show ?thesis
+      by (simp add: \<open>res = xval\<close>)
   next
     case False
     obtain yval where yeval: "[m,p] \<turnstile> y \<mapsto> yval"
       by (metis (full_types) ConditionalExprE nceval evalDet False negate_condition.prems(1))
     then have "res = yval" 
-      using False nceval negate_condition.prems(1) evaltree.ConditionalExpr yeval evalDet by presburger
+      using False nceval negate_condition.prems(1) evaltree.ConditionalExpr yeval evalDet
+      by (metis (full_types) ConditionalExprE)
     moreover have "val_to_bool(cval)" 
       by (metis False UnaryExprE ceval nceval negate_condition.hyps(1-3) unary_eval.simps(4)
           IRTreeEval.val_to_bool.simps(1) evalDet IRTreeEval.bool_to_val.simps(2)
           stamp_implies_valid_value valid_int32 zero_neq_one)
     moreover have "res' = yval"
       using calculation(2) ceval negate_condition.prems evaltree.ConditionalExpr yeval evalDet  unary_eval.simps(4)
-      by presburger
+      by (metis (full_types) ConditionalExprE)
     ultimately show ?thesis by simp
   qed
 next

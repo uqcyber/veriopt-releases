@@ -126,6 +126,12 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
+inductive not_undef_or_fail :: "Value \<Rightarrow> Value \<Rightarrow> bool" where
+  "\<lbrakk>value \<noteq> UndefVal\<rbrakk> \<Longrightarrow> not_undef_or_fail value value"
+
+notation (latex output) (* we can pretend intval_* are partial functions *)
+  not_undef_or_fail ("_ = _")
+
 inductive
   evaltree :: "MapState \<Rightarrow> Params \<Rightarrow> IRExpr \<Rightarrow> Value \<Rightarrow> bool" ("[_,_] \<turnstile> _ \<mapsto> _" 55)
   for m p where
@@ -141,17 +147,22 @@ inductive
   ConditionalExpr:
   "\<lbrakk>[m,p] \<turnstile> ce \<mapsto> cond;
     branch = (if val_to_bool cond then te else fe);
-    [m,p] \<turnstile> branch \<mapsto> v\<rbrakk>
+    [m,p] \<turnstile> branch \<mapsto> v;
+    v \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr ce te fe) \<mapsto> v" |
 
   UnaryExpr:
-  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v\<rbrakk>
-    \<Longrightarrow> [m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> unary_eval op v" |
+  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v;
+    result = (unary_eval op v);
+    result \<noteq> UndefVal\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> result" |
 
   BinaryExpr:
   "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> x;
-    [m,p] \<turnstile> ye \<mapsto> y\<rbrakk>
-    \<Longrightarrow> [m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> bin_eval op x y" |
+    [m,p] \<turnstile> ye \<mapsto> y;
+    result = (bin_eval op x y);
+    result \<noteq> UndefVal\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> result" |
 
   LeafExpr:
   "\<lbrakk>val = m n;

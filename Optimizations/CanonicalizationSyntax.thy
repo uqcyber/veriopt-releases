@@ -8,8 +8,8 @@ begin
 
 
 fun size :: "IRExpr \<Rightarrow> nat" where
-  "size (UnaryExpr op e) = (size e) + 2" |
-  "size (BinaryExpr op x y) = (size x) + ((size y) * 2) + 2" |
+  "size (UnaryExpr op e) = (size e) + 1" |
+  "size (BinaryExpr op x y) = (size x) + ((size y) * 2) + 1" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr const) = 1" |
   "size (ParameterExpr ind s) = 2" |
@@ -17,11 +17,17 @@ fun size :: "IRExpr \<Rightarrow> nat" where
   "size (ConstantVar c) = 2" |
   "size (VariableExpr x s) = 2"
 
-lemma "size e = 1 \<Longrightarrow> is_ConstantExpr e"
+lemma size_gt_0: "size e > 0"
   by (cases e; auto)
 
+lemma "size e = 1 \<Longrightarrow> is_ConstantExpr e"
+  apply (cases e; auto) using size_gt_0
+  apply (metis less_numeral_extra(3)) using size_gt_0
+  by (metis less_numeral_extra(3))
+
 lemma nonconstants_gt_one: "\<not> (is_ConstantExpr e) \<Longrightarrow> size e > 1"
-  by (cases e; auto)
+  apply (cases e; auto) using size_gt_0
+  apply simp using size_gt_0 by simp
 
 lemma size_det: "x = y \<Longrightarrow> size x = size y"
   by auto

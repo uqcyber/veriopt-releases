@@ -184,6 +184,11 @@ definition modulo_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 instance proof qed
 end
 
+(* TODO: must add bitwise syntax bundle for Isabelle 2021-1.
+context
+  includes bit_operations_syntax
+begin
+*)
 
 fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "&&*" 64) where
   "intval_and (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 AND v2))" |
@@ -230,6 +235,9 @@ fun intval_abs :: "Value \<Rightarrow> Value" where
   "intval_abs (IntVal64 v) = (if (v) <s 0 then (IntVal64 (- v)) else (IntVal64 v))" |
   "intval_abs _ = UndefVal"
 
+(*
+end
+*)
 
 (* Other possibly-helpful lemmas from WORD and its ancestors:
 

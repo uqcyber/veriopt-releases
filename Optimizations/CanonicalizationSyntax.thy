@@ -9,7 +9,8 @@ begin
 
 fun size :: "IRExpr \<Rightarrow> nat" where
   "size (UnaryExpr op e) = (size e) + 1" |
-  "size (BinaryExpr op x y) = (size x) + ((size y) * 2) + 1" |
+  "size (BinaryExpr BinAdd x y) = (size x) + ((size y) * 2)" |
+  "size (BinaryExpr op x y) = (size x) + (size y)" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr const) = 1" |
   "size (ParameterExpr ind s) = 2" |
@@ -18,16 +19,46 @@ fun size :: "IRExpr \<Rightarrow> nat" where
   "size (VariableExpr x s) = 2"
 
 lemma size_gt_0: "size e > 0"
-  by (cases e; auto)
+proof (induction e)
+case (UnaryExpr x1 e)
+  then show ?case by auto
+next
+case (BinaryExpr x1 e1 e2)
+then show ?case by (cases x1; auto)
+next
+  case (ConditionalExpr e1 e2 e3)
+  then show ?case by auto
+next
+  case (ParameterExpr x1 x2)
+then show ?case by auto
+next
+  case (LeafExpr x1 x2)
+  then show ?case by auto
+next
+  case (ConstantExpr x)
+  then show ?case by auto
+next
+  case (ConstantVar x)
+  then show ?case by auto
+next
+  case (VariableExpr x1 x2)
+  then show ?case by auto
+qed
+
+lemma binary_expr_size_gte_2: "size (BinaryExpr op x y) \<ge> 2"
+  apply (induction "BinaryExpr op x y") apply auto apply (cases op; auto) using size_gt_0
+  apply (metis One_nat_def Suc_leI add_le_mono mult_2_right numeral_Bit0 numeral_code(1) trans_le_add2)
+  by (metis Suc_leI add_2_eq_Suc' add_Suc_shift add_mono numeral_2_eq_2 size_gt_0)+
 
 lemma "size e = 1 \<Longrightarrow> is_ConstantExpr e"
   apply (cases e; auto) using size_gt_0
   apply (metis less_numeral_extra(3)) using size_gt_0
-  by (metis less_numeral_extra(3))
+  by (metis binary_expr_size_gte_2 lessI not_less numeral_2_eq_2)
 
 lemma nonconstants_gt_one: "\<not> (is_ConstantExpr e) \<Longrightarrow> size e > 1"
   apply (cases e; auto) using size_gt_0
-  apply simp using size_gt_0 by simp
+  apply simp using size_gt_0
+  using Suc_le_eq binary_expr_size_gte_2 numeral_2_eq_2 by auto
 
 lemma size_det: "x = y \<Longrightarrow> size x = size y"
   by auto
@@ -194,22 +225,22 @@ proof -
     by simp
 qed
 
-
+experiment begin
 lemma add_intstamp_prop:
   assumes "type x = Integer"
   assumes "type_safe x y"
   shows "type exp[x + y] = Integer"
   using assms unfolding type_def type_safe_def
   using stamp_expr.simps(3) stamp_binary.simps(1)
-  using is_IntegerStamp_def type_def unfold_type by force
+  using is_IntegerStamp_def type_def unfold_type sorry
 
 lemma sub_intstamp_prop:
   assumes "type x = Integer"
   assumes "type_safe x y"
   shows "type exp[x - y] = Integer"
   using assms unfolding type_def type_safe_def
-  using stamp_expr.simps(3) stamp_binary.simps(1)
-  by (metis Stamp.collapse(1) Stamp.disc(2) stamp_expr.simps(2) type_def unfold_type unrestricted_stamp.simps(2))
+  using stamp_expr.simps(3) stamp_binary.simps(1) sorry
+end
 
 lemma uminus_intstamp_prop:
   assumes "type x = Integer"
@@ -578,7 +609,8 @@ optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_ev
 optimization AndEqual: "(x & x) \<mapsto> x when is_IntegerStamp (stamp_expr x)"
   apply simp
    apply (metis BinaryExprE CanonicalizeAndProof and_same)
-  unfolding size.simps by simp
+  unfolding size.simps
+  by (simp add: size_gt_0)
 
 optimization AndShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)"
   apply simp
@@ -641,7 +673,9 @@ lemma bin_eval_preserves_validity:
 
 optimization BinaryFoldConstant: "BinaryExpr op (ConstantExpr e1) (ConstantExpr e2) \<mapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
    apply simp using evaltree.BinaryExpr evaltree.ConstantExpr stamp_implies_valid_value
-  using bin_eval_preserves_validity by auto
+  using bin_eval_preserves_validity 
+  apply force using nonconstants_gt_one
+  by auto
 
 optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)"
   apply simp
@@ -671,12 +705,14 @@ lemma intval_negateadd_equals_sub_right: "bin_eval BinAdd x (unary_eval UnaryNeg
 optimization AddLeftNegateToSub: "-e + y \<mapsto> y - e"
   apply simp using intval_negateadd_equals_sub_left
    apply (metis BinaryExpr BinaryExprE UnaryExprE)
-  unfolding size.simps sorry (* TODO: termination is a problem *)
+  unfolding size.simps
+  by simp
 
 optimization AddRightNegateToSub: "x + -e \<mapsto> x - e"
   apply simp using intval_negateadd_equals_sub_right
    apply (metis BinaryExpr BinaryExprE UnaryExprE)
-  unfolding size.simps sorry (* TODO: termination is still a problem *)
+  unfolding size.simps
+  by simp
 
 optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~ (is_ConstantExpr y)"
   apply simp

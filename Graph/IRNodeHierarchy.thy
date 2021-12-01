@@ -29,8 +29,11 @@ fun is_VirtualState :: "IRNode \<Rightarrow> bool" where
 fun is_BinaryArithmeticNode :: "IRNode \<Rightarrow> bool" where
   "is_BinaryArithmeticNode n = ((is_AddNode n) \<or> (is_AndNode n) \<or> (is_MulNode n) \<or> (is_OrNode n) \<or> (is_SubNode n) \<or> (is_XorNode n))"
 
+fun is_ShiftNode :: "IRNode \<Rightarrow> bool" where
+  "is_ShiftNode n = ((is_LeftShiftNode n) \<or> (is_RightShiftNode n) \<or> (is_UnsignedRightShiftNode n))"
+
 fun is_BinaryNode :: "IRNode \<Rightarrow> bool" where
-  "is_BinaryNode n = ((is_BinaryArithmeticNode n))"
+  "is_BinaryNode n = ((is_BinaryArithmeticNode n) \<or> (is_ShiftNode n))"
 
 fun is_AbstractLocalNode :: "IRNode \<Rightarrow> bool" where
   "is_AbstractLocalNode n = ((is_ParameterNode n))"
@@ -135,7 +138,7 @@ fun is_MemoryKill :: "IRNode \<Rightarrow> bool" where
   "is_MemoryKill n = ((is_AbstractMemoryCheckpoint n))"
 
 fun is_NarrowableArithmeticNode :: "IRNode \<Rightarrow> bool" where
-  "is_NarrowableArithmeticNode n = ((is_AbsNode n) \<or> (is_AddNode n) \<or> (is_AndNode n) \<or> (is_MulNode n) \<or> (is_NegateNode n) \<or> (is_NotNode n) \<or> (is_OrNode n) \<or> (is_SubNode n) \<or> (is_XorNode n))"
+  "is_NarrowableArithmeticNode n = ((is_AbsNode n) \<or> (is_AddNode n) \<or> (is_AndNode n) \<or> (is_MulNode n) \<or> (is_NegateNode n) \<or> (is_NotNode n) \<or> (is_OrNode n) \<or> (is_ShiftNode n) \<or> (is_SubNode n) \<or> (is_XorNode n))"
 
 fun is_AnchoringNode :: "IRNode \<Rightarrow> bool" where
   "is_AnchoringNode n = ((is_AbstractBeginNode n))"
@@ -180,7 +183,7 @@ fun is_GuardedNode :: "IRNode \<Rightarrow> bool" where
   "is_GuardedNode n = ((is_FloatingGuardedNode n))"
 
 fun is_ArithmeticLIRLowerable :: "IRNode \<Rightarrow> bool" where
-  "is_ArithmeticLIRLowerable n = ((is_AbsNode n) \<or> (is_BinaryArithmeticNode n) \<or> (is_IntegerConvertNode n) \<or> (is_NotNode n) \<or> (is_UnaryArithmeticNode n))"
+  "is_ArithmeticLIRLowerable n = ((is_AbsNode n) \<or> (is_BinaryArithmeticNode n) \<or> (is_IntegerConvertNode n) \<or> (is_NotNode n) \<or> (is_ShiftNode n) \<or> (is_UnaryArithmeticNode n))"
 
 fun is_SwitchFoldable :: "IRNode \<Rightarrow> bool" where
   "is_SwitchFoldable n = ((is_IfNode n))"
@@ -207,7 +210,7 @@ fun is_Binary :: "IRNode \<Rightarrow> bool" where
   "is_Binary n = ((is_BinaryArithmeticNode n) \<or> (is_BinaryNode n) \<or> (is_BinaryOpLogicNode n) \<or> (is_CompareNode n) \<or> (is_FixedBinaryNode n) \<or> (is_ShortCircuitOrNode n))"
 
 fun is_ArithmeticOperation :: "IRNode \<Rightarrow> bool" where
-  "is_ArithmeticOperation n = ((is_BinaryArithmeticNode n) \<or> (is_IntegerConvertNode n) \<or> (is_UnaryArithmeticNode n))"
+  "is_ArithmeticOperation n = ((is_BinaryArithmeticNode n) \<or> (is_IntegerConvertNode n) \<or> (is_ShiftNode n) \<or> (is_UnaryArithmeticNode n))"
 
 fun is_ValueNumberable :: "IRNode \<Rightarrow> bool" where
   "is_ValueNumberable n = ((is_FloatingNode n) \<or> (is_ProxyNode n))"

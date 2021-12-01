@@ -283,6 +283,9 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinAnd x y = AndNode x y" |
   "bin_node BinOr  x y = OrNode x y" |
   "bin_node BinXor x y = XorNode x y" |
+  "bin_node BinLeftShift x y = LeftShiftNode x y" |
+  "bin_node BinRightShift x y = RightShiftNode x y" |
+  "bin_node BinURightShift x y = UnsignedRightShiftNode x y" |
   "bin_node BinIntegerEquals x y = IntegerEqualsNode x y" |
   "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y" |
   "bin_node BinIntegerBelow x y = IntegerBelowNode x y"

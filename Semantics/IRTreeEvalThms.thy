@@ -177,15 +177,15 @@ next
 next
   case (NotNode n x xe)
   then show ?case
-    by (metis IRNode.inject(31) NotNodeE rep_not)
+    by (metis IRNode.inject(32) NotNodeE rep_not)
 next
   case (NegateNode n x xe)
   then show ?case
-    by (metis  IRNode.inject(28) NegateNodeE rep_negate)
+    by (metis  IRNode.inject(29) NegateNodeE rep_negate)
 next
   case (LogicNegationNode n x xe)
   then show ?case
-    by (metis IRNode.inject(20) LogicNegationNodeE rep_logicnegation)
+    by (metis IRNode.inject(21) LogicNegationNodeE rep_logicnegation)
 next
   case (AddNode n x y xe ye)
   then show ?case
@@ -193,11 +193,11 @@ next
 next
   case (MulNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(26) MulNodeE rep_mul)
+    by (metis IRNode.inject(27) MulNodeE rep_mul)
 next
   case (SubNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(42) SubNodeE rep_sub)
+    by (metis IRNode.inject(44) SubNodeE rep_sub)
 next
   case (AndNode n x y xe ye)
   then show ?case
@@ -205,11 +205,11 @@ next
 next
   case (OrNode n x y xe ye)
   then show ?case
-  by (metis IRNode.inject(32) OrNodeE rep_or)
+  by (metis IRNode.inject(33) OrNodeE rep_or)
 next
   case (XorNode n x y xe ye)
   then show ?case
-    by (metis IRNode.inject(46) XorNodeE rep_xor)
+    by (metis IRNode.inject(49) XorNodeE rep_xor)
 next
   case (IntegerBelowNode n x y xe ye)
   then show ?case
@@ -225,15 +225,15 @@ next
 next
   case (NarrowNode n x xe)
   then show ?case
-    by (metis IRNode.inject(27) NarrowNodeE rep_narrow)
+    by (metis IRNode.inject(28) NarrowNodeE rep_narrow)
 next
   case (SignExtendNode n x xe)
   then show ?case
-    by (metis IRNode.inject(37) SignExtendNodeE rep_sign_extend)
+    by (metis IRNode.inject(39) SignExtendNodeE rep_sign_extend)
 next
   case (ZeroExtendNode n x xe)
   then show ?case
-    by (metis IRNode.inject(47) ZeroExtendNodeE rep_zero_extend)
+    by (metis IRNode.inject(50) ZeroExtendNodeE rep_zero_extend)
 next
   case (LeafNode n s)
   then show ?case using rep_load_field LeafNodeE by blast 

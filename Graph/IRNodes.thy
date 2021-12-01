@@ -56,6 +56,7 @@ datatype (discs_sels) IRNode =
   | InvokeWithExceptionNode (ir_nid: ID) (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") (ir_exceptionEdge: "SUCC") 
   | IsNullNode (ir_value: "INPUT") 
   | KillingBeginNode (ir_next: "SUCC") 
+  | LeftShiftNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | LoadFieldNode (ir_nid: ID) (ir_field: string) (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | LogicNegationNode (ir_value: "INPUT_COND") 
   | LoopBeginNode (ir_ends: "INPUT_ASSOC list") (ir_overflowGuard_opt: "INPUT_GUARD option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -73,6 +74,7 @@ datatype (discs_sels) IRNode =
   | ParameterNode (ir_index: nat) 
   | PiNode (ir_object: "INPUT") (ir_guard_opt: "INPUT_GUARD option") 
   | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
+  | RightShiftNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
   | SignExtendNode (ir_inputBits: nat) (ir_resultBits: nat) (ir_value: "INPUT") 
   | SignedDivNode (ir_nid: ID) (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -80,6 +82,7 @@ datatype (discs_sels) IRNode =
   | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StoreFieldNode (ir_nid: ID) (ir_field: string) (ir_value: "INPUT") (ir_stateAfter_opt: "INPUT_STATE option") (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
   | SubNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | UnsignedRightShiftNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | UnwindNode (ir_exception: "INPUT") 
   | ValuePhiNode (ir_nid: ID) (ir_values: "INPUT list") (ir_merge: "INPUT_ASSOC") 
   | ValueProxyNode (ir_value: "INPUT") (ir_loopExit: "INPUT_ASSOC") 
@@ -146,6 +149,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (IsNullNode value) = [value]" |
   inputs_of_KillingBeginNode:
   "inputs_of (KillingBeginNode next) = []" |
+  inputs_of_LeftShiftNode:
+  "inputs_of (LeftShiftNode x y) = [x, y]" |
   inputs_of_LoadFieldNode:
   "inputs_of (LoadFieldNode nid0 field object next) = (opt_to_list object)" |
   inputs_of_LogicNegationNode:
@@ -180,6 +185,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (PiNode object guard) = object # (opt_to_list guard)" |
   inputs_of_ReturnNode:
   "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
+  inputs_of_RightShiftNode:
+  "inputs_of (RightShiftNode x y) = [x, y]" |
   inputs_of_ShortCircuitOrNode:
   "inputs_of (ShortCircuitOrNode x y) = [x, y]" |
   inputs_of_SignExtendNode:
@@ -194,6 +201,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (StoreFieldNode nid0 field value stateAfter object next) = value # (opt_to_list stateAfter) @ (opt_to_list object)" |
   inputs_of_SubNode:
   "inputs_of (SubNode x y) = [x, y]" |
+  inputs_of_UnsignedRightShiftNode:
+  "inputs_of (UnsignedRightShiftNode x y) = [x, y]" |
   inputs_of_UnwindNode:
   "inputs_of (UnwindNode exception) = [exception]" |
   inputs_of_ValuePhiNode:
@@ -249,6 +258,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (IsNullNode value) = []" |
   successors_of_KillingBeginNode:
   "successors_of (KillingBeginNode next) = [next]" |
+  successors_of_LeftShiftNode:
+  "successors_of (LeftShiftNode x y) = []" |
   successors_of_LoadFieldNode:
   "successors_of (LoadFieldNode nid0 field object next) = [next]" |
   successors_of_LogicNegationNode:
@@ -283,6 +294,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (PiNode object guard) = []" |
   successors_of_ReturnNode:
   "successors_of (ReturnNode result memoryMap) = []" |
+  successors_of_RightShiftNode:
+  "successors_of (RightShiftNode x y) = []" |
   successors_of_ShortCircuitOrNode:
   "successors_of (ShortCircuitOrNode x y) = []" |
   successors_of_SignExtendNode:
@@ -297,6 +310,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (StoreFieldNode nid0 field value stateAfter object next) = [next]" |
   successors_of_SubNode:
   "successors_of (SubNode x y) = []" |
+  successors_of_UnsignedRightShiftNode:
+  "successors_of (UnsignedRightShiftNode x y) = []" |
   successors_of_UnwindNode:
   "successors_of (UnwindNode exception) = []" |
   successors_of_ValuePhiNode:

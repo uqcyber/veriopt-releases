@@ -99,6 +99,9 @@ fun translateConst (str, typ) =
     | ("\<^const>HOL.conj", _) => @{const BinaryExpr} $ @{const BinAnd}
     | ("\<^const>_binEquals", _) => @{const BinaryExpr} $ @{const BinIntegerEquals}
     | ("\<^const>Groups.uminus_class.uminus", _) => @{const UnaryExpr} $ @{const UnaryNeg}
+    | ("\<^const>Values.shiftl", _) => @{const BinaryExpr} $ @{const BinLeftShift}
+    | ("\<^const>Values.shiftr", _) => @{const BinaryExpr} $ @{const BinRightShift}
+    | ("\<^const>Values.sshiftr", _) => @{const BinaryExpr} $ @{const BinURightShift}
     | _ => Const (str, typ)
 
 fun translateEquals _ terms =
@@ -181,6 +184,7 @@ ML_val \<open>@{term "cond ? tv : fv"}\<close>
 ML_val \<open>@{term "x < y"}\<close>
 ML_val \<open>@{term "c < y"}\<close>
 ML_val \<open>@{term "a \<Longrightarrow> c < y"}\<close>
+ML_val \<open>@{term "x << y"}\<close>
 
 value "exp[c1 + y]"
 
@@ -718,6 +722,71 @@ optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (Const
   apply simp
    apply (metis BinaryExpr BinaryExprE bin_eval.simps(1) intval_add_sym)
   unfolding size.simps using nonconstants_gt_one by simp
+
+optimization MulEliminator: "(x * const(0)) \<mapsto> const(0) when (stamp_expr x = IntegerStamp 32 l u)"
+   apply simp
+  apply (metis BinaryExprE ConstantExprE annihilator_rewrite_helper(1) bin_eval.simps(2) stamp_implies_valid_value)
+  unfolding size.simps
+  by (simp add: size_gt_0)
+
+optimization MulNeutral: "(x * const(1)) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
+   apply simp
+  apply (metis BinaryExprE ConstantExprE bin_eval.simps(2) neutral_rewrite_helper(1) stamp_implies_valid_value)
+  unfolding size.simps by simp
+
+(*
+optimization MulNegate: "(x * const (-1) ) \<mapsto> -x when (stamp_expr x = IntegerStamp 32 l u)"
+  apply simp
+  apply (metis BinaryExprE ConstantExprE bin_eval.simps(2) neutral_rewrite_helper(1) stamp_implies_valid_value)
+  unfolding size.simps by simp
+*)
+
+value "(3::32 word) mod 32"
+
+lemma "(x::nat) \<ge> 0 \<and> x < base \<Longrightarrow> x mod base = x"
+  sledgehammer
+  using mod_less by blast
+
+lemma word_mod_less: "(x::('a::len) word) < base \<Longrightarrow> x mod base = x"
+  by (metis mod_less not_le unat_arith_simps(2) unat_arith_simps(7) unat_mono word_le_less_eq)
+
+value "4294967298::32 word"
+
+lemma shift_equality: "((v1::32 word) << unat ((v2::32 word) mod 32)) = v1 * (2 ^ (unat v2))"
+proof (cases "v2 < 32")
+  case True
+  have "v2 mod 32 = v2"
+    using True
+    by (simp add: word_mod_less)
+  then show ?thesis
+    by simp
+next
+  case False
+  obtain powered where powered_def: "(powered::32 word) = 2 ^ (unat v2)"
+    by auto
+  have "powered < (2 ^ 32)"
+    sorry
+  then have "powered mod (2 ^ 32) = powered"
+    using word_mod_less
+    by blast
+  then have "v2 mod 32 = v2"
+    unfolding powered_def sorry
+  then show ?thesis unfolding powered_def sorry
+qed
+
+lemma intval_shift_equality:
+  shows "intval_mul (IntVal32 x) (IntVal32 (2^(unat j))) = intval_left_shift (IntVal32 x) (IntVal32 j)"
+  unfolding intval_mul.simps intval_left_shift.simps
+  by (simp add: shift_equality)
+
+lemma bin_shift_equality:
+  "bin_eval BinMul (IntVal32 x) (IntVal32 (2^(unat j))) = bin_eval BinLeftShift (IntVal32 x) (IntVal32 j)"
+  using intval_shift_equality by simp
+
+optimization MulPower2: "(x * const(2^(unat j))) \<mapsto> x << const(j) when (stamp_expr x = IntegerStamp 32 l u)"
+   apply simp
+  using BinaryExprE ConstantExprE bin_eval.simps(2,7) stamp_implies_valid_value intval_shift_equality
+  sorry
 
 print_context
 print_optimizations

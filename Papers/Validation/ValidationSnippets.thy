@@ -3,18 +3,19 @@ theory ValidationSnippets
     Tests.UnitTesting
     Graph.Values
     Optimizations.CanonicalizationTree
+    Veriopt.Snipping
 begin
 
 notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 
-text_raw \<open>\Snip{StepSemantics}%\<close>
+snipbegin \<open>StepSemantics\<close>
 text \<open>
 @{thm[display,margin=60] intval_mod.simps(1)}
 
 \induct{@{thm[mode=Rule] step.SignedRemNode [no_vars]}}{eval:rem}
 \<close>
-text_raw \<open>\EndSnip\<close>
+snipend -
 
 (* moduloSnippet not checked in
 text_raw \<open>\Snip{ModuloSnippet}%
@@ -22,12 +23,12 @@ text_raw \<open>\Snip{ModuloSnippet}%
 \EndSnip\<close>
 *)
 
-text_raw \<open>\Snip{ModuloTestSnippet}%
-@{theory_text "static_test moduloSnippet [(IntVal 32 (1)), (Intval 32 (-2147483648))] (IntVal 32 (1))"}
-\EndSnip\<close>
+snipbegin \<open>ModuloTestSnippet\<close>
+text \<open>@{theory_text "static_test moduloSnippet [(IntVal 32 (1)), (Intval 32 (-2147483648))] (IntVal 32 (1))"}\<close>
+snipend -
 
 
-text_raw \<open>\Snip{SampleCanonicalizations}%\<close>
+snipbegin \<open>SampleCanonicalizations}\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] CanonicalizeAdd.add_xsub [no_vars]}}{canon:addxsub}
@@ -40,9 +41,9 @@ text \<open>
 \induct{@{thm[mode=Rule] CanonicalizeConditional.condition_bounds_y [no_vars]}}{canon:conditionboundsy}
 \end{center}
 \<close>
-text_raw \<open>\EndSnip\<close>
+snipend -
 
-text_raw \<open>\Snip{SampleCanonicalizations2}%\<close>
+snipbegin \<open>SampleCanonicalizations2\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] CanonicalizeConditional.negate_condition [no_vars]}}{canon:addxsub}
@@ -55,9 +56,9 @@ text \<open>
 \induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_add_second_first_same [no_vars]}}{canon:conditionboundsy}
 \end{center}
 \<close>
-text_raw \<open>\EndSnip\<close>
+snipend -
 
-text_raw \<open>\Snip{SampleCanonicalizations3}%\<close>
+snipbegin \<open>SampleCanonicalizations3\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_add_second_both__same [no_vars]}}{canon:addxsub}
@@ -71,10 +72,10 @@ text \<open>
 \induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_right_contains_left3 [no_vars]}}{canon:conditionboundsy}
 \end{center}
 \<close>
-text_raw \<open>\EndSnip\<close>
+snipend -
 
 
-text_raw \<open>\Snip{SampleCanonicalizations4}%\<close>
+snipbegin \<open>SampleCanonicalizations4\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] CanonicalizeOr.or_same [no_vars]}}{canon:addxsub}
@@ -88,10 +89,10 @@ text \<open>
 \induct{@{thm[mode=Rule] CanonicalizeNegate.negate_negate [no_vars]}}{canon:conditionboundsy}
 \end{center}
 \<close>
-text_raw \<open>\EndSnip\<close>
+snipend -
 
 
-text_raw \<open>\Snip{SampleCanonicalizations5}%\<close>
+snipbegin \<open>SampleCanonicalizations5\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] CanonicalizeSub.sub_same32 [no_vars]}}{canon:addxsub}
@@ -105,9 +106,9 @@ text \<open>
 \induct{@{thm[mode=Rule] CanonicalizeSub.sub_xzero32 [no_vars]}}{canon:conditionboundsy}
 \end{center}
 \<close>
-text_raw \<open>\EndSnip\<close>
+snipend -
 
-text_raw \<open>\Snip{SampleCanonicalizations6}%\<close>
+snipbegin \<open>SampleCanonicalizations6\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] CanonicalizeSub.sub_xzero64 [no_vars]}}{canon:addxsub}
@@ -121,7 +122,7 @@ text \<open>
 \induct{@{thm[mode=Rule] CanonicalizeBinaryOp.binary_fold_yzero64 [no_vars]}}{canon:conditionboundsy}
 \end{center}
 \<close>
-text_raw \<open>\EndSnip\<close>
+snipend -
 
 
 

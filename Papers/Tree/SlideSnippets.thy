@@ -1,5 +1,7 @@
 theory SlideSnippets
-imports Semantics.TreeToGraphThms
+  imports
+    Semantics.TreeToGraphThms
+    Veriopt.Snipping
 begin
 
 notation (latex)
@@ -8,72 +10,90 @@ notation (latex)
 notation (latex)
   IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr ("_ \<longmapsto> _")
 
-text_raw \<open>\Snip{abstract-syntax-tree}%
-@{datatype[display,margin=40] IRExpr}
-\EndSnip\<close>
+snipbegin \<open>abstract-syntax-tree\<close>
+text \<open>@{datatype[display,margin=40] IRExpr}\<close>
+snipend -
 
-text_raw \<open>\Snip{tree-semantics}%
+snipbegin \<open>tree-semantics\<close>
+text \<open>
 \induct{@{thm[mode=Rule] evaltree.ConstantExpr [no_vars]}}{semantics:constant}
 \induct{@{thm[mode=Rule] evaltree.ParameterExpr [no_vars]}}{semantics:parameter}
 \induct{@{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}}{semantics:unary}
 \induct{@{thm[mode=Rule] evaltree.BinaryExpr [no_vars]}}{semantics:binary}
 \induct{@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}}{semantics:leaf}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{expression-refinement}%
+snipbegin \<open>expression-refinement\<close>
+text \<open>
 \begin{center}
 @{thm le_expr_def [no_vars]} 
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph2tree}
+snipbegin \<open>graph2tree\<close>
+text \<open>
 \induct{@{thm[mode=Rule] rep.ConstantNode [no_vars]}}{semantics:constant}
 \induct{@{thm[mode=Rule] rep.AbsNode [no_vars]}}{semantics:unary}
 \induct{@{thm[mode=Rule] rep.AddNode [no_vars]}}{semantics:binary}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph-semantics}
+snipbegin \<open>graph-semantics\<close>
+text \<open>
 \begin{center}
 @{thm encodeeval_def}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph-refinement}
+snipbegin \<open>graph-refinement\<close>
+text \<open>
 \begin{center}
 @{thm[display, margin=60] graph_refinement_def [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
 (* hide as_set, should treat IRGraph as a set of pairs in paper *)
 translations
   "n" <= "CONST as_set n"
 
-text_raw \<open>\Snip{graph-semantics-preservation}
+snipbegin \<open>graph-semantics-preservation\<close>
+text \<open>
 \begin{center}
 @{thm[display, margin=30] graph_semantics_preservation [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{maximal-sharing}
-@{thm[display, margin=50] maximal_sharing [no_vars]}
-\EndSnip\<close>
+snipbegin \<open>maximal-sharing\<close>
+text \<open>@{thm[display, margin=50] maximal_sharing [no_vars]}\<close>
+snipend -
 
-text_raw \<open>\Snip{tree-to-graph-rewriting}
+snipbegin \<open>tree-to-graph-rewriting\<close>
+text \<open>
 \begin{center}
 @{thm[display, margin=40] tree_to_graph_rewriting [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph-represents-expression}
+snipbegin \<open>graph-represents-expression\<close>
+text \<open>
 \begin{center}
 @{thm[display] graph_represents_expression_def [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph-construction}
+snipbegin \<open>graph-construction\<close>
+text \<open>
 \begin{center}
 @{thm[display, margin=40] graph_construction [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
 end

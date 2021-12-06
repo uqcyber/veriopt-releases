@@ -1,6 +1,7 @@
 theory TreeSnippets
   imports 
     Semantics.TreeToGraphThms
+    Veriopt.Snipping
 begin
 
 notation (latex)
@@ -9,47 +10,54 @@ notation (latex)
 notation (latex)
   IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr ("_ \<longmapsto> _")
 
-text_raw \<open>\Snip{abstract-syntax-tree}%
-@{datatype[display,margin=45] IRExpr}
-\EndSnip\<close>
+snipbegin \<open>abstract-syntax-tree\<close>
+text \<open>@{datatype[display,margin=45] IRExpr}\<close>
+snipend -
 
-text_raw \<open>\Snip{tree-semantics}%
+snipbegin \<open>tree-semantics\<close>
+text \<open>
 \induct{@{thm[mode=Rule] evaltree.ConstantExpr [no_vars]}}{semantics:constant}
 \induct{@{thm[mode=Rule] evaltree.ParameterExpr [no_vars]}}{semantics:parameter}
 \induct{@{thm[mode=Rule] evaltree.ConditionalExpr [no_vars]}}{semantics:conditional}
 \induct{@{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}}{semantics:unary}
 \induct{@{thm[mode=Rule] evaltree.BinaryExpr [no_vars]}}{semantics:binary}
 \induct{@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}}{semantics:leaf}
-\EndSnip\<close>
+\<close>
+snipend -
 (*\induct{@{thm[mode=Rule] evaltree.ConvertExpr [no_vars]}}{semantics:convert}*)
 
-text_raw \<open>\Snip{tree-evaluation-deterministic}%
-@{thm[display] evalDet [no_vars]}
-\EndSnip\<close>
+snipbegin \<open>tree-evaluation-deterministic\<close>
+text \<open>@{thm[display] evalDet [no_vars]}\<close>
+snipend -
 
-text_raw \<open>\Snip{expression-refinement}%
+snipbegin \<open>expression-refinement\<close>
+text \<open>
 \begin{center}
 @{thm le_expr_def [no_vars]} 
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{expression-refinement-monotone}%
+snipbegin \<open>expression-refinement-monotone\<close>
+text \<open>
 \begin{center}
 @{thm mono_unary [no_vars]} \\
 @{thm mono_binary [no_vars]} \\
 @{thm mono_conditional [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
 (* skipping add node optimisations as they are currently very ugly *)
 
 (* definition 5 (semantics-preserving) is there a distinction in Isabelle? *)
 
-text_raw \<open>\Snip{graph-representation}
-@{bold \<open>typedef\<close>} @{term[source] \<open>IRGraph = {g :: ID \<rightharpoonup> IRNode . finite (dom g)}\<close>}
-\EndSnip\<close>
+snipbegin \<open>graph-representation\<close>
+text \<open>@{bold \<open>typedef\<close>} @{term[source] \<open>IRGraph = {g :: ID \<rightharpoonup> IRNode . finite (dom g)}\<close>}\<close>
+snipend -
 
-text_raw \<open>\Snip{graph2tree}
+snipbegin \<open>graph2tree\<close>
+text \<open>
 \induct{@{thm[mode=Rule] rep.ConstantNode [no_vars]}}{semantics:constant}
 \induct{@{thm[mode=Rule] rep.ParameterNode [no_vars]}}{semantics:parameter}
 \induct{@{thm[mode=Rule] rep.ConditionalNode [no_vars]}}{semantics:conditional}
@@ -57,37 +65,46 @@ text_raw \<open>\Snip{graph2tree}
 \induct{@{thm[mode=Rule] rep.SignExtendNode [no_vars]}}{semantics:convert}
 \induct{@{thm[mode=Rule] rep.AddNode [no_vars]}}{semantics:binary}
 \induct{@{thm[mode=Rule] rep.LeafNode [no_vars]}}{semantics:leaf}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{preeval}
-@{thm is_preevaluated.simps}
-\EndSnip\<close>
+snipbegin \<open>preeval\<close>
+text \<open>@{thm is_preevaluated.simps}\<close>
+snipend -
 
-text_raw \<open>\Snip{deterministic-representation}
+snipbegin \<open>deterministic-representation\<close>
+text \<open>
 \begin{center}
 @{thm repDet [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
 (* definition 9 (well-formed graph) no? *)
 
-text_raw \<open>\Snip{graph-semantics}
+snipbegin \<open>graph-semantics\<close>
+text \<open>
 \begin{center}
 @{thm encodeeval_def}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph-semantics-deterministic}
+snipbegin \<open>graph-semantics-deterministic\<close>
+text \<open>
 \begin{center}
 @{thm graphDet [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph-refinement}
+snipbegin \<open>graph-refinement\<close>
+text \<open>
 \begin{center}
 @{thm[display, margin=60] graph_refinement_def [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
 (* hide as_set, should treat IRGraph as a set of pairs in paper *)
 translations
@@ -154,33 +171,41 @@ lemma blah:
   using rep.ZeroExtendNode by blast
 end
 
-text_raw \<open>\Snip{graph-semantics-preservation}
+snipbegin \<open>graph-semantics-preservation\<close>
+text \<open>
 \begin{center}
 @{thm[display, margin=30] graph_semantics_preservation [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{maximal-sharing}
-@{thm[display, margin=50] maximal_sharing [no_vars]}
-\EndSnip\<close>
+snipbegin \<open>maximal-sharing\<close>
+text \<open>@{thm[display, margin=50] maximal_sharing [no_vars]}\<close>
+snipend -
 
-text_raw \<open>\Snip{tree-to-graph-rewriting}
+snipbegin \<open>tree-to-graph-rewriting\<close>
+text \<open>
 \begin{center}
 @{thm[display, margin=40] tree_to_graph_rewriting [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph-represents-expression}
+snipbegin \<open>graph-represents-expression\<close>
+text \<open>
 \begin{center}
 @{thm[display] graph_represents_expression_def [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{graph-construction}
+snipbegin \<open>graph-construction\<close>
+text \<open>
 \begin{center}
 @{thm[display, margin=40] graph_construction [no_vars]}
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
 
 end

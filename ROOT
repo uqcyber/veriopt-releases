@@ -1,6 +1,16 @@
 chapter "veriopt"
 
-session Graph in Graph = "HOL-Library" +
+session Veriopt = "HOL-Library" +
+  description
+    "Veriopt ROOT session containing shared libraries"
+  options [document = pdf, document_output = "output"]
+  theories
+    Snipping
+  document_files (in "./latex")
+    "root.tex"
+    "mathpartir.sty"
+
+session Graph in Graph = Veriopt +
   description
     "GraalVM IR structure"
   options [quick_and_dirty]

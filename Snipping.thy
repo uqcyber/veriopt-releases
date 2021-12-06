@@ -1,0 +1,80 @@
+section Snipping
+
+theory Snipping
+  imports Main
+  keywords
+    "snipbegin" :: document_heading and
+    "snipend" :: document_heading
+begin
+
+text \<open>Snippets allow specific components of the LaTeX document preparation to be included in other documents.\<close>
+
+ML \<open>
+(*
+I thought the document_command was what generated the LaTeX output,
+however, it appears to be hard-coded which makes this a bit of a hack.
+*)
+fun wrapped_command (command: string) (name: string option) =
+  let
+    val command = "\\" ^ command
+    val argument = case name of
+      NONE => "" |
+      SOME v => ("{" ^ v ^ "}")
+    val doc = Input.string (command ^ argument)
+  in
+    (Pure_Syn.document_command {markdown = false} (NONE, doc))
+  end
+
+val _ =
+  Outer_Syntax.command ("snipbegin", \<^here>) "start a snippet"
+    (Parse.document_source >> (fn n => wrapped_command "isamarkupsnipbegin" (SOME (Input.string_of n))));
+
+val _ =
+  Outer_Syntax.command ("snipend", \<^here>) "finish a snippet"
+    (Parse.document_source >> (fn _ => wrapped_command "isamarkupsnipend" (NONE)));
+\<close>
+
+(*
+text \<open>
+To use snippets, in your LaTeX preamble,
+replace the command \verb|\isamarkupsnipbegin| with the start of a snippet,
+and replace \verb|\isamarkupsnipend| with the end of a snippet.
+
+By default snippets are placed into tcolorboxes.
+\<close>
+
+text_raw \<open>
+\verbatim
+\newcommand{\isamarkupsnipbegin}[1]{\begin{tcolorbox}[title=#1]}
+\newcommand{\isamarkupsnipend}[1]{\end{tcolorbox}}
+\end{verbatim}
+\<close>
+*)
+
+text_raw \<open>
+\newcommand{\isamarkupsnipbegin}[1]{\begin{tcolorbox}[title=#1]}
+\newcommand{\isamarkupsnipend}[1]{\end{tcolorbox}}
+\<close>
+
+
+text \<open>
+Snippets should be enclosed within the @{command snipbegin} and @{command snipend} commands.
+
+For example, the box below is produced by the following:
+\<close>
+
+text \<open>
+@{command snipbegin} ``snip-example''
+
+@{command text} ``Hello world!''
+
+@{command snipend}
+\<close>
+
+snipbegin \<open>snip-example\<close>
+
+text \<open>Hello world!\<close>
+
+snipend -
+
+end

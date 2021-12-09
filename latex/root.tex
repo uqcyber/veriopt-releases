@@ -40,11 +40,17 @@
 % for uniform font size
 %\renewcommand{\isastyle}{\isastyleminor}
 
-% display anything in a snip without any markup
-%\providecommand{\snip}[2]{#2}%endsnip
-\newcommand{\Snip}[1]{\isanewline\isanewline}
-\newcommand{\EndSnip}{\isanewline\isanewline}
 \newcommand{\induct}[1]{}
+
+% display anything in a snip without any markup
+% \newcommand{\Snip}[1]{\isanewline\isanewline}
+% \newcommand{\EndSnip}[1]{\isanewline\isanewline}
+% display snips in colorboxes
+\newcommand{\Snip}[1]{\begin{tcolorbox}[title=#1]}
+\newcommand{\EndSnip}[1]{\end{tcolorbox}}
+
+\newcommand{\isamarkupsnipbegin}[1]{\Snip{#1}}
+\newcommand{\isamarkupsnipend}[1]{\EndSnip{#1}}
 
 
 \begin{document}

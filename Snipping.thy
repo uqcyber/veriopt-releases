@@ -51,10 +51,10 @@ text_raw \<open>
 \<close>
 *)
 
-text_raw \<open>
+(*text_raw \<open>
 \newcommand{\isamarkupsnipbegin}[1]{\begin{tcolorbox}[title=#1]}
 \newcommand{\isamarkupsnipend}[1]{\end{tcolorbox}}
-\<close>
+\<close>*)
 
 
 text \<open>

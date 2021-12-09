@@ -418,21 +418,15 @@ proof -
     then have "g2 \<turnstile> nid \<simeq> ConditionalExpr ce te fe"
       using ConditionalExpr.prems(1) ConditionalExpr.prems(3) local.wf stay_same_encoding by presburger
     then show ?case
-      by (metis ConditionalExpr.hyps(1) ConditionalExpr.hyps(3) ConditionalExpr.hyps(4) evaltree.ConditionalExpr)
+      by (metis ConditionalExpr.prems(1))
   next
     case (UnaryExpr xe v op)
-    then have "g2 \<turnstile> nid \<simeq> UnaryExpr op xe"
-      using stay_same_encoding
-      using local.wf by presburger
     then show ?case
-      using UnaryExpr.hyps(1) by blast
+      using local.wf stay_same_encoding by blast
   next
     case (BinaryExpr xe x ye y op)
-    then have "g2 \<turnstile> nid \<simeq> BinaryExpr op xe ye"
-      using stay_same_encoding
-      using local.wf by presburger
     then show ?case
-      using BinaryExpr.hyps(1,3) by blast
+      using local.wf stay_same_encoding by blast
   next
     case (LeafExpr val nid s)
     then show ?case

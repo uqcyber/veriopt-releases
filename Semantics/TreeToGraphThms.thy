@@ -2,6 +2,7 @@ theory TreeToGraphThms
 imports
   TreeToGraph
   IRTreeEvalThms
+  "HOL-Eisbach.Eisbach"
 begin
 
 text \<open>
@@ -95,33 +96,16 @@ lemma mono_mul:
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
   using mono_binary assms
-  by (metis IRNode.inject(26) MulNodeE repDet rep_mul)
+  by (metis IRNode.inject(27) MulNodeE repDet rep_mul)
 
 
 lemma encodes_contains:
-  assumes "g \<turnstile> n \<simeq> e"
-  shows "kind g n \<noteq> NoNode"
-  using assms apply (induction rule: rep.induct)
-  apply (metis IRNode.disc(349) is_ConstantNode_def)
-  using IRNode.distinct(2207) apply presburger
-  using IRNode.distinct(555) apply presburger
-  using IRNode.distinct(95) apply presburger
-  using IRNode.distinct(2141) apply presburger
-  using IRNode.distinct(2027) apply presburger
-  using IRNode.distinct(1635) apply presburger
-  using IRNode.distinct(191) apply presburger
-  using IRNode.distinct(1941) apply presburger
-  using IRNode.distinct(2405) apply presburger
-  using IRNode.distinct(285) apply presburger
-  using IRNode.distinct(2175) apply presburger
-  using IRNode.distinct(2441) apply presburger
-  using IRNode.distinct(1115) apply presburger
-  using IRNode.distinct(1187) apply presburger
-  using IRNode.distinct(1257) apply presburger
-  using IRNode.distinct(1985) apply presburger
-  using IRNode.distinct(2315) apply presburger
-  using IRNode.distinct(2445) apply presburger
-  by (metis is_preevaluated.simps(49))
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+  kind g n \<noteq> NoNode"
+  apply (induction rule: rep.induct)
+  apply (match IRNode.distinct in e: "?n \<noteq> NoNode" \<Rightarrow>
+          \<open>presburger add: e\<close>)+
+  by fastforce
 
 lemma no_encoding:
   assumes "n \<notin> ids g"
@@ -135,6 +119,15 @@ lemma not_excluded_keep_type:
   shows "kind g1 n = kind g2 n \<and> stamp g1 n = stamp g2 n"
   using assms unfolding as_set_def domain_subtraction_def by blast
 
+method metis_node_eq_unary for node :: "'a \<Rightarrow> IRNode" =
+  (match IRNode.inject in i: "(node _ = node _) = _" \<Rightarrow> 
+      \<open>metis i\<close>)
+method metis_node_eq_binary for node :: "'a \<Rightarrow> 'a \<Rightarrow> IRNode" =
+  (match IRNode.inject in i: "(node _ _ = node _ _) = _" \<Rightarrow> 
+      \<open>metis i\<close>)
+method metis_node_eq_ternary for node :: "'a \<Rightarrow> 'a \<Rightarrow> 'a \<Rightarrow> IRNode" =
+  (match IRNode.inject in i: "(node _ _ _ = node _ _ _) = _" \<Rightarrow> 
+      \<open>metis i\<close>)
 
 lemma graph_semantics_preservation:
   assumes a: "e1' \<ge> e2'"
@@ -193,13 +186,13 @@ proof -
         have cer: "\<exists> ce2. (g2 \<turnstile> cn \<simeq> ce2) \<and> ce1 \<ge> ce2"
           using ConditionalNode
           using a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(6))
+          by (metis_node_eq_ternary ConditionalNode)
         have ter: "\<exists> te2. (g2 \<turnstile> tn \<simeq> te2) \<and> te1 \<ge> te2"
           using ConditionalNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(6))
+          by (metis_node_eq_ternary ConditionalNode)
         have "\<exists> fe2. (g2 \<turnstile> fn \<simeq> fe2) \<and> fe1 \<ge> fe2"
           using ConditionalNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(6))
+          by (metis_node_eq_ternary ConditionalNode)
         then have "\<exists> ce2 te2 fe2. (g2 \<turnstile> n \<simeq> ConditionalExpr ce2 te2 fe2) \<and> ConditionalExpr ce1 te1 fe1 \<ge> ConditionalExpr ce2 te2 fe2"
           using ConditionalNode.prems l mono_conditional rep.ConditionalNode cer ter
           by (smt (verit) IRTreeEvalThms.mono_conditional)
@@ -229,7 +222,8 @@ proof -
         have "g1 \<turnstile> xn \<simeq> xe1" using m by simp
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using AbsNode
-          by (metis False IRNode.inject(1) b encodes_contains l not_excluded_keep_type not_in_g singleton_iff)
+          using False b encodes_contains l not_excluded_keep_type not_in_g singleton_iff
+          by (metis_node_eq_unary AbsNode)
         then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr UnaryAbs xe2) \<and> UnaryExpr UnaryAbs xe1 \<ge> UnaryExpr UnaryAbs xe2"
           by (metis AbsNode.prems l mono_unary rep.AbsNode)
         then show ?thesis
@@ -258,7 +252,8 @@ proof -
         have "g1 \<turnstile> xn \<simeq> xe1" using m by simp
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using NotNode
-          by (metis False IRNode.inject(31) b l not_excluded_keep_type singletonD no_encoding)
+          using False i b l not_excluded_keep_type singletonD no_encoding
+          by (metis_node_eq_unary NotNode)
         then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr UnaryNot xe2) \<and> UnaryExpr UnaryNot xe1 \<ge> UnaryExpr UnaryNot xe2"
           by (metis NotNode.prems l mono_unary rep.NotNode)
         then show ?thesis
@@ -287,7 +282,8 @@ proof -
         have "g1 \<turnstile> xn \<simeq> xe1" using m by simp
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using NegateNode
-          by (metis False IRNode.inject(28) b l not_excluded_keep_type singleton_iff no_encoding)
+          using False i b l not_excluded_keep_type singletonD no_encoding
+          by (metis_node_eq_unary NegateNode)
         then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr UnaryNeg xe2) \<and> UnaryExpr UnaryNeg xe1 \<ge> UnaryExpr UnaryNeg xe2"
           by (metis NegateNode.prems l mono_unary rep.NegateNode)
         then show ?thesis
@@ -316,7 +312,8 @@ proof -
         have "g1 \<turnstile> xn \<simeq> xe1" using m by simp
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using LogicNegationNode
-          by (metis False IRNode.inject(20) b encodes_contains ids_some l not_excluded_keep_type singleton_iff)
+          using False i b l not_excluded_keep_type singletonD no_encoding
+          by (metis_node_eq_unary LogicNegationNode)
         then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr UnaryLogicNegation xe2) \<and> UnaryExpr UnaryLogicNegation xe1 \<ge> UnaryExpr UnaryLogicNegation xe2"
           by (metis LogicNegationNode.prems l mono_unary rep.LogicNegationNode)
         then show ?thesis
@@ -338,10 +335,12 @@ proof -
         have "g1 \<turnstile> yn \<simeq> ye1" using my by simp
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using AddNode
-          by (metis IRNode.inject(2) a b c d l no_encoding not_excluded_keep_type repDet singletonD)
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary AddNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using AddNode
-          by (metis IRNode.inject(2) a b c d l no_encoding not_excluded_keep_type repDet singletonD)
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary AddNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinAdd xe2 ye2) \<and> BinaryExpr BinAdd xe1 ye1 \<ge> BinaryExpr BinAdd xe2 ye2"
           by (metis AddNode.prems l mono_binary rep.AddNode xer)
         then show ?thesis
@@ -363,10 +362,12 @@ proof -
         have "g1 \<turnstile> yn \<simeq> ye1" using my by simp
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using MulNode
-          by (metis IRNode.inject(26) a b c d l no_encoding not_excluded_keep_type repDet singletonD)
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary MulNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using MulNode
-          by (metis IRNode.inject(26) a b c d l no_encoding not_excluded_keep_type repDet singletonD)
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary MulNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinMul xe2 ye2) \<and> BinaryExpr BinMul xe1 ye1 \<ge> BinaryExpr BinMul xe2 ye2"
           by (metis MulNode.prems l mono_binary rep.MulNode xer)
         then show ?thesis
@@ -389,10 +390,10 @@ proof -
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using SubNode
           using a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(42))
+          by (metis_node_eq_binary SubNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using SubNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(42))
+          by (metis_node_eq_binary SubNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinSub xe2 ye2) \<and> BinaryExpr BinSub xe1 ye1 \<ge> BinaryExpr BinSub xe2 ye2"
           by (metis SubNode.prems l mono_binary rep.SubNode xer)
         then show ?thesis
@@ -415,10 +416,10 @@ proof -
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using AndNode
           using a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(3))
+          by (metis_node_eq_binary AndNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using AndNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(3))
+          by (metis_node_eq_binary AndNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinAnd xe2 ye2) \<and> BinaryExpr BinAnd xe1 ye1 \<ge> BinaryExpr BinAnd xe2 ye2"
           by (metis AndNode.prems l mono_binary rep.AndNode xer)
         then show ?thesis
@@ -441,10 +442,10 @@ proof -
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using OrNode
           using a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(32))
+          by (metis_node_eq_binary OrNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using OrNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(32))
+          by (metis_node_eq_binary OrNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinOr xe2 ye2) \<and> BinaryExpr BinOr xe1 ye1 \<ge> BinaryExpr BinOr xe2 ye2"
           by (metis OrNode.prems l mono_binary rep.OrNode xer)
         then show ?thesis
@@ -467,10 +468,10 @@ proof -
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using XorNode
           using a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(46))
+          by (metis_node_eq_binary XorNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using XorNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(46))
+          by (metis_node_eq_binary XorNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinXor xe2 ye2) \<and> BinaryExpr BinXor xe1 ye1 \<ge> BinaryExpr BinXor xe2 ye2"
           by (metis XorNode.prems l mono_binary rep.XorNode xer)
         then show ?thesis
@@ -493,10 +494,10 @@ proof -
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using IntegerBelowNode
           using a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(12))
+          by (metis_node_eq_binary IntegerBelowNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using IntegerBelowNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(12))
+          by (metis_node_eq_binary IntegerBelowNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinIntegerBelow xe2 ye2) \<and> BinaryExpr BinIntegerBelow xe1 ye1 \<ge> BinaryExpr BinIntegerBelow xe2 ye2"
           by (metis IntegerBelowNode.prems l mono_binary rep.IntegerBelowNode xer)
         then show ?thesis
@@ -519,10 +520,10 @@ proof -
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using IntegerEqualsNode
           using a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(13))
+          by (metis_node_eq_binary IntegerEqualsNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using IntegerEqualsNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(13))
+          by (metis_node_eq_binary IntegerEqualsNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinIntegerEquals xe2 ye2) \<and> BinaryExpr BinIntegerEquals xe1 ye1 \<ge> BinaryExpr BinIntegerEquals xe2 ye2"
           by (metis IntegerEqualsNode.prems l mono_binary rep.IntegerEqualsNode xer)
         then show ?thesis
@@ -545,10 +546,10 @@ proof -
         have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using IntegerLessThanNode
           using a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(14))
+          by (metis_node_eq_binary IntegerLessThanNode)
         have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
           using IntegerLessThanNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
-          by (metis IRNode.inject(14))
+          by (metis_node_eq_binary IntegerLessThanNode)
         then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinIntegerLessThan xe2 ye2) \<and> BinaryExpr BinIntegerLessThan xe1 ye1 \<ge> BinaryExpr BinIntegerLessThan xe2 ye2"
           by (metis IntegerLessThanNode.prems l mono_binary rep.IntegerLessThanNode xer)
         then show ?thesis
@@ -578,7 +579,8 @@ proof -
         have "g1 \<turnstile> xn \<simeq> xe1" using m by simp
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using NarrowNode
-          by (metis False IRNode.inject(27) b encodes_contains l not_excluded_keep_type not_in_g singleton_iff)
+          using False b encodes_contains l not_excluded_keep_type not_in_g singleton_iff
+          by (metis_node_eq_ternary NarrowNode)
         then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr (UnaryNarrow inputBits resultBits) xe2) \<and> UnaryExpr (UnaryNarrow inputBits resultBits) xe1 \<ge> UnaryExpr (UnaryNarrow inputBits resultBits) xe2"
           by (metis NarrowNode.prems l mono_unary rep.NarrowNode)
         then show ?thesis
@@ -608,7 +610,8 @@ proof -
         have "g1 \<turnstile> xn \<simeq> xe1" using m by simp
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using SignExtendNode
-          by (metis False IRNode.inject(37) b encodes_contains l not_excluded_keep_type not_in_g singleton_iff)
+          using False b encodes_contains l not_excluded_keep_type not_in_g singleton_iff
+          by (metis_node_eq_ternary SignExtendNode)
         then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr (UnarySignExtend inputBits resultBits) xe2) \<and> UnaryExpr (UnarySignExtend inputBits resultBits) xe1 \<ge> UnaryExpr (UnarySignExtend inputBits resultBits) xe2"
           by (metis SignExtendNode.prems l mono_unary rep.SignExtendNode)
         then show ?thesis
@@ -638,7 +641,8 @@ proof -
         have "g1 \<turnstile> xn \<simeq> xe1" using m by simp
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using ZeroExtendNode
-          by (metis False IRNode.inject(47) b encodes_contains l not_excluded_keep_type not_in_g singleton_iff)
+          using False b encodes_contains l not_excluded_keep_type not_in_g singleton_iff
+          by (metis_node_eq_ternary ZeroExtendNode)
         then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr (UnaryZeroExtend inputBits resultBits) xe2) \<and> UnaryExpr (UnaryZeroExtend inputBits resultBits) xe1 \<ge> UnaryExpr (UnaryZeroExtend inputBits resultBits) xe2"
           by (metis ZeroExtendNode.prems l mono_unary rep.ZeroExtendNode)
         then show ?thesis
@@ -890,12 +894,5 @@ lemma graph_construction:
   \<Longrightarrow> (g2 \<turnstile> n \<unlhd> e1) \<and> graph_refinement g1 g2"
   using subset_refines
   by (meson encodeeval_def graph_represents_expression_def le_expr_def)
-
-definition valid_rewrite :: "Rewrite \<Rightarrow> bool" where
-  "valid_rewrite r = (let (e1,e2) = Rep_Rewrite r in 
-      (\<forall>e. is_ground e \<longrightarrow> 
-          (case match e1 e of
-           None \<Rightarrow> True |
-           Some \<sigma> \<Rightarrow> (\<sigma> @@ e2) \<le> e)))"
 
 end

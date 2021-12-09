@@ -3,6 +3,7 @@ subsection \<open>Custom Syntax\<close>
 theory Syntax
 imports
   Semantics.IRStepObj
+  Semantics.TreeToGraph
   MyBisimulation
 keywords
   "optimization_phase" :: thy_decl and
@@ -230,7 +231,7 @@ print_optimizations
 optimization_tactic data : soundness
   fixes before :: IRNode
   fixes after :: IRNode
-  goal "(g m \<turnstile> before \<mapsto> res) \<and> (g m \<turnstile> after \<mapsto> res)"
+  goal "([g, m, p] \<turnstile> before \<mapsto> res) \<and> ([g, m, p] \<turnstile> after \<mapsto> res)"
   rewrite "kind g nid = before \<longrightarrow> (g' = replace_node nid after g)"
   sorry
 

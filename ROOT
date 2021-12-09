@@ -31,6 +31,8 @@ session Semantics in Semantics = Graph +
   options [quick_and_dirty, document = pdf,
            document_output = "output",
            show_question_marks = false]
+  sessions
+    "HOL-Eisbach"
   theories
     IRTreeEval
     IRTreeEvalThms

@@ -752,7 +752,17 @@ lemma word_mod_less: "(x::('a::len) word) < base \<Longrightarrow> x mod base = 
 
 value "4294967298::32 word"
 
-lemma shift_equality: "((v1::32 word) << unat ((v2::32 word) mod 32)) = v1 * (2 ^ (unat v2))"
+lemma shift_equality: "((v1::32 word) << unat ((v2::32 word) mod 32)) = v1 * ((2 ^ (unat v2))::32 word)"
+proof -
+  have "size_class.size (2 ^ (unat v2)) = 32" sorry
+  then have "(2 ^ (unat v2)) < 2 ^ 32"
+    using uint_range_size sorry
+  then have "unat v2 < 32"
+    using nat_power_less_imp_less zero_less_numeral by blast
+  then show ?thesis
+    using \<open>2 ^ unat v2 < 2 ^ 32\<close> numeral_Bit0 power2_eq_square power_add sorry
+qed
+(*
 proof (cases "v2 < 32")
   case True
   have "v2 mod 32 = v2"
@@ -787,6 +797,7 @@ optimization MulPower2: "(x * const(2^(unat j))) \<mapsto> x << const(j) when (s
    apply simp
   using BinaryExprE ConstantExprE bin_eval.simps(2,7) stamp_implies_valid_value intval_shift_equality
   sorry
+*)
 
 print_context
 print_optimizations

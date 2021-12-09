@@ -1,8 +1,8 @@
 theory ValidationSnippets
   imports
-    Tests.UnitTesting
     Graph.Values
     Optimizations.CanonicalizationTree
+    Semantics.IRStepObj
     Veriopt.Snipping
 begin
 
@@ -28,7 +28,7 @@ text \<open>@{theory_text "static_test moduloSnippet [(IntVal 32 (1)), (Intval 3
 snipend -
 
 
-snipbegin \<open>SampleCanonicalizations}\<close>
+snipbegin \<open>SampleCanonicalizations\<close>
 text \<open>
 \begin{center}
 \induct{@{thm[mode=Rule] CanonicalizeAdd.add_xsub [no_vars]}}{canon:addxsub}

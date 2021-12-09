@@ -14,7 +14,7 @@ lemma replace_usages_effect:
   assumes "g' = replace_usages nid nid' g"
   shows "kind g' nid = RefNode nid'"
   using assms replace_node_lookup replace_usages.simps
-  using IRNode.simps(2498) by presburger
+  by (metis IRNode.distinct(2755))
 
 lemma replace_usages_changeonly:
   assumes "nid \<in> ids g"
@@ -60,14 +60,19 @@ lemma constantConditionTrue:
   assumes "g' = constantCondition True ifcond (kind g ifcond) g"
   shows "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
 proof -
-  have if': "kind g' ifcond = IfNode (nextNid g) t f"
-    using IRNode.distinct(1041) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup by presburger
+  have ifn: "\<And> c t f. IfNode c t f \<noteq> NoNode"
+    by simp
+  then have if': "kind g' ifcond = IfNode (nextNid g) t f"
+    using assms(1) assms(2) constantCondition.simps(1) replace_node_lookup
+    by presburger
   have truedef: "bool_to_val True = (IntVal32 1)"
     by auto
-  have "ifcond \<noteq> (nextNid g)"
-    by (metis IRNode.distinct(1041) assms(1) emptyE ids_some nextNidNotIn)
-  then have "kind g' (nextNid g) = ConstantNode (IRTreeEval.bool_to_val True)"
-    by (smt (z3) IRNode.distinct(641) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD)
+  from ifn have "ifcond \<noteq> (nextNid g)"
+    by (metis assms(1) emptyE ids_some nextNidNotIn)
+  moreover have "\<And> c. ConstantNode c \<noteq> NoNode" by simp
+  ultimately have "kind g' (nextNid g) = ConstantNode (IRTreeEval.bool_to_val True)"
+    using add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD
+    by (smt (z3) DiffI add_node_lookup replace_node_unchanged)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal32 1)"
     using truedef by simp
   have "valid_value (constantAsStamp (IntVal32 1)) (IntVal32 1)"
@@ -85,14 +90,17 @@ lemma constantConditionFalse:
   assumes "g' = constantCondition False ifcond (kind g ifcond) g"
   shows "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
 proof -
-  have if': "kind g' ifcond = IfNode (nextNid g) t f"
-    by (metis IRNode.simps(1090) assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
+  have ifn: "\<And> c t f. IfNode c t f \<noteq> NoNode"
+    by simp
+  then have if': "kind g' ifcond = IfNode (nextNid g) t f"
+    by (metis assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
   have falsedef: "bool_to_val False = (IntVal32 0)"
     by auto
-  have "ifcond \<noteq> (nextNid g)"
-    by (metis IRNode.simps(1090) assms(1) equals0D ids_some nextNidNotIn)
-  then have "kind g' (nextNid g) = ConstantNode (IRTreeEval.bool_to_val False)"
-    by (smt (z3) IRNode.distinct(641) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD)
+  from ifn have "ifcond \<noteq> (nextNid g)"
+    by (metis assms(1) equals0D ids_some nextNidNotIn)
+  moreover have "\<And> c. ConstantNode c \<noteq> NoNode" by simp
+  ultimately have "kind g' (nextNid g) = ConstantNode (IRTreeEval.bool_to_val False)"
+    by (smt (z3) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal32 0)"
     using falsedef by simp
   have "valid_value (constantAsStamp (IntVal32 0)) (IntVal32 0)"

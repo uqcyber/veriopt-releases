@@ -17,7 +17,7 @@
 <span class="keyword1"><span class="command">theory</span></span> IRGraph
   <span class="keyword2"><span class="keyword">imports</span></span> 
     <a href="IRNodeHierarchy.html">IRNodeHierarchy</a>
-    <a href="Stamp2.html">Stamp2</a>
+    <a href="Stamp.html">Stamp</a>
     <span class="quoted">"<a href="../../HOL/HOL-Library/FSet.html">HOL-Library.FSet</a>"</span>
     <span class="quoted">"<a href="../../HOL/HOL/Relation.html">HOL.Relation</a>"</span>
 <span class="keyword2"><span class="keyword">begin</span></span>
@@ -68,6 +68,16 @@ The finite domain is required to be able to generate code and produce an interpr
 <span class="keyword1"><span class="command">lift_definition</span></span> irgraph <span class="main">::</span> <span class="quoted"><span class="quoted">"<span class="main">(</span>ID <span class="main">×</span> <span class="main">(</span>IRNode <span class="main">×</span> Stamp<span class="main">)</span><span class="main">)</span> list <span class="main">⇒</span> IRGraph"</span></span>
   <span class="keyword2"><span class="keyword">is</span></span> <span class="quoted"><span class="quoted">"map_of <span class="main">∘</span> no_node"</span></span>
   <span class="keyword1"><span class="command">by</span></span> <span class="main">(</span><span class="operator">simp</span> <span class="quasi_keyword">add</span><span class="main"><span class="main">:</span></span> finite_dom_map_of<span class="main">)</span>
+
+<span class="keyword1"><span class="command">definition</span></span> <span class="entity">as_set</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"IRGraph <span class="main">⇒</span> <span class="main">(</span>ID <span class="main">×</span> <span class="main">(</span>IRNode <span class="main">×</span> Stamp<span class="main">)</span><span class="main">)</span> set"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">as_set</span> <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="main">=</span> <span class="main">{</span><span class="main">(</span><span class="bound">n</span><span class="main">,</span> kind <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="bound">n</span><span class="main">,</span> stamp <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="bound">n</span><span class="main">)</span> <span class="main">|</span> <span class="bound">n</span> <span class="main">.</span> <span class="bound">n</span> <span class="main">∈</span> ids <span class="free"><span class="bound"><span class="entity">g</span></span></span><span class="main">}</span>"</span></span>
+
+<span class="keyword1"><span class="command">definition</span></span> <span class="entity">domain_subtraction</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"<span class="tfree">'a</span> set <span class="main">⇒</span> <span class="main">(</span><span class="tfree">'a</span> <span class="main">×</span> <span class="tfree">'b</span><span class="main">)</span> set <span class="main">⇒</span> <span class="main">(</span><span class="tfree">'a</span> <span class="main">×</span> <span class="tfree">'b</span><span class="main">)</span> set"</span></span>
+  <span class="main">(</span><span class="keyword2"><span class="keyword">infix</span></span> <span class="quoted">"<span class="keyword1">⊴</span>"</span> 30<span class="main">)</span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">domain_subtraction</span> <span class="free"><span class="bound"><span class="entity">s</span></span></span> <span class="free"><span class="bound"><span class="entity">r</span></span></span> <span class="main">=</span> <span class="main">{</span><span class="main">(</span><span class="bound">x</span><span class="main">,</span> <span class="bound">y</span><span class="main">)</span> <span class="main">.</span> <span class="main">(</span><span class="bound">x</span><span class="main">,</span> <span class="bound">y</span><span class="main">)</span> <span class="main">∈</span> <span class="free"><span class="bound"><span class="entity">r</span></span></span> <span class="main">∧</span> <span class="bound">x</span> <span class="main">∉</span> <span class="free"><span class="bound"><span class="entity">s</span></span></span><span class="main">}</span>"</span></span>
+
+<span class="keyword1"><span class="command">notation</span></span> <span class="main">(</span>latex<span class="main">)</span>
+  domain_subtraction <span class="main">(</span><span class="quoted">"_ <span class="keyword1"><span class="hidden">\&lt;^</span><span class="control">latex</span><span class="hidden">&gt;</span>‹$\\ndres$›</span> _"</span><span class="main">)</span>
 
 <span class="comment1">(* Theories are required for code generation to work *)</span>
 <span class="keyword1"><span class="command">code_datatype</span></span> <span class="quoted">irgraph</span>

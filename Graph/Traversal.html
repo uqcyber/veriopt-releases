@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><link rel="stylesheet" type="text/css" href="isabelle.css"/>
+<title>Theory Traversal</title>
+</head>
+
+
+<body>
+<div class="head">
+<h1>Theory Traversal</h1>
+</div>
+
+<pre class="source"><span class="keyword1"><span class="command">section</span></span> <span class="quoted"><span class="plain_text">‹Control-flow Graph Traversal›</span></span>
+
+<span class="keyword1"><span class="command">theory</span></span>
+  Traversal
+<span class="keyword2"><span class="keyword">imports</span></span>
+  <a href="IRGraph.html">IRGraph</a>
+<span class="keyword2"><span class="keyword">begin</span></span>
+
+<span class="keyword1"><span class="command">type_synonym</span></span> Seen <span class="main">=</span> <span class="quoted"><span class="quoted">"ID set"</span></span>
+
+
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹
+nextEdge helps determine which node to traverse next by returning the first successor
+edge that isn't in the set of already visited nodes.
+If there is not an appropriate successor, None is returned instead.
+›</span></span>
+<span class="keyword1"><span class="command">fun</span></span> <span class="entity">nextEdge</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"Seen <span class="main">⇒</span> ID <span class="main">⇒</span> IRGraph <span class="main">⇒</span> ID option"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">nextEdge</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="main">=</span> 
+    <span class="main">(</span><span class="keyword1">let</span> <span class="bound">nids</span> <span class="main">=</span> <span class="main">(</span>filter <span class="main">(</span><span class="main">λ</span><span class="bound">nid'</span><span class="main">.</span> <span class="bound">nid'</span> <span class="main">∉</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">)</span> <span class="main">(</span>successors_of <span class="main">(</span>kind <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">)</span><span class="main">)</span><span class="main">)</span> <span class="keyword1">in</span> 
+     <span class="main">(</span><span class="keyword1">if</span> length <span class="bound">nids</span> <span class="main">&gt;</span> <span class="main">0</span> <span class="keyword1">then</span> Some <span class="main">(</span>hd <span class="bound">nids</span><span class="main">)</span> <span class="keyword1">else</span> None<span class="main">)</span><span class="main">)</span>"</span></span>
+
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹
+pred determines which node, if any, acts as the predecessor of another.
+
+Merge nodes represent a special case where-in the predecessor exists as
+an input edge of the merge node, to simplify the traversal we treat only
+the first input end node as the predecessor, ignoring that multiple nodes
+may act as a successor.
+
+For all other nodes, the predecessor is the first element of the predecessors set.
+Note that in a well-formed graph there should only be one element in the predecessor set.›</span></span>
+<span class="keyword1"><span class="command">fun</span></span> <span class="entity">pred</span> <span class="main">::</span> <span class="quoted"><span class="quoted">"IRGraph <span class="main">⇒</span> ID <span class="main">⇒</span> ID option"</span></span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="quoted"><span class="quoted">"<span class="free">pred</span> <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">=</span> <span class="main">(</span><span class="keyword1">case</span> kind <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="keyword1">of</span>
+    <span class="main">(</span>MergeNode <span class="bound">ends</span> <span class="main"><span class="bound">_</span></span> <span class="main"><span class="bound">_</span></span><span class="main">)</span> <span class="main">⇒</span> Some <span class="main">(</span>hd <span class="bound">ends</span><span class="main">)</span> <span class="main">|</span>
+    <span class="main"><span class="bound">_</span></span> <span class="main">⇒</span> 
+      <span class="main">(</span><span class="keyword1">if</span> IRGraph.predecessors <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">=</span> <span class="main">{}</span> 
+        <span class="keyword1">then</span> None <span class="keyword1">else</span>
+        Some <span class="main">(</span>hd <span class="main">(</span>sorted_list_of_set <span class="main">(</span>IRGraph.predecessors <span class="free"><span class="bound"><span class="entity">g</span></span></span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
+      <span class="main">)</span>
+  <span class="main">)</span>"</span></span>
+
+
+<span class="keyword1"><span class="command">text</span></span> <span class="quoted"><span class="plain_text">‹
+Here we try to implement a generic fork of the control-flow traversal algorithm
+that was initially implemented for the ConditionalElimination phase
+›</span></span>
+<span class="keyword1"><span class="command">type_synonym</span></span> <span class="tfree">'a</span> TraversalState <span class="main">=</span> <span class="quoted"><span class="quoted">"<span class="main">(</span>ID <span class="main">×</span> Seen <span class="main">×</span> <span class="tfree">'a</span><span class="main">)</span>"</span></span>
+
+<span class="keyword1"><span class="command">inductive</span></span> <span class="entity">Step</span> 
+  <span class="main">::</span> <span class="quoted"><span class="quoted">"<span class="main">(</span><span class="tfree">'a</span> TraversalState <span class="main">⇒</span> <span class="tfree">'a</span><span class="main">)</span> <span class="main">⇒</span> IRGraph <span class="main">⇒</span> <span class="tfree">'a</span> TraversalState <span class="main">⇒</span> <span class="tfree">'a</span> TraversalState option <span class="main">⇒</span> bool"</span></span>
+  <span class="keyword2"><span class="keyword">for</span></span> <span class="entity">sa</span> <span class="entity">g</span> <span class="keyword2"><span class="keyword">where</span></span>
+  <span class="comment1">― ‹
+  Hit a BeginNode with an IfNode predecessor which represents
+  the start of a basic block for the IfNode.
+     1. nid' will be the successor of the begin node.
+     2. Find the first and only predecessor.
+     3. Extract condition from the preceding IfNode.
+     4. Negate condition if the begin node is second branch
+        (we've taken the else branch of the condition)
+     5. Add the condition or the negated condition to stack
+     6. Perform any stamp updates based on the condition using
+        the registerNewCondition function and place them on the
+        top of the stack of stamp information
+  ›</span>
+  <span class="quoted"><span class="quoted">"<span class="main">⟦</span>kind <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">=</span> BeginNode <span class="free"><span class="bound"><span class="entity">nid'</span></span></span><span class="main">;</span>
+
+    <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">∉</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">;</span>
+    <span class="free"><span class="bound"><span class="entity">seen'</span></span></span> <span class="main">=</span> <span class="main">{</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">}</span> <span class="main">∪</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">;</span>
+
+    Some <span class="free"><span class="bound"><span class="entity">ifcond</span></span></span> <span class="main">=</span> pred <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">;</span>
+    kind <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">ifcond</span></span></span> <span class="main">=</span> IfNode <span class="free"><span class="bound"><span class="entity">cond</span></span></span> <span class="free"><span class="bound"><span class="entity">t</span></span></span> <span class="free"><span class="bound"><span class="entity">f</span></span></span><span class="main">;</span>
+
+    <span class="free"><span class="bound"><span class="entity">analysis'</span></span></span> <span class="main">=</span> <span class="free">sa</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis</span></span></span><span class="main">)</span><span class="main">⟧</span>
+   <span class="main">⟹</span> <span class="free">Step</span> <span class="free">sa</span> <span class="free">g</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis</span></span></span><span class="main">)</span> <span class="main">(</span>Some <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid'</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen'</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis'</span></span></span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
+
+  <span class="comment1">― ‹
+  Hit an EndNode
+     1. nid' will be the usage of EndNode
+     2. pop the conditions and stamp stack
+  ›</span>
+  <span class="quoted"><span class="quoted">"<span class="main">⟦</span>kind <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">=</span> EndNode<span class="main">;</span>
+
+    <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">∉</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">;</span>
+    <span class="free"><span class="bound"><span class="entity">seen'</span></span></span> <span class="main">=</span> <span class="main">{</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">}</span> <span class="main">∪</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">;</span>
+
+    <span class="free"><span class="bound"><span class="entity">nid'</span></span></span> <span class="main">=</span> any_usage <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">;</span>
+
+    <span class="free"><span class="bound"><span class="entity">analysis'</span></span></span> <span class="main">=</span> <span class="free">sa</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis</span></span></span><span class="main">)</span><span class="main">⟧</span>
+   <span class="main">⟹</span> <span class="free">Step</span> <span class="free">sa</span> <span class="free">g</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis</span></span></span><span class="main">)</span> <span class="main">(</span>Some <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid'</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen'</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis'</span></span></span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
+
+  <span class="comment1">― ‹We can find a successor edge that is not in seen, go there›</span>
+  <span class="quoted"><span class="quoted">"<span class="main">⟦</span><span class="main">¬</span><span class="main">(</span>is_EndNode <span class="main">(</span>kind <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">)</span><span class="main">)</span><span class="main">;</span>
+    <span class="main">¬</span><span class="main">(</span>is_BeginNode <span class="main">(</span>kind <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">)</span><span class="main">)</span><span class="main">;</span>
+
+    <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">∉</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">;</span>
+    <span class="free"><span class="bound"><span class="entity">seen'</span></span></span> <span class="main">=</span> <span class="main">{</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">}</span> <span class="main">∪</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">;</span>
+
+    Some <span class="free"><span class="bound"><span class="entity">nid'</span></span></span> <span class="main">=</span> nextEdge <span class="free"><span class="bound"><span class="entity">seen'</span></span></span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="free">g</span><span class="main">;</span>
+
+    <span class="free"><span class="bound"><span class="entity">analysis'</span></span></span> <span class="main">=</span> <span class="free">sa</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis</span></span></span><span class="main">)</span><span class="main">⟧</span>
+   <span class="main">⟹</span> <span class="free">Step</span> <span class="free">sa</span> <span class="free">g</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis</span></span></span><span class="main">)</span> <span class="main">(</span>Some <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid'</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen'</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis'</span></span></span><span class="main">)</span><span class="main">)</span>"</span></span> <span class="main">|</span>
+
+  <span class="comment1">― ‹We can cannot find a successor edge that is not in seen, give back None›</span>
+  <span class="quoted"><span class="quoted">"<span class="main">⟦</span><span class="main">¬</span><span class="main">(</span>is_EndNode <span class="main">(</span>kind <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">)</span><span class="main">)</span><span class="main">;</span>
+    <span class="main">¬</span><span class="main">(</span>is_BeginNode <span class="main">(</span>kind <span class="free">g</span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">)</span><span class="main">)</span><span class="main">;</span>
+
+    <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">∉</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">;</span>
+    <span class="free"><span class="bound"><span class="entity">seen'</span></span></span> <span class="main">=</span> <span class="main">{</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">}</span> <span class="main">∪</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">;</span>
+
+    None <span class="main">=</span> nextEdge <span class="free"><span class="bound"><span class="entity">seen'</span></span></span> <span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="free">g</span><span class="main">⟧</span>
+    <span class="main">⟹</span> <span class="free">Step</span> <span class="free">sa</span> <span class="free">g</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis</span></span></span><span class="main">)</span> None"</span></span> <span class="main">|</span>
+
+  <span class="comment1">― ‹We've already seen this node, give back None›</span>
+  <span class="quoted"><span class="quoted">"<span class="main">⟦</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span> <span class="main">∈</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">⟧</span> <span class="main">⟹</span> <span class="free">Step</span> <span class="free">sa</span> <span class="free">g</span> <span class="main">(</span><span class="free"><span class="bound"><span class="entity">nid</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">seen</span></span></span><span class="main">,</span> <span class="free"><span class="bound"><span class="entity">analysis</span></span></span><span class="main">)</span> None"</span></span>
+
+<span class="keyword1"><span class="command">code_pred</span></span> <span class="main">(</span>modes<span class="main">:</span> i ⇒ i ⇒ i ⇒ o ⇒ bool<span class="main">)</span> <span class="quoted"><span class="quoted">Step</span></span> <span class="keyword1"><span class="command">.</span></span>
+
+<span class="keyword2"><span class="keyword">end</span></span></pre>
+</body>
+
+</html>

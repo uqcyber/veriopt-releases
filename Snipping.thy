@@ -14,15 +14,16 @@ ML \<open>
 I thought the document_command was what generated the LaTeX output,
 however, it appears to be hard-coded which makes this a bit of a hack.
 *)
-fun wrapped_command (command: string) (name: string option) =
+fun wrapped_command (command: string) (name: string option) trans =
   let
     val command = "\\" ^ command
     val argument = case name of
       NONE => "" |
       SOME v => ("{" ^ v ^ "}")
     val doc = Input.string (command ^ argument)
+    val _ = @{print} doc;
   in
-    (Pure_Syn.document_command {markdown = false} (NONE, doc))
+    Toplevel.keep (fn _ => ()) trans
   end
 
 val _ =

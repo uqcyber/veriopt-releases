@@ -28,15 +28,16 @@
 I thought the document_command was what generated the LaTeX output,
 however, it appears to be hard-coded which makes this a bit of a hack.
 *)</span>
-<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">wrapped_command</span> <span class="main">(</span><span class="entity">command</span><span class="main">:</span> string<span class="main">)</span> <span class="main">(</span><span class="entity">name</span><span class="main">:</span> string option<span class="main">)</span> <span class="main">=</span>
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">wrapped_command</span> <span class="main">(</span><span class="entity">command</span><span class="main">:</span> string<span class="main">)</span> <span class="main">(</span><span class="entity">name</span><span class="main">:</span> string option<span class="main">)</span> <span class="entity">trans</span> <span class="main">=</span>
   <span class="keyword2"><span class="keyword">let</span></span>
     <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">command</span> <span class="main">=</span> <span class="inner_quoted">"\\"</span> ^ <span class="entity">command</span>
     <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">argument</span> <span class="main">=</span> <span class="keyword2"><span class="keyword">case</span></span> <span class="entity">name</span> <span class="keyword2"><span class="keyword">of</span></span>
       NONE <span class="main">=&gt;</span> <span class="inner_quoted">""</span> <span class="main">|</span>
       SOME <span class="entity">v</span> <span class="main">=&gt;</span> <span class="main">(</span><span class="inner_quoted">"{"</span> ^ <span class="entity">v</span> ^ <span class="inner_quoted">"}"</span><span class="main">)</span>
     <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">doc</span> <span class="main">=</span> Input.string <span class="main">(</span><span class="entity">command</span> ^ <span class="entity">argument</span><span class="main">)</span>
+    <span class="keyword1"><span class="keyword">val</span></span> <span class="main">_</span> <span class="main">=</span> <span class="antiquoted"><span class="entity"><span class="entity"><span class="entity"><span class="entity"><span class="entity"><span class="entity"><span class="antiquote">@{</span><span class="operator">print</span><span class="antiquote">}</span></span></span></span></span></span></span></span> <span class="entity">doc</span><span class="main">;</span>
   <span class="keyword2"><span class="keyword">in</span></span>
-    <span class="main">(</span><span class="entity">Pure_Syn.document_command</span> <span class="main">{</span>markdown <span class="main">=</span> false<span class="main">}</span> <span class="main">(</span>NONE<span class="main">,</span> <span class="entity">doc</span><span class="main">)</span><span class="main">)</span>
+    <span class="entity">Toplevel.keep</span> <span class="main">(</span><span class="keyword1"><span class="keyword">fn</span></span> <span class="main">_</span> <span class="main">=&gt;</span> <span class="main">(</span><span class="main">)</span><span class="main">)</span> <span class="entity">trans</span>
   <span class="keyword2"><span class="keyword">end</span></span>
 
 <span class="keyword1"><span class="keyword">val</span></span> <span class="main">_</span> <span class="main">=</span>

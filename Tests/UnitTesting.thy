@@ -3,6 +3,7 @@ section \<open>Testing of IR Semantics based on GraalVM Unit Tests\<close>
 theory UnitTesting
   imports
     Semantics.IRStepObj
+    (*Parsing*)
 begin
 
 declare [[ML_source_trace, ML_debugger]]
@@ -123,6 +124,27 @@ definition unit_booleanSnippet_21 :: IRGraph where  "unit_booleanSnippet_21 = ir
   (3, (ReturnNode (Some 2) None), VoidStamp)
   ]"
 value "static_test unit_booleanSnippet_21 [] (IntVal32 (1))"
+
+(*
+graph \<open>
+0: (StartNode (Some 2) 11, VoidStamp)
+1: (ParameterNode 0, IntegerStamp 32 (-2147483648) (2147483647))
+2: (FrameState [] None None None, IllegalStamp)
+3: (ConstantNode (IntVal32 (3)), IntegerStamp 32 (3) (3))
+4: (ConstantNode (IntVal32 (4)), IntegerStamp 32 (4) (4))
+5: (IntegerLessThanNode 1 4, VoidStamp)
+6: (ConstantNode (IntVal32 (0)), IntegerStamp 32 (0) (0))
+7: (ConstantNode (IntVal32 (1)), IntegerStamp 32 (1) (1))
+8: (ConditionalNode 5 6 7, IntegerStamp 32 (0) (1))
+9: (BeginNode 12, VoidStamp)
+10: (BeginNode 13, VoidStamp)
+11: (IfNode 5 10 9, VoidStamp)
+12: (ReturnNode (Some 7) None, VoidStamp)
+13: (ReturnNode (Some 7) None, VoidStamp)
+\<close>
+
+graph_file \<open>test.graph\<close>
+*)
 
 
 (* Lorg/graalvm/compiler/api/directives/test/BlackholeDirectiveTest;.booleanSnippet*)

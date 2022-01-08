@@ -279,18 +279,18 @@ lemma shiftr_power[simp]: "(x::('a::len) word) div (2 ^ j) = x >>> j"
 
 
 fun intval_left_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_left_shift (IntVal32 v1) (IntVal32 v2) = IntVal32 (v1 << unat (v2 mod 32))" |
-  "intval_left_shift (IntVal64 v1) (IntVal64 v2) = IntVal64 (v1 << unat (v2 mod 64))" |
+  "intval_left_shift (IntVal32 v1) (IntVal32 v2) = IntVal32 (v1 << unat (v2 AND 0x1f))" |
+  "intval_left_shift (IntVal64 v1) (IntVal64 v2) = IntVal64 (v1 << unat (v2 AND 0x3f))" |
   "intval_left_shift _ _ = UndefVal"
 
 fun intval_right_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_right_shift (IntVal32 v1) (IntVal32 v2) = IntVal32 (v1 >> unat (v2 mod 32))" |
-  "intval_right_shift (IntVal64 v1) (IntVal64 v2) = IntVal64 (v1 >> unat (v2 mod 64))" |
+  "intval_right_shift (IntVal32 v1) (IntVal32 v2) = IntVal32 (v1 >> unat (v2 AND 0x1f))" |
+  "intval_right_shift (IntVal64 v1) (IntVal64 v2) = IntVal64 (v1 >> unat (v2 AND 0x3f))" |
   "intval_right_shift _ _ = UndefVal"
 
 fun intval_uright_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_uright_shift (IntVal32 v1) (IntVal32 v2) = IntVal32 (v1 >>> unat (v2 mod 32))" |
-  "intval_uright_shift (IntVal64 v1) (IntVal64 v2) = IntVal64 (v1 >>> unat (v2 mod 64))" |
+  "intval_uright_shift (IntVal32 v1) (IntVal32 v2) = IntVal32 (v1 >>> unat (v2 AND 0x1f))" |
+  "intval_uright_shift (IntVal64 v1) (IntVal64 v2) = IntVal64 (v1 >>> unat (v2 AND 0x3f))" |
   "intval_uright_shift _ _ = UndefVal"
 
 (*

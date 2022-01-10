@@ -1,5 +1,6 @@
 theory TermRewrites
-  imports Semantics.IRTreeEvalThms
+  imports Semantics.IRTreeEvalThms Semantics.TreeToGraphThms
+
 begin
 
 (*
@@ -10,6 +11,16 @@ proof -
     by fastforce
 qed
 *)
+
+lemma expr_at_node: "g \<turnstile> n \<simeq> (g @@ n)"
+  using expr_at_node.simps repDet sorry
+
+lemma graph_refinement:
+  "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
+  unfolding graph_refinement_def expr_at_node.simps
+  apply auto
+  using expr_at_node.simps encodeeval_def graph_refinement_def le_expr_def 
+  by (metis expr_at_node repDet)
 
 datatype SubValue = SubExpr(s_expr: IRExpr) | SubConst(s_val: Value) | SubNone
 
@@ -182,7 +193,8 @@ proof -
   have "\<forall>\<sigma> e. vars (BinaryExpr BinAdd (VariableExpr ''x'' IntStamp32) (ConstantExpr (IntVal32 0))) \<subseteq> vars (VariableExpr ''x'' IntStamp32) \<longrightarrow>
         match (BinaryExpr BinAdd (VariableExpr ''x'' IntStamp32) (ConstantExpr (IntVal32 0))) e = Some \<sigma> \<longrightarrow>
         \<sigma> $ VariableExpr ''x'' IntStamp32 \<le> e"
-    using v match_e add_substit sorry
+    apply simp
+    using match_e add_substit  sorry
   have dom: "\<forall>e \<sigma>. match (BinaryExpr BinAdd (VariableExpr ''x'' IntStamp32) (ConstantExpr (IntVal32 0))) e = Some \<sigma> \<longrightarrow> 
             vars (BinaryExpr BinAdd (VariableExpr ''x'' IntStamp32) (ConstantExpr (IntVal32 0))) \<subseteq> dom \<sigma>"
     using match_succeeds by (metis dual_order.refl)

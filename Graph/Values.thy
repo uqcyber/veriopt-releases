@@ -184,11 +184,11 @@ definition modulo_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 instance proof qed
 end
 
-(* TODO: must add bitwise syntax bundle for Isabelle 2021-1.
+(* NOTE: this bitwise syntax bundle is added for Isabelle 2021-1. *)
 context
   includes bit_operations_syntax
 begin
-*)
+
 
 fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "&&*" 64) where
   "intval_and (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 AND v2))" |
@@ -235,22 +235,21 @@ fun intval_abs :: "Value \<Rightarrow> Value" where
   "intval_abs (IntVal64 v) = (if (v) <s 0 then (IntVal64 (- v)) else (IntVal64 v))" |
   "intval_abs _ = UndefVal"
 
+(*
 lemma [code]: "shiftl1 n = n * 2"
   by (simp add: shiftl1_eq_mult_2)
 
 lemma [code]: "shiftr1 n = n div 2"
   by (simp add: shiftr1_eq_div_2)
-
-lemma [code]: "sshiftr1 n = word_of_int (sint n div 2)"
-  using sshiftr1_eq by blast
+*)
 
 definition shiftl (infix "<<" 75) where 
-  "shiftl w n = (shiftl1 ^^ n) w"
+  "shiftl w n = (push_bit n) w"
 
 lemma shiftl_power[simp]: "(x::('a::len) word) * (2 ^ j) = x << j"
   unfolding shiftl_def apply (induction j)
-  apply simp unfolding funpow_Suc_right
-  by (metis (no_types, lifting) comp_def funpow_swap1 mult.left_commute power_Suc shiftl1_eq_mult_2)
+   apply simp unfolding funpow_Suc_right
+  by (metis (no_types, opaque_lifting) push_bit_eq_mult)
 
 lemma "(x::('a::len) word) * ((2 ^ j) + 1) = x << j + x"
   by (simp add: distrib_left)
@@ -265,17 +264,16 @@ lemma "(x::('a::len) word) * ((2^j) - (2^k)) = x << j - x << k"
   by (simp add: right_diff_distrib)
 
 
-definition signed_shiftr (infix ">>" 75) where 
-  "signed_shiftr w n = (sshiftr1 ^^ n) w"
-
 definition shiftr (infix ">>>" 75) where 
-  "shiftr w n = (shiftr1 ^^ n) w"
+  "shiftr w n = (drop_bit n) w"
 
-lemma shiftr_power[simp]: "(x::('a::len) word) div (2 ^ j) = x >>> j"
-  unfolding shiftr_def apply (induction j)
-  apply simp unfolding funpow_Suc_right
-  by (metis (no_types, lifting) comp_apply div_exp_eq funpow_swap1 power_Suc2 power_add power_one_right shiftr1_eq_div_2)
+value "(255 :: 8 word) >>> (2 :: nat)"
 
+
+definition signed_shiftr :: "'a :: len word \<Rightarrow> nat \<Rightarrow> 'a :: len word" (infix ">>" 75) where 
+  "signed_shiftr w n = word_of_int ((sint w) div (2 ^ n))"
+
+value "(128 :: 8 word) >> 2"
 
 
 fun intval_left_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
@@ -293,9 +291,8 @@ fun intval_uright_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_uright_shift (IntVal64 v1) (IntVal64 v2) = IntVal64 (v1 >>> unat (v2 AND 0x3f))" |
   "intval_uright_shift _ _ = UndefVal"
 
-(*
 end
-*)
+
 
 (* Other possibly-helpful lemmas from WORD and its ancestors:
 

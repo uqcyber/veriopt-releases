@@ -16,22 +16,13 @@ These runtime values represent the full range of primitive types
 currently allowed by our semantics, ranging from basic integer types
 to object references and eventually arrays.
 
+Note that Java supports 64, 32, 16, 8 signed ints, plus 1 bit (boolean)
+ints, but during calculations the smaller sizes are expanded to 32 bits,
+so here we model just 32 and 64 bit values.
+
 An object reference is an option type where the None object reference
 points to the static fields. This is examined more closely in our
 definition of the heap.
-\<close>
-
-
-text \<open>
-Java supports 64, 32, 16, 8 signed ints, plus 1 bit (boolean) ints.
-Our Value type models this by keeping the value as an infinite precision signed int,
-but also carrying along the number of bits allowed.
-
-So each (IntVal b v) should satisfy the invariants:
-
-@{term "b \<in> {1,8,16,32,64}"}
-
-@{term "b > 1 \<Longrightarrow> v == signed (signed_take_bit b v)"}
 \<close>
 
 type_synonym int64 = "64 word" \<comment> \<open>long\<close>
@@ -49,17 +40,6 @@ datatype Value  =
   (* FloatVal float | not supported *)
   ObjRef objref |
   ObjStr string
-
-
-text \<open>
-We define integer values to be well-formed when their bit size is valid
-and their integer value is able to fit within the bit size.
-This is defined using the @{text wf_value} function.
-\<close>
-
-\<comment> \<open>Check that a signed int value does not overflow b bits.\<close>
-fun fits_into_n :: "nat \<Rightarrow> int \<Rightarrow> bool" where
-  "fits_into_n b val = ((-(2^(b-1)) \<le> val) \<and> (val < (2^(b-1))))"
 
 
 fun wf_bool :: "Value \<Rightarrow> bool" where
@@ -88,37 +68,39 @@ Within the JVM, bytecode arithmetic operations are performed on 32
 or 64 bit integers, unboxing where appropriate.
 
 The following collection of intval functions correspond to the JVM
-arithmetic operations.
+arithmetic operations.  We merge the 32 and 64 bit operations into
+a single function, even though the stamp of each IRNode tells us
+exactly what the bit widths will be.  These merged functions 
+know to make it easier to do the instantiation of Value as 'plus', etc.
+It might be worse for reasoning, because it could cause more case analysis,
+but this does not seem to be a problem in practice.
 \<close>
 
-(* Corresponds to JVM iadd instruction. *)
-fun intval_add32 :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_add32 (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1+v2))" |
-  "intval_add32 _ _ = UndefVal"
-
-(* NOTE: this should not need to do widening, since an explicit node does that. *) 
-(* Corresponds to JVM ladd instruction. *)
-fun intval_add64 :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_add64 (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1+v2))" |
-  "intval_add64 _ _ = UndefVal"
-
-
-(* OR: We could define a general add function for 32 AND 64 bit ints?
-  This makes it easier to do the instantiation of Value as 'plus'.
-  But might be worse for reasoning, because it causes more case analysis.
- *)
+(* Corresponds to JVM iadd and ladd instructions. *)
 fun intval_add :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_add (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1+v2))" |
   "intval_add (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1+v2))" |
   "intval_add _ _ = UndefVal"
 
-instantiation Value :: plus
+instantiation Value :: ab_semigroup_add
 begin
 
 definition plus_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "plus_Value = intval_add"
 
-instance proof qed
+print_locale! ab_semigroup_add
+
+instance proof
+  fix a b c :: Value
+  show "a + b + c = a + (b + c)"
+    apply (simp add: plus_Value_def)
+    apply (induction a; induction b; induction c; auto)
+    done
+  show "a + b = b + a"
+    apply (simp add: plus_Value_def)
+    apply (induction a; induction b; auto)
+    done
+qed
 end
 
 (* Corresponds to JVM isub and lsub instructions. *)
@@ -307,45 +289,11 @@ lemma plus_dist:
 (* ========================================================================
    Commutative and Associative results.  (Not used yet).
    ======================================================================== *)
-lemma word_add_sym: 
-  shows "word_of_int v1 + word_of_int v2 = word_of_int v2 + word_of_int v1"
-  by simp
 
 (* commutative rules to be used when needed. *)
 lemma intval_add_sym:
   shows "intval_add a b = intval_add b a"
   by (induction a; induction b; auto)
-
-
-lemma word_add_assoc: 
-  shows "(word_of_int v1 + word_of_int v2) + word_of_int v3 
-       = word_of_int v1 + (word_of_int v2 + word_of_int v3)"
-  by simp
-
-lemma intval_bad1 [simp]: "intval_add (IntVal32 x) (IntVal64 y) = UndefVal"
-  by auto
-lemma intval_bad2 [simp]: "intval_add (IntVal64 x) (IntVal32 y) = UndefVal"
-  by auto
-
-(* this should be provable, but is not trivial. 
-lemma intval_assoc: "intval_add (intval_add x y) z = intval_add x (intval_add y z)"
-  apply (induction x)
-       apply auto
-   apply (induction y)
-        apply auto
-    apply (induction z)
-  apply auto
-*)
-
-(* Whereas the individual 32-bit version is easier to prove. *)
-lemma intval_assoc: "intval_add32 (intval_add32 x y) z = intval_add32 x (intval_add32 y z)"
-  apply (induction x)
-       apply auto
-   apply (induction y)
-       apply auto
-    apply (induction z)
-  by auto
-(* =========================== end ========================*)
 
 
 code_deps intval_add  (* view dependency graph of code definitions *)

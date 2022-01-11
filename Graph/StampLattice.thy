@@ -378,7 +378,7 @@ proof -
   have leq: "{?l4..?u4} \<subseteq> {l1..u1}" (is ?subset_thesis)
     using s1 s2 unfolding atLeastatMost_subset_iff
     (* why is this such a hard proof? *)
-    by (metis (no_types, hide_lams) inf.orderE inf_stamp.simps max.bounded_iff max.cobounded2 min.bounded_iff min.cobounded2 stamp.inject xdef xlessy xlessz ydef zdef)
+    by (metis (no_types, opaque_lifting) inf.orderE inf_stamp.simps max.bounded_iff max.cobounded2 min.bounded_iff min.cobounded2 stamp.inject xdef xlessy xlessz ydef zdef)
   have "(y \<squnion> z \<le> x) = ?subset_thesis"
     using yzdef xdef less_eq_stamp.simps 
     by simp
@@ -450,8 +450,8 @@ We may still find an unsigned integer stamp useful.
 I plan to investigate the Java code to see if this is useful
 and then apply the changes to switch to signed integers.
 \<close>
-definition "bot_stamp = intstamp max_word 0"
-definition "top_stamp = intstamp 0 max_word"
+definition "bot_stamp = intstamp (-1) 0"
+definition "top_stamp = intstamp 0 (-1)"
 
 lemma bot_least:
   fixes a :: stamp

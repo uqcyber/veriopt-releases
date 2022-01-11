@@ -320,7 +320,7 @@ qed
 
 lemma conditional_eval_implies_valud_value:
   assumes "[m,p] \<turnstile> cond \<mapsto> condv"
-  assumes "expr = (if IRTreeEval.val_to_bool condv then expr1 else expr2)"
+  assumes "expr = (if val_to_bool condv then expr1 else expr2)"
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "val \<noteq> UndefVal"
   assumes "valid_value (stamp_expr cond) condv"
@@ -788,7 +788,7 @@ next
     then have "\<not>(val_to_bool(intval_equals xval yval))"
       using ConstantExpr Value.distinct(9) valid_value.simps stamp_implies_valid_value
       apply (cases "intval_equals xval yval")
-      using IRTreeEval.val_to_bool.simps(2) apply presburger sorry
+      using val_to_bool.simps(2) apply presburger sorry
     then have "res = yval"
       by (smt (verit, ccfv_threshold) BinaryExprE ConditionalExprE bin_eval.simps(10) cond_eq.hyps(1) cond_eq.prems(1) evalDet xeval yeval)
     then show ?thesis
@@ -857,7 +857,7 @@ next
     have "c \<noteq> nc"
       by (simp add: negate_condition.hyps(1))
     then have "\<not>(val_to_bool cval)"
-      by (metis IRTreeEval.val_to_bool.elims(2) IRTreeEval.val_to_bool.simps(1) True UnaryExprE ceval evalDet nceval negate_condition.hyps(1) unary_eval.simps(4))
+      by (metis val_to_bool.elims(2) val_to_bool.simps(1) True UnaryExprE ceval evalDet nceval negate_condition.hyps(1) unary_eval.simps(4))
     then have "res' = xval"
       using nceval ceval True negate_condition(1) negate_condition(9)
       by (metis (full_types) ConditionalExprE evalDet xeval)
@@ -872,7 +872,7 @@ next
       by (metis (full_types) ConditionalExprE)
     moreover have "val_to_bool(cval)" 
       by (metis False UnaryExprE ceval nceval negate_condition.hyps(1-3) unary_eval.simps(4)
-          IRTreeEval.val_to_bool.simps(1) evalDet IRTreeEval.bool_to_val.simps(2)
+          val_to_bool.simps(1) evalDet bool_to_val.simps(2)
           stamp_implies_valid_value valid_int32 zero_neq_one)
     moreover have "res' = yval"
       using calculation(2) ceval negate_condition.prems evaltree.ConditionalExpr yeval evalDet  unary_eval.simps(4)

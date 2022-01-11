@@ -488,7 +488,7 @@ fun phase_theory_init name thy =
         notes = Generic_Target.notes Generic_Target.theory_target_notes,
         abbrev = Generic_Target.abbrev Generic_Target.theory_target_abbrev,
         declaration = K Generic_Target.theory_declaration,
-        theory_registration = Locale.add_registration_theory,
+        theory_registration =  Generic_Target.theory_registration,
         locale_dependency = fn _ => error "Not possible in instantiation target",
         pretty = print_phase_state}
     thy
@@ -631,11 +631,15 @@ lemma neutral_and:
   shows "bin_eval BinAnd x (IntVal32 (-1)) = x"
   using assms bin_eval.simps(4) by (cases x; auto)
 
+context
+  includes bit_operations_syntax
+begin
 optimization AndNeutral: "(x & (const (NOT 0))) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
    apply simp
   using neutral_and stamp_implies_valid_value apply auto
   by metis
-  
+end
+
 optimization ConditionalEqualBranches: "(b ? v : v) \<mapsto> v"
   apply simp
    apply force
@@ -661,18 +665,18 @@ lemma bin_eval_preserves_validity:
   using assms apply (cases c1; cases c2; auto)
      apply (cases op; auto) 
   using int_constants_valid bool_is_int_val
-  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+  apply (metis (full_types))
   using int_constants_valid bool_is_int_val
-  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+    apply (metis (full_types))
   using int_constants_valid bool_is_int_val
-  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
-    apply (cases op; auto)  
+   apply (metis (full_types))
+  apply (cases op; auto)  
   using int_constants_valid bool_is_int_val
-  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+    apply (metis (full_types))
   using int_constants_valid bool_is_int_val
-  apply (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+   apply (metis (full_types))
   using int_constants_valid bool_is_int_val
-  by (metis (full_types) IRTreeEval.bool_to_val.simps(1) IRTreeEval.bool_to_val.simps(2) Values.bool_to_val.simps(1) Values.bool_to_val.simps(2))
+  by (metis (full_types))
 
 
 optimization BinaryFoldConstant: "BinaryExpr op (ConstantExpr e1) (ConstantExpr e2) \<mapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
@@ -697,7 +701,7 @@ lemma neutral_add:
 optimization AddNeutral: "(e + (const 0)) \<mapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
    apply simp using neutral_add stamp_implies_valid_value 
   using evaltree.BinaryExpr evaltree.ConstantExpr
-   apply (metis (no_types, hide_lams) BinaryExprE ConstantExprE)
+   apply (metis (no_types, opaque_lifting) BinaryExprE ConstantExprE)
   unfolding size.simps by simp
 
 lemma intval_negateadd_equals_sub_left: "bin_eval BinAdd (unary_eval UnaryNeg e) y = bin_eval BinSub y e"
@@ -744,8 +748,7 @@ optimization MulNegate: "(x * const (-1) ) \<mapsto> -x when (stamp_expr x = Int
 value "(3::32 word) mod 32"
 
 lemma "(x::nat) \<ge> 0 \<and> x < base \<Longrightarrow> x mod base = x"
-  sledgehammer
-  using mod_less by blast
+  by simp
 
 lemma word_mod_less: "(x::('a::len) word) < base \<Longrightarrow> x mod base = x"
   by (metis mod_less not_le unat_arith_simps(2) unat_arith_simps(7) unat_mono word_le_less_eq)

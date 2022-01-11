@@ -14,25 +14,32 @@ ML \<open>
 I thought the document_command was what generated the LaTeX output,
 however, it appears to be hard-coded which makes this a bit of a hack.
 *)
-fun wrapped_command (command: string) (name: string option) trans =
+fun wrapped_command (command: string) (name: string option) =
   let
     val command = "\\" ^ command
     val argument = case name of
       NONE => "" |
       SOME v => ("{" ^ v ^ "}")
-    val doc = Input.string (command ^ argument)
-    val _ = @{print} doc;
+    val latex = (command ^ argument)
+    val _ = @{print} latex;
   in
-    Toplevel.keep (fn _ => ()) trans
+    Document_Output.document_output
+        {markdown = false,            
+         markup = fn _ => Latex.enclose_text "%\n" "\n" (Latex.string latex)}
+    (*(Pure_Syn.document_command {markdown = false} (NONE, doc))*)
   end
 
 val _ =
   Outer_Syntax.command ("snipbegin", \<^here>) "start a snippet"
-    (Parse.document_source >> (fn n => wrapped_command "isamarkupsnipbegin" (SOME (Input.string_of n))));
+    (Parse.opt_target -- Parse.document_source >>
+     (fn (opt, n) => 
+      wrapped_command "isamarkupsnipbegin" (SOME (Input.string_of n)) (opt, n)));
 
 val _ =
   Outer_Syntax.command ("snipend", \<^here>) "finish a snippet"
-    (Parse.document_source >> (fn _ => wrapped_command "isamarkupsnipend" (NONE)));
+    (Parse.opt_target -- Parse.document_source >>
+      (fn (opt, n) =>
+        wrapped_command "isamarkupsnipend" (NONE) (opt, n)));
 \<close>
 
 (*

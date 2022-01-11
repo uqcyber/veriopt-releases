@@ -259,10 +259,10 @@ qed
 
 
 lemma evalDet:
-  "[m,p] \<turnstile> e \<mapsto> v1 \<Longrightarrow> 
-   [m,p] \<turnstile> e \<mapsto> v2 \<Longrightarrow>
-   v1 = v2"
-  apply (induction arbitrary: v2 rule: "evaltree.induct")
+  "[m,p] \<turnstile> e \<mapsto> v\<^sub>1 \<Longrightarrow> 
+   [m,p] \<turnstile> e \<mapsto> v\<^sub>2 \<Longrightarrow>
+   v\<^sub>1 = v\<^sub>2"
+  apply (induction arbitrary: v\<^sub>2 rule: "evaltree.induct")
   by (elim EvalTreeE; auto)+
 
 lemma evalAllDet:

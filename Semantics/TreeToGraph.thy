@@ -159,6 +159,8 @@ inductive
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprListE) replist .
 
+definition wf_term_graph :: "MapState \<Rightarrow> Params \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
+  "wf_term_graph m p g n = (\<exists> e. (g \<turnstile> n \<simeq> e) \<and> (\<exists> v. ([m, p] \<turnstile> e \<mapsto> v)))"
 
 text_raw \<open>\Snip{repRules}%
 \begin{center}

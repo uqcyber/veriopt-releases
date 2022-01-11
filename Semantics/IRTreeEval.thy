@@ -219,10 +219,12 @@ text \<open>We define a refinement ordering over IRExpr and show that it is a pr
 instantiation IRExpr :: preorder begin
 
 definition
-  le_expr_def [simp]: "(e2 \<le> e1) \<longleftrightarrow> (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
+  le_expr_def [simp]:
+    "(e\<^sub>2 \<le> e\<^sub>1) \<longleftrightarrow> (\<forall> m p v. (([m,p] \<turnstile> e\<^sub>1 \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> e\<^sub>2 \<mapsto> v)))"
 
 definition
-  lt_expr_def [simp]: "(e1 < e2) \<longleftrightarrow> (e1 \<le> e2 \<and> \<not> (e1 \<doteq> e2))"
+  lt_expr_def [simp]:
+    "(e\<^sub>1 < e\<^sub>2) \<longleftrightarrow> (e\<^sub>1 \<le> e\<^sub>2 \<and> \<not> (e\<^sub>1 \<doteq> e\<^sub>2))"
 
 instance proof 
   fix x y z :: IRExpr

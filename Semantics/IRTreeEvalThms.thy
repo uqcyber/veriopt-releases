@@ -294,23 +294,23 @@ lemma valid_not_undef:
 lemma valid_VoidStamp[elim]:
   shows "valid_value VoidStamp val \<Longrightarrow>
       val = UndefVal"
-  using valid_value.simps by (metis IRTreeEval.val_to_bool.cases)
+  using valid_value.simps by (metis val_to_bool.cases)
 
 lemma valid_ObjStamp[elim]:
   shows "valid_value (ObjectStamp klass exact nonNull alwaysNull) val \<Longrightarrow>
       (\<exists>v. val = ObjRef v)"
-  using valid_value.simps by (metis IRTreeEval.val_to_bool.cases)
+  using valid_value.simps by (metis val_to_bool.cases)
 
 lemma valid_int32[elim]:
   shows "valid_value (IntegerStamp 32 l h) val \<Longrightarrow>
       (\<exists>v. val = IntVal32 v)"
-  apply (rule IRTreeEval.val_to_bool.cases[of val])
+  apply (rule val_to_bool.cases[of val])
   using Value.distinct by simp+
                     
 lemma valid_int64[elim]:
   shows "valid_value (IntegerStamp 64 l h) val \<Longrightarrow>
       (\<exists>v. val = IntVal64 v)"
-  apply (rule IRTreeEval.val_to_bool.cases[of val])
+  apply (rule val_to_bool.cases[of val])
   using Value.distinct by simp+
 
   

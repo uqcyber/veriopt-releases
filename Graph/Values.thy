@@ -67,11 +67,11 @@ fun wf_bool :: "Value \<Rightarrow> bool" where
   "wf_bool _ = False" 
 
 fun val_to_bool :: "Value \<Rightarrow> bool" where
-  "val_to_bool (IntVal32 v) = (v = 1)" |
-  "val_to_bool _ = False"
+  "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
+  "val_to_bool v = False"
 
 fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal32 1)" |
+  "bool_to_val True = (IntVal32  1)" |
   "bool_to_val False = (IntVal32 0)"
 
 value "sint(word_of_int (1) :: int1)"

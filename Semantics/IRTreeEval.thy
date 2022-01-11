@@ -35,16 +35,6 @@ type_synonym Params = "Value list"
 definition new_map_state :: "MapState" where
   "new_map_state = (\<lambda>x. UndefVal)"
 
-fun val_to_bool :: "Value \<Rightarrow> bool" where
-  "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
-  "val_to_bool v = False"
-
-fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal32  1)" |
-  "bool_to_val False = (IntVal32 0)"
-
-
-
 
 (* ======================== START OF NEW TREE STUFF ==========================*)
 subsection \<open>Data-flow Tree Representation\<close>

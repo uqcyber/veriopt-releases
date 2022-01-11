@@ -54,7 +54,7 @@ session Proofs in Proofs = Semantics +
     Rewrites
     Stuttering
 
-session Optimizations in Optimizations = Semantics +
+session Optimizations in Optimizations = Proofs +
   description
     "Graph transformation optimizations"
   options [quick_and_dirty]

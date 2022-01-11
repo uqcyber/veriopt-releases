@@ -1,6 +1,7 @@
 theory TreeSnippets
   imports 
     Semantics.TreeToGraphThms
+    Optimizations.CanonicalizationSyntax
     Veriopt.Snipping
     "HOL-Library.OptionalSugar"
 begin
@@ -59,7 +60,26 @@ text \<open>
 \<close>
 snipend -
 
-(* skipping add node optimisations as they are currently very ugly *)
+
+(* Experimenting with auto generated optimizations
+notation (latex)
+  Transform ("_ \<^latex>\<open>&\<close> _")
+notation (latex)
+  Conditional ("_ \<^latex>\<open>&\<close>_\<^latex>\<open>\\\\\<close>\\ \<^latex>\<open>&\<close>if _")
+
+translations
+  "t" <= "CONST rewrite_obligation t"
+
+print_optimizations
+snipbegin \<open>optimization rules\<close>
+text_raw \<open>\begin{tabular}{l@ {~~@{text "\<longmapsto>"}~~}l}\<close>
+text_raw \<open>@{thm constant_add(1) [no_vars]}\\\<close>
+text_raw \<open>@{thm AddShiftConstantRight(1) [no_vars]}\\\<close>
+text_raw \<open>@{thm AddNeutral(1) [no_vars]}\<close>
+text_raw \<open>\end{tabular}\<close>
+snipend -
+*)
+
 
 (* definition 5 (semantics-preserving) is there a distinction in Isabelle? *)
 

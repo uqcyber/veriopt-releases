@@ -54,7 +54,7 @@ session Proofs in Proofs = Semantics +
     Rewrites
     Stuttering
 
-session Optimizations in Optimizations = Proofs +
+session Optimizations in Optimizations = Semantics +
   description
     "Graph transformation optimizations"
   options [quick_and_dirty]
@@ -162,7 +162,7 @@ session Stamps in "Papers/Stamps" = Graph +
   document_files (in "../../latex")
     "mathpartir.sty"
 
-session TreePaper in "Papers/Tree" = Semantics +
+session TreePaper in "Papers/Tree" = Optimizations +
   description
     "Content for paper on validation efforts"
   options [quick_and_dirty, document = pdf, document_output = "output",

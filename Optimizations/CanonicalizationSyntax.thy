@@ -423,10 +423,14 @@ fun register_optimization
 
     val register = RWList.add {name=Binding.print bind, rewrite=rewrite}
 
-    fun after_qed _ ctxt =
-      Local_Theory.background_theory register ctxt
+    fun after_qed thms ctxt =
+      let
+        val thy' = Local_Theory.background_theory register ctxt;
+      in
+        snd (Local_Theory.note ((bind, ([]:Token.src list)), hd thms) thy')
+      end
   in
-    Proof.theorem NONE after_qed [[(obligation, []), (terminating, [])]] ctxt
+    Proof.theorem NONE after_qed [[(obligation, [obligation]), (terminating, [terminating])]] ctxt
   end
 
 
@@ -523,12 +527,13 @@ phase Canonicalization begin
 (*
 optimization constant_fold:
   "(const(c\<^sub>1) \<oplus>\<^sub>x const(c\<^sub>2)) \<mapsto> (bin_eval c\<^sub>1 x c\<^sub>2)"
-*)
+
 optimization constant_add:
   "(e1 + e2) \<mapsto> r when (e1 = ConstantExpr v1 \<and> e2 = ConstantExpr v2 \<and> r = ConstantExpr (intval_add v1 v2))"
   unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer
    apply simp
   sorry
+*)
 
 optimization constant_add:
   "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2)"
@@ -543,6 +548,8 @@ optimization constant_shift:
   "(c + e) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e) \<and> type e = Integer)"
    unfolding rewrite_obligation.simps apply (rule impI) defer apply simp
   sorry
+
+thm constant_shift
 
 optimization neutral_zero:
   "(e + const(0)) \<mapsto> e when (type e = Integer)"
@@ -721,11 +728,6 @@ optimization AddRightNegateToSub: "x + -e \<mapsto> x - e"
    apply (metis BinaryExpr BinaryExprE UnaryExprE)
   unfolding size.simps
   by simp
-
-optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~ (is_ConstantExpr y)"
-  apply simp
-   apply (metis BinaryExpr BinaryExprE bin_eval.simps(1) intval_add_sym)
-  unfolding size.simps using nonconstants_gt_one by simp
 
 optimization MulEliminator: "(x * const(0)) \<mapsto> const(0) when (stamp_expr x = IntegerStamp 32 l u)"
    apply simp

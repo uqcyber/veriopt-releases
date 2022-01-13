@@ -130,7 +130,7 @@ translations
   "n" <= "CONST as_set n"
 
 snipbegin \<open>graph-semantics-preservation\<close>
-text \<open>@{thm[display, margin=30] graph_semantics_preservation [no_vars]}\<close>
+text \<open>@{thm[display, margin=30] graph_semantics_preservation_subscript [no_vars]}\<close>
 snipend -
 
 snipbegin \<open>maximal-sharing\<close>

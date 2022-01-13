@@ -656,6 +656,14 @@ proof -
   qed
 qed
 
+lemma graph_semantics_preservation_subscript:
+  assumes a: "e\<^sub>1' \<ge> e\<^sub>2'"
+  assumes b: "({n'} \<unlhd> as_set g\<^sub>1) \<subseteq> as_set g\<^sub>2"
+  assumes c: "g\<^sub>1 \<turnstile> n' \<simeq> e\<^sub>1'"
+  assumes d: "g\<^sub>2 \<turnstile> n' \<simeq> e\<^sub>2'"
+  shows "graph_refinement g\<^sub>1 g\<^sub>2"
+  using graph_semantics_preservation assms by simp
+
 (*
         case (UnaryExpr op xe1)
         from UnaryExpr have k: "g1 \<turnstile> n \<simeq> UnaryExpr op xe1" using f by blast
@@ -752,15 +760,15 @@ qed
 
 
 definition maximal_sharing:
-  "maximal_sharing g = (\<forall> n1 n2 . n1 \<in> ids g \<and> n2 \<in> ids g \<longrightarrow> 
-      (\<forall> e. (g \<turnstile> n1 \<simeq> e) \<and> (g \<turnstile> n2 \<simeq> e) \<longrightarrow> n1 = n2))"
+  "maximal_sharing g = (\<forall> n\<^sub>1 n\<^sub>2 . n\<^sub>1 \<in> ids g \<and> n\<^sub>2 \<in> ids g \<longrightarrow> 
+      (\<forall> e. (g \<turnstile> n\<^sub>1 \<simeq> e) \<and> (g \<turnstile> n\<^sub>2 \<simeq> e) \<longrightarrow> n\<^sub>1 = n\<^sub>2))"
 
 lemma tree_to_graph_rewriting:
-  "e1 \<ge> e2 
-  \<and> (g1 \<turnstile> n \<simeq> e1) \<and> maximal_sharing g1
-  \<and> ({n} \<unlhd> as_set g1) \<subseteq> as_set g2 
-  \<and> (g2 \<turnstile> n \<simeq> e2) \<and> maximal_sharing g2
-  \<Longrightarrow> graph_refinement g1 g2"
+  "e\<^sub>1 \<ge> e\<^sub>2 
+  \<and> (g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1) \<and> maximal_sharing g\<^sub>1
+  \<and> ({n} \<unlhd> as_set g\<^sub>1) \<subseteq> as_set g\<^sub>2 
+  \<and> (g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2) \<and> maximal_sharing g\<^sub>2
+  \<Longrightarrow> graph_refinement g\<^sub>1 g\<^sub>2"
   using graph_semantics_preservation
   by auto
 
@@ -888,10 +896,10 @@ proof -
   qed
 
 lemma graph_construction:
-  "e1 \<ge> e2
-  \<and> as_set g1 \<subseteq> as_set g2 \<and> maximal_sharing g1
-  \<and> (g2 \<turnstile> n \<simeq> e2) \<and> maximal_sharing g2
-  \<Longrightarrow> (g2 \<turnstile> n \<unlhd> e1) \<and> graph_refinement g1 g2"
+  "e\<^sub>1 \<ge> e\<^sub>2
+  \<and> as_set g\<^sub>1 \<subseteq> as_set g\<^sub>2 \<and> maximal_sharing g\<^sub>1
+  \<and> (g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2) \<and> maximal_sharing g\<^sub>2
+  \<Longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e\<^sub>1) \<and> graph_refinement g\<^sub>1 g\<^sub>2"
   using subset_refines
   by (meson encodeeval_def graph_represents_expression_def le_expr_def)
 

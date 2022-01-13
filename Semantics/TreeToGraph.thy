@@ -517,8 +517,8 @@ lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> =
 
 
 definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "graph_refinement g1 g2 = 
-        (\<forall> n . n \<in> ids g1 \<longrightarrow> (\<forall>e1. (g1 \<turnstile> n \<simeq> e1) \<longrightarrow> (\<exists>e2. (g2 \<turnstile> n \<simeq> e2) \<and> e1 \<ge> e2)))"
+  "graph_refinement g\<^sub>1 g\<^sub>2 = 
+        (\<forall> n . n \<in> ids g\<^sub>1 \<longrightarrow> (\<forall>e\<^sub>1. (g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1) \<longrightarrow> (\<exists>e\<^sub>2. (g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2) \<and> e\<^sub>1 \<ge> e\<^sub>2)))"
 
 lemma graph_refinement:
   "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"

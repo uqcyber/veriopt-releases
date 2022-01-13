@@ -162,8 +162,8 @@ method solve_det uses node =
 text \<open>Now we can prove that 'rep' and 'eval', and their list versions, are deterministic.
 \<close>
 lemma repDet:
-  shows "(g \<turnstile> n \<simeq> e1) \<Longrightarrow> (g \<turnstile> n \<simeq> e2) \<Longrightarrow> e1 = e2"
-proof (induction arbitrary: e2 rule: "rep.induct")
+  shows "(g \<turnstile> n \<simeq> e\<^sub>1) \<Longrightarrow> (g \<turnstile> n \<simeq> e\<^sub>2) \<Longrightarrow> e\<^sub>1 = e\<^sub>2"
+proof (induction arbitrary: e\<^sub>2 rule: "rep.induct")
   case (ConstantNode n c)
   then show ?case using rep_constant by auto
 next
@@ -233,7 +233,7 @@ next
   case (SignExtendNode n x xe)
   then show ?case
     using SignExtendNodeE rep_sign_extend IRNode.inject(39)
-    by (metis IRNode.inject(39) SignExtendNodeE rep_sign_extend)
+    by (metis IRNode.inject(39) rep_sign_extend)
 next
   case (ZeroExtendNode n x xe)
   then show ?case

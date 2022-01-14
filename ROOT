@@ -170,6 +170,8 @@ session TreePaper in "Papers/Tree" = Optimizations +
   theories
     TreeSnippets
     SlideSnippets
+  document_theories
+    Optimizations.CanonicalizationSyntax
   document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"

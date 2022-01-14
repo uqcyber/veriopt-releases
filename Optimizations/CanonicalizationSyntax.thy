@@ -358,7 +358,7 @@ fun update_existing name (dom, map) rewrite =
 
 fun add t thy = RewriteStore.map (fn state =>
   case state of
-    NoPhase _ => raise TERM ("error", []) |
+    NoPhase _ => raise TERM ("Optimization phase missing", []) |
     InPhase (name, store) => update_existing name store t
   ) thy
 
@@ -692,7 +692,7 @@ optimization BinaryFoldConstant: "BinaryExpr op (ConstantExpr e1) (ConstantExpr 
   apply force using nonconstants_gt_one
   by auto
 
-optimization AddShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)"
+optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when ~(is_ConstantExpr y)"
   apply simp
    apply (smt (verit, del_insts) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
   unfolding size.simps using nonconstants_gt_one by simp

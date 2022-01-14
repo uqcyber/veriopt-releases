@@ -60,6 +60,42 @@ text \<open>
 \<close>
 snipend -
 
+ML \<open>
+fun get_list (phase: phase option) =
+  case phase of
+    NONE => [] |
+    SOME p => (#rewrites p)
+
+fun get_rewrite name thy =
+  let 
+    val (phases, lookup) = (case RWList.get thy of
+      NoPhase store => store |
+      InPhase (name, store) => store)
+    val rewrites = (map (fn x => get_list (lookup x)) phases)
+  in
+    rewrites
+  end
+  
+fun rule_print name =
+  Document_Output.antiquotation_pretty name (Args.term)
+    (fn ctxt => fn (rule) => (*Pretty.str "hello")*)
+      Pretty.block (print_all_phases (Proof_Context.theory_of ctxt)));
+(*
+      Goal_Display.pretty_goal
+        (Config.put Goal_Display.show_main_goal main ctxt)
+        (#goal (Proof.goal (Toplevel.proof_of (Toplevel.presentation_state ctxt)))));
+*)
+
+val _ = Theory.setup
+ (rule_print \<^binding>\<open>rule\<close>);
+\<close>
+
+print_optimizations
+
+snipbegin \<open>OptimizationList\<close>
+text \<open>@{rule BinaryFoldConstant}\<close>
+snipend -
+
 notation (latex)
   size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
 

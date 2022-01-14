@@ -457,7 +457,7 @@ fun print_optimizations rewrites =
   let
     fun print_rule tact =
       Pretty.block [
-        Pretty.str ((#name tact) ^ ": "),
+        Pretty.str ( ": "),
         pretty_rewrite (#rewrite tact)
       ];
   in
@@ -479,8 +479,7 @@ fun print_phase_state thy =
 fun print_all_phases thy =
   case RWList.get thy of
     NoPhase (dom, store) => 
-      let val _ = @{print} dom;
-      in List.foldr (fn (name, acc) => print_phase (store name) @ acc) [] dom end |
+      List.foldr (fn (name, acc) => print_phase (store name) @ acc) [] dom |
     InPhase (name, (dom, store)) => List.foldr (fn (name, acc) => print_phase (store name) @ acc) [] dom
 
 fun phase_theory_init name thy = 

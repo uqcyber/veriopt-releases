@@ -112,7 +112,7 @@ snipend -
   using BinaryFoldConstant by auto
 
 snipbegin \<open>AddShiftConstantRight\<close>
-optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when ~(is_ConstantExpr y)"
+optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when \<not>(is_ConstantExpr y)"
 snipend -
 
   unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def, rule impI)
@@ -169,6 +169,18 @@ snipend -
 
 
 end
+
+no_notation ConditionalExpr ("_ ? _ : _")
+snipbegin \<open>termination\<close>
+text \<open>\begin{tabular}{l@ {~~@{text "="}~~}l}
+@{thm (lhs) size.simps(1)} & @{thm (rhs) size.simps(1)}\\
+@{thm (lhs) size.simps(2)} & @{thm (rhs) size.simps(2)}\\
+@{thm (lhs) size.simps(14)} & @{thm (rhs) size.simps(14)}\\
+@{thm (lhs) size.simps(15)} & @{thm (rhs) size.simps(15)}\\
+@{thm (lhs) size.simps(16)} & @{thm (rhs) size.simps(16)}\\
+@{thm (lhs) size.simps(17)} & @{thm (rhs) size.simps(17)}
+\end{tabular}\<close>
+snipend -
 
 (* Experimenting with auto generated optimizations
 notation (latex)

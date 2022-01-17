@@ -50,9 +50,9 @@ lemma binary_expr_size_gte_2: "size (BinaryExpr op x y) \<ge> 2"
   apply (metis One_nat_def Suc_leI add_le_mono mult_2_right numeral_Bit0 numeral_code(1) trans_le_add2)
   by (metis Suc_leI add_2_eq_Suc' add_Suc_shift add_mono numeral_2_eq_2 size_gt_0)+
 
-lemma "size e = 1 \<Longrightarrow> is_ConstantExpr e"
+lemma "size e = 1 = is_ConstantExpr e"
   apply (cases e; auto) using size_gt_0
-  apply (metis less_numeral_extra(3)) using size_gt_0
+  apply (metis) using size_gt_0
   by (metis binary_expr_size_gte_2 lessI not_less numeral_2_eq_2)
 
 lemma nonconstants_gt_one: "\<not> (is_ConstantExpr e) \<Longrightarrow> size e > 1"

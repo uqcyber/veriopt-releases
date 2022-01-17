@@ -13,14 +13,13 @@ notation (latex)
   IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr ("_ \<longmapsto> _")
 
 notation (latex)
-  valid_value ("_ \<subseteq> \<index>")
+  valid_value ("_ \<in> \<index>")
 
 notation (latex)
   val_to_bool ("bool-of _")
 
 notation (latex)
   constantAsStamp ("stamp-from-value _")
-
 
 snipbegin \<open>ast-example\<close>
 text "@{value[display,margin=25] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"
@@ -171,6 +170,14 @@ snipend -
 
 
 end
+
+snipbegin \<open>phase\<close>
+phase AddCanonicalizations
+  trm size
+begin
+  text_raw "\\dots"
+end
+snipend -
 
 no_notation ConditionalExpr ("_ ? _ : _")
 snipbegin \<open>termination\<close>

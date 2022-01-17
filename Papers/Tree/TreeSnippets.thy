@@ -219,13 +219,13 @@ snipend -
 
 snipbegin \<open>graph2tree\<close>
 text \<open>
-\induct{@{thm[mode=Rule] rep.ConstantNode [no_vars]}}{semantics:constant}
-\induct{@{thm[mode=Rule] rep.ParameterNode [no_vars]}}{semantics:parameter}
-\induct{@{thm[mode=Rule] rep.ConditionalNode [no_vars]}}{semantics:conditional}
-\induct{@{thm[mode=Rule] rep.AbsNode [no_vars]}}{semantics:unary}
-\induct{@{thm[mode=Rule] rep.SignExtendNode [no_vars]}}{semantics:convert}
-\induct{@{thm[mode=Rule] rep.AddNode [no_vars]}}{semantics:binary}
-\induct{@{thm[mode=Rule] rep.LeafNode [no_vars]}}{semantics:leaf}
+\induct{@{thm[mode=Rule] rep.ConstantNode [no_vars]}}{rep:constant}
+\induct{@{thm[mode=Rule] rep.ParameterNode [no_vars]}}{rep:parameter}
+\induct{@{thm[mode=Rule] rep.ConditionalNode [no_vars]}}{rep:conditional}
+\induct{@{thm[mode=Rule] rep.AbsNode [no_vars]}}{rep:unary}
+\induct{@{thm[mode=Rule] rep.SignExtendNode [no_vars]}}{rep:convert}
+\induct{@{thm[mode=Rule] rep.AddNode [no_vars]}}{rep:binary}
+\induct{@{thm[mode=Rule] rep.LeafNode [no_vars]}}{rep:leaf}
 \<close>
 snipend -
 

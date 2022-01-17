@@ -1,7 +1,8 @@
 theory CanonicalizationSyntax
 imports CanonicalizationTreeProofs
 keywords
-  "phase" :: thy_decl and
+  "phase" :: thy_decl and 
+  "trm" :: quasi_command and
   "optimization" :: thy_goal_defn and
   "print_optimizations" :: diag
 begin
@@ -306,14 +307,14 @@ type phase_store = (string list * (string -> phase option))
 
 datatype phase_state =
   NoPhase of phase_store |
-  InPhase of (string * phase_store)
+  InPhase of (string * phase_store * term)
 
 signature PhaseState =
 sig
   val get: theory -> phase_state
   val add: rewrite -> theory -> theory
   val reset: theory -> theory
-  val enter_phase: string -> theory -> theory
+  val enter_phase: string -> term -> theory -> theory
   val exit_phase: theory -> theory
 end;
 
@@ -336,10 +337,10 @@ structure RewriteStore = Theory_Data
     case lhs of
       NoPhase left_store => (case rhs of
         NoPhase right_store => NoPhase (merge_maps left_store right_store) |
-        InPhase (name, right_store) => InPhase (name, (merge_maps left_store right_store))) |
-      InPhase (name, left_store) => (case rhs of
-        NoPhase right_store => InPhase (name, (merge_maps left_store right_store)) |
-        InPhase (name, right_store) => InPhase (name, (merge_maps left_store right_store)))
+        InPhase (name, right_store, trm) => InPhase (name, (merge_maps left_store right_store), trm)) |
+      InPhase (name, left_store, trm) => (case rhs of
+        NoPhase right_store => InPhase (name, (merge_maps left_store right_store), trm) |
+        InPhase (name, right_store, trm) => InPhase (name, (merge_maps left_store right_store), trm))
 );
 
 val get = RewriteStore.get;
@@ -347,35 +348,35 @@ val get = RewriteStore.get;
 fun expand_phase rewrite (phase: phase) =
   {name = (#name phase), rewrites = cons rewrite (#rewrites phase), preconditions = (#preconditions phase)}
 
-fun update_existing name (dom, map) rewrite =
+fun update_existing name (dom, map) trm rewrite =
   let
     val value = map name
   in
     case value of
       NONE => raise TERM ("phase not in store", []) |
-      SOME v => InPhase (name, (dom, (fn id => (if id = name then SOME (expand_phase rewrite v) else map id))))
+      SOME v => InPhase (name, (dom, (fn id => (if id = name then SOME (expand_phase rewrite v) else map id))), trm)
   end
 
 fun add t thy = RewriteStore.map (fn state =>
   case state of
     NoPhase _ => raise TERM ("Optimization phase missing", []) |
-    InPhase (name, store) => update_existing name store t
+    InPhase (name, store, trm) => update_existing name store trm t
   ) thy
 
 val reset = RewriteStore.put empty;
 
 fun new_phase name = {name = name, rewrites = ([] : rewrite list), preconditions = ([] : term list)};
 
-fun enter_phase name thy = RewriteStore.map (fn state =>
+fun enter_phase name trm thy = RewriteStore.map (fn state =>
   case state of
-    NoPhase (dom, store) => InPhase (name, ([name] @ dom, fn id => (if id = name then SOME (new_phase name) else store id))) |
-    InPhase (_, _) => raise TERM ("optimization phase already established", [])
+    NoPhase (dom, store) => InPhase (name, ([name] @ dom, fn id => (if id = name then SOME (new_phase name) else store id)), trm) |
+    InPhase (_, _, _) => raise TERM ("optimization phase already established", [])
   ) thy
 
 fun exit_phase thy = RewriteStore.map (fn state =>
   case state of
     NoPhase _ => raise TERM ("phase already exited", []) |
-    InPhase (_, existing) => NoPhase existing
+    InPhase (_, existing, _) => NoPhase existing
   ) thy
 
 end;
@@ -398,20 +399,20 @@ fun rewrite_to_term rewrite =
 fun term_to_obligation ctxt term =
   Syntax.check_prop ctxt (@{const Trueprop} $ (@{const rewrite_obligation} $ term))
 
-fun rewrite_to_termination rewrite = 
+fun rewrite_to_termination trm rewrite = 
   case rewrite of
     Transform (lhs, rhs) => (
       @{const Trueprop} 
       $ (Const ("Orderings.ord_class.less", @{typ "nat \<Rightarrow> nat \<Rightarrow> bool"})
-      $ (@{const size} $ rhs) $ (@{const size} $ lhs)))
+      $ (trm $ rhs) $ (trm $ lhs)))
     | Conditional (lhs, rhs, condition) => (
       Const ("Pure.imp", @{typ "prop \<Rightarrow> prop \<Rightarrow> prop"})
       $ (@{const Trueprop} $ condition)
       $ (@{const Trueprop} $ (Const ("Orderings.ord_class.less", @{typ "nat \<Rightarrow> nat \<Rightarrow> bool"})
-      $ (@{const size} $ rhs) $ (@{const size} $ lhs))))
+      $ (trm $ rhs) $ (trm $ lhs))))
     | _ => raise TERM ("rewrite termination generation not implemented", [])
 
-fun register_optimization 
+fun register_optimization
   ((bind: binding, _), opt: string) ctxt = 
   let
     val term = Syntax.read_term ctxt opt;
@@ -419,7 +420,13 @@ fun register_optimization
     val rewrite = term_to_rewrite term;
 
     val obligation = term_to_obligation ctxt term;
-    val terminating = rewrite_to_termination rewrite;
+
+    val state = RWList.get (Proof_Context.theory_of ctxt);
+    val trm = (case state of
+      NoPhase _ => raise TERM ("Optimization phase missing", []) |
+      InPhase (_, _, trm) => trm
+    );
+    val terminating = rewrite_to_termination trm rewrite;
 
     val register = RWList.add {name=Binding.print bind, rewrite=rewrite}
 
@@ -447,8 +454,12 @@ val _ =
 fun exit_phase thy =
   Local_Theory.background_theory (RWList.exit_phase) thy
 
-fun begin_phase name thy =
-  Proof_Context.init_global (RWList.enter_phase name thy)
+fun begin_phase name trm thy =
+  let
+    val trm = Syntax.read_term_global thy trm;
+  in
+    Proof_Context.init_global (RWList.enter_phase name trm thy)
+  end
 
 fun
   pretty_rewrite rewrite = Syntax.pretty_term @{context} (rewrite_to_term rewrite)
@@ -474,18 +485,18 @@ fun print_phase (phase: phase option) =
 fun print_phase_state thy =
   case RWList.get (Proof_Context.theory_of thy) of
     NoPhase _ => [Pretty.str "not in a phase"] |
-    InPhase (name, (dom, map)) => print_phase (map name)
+    InPhase (name, (dom, map), _) => print_phase (map name)
 
 fun print_all_phases thy =
   case RWList.get thy of
     NoPhase (dom, store) => 
       List.foldr (fn (name, acc) => print_phase (store name) @ acc) [] dom |
-    InPhase (name, (dom, store)) => List.foldr (fn (name, acc) => print_phase (store name) @ acc) [] dom
+    InPhase (name, (dom, store), _) => List.foldr (fn (name, acc) => print_phase (store name) @ acc) [] dom
 
-fun phase_theory_init name thy = 
+fun phase_theory_init name trm thy = 
   Local_Theory.init 
     {background_naming = Sign.naming_of thy,
-        setup = begin_phase name,
+        setup = begin_phase name trm,
         conclude = exit_phase}
     {define = Generic_Target.define Generic_Target.theory_target_foundation,
         notes = Generic_Target.notes Generic_Target.theory_target_notes,
@@ -498,8 +509,8 @@ fun phase_theory_init name thy =
 
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>phase\<close> "instantiate and prove type arity"
-   (Parse.name --| Parse.begin
-     >> (fn name => Toplevel.begin_main_target true (phase_theory_init name)));
+   (Parse.name --| Parse.$$$ "trm" -- Parse.const --| Parse.begin
+     >> (fn (name, trm) => Toplevel.begin_main_target true (phase_theory_init name trm)));
 
 
 fun apply_print_optimizations thy =
@@ -515,13 +526,26 @@ val _ =
 
 setup \<open>RWList.reset\<close>
 
+fun bad_trm :: "IRExpr \<Rightarrow> nat" where
+  "bad_trm x = 0"
+
+phase NeverTerminates
+  trm bad_trm
+begin
+  optimization anon:
+  "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2)"
+    unfolding bad_trm.simps sorry
+end
+
 
 (*
 notation BinaryExpr ("_ \<oplus>\<^sub>_ _")
 
 value "x \<oplus>\<^sub>s y"
 *)
-phase Canonicalization begin
+phase Canonicalization
+  trm size
+begin
 
 (*
 optimization constant_fold:
@@ -579,7 +603,9 @@ end
 print_context
 print_optimizations
 
-phase DirectTranslationTest begin
+phase DirectTranslationTest
+  trm size
+begin
 
 optimization AbsIdempotence: "abs(abs(e)) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
   apply auto

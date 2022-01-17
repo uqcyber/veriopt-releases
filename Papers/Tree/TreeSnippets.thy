@@ -70,7 +70,7 @@ fun get_rewrite name thy =
   let 
     val (phases, lookup) = (case RWList.get thy of
       NoPhase store => store |
-      InPhase (name, store) => store)
+      InPhase (name, store, _) => store)
     val rewrites = (map (fn x => get_list (lookup x)) phases)
   in
     rewrites
@@ -99,7 +99,9 @@ snipend -
 notation (latex)
   size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
 
-phase SnipPhase begin
+phase SnipPhase 
+  trm size
+begin
 snipbegin \<open>BinaryFoldConstant\<close>
 optimization BinaryFoldConstant: "BinaryExpr op c1 c2 \<mapsto> ConstantExpr (bin_eval op val_c1 val_c2) when int_and_equal_bits val_c1 val_c2 "
 snipend -

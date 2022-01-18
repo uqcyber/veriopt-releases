@@ -6,6 +6,8 @@ theory TreeSnippets
     "HOL-Library.OptionalSugar"
 begin
 
+no_notation ConditionalExpr ("_ ? _ : _")
+
 notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 
@@ -179,7 +181,6 @@ begin
 end
 snipend -
 
-no_notation ConditionalExpr ("_ ? _ : _")
 snipbegin \<open>termination\<close>
 text \<open>\begin{tabular}{l@ {~~@{text "="}~~}l}
 @{thm (lhs) size.simps(1)} & @{thm (rhs) size.simps(1)}\\

@@ -1,5 +1,5 @@
 theory CanonicalizationSyntax
-imports CanonicalizationTreeProofs
+imports CanonicalizationTreeProofs HOL.Ctr_Sugar
 keywords
   "phase" :: thy_decl and 
   "trm" :: quasi_command and
@@ -289,6 +289,9 @@ lemma "(size exp[x + (-y)]) > (size exp[x - y])"
   by force
 
 
+datatype RewriteResult =
+  success IRExpr |
+  fail
 
 ML \<open>
 datatype 'a Rewrite =
@@ -380,7 +383,87 @@ fun exit_phase thy = RewriteStore.map (fn state =>
   ) thy
 
 end;
+\<close>
 
+ML_val \<open>@{term "(case n of
+    (BinaryExpr BinAdd (ConstantExpr c_val) e) \<Rightarrow>
+      if (\<not>(is_ConstantExpr e) \<and> type e = Integer) then
+        success (BinaryExpr BinAdd e (ConstantExpr c_val))
+      else
+        fail |
+    _ \<Rightarrow> fail)"}\<close>
+
+(*(app "_case_syntax"
+            (Ast.Variable "x",
+             foldr1 (app \<^syntax_const>\<open>_case2\<close>) (map_index (case1 constraint authentic) spec)),
+           capp (capps (case_constant, map_index arg1 spec), Ast.Variable "x"))*)
+
+ML \<open>
+val test = Conditional
+            (@{term \<open>BinaryExpr BinAdd (ConstantExpr c_val) e\<close>},
+            @{term \<open>BinaryExpr BinAdd e (ConstantExpr c_val)\<close>},
+            @{term \<open>\<not>(is_ConstantExpr e) \<and> type e = Integer\<close>})
+
+fun generate_cases p e ctxt =
+  let
+  val x =
+    Free (singleton (Name.variant_list (fold Term.add_free_names [p, e] [])) "x", dummyT);
+  
+  val NilC = Syntax.const @{const_name "Nil"};
+  val ConsC = Syntax.const @{const_name "Cons"};
+  val dummyC = Syntax.const @{const_name "Pure.dummy_pattern"};
+  
+  fun single x = ConsC $ x $ NilC;
+  
+  val case1 = Syntax.const \<^syntax_const>\<open>_case1\<close> $ p $ single e;
+  val case2 =
+    Syntax.const \<^syntax_const>\<open>_case1\<close> $ dummyC $ NilC;
+  val cs = Syntax.const \<^syntax_const>\<open>_case2\<close> $ case1 $ case2;
+  
+  val res = Case_Translation.case_tr false ctxt [x, cs];
+  val _ = @{print} res;
+
+  val plz = Syntax.const @{syntax_const "_case_syntax"}
+  in             
+    single e $ dummyC
+  end;
+
+fun rewrite_to_code bind rewrite ctxt =
+  case rewrite of
+    Conditional (pre, post, cond) => 
+        @{const Trueprop} $
+        (Const ("HOL.eq", @{typ "(IRExpr \<Rightarrow> RewriteResult) \<Rightarrow> (IRExpr \<Rightarrow> RewriteResult) \<Rightarrow> bool"})
+        $ (Free (bind ^ "_code", @{typ "IRExpr \<Rightarrow> RewriteResult"}))
+        $ (Const ("IRTreeEval.IRExpr.case_IRExpr",
+          @{typ \<open>(IRUnaryOp \<Rightarrow> IRExpr \<Rightarrow> RewriteResult)
+           \<Rightarrow> (IRBinaryOp \<Rightarrow> IRExpr \<Rightarrow> IRExpr \<Rightarrow> RewriteResult)
+              \<Rightarrow> (IRExpr \<Rightarrow> IRExpr \<Rightarrow> IRExpr \<Rightarrow> RewriteResult)
+                 \<Rightarrow> (nat \<Rightarrow> Stamp \<Rightarrow> RewriteResult)
+                    \<Rightarrow> (nat \<Rightarrow> Stamp \<Rightarrow> RewriteResult)
+                       \<Rightarrow> (Value \<Rightarrow> RewriteResult)
+                          \<Rightarrow> (char list \<Rightarrow> RewriteResult)
+                             \<Rightarrow> (char list \<Rightarrow> Stamp \<Rightarrow> RewriteResult)
+                                \<Rightarrow> IRExpr \<Rightarrow> RewriteResult\<close>})
+        $ @{term "(\<lambda> (_::IRUnaryOp) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::IRBinaryOp) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::IRExpr) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::nat) \<Rightarrow> \<lambda> (_::Stamp) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::ID) \<Rightarrow> \<lambda> (_::Stamp) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::Value) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::string) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::string) \<Rightarrow> \<lambda> (_::Stamp) \<Rightarrow> fail)"}))
+ |
+   (* Transform (pre, post) => 
+        @{const Trueprop}
+        $ (Const ("HOL.eq", @{typ "(IRExpr \<Rightarrow> RewriteResult) \<Rightarrow> (IRExpr \<Rightarrow> RewriteResult) \<Rightarrow> bool"})
+           $ Free (bind ^ "_code", @{typ "IRExpr \<Rightarrow> RewriteResult"})
+           $ generate_cases pre post ctxt
+          )
+ | *)
+    _ => @{const Trueprop} $ 
+        (Const ("HOL.eq", @{typ "(IRExpr \<Rightarrow> RewriteResult) \<Rightarrow> (IRExpr \<Rightarrow> RewriteResult) \<Rightarrow> bool"})
+        $ (Free (bind ^ "_code", @{typ "IRExpr \<Rightarrow> RewriteResult"}))
+        $ @{term \<open>\<lambda> (x::IRExpr) \<Rightarrow> fail\<close>});
 
 fun term_to_rewrite term =
   case term of
@@ -428,13 +511,22 @@ fun register_optimization
     );
     val terminating = rewrite_to_termination trm rewrite;
 
-    val register = RWList.add {name=Binding.print bind, rewrite=rewrite}
+    val name = Binding.name_of bind;
 
-    fun after_qed thms ctxt =
+    val register = RWList.add {name=name, rewrite=rewrite};
+
+    val code = rewrite_to_code name rewrite ctxt;
+
+    fun after_qed thms thy =
       let
-        val thy' = Local_Theory.background_theory register ctxt;
+        val lthy' = Local_Theory.background_theory register thy;
+
+        val (_, lthy'') = Specification.definition
+            NONE [] []
+            ((Binding.suffix_name "_code" bind, []), code)
+            lthy'
       in
-        snd (Local_Theory.note ((bind, ([]:Token.src list)), hd thms) thy')
+        snd (Local_Theory.note ((bind, ([]:Token.src list)), hd thms) lthy'')
       end
   in
     Proof.theorem NONE after_qed [[(obligation, [obligation]), (terminating, [terminating])]] ctxt
@@ -529,12 +621,57 @@ setup \<open>RWList.reset\<close>
 fun bad_trm :: "IRExpr \<Rightarrow> nat" where
   "bad_trm x = 0"
 
+definition test where
+  "test n = (case n of
+    (BinaryExpr BinAdd (ConstantExpr c_val) e) \<Rightarrow>
+      if (\<not>(is_ConstantExpr e) \<and> type e = Integer) then
+        success (BinaryExpr BinAdd e (ConstantExpr c_val))
+      else
+        fail |
+    _ \<Rightarrow> fail)"
+
+ML_val \<open>@{term "(case n of
+    (BinaryExpr BinAdd (ConstantExpr c_val) e) \<Rightarrow>
+      if (\<not>(is_ConstantExpr e) \<and> type e = Integer) then
+        success (BinaryExpr BinAdd e (ConstantExpr c_val))
+      else
+        fail |
+    _ \<Rightarrow> fail)"}\<close>
+
+ML_val \<open>@{term "case_IRExpr"}
+        $ @{term "(\<lambda> (_::IRUnaryOp) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::IRBinaryOp) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::IRExpr) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::nat) \<Rightarrow> \<lambda> (_::Stamp) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::ID) \<Rightarrow> \<lambda> (_::Stamp) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::Value) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::string) \<Rightarrow> fail)"}
+        $ @{term "(\<lambda> (_::string) \<Rightarrow> \<lambda> (_::Stamp) \<Rightarrow> fail)"}\<close>
+
+ML_val \<open>@{term "hello = case_IRExpr
+    (\<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> fail)
+    (\<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> fail)
+    (\<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> fail)
+    (\<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> fail)
+    (\<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> fail)
+    (\<lambda> _ \<Rightarrow> fail)
+    (\<lambda> _ \<Rightarrow> fail)
+    (\<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> fail)"}\<close>
+
 phase NeverTerminates
   trm bad_trm
 begin
   optimization anon:
+  "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2) when True"
+    unfolding bad_trm.simps sorry
+
+  print_syntax
+
+  optimization anon2:
   "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2)"
     unfolding bad_trm.simps sorry
+
+  value "anon_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (ConstantExpr (IntVal32 0)))"
 end
 
 
@@ -563,6 +700,8 @@ optimization constant_add:
   unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer
    apply simp
   sorry
+
+value "constant_add_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (ConstantExpr (IntVal32 0)))"
 
 print_context
 print_optimizations

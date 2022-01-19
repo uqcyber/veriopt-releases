@@ -10,6 +10,7 @@ type (''k, 'v) map = (''k list * (''k -> 'v option))
 
 val insert: (''k, 'v) map -> (''k * 'v) -> (''k, 'v) map
 val lookup: (''k, 'v) map -> ''k -> 'v option
+val values: (''k, 'v) map -> 'v list
 val empty: (''k, 'v) map
 
 end
@@ -23,6 +24,12 @@ fun insert xs (key, value) = (*: ('k, 'v) map -> ('k * 'v) -> ('k, 'v) map =*)
 
 fun lookup xs key =
   (snd xs) key
+
+fun only_some vs =
+  List.foldr (fn (v, xs) => case v of NONE => xs | SOME x => ([x] @ xs)) [] vs
+
+fun values (keys, lookup) =
+  only_some (map lookup keys)
 
 val empty = ([], fn _ => NONE)
 

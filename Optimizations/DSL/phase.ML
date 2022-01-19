@@ -1,12 +1,13 @@
 (*  Title:      Optimizations/DSL/phase.ML
     Author:     Brae Webb
 
-Organisation of rewrites into phases
+Organisation of rules into phases.
 *)
 
 signature Rule =
 sig
   type T
+  val pretty: T -> Pretty.T
 end
 
 signature DSL_PHASE =
@@ -18,30 +19,22 @@ type phase =
    trm: term,
    rules: (binding, T) Map.map}
 
-type store = (binding, phase) Map.map
+type config = (binding * string)
 
-datatype status =
-  NoPhase |
-  InPhase of binding
-
-type state =
-  {store: store,
-   status: status}
-
-val state: theory -> state
 val current: theory -> phase option
 val register: (binding * T) -> theory -> theory
 
-val enter: binding -> string -> theory -> Proof.context
+val enter: config -> theory -> Proof.context
 val exit: local_theory -> local_theory
+val setup: config -> theory -> local_theory
+
+val pretty: phase -> Proof.context -> Pretty.T
 
 end;
 
 functor DSL_Phase(Rule: Rule): DSL_PHASE =
 struct
 type T = Rule.T
-
-
 
 type phase =
   {name: binding,
@@ -57,6 +50,9 @@ datatype status =
 type state =
   {store: store,
    status: status}
+
+type config = (binding * string)
+
 
 val empty = {store=Map.empty, status=NoPhase};
 
@@ -133,7 +129,7 @@ fun enter' name trm thy = PhaseData.map (fn state =>
     InPhase _ => raise TERM ("optimization phase already established", [])
   ) thy
 
-fun enter name trm thy =
+fun enter (name, trm) thy =
   Proof_Context.init_global (enter' name (Syntax.read_term_global thy trm) thy)
 
 fun exit' thy = PhaseData.map (fn state =>
@@ -143,5 +139,40 @@ fun exit' thy = PhaseData.map (fn state =>
   ) thy
 
 val exit = Local_Theory.background_theory exit'
+
+fun pretty_phase (phase:phase) ctxt =
+  Pretty.block 
+    [Pretty.str "phase: ", Binding.pretty (#name phase), Pretty.fbrk,
+     Pretty.str "trm: ", Syntax.pretty_term ctxt (#trm phase), Pretty.fbrk,
+     Pretty.big_list "rules:" (map Rule.pretty (Map.values (#rules phase)))]
+
+fun pretty phase ctxt =
+  pretty_phase phase ctxt
+
+fun pretty' state ctxt =
+  case (#status state) of
+    NoPhase => Pretty.str "No phase" |
+    InPhase name => 
+      (case Map.lookup (#store state) name of
+        NONE => raise ERROR "Bug" |
+        SOME phase => pretty_phase phase ctxt
+      )
+
+fun pretty'' ctxt =
+  [pretty' (state (Proof_Context.theory_of ctxt)) ctxt]
+
+fun setup config thy =
+  Local_Theory.init 
+    {background_naming = Sign.naming_of thy,
+        setup = enter config,
+        conclude = exit}
+    {define = Generic_Target.define Generic_Target.theory_target_foundation,
+        notes = Generic_Target.notes Generic_Target.theory_target_notes,
+        abbrev = Generic_Target.abbrev Generic_Target.theory_target_abbrev,
+        declaration = K Generic_Target.theory_declaration,
+        theory_registration =  Generic_Target.theory_registration,
+        locale_dependency = fn _ => error "Not possible in instantiation target",
+        pretty = pretty''}
+    thy
 
 end

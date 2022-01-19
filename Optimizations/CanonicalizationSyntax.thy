@@ -1,5 +1,5 @@
 theory CanonicalizationSyntax
-imports CanonicalizationTreeProofs HOL.Ctr_Sugar
+imports CanonicalizationTreeProofs HOL.Ctr_Sugar OptimizationDSL.Markup
 keywords
   "phase" :: thy_decl and 
   "trm" :: quasi_command and
@@ -13,7 +13,7 @@ fun size :: "IRExpr \<Rightarrow> nat" where
   "size (BinaryExpr BinAdd x y) = (size x) + ((size y) * 2)" |
   "size (BinaryExpr op x y) = (size x) + (size y)" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
-  "size (ConstantExpr const) = 1" |
+  "size (ConstantExpr c) = 1" |
   "size (ParameterExpr ind s) = 2" |
   "size (LeafExpr nid s) = 2" |
   "size (ConstantVar c) = 2" |
@@ -64,119 +64,11 @@ lemma nonconstants_gt_one: "\<not> (is_ConstantExpr e) \<Longrightarrow> size e 
 lemma size_det: "x = y \<Longrightarrow> size x = size y"
   by auto
 
-datatype 'a Rewrite =
-  Transform 'a 'a |
-  Conditional 'a 'a "bool" |
-  Sequential "'a Rewrite" "'a Rewrite" |
-  Transitive "'a Rewrite"
-
-
-ML_val \<open>@{term "Transform a a"}\<close>
-ML_val \<open>@{term "Conditional a b c"}\<close>
-ML_val \<open>@{term "Sequential a b"}\<close>
-ML_val \<open>@{term "Transitive a"}\<close>
-
-
 fun rewrite_obligation :: "IRExpr Rewrite \<Rightarrow> bool" where
   "rewrite_obligation (Transform x y) = (y \<le> x)" |
   "rewrite_obligation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |
   "rewrite_obligation (Sequential x y) = (rewrite_obligation x \<and> rewrite_obligation y)" |
   "rewrite_obligation (Transitive x) = rewrite_obligation x"
-
-
-ML_val \<open>@{term "rewrite_obligation a"}\<close>
-
-ML \<open>
-val debugMode = false
-
-fun debugPrint value =
-  if debugMode then (@{print} value) else value
-
-fun translateConst (str, typ) =
-  case (str, typ) of
-    ("\<^const>Groups.plus_class.plus", _) => @{const BinaryExpr} $ @{const BinAdd}
-    | ("\<^const>Groups.minus_class.minus", _) => @{const BinaryExpr} $ @{const BinSub}
-    | ("\<^const>Groups.times_class.times", _) => @{const BinaryExpr} $ @{const BinMul}
-    | ("\<^const>HOL.conj", _) => @{const BinaryExpr} $ @{const BinAnd}
-    | ("\<^const>_binEquals", _) => @{const BinaryExpr} $ @{const BinIntegerEquals}
-    | ("\<^const>Groups.uminus_class.uminus", _) => @{const UnaryExpr} $ @{const UnaryNeg}
-    | ("\<^const>Values.shiftl", _) => @{const BinaryExpr} $ @{const BinLeftShift}
-    | ("\<^const>Values.shiftr", _) => @{const BinaryExpr} $ @{const BinRightShift}
-    | ("\<^const>Values.sshiftr", _) => @{const BinaryExpr} $ @{const BinURightShift}
-    | _ => Const (str, typ)
-
-fun translateEquals _ terms =
-  @{const BinaryExpr} $ @{const BinIntegerEquals} $ hd terms $ hd (tl terms)
-
-(* A seemingly arbitrary distinction  *)
-fun translateFree (str, typ) =
-  case (str, typ) of
-    ("abs", _) => @{const UnaryExpr} $ @{const UnaryAbs}
-    | (var, typ) => 
-      (if String.sub(var,0) = #"c" 
-        then @{const ConstantExpr} $ Free ("val_" ^ var, typ)
-        else Free (var, typ))
-
-fun expandNode ctxt trm =
-  let
-    val _ = debugPrint "Expanding node";
-    val _ = debugPrint trm;
-  in
-  case trm of
-    Const (str, typ) => translateConst (str, typ)
-    | Free (str, typ) => translateFree (str, typ)
-    | Abs (str, typ, trm) => Abs (str, typ, expandNode ctxt trm)
-    | e as ((Const ("\<^const>IRTreeEval.IRExpr.ConstantExpr",_)) $ _) => e
-    | (x $ y) => (expandNode ctxt x $ expandNode ctxt y)
-    | _ => trm
-  end
-
-fun expandNodes ctxt [trm] = expandNode ctxt trm
-  | expandNodes _ ts = raise TERM ("expandNodes", ts)
-
-fun baseTransform ctxt [pre, post] =
-  Const
-     ("CanonicalizationSyntax.Rewrite.Transform", @{typ "IRExpr => IRExpr \<Rightarrow> IRExpr Rewrite"})
-    $ expandNode ctxt pre
-    $ expandNode ctxt post
-
-  | baseTransform _ ts = raise TERM ("baseTransform", ts)
-
-fun conditionTransform ctxt [pre, post, cond] =
-  Const ("CanonicalizationSyntax.Rewrite.Conditional", @{typ "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool \<Rightarrow> IRExpr Rewrite"})
-    $ expandNode ctxt pre
-    $ expandNode ctxt post
-    $ cond
-
-  | conditionTransform _ ts = raise TERM ("conditionTransform", ts)
-
-fun constantValues _ [trm] =
-  (case trm of
-    c as Const _ =>
-      @{const ConstantExpr} $ (@{const IntVal32} $ c)
-    | x $ y => 
-      @{const ConstantExpr} $ (@{const IntVal32} $ (x $ y))
-    | _ => trm)
-  | constantValues _ ts = raise TERM ("constantValues", ts)
-
-\<close>
-
-syntax "_constantValues" :: "term \<Rightarrow> term" ("const _" 120)
-parse_translation \<open> [( @{syntax_const "_constantValues"} , constantValues)] \<close>
-
-notation ConditionalExpr ("_ ? _ : _")
-syntax "_binEquals" :: "term \<Rightarrow> term \<Rightarrow> term" ("_ == _" 100)
-parse_translation \<open> [( @{syntax_const "_binEquals"} , translateEquals)] \<close>
-
-syntax "_expandNodes" :: "term \<Rightarrow> term" ("exp[_]")
-parse_translation \<open> [( @{syntax_const "_expandNodes"} , expandNodes)] \<close>
-
-syntax "_baseTransform" :: "term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _" 10)
-parse_translation \<open> [( @{syntax_const "_baseTransform"} , baseTransform)] \<close>
-
-syntax "_conditionalTransform" :: "term \<Rightarrow> term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _ when _" 70)
-parse_translation \<open> [( @{syntax_const "_conditionalTransform"} , conditionTransform)] \<close>
-
 
 value "exp[abs e]"
 ML_val \<open>@{term "abs e"}\<close>
@@ -393,6 +285,7 @@ ML_val \<open>@{term "(case n of
         fail |
     _ \<Rightarrow> fail)"}\<close>
 
+
 (*(app "_case_syntax"
             (Ast.Variable "x",
              foldr1 (app \<^syntax_const>\<open>_case2\<close>) (map_index (case1 constraint authentic) spec)),
@@ -467,16 +360,16 @@ fun rewrite_to_code bind rewrite ctxt =
 
 fun term_to_rewrite term =
   case term of
-    (((Const ("CanonicalizationSyntax.Rewrite.Transform", _)) $ lhs) $ rhs) => Transform (lhs, rhs)
-    | ((((Const ("CanonicalizationSyntax.Rewrite.Conditional", _)) $ lhs) $ rhs) $ cond) => Conditional (lhs, rhs, cond)
+    (((Const ("Markup.Rewrite.Transform", _)) $ lhs) $ rhs) => Transform (lhs, rhs)
+    | ((((Const ("Markup.Rewrite.Conditional", _)) $ lhs) $ rhs) $ cond) => Conditional (lhs, rhs, cond)
     | _ => raise TERM ("optimization is not a rewrite", [term])
 
 fun rewrite_to_term rewrite = 
   case rewrite of
     Transform (lhs, rhs) => 
-      (Const ("CanonicalizationSyntax.Rewrite.Transform", @{typ "'a => 'a"})) $ lhs $ rhs
+      (Const ("Markup.Rewrite.Transform", @{typ "'a => 'a"})) $ lhs $ rhs
     | Conditional (lhs, rhs, cond) => 
-      (Const ("CanonicalizationSyntax.Rewrite.Conditional", @{typ "'a => 'a"})) $ lhs $ rhs $ cond
+      (Const ("Markup.Rewrite.Conditional", @{typ "'a => 'a"})) $ lhs $ rhs $ cond
     | _ => raise TERM ("rewrite cannot be translated yet", [])
 
 fun term_to_obligation ctxt term =

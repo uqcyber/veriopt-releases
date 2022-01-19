@@ -54,7 +54,13 @@ session Proofs in Proofs = Semantics +
     Rewrites
     Stuttering
 
-session Optimizations in Optimizations = Proofs +
+session OptimizationDSL in "Optimizations/DSL" = Proofs +
+  description
+    "DSL for optimizations"
+  theories
+    Markup
+
+session Optimizations in Optimizations = OptimizationDSL +
   description
     "Graph transformation optimizations"
   options [quick_and_dirty]

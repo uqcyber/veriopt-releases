@@ -58,7 +58,14 @@ session OptimizationDSL in "Optimizations/DSL" = Proofs +
   description
     "DSL for optimizations"
   theories
-    Markup
+    Canonicalization
+
+session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL +
+  description
+    "Canonicalization optimizations"
+  options [quick_and_dirty]
+  theories
+    AddPhase
 
 session Optimizations in Optimizations = OptimizationDSL +
   description

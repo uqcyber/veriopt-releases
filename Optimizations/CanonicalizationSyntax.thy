@@ -2,13 +2,7 @@ theory CanonicalizationSyntax
   imports 
     CanonicalizationTreeProofs 
     HOL.Ctr_Sugar
-    OptimizationDSL.Markup
-    OptimizationDSL.Phase
-  keywords
-    "phase" :: thy_decl and 
-    "trm" :: quasi_command and
-    "optimization" :: thy_goal_defn and
-    "print_optimizations" :: diag
+    OptimizationDSL.Canonicalization
 begin
 
 
@@ -67,12 +61,6 @@ lemma nonconstants_gt_one: "\<not> (is_ConstantExpr e) \<Longrightarrow> size e 
 
 lemma size_det: "x = y \<Longrightarrow> size x = size y"
   by auto
-
-fun rewrite_obligation :: "IRExpr Rewrite \<Rightarrow> bool" where
-  "rewrite_obligation (Transform x y) = (y \<le> x)" |
-  "rewrite_obligation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |
-  "rewrite_obligation (Sequential x y) = (rewrite_obligation x \<and> rewrite_obligation y)" |
-  "rewrite_obligation (Transitive x) = rewrite_obligation x"
 
 value "exp[abs e]"
 ML_val \<open>@{term "abs e"}\<close>
@@ -189,46 +177,6 @@ datatype RewriteResult =
   success IRExpr |
   fail
 
-ML \<open>
-datatype 'a Rewrite =
-  Transform of 'a * 'a |
-  Conditional of 'a * 'a * term |
-  Sequential of 'a Rewrite * 'a Rewrite |
-  Transitive of 'a Rewrite
-
-type rewrite =
-  {name: string, rewrite: term Rewrite}
-
-structure RewriteRule : Rule =
-struct
-type T = rewrite;
-
-fun pretty_rewrite ctxt (Transform (from, to)) = 
-      Pretty.block [
-        Syntax.pretty_term ctxt from,
-        Pretty.str " \<mapsto> ",
-        Syntax.pretty_term ctxt to
-      ]
-  | pretty_rewrite ctxt (Conditional (from, to, cond)) = 
-      Pretty.block [
-        Syntax.pretty_term ctxt from,
-        Pretty.str " \<mapsto> ",
-        Syntax.pretty_term ctxt to,
-        Pretty.str " when ",
-        Syntax.pretty_term ctxt cond
-      ]
-  | pretty_rewrite _ _ = Pretty.str "not implemented"
-
-fun pretty ctxt t =
-  Pretty.block [
-    Pretty.str ((#name t) ^ ": "),
-    pretty_rewrite ctxt (#rewrite t)
-  ]
-end
-
-structure RewritePhase = DSL_Phase(RewriteRule);
-\<close>
-
 ML_val \<open>@{term "(case n of
     (BinaryExpr BinAdd (ConstantExpr c_val) e) \<Rightarrow>
       if (\<not>(is_ConstantExpr e) \<and> type e = Integer) then
@@ -309,104 +257,6 @@ fun rewrite_to_code bind rewrite ctxt =
         (Const ("HOL.eq", @{typ "(IRExpr \<Rightarrow> RewriteResult) \<Rightarrow> (IRExpr \<Rightarrow> RewriteResult) \<Rightarrow> bool"})
         $ (Free (bind ^ "_code", @{typ "IRExpr \<Rightarrow> RewriteResult"}))
         $ @{term \<open>\<lambda> (x::IRExpr) \<Rightarrow> fail\<close>});
-
-fun term_to_rewrite term =
-  case term of
-    (((Const ("Markup.Rewrite.Transform", _)) $ lhs) $ rhs) => Transform (lhs, rhs)
-    | ((((Const ("Markup.Rewrite.Conditional", _)) $ lhs) $ rhs) $ cond) => Conditional (lhs, rhs, cond)
-    | _ => raise TERM ("optimization is not a rewrite", [term])
-
-fun rewrite_to_term rewrite = 
-  case rewrite of
-    Transform (lhs, rhs) => 
-      (Const ("Markup.Rewrite.Transform", @{typ "'a => 'a"})) $ lhs $ rhs
-    | Conditional (lhs, rhs, cond) => 
-      (Const ("Markup.Rewrite.Conditional", @{typ "'a => 'a"})) $ lhs $ rhs $ cond
-    | _ => raise TERM ("rewrite cannot be translated yet", [])
-
-fun term_to_obligation ctxt term =
-  Syntax.check_prop ctxt (@{const Trueprop} $ (@{const rewrite_obligation} $ term))
-
-fun rewrite_to_termination trm rewrite = 
-  case rewrite of
-    Transform (lhs, rhs) => (
-      @{const Trueprop} 
-      $ (Const ("Orderings.ord_class.less", @{typ "nat \<Rightarrow> nat \<Rightarrow> bool"})
-      $ (trm $ rhs) $ (trm $ lhs)))
-    | Conditional (lhs, rhs, condition) => (
-      Const ("Pure.imp", @{typ "prop \<Rightarrow> prop \<Rightarrow> prop"})
-      $ (@{const Trueprop} $ condition)
-      $ (@{const Trueprop} $ (Const ("Orderings.ord_class.less", @{typ "nat \<Rightarrow> nat \<Rightarrow> bool"})
-      $ (trm $ rhs) $ (trm $ lhs))))
-    | _ => raise TERM ("rewrite termination generation not implemented", [])
-
-fun register_optimization
-  ((bind: binding, _), opt: string) ctxt = 
-  let
-    val term = Syntax.read_term ctxt opt;
-
-    val rewrite = term_to_rewrite term;
-
-    val obligation = term_to_obligation ctxt term;
-
-    val state = RewritePhase.current (Proof_Context.theory_of ctxt);
-    val trm = (case state of
-      NONE => raise TERM ("Optimization phase missing", []) |
-      SOME phase => (#trm phase)
-    );
-    val terminating = rewrite_to_termination trm rewrite;
-
-    val name = Binding.name_of bind;
-
-    val register = RewritePhase.register (bind, {name=name, rewrite=rewrite});
-
-    val code = rewrite_to_code name rewrite ctxt;
-
-    fun after_qed thms thy =
-      let
-        val lthy' = Local_Theory.background_theory register thy;
-
-        val (_, lthy'') = Specification.definition
-            NONE [] []
-            ((Binding.suffix_name "_code" bind, []), code)
-            lthy'
-      in
-        snd (Local_Theory.note ((bind, ([]:Token.src list)), hd thms) lthy'')
-      end
-  in
-    Proof.theorem NONE after_qed [[(obligation, [obligation]), (terminating, [terminating])]] ctxt
-  end
-
-
-val parse_optimization_declaration =
-  Parse_Spec.thm_name ":"
-
-val _ =
-  Outer_Syntax.local_theory_to_proof \<^command_keyword>\<open>optimization\<close>
-    "define an optimization and open proof obligation"
-    (parse_optimization_declaration
-     -- Parse.term
-     >> register_optimization);
-
-fun
-  pretty_rewrite rewrite = Syntax.pretty_term @{context} (rewrite_to_term rewrite)
-
-val _ =
-  Outer_Syntax.command \<^command_keyword>\<open>phase\<close> "instantiate and prove type arity"
-   (Parse.binding --| Parse.$$$ "trm" -- Parse.const --| Parse.begin
-     >> (fn (name, trm) => Toplevel.begin_main_target true (RewritePhase.setup (name, trm))));
-
-fun print_phase ctxt phase = RewritePhase.pretty phase ctxt
-
-fun apply_print_optimizations thy =
-  (map (print_phase thy) (RewritePhase.phases (Proof_Context.theory_of thy)) |> Pretty.writeln_chunks)
-
-
-val _ =
-  Outer_Syntax.command \<^command_keyword>\<open>print_optimizations\<close>
-    "print debug information for optimizations"
-    (Scan.succeed
-      (Toplevel.keep (apply_print_optimizations o Toplevel.context_of)));
 \<close>
 
 fun bad_trm :: "IRExpr \<Rightarrow> nat" where
@@ -429,7 +279,7 @@ ML_val \<open>@{term "(case n of
         fail |
     _ \<Rightarrow> fail)"}\<close>
 
-print_optimizations
+print_phases
 
 ML_val \<open>@{term "case_IRExpr"}
         $ @{term "(\<lambda> (_::IRUnaryOp) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> fail)"}
@@ -466,7 +316,7 @@ begin
 
   value "anon_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (ConstantExpr (IntVal32 0)))"
 
-print_optimizations
+  print_phases
 end
 
 

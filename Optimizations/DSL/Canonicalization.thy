@@ -84,11 +84,18 @@ fun rewrite_termination :: "IRExpr Rewrite \<Rightarrow> (IRExpr \<Rightarrow> n
   "rewrite_termination (Sequential x y) trm = (rewrite_termination x trm \<and> rewrite_termination y trm)" |
   "rewrite_termination (Transitive x) trm = rewrite_termination x trm"
 
+fun intval :: "Value Rewrite \<Rightarrow> bool" where
+  "intval (Transform x y) = (x \<noteq> UndefVal \<and> y \<noteq> UndefVal \<longrightarrow> x = y)" |
+  "intval (Conditional x y cond) = (cond \<longrightarrow> (x = y))" |
+  "intval (Sequential x y) = (intval x \<and> intval y)" |
+  "intval (Transitive x) = intval x"
+
 ML \<open>
 structure System : RewriteSystem =
 struct
 val preservation = @{const rewrite_preservation};
 val termination = @{const rewrite_termination};
+val intval = @{const intval};
 end
 
 structure DSL = DSL_Rewrites(System);

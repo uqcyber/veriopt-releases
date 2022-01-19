@@ -7,7 +7,8 @@ Generate proof obligation for expression rewrites.
 signature RewriteSystem =
 sig
 val preservation: term;
-val termination: term
+val termination: term;
+val intval: term;
 end
 
 signature DSL_REWRITES =
@@ -48,6 +49,10 @@ fun termination_of' ctxt trm rewrite =
   Syntax.check_prop ctxt 
     (@{const Trueprop} $ (System.termination $ (to_term rewrite) $ trm))
 
+fun intval_of ctxt term =
+  Syntax.check_prop ctxt 
+    (@{const Trueprop} $ (System.intval $ term))
+
 fun termination_of ctxt rewrite =
   let
     val state = RewritePhase.current (Proof_Context.theory_of ctxt);
@@ -66,14 +71,23 @@ fun code_of _ rewrite =
   $ @{term \<open>\<lambda> (x::IRExpr) \<Rightarrow> (None::IRExpr option)\<close>}))
 
 
-fun rewrite_cmd ((bind, _), opt) ctxt = 
+fun rewrite_cmd ((bind, options), opt) ctxt = 
   let
+    val intval = case options of [[token]] => Token.content_of token = "intval" | _ => false;
     val name = Binding.name_of bind;
     
     val term = IRExprMarkup.markup_expr ctxt [(Syntax.parse_term ctxt opt)];
     val rewrite = of_term name term;
 
+    val intval_preservation = (if intval 
+      then intval_of ctxt (IntValMarkup.markup_expr ctxt [(Syntax.parse_term ctxt opt)])
+      else @{term True})
+    val extra = (if intval then [(intval_preservation, [intval_preservation])] else [])
+
     val preservation = preservation_of ctxt rewrite;
+    val preservation = if intval 
+      then @{term "Pure.imp"} $ intval_preservation $ preservation
+      else preservation;
     val termination = termination_of ctxt rewrite;
     val code = code_of ctxt rewrite;
 
@@ -92,7 +106,7 @@ fun rewrite_cmd ((bind, _), opt) ctxt =
       end
   in
     Proof.theorem NONE after_qed 
-      [[(preservation, [preservation]), (termination, [termination])]] ctxt
+      [extra @ [(preservation, [preservation]), (termination, [termination])]] ctxt
   end
 
 end

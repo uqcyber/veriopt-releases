@@ -32,7 +32,7 @@ optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when \<not>(is_Co
   apply (rule conjE, simp, simp del: le_expr_def, rule impI)
   sorry
 
-optimization AddNeutral: "(e + (const 0)) \<mapsto> e"
+optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e"
   unfolding rewrite_preservation.simps
   sorry
 

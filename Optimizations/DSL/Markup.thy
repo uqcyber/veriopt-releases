@@ -3,28 +3,62 @@ theory Markup
 begin
 
 datatype 'a Rewrite =
-  Transform 'a 'a |
-  Conditional 'a 'a "bool" |
+  Transform 'a 'a ("_ \<mapsto> _" 10) |
+  Conditional 'a 'a "bool" ("_ \<mapsto> _ when _" 70) |
   Sequential "'a Rewrite" "'a Rewrite" |
   Transitive "'a Rewrite"
 
-notation ConditionalExpr ("_ ? _ : _")
+datatype 'a ExtraNotation =
+  ConditionalNotation 'a 'a 'a ("_ ? _ : _") |
+  EqualsNotation 'a 'a ("_ eq _") |
+  ConstantNotation 'a ("const _" 120)
 
 ML_file \<open>markup.ML\<close>
 
-syntax "_constantValues" :: "term \<Rightarrow> term" ("const _" 120)
-parse_translation \<open> [( @{syntax_const "_constantValues"} , DSL_Markup.const_expr)] \<close>
+ML \<open>
+structure IRExprTranslator : DSL_TRANSLATION =
+struct
+fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
+  | markup DSL_Tokens.Sub = @{term BinaryExpr} $ @{term BinSub}
+  | markup DSL_Tokens.Mul = @{term BinaryExpr} $ @{term BinMul}
+  | markup DSL_Tokens.And = @{term BinaryExpr} $ @{term BinAnd}
+  | markup DSL_Tokens.Abs = @{term UnaryExpr} $ @{term UnaryAbs}
+  | markup DSL_Tokens.Equals = @{term BinaryExpr} $ @{term BinIntegerEquals}
+  | markup DSL_Tokens.Negate = @{term UnaryExpr} $ @{term UnaryNeg}
+  | markup DSL_Tokens.LeftShift = @{term BinaryExpr} $ @{term BinLeftShift}
+  | markup DSL_Tokens.RightShift = @{term BinaryExpr} $ @{term BinRightShift}
+  | markup DSL_Tokens.UnsignedRightShift = @{term BinaryExpr} $ @{term BinURightShift}
+  | markup DSL_Tokens.Conditional = @{term ConditionalExpr}
+  | markup DSL_Tokens.Constant = @{term ConstantExpr}
+end
 
-syntax "_binEquals" :: "term \<Rightarrow> term \<Rightarrow> term" ("_ == _" 100)
-parse_translation \<open> [( @{syntax_const "_binEquals"} , DSL_Markup.equals_expr)] \<close>
+structure IntValTranslator : DSL_TRANSLATION =
+struct
+fun markup DSL_Tokens.Add = @{term intval_add}
+  | markup DSL_Tokens.Sub = @{term intval_sub}
+  | markup DSL_Tokens.Mul = @{term intval_mul}
+  | markup DSL_Tokens.And = @{term intval_and}
+  | markup DSL_Tokens.Abs = @{term intval_abs}
+  | markup DSL_Tokens.Equals = @{term intval_equals}
+  | markup DSL_Tokens.Negate = @{term intval_negate}
+  | markup DSL_Tokens.LeftShift = @{term intval_left_shift}
+  | markup DSL_Tokens.RightShift = @{term intval_right_shift}
+  | markup DSL_Tokens.UnsignedRightShift = @{term intval_uright_shift}
+  | markup DSL_Tokens.Conditional = raise ERROR "Conditional not supported for intval"
+  | markup DSL_Tokens.Constant = @{term IntVal32}
+end
 
-syntax "_expandNodes" :: "term \<Rightarrow> term" ("exp[_]")
-parse_translation \<open> [( @{syntax_const "_expandNodes"} , DSL_Markup.markup_expr)] \<close>
+structure IRExprMarkup = DSL_Markup(IRExprTranslator);
+structure IntValMarkup = DSL_Markup(IntValTranslator);
+\<close>
 
-syntax "_baseTransform" :: "term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _" 10)
-parse_translation \<open> [( @{syntax_const "_baseTransform"} , DSL_Markup.rewrite)] \<close>
+syntax "_expandExpr" :: "term \<Rightarrow> term" ("exp[_]")
+parse_translation \<open> [( @{syntax_const "_expandExpr"} , IRExprMarkup.markup_expr)] \<close>
 
-syntax "_conditionalTransform" :: "term \<Rightarrow> term \<Rightarrow> term \<Rightarrow> term" ("_ \<mapsto> _ when _" 70)
-parse_translation \<open> [( @{syntax_const "_conditionalTransform"} , DSL_Markup.conditional_rewrite)] \<close>
+syntax "_expandIntVal" :: "term \<Rightarrow> term" ("val[_]")
+parse_translation \<open> [( @{syntax_const "_expandIntVal"} , IntValMarkup.markup_expr)] \<close>
+
+value "exp[((e\<^sub>1 - e\<^sub>2) + (const (IntVal32 0)) + e\<^sub>2) \<mapsto> e\<^sub>1 when True]"
+value "val[((e\<^sub>1 - e\<^sub>2) + (const 0) + e\<^sub>2) \<mapsto> e\<^sub>1 when True]"
 
 end

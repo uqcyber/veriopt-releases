@@ -142,7 +142,7 @@ lemma uminus_intstamp_prop:
 lemma assume_proof :
   assumes "type x = Integer"
   assumes "type_safe x y"
-  shows "rewrite_preservation ((x + (-y) \<mapsto> x - y))"
+  shows "rewrite_preservation exp[((x + (-y) \<mapsto> x - y))]"
   unfolding rewrite_preservation.simps 
   unfolding le_expr_def apply (rule allI)+ apply (rule impI)
   using assms unfolding type_def type_safe_def 
@@ -164,7 +164,7 @@ proof (induction rule: evaltree.induct)
 *)
 
 
-lemma "rewrite_obligation ((x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y))"
+lemma "rewrite_preservation (exp[((x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y))])"
   sorry
 
 
@@ -360,7 +360,7 @@ print_context
 thm constant_shift
 
 optimization neutral_zero:
-  "(e + const(0)) \<mapsto> e when (type e = Integer)"
+  "(e + const(IntVal32 0)) \<mapsto> e when (type e = Integer)"
    defer apply simp+
   sorry
 
@@ -448,7 +448,7 @@ lemma neutral_and:
 context
   includes bit_operations_syntax
 begin
-optimization AndNeutral: "(x & (const (NOT 0))) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
+optimization AndNeutral: "(x & (const (IntVal32 (NOT 0)))) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
    apply simp
   using neutral_and stamp_implies_valid_value apply auto
   by metis
@@ -460,7 +460,7 @@ optimization ConditionalEqualBranches: "(b ? v : v) \<mapsto> v"
   unfolding size.simps
   by auto
 
-optimization ConditionalEqualIsRHS: "((x == y) ? x : y) \<mapsto> y when (type x = Integer \<and> type_safe x y)"
+optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<mapsto> y when (type x = Integer \<and> type_safe x y)"
    apply simp
   apply (smt (verit, del_insts) BinaryExprE CanonicalizeConditionalProof ConditionalExprE cond_eq type_safe_def unfold_type)
   unfolding size.simps by simp
@@ -512,7 +512,7 @@ lemma neutral_add:
   shows "bin_eval BinAdd x (IntVal32 (0)) = x"
   using assms bin_eval.simps(4) by (cases x; auto)
 
-optimization AddNeutral: "(e + (const 0)) \<mapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
+optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
    apply simp using neutral_add stamp_implies_valid_value 
   using evaltree.BinaryExpr evaltree.ConstantExpr
    apply (metis (no_types, opaque_lifting) BinaryExprE ConstantExprE)
@@ -536,13 +536,13 @@ optimization AddRightNegateToSub: "x + -e \<mapsto> x - e"
   unfolding size.simps
   by simp
 
-optimization MulEliminator: "(x * const(0)) \<mapsto> const(0) when (stamp_expr x = IntegerStamp 32 l u)"
+optimization MulEliminator: "(x * const(IntVal32 0)) \<mapsto> const(IntVal32 0) when (stamp_expr x = IntegerStamp 32 l u)"
    apply simp
   apply (metis BinaryExprE ConstantExprE annihilator_rewrite_helper(1) bin_eval.simps(2) stamp_implies_valid_value)
   unfolding size.simps
   by (simp add: size_gt_0)
 
-optimization MulNeutral: "(x * const(1)) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
+optimization MulNeutral: "(x * const(IntVal32 1)) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
    apply simp
   apply (metis BinaryExprE ConstantExprE bin_eval.simps(2) neutral_rewrite_helper(1) stamp_implies_valid_value)
   unfolding size.simps by simp

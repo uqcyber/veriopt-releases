@@ -69,8 +69,8 @@ fun code_of _ rewrite =
 fun rewrite_cmd ((bind, _), opt) ctxt = 
   let
     val name = Binding.name_of bind;
-
-    val term = Syntax.read_term ctxt opt;
+    
+    val term = IRExprMarkup.markup_expr ctxt [(Syntax.parse_term ctxt opt)];
     val rewrite = of_term name term;
 
     val preservation = preservation_of ctxt rewrite;

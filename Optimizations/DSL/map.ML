@@ -19,8 +19,11 @@ structure Map : MAP =
 struct
 type ('k, 'v) map = ('k list * ('k -> 'v option))
 
+fun add_if_not xs x =
+  if member (op =) xs x then xs else cons x xs
+
 fun insert xs (key, value) = (*: ('k, 'v) map -> ('k * 'v) -> ('k, 'v) map =*)
-  ((cons key (fst xs)), fn x => (if x = key then SOME value else (snd xs) x))
+  (add_if_not (fst xs) key, fn x => (if x = key then SOME value else (snd xs) x))
 
 fun lookup xs key =
   (snd xs) key

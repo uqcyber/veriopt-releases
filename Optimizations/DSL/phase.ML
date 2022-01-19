@@ -22,6 +22,7 @@ type phase =
 type config = (binding * string)
 
 val current: theory -> phase option
+val phases: theory -> phase list
 val register: (binding * T) -> theory -> theory
 
 val enter: config -> theory -> Proof.context
@@ -92,6 +93,8 @@ fun current thy =
   in
     phase_by_name (state thy) phase
   end
+
+fun phases thy = Map.values (#store (state thy))
 
 fun expand_phase rule (phase: phase): phase =
   {name = (#name phase), trm = (#trm phase),

@@ -7,7 +7,8 @@ theory CanonicalizationSyntax
   keywords
     "phase" :: thy_decl and 
     "trm" :: quasi_command and
-    "optimization" :: thy_goal_defn
+    "optimization" :: thy_goal_defn and
+    "print_optimizations" :: diag
 begin
 
 
@@ -395,17 +396,17 @@ val _ =
    (Parse.binding --| Parse.$$$ "trm" -- Parse.const --| Parse.begin
      >> (fn (name, trm) => Toplevel.begin_main_target true (RewritePhase.setup (name, trm))));
 
-(*
+fun print_phase ctxt phase = RewritePhase.pretty phase ctxt
+
 fun apply_print_optimizations thy =
-  (print_all_phases thy |> Pretty.writeln_chunks)
+  (map (print_phase thy) (RewritePhase.phases (Proof_Context.theory_of thy)) |> Pretty.writeln_chunks)
 
 
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>print_optimizations\<close>
     "print debug information for optimizations"
     (Scan.succeed
-      (Toplevel.keep (apply_print_optimizations o Toplevel.theory_of)));
-*)
+      (Toplevel.keep (apply_print_optimizations o Toplevel.context_of)));
 \<close>
 
 fun bad_trm :: "IRExpr \<Rightarrow> nat" where
@@ -427,6 +428,8 @@ ML_val \<open>@{term "(case n of
       else
         fail |
     _ \<Rightarrow> fail)"}\<close>
+
+print_optimizations
 
 ML_val \<open>@{term "case_IRExpr"}
         $ @{term "(\<lambda> (_::IRUnaryOp) \<Rightarrow> \<lambda> (_::IRExpr) \<Rightarrow> fail)"}
@@ -462,6 +465,8 @@ begin
     unfolding bad_trm.simps sorry
 
   value "anon_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (ConstantExpr (IntVal32 0)))"
+
+print_optimizations
 end
 
 
@@ -498,7 +503,9 @@ print_context
 optimization constant_shift:
   "(c + e) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e) \<and> type e = Integer)"
    unfolding rewrite_obligation.simps apply (rule impI) defer apply simp
-  sorry
+   sorry
+
+print_context
 
 thm constant_shift
 

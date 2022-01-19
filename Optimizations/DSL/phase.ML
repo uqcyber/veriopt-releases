@@ -7,7 +7,7 @@ Organisation of rules into phases.
 signature Rule =
 sig
   type T
-  val pretty: T -> Pretty.T
+  val pretty: Proof.context -> T -> Pretty.T
 end
 
 signature DSL_PHASE =
@@ -144,7 +144,7 @@ fun pretty_phase (phase:phase) ctxt =
   Pretty.block 
     [Pretty.str "phase: ", Binding.pretty (#name phase), Pretty.fbrk,
      Pretty.str "trm: ", Syntax.pretty_term ctxt (#trm phase), Pretty.fbrk,
-     Pretty.big_list "rules:" (map Rule.pretty (Map.values (#rules phase)))]
+     Pretty.big_list "rules:" (map (Rule.pretty ctxt) (Map.values (#rules phase)))]
 
 fun pretty phase ctxt =
   pretty_phase phase ctxt

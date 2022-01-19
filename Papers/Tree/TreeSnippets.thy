@@ -62,7 +62,7 @@ text \<open>
 snipend -
 
 ML \<open>
-fun get_list (phase: phase option) =
+(*fun get_list (phase: phase option) =
   case phase of
     NONE => [] |
     SOME p => (#rewrites p)
@@ -88,14 +88,13 @@ fun rule_print name =
 *)
 
 val _ = Theory.setup
- (rule_print \<^binding>\<open>rule\<close>);
+ (rule_print \<^binding>\<open>rule\<close>);*)
 \<close>
 
-print_optimizations
 
-snipbegin \<open>OptimizationList\<close>
+(*snipbegin \<open>OptimizationList\<close>
 text \<open>@{rule BinaryFoldConstant}\<close>
-snipend -
+snipend -*)
 
 notation (latex)
   size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")

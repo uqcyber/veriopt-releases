@@ -106,7 +106,8 @@ snipbegin \<open>BinaryFoldConstant\<close>
 optimization BinaryFoldConstant: "BinaryExpr op c1 c2 \<mapsto> ConstantExpr (bin_eval op val_c1 val_c2) when int_and_equal_bits val_c1 val_c2 "
 snipend -
 
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def, rule impI)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
@@ -117,7 +118,8 @@ snipbegin \<open>AddShiftConstantRight\<close>
 optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when \<not>(is_ConstantExpr y)"
 snipend -
 
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def, rule impI)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddShiftConstantRightObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
@@ -128,7 +130,8 @@ snipbegin \<open>AddNeutral\<close>
 optimization AddNeutral: "(e + (const 0)) \<mapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
 snipend -
 
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def, rule impI)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddNeutralObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
@@ -139,7 +142,8 @@ snipbegin \<open>NeutralLeftSub\<close>
 optimization NeutralLeftSub: "(e\<^sub>1 - e\<^sub>2) + e\<^sub>2 \<mapsto> e\<^sub>1"
 snipend -
 
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>NeutralLeftSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
@@ -150,7 +154,8 @@ snipbegin \<open>NeutralRightSub\<close>
 optimization NeutralRightSub: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<mapsto> e\<^sub>1"
 snipend -
 
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>NeutralRightSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
@@ -161,8 +166,9 @@ snipbegin \<open>AddToSub\<close>
 optimization AddToSub: "-e + y \<mapsto> y - e"
 snipend -
 
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def)
 
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddToSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -

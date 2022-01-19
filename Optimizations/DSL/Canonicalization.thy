@@ -9,12 +9,6 @@ theory Canonicalization
     "optimization" :: thy_goal_defn
 begin
 
-fun rewrite_obligation :: "IRExpr Rewrite \<Rightarrow> bool" where
-  "rewrite_obligation (Transform x y) = (y \<le> x)" |
-  "rewrite_obligation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |
-  "rewrite_obligation (Sequential x y) = (rewrite_obligation x \<and> rewrite_obligation y)" |
-  "rewrite_obligation (Transitive x) = rewrite_obligation x"
-
 ML \<open>
 datatype 'a Rewrite =
   Transform of 'a * 'a |
@@ -22,8 +16,7 @@ datatype 'a Rewrite =
   Sequential of 'a Rewrite * 'a Rewrite |
   Transitive of 'a Rewrite
 
-type rewrite =
-  {name: string, rewrite: term Rewrite}
+type rewrite = {name: string, rewrite: term Rewrite}
 
 structure RewriteRule : Rule =
 struct
@@ -55,9 +48,9 @@ end
 structure RewritePhase = DSL_Phase(RewriteRule);
 
 val _ =
-  Outer_Syntax.command \<^command_keyword>\<open>phase\<close> "instantiate and prove type arity"
+  Outer_Syntax.command \<^command_keyword>\<open>phase\<close> "enter an optimization phase"
    (Parse.binding --| Parse.$$$ "trm" -- Parse.const --| Parse.begin
-     >> (fn (name, trm) => Toplevel.begin_main_target true (RewritePhase.setup (name, trm))));
+     >> (Toplevel.begin_main_target true o RewritePhase.setup));
 
 fun print_phases ctxt =
   let
@@ -67,24 +60,44 @@ fun print_phases ctxt =
     map print (RewritePhase.phases thy)
   end
 
-fun apply_print_optimizations thy =
+fun print_optimizations thy =
   print_phases thy |> Pretty.writeln_chunks
 
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>print_phases\<close>
     "print debug information for optimizations"
     (Scan.succeed
-      (Toplevel.keep (apply_print_optimizations o Toplevel.context_of)));
+      (Toplevel.keep (print_optimizations o Toplevel.context_of)));
 \<close>
 
 ML_file "rewrites.ML"
 
+fun rewrite_preservation :: "IRExpr Rewrite \<Rightarrow> bool" where
+  "rewrite_preservation (Transform x y) = (y \<le> x)" |
+  "rewrite_preservation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |
+  "rewrite_preservation (Sequential x y) = (rewrite_preservation x \<and> rewrite_preservation y)" |
+  "rewrite_preservation (Transitive x) = rewrite_preservation x"
+
+fun rewrite_termination :: "IRExpr Rewrite \<Rightarrow> (IRExpr \<Rightarrow> nat) \<Rightarrow> bool" where
+  "rewrite_termination (Transform x y) trm = (trm y < trm x)" |
+  "rewrite_termination (Conditional x y cond) trm = (cond \<longrightarrow> (trm y < trm x))" |
+  "rewrite_termination (Sequential x y) trm = (rewrite_termination x trm \<and> rewrite_termination y trm)" |
+  "rewrite_termination (Transitive x) trm = rewrite_termination x trm"
+
 ML \<open>
+structure System : RewriteSystem =
+struct
+val preservation = @{const rewrite_preservation};
+val termination = @{const rewrite_termination};
+end
+
+structure DSL = DSL_Rewrites(System);
+
 val _ =
   Outer_Syntax.local_theory_to_proof \<^command_keyword>\<open>optimization\<close>
     "define an optimization and open proof obligation"
     (Parse_Spec.thm_name ":" -- Parse.term
-        >> DSL_Rewrites.rewrite_cmd);
+        >> DSL.rewrite_cmd);
 \<close>
 
 end

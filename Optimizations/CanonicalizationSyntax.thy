@@ -142,8 +142,8 @@ lemma uminus_intstamp_prop:
 lemma assume_proof :
   assumes "type x = Integer"
   assumes "type_safe x y"
-  shows "rewrite_obligation ((x + (-y) \<mapsto> x - y))"
-  unfolding rewrite_obligation.simps 
+  shows "rewrite_preservation ((x + (-y) \<mapsto> x - y))"
+  unfolding rewrite_preservation.simps 
   unfolding le_expr_def apply (rule allI)+ apply (rule impI)
   using assms unfolding type_def type_safe_def 
   using CanonicalizeAddProof CanonicalizeAdd.intros
@@ -352,7 +352,7 @@ print_context
 
 optimization constant_shift:
   "(c + e) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e) \<and> type e = Integer)"
-   unfolding rewrite_obligation.simps apply (rule impI) defer apply simp
+   unfolding rewrite_preservation.simps apply (rule impI) defer apply simp
    sorry
 
 print_context

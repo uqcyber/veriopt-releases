@@ -4,6 +4,12 @@
 Generate proof obligation for expression rewrites.
 *)
 
+signature RewriteSystem =
+sig
+val preservation: term;
+val termination: term
+end
+
 signature DSL_REWRITES =
 sig
 val of_term: string -> term -> rewrite;
@@ -16,7 +22,7 @@ val rewrite_cmd: (binding * Token.src list) * string -> Proof.context -> Proof.s
 
 end
 
-structure DSL_Rewrites: DSL_REWRITES =
+functor DSL_Rewrites(System: RewriteSystem): DSL_REWRITES =
 struct
 fun of_term name term =
   case term of
@@ -36,20 +42,11 @@ fun to_term rewrite =
 
 fun preservation_of ctxt rewrite =
   Syntax.check_prop ctxt 
-    (@{const Trueprop} $ (@{const rewrite_obligation} $ (to_term rewrite)))
+    (@{const Trueprop} $ (System.preservation $ (to_term rewrite)))
 
-fun termination_of' _ trm rewrite =
-  case (#rewrite rewrite) of
-    Transform (lhs, rhs) => (
-      @{const Trueprop} 
-      $ (Const ("Orderings.ord_class.less", @{typ "nat \<Rightarrow> nat \<Rightarrow> bool"})
-      $ (trm $ rhs) $ (trm $ lhs)))
-    | Conditional (lhs, rhs, condition) => (
-      Const ("Pure.imp", @{typ "prop \<Rightarrow> prop \<Rightarrow> prop"})
-      $ (@{const Trueprop} $ condition)
-      $ (@{const Trueprop} $ (Const ("Orderings.ord_class.less", @{typ "nat \<Rightarrow> nat \<Rightarrow> bool"})
-      $ (trm $ rhs) $ (trm $ lhs))))
-    | _ => raise TERM ("rewrite termination generation not implemented", [])
+fun termination_of' ctxt trm rewrite =
+  Syntax.check_prop ctxt 
+    (@{const Trueprop} $ (System.termination $ (to_term rewrite) $ trm))
 
 fun termination_of ctxt rewrite =
   let
@@ -69,8 +66,7 @@ fun code_of _ rewrite =
   $ @{term \<open>\<lambda> (x::IRExpr) \<Rightarrow> (None::IRExpr option)\<close>}))
 
 
-fun rewrite_cmd
-  ((bind: binding, _), opt: string) ctxt = 
+fun rewrite_cmd ((bind, _), opt) ctxt = 
   let
     val name = Binding.name_of bind;
 
@@ -92,7 +88,7 @@ fun rewrite_cmd
             ((Binding.suffix_name "_code" bind, []), code)
             lthy'
       in
-        snd (Local_Theory.note ((bind, ([]:Token.src list)), hd thms) lthy'')
+        snd (Local_Theory.note ((bind, []), hd thms) lthy'')
       end
   in
     Proof.theorem NONE after_qed 

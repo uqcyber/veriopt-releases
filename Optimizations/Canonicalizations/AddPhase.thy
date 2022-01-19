@@ -19,27 +19,36 @@ phase SnipPhase
 begin
 
 optimization BinaryFoldConstant: "BinaryExpr op c1 c2 \<mapsto> ConstantExpr (bin_eval op val_c1 val_c2)"
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   sorry
 
+thm BinaryFoldConstant(1)
+thm BinaryFoldConstant(2)
+thm BinaryFoldConstant
+
 optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when \<not>(is_ConstantExpr y)"
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def, rule impI)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+  apply (rule conjE, simp, simp del: le_expr_def, rule impI)
   sorry
 
 optimization AddNeutral: "(e + (const 0)) \<mapsto> e"
-  unfolding rewrite_obligation.simps
+  unfolding rewrite_preservation.simps
   sorry
 
 optimization NeutralLeftSub: "(e\<^sub>1 - e\<^sub>2) + e\<^sub>2 \<mapsto> e\<^sub>1"
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   sorry
 
 optimization NeutralRightSub: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<mapsto> e\<^sub>1"
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   sorry
 
 optimization AddToSub: "-e + y \<mapsto> y - e"
-  unfolding rewrite_obligation.simps apply (rule conjE, simp, simp del: le_expr_def)
+  unfolding rewrite_preservation.simps rewrite_termination.simps
+   apply (rule conjE, simp, simp del: le_expr_def)
   sorry
 
 print_context

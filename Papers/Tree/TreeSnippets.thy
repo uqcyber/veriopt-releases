@@ -15,10 +15,10 @@ notation (latex)
   valid_value ("_ \<in> _")
 
 notation (latex)
-  val_to_bool ("bool-of _")
+  val_to_bool ("\<^latex>\<open>bool-of\<close> _")
 
 notation (latex)
-  constantAsStamp ("stamp-from-value _")
+  constantAsStamp ("\<^latex>\<open>stamp-from-value\<close> _")
 
 snipbegin \<open>ast-example\<close>
 text "@{value[display,margin=25] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"

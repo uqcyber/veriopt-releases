@@ -10,17 +10,16 @@ begin
 
 text \<open>
 In order to properly implement the IR semantics we first introduce
-a new type of runtime values. Our evaluation semantics are defined
-in terms of these runtime values.
+a type that represents runtime values.
 These runtime values represent the full range of primitive types
 currently allowed by our semantics, ranging from basic integer types
-to object references and eventually arrays.
+to object references and arrays.
 
 Note that Java supports 64, 32, 16, 8 signed ints, plus 1 bit (boolean)
 ints, but during calculations the smaller sizes are expanded to 32 bits,
 so here we model just 32 and 64 bit values.
 
-An object reference is an option type where the None object reference
+An object reference is an option type where the @{term None} object reference
 points to the static fields. This is examined more closely in our
 definition of the heap.
 \<close>
@@ -33,7 +32,7 @@ type_synonym int1 = "1 word" \<comment> \<open>boolean\<close>
 
 type_synonym objref = "nat option"
 
-datatype Value  =
+datatype (discs_sels) Value  =
   UndefVal |
   IntVal32 int32 |  (* includes boolean *)
   IntVal64 int64 |
@@ -48,10 +47,11 @@ fun wf_bool :: "Value \<Rightarrow> bool" where
 
 fun val_to_bool :: "Value \<Rightarrow> bool" where
   "val_to_bool (IntVal32 val) = (if val = 0 then False else True)" |
+  "val_to_bool (IntVal64 val) = (if val = 0 then False else True)" |
   "val_to_bool v = False"
 
 fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal32  1)" |
+  "bool_to_val True = (IntVal32 1)" |
   "bool_to_val False = (IntVal32 0)"
 
 value "sint(word_of_int (1) :: int1)"
@@ -216,6 +216,15 @@ fun intval_abs :: "Value \<Rightarrow> Value" where
   "intval_abs (IntVal32 v) = (if (v) <s 0 then (IntVal32 (- v)) else (IntVal32 v))" |
   "intval_abs (IntVal64 v) = (if (v) <s 0 then (IntVal64 (- v)) else (IntVal64 v))" |
   "intval_abs _ = UndefVal"
+
+fun intval_conditional :: "Value \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_conditional cond tv fv = (if (val_to_bool cond) then tv else fv)"
+
+fun intval_logic_negation :: "Value \<Rightarrow> Value" where
+  "intval_logic_negation (IntVal32 v) = (if v = 0 then (IntVal32 1) else (IntVal32 0))" |
+  "intval_logic_negation (IntVal64 v) = (if v = 0 then (IntVal64 1) else (IntVal64 0))" |
+  "intval_logic_negation _ = UndefVal"
+  
 
 (*
 lemma [code]: "shiftl1 n = n * 2"

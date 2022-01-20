@@ -23,7 +23,9 @@ fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.Mul = @{term BinaryExpr} $ @{term BinMul}
   | markup DSL_Tokens.And = @{term BinaryExpr} $ @{term BinAnd}
   | markup DSL_Tokens.Abs = @{term UnaryExpr} $ @{term UnaryAbs}
+  | markup DSL_Tokens.Less = @{term BinaryExpr} $ @{term BinIntegerLessThan}
   | markup DSL_Tokens.Equals = @{term BinaryExpr} $ @{term BinIntegerEquals}
+  | markup DSL_Tokens.Not = @{term UnaryExpr} $ @{term UnaryLogicNegation}
   | markup DSL_Tokens.Negate = @{term UnaryExpr} $ @{term UnaryNeg}
   | markup DSL_Tokens.LeftShift = @{term BinaryExpr} $ @{term BinLeftShift}
   | markup DSL_Tokens.RightShift = @{term BinaryExpr} $ @{term BinRightShift}
@@ -39,12 +41,14 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.Mul = @{term intval_mul}
   | markup DSL_Tokens.And = @{term intval_and}
   | markup DSL_Tokens.Abs = @{term intval_abs}
+  | markup DSL_Tokens.Less = @{term intval_less_than}
   | markup DSL_Tokens.Equals = @{term intval_equals}
+  | markup DSL_Tokens.Not = @{term intval_logic_negation}
   | markup DSL_Tokens.Negate = @{term intval_negate}
   | markup DSL_Tokens.LeftShift = @{term intval_left_shift}
   | markup DSL_Tokens.RightShift = @{term intval_right_shift}
   | markup DSL_Tokens.UnsignedRightShift = @{term intval_uright_shift}
-  | markup DSL_Tokens.Conditional = raise ERROR "Conditional not supported for intval"
+  | markup DSL_Tokens.Conditional = @{term intval_conditional}
   | markup DSL_Tokens.Constant = @{term IntVal32}
 end
 

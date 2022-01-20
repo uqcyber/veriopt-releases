@@ -145,9 +145,8 @@ fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
   "valid_value (IntegerStamp b l h) (IntVal32 v) = (b=32 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
   "valid_value (IntegerStamp b l h) (IntVal64 v) = (b=64 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
-  "valid_value (VoidStamp) (UndefVal) = True" |
-  "valid_value (ObjectStamp klass exact nonNull alwaysNull) (ObjRef ref) =
-     (if nonNull then ref\<noteq>None else True)" |
+  "valid_value (VoidStamp) (UndefVal) = False" |
+  "valid_value (ObjectStamp klass exact nonNull alwaysNull) (ObjRef ref) = False" |
   "valid_value stamp val = False"
 (* TODO: add the other stamps:
   | KlassPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)

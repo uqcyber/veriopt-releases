@@ -104,7 +104,7 @@ fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_eval UnaryAbs v = intval_abs v" |
   "unary_eval UnaryNeg v = intval_negate v" |
   "unary_eval UnaryNot v = intval_not v" |
-  "unary_eval UnaryLogicNegation (IntVal32 v1) = (if v1 = 0 then (IntVal32 1) else (IntVal32 0))" |
+  "unary_eval UnaryLogicNegation v = intval_logic_negation v" |
   "unary_eval op v1 = UndefVal"
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where

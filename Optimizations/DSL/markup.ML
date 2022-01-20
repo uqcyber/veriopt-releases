@@ -12,8 +12,10 @@ datatype Tokens =
   Sub |
   Mul |
   And |
+  Less |
   Abs |
   Equals |
+  Not |
   Negate |
   LeftShift |
   RightShift |
@@ -71,6 +73,10 @@ fun markup_constant (str, typ) =
     | ("HOL.conj", _) => Translator.markup DSL_Tokens.And
     | ("\<^const>Groups.uminus_class.uminus", _) => Translator.markup DSL_Tokens.Negate
     | ("Groups.uminus_class.uminus", _) => Translator.markup DSL_Tokens.Negate
+    | ("\<^const>HOL.Not", _) => Translator.markup DSL_Tokens.Not
+    | ("HOL.Not", _) => Translator.markup DSL_Tokens.Not
+    | ("\<^const>Orderings.ord_class.less", _) => Translator.markup DSL_Tokens.Less
+    | ("Orderings.ord_class.less", _) => Translator.markup DSL_Tokens.Less
     | ("\<^const>Groups.abs_class.abs", _) => Translator.markup DSL_Tokens.Abs
     | ("Groups.abs_class.abs", _) => Translator.markup DSL_Tokens.Abs
     | ("\<^const>Values.shiftl", _) => Translator.markup DSL_Tokens.LeftShift

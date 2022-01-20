@@ -218,6 +218,8 @@ text \<open>We define a refinement ordering over IRExpr and show that it is a pr
 \<close>
 instantiation IRExpr :: preorder begin
 
+notation less_eq (infix "\<sqsubseteq>" 65)
+
 definition
   le_expr_def [simp]:
     "(e\<^sub>2 \<le> e\<^sub>1) \<longleftrightarrow> (\<forall> m p v. (([m,p] \<turnstile> e\<^sub>1 \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> e\<^sub>2 \<mapsto> v)))"

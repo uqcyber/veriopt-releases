@@ -284,31 +284,31 @@ lemma graphDet: "([g,m,p] \<turnstile> nid \<mapsto> v1) \<and> ([g,m,p] \<turns
 
 text \<open>A valid value cannot be $UndefVal$.\<close>
 lemma valid_not_undef:
-  assumes a1: "valid_value s val"
+  assumes a1: "valid_value val s"
   assumes a2: "s \<noteq> VoidStamp"
   shows "val \<noteq> UndefVal"
-  apply (rule valid_value.elims(1)[of s val True])
+  apply (rule valid_value.elims(1)[of val s True])
   using a1 a2 by auto
 
 (* Elimination rules for valid_value, for each kind of stamp. *)
 lemma valid_VoidStamp[elim]:
-  shows "valid_value VoidStamp val \<Longrightarrow>
+  shows "valid_value val VoidStamp \<Longrightarrow>
       val = UndefVal"
-  using valid_value.simps by (metis val_to_bool.cases)
+  using valid_value.simps by metis
 
 lemma valid_ObjStamp[elim]:
-  shows "valid_value (ObjectStamp klass exact nonNull alwaysNull) val \<Longrightarrow>
+  shows "valid_value val (ObjectStamp klass exact nonNull alwaysNull) \<Longrightarrow>
       (\<exists>v. val = ObjRef v)"
   using valid_value.simps by (metis val_to_bool.cases)
 
 lemma valid_int32[elim]:
-  shows "valid_value (IntegerStamp 32 l h) val \<Longrightarrow>
+  shows "valid_value val (IntegerStamp 32 l h) \<Longrightarrow>
       (\<exists>v. val = IntVal32 v)"
   apply (rule val_to_bool.cases[of val])
   using Value.distinct by simp+
                     
 lemma valid_int64[elim]:
-  shows "valid_value (IntegerStamp 64 l h) val \<Longrightarrow>
+  shows "valid_value val (IntegerStamp 64 l h) \<Longrightarrow>
       (\<exists>v. val = IntVal64 v)"
   apply (rule val_to_bool.cases[of val])
   using Value.distinct by simp+
@@ -333,7 +333,7 @@ lemma leafint32:
   shows "\<exists>v. val = (IntVal32 v)"
 (* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
 proof - 
-  have "valid_value (IntegerStamp 32 lo hi) val"
+  have "valid_value val (IntegerStamp 32 lo hi)"
     using ev by (rule LeafExprE; simp)
   then show ?thesis by auto
 qed
@@ -344,7 +344,7 @@ lemma leafint64:
   shows "\<exists>v. val = (IntVal64 v)"
 (* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
 proof -
-  have "valid_value (IntegerStamp 64 lo hi) val"
+  have "valid_value val (IntegerStamp 64 lo hi)"
     using ev by (rule LeafExprE; simp)
   then show ?thesis by auto
 qed
@@ -353,19 +353,19 @@ lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (-2147483648) 21474
   using default_stamp_def by auto
 
 lemma valid32 [simp]:
-  assumes "valid_value (IntegerStamp 32 lo hi) val"
+  assumes "valid_value val (IntegerStamp 32 lo hi)"
   shows "\<exists>v. (val = (IntVal32 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
   using assms valid_int32 by force 
 
 lemma valid64 [simp]:
-  assumes "valid_value (IntegerStamp 64 lo hi) val"
+  assumes "valid_value val (IntegerStamp 64 lo hi)"
   shows "\<exists>v. (val = (IntVal64 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
   using assms valid_int64 by force
 
 experiment begin
 lemma int_stamp_implies_valid_value:
   "[m,p] \<turnstile> expr \<mapsto> val \<Longrightarrow>
-   valid_value (stamp_expr expr) val"
+   valid_value val (stamp_expr expr)"
 proof (induction rule: evaltree.induct)
   case (ConstantExpr c)
   then show ?case sorry
@@ -388,13 +388,13 @@ qed
 end
 
 lemma valid32or64:
-  assumes "valid_value (IntegerStamp b lo hi) x"
+  assumes "valid_value x (IntegerStamp b lo hi)"
   shows "(\<exists> v1. (x = IntVal32 v1)) \<or> (\<exists> v2. (x = IntVal64 v2))"
   using valid32 valid64 assms valid_value.elims(2) by blast
 
 lemma valid32or64_both:
-  assumes "valid_value (IntegerStamp b lox hix) x"
-  and "valid_value (IntegerStamp b loy hiy) y"
+  assumes "valid_value x (IntegerStamp b lox hix)"
+  and "valid_value y (IntegerStamp b loy hiy)"
   shows "(\<exists> v1 v2. x = IntVal32 v1 \<and> y = IntVal32 v2) \<or> (\<exists> v3 v4. x = IntVal64 v3 \<and> y = IntVal64 v4)"
   using assms valid32or64 valid32 valid_value.elims(2) valid_value.simps(1) by metis
 
@@ -403,7 +403,7 @@ subsection \<open>Example Data-flow Optimisations\<close>
 
 (* An example refinement: a + 0 = a *)
 lemma a0a_helper [simp]:
-  assumes a: "valid_value (IntegerStamp 32 lo hi) v"
+  assumes a: "valid_value v (IntegerStamp 32 lo hi)"
   shows "intval_add v (IntVal32 0) = v"
 proof -
   obtain v32 :: int32 where "v = (IntVal32 v32)" using a valid32 by blast
@@ -417,8 +417,8 @@ lemma a0a: "(BinaryExpr BinAdd (LeafExpr 1 default_stamp) (ConstantExpr (IntVal3
 
 (* Another example refinement: x + (y - x) \<ge> y *)
 lemma xyx_y_helper [simp]:
-  assumes "valid_value (IntegerStamp 32 lox hix) x"
-  assumes "valid_value (IntegerStamp 32 loy hiy) y"
+  assumes "valid_value x (IntegerStamp 32 lox hix)"
+  assumes "valid_value y (IntegerStamp 32 loy hiy)"
   shows "intval_add x (intval_sub y x) = y"
 proof -
   obtain x32 :: int32 where x: "x = (IntVal32 x32)" using assms valid32 by blast

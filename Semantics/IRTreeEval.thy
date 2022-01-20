@@ -133,11 +133,11 @@ inductive
   for m p where
 
   ConstantExpr:
-  "\<lbrakk>valid_value (constantAsStamp c) c\<rbrakk>
+  "\<lbrakk>valid_value c (constantAsStamp c)\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ConstantExpr c) \<mapsto> c" |
 
   ParameterExpr:
-  "\<lbrakk>i < length p; valid_value s (p!i)\<rbrakk>
+  "\<lbrakk>i < length p; valid_value (p!i) s\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ParameterExpr i s) \<mapsto> p!i" |
 
   ConditionalExpr:
@@ -162,7 +162,7 @@ inductive
 
   LeafExpr:
   "\<lbrakk>val = m n;
-    valid_value s val\<rbrakk>
+    valid_value val s\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> LeafExpr n s \<mapsto> val"
 
 text_raw \<open>\Snip{evalRules}%

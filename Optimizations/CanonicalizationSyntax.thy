@@ -399,13 +399,13 @@ optimization AbsNegate: "abs(-e) \<mapsto> abs(e) when is_IntegerStamp (stamp_ex
 
 lemma int_constants_valid:
   assumes "is_int_val val"  
-  shows "valid_value (constantAsStamp val) val"
+  shows "valid_value val (constantAsStamp val)"
   using assms apply (cases val)
   by simp+
 
 lemma unary_eval_preserves_validity:
   assumes "is_int_val c"
-  shows "valid_value (constantAsStamp (unary_eval op c)) (unary_eval op c)"
+  shows "valid_value (unary_eval op c) (constantAsStamp (unary_eval op c))"
   using assms apply (cases c) apply simp
      defer defer apply simp+
   apply (cases op)
@@ -441,7 +441,7 @@ optimization AndLeftFallthrough: "x & y \<mapsto> x when (canBeZero y.stamp & ca
 *)
 
 lemma neutral_and:
-  assumes "valid_value (IntegerStamp 32 lox hix) x"
+  assumes "valid_value x (IntegerStamp 32 lox hix)"
   shows "bin_eval BinAnd x (IntVal32 (-1)) = x"
   using assms bin_eval.simps(4) by (cases x; auto)
 
@@ -475,7 +475,7 @@ lemma bool_is_int_val:
 
 lemma bin_eval_preserves_validity:
   assumes "int_and_equal_bits c1 c2"
-  shows "valid_value (constantAsStamp (bin_eval op c1 c2)) (bin_eval op c1 c2)"
+  shows "valid_value (bin_eval op c1 c2) (constantAsStamp (bin_eval op c1 c2))"
   using assms apply (cases c1; cases c2; auto)
      apply (cases op; auto) 
   using int_constants_valid bool_is_int_val
@@ -508,7 +508,7 @@ optimization RedundantSubAdd: "isAssociative + => (a - b) + b \<mapsto> a" sorry
 optimization RedundantAddSub: "isAssociative + => (b + a) - b \<mapsto> a" sorry
 *)
 lemma neutral_add:
-  assumes "valid_value (IntegerStamp 32 lox hix) x"
+  assumes "valid_value x (IntegerStamp 32 lox hix)"
   shows "bin_eval BinAdd x (IntVal32 (0)) = x"
   using assms bin_eval.simps(4) by (cases x; auto)
 

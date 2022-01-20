@@ -141,12 +141,11 @@ fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
   "constantAsStamp _ = IllegalStamp"
 
 \<comment> \<open>Define when a runtime value is valid for a stamp\<close>
-fun valid_value :: "Stamp \<Rightarrow> Value \<Rightarrow> bool" where
-  "valid_value (IntegerStamp b l h) (IntVal32 v) = (b=32 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
-  "valid_value (IntegerStamp b l h) (IntVal64 v) = (b=64 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
+fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "valid_value (IntVal32 v) (IntegerStamp b l h) = (b=32 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
+  "valid_value (IntVal64 v) (IntegerStamp b l h) = (b=64 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
-  "valid_value (VoidStamp) (UndefVal) = False" |
-  "valid_value (ObjectStamp klass exact nonNull alwaysNull) (ObjRef ref) = False" |
+  "valid_value (ObjRef ref) (ObjectStamp klass exact nonNull alwaysNull) = False" |
   "valid_value stamp val = False"
 (* TODO: add the other stamps:
   | KlassPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)

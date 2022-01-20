@@ -8,42 +8,42 @@ theory CanonicalizationTreeProofs
 begin
 
 lemma neutral_rewrite_helper:
-  shows "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_mul x (IntVal32 (1)) = x"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_mul x (IntVal64 (1)) = x"
+  shows "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_mul x (IntVal32 (1)) = x"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_mul x (IntVal64 (1)) = x"
 
-  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_add x (IntVal32 (0)) = x"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_add x (IntVal64 (0)) = x"
+  and   "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_add x (IntVal32 (0)) = x"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_add x (IntVal64 (0)) = x"
 
-  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_sub x (IntVal32 (0)) = x"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_sub x (IntVal64 (0)) = x"
+  and   "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_sub x (IntVal32 (0)) = x"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_sub x (IntVal64 (0)) = x"
 
-  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_xor x (IntVal32 (0)) = x"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_xor x (IntVal64 (0)) = x"
+  and   "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_xor x (IntVal32 (0)) = x"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_xor x (IntVal64 (0)) = x"
 
-  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_or x (IntVal32 (0)) = x"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x (IntVal64 (0)) = x"
+  and   "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_or x (IntVal32 (0)) = x"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_or x (IntVal64 (0)) = x"
   using valid32or64_both by fastforce+
 
 lemma annihilator_rewrite_helper:
-  shows "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_mul x (IntVal32 0) = IntVal32 0"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_mul x (IntVal64 0) = IntVal64 0"
+  shows "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_mul x (IntVal32 0) = IntVal32 0"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_mul x (IntVal64 0) = IntVal64 0"
 
-  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_and x (IntVal32 0) = IntVal32 0"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_and x (IntVal64 0) = IntVal64 0"
+  and   "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_and x (IntVal32 0) = IntVal32 0"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_and x (IntVal64 0) = IntVal64 0"
 
-  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_or x (IntVal32 (-1)) = IntVal32 (-1)"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x (IntVal64 (-1)) = IntVal64 (-1)"
+  and   "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_or x (IntVal32 (-1)) = IntVal32 (-1)"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_or x (IntVal64 (-1)) = IntVal64 (-1)"
   using valid32or64_both
   apply auto
   apply (metis intval_mul.simps(1) mult_zero_right valid32)
   by fastforce+
 
 lemma idempotent_rewrite_helper:
-  shows "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_and x x = x"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_and x x = x"
+  shows "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_and x x = x"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_and x x = x"
 
-  and   "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_or x x = x"
-  and   "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_or x x = x"
+  and   "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_or x x = x"
+  and   "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_or x x = x"
   using valid32or64_both
   apply auto 
   by fastforce+
@@ -109,12 +109,12 @@ lemma bit_bounds_max64: "((snd (bit_bounds 64))) \<ge> (sint (v::int64))"
   by auto
 
 lemma unrestricted_32bit_always_valid:
-  "valid_value (unrestricted_stamp (IntegerStamp 32 lo hi)) (IntVal32 v)"
+  "valid_value (IntVal32 v) (unrestricted_stamp (IntegerStamp 32 lo hi))"
   using valid_value.simps(1) bit_bounds_min32 bit_bounds_max32
   using unrestricted_stamp.simps(2) by presburger
 
 lemma unrestricted_64bit_always_valid:
-  "valid_value (unrestricted_stamp (IntegerStamp 64 lo hi)) (IntVal64 v)"
+  "valid_value (IntVal64 v) (unrestricted_stamp (IntegerStamp 64 lo hi))"
   using valid_value.simps(2) bit_bounds_min64 bit_bounds_max64
   using unrestricted_stamp.simps(2) by presburger
 
@@ -128,8 +128,8 @@ lemma unary_eval_implies_valud_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
   assumes "result \<noteq> UndefVal"
-  assumes "valid_value (stamp_expr expr) val"
-  shows "valid_value (stamp_expr (UnaryExpr op expr)) result"
+  assumes "valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
   have is_IntVal: "\<exists> x y. result = IntVal32 x \<or> result = IntVal64 y"
     using assms(2,3) apply (cases op; auto; cases val; auto)
@@ -165,8 +165,8 @@ lemma binary_obj: "v1 = ObjRef x \<or> v2 = ObjRef y \<Longrightarrow> bin_eval 
 lemma binary_eval_bits_equal:
   assumes "result = bin_eval op val1 val2"
   assumes "result \<noteq> UndefVal"
-  assumes "valid_value (IntegerStamp b1 lo1 hi1) val1"
-  assumes "valid_value (IntegerStamp b2 lo2 hi2) val2"
+  assumes "valid_value val1 (IntegerStamp b1 lo1 hi1)"
+  assumes "valid_value val2 (IntegerStamp b2 lo2 hi2)"
   shows "b1 = b2"
   using assms 
   by (cases op; cases val1; cases val2; auto) (*slow*)
@@ -184,9 +184,9 @@ lemma binary_eval_implies_valud_value:
   assumes "[m,p] \<turnstile> expr2 \<mapsto> val2"
   assumes "result = bin_eval op val1 val2"
   assumes "result \<noteq> UndefVal"
-  assumes "valid_value (stamp_expr expr1) val1"
-  assumes "valid_value (stamp_expr expr2) val2"
-  shows "valid_value (stamp_expr (BinaryExpr op expr1 expr2)) result"
+  assumes "valid_value val1 (stamp_expr expr1)"
+  assumes "valid_value val2 (stamp_expr expr2)"
+  shows "valid_value result (stamp_expr (BinaryExpr op expr1 expr2))"
 proof -
   have is_IntVal: "\<exists> x y. result = IntVal32 x \<or> result = IntVal64 y"
     using assms(1,2,3,4) apply (cases op; auto; cases val1; auto; cases val2; auto)
@@ -242,9 +242,9 @@ proof -
 qed
 
 lemma stamp_meet_is_valid:
-  assumes "valid_value stamp1 val \<or> valid_value stamp2 val"
+  assumes "valid_value val stamp1 \<or> valid_value val stamp2"
   assumes "meet stamp1 stamp2 \<noteq> IllegalStamp"
-  shows "valid_value (meet stamp1 stamp2) val"
+  shows "valid_value val (meet stamp1 stamp2)"
   using assms proof (cases stamp1)
   case VoidStamp
   then show ?thesis
@@ -294,16 +294,16 @@ next
   qed
 next
   case (KlassPointerStamp x31 x32)
-  then show ?thesis using assms
-    by (metis meet.simps(13) meet.simps(14) meet.simps(65) meet.simps(67) unrestricted_stamp.cases valid_value.simps(10) valid_value.simps(11) valid_value.simps(16) valid_value.simps(9))
+  then show ?thesis using assms valid_value.elims(2)
+    by (metis meet.simps(14) valid_value.simps(21))
 next
   case (MethodCountersPointerStamp x41 x42)
-  then show ?thesis using assms
-    by (metis meet.simps(20) meet.simps(21) meet.simps(24) meet.simps(67) unrestricted_stamp.cases valid_value.simps(10) valid_value.simps(11) valid_value.simps(16) valid_value.simps(9))
+  then show ?thesis using assms valid_value.elims(2)
+    by (metis meet.simps(39) valid_value.simps(22))
 next
   case (MethodPointersStamp x51 x52)
-then show ?thesis using assms
-  by (smt (z3) is_stamp_empty.elims(1) meet.simps(27) meet.simps(28) meet.simps(65) meet.simps(67) valid_value.simps(10) valid_value.simps(11) valid_value.simps(16) valid_value.simps(9))
+then show ?thesis using assms valid_value.elims(2)
+  by (metis meet.simps(40) valid_value.simps(23))
 next
   case (ObjectStamp x61 x62 x63 x64)
   then show ?thesis using assms
@@ -324,20 +324,20 @@ lemma conditional_eval_implies_valud_value:
   assumes "expr = (if val_to_bool condv then expr1 else expr2)"
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "val \<noteq> UndefVal"
-  assumes "valid_value (stamp_expr cond) condv"
-  assumes "valid_value (stamp_expr expr) val"
-  shows "valid_value (stamp_expr (ConditionalExpr cond expr1 expr2)) val"
+  assumes "valid_value condv (stamp_expr cond)"
+  assumes "valid_value val (stamp_expr expr)"
+  shows "valid_value val (stamp_expr (ConditionalExpr cond expr1 expr2))"
 proof -
   have "meet (stamp_expr expr1) (stamp_expr expr2) \<noteq> IllegalStamp"
     using assms apply (cases "stamp_expr expr"; auto)
-    using valid_VoidStamp apply blast sorry
+    using valid_VoidStamp sorry
   then show ?thesis using stamp_meet_is_valid using stamp_expr.simps(6)
     using assms(2) assms(6) by presburger
 qed
 
 lemma stamp_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
-  shows "valid_value (stamp_expr expr) val"
+  shows "valid_value val (stamp_expr expr)"
   using assms proof (induction expr val)
 case (UnaryExpr expr val result op)
   then show ?case using unary_eval_implies_valud_value by simp
@@ -422,8 +422,8 @@ proof (induct rule: CanonicalizeUnaryOp.induct)
 qed
 
 lemma mul_rewrite_helper:
-  shows "valid_value (IntegerStamp 32 lo hi) x \<Longrightarrow> intval_mul x (IntVal32 (-1)) = intval_negate x" 
-  and "valid_value (IntegerStamp 64 lo hi) x \<Longrightarrow> intval_mul x (IntVal64 (-1)) = intval_negate x" 
+  shows "valid_value x (IntegerStamp 32 lo hi) \<Longrightarrow> intval_mul x (IntVal32 (-1)) = intval_negate x" 
+  and "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_mul x (IntVal64 (-1)) = intval_negate x" 
   using valid32or64_both  by fastforce+ 
 
 lemma CanonicalizeMulProof:
@@ -451,8 +451,8 @@ qed
 (* (-x + y) \<Rightarrow> (y - x) *)
 (* (x + (-y)) \<Rightarrow> (x - y) *)
 lemma add_rewrites_helper:
-  assumes "valid_value (IntegerStamp b lox hix) x"
-  and     "valid_value (IntegerStamp b loy hiy) y"
+  assumes "valid_value x (IntegerStamp b lox hix)"
+  and     "valid_value y (IntegerStamp b loy hiy)"
 
   shows "intval_add (intval_sub x y) y = x"
   and   "intval_add x (intval_sub y x) = y"
@@ -496,8 +496,8 @@ qed
 (* x - (x - y) \<Rightarrow> y *)
 (* x - (-y) \<Rightarrow> x + y *)
 lemma sub_rewrites_helper:
-  assumes "valid_value (IntegerStamp b lox hix) x"
-  and     "valid_value (IntegerStamp b loy hiy) y"
+  assumes "valid_value x (IntegerStamp b lox hix)"
+  and     "valid_value y (IntegerStamp b loy hiy)"
 
   shows "intval_sub (intval_add x y) y  = x"
   and   "intval_sub (intval_add x y) x  = y" 
@@ -511,7 +511,7 @@ lemma sub_rewrites_helper:
 (* x - x \<Rightarrow> 0 *)
 (* 0 - x \<Rightarrow> -x *)
 lemma sub_single_rewrites_helper:
-  assumes "valid_value (IntegerStamp b lox hix) x"
+  assumes "valid_value x (IntegerStamp b lox hix)"
   shows   "b = 32 \<Longrightarrow> intval_sub x x = IntVal32 0" 
   and     "b = 64 \<Longrightarrow> intval_sub x x = IntVal64 0"
   and     "b = 32 \<Longrightarrow> intval_sub (IntVal32 0) x = intval_negate x" 
@@ -587,13 +587,13 @@ qed
 
 (* -(x-y) = (x-y) *)
 lemma negate_xsuby_helper:
-  assumes "valid_value (IntegerStamp b lox hix) x"
-  and "valid_value (IntegerStamp b loy hiy) y"
+  assumes "valid_value x (IntegerStamp b lox hix)"
+  and "valid_value y (IntegerStamp b loy hiy)"
   shows "intval_negate (intval_sub x y) = intval_sub y x"
   using valid32or64_both assms by fastforce
 (* -(-x) = x *)
 lemma negate_negate_helper:
-  assumes "valid_value (IntegerStamp b lox hix) x"
+  assumes "valid_value x (IntegerStamp b lox hix)"
   shows "intval_negate (intval_negate x) = x" 
   using valid32or64 assms by fastforce
 
@@ -636,13 +636,13 @@ lemma abs_rewrite_helper:
 *)
 
 lemma abs_abs_is_abs:
-  assumes "valid_value (IntegerStamp b lox hix) x"
+  assumes "valid_value x (IntegerStamp b lox hix)"
   shows "intval_abs (intval_abs x) = intval_abs x"
   using word_helper
   by (metis assms intval_abs.simps(1) intval_abs.simps(2) valid32or64_both) 
 
 lemma abs_neg_is_neg:
-  assumes "valid_value (IntegerStamp b lox hix) x"
+  assumes "valid_value x (IntegerStamp b lox hix)"
   shows "intval_abs (intval_negate x) = intval_abs x"
   apply (case_tac[!] "x")
   using word_helper apply auto+
@@ -685,7 +685,7 @@ qed
 *)
 (* ~(~x) = x *)
 lemma not_rewrite_helper:
-  assumes "valid_value (IntegerStamp b lox hix) x"
+  assumes "valid_value x (IntegerStamp b lox hix)"
   shows "intval_not (intval_not x) = x"
   using valid32or64 assms by fastforce+
 
@@ -703,8 +703,8 @@ proof (induct rule: CanonicalizeNot.induct)
 qed
 
 lemma demorgans_rewrites_helper:
-  assumes "valid_value (IntegerStamp b lox hix) x"
-  and     "valid_value (IntegerStamp b loy hiy) y"
+  assumes "valid_value x (IntegerStamp b lox hix)"
+  and     "valid_value y (IntegerStamp b loy hiy)"
 
   shows "intval_and (intval_not x) (intval_not y) = intval_not (intval_or x y)"
   and   "intval_or (intval_not x) (intval_not y) = intval_not (intval_and x y)"
@@ -749,8 +749,8 @@ next
 qed
 
 lemma stamps_touch_but_not_less_than_implies_equal:
-  "\<lbrakk>valid_value stampx x;
-    valid_value stampy y;
+  "\<lbrakk>valid_value x stampx;
+    valid_value y stampy;
     is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
     stpi_upper stampx = stpi_lower stampy;
     \<not> val_to_bool (intval_less_than x y)\<rbrakk> \<Longrightarrow> x = y" 
@@ -758,8 +758,8 @@ lemma stamps_touch_but_not_less_than_implies_equal:
   sorry
 
 lemma disjoint_stamp_implies_less_than:
-  "\<lbrakk>valid_value stampx x;
-    valid_value stampy y;
+  "\<lbrakk>valid_value x stampx;
+    valid_value y stampy;
     is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
     stpi_upper stampx < stpi_lower stampy\<rbrakk> 
   \<Longrightarrow> val_to_bool(intval_less_than x y)"

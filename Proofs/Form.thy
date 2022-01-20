@@ -44,11 +44,11 @@ lemmas wf_folds =
 
 fun wf_stamps :: "IRGraph \<Rightarrow> bool" where
   "wf_stamps g = (\<forall> n \<in> ids g . 
-    (\<forall> v m p e . (g \<turnstile> n \<simeq> e) \<and> ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value (stamp_expr e) v))"
+    (\<forall> v m p e . (g \<turnstile> n \<simeq> e) \<and> ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e)))"
 
 fun wf_stamp :: "IRGraph \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> bool" where
   "wf_stamp g s = (\<forall> n \<in> ids g . 
-    (\<forall> v m p e . (g \<turnstile> n \<simeq> e) \<and> ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value (s n) v))"
+    (\<forall> v m p e . (g \<turnstile> n \<simeq> e) \<and> ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (s n)))"
 
 lemma wf_empty: "wf_graph start_end_graph"
   unfolding start_end_graph_def wf_folds by simp

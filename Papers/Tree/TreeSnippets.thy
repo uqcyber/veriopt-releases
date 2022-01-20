@@ -15,7 +15,7 @@ notation (latex)
   IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr ("_ \<longmapsto> _")
 
 notation (latex)
-  valid_value ("_ \<in> \<index>")
+  valid_value ("_ \<in> _")
 
 notation (latex)
   val_to_bool ("bool-of _")

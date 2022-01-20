@@ -254,6 +254,9 @@ snipbegin \<open>graph-semantics-deterministic\<close>
 text \<open>@{thm graphDet [no_vars]}\<close>
 snipend -
 
+notation (latex)
+  graph_refinement ("\<^latex>\<open>term-graph-refinement\<close> _")
+
 snipbegin \<open>graph-refinement\<close>
 text \<open>@{thm[display, margin=60] graph_refinement_def [no_vars]}\<close>
 snipend -

@@ -412,7 +412,7 @@ lemma unary_eval_preserves_validity:
   using int_constants_valid intval_abs.simps(1) is_int_val.simps(1) unary_eval.simps(1) apply presburger
   using int_constants_valid intval_negate.simps(1) is_int_val.simps(1) unary_eval.simps(2) apply presburger
   using int_constants_valid intval_not.simps(1) is_int_val.simps(1) unary_eval.simps(3) apply presburger
-  using int_constants_valid is_int_val.simps(1) unary_eval.simps(4) apply presburger
+  using int_constants_valid intval_logic_negation.simps(1) is_int_val.simps(1) unary_eval.simps(4) apply presburger
      defer defer defer
      apply (cases op)
   using int_constants_valid intval_abs.simps(2) is_int_val.simps(2) unary_eval.simps(1) apply presburger

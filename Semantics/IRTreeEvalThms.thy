@@ -362,31 +362,6 @@ lemma valid64 [simp]:
   shows "\<exists>v. (val = (IntVal64 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
   using assms valid_int64 by force
 
-experiment begin
-lemma int_stamp_implies_valid_value:
-  "[m,p] \<turnstile> expr \<mapsto> val \<Longrightarrow>
-   valid_value val (stamp_expr expr)"
-proof (induction rule: evaltree.induct)
-  case (ConstantExpr c)
-  then show ?case sorry
-next
-  case (ParameterExpr s i)
-  then show ?case sorry
-next
-  case (ConditionalExpr ce cond branch te fe v)
-  then show ?case sorry
-next
-  case (UnaryExpr xe v op)
-  then show ?case sorry
-next
-  case (BinaryExpr xe x ye y op)
-  then show ?case sorry
-next
-  case (LeafExpr val nid s)
-  then show ?case sorry
-qed
-end
-
 lemma valid32or64:
   assumes "valid_value x (IntegerStamp b lo hi)"
   shows "(\<exists> v1. (x = IntVal32 v1)) \<or> (\<exists> v2. (x = IntVal64 v2))"

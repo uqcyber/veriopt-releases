@@ -154,6 +154,9 @@ fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
 *)
 
+fun stamp_under :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "stamp_under x y = ((stpi_upper x) < (stpi_lower y))"
+
 \<comment> \<open>
 The most common type of stamp within the compiler (apart from the VoidStamp) is a 32 bit
 integer stamp with an unrestricted range. We use @{text default_stamp} as it is a frequently used stamp.

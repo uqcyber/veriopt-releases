@@ -194,8 +194,8 @@ proof -
           using ConditionalNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
           by (metis_node_eq_ternary ConditionalNode)
         then have "\<exists> ce2 te2 fe2. (g2 \<turnstile> n \<simeq> ConditionalExpr ce2 te2 fe2) \<and> ConditionalExpr ce1 te1 fe1 \<ge> ConditionalExpr ce2 te2 fe2"
-          using ConditionalNode.prems l mono_conditional rep.ConditionalNode cer ter
-          by (smt (verit) IRTreeEvalThms.mono_conditional)
+          using ConditionalNode.prems l rep.ConditionalNode cer ter
+          by (smt (verit) mono_conditional)
         then show ?thesis
           by meson
       qed
@@ -657,10 +657,10 @@ proof -
 qed
 
 lemma graph_semantics_preservation_subscript:
-  assumes a: "e\<^sub>1' \<ge> e\<^sub>2'"
-  assumes b: "({n'} \<unlhd> as_set g\<^sub>1) \<subseteq> as_set g\<^sub>2"
-  assumes c: "g\<^sub>1 \<turnstile> n' \<simeq> e\<^sub>1'"
-  assumes d: "g\<^sub>2 \<turnstile> n' \<simeq> e\<^sub>2'"
+  assumes a: "e\<^sub>1 \<ge> e\<^sub>2"
+  assumes b: "({n} \<unlhd> as_set g\<^sub>1) \<subseteq> as_set g\<^sub>2"
+  assumes c: "g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1"
+  assumes d: "g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2"
   shows "graph_refinement g\<^sub>1 g\<^sub>2"
   using graph_semantics_preservation assms by simp
 
@@ -848,7 +848,7 @@ next
     using assms unfolding as_set_def
     by blast
   from kinds stamps show ?case using LeafExpr LeafExprE LeafNode 
-    by (smt (z3) IRExpr.distinct(29) IRExpr.simps(16) IRExpr.simps(28) rep.simps)
+    by (smt (z3) IRExpr.distinct(29) IRExpr.simps(16) IRExpr.simps(28) rep.simps) (* slow *)
 next
   case (ConstantVar x)
   then have in_g1: "n \<in> ids g1"

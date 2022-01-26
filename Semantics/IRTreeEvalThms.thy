@@ -313,7 +313,11 @@ lemma valid_int64[elim]:
   apply (rule val_to_bool.cases[of val])
   using Value.distinct by simp+
 
-  
+lemmas valid_value_elims =
+  valid_VoidStamp
+  valid_ObjStamp
+  valid_int32
+  valid_int64
   
 text \<open>TODO: could we prove that expression evaluation never returns $UndefVal$?
   But this might require restricting unary and binary operators to be total...
@@ -432,7 +436,61 @@ lemma mono_binary:
   assumes "x \<ge> x'"
   assumes "y \<ge> y'"
   shows "(BinaryExpr op x y) \<ge> (BinaryExpr op x' y')"
-  using BinaryExpr assms by auto 
+  using BinaryExpr assms by auto
+
+lemma never_void:
+  assumes "[m, p] \<turnstile> x \<mapsto> xv"
+  assumes "valid_value xv (stamp_expr xe)"
+  shows "stamp_expr xe \<noteq> VoidStamp"
+  using valid_value.simps
+  using assms(2) by force
+
+lemma stamp32:
+  "\<exists>v . xv = IntVal32 v \<longleftrightarrow> valid_value xv (IntegerStamp 32 lo hi)"
+  using valid_int32
+  by (metis (full_types) Value.inject(1) zero_neq_one)
+
+lemma stamp64:
+  "\<exists>v . xv = IntVal64 v \<longleftrightarrow> valid_value xv (IntegerStamp 64 lo hi)"
+  using valid_int64
+  by (metis (full_types) Value.inject(2) zero_neq_one)
+
+lemma stamprange:
+  "valid_value v s \<longrightarrow> (\<exists>b lo hi. (s = IntegerStamp b lo hi) \<and> (b = 32 \<or> b = 64))"
+  using valid_value.elims stamp32 stamp64
+  by (smt (verit, del_insts))
+
+lemma compatible_trans:
+  "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"
+  by (smt (verit, best) compatible.elims(2) compatible.simps(1))
+
+lemma compatible_refl:
+  "compatible x y \<Longrightarrow> compatible y x"
+  using compatible.elims(2) by fastforce
+
+(*
+lemma tmp:
+  assumes "[m, p] \<turnstile> xe \<mapsto> xv"
+  shows "valid_value xv (stamp_expr xe)"
+  sorry (* proved later *)
+
+lemma helping:
+  assumes "[m, p] \<turnstile> xe \<mapsto> xv"
+  assumes "\<forall>m p v. ([m,p] \<turnstile> xe \<mapsto> v) \<longrightarrow> [m,p] \<turnstile> ye \<mapsto> v"
+  shows "compatible (stamp_expr xe) (stamp_expr ye)"
+proof -
+  have "[m, p] \<turnstile> ye \<mapsto> xv"
+    using assms(1,2)
+    by blast
+  then have "valid_value xv (stamp_expr ye)"
+    using tmp by simp
+  then show ?thesis using stamprange
+      apply (cases "\<exists>v. xv = IntVal32 v")
+    using assms(2) valid_value.elims(2)
+    using assms(1) tmp apply fastforce
+    by (smt (verit, del_insts) assms(1) compatible.simps(1) tmp valid_value.elims(2))
+qed
+*)
 
 lemma mono_conditional: 
   assumes "ce \<ge> ce'"
@@ -444,15 +502,37 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
   assume a: "[m,p] \<turnstile> ConditionalExpr ce te fe \<mapsto> v"
   then obtain cond where ce: "[m,p] \<turnstile> ce \<mapsto> cond" by auto
   then have ce': "[m,p] \<turnstile> ce' \<mapsto> cond" using assms by auto
+  (*have co: "compatible (stamp_expr te) (stamp_expr fe)"
+    using a by auto*)
   define branch  where b:  "branch  = (if val_to_bool cond then te else fe)"
   define branch' where b': "branch' = (if val_to_bool cond then te' else fe')"
-  then have "[m,p] \<turnstile> branch \<mapsto> v" using a b ce evalDet by blast 
-  then have "[m,p] \<turnstile> branch' \<mapsto> v" using assms b b' by auto
+  then have beval: "[m,p] \<turnstile> branch \<mapsto> v" using a b ce evalDet by blast 
+  (*then have "compatible (stamp_expr branch) (stamp_expr branch')"
+      using helping
+      using assms(2) assms(3) b b' by force
+  then have compatible: "compatible (stamp_expr te') (stamp_expr fe')"
+    using compatible_trans co compatible_refl
+    proof (cases "val_to_bool cond")
+      case True
+      then have "branch = te"
+        using b by simp
+      from True have "branch' = te'"
+        using b' by simp
+      then have "compatible (stamp_expr te) (stamp_expr te')"
+        using \<open>branch = te\<close> \<open>compatible (stamp_expr branch) (stamp_expr branch')\<close> by blast
+      then have "compatible (stamp_expr fe) (stamp_expr fe')"
+        using co compatible_trans compatible_refl sorry
+      then show ?thesis
+        using \<open>compatible (stamp_expr te) (stamp_expr te')\<close> co compatible_refl compatible_trans by blast
+    next
+      case False
+      then show ?thesis sorry
+    qed*)
+  from beval have "[m,p] \<turnstile> branch' \<mapsto> v" using assms b b' by auto
   then show "[m,p] \<turnstile> ConditionalExpr ce' te' fe' \<mapsto> v"
     using ConditionalExpr ce' b'
     using a by blast
 qed
-
 
 (*
 Step 3: if e1 isrefby e2 then g[e1] isREFby g[e2]

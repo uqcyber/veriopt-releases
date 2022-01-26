@@ -1,7 +1,6 @@
 theory ConditionalPhase
   imports
     Common
-    Semantics.IRTreeEvalThms
     Proofs.StampEvalThms
 begin
 
@@ -13,10 +12,10 @@ lemma negates: "is_IntVal32 e \<or> is_IntVal64 e \<Longrightarrow> val_to_bool 
   by (smt (verit, best) Value.disc(1) Value.disc(10) Value.disc(4) Value.disc(5) Value.disc(6) Value.disc(9) intval_logic_negation.elims val_to_bool.simps(1) val_to_bool.simps(2) zero_neq_one)
 
 optimization negate_condition: "((\<not>e) ? x : y) \<mapsto> (e ? y : x)"
-    apply unfold_optimization
-  using negates evaltree.ConditionalExpr
-  apply (smt (verit, best) ConditionalExprE UnaryExprE is_IntVal32_def is_IntVal64_def le_expr_def stamp_implies_valid_value unary_eval.simps(4) valid_value.elims(2))
-  unfolding size.simps by simp
+    apply unfold_optimization apply simp using negates
+    using ConditionalExprE UnaryExprE intval_logic_negation.elims unary_eval.simps(4) val_to_bool.simps(1) val_to_bool.simps(2) zero_neq_one
+    apply (smt (verit) ConditionalExpr)
+    unfolding size.simps by simp
 
 optimization const_true: "((const(IntVal32 1)) ? x : y) \<mapsto> x"
    apply unfold_optimization
@@ -33,16 +32,20 @@ optimization equal_branches: "(e ? x : x) \<mapsto> x"
    apply force
   unfolding size.simps by auto
 
-optimization condition_bounds_x: "((x < y) ? x : y) \<mapsto> x when stamp_under (stamp_expr x) (stamp_expr y)"
+(* this will be removable after some work *)
+definition wff_stamps :: bool where
+  "wff_stamps = (\<forall>m p expr val . ([m,p] \<turnstile> expr \<mapsto> val) \<longrightarrow> valid_value val (stamp_expr expr))"
+
+optimization condition_bounds_x: "((x < y) ? x : y) \<mapsto> x when (stamp_under (stamp_expr x) (stamp_expr y) \<and> wff_stamps)"
    apply unfold_optimization
   using stamp_under_semantics
-   apply fastforce
+  using wff_stamps_def apply fastforce
   unfolding size.simps by simp
 
-optimization condition_bounds_y: "((x < y) ? x : y) \<mapsto> y when stamp_under (stamp_expr y) (stamp_expr x)"
+optimization condition_bounds_y: "((x < y) ? x : y) \<mapsto> y when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wff_stamps)"
    apply unfold_optimization
   using stamp_under_semantics_inversed
-   apply fastforce
+  using wff_stamps_def apply fastforce
   unfolding size.simps by simp
 
 (*extra one*)

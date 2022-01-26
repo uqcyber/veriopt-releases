@@ -73,7 +73,7 @@ lemma unary_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVa
 lemma unary_obj: "val = ObjRef x \<Longrightarrow> unary_eval op val = UndefVal"
   by (cases op; auto)
 
-lemma unary_eval_implies_valud_value:
+lemma unary_eval_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
   assumes "result \<noteq> UndefVal"
@@ -128,7 +128,7 @@ lemma binary_eval_values:
       apply simp apply (cases op; cases val1; cases val2; auto)
     apply (cases op; cases val1; cases val2; auto) by auto+
 
-lemma binary_eval_implies_valud_value:
+lemma binary_eval_implies_valid_value:
   assumes "[m,p] \<turnstile> expr1 \<mapsto> val1"
   assumes "[m,p] \<turnstile> expr2 \<mapsto> val2"
   assumes "result = bin_eval op val1 val2"
@@ -268,34 +268,36 @@ next
 qed
 
 
-lemma conditional_eval_implies_valud_value:
+lemma conditional_eval_implies_valid_value:
   assumes "[m,p] \<turnstile> cond \<mapsto> condv"
   assumes "expr = (if val_to_bool condv then expr1 else expr2)"
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "val \<noteq> UndefVal"
   assumes "valid_value condv (stamp_expr cond)"
   assumes "valid_value val (stamp_expr expr)"
+  assumes "compatible (stamp_expr expr1) (stamp_expr expr2)"
   shows "valid_value val (stamp_expr (ConditionalExpr cond expr1 expr2))"
 proof -
   have "meet (stamp_expr expr1) (stamp_expr expr2) \<noteq> IllegalStamp"
-    using assms apply (cases "stamp_expr expr"; auto)
-    using valid_VoidStamp sorry
+    using assms
+    by (metis Stamp.distinct(13) Stamp.distinct(25) compatible.elims(2) meet.simps(1) meet.simps(2))
   then show ?thesis using stamp_meet_is_valid using stamp_expr.simps(6)
     using assms(2) assms(6) by presburger
 qed
 
+experiment begin
 lemma stamp_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   shows "valid_value val (stamp_expr expr)"
   using assms proof (induction expr val)
 case (UnaryExpr expr val result op)
-  then show ?case using unary_eval_implies_valud_value by simp
+  then show ?case using unary_eval_implies_valid_value by simp
 next
   case (BinaryExpr expr1 val1 expr2 val2 result op)
-  then show ?case using binary_eval_implies_valud_value by simp
+  then show ?case using binary_eval_implies_valid_value by simp
 next
   case (ConditionalExpr cond condv expr expr1 expr2 val)
-  then show ?case using conditional_eval_implies_valud_value by simp
+  then show ?case using conditional_eval_implies_valid_value sorry
 next
   case (ParameterExpr x1 x2)
   then show ?case by auto
@@ -307,12 +309,11 @@ next
   then show ?case by auto
 qed
 
-
 lemma value_range:
   assumes "[m, p] \<turnstile> e \<mapsto> v"
   shows "v \<in> {val . valid_value val (stamp_expr e)}"
-  using assms stamp_implies_valid_value
-  by simp
+  using assms sorry
+end
 
 lemma upper_bound_32:
   assumes "val = IntVal32 v"
@@ -344,6 +345,7 @@ lemma lower_bound_64:
 lemma stamp_under_semantics:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"
   assumes "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> v"
+  assumes stamp_implies_valid_value: "\<forall>m p expr val . ([m,p] \<turnstile> expr \<mapsto> val) \<longrightarrow> valid_value val (stamp_expr expr)"
   shows "val_to_bool v"
 proof -
   obtain xval where xval_def: "[m, p] \<turnstile> x \<mapsto> xval"
@@ -351,9 +353,9 @@ proof -
   obtain yval where yval_def: "[m, p] \<turnstile> y \<mapsto> yval"
     using assms(2) by blast
   have "is_IntVal32 xval \<or> is_IntVal64 xval"
-    by (metis is_IntVal32_def is_IntVal64_def stamp_implies_valid_value valid_value.elims(2) xval_def)
+    by (metis BinaryExprE Value.exhaust_disc assms(2) bin_eval.simps(11) binary_obj binary_undef evalDet intval_less_than.simps(9) is_ObjRef_def is_ObjStr_def xval_def)
   have "is_IntVal32 yval \<or> is_IntVal64 yval"
-    by (metis is_IntVal32_def is_IntVal64_def stamp_implies_valid_value valid_value.elims(2) yval_def)
+    by (metis BinaryExprE Value.exhaust_disc assms(2) bin_eval.simps(11) binary_obj binary_undef evalDet intval_less_than.simps(16) is_ObjRef_def is_ObjStr_def yval_def)
   have "is_IntVal32 xval = is_IntVal32 yval"
     by (metis BinaryExprE Value.collapse(2) \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> assms(2) bin_eval.simps(11) evalDet intval_less_than.simps(12) intval_less_than.simps(5) is_IntVal32_def xval_def yval_def)
   have "is_IntVal64 xval = is_IntVal64 yval"
@@ -362,6 +364,7 @@ proof -
     using assms(2)
     by (metis BinaryExprE bin_eval.simps(11) evalDet xval_def yval_def)
   have "is_IntVal32 xval \<Longrightarrow> ((\<exists> lo hi. stamp_expr x = IntegerStamp 32 lo hi) \<and> (\<exists> lo hi. stamp_expr y = IntegerStamp 32 lo hi))"
+    using assms(2) binary_eval_bits_equal stamp_implies_valid_value valid_value.elims(2) xval_def
     by (smt (verit) BinaryExprE Value.discI(2) Value.distinct_disc(9) assms(2) binary_eval_bits_equal stamp_implies_valid_value valid_value.elims(2) xval_def)
   have "is_IntVal64 xval \<Longrightarrow> ((\<exists> lo hi. stamp_expr x = IntegerStamp 64 lo hi) \<and> (\<exists> lo hi. stamp_expr y = IntegerStamp 64 lo hi))"
     by (smt (verit, best) BinaryExprE \<open>intval_less_than xval yval \<noteq> UndefVal\<close> assms(2) binary_eval_bits_equal intval_less_than.simps(5) is_IntVal64_def stamp_implies_valid_value valid_value.elims(2) yval_def)
@@ -424,6 +427,7 @@ qed
 lemma stamp_under_semantics_inversed:
   assumes "stamp_under (stamp_expr y) (stamp_expr x)"
   assumes "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> v"
+  assumes stamp_implies_valid_value: "\<forall>m p expr val . ([m,p] \<turnstile> expr \<mapsto> val) \<longrightarrow> valid_value val (stamp_expr expr)"
   shows "\<not>(val_to_bool v)"
 proof -
   obtain xval where xval_def: "[m, p] \<turnstile> x \<mapsto> xval"

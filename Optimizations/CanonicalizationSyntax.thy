@@ -5,6 +5,35 @@ theory CanonicalizationSyntax
     OptimizationDSL.Canonicalization
 begin
 
+typedef int32 = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal32 v))}"
+  by auto
+
+lemma int32_eval:
+  "\<forall>v. \<exists>vv. ([m, p] \<turnstile> (Rep_int32 e) \<mapsto> v) \<longrightarrow> ([m, p] \<turnstile> (Rep_int32 e) \<mapsto> IntVal32 vv)"
+  using Rep_int32 is_IntVal32_def by fastforce
+
+lemma int32_binary:
+  assumes "[m, p] \<turnstile> BinaryExpr op (Rep_int32 x) (Rep_int32 y) \<mapsto> v"
+  shows "\<exists>xv yv. v = bin_eval op (IntVal32 xv) (IntVal32 yv)"
+  using assms apply auto using Rep_int32 is_IntVal32_def
+  by (metis (mono_tags, lifting) mem_Collect_eq)
+
+typedef int64 = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal64 v))}"
+  by auto
+
+lemma int64_eval:
+  "\<forall>v. \<exists>vv. ([m, p] \<turnstile> (Rep_int64 e) \<mapsto> v) \<longrightarrow> ([m, p] \<turnstile> (Rep_int64 e) \<mapsto> IntVal64 vv)"
+  using Rep_int64 is_IntVal64_def by fastforce
+
+lemma int64_binary:
+  assumes "[m, p] \<turnstile> BinaryExpr op (Rep_int64 x) (Rep_int64 y) \<mapsto> v"
+  shows "\<exists>xv yv. v = bin_eval op (IntVal64 xv) (IntVal64 yv)"
+  using assms apply auto using Rep_int64 is_IntVal64_def
+  by (metis (mono_tags, lifting) mem_Collect_eq)
+
+typedef int = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal32 v \<or> is_IntVal64 v))}"
+  by auto
+
 
 fun size :: "IRExpr \<Rightarrow> nat" where
   "size (UnaryExpr op e) = (size e) + 1" |
@@ -114,58 +143,12 @@ proof -
     by simp
 qed
 
-experiment begin
-lemma add_intstamp_prop:
-  assumes "type x = Integer"
-  assumes "type_safe x y"
-  shows "type exp[x + y] = Integer"
-  using assms unfolding type_def type_safe_def
-  using stamp_expr.simps(3) stamp_binary.simps(1)
-  using is_IntegerStamp_def type_def unfold_type sorry
-
-lemma sub_intstamp_prop:
-  assumes "type x = Integer"
-  assumes "type_safe x y"
-  shows "type exp[x - y] = Integer"
-  using assms unfolding type_def type_safe_def
-  using stamp_expr.simps(3) stamp_binary.simps(1) sorry
-end
-
 lemma uminus_intstamp_prop:
   assumes "type x = Integer"
   shows "type exp[-x] = Integer"
   using assms unfolding type_def type_safe_def
   using stamp_expr.simps(1) stamp_unary.simps(1)
   by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
-
-
-lemma assume_proof :
-  assumes "type x = Integer"
-  assumes "type_safe x y"
-  shows "rewrite_preservation exp[((x + (-y) \<mapsto> x - y))]"
-  unfolding rewrite_preservation.simps 
-  unfolding le_expr_def apply (rule allI)+ apply (rule impI)
-  using assms unfolding type_def type_safe_def 
-  using CanonicalizeAddProof CanonicalizeAdd.intros
-  sorry
-(*
-proof (induction rule: evaltree.induct)
-  fix m p
-  have "is_IntegerStamp (stamp_expr ?lhs)"
-    using assms unfolding type_def
-    by (smt (z3) Stamp.collapse(1) Stamp.sel(1) add_intstamp_prop assms(1) stamp_expr.simps(1) stamp_unary.simps(1) uminus_intstamp_prop unfold_int_typesafe unfold_type unrestricted_stamp.simps(2))
-  obtain v where lhs: "[m,p] \<turnstile> ?lhs \<mapsto> v"
-    using BinaryExprE evalDet sorry
-  obtain v2 where rhs: "[m,p] \<turnstile> ?rhs \<mapsto> v2"
-    sorry
-  then show "v = v2"
-    sorry
-  then show ?thesis
-*)
-
-
-lemma "rewrite_preservation (exp[((x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y))])"
-  sorry
 
 
 lemma "(size exp[x + (-y)]) > (size exp[x - y])"
@@ -301,30 +284,7 @@ ML_val \<open>@{term "hello = case_IRExpr
     (\<lambda> _ \<Rightarrow> fail)
     (\<lambda> _ \<Rightarrow> \<lambda> _ \<Rightarrow> fail)"}\<close>
 
-phase NeverTerminates
-  trm bad_trm
-begin
-  optimization anon:
-  "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2) when True"
-    unfolding bad_trm.simps sorry
 
-  print_syntax
-
-  optimization anon2:
-  "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2)"
-    unfolding bad_trm.simps sorry
-
-  value "anon_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (ConstantExpr (IntVal32 0)))"
-
-  print_phases
-end
-
-
-(*
-notation BinaryExpr ("_ \<oplus>\<^sub>_ _")
-
-value "x \<oplus>\<^sub>s y"
-*)
 phase Canonicalization
   trm size
 begin
@@ -340,6 +300,7 @@ optimization constant_add:
   sorry
 *)
 
+(*
 optimization constant_add:
   "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2)"
   unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer
@@ -347,37 +308,50 @@ optimization constant_add:
   sorry
 
 value "constant_add_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (ConstantExpr (IntVal32 0)))"
+*)
 
 print_context
 
 optimization constant_shift:
-  "(c + e) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e) \<and> type e = Integer)"
+  "(c + Rep_int (e::int)) \<mapsto> (Rep_int e + c) when (\<not>(is_ConstantExpr (Rep_int e)))"
    unfolding rewrite_preservation.simps apply (rule impI) defer apply simp
-   sorry
+   using nonconstants_gt_one apply fastforce
+   by (smt (verit, ccfv_SIG) BinaryExprE add.commute bin_eval.simps(1) evaltree.intros(5) le_expr_def plus_Value_def)
 
 print_context
 
 thm constant_shift
 
 optimization neutral_zero:
-  "(e + const(IntVal32 0)) \<mapsto> e when (type e = Integer)"
+  "(Rep_int32 (e::int32) + const(IntVal32 0)) \<mapsto> Rep_int32 e"
    defer apply simp+
-  sorry
+  using Rep_int32 is_IntVal32_def by fastforce
 
 ML_val \<open>@{term "(e1 - e2) + e2 \<mapsto> e1"}\<close>
 
 optimization neutral_left_add_sub:
-  "(e1 - e2) + e2 \<mapsto> e1"
-  sorry
+  "(Rep_int e1 - Rep_int e2) + Rep_int e2 \<mapsto> Rep_int e1"
+  apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
+    rule conjE, simp) apply auto
+  using Rep_int is_IntVal32_def is_IntVal64_def
+  apply (smt (verit, ccfv_threshold) diff_add_cancel evalDet intval_add.simps(1) intval_add.simps(2) intval_sub.simps(1) intval_sub.simps(12) intval_sub.simps(2) intval_sub.simps(5) mem_Collect_eq)
+  by (simp add: size_gt_0)
 
 optimization neutral_right_add_sub:
-  "e1 + (e2 - e1) \<mapsto> e2"
-  sorry
+  "Rep_int e1 + (Rep_int e2 - Rep_int e1) \<mapsto> Rep_int e2"
+  apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
+    rule conjE, simp) apply auto
+  apply (smt (verit, del_insts) CanonicalizationSyntax.int.Rep_int add.commute diff_add_cancel evalDet intval_add.simps(1) intval_add.simps(2) intval_sub.simps(1) intval_sub.simps(12) intval_sub.simps(2) intval_sub.simps(5) is_IntVal32_def is_IntVal64_def mem_Collect_eq)
+  using size_gt_0 by auto
+
 
 optimization add_ynegate:
-  "(x + (-y)) \<mapsto> (x - y) when (type x = Integer \<and> type_safe x y)"
-  sorry
-
+  "(Rep_int32 x + (-(Rep_int32 y))) \<mapsto> (Rep_int32 x - Rep_int32 y)"
+  apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
+    rule conjE, simp) apply auto
+  using Groups.group_add_class.add_uminus_conv_diff
+  by (metis BinaryExpr bin_eval.simps(3) evalDet int32_eval intval_add.simps(1) intval_negate.simps(1) intval_sub.simps(1))
+  
 print_context
 
 
@@ -389,13 +363,28 @@ phase DirectTranslationTest
   trm size
 begin
 
-optimization AbsIdempotence: "abs(abs(e)) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
-  apply auto
-  by (metis UnaryExpr abs_abs_is_abs stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(1))
+(*
+value "intval_abs (IntVal32 (0))"
+value "intval_abs (intval_abs (IntVal32 (0)))"
+value "intval_abs (IntVal32 (2147483648))"
+value "intval_abs (intval_abs (IntVal32 (2147483648)))"
+value "intval_abs (IntVal32 (-2147483648))"
+value "intval_abs (intval_abs (IntVal32 (-2147483648)))"
+value "intval_abs (IntVal32 (4294967295))"
+value "intval_abs (intval_abs (IntVal32 (4294967295)))"
+
+lemma helper: "intval_abs (IntVal32 e) = intval_abs (intval_abs (IntVal32 e))" (is ?thesis)
+  sorry
+
+optimization AbsIdempotence: "abs(abs(Rep_int32 e)) \<mapsto> abs(Rep_int32 e)"
+  apply auto using helper
+  using Rep_int32
+  by (metis UnaryExpr evalDet int32_eval unary_eval.simps(1))
 
 optimization AbsNegate: "abs(-e) \<mapsto> abs(e) when is_IntegerStamp (stamp_expr e)"
   apply auto
   by (metis UnaryExpr abs_neg_is_neg stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(1))
+*)
 
 lemma int_constants_valid:
   assumes "is_int_val val"  
@@ -403,6 +392,7 @@ lemma int_constants_valid:
   using assms apply (cases val)
   by simp+
 
+(*
 lemma unary_eval_preserves_validity:
   assumes "is_int_val c"
   shows "valid_value (unary_eval op c) (constantAsStamp (unary_eval op c))"
@@ -423,10 +413,11 @@ lemma unary_eval_preserves_validity:
 optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_eval op val_c) when is_int_val val_c"
   apply (auto simp: int_constants_valid)
   using evaltree.ConstantExpr int_constants_valid unary_eval_preserves_validity by simp
+*)
 
 optimization AndEqual: "(x & x) \<mapsto> x when is_IntegerStamp (stamp_expr x)"
-  apply simp
-   apply (metis BinaryExprE CanonicalizeAndProof and_same)
+   apply auto sledgehammer
+  apply (smt (verit, best) demorgans_rewrites_helper(3) evalDet evaltree.simps int_constants_valid intval_and.simps(15) intval_and.simps(9) is_int_val.elims(3) stamprange)
   unfolding size.simps
   by (simp add: size_gt_0)
 
@@ -449,9 +440,9 @@ context
   includes bit_operations_syntax
 begin
 optimization AndNeutral: "(x & (const (IntVal32 (NOT 0)))) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
-   apply simp
-  using neutral_and stamp_implies_valid_value apply auto
-  by metis
+   apply auto
+  by (smt (z3) Value.distinct(9) bin_eval.simps(4) intval_and.elims neutral_and unrestricted_32bit_always_valid unrestricted_stamp.simps(2))
+
 end
 
 optimization ConditionalEqualBranches: "(b ? v : v) \<mapsto> v"
@@ -461,9 +452,9 @@ optimization ConditionalEqualBranches: "(b ? v : v) \<mapsto> v"
   by auto
 
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<mapsto> y when (type x = Integer \<and> type_safe x y)"
-   apply simp
-  apply (smt (verit, del_insts) BinaryExprE CanonicalizeConditionalProof ConditionalExprE cond_eq type_safe_def unfold_type)
-  unfolding size.simps by simp
+   apply auto
+  by (smt (z3) bool_to_val.simps(2) evalDet intval_equals.elims val_to_bool.simps(1))
+
 (*
 optimization ConditionalEliminateKnownLess: "(x < y ? x : y) \<mapsto> x when (x.stamp.upper <= y.stamp.lower)" sorry
 optimization ConditionalEliminateKnownLess: "(x < y ? y : x) \<mapsto> y when (x.stamp.upper <= y.stamp.lower)" sorry
@@ -494,10 +485,9 @@ lemma bin_eval_preserves_validity:
 
 
 optimization BinaryFoldConstant: "BinaryExpr op (ConstantExpr e1) (ConstantExpr e2) \<mapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
-   apply simp using evaltree.BinaryExpr evaltree.ConstantExpr stamp_implies_valid_value
-  using bin_eval_preserves_validity 
-  apply force using nonconstants_gt_one
-  by auto
+   apply auto
+   apply (simp add: ConstantExpr bin_eval_preserves_validity)
+  using nonconstants_gt_one by simp
 
 optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when ~(is_ConstantExpr y)"
   apply simp
@@ -513,10 +503,9 @@ lemma neutral_add:
   using assms bin_eval.simps(4) by (cases x; auto)
 
 optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
-   apply simp using neutral_add stamp_implies_valid_value 
-  using evaltree.BinaryExpr evaltree.ConstantExpr
-   apply (metis (no_types, opaque_lifting) BinaryExprE ConstantExprE)
-  unfolding size.simps by simp
+   apply auto
+  by (metis bin_eval.simps(1) default_stamp default_stamp_def intval_add.simps(3) intval_add.simps(5) intval_add.simps(8) intval_add.simps(9) intval_negate.elims neutral_add unrestricted_32bit_always_valid)
+
 
 lemma intval_negateadd_equals_sub_left: "bin_eval BinAdd (unary_eval UnaryNeg e) y = bin_eval BinSub y e"
   by (cases e; auto; cases y; auto)
@@ -536,16 +525,21 @@ optimization AddRightNegateToSub: "x + -e \<mapsto> x - e"
   unfolding size.simps
   by simp
 
-optimization MulEliminator: "(x * const(IntVal32 0)) \<mapsto> const(IntVal32 0) when (stamp_expr x = IntegerStamp 32 l u)"
-   apply simp
-  apply (metis BinaryExprE ConstantExprE annihilator_rewrite_helper(1) bin_eval.simps(2) stamp_implies_valid_value)
-  unfolding size.simps
-  by (simp add: size_gt_0)
+optimization MulEliminator: "(Rep_int32 x * const(IntVal32 0)) \<mapsto> const(IntVal32 0)"
+   apply auto
+  using Rings.mult_zero_class.mult_zero_right
+  apply (metis (no_types, opaque_lifting) ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet int32_eval int_and_equal_bits.simps(1) intval_mul.simps(1) intval_sub.simps(1))
+    unfolding size.simps
+    by (simp add: size_gt_0)
+
+lemma "(x::('a::len) word) * 1 = x"
+  
+  by simp
 
 optimization MulNeutral: "(x * const(IntVal32 1)) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
-   apply simp
-  apply (metis BinaryExprE ConstantExprE bin_eval.simps(2) neutral_rewrite_helper(1) stamp_implies_valid_value)
-  unfolding size.simps by simp
+   apply auto
+  using Groups.comm_monoid_mult_class.mult.comm_neutral
+  by (smt (z3) Value.distinct(9) intval_mul.elims neutral_rewrite_helper(1) unrestricted_32bit_always_valid unrestricted_stamp.simps(2))
 
 (*
 optimization MulNegate: "(x * const (-1) ) \<mapsto> -x when (stamp_expr x = IntegerStamp 32 l u)"
@@ -553,7 +547,10 @@ optimization MulNegate: "(x * const (-1) ) \<mapsto> -x when (stamp_expr x = Int
   apply (metis BinaryExprE ConstantExprE bin_eval.simps(2) neutral_rewrite_helper(1) stamp_implies_valid_value)
   unfolding size.simps by simp
 *)
+end
 
+(*
+experiment begin
 value "(3::32 word) mod 32"
 
 lemma "(x::nat) \<ge> 0 \<and> x < base \<Longrightarrow> x mod base = x"
@@ -574,44 +571,7 @@ proof -
   then show ?thesis
     using \<open>2 ^ unat v2 < 2 ^ 32\<close> numeral_Bit0 power2_eq_square power_add sorry
 qed
-(*
-proof (cases "v2 < 32")
-  case True
-  have "v2 mod 32 = v2"
-    using True
-    by (simp add: word_mod_less)
-  then show ?thesis
-    by simp
-next
-  case False
-  obtain powered where powered_def: "(powered::32 word) = 2 ^ (unat v2)"
-    by auto
-  have "powered < (2 ^ 32)"
-    sorry
-  then have "powered mod (2 ^ 32) = powered"
-    using word_mod_less
-    by blast
-  then have "v2 mod 32 = v2"
-    unfolding powered_def sorry
-  then show ?thesis unfolding powered_def sorry
-qed
-
-lemma intval_shift_equality:
-  shows "intval_mul (IntVal32 x) (IntVal32 (2^(unat j))) = intval_left_shift (IntVal32 x) (IntVal32 j)"
-  unfolding intval_mul.simps intval_left_shift.simps
-  by (simp add: shift_equality)
-
-lemma bin_shift_equality:
-  "bin_eval BinMul (IntVal32 x) (IntVal32 (2^(unat j))) = bin_eval BinLeftShift (IntVal32 x) (IntVal32 j)"
-  using intval_shift_equality by simp
-
-optimization MulPower2: "(x * const(2^(unat j))) \<mapsto> x << const(j) when (stamp_expr x = IntegerStamp 32 l u)"
-   apply simp
-  using BinaryExprE ConstantExprE bin_eval.simps(2,7) stamp_implies_valid_value intval_shift_equality
-  sorry
-*)
-
-print_context
 end
+*)
 
 end

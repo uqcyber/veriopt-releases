@@ -154,6 +154,11 @@ fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
 *)
 
+fun compatible :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
+  "compatible (IntegerStamp b1 _ _) (IntegerStamp b2 _ _) = (b1 = b2)" |
+  "compatible (VoidStamp) (VoidStamp) = True" |
+  "compatible _ _ = False"
+
 fun stamp_under :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "stamp_under x y = ((stpi_upper x) < (stpi_lower y))"
 

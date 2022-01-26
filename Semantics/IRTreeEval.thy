@@ -98,6 +98,33 @@ fun is_ground :: "IRExpr \<Rightarrow> bool" where
 typedef GroundExpr = "{ e :: IRExpr . is_ground e }"
   using is_ground.simps(6) by blast
 
+(* ======== TODO: Functions for re-calculating stamps ========== *)
+fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
+  "stamp_unary op (IntegerStamp b lo hi) = unrestricted_stamp (IntegerStamp b lo hi)" |
+  (* for now... *)
+  "stamp_unary op _ = IllegalStamp"
+
+definition fixed_32 :: "IRBinaryOp set" where
+  "fixed_32 = {BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
+
+fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
+  "stamp_binary op (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
+    (case op \<in> fixed_32 of True \<Rightarrow> unrestricted_stamp (IntegerStamp 32 lo1 hi1) |
+    False \<Rightarrow>
+    (if (b1 = b2) then unrestricted_stamp (IntegerStamp b1 lo1 hi1) else IllegalStamp))" |
+  (* for now... *)
+  "stamp_binary op _ _ = IllegalStamp"
+
+fun stamp_expr :: "IRExpr \<Rightarrow> Stamp" where
+  "stamp_expr (UnaryExpr op x) = stamp_unary op (stamp_expr x)" |
+  "stamp_expr (BinaryExpr bop x y) = stamp_binary bop (stamp_expr x) (stamp_expr y)" |
+  "stamp_expr (ConstantExpr val) = constantAsStamp val" |
+  "stamp_expr (LeafExpr i s) = s" |
+  "stamp_expr (ParameterExpr i s) = s" |
+  "stamp_expr (ConditionalExpr c t f) = meet (stamp_expr t) (stamp_expr f)"
+
+export_code stamp_unary stamp_binary stamp_expr
+
 subsection \<open>Data-flow Tree Evaluation\<close>
 
 fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
@@ -140,6 +167,9 @@ inductive
   "\<lbrakk>i < length p; valid_value (p!i) s\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ParameterExpr i s) \<mapsto> p!i" |
 
+  (* We need to add this to prove certain optimizations
+     but it also requires more work to show monotonicity of refinement.
+  compatible (stamp_expr te) (stamp_expr fe);*)
   ConditionalExpr:
   "\<lbrakk>[m,p] \<turnstile> ce \<mapsto> cond;
     branch = (if val_to_bool cond then te else fe);

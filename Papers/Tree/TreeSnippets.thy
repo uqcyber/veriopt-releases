@@ -20,12 +20,59 @@ notation (latex)
 notation (latex)
   constantAsStamp ("\<^latex>\<open>stamp-from-value\<close> _")
 
+
+(* hide type casting *)
+translations
+  "n" <= "CONST Rep_int n"
+  "n" <= "CONST Rep_int32 n"
+  "n" <= "CONST Rep_int64 n"
+
+
+lemma vminusv: "\<forall>vv v . vv = IntVal64 v \<longrightarrow> v - v = 0"
+  by simp
+thm_oracles vminusv
+
+lemma redundant_sub:
+  "\<forall>vv\<^sub>1 vv\<^sub>2 v\<^sub>1 v\<^sub>2 . vv\<^sub>1 = IntVal64 v\<^sub>1 \<and> vv\<^sub>2 = IntVal64 v\<^sub>2 \<longrightarrow> v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
+  by simp
+thm_oracles redundant_sub
+
+snipbegin \<open>val-eq\<close>
+text "@{thm vminusv}"
+text "@{thm redundant_sub}"
+snipend -
+
+phase tmp
+  trm size
+begin
+snipbegin \<open>minus-same\<close>
+optimization MinusSame: "(Rep_int32 (e::int32)) - (Rep_int32 e) \<mapsto> const (IntVal32 0)"
+  snipend -
+  apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
+    rule conjE, simp) apply auto[1] using Rep_int32 evalDet is_IntVal32_def
+  apply (smt (verit, del_insts) eq_iff_diff_eq_0 evaltree.simps int_constants_valid intval_sub.simps(1) is_int_val.simps(1) mem_Collect_eq)
+  unfolding size.simps
+  by (metis add_strict_increasing gr_implies_not0 less_one linorder_not_le size_gt_0)
+end
+
+thm_oracles MinusSame
+
+
 snipbegin \<open>ast-example\<close>
 text "@{value[display,margin=25] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"
 snipend -
 
 snipbegin \<open>abstract-syntax-tree\<close>
 text \<open>@{datatype[display,margin=40] IRExpr}\<close>
+snipend -
+
+snipbegin \<open>value\<close>
+text \<open>@{datatype[display,margin=40] Value}\<close>
+snipend -
+
+snipbegin \<open>eval\<close>
+text \<open>@{term_type[mode=spaced_type_def] unary_eval}\<close>
+text \<open>@{term_type[mode=spaced_type_def] bin_eval}\<close>
 snipend -
 
 snipbegin \<open>tree-semantics\<close>
@@ -136,7 +183,7 @@ snipend -
   using AddNeutral by auto
 
 snipbegin \<open>NeutralLeftSub\<close>
-optimization NeutralLeftSub: "(e\<^sub>1 - e\<^sub>2) + e\<^sub>2 \<mapsto> e\<^sub>1"
+optimization NeutralLeftSub: "(Rep_int e\<^sub>1 - Rep_int e\<^sub>2) + Rep_int e\<^sub>2 \<mapsto> Rep_int e\<^sub>1"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
@@ -148,7 +195,7 @@ snipend -
   using neutral_left_add_sub by auto
 
 snipbegin \<open>NeutralRightSub\<close>
-optimization NeutralRightSub: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<mapsto> e\<^sub>1"
+optimization NeutralRightSub: "Rep_int e\<^sub>2 + (Rep_int e\<^sub>1 - Rep_int e\<^sub>2) \<mapsto> Rep_int e\<^sub>1"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
@@ -239,6 +286,7 @@ snipend -
 snipbegin \<open>deterministic-representation\<close>
 text \<open>@{thm[display] repDet [no_vars]}\<close>
 snipend -
+thm_oracles repDet
 
 snipbegin \<open>well-formed-term-graph\<close>
 text "@{thm (rhs) wf_term_graph_def [no_vars]}"
@@ -253,6 +301,7 @@ snipend -
 snipbegin \<open>graph-semantics-deterministic\<close>
 text \<open>@{thm graphDet [no_vars]}\<close>
 snipend -
+thm_oracles graphDet
 
 notation (latex)
   graph_refinement ("\<^latex>\<open>term-graph-refinement\<close> _")
@@ -268,6 +317,7 @@ translations
 snipbegin \<open>graph-semantics-preservation\<close>
 text \<open>@{thm[display, margin=30] graph_semantics_preservation_subscript [no_vars]}\<close>
 snipend -
+thm_oracles graph_semantics_preservation_subscript
 
 snipbegin \<open>maximal-sharing\<close>
 text \<open>@{thm[display, margin=50] maximal_sharing [no_vars]}\<close>
@@ -276,6 +326,7 @@ snipend -
 snipbegin \<open>tree-to-graph-rewriting\<close>
 text \<open>@{thm[display, margin=30] tree_to_graph_rewriting [no_vars]}\<close>
 snipend -
+thm_oracles tree_to_graph_rewriting
 
 snipbegin \<open>term-graph-refines-term\<close>
 text \<open>@{thm[display] graph_represents_expression_def [no_vars]}\<close>
@@ -284,6 +335,7 @@ snipend -
 snipbegin \<open>graph-construction\<close>
 text \<open>@{thm[display, margin=40] graph_construction [no_vars]}\<close>
 snipend -
+thm_oracles graph_construction
 
 
 end

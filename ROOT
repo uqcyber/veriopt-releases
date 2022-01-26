@@ -13,22 +13,21 @@ session Veriopt = "HOL-Library" +
 session Graph in Graph = Veriopt +
   description
     "GraalVM IR structure"
-  options [quick_and_dirty]
   theories
     Values
     IRNodes
     IRNodeHierarchy
     Stamp
-    StampLattice
     IRGraph
     Traversal
+    (* StampLattice *)
     (*Comparison*)
     (* CFG -- will add back once sorries are fixed *)
 
 session Semantics in Semantics = Graph +
   description
     "Semantics of GraalVM graphs"
-  options [quick_and_dirty, document = pdf,
+  options [document = pdf,
            document_output = "output",
            show_question_marks = false]
   sessions
@@ -47,12 +46,14 @@ session Semantics in Semantics = Graph +
 session Proofs in Proofs = Semantics +
   description
     "Supporting proof theories and definitions"
+  options [quick_and_dirty] (* two sorries in experimental blocks in StampEvalThms *)
   theories
     Bisimulation
     Form
     IRGraphFrames
     Rewrites
     Stuttering
+    StampEvalThms
 
 session OptimizationDSL in "Optimizations/DSL" = Proofs +
   description
@@ -63,14 +64,15 @@ session OptimizationDSL in "Optimizations/DSL" = Proofs +
 session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL +
   description
     "Canonicalization optimizations"
-  options [quick_and_dirty]
   theories
-    AddPhase
+    Common
+    (*AddPhase*)
+    ConditionalPhase
 
 session Optimizations in Optimizations = OptimizationDSL +
   description
     "Graph transformation optimizations"
-  options [quick_and_dirty]
+  options [quick_and_dirty] (* Many sorries in CanonicalizationTreeProofs but all in experiment *)
   theories
     (*Canonicalization*)
     CanonicalizationTree
@@ -159,6 +161,7 @@ session ValidationPaper in "Papers/Validation" = Tests +
     "root.tex"
     "mathpartir.sty"
 
+(*
 session Stamps in "Papers/Stamps" = Graph +
   description
     "GraalVM Stamp Theory"
@@ -174,11 +177,12 @@ session Stamps in "Papers/Stamps" = Graph +
     "lattice.tex"
   document_files (in "../../latex")
     "mathpartir.sty"
+*)
 
 session TreePaper in "Papers/Tree" = Optimizations +
   description
     "Content for paper on validation efforts"
-  options [quick_and_dirty, document = pdf, document_output = "output",
+  options [document = pdf, document_output = "output",
            show_question_marks = false]
   theories
     TreeSnippets
@@ -193,7 +197,7 @@ session TreePaper in "Papers/Tree" = Optimizations +
 session Canonicalization in "Papers/Canonicalization" = Optimizations +
   description
     "Canonicalization optimizations"
-  options [quick_and_dirty, document = pdf, document_output = "output",
+  options [document = pdf, document_output = "output",
            show_question_marks = false]
   document_theories
     Optimizations.CanonicalizationSyntax

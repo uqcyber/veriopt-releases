@@ -416,9 +416,10 @@ proof -
   next
     case (ConditionalExpr ce cond branch te fe v)
     then have "g2 \<turnstile> nid \<simeq> ConditionalExpr ce te fe"
-      using ConditionalExpr.prems(1) ConditionalExpr.prems(3) local.wf stay_same_encoding by presburger
+      using ConditionalExpr.prems(1) ConditionalExpr.prems(3) local.wf stay_same_encoding
+      by presburger
     then show ?case
-      by (metis ConditionalExpr.prems(1))
+      by (meson ConditionalExpr.prems(1) ConditionalExpr.prems(3) local.wf stay_same_encoding)
   next
     case (UnaryExpr xe v op)
     then show ?case

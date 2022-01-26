@@ -51,6 +51,7 @@ lemma idempotent_rewrite_helper:
 
 value "size (v::32 word)"
 
+experiment begin
 lemma CanonicalizeBinaryProof:
   assumes "CanonicalizeBinaryOp before after"
   assumes "[m, p] \<turnstile> before \<mapsto> res"
@@ -65,7 +66,7 @@ next
   obtain xval where x_eval: "[m, p] \<turnstile> x \<mapsto> xval"
     using binary_fold_yneutral.prems(2) by auto
   then have "bin_eval op xval c = xval"
-    using neutral_rewrite_helper binary_fold_yneutral.hyps(2-3,6-) stamp_implies_valid_value is_IntegerStamp_def
+    using neutral_rewrite_helper binary_fold_yneutral.hyps(2-3,6-) is_IntegerStamp_def
     sorry (*by (metis ConstantExpr Value.distinct(5) valid_value.simps(34))*)
   then show ?case
     by (metis binary_fold_yneutral.hyps(1) binary_fold_yneutral.prems(1) binary_fold_yneutral.prems(2) x_eval
@@ -75,7 +76,7 @@ next
   obtain xval where x_eval: "[m, p] \<turnstile> x \<mapsto> xval"
     using binary_fold_yzero32.prems(1) by auto
   then have "bin_eval op xval c = c"
-    using annihilator_rewrite_helper binary_fold_yzero32.hyps stamp_implies_valid_value is_IntegerStamp_def
+    using annihilator_rewrite_helper binary_fold_yzero32.hyps is_IntegerStamp_def
     sorry
   then show ?case
     by (metis BinaryExprE ConstantExprE binary_fold_yzero32.hyps(1) binary_fold_yzero32.prems(1) binary_fold_yzero32.prems(2) evalDet x_eval)
@@ -102,6 +103,7 @@ next
     by (metis BinaryExprE binary_idempotent.prems(1) binary_idempotent.prems(2) evalDet x_eval)
 
 qed
+end
 
 lemma CanonicalizeUnaryProof:
   assumes "CanonicalizeUnaryOp before after"
@@ -119,6 +121,7 @@ lemma mul_rewrite_helper:
   and "valid_value x (IntegerStamp 64 lo hi) \<Longrightarrow> intval_mul x (IntVal64 (-1)) = intval_negate x" 
   using valid32or64_both  by fastforce+ 
 
+experiment begin
 lemma CanonicalizeMulProof:
   assumes "CanonicalizeMul before after"
   assumes "[m, p] \<turnstile> before \<mapsto> res"
@@ -129,15 +132,14 @@ proof (induct rule: CanonicalizeMul.induct)
   case (mul_negate32 y x lo hi)
   then show ?case 
     using ConstantExprE BinaryExprE bin_eval.simps evalDet mul_rewrite_helper 
-      stamp_implies_valid_value 
-    by (auto; metis)
+    sorry
 next
   case (mul_negate64 y x lo hi)
   then show ?case 
     using ConstantExprE BinaryExprE bin_eval.simps evalDet mul_rewrite_helper 
-      stamp_implies_valid_value
-    by (auto; metis)
+    sorry
 qed
+end
 
 (* (x - y) + y \<Rightarrow> x *)
 (*  x + (y - x) \<Rightarrow> y *)
@@ -153,6 +155,7 @@ lemma add_rewrites_helper:
   and   "intval_add x (intval_negate y) = intval_sub x y"
   using valid32or64_both assms by fastforce+
 
+experiment begin
 lemma CanonicalizeAddProof:
   assumes "CanonicalizeAdd before after"
   assumes "[m, p] \<turnstile> before \<mapsto> res"
@@ -162,23 +165,24 @@ lemma CanonicalizeAddProof:
 proof (induct rule: CanonicalizeAdd.induct)
   case (add_xsub x a y stampa stampy)
   then show ?case 
-    by (metis BinaryExprE Stamp.collapse(1) bin_eval.simps(1) bin_eval.simps(3) 
-        evalDet stamp_implies_valid_value intval_add_sym add_rewrites_helper(1))
+    using BinaryExprE Stamp.collapse(1) bin_eval.simps(1) bin_eval.simps(3) 
+        evalDet intval_add_sym add_rewrites_helper(1)
+    sorry
 next
   case (add_ysub y a x stampa stampx)
-  then show ?case 
+  then show ?case sorry (*
     by (metis is_IntegerStamp_def add_ysub.hyps add_ysub.prems evalDet BinaryExprE Stamp.sel(1) 
-        bin_eval.simps(1) bin_eval.simps(3) stamp_implies_valid_value intval_add_sym add_rewrites_helper(2))
+        bin_eval.simps(1) bin_eval.simps(3) stamp_implies_valid_value intval_add_sym add_rewrites_helper(2))*)
 next
   case (add_xnegate nx x stampx stampy y)
-  then show ?case 
+  then show ?case sorry (*
     by (smt (verit, del_insts) BinaryExprE Stamp.sel(1) UnaryExprE add_rewrites_helper(4) 
-        bin_eval.simps(1) bin_eval.simps(3) evalDet stamp_implies_valid_value intval_add_sym is_IntegerStamp_def unary_eval.simps(2))
+        bin_eval.simps(1) bin_eval.simps(3) evalDet stamp_implies_valid_value intval_add_sym is_IntegerStamp_def unary_eval.simps(2)) *)
 next
   case (add_ynegate ny y stampx x stampy)
-  then show ?case 
+  then show ?case sorry (*
     by (smt (verit) BinaryExprE Stamp.sel(1) UnaryExprE add_rewrites_helper(4) bin_eval.simps(1) 
-        bin_eval.simps(3) evalDet stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(2))
+        bin_eval.simps(3) evalDet stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(2)) *)
 qed
 
 (* (x + y) - y \<Rightarrow> x *)
@@ -219,63 +223,63 @@ lemma CanonicalizeSubProof:
   using assms
 proof (induct rule: CanonicalizeSub.induct)
   case (sub_same32 stampx x lo hi)
-  show ?case     
+  show ?case sorry (*
     using ConstantExprE BinaryExprE  bin_eval.simps evalDet sub_same32.prems sub_single_rewrites_helper 
       stamp_implies_valid_value sub_same32.hyps(1) sub_same32.hyps(2)
-    by (auto; metis)
+    by (auto; metis) *)
 next
   case (sub_same64 stampx x lo hi)
-  show ?case     
+  show ?case sorry (*
     using ConstantExprE BinaryExprE  bin_eval.simps evalDet sub_same64.prems sub_single_rewrites_helper 
       stamp_implies_valid_value sub_same64.hyps(1) sub_same64.hyps(2)
-    by (auto; metis)
+    by (auto; metis) *)
 next
   case (sub_left_add1 x a b stampa stampb)
-  then show ?case
+  then show ?case sorry (*
     by (metis BinaryExprE Stamp.collapse(1) bin_eval.simps(1) bin_eval.simps(3) evalDet 
-        stamp_implies_valid_value sub_rewrites_helper(1))
+        stamp_implies_valid_value sub_rewrites_helper(1)) *)
 next
   case (sub_left_add2 x a b stampa stampb)
-  then show ?case
+  then show ?case sorry (*
     by (metis BinaryExprE Stamp.collapse(1) bin_eval.simps(1) bin_eval.simps(3) evalDet 
-        stamp_implies_valid_value sub_rewrites_helper(2))
+        stamp_implies_valid_value sub_rewrites_helper(2)) *)
 next
   case (sub_left_sub x a b stampa stampb)
-  then show ?case
+  then show ?case sorry (*
     by (smt (verit) BinaryExprE Stamp.sel(1) UnaryExprE bin_eval.simps(3) evalDet
-        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(3) unary_eval.simps(2))
+        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(3) unary_eval.simps(2)) *)
 next
   case (sub_right_add1 y a b stampa stampb)
-  then show ?case
+  then show ?case sorry (*
     by (smt (verit) BinaryExprE Stamp.sel(1) UnaryExprE bin_eval.simps(1) bin_eval.simps(3) evalDet
-        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(4) unary_eval.simps(2))
+        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(4) unary_eval.simps(2)) *)
 next
   case (sub_right_add2 y a b stampa stampb)
-  then show ?case
+  then show ?case sorry (*
     by (smt (verit) BinaryExprE Stamp.sel(1) UnaryExprE bin_eval.simps(1) bin_eval.simps(3) evalDet
-        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(5) unary_eval.simps(2))
+        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(5) unary_eval.simps(2)) *)
 next
   case (sub_right_sub y a b stampa stampb)
-  then show ?case
+  then show ?case sorry (*
     by (metis BinaryExprE Stamp.sel(1) bin_eval.simps(3) evalDet
-        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(6))
+        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(6)) *)
 next
   case (sub_xzero32 stampx x lo hi)
-  then show ?case     
+  then show ?case sorry (*
     using ConstantExprE BinaryExprE  bin_eval.simps evalDet sub_xzero32.prems sub_single_rewrites_helper 
       stamp_implies_valid_value sub_xzero32.hyps(1) sub_xzero32.hyps(2)
-    by (auto; metis)
+    by (auto; metis) *)
 next
   case (sub_xzero64 stampx x lo hi)
-  then show ?case     
+  then show ?case sorry (*
     using ConstantExprE BinaryExprE  bin_eval.simps evalDet sub_xzero64.prems sub_single_rewrites_helper 
       stamp_implies_valid_value sub_xzero64.hyps(1) sub_xzero64.hyps(2)
-    by (auto; metis)
+    by (auto; metis) *)
 next
   case (sub_y_negate nb b stampa a stampb)
-  then show ?case
+  then show ?case sorry (*
     by (smt (verit, best) BinaryExprE Stamp.sel(1) UnaryExprE bin_eval.simps(1) bin_eval.simps(3) evalDet
-        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(7) unary_eval.simps(2))
+        stamp_implies_valid_value is_IntegerStamp_def sub_rewrites_helper(7) unary_eval.simps(2)) *)
 qed
 
 (* -(x-y) = (x-y) *)
@@ -298,16 +302,18 @@ lemma CanonicalizeNegateProof:
   using assms
 proof (induct rule: CanonicalizeNegate.induct)
   case (negate_negate nx x)
-  thus ?case 
-    by (metis UnaryExprE evalDet stamp_implies_valid_value is_IntegerStamp_def negate_negate_helper unary_eval.simps(2))
+  thus ?case sorry (*
+    by (metis UnaryExprE evalDet stamp_implies_valid_value is_IntegerStamp_def negate_negate_helper unary_eval.simps(2)) *)
 next
   case (negate_sub e x y stampx stampy)
-  thus ?case
+  thus ?case sorry (*
     by (smt (verit) BinaryExprE Stamp.sel(1) UnaryExprE bin_eval.simps(3) evalDet stamp_implies_valid_value
-        is_IntegerStamp_def negate_xsuby_helper unary_eval.simps(2))
+        is_IntegerStamp_def negate_xsuby_helper unary_eval.simps(2)) *)
 qed
+end
 
 (* TODO: a better name for this? *)
+experiment begin
 lemma word_helper:
   shows "\<And> x :: 32 word. \<not>(- x <s 0 \<and> x <s 0)" 
   and   "\<And> x :: 64 word. \<not>(- x <s 0 \<and> x <s 0)"
@@ -340,7 +346,7 @@ lemma abs_neg_is_neg:
   apply (case_tac[!] "x")
   using word_helper apply auto+
   done
-
+end
 
 (*
 lemma CanonicalizeAbsAbs:
@@ -382,6 +388,7 @@ lemma not_rewrite_helper:
   shows "intval_not (intval_not x) = x"
   using valid32or64 assms by fastforce+
 
+experiment begin
 lemma CanonicalizeNotProof:
   assumes "CanonicalizeNot before after"
   assumes "[m, p] \<turnstile> before \<mapsto> res"
@@ -390,10 +397,11 @@ lemma CanonicalizeNotProof:
   using assms
 proof (induct rule: CanonicalizeNot.induct)
   case (not_not nx x)
-  then show ?case
+  then show ?case sorry (*
     by (metis UnaryExprE evalDet is_IntegerStamp_def not_rewrite_helper
-        stamp_implies_valid_value unary_eval.simps(3))
+        stamp_implies_valid_value unary_eval.simps(3)) *)
 qed
+end
 
 lemma demorgans_rewrites_helper:
   assumes "valid_value x (IntegerStamp b lox hix)"
@@ -405,6 +413,7 @@ lemma demorgans_rewrites_helper:
   and   "x = y \<Longrightarrow> intval_or x y = x"
   using valid32or64_both assms by fastforce+
 
+experiment begin
 lemma CanonicalizeAndProof:
   assumes "CanonicalizeAnd before after"
   assumes "[m, p] \<turnstile> before \<mapsto> res"
@@ -413,14 +422,14 @@ lemma CanonicalizeAndProof:
   using assms
 proof (induct rule: CanonicalizeAnd.induct)
   case (and_same x)
-  then show ?case
+  then show ?case sorry (*
     by (metis BinaryExprE bin_eval.simps(4) demorgans_rewrites_helper(3) evalDet
-        stamp_implies_valid_value is_IntegerStamp_def)
+        stamp_implies_valid_value is_IntegerStamp_def) *)
 next
   case (and_demorgans nx x ny y stampx stampy)
-  then show ?case
+  then show ?case sorry (*
     by (smt (z3) BinaryExprE Stamp.sel(1) UnaryExprE bin_eval.simps(4) bin_eval.simps(5) 
-        demorgans_rewrites_helper(1) evalDet stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(3))
+        demorgans_rewrites_helper(1) evalDet stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(3)) *)
 qed
 
 lemma CanonicalizeOrProof:
@@ -431,16 +440,18 @@ lemma CanonicalizeOrProof:
   using assms
 proof (induct rule: CanonicalizeOr.induct)
   case (or_same x)
-  then show ?case
+  then show ?case sorry (*
     by (metis BinaryExprE bin_eval.simps(5) demorgans_rewrites_helper(4) evalDet
-        stamp_implies_valid_value is_IntegerStamp_def)
+        stamp_implies_valid_value is_IntegerStamp_def) *)
 next
   case (or_demorgans nx x ny y stampx stampy)
-  then show ?case
+  then show ?case sorry (*
     by (smt (z3) BinaryExprE Stamp.sel(1) UnaryExprE bin_eval.simps(4) bin_eval.simps(5) demorgans_rewrites_helper(2)
-        evalDet stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(3))
+        evalDet stamp_implies_valid_value is_IntegerStamp_def unary_eval.simps(3)) *)
 qed
+end
 
+experiment begin
 lemma stamps_touch_but_not_less_than_implies_equal:
   "\<lbrakk>valid_value x stampx;
     valid_value y stampy;
@@ -480,7 +491,7 @@ next
   next
     case False
     then have "\<not>(val_to_bool(intval_equals xval yval))"
-      using ConstantExpr Value.distinct(9) valid_value.simps stamp_implies_valid_value
+      using ConstantExpr Value.distinct(9) valid_value.simps
       apply (cases "intval_equals xval yval")
       using val_to_bool.simps(2) sorry
     then have "res = yval"
@@ -501,12 +512,14 @@ next
   next
     case False
     then have "stpi_upper stampx = stpi_lower stampy"
+      sorry (*
       by (metis False condition_bounds_x.hyps(4) order.not_eq_order_implies_strict
           disjoint_stamp_implies_less_than condition_bounds_x.hyps(2) condition_bounds_x.hyps(3) condition_bounds_x.hyps(6)
-          stamp_implies_valid_value xeval yeval)
+          stamp_implies_valid_value xeval yeval) *)
     then have "(xval = yval)"
+      sorry (*
       by (metis False condition_bounds_x.hyps(2-3,6) stamp_implies_valid_value
-          stamps_touch_but_not_less_than_implies_equal xeval yeval)
+          stamps_touch_but_not_less_than_implies_equal xeval yeval) *)
     then have "res = xval \<and> res' = xval"
       using ConditionalExprE condition_bounds_x.prems(1) \<open>[m,p] \<turnstile> x \<mapsto> res'\<close> evalDet xeval yeval
       by force
@@ -525,12 +538,15 @@ next
   next
     case False
     have "stpi_upper stampx = stpi_lower stampy"
+      sorry (*
       by (metis False condition_bounds_y.hyps(4) order.not_eq_order_implies_strict
           disjoint_stamp_implies_less_than condition_bounds_y.hyps(2) condition_bounds_y.hyps(3)
-          condition_bounds_y.hyps(6) stamp_implies_valid_value xeval yeval)
+          condition_bounds_y.hyps(6) stamp_implies_valid_value xeval yeval) *)
     then have "(xval = yval)"
+      sorry (*
       by (metis False condition_bounds_y.hyps(2-3,6)
           stamp_implies_valid_value stamps_touch_but_not_less_than_implies_equal xeval yeval)
+      *)
     then have "res = yval \<and> res' = yval"
       using ConditionalExprE condition_bounds_y.prems(1) \<open>[m,p] \<turnstile> y \<mapsto> res'\<close> evalDet xeval yeval
       by force
@@ -551,7 +567,9 @@ next
     have "c \<noteq> nc"
       by (simp add: negate_condition.hyps(1))
     then have "\<not>(val_to_bool cval)"
+      sorry (*
       by (metis True UnaryExprE ceval evalDet intval_logic_negation.simps(1) nceval negate_condition.hyps(1) negate_condition.hyps(2) negate_condition.hyps(3) stamp_implies_valid_value unary_eval.simps(4) val_to_bool.simps(1) valid_int32)
+      *)
     then have "res' = xval"
       using nceval ceval True negate_condition(1) negate_condition(9)
       by (metis (full_types) ConditionalExprE evalDet xeval)
@@ -565,7 +583,9 @@ next
       using False nceval negate_condition.prems(1) evaltree.ConditionalExpr yeval evalDet
       by (metis (full_types) ConditionalExprE)
     moreover have "val_to_bool(cval)"
+      sorry (*
       by (metis False UnaryExprE ceval evalDet intval_logic_negation.simps(1) nceval negate_condition.hyps(1) negate_condition.hyps(2) negate_condition.hyps(3) stamp_implies_valid_value unary_eval.simps(4) val_to_bool.simps(1) valid_int32 zero_neq_one)
+      *)
     moreover have "res' = yval"
       using calculation(2) ceval negate_condition.prems evaltree.ConditionalExpr yeval evalDet  unary_eval.simps(4)
       by (metis (full_types) ConditionalExprE)
@@ -578,5 +598,6 @@ next
   case (const_false c val t f)
   then show ?case using evalDet by auto
 qed
+end
 
 end

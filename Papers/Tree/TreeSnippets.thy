@@ -46,7 +46,7 @@ phase tmp
   trm size
 begin
 snipbegin \<open>minus-same\<close>
-optimization MinusSame: "(Rep_int32 (e::int32)) - (Rep_int32 e) \<mapsto> const (IntVal32 0)"
+optimization MinusSame: "(e::int32) - e \<mapsto> const (IntVal32 0)"
   snipend -
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto[1] using Rep_int32 evalDet is_IntVal32_def
@@ -171,7 +171,7 @@ snipend -
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
-optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
+optimization AddNeutral: "((e::int32) + (const (IntVal32 0))) \<mapsto> e"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
@@ -180,10 +180,11 @@ snipend -
   text \<open>@{subgoals[display]}\<close>
   snipend -
 
-  using AddNeutral by auto
+  using neutral_zero(1) rewrite_preservation.simps(1) apply blast
+  by auto
 
 snipbegin \<open>NeutralLeftSub\<close>
-optimization NeutralLeftSub: "(Rep_int e\<^sub>1 - Rep_int e\<^sub>2) + Rep_int e\<^sub>2 \<mapsto> Rep_int e\<^sub>1"
+optimization NeutralLeftSub: "((e\<^sub>1::int) - (e\<^sub>2::int)) + e\<^sub>2 \<mapsto> e\<^sub>1"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
@@ -195,7 +196,7 @@ snipend -
   using neutral_left_add_sub by auto
 
 snipbegin \<open>NeutralRightSub\<close>
-optimization NeutralRightSub: "Rep_int e\<^sub>2 + (Rep_int e\<^sub>1 - Rep_int e\<^sub>2) \<mapsto> Rep_int e\<^sub>1"
+optimization NeutralRightSub: "(e\<^sub>2::int) + ((e\<^sub>1::int) - e\<^sub>2) \<mapsto> e\<^sub>1"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps

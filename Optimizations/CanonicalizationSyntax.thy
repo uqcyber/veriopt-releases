@@ -34,6 +34,9 @@ lemma int64_binary:
 typedef int = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal32 v \<or> is_IntVal64 v))}"
   by auto
 
+declare
+  [[coercion_enabled]]
+  [[coercion Rep_int, coercion Rep_int32, coercion Rep_int64]]
 
 fun size :: "IRExpr \<Rightarrow> nat" where
   "size (UnaryExpr op e) = (size e) + 1" |
@@ -313,7 +316,7 @@ value "constant_add_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (Constan
 print_context
 
 optimization constant_shift:
-  "(c + Rep_int (e::int)) \<mapsto> (Rep_int e + c) when (\<not>(is_ConstantExpr (Rep_int e)))"
+  "(c + (e::int)) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e))"
    unfolding rewrite_preservation.simps apply (rule impI) defer apply simp
    using nonconstants_gt_one apply fastforce
    by (smt (verit, ccfv_SIG) BinaryExprE add.commute bin_eval.simps(1) evaltree.intros(5) le_expr_def plus_Value_def)
@@ -323,14 +326,14 @@ print_context
 thm constant_shift
 
 optimization neutral_zero:
-  "(Rep_int32 (e::int32) + const(IntVal32 0)) \<mapsto> Rep_int32 e"
+  "((e::int32) + const(IntVal32 0)) \<mapsto> e"
    defer apply simp+
   using Rep_int32 is_IntVal32_def by fastforce
 
 ML_val \<open>@{term "(e1 - e2) + e2 \<mapsto> e1"}\<close>
 
 optimization neutral_left_add_sub:
-  "(Rep_int e1 - Rep_int e2) + Rep_int e2 \<mapsto> Rep_int e1"
+  "((e1::int) - (e2::int)) + e2 \<mapsto> e1"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
   using Rep_int is_IntVal32_def is_IntVal64_def
@@ -338,7 +341,7 @@ optimization neutral_left_add_sub:
   by (simp add: size_gt_0)
 
 optimization neutral_right_add_sub:
-  "Rep_int e1 + (Rep_int e2 - Rep_int e1) \<mapsto> Rep_int e2"
+  "(e1::int) + ((e2::int) - e1) \<mapsto> e2"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
   apply (smt (verit, del_insts) CanonicalizationSyntax.int.Rep_int add.commute diff_add_cancel evalDet intval_add.simps(1) intval_add.simps(2) intval_sub.simps(1) intval_sub.simps(12) intval_sub.simps(2) intval_sub.simps(5) is_IntVal32_def is_IntVal64_def mem_Collect_eq)
@@ -346,7 +349,7 @@ optimization neutral_right_add_sub:
 
 
 optimization add_ynegate:
-  "(Rep_int32 x + (-(Rep_int32 y))) \<mapsto> (Rep_int32 x - Rep_int32 y)"
+  "((x::int32) + (-(y::int32))) \<mapsto> (x - y)"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
   using Groups.group_add_class.add_uminus_conv_diff
@@ -415,8 +418,8 @@ optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_ev
   using evaltree.ConstantExpr int_constants_valid unary_eval_preserves_validity by simp
 *)
 
-optimization AndEqual: "(x & x) \<mapsto> x when is_IntegerStamp (stamp_expr x)"
-   apply auto sledgehammer
+optimization AndEqual: "((x::int) & x) \<mapsto> x"
+   apply auto
   apply (smt (verit, best) demorgans_rewrites_helper(3) evalDet evaltree.simps int_constants_valid intval_and.simps(15) intval_and.simps(9) is_int_val.elims(3) stamprange)
   unfolding size.simps
   by (simp add: size_gt_0)
@@ -439,7 +442,7 @@ lemma neutral_and:
 context
   includes bit_operations_syntax
 begin
-optimization AndNeutral: "(x & (const (IntVal32 (NOT 0)))) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
+optimization AndNeutral: "((x::int32) & (const (IntVal32 (NOT 0)))) \<mapsto> x"
    apply auto
   by (smt (z3) Value.distinct(9) bin_eval.simps(4) intval_and.elims neutral_and unrestricted_32bit_always_valid unrestricted_stamp.simps(2))
 
@@ -525,7 +528,7 @@ optimization AddRightNegateToSub: "x + -e \<mapsto> x - e"
   unfolding size.simps
   by simp
 
-optimization MulEliminator: "(Rep_int32 x * const(IntVal32 0)) \<mapsto> const(IntVal32 0)"
+optimization MulEliminator: "((x::int32) * const(IntVal32 0)) \<mapsto> const(IntVal32 0)"
    apply auto
   using Rings.mult_zero_class.mult_zero_right
   apply (metis (no_types, opaque_lifting) ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet int32_eval int_and_equal_bits.simps(1) intval_mul.simps(1) intval_sub.simps(1))
@@ -536,7 +539,7 @@ lemma "(x::('a::len) word) * 1 = x"
   
   by simp
 
-optimization MulNeutral: "(x * const(IntVal32 1)) \<mapsto> x when (stamp_expr x = IntegerStamp 32 l u)"
+optimization MulNeutral: "(x * const(IntVal32 1)) \<mapsto> x"
    apply auto
   using Groups.comm_monoid_mult_class.mult.comm_neutral
   by (smt (z3) Value.distinct(9) intval_mul.elims neutral_rewrite_helper(1) unrestricted_32bit_always_valid unrestricted_stamp.simps(2))

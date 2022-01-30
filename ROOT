@@ -58,8 +58,16 @@ session Proofs in Proofs = Semantics +
 session OptimizationDSL in "Optimizations/DSL" = Proofs +
   description
     "DSL for optimizations"
+  options [document = pdf,
+           document_output = "output",
+           show_question_marks = false]
   theories
+    Markup
+    Phase
     Canonicalization
+  document_files (in "../../latex")
+    "root.tex"
+    "mathpartir.sty"
 
 session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL +
   description

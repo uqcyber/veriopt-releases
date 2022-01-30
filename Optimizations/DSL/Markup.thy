@@ -1,5 +1,5 @@
 theory Markup
-  imports Semantics.IRTreeEval
+  imports Semantics.IRTreeEval Veriopt.Snipping
 begin
 
 datatype 'a Rewrite =
@@ -56,12 +56,25 @@ structure IRExprMarkup = DSL_Markup(IRExprTranslator);
 structure IntValMarkup = DSL_Markup(IntValTranslator);
 \<close>
 
+snipbegin \<open>ir expression translation\<close>
 syntax "_expandExpr" :: "term \<Rightarrow> term" ("exp[_]")
 parse_translation \<open> [( @{syntax_const "_expandExpr"} , IRExprMarkup.markup_expr)] \<close>
+snipend -
 
+snipbegin \<open>value expression translation\<close>
 syntax "_expandIntVal" :: "term \<Rightarrow> term" ("val[_]")
 parse_translation \<open> [( @{syntax_const "_expandIntVal"} , IntValMarkup.markup_expr)] \<close>
+snipend -
 
+snipbegin \<open>ir expression example\<close>
+value "exp[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]"
+text \<open>@{term \<open>exp[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
+snipend - 
+
+snipbegin \<open>value expression example\<close>
+value "val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]"
+text \<open>@{term \<open>val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
+snipend -
 value "exp[((e\<^sub>1 - e\<^sub>2) + (const (IntVal32 0)) + e\<^sub>2) \<mapsto> e\<^sub>1 when True]"
 value "val[((e\<^sub>1 - e\<^sub>2) + (const 0) + e\<^sub>2) \<mapsto> e\<^sub>1 when True]"
 

@@ -7,7 +7,7 @@ phase SnipPhase
   trm size
 begin
 
-optimization BinaryFoldConstant: "BinaryExpr op c1 c2 \<mapsto> ConstantExpr (bin_eval op val_c1 val_c2)"
+optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<mapsto> ConstantExpr (bin_eval op v1 v2)"
    apply unfold_optimization
   sorry
 
@@ -16,7 +16,7 @@ thm BinaryFoldConstant(2)
 thm BinaryFoldConstant
 value "BinaryFoldConstant_code (ConstantExpr (IntVal32 0))"
 
-optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when \<not>(is_ConstantExpr y)"
+optimization AddShiftConstantRight: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
   apply unfold_optimization
   sorry
 

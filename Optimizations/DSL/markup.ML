@@ -8,20 +8,20 @@ structure DSL_Tokens =
 struct
 
 datatype Tokens =
-  Add |
-  Sub |
-  Mul |
-  And |
-  Less |
-  Abs |
-  Equals |
-  Not |
-  Negate |
-  LeftShift |
-  RightShift |
-  UnsignedRightShift |
-  Conditional |
-  Constant
+    Add
+  | Sub
+  | Mul
+  | And
+  | Less
+  | Abs
+  | Equals
+  | Not
+  | Negate
+  | LeftShift
+  | RightShift
+  | UnsignedRightShift
+  | Conditional
+  | Constant
 end
 
 signature DSL_TRANSLATION =
@@ -90,10 +90,7 @@ fun markup_constant (str, typ) =
 fun markup_free (str, typ) =
   case (str, typ) of
     ("abs", _) => Translator.markup DSL_Tokens.Abs
-    | (var, typ) => 
-      (if String.sub(var,0) = #"c" 
-        then Translator.markup DSL_Tokens.Constant $ Free ("val_" ^ var, typ)
-        else Free (var, typ))
+    | (var, typ) => Free (var, typ)
 
 fun markup_expr ctxt [trm] =
   let

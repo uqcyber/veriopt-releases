@@ -103,7 +103,7 @@ ML_val \<open>@{term "c < y"}\<close>
 ML_val \<open>@{term "a \<Longrightarrow> c < y"}\<close>
 ML_val \<open>@{term "x << y"}\<close>
 
-value "exp[c1 + y]"
+value "exp[(const v1) + y]"
 
 datatype Type =
   Integer |
@@ -303,20 +303,21 @@ optimization constant_add:
   sorry
 *)
 
-(*
+
 optimization constant_add:
-  "(c1 + c2) \<mapsto> ConstantExpr (intval_add val_c1 val_c2)"
+  "((const v1) + (const v2)) \<mapsto> ConstantExpr (intval_add v1 v2)"
   unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer
    apply simp
   sorry
 
+(*
 value "constant_add_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (ConstantExpr (IntVal32 0)))"
 *)
 
 print_context
 
 optimization constant_shift:
-  "(c + (e::int)) \<mapsto> (e + c) when (\<not>(is_ConstantExpr e))"
+  "((const c) + (e::int)) \<mapsto> (e + (const c)) when (\<not>(is_ConstantExpr e))"
    unfolding rewrite_preservation.simps apply (rule impI) defer apply simp
    using nonconstants_gt_one apply fastforce
    by (smt (verit, ccfv_SIG) BinaryExprE add.commute bin_eval.simps(1) evaltree.intros(5) le_expr_def plus_Value_def)
@@ -424,7 +425,7 @@ optimization AndEqual: "((x::int) & x) \<mapsto> x"
   unfolding size.simps
   by (simp add: size_gt_0)
 
-optimization AndShiftConstantRight: "((ConstantExpr x) + y) \<mapsto> y + (ConstantExpr x) when ~(is_ConstantExpr y)"
+optimization AndShiftConstantRight: "((const x) + y) \<mapsto> y + (const x) when ~(is_ConstantExpr y)"
   apply simp
    apply (smt (verit, ccfv_threshold) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
   unfolding size.simps using nonconstants_gt_one by auto
@@ -487,12 +488,12 @@ lemma bin_eval_preserves_validity:
   by (metis (full_types))
 
 
-optimization BinaryFoldConstant: "BinaryExpr op (ConstantExpr e1) (ConstantExpr e2) \<mapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
+optimization BinaryFoldConstant: "BinaryExpr op (const e1) (const e2) \<mapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
    apply auto
    apply (simp add: ConstantExpr bin_eval_preserves_validity)
   using nonconstants_gt_one by simp
 
-optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when ~(is_ConstantExpr y)"
+optimization AddShiftConstantRight: "((const c) + y) \<mapsto> y + (const c) when ~(is_ConstantExpr y)"
   apply simp
    apply (smt (verit, del_insts) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
   unfolding size.simps using nonconstants_gt_one by simp

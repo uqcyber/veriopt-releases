@@ -20,6 +20,8 @@ notation (latex)
 notation (latex)
   constantAsStamp ("\<^latex>\<open>stamp-from-value\<close> _")
 
+notation (latex)
+  size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
 
 (* hide type casting *)
 translations
@@ -139,9 +141,6 @@ val _ = Theory.setup
 (*snipbegin \<open>OptimizationList\<close>
 text \<open>@{rule BinaryFoldConstant}\<close>
 snipend -*)
-
-notation (latex)
-  size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
 
 phase SnipPhase 
   trm size

@@ -146,7 +146,7 @@ phase SnipPhase
   trm size
 begin
 snipbegin \<open>BinaryFoldConstant\<close>
-optimization BinaryFoldConstant: "BinaryExpr op c1 c2 \<mapsto> ConstantExpr (bin_eval op val_c1 val_c2) when int_and_equal_bits val_c1 val_c2 "
+optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<mapsto> ConstantExpr (bin_eval op v1 v2) when int_and_equal_bits v1 v2 "
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
@@ -158,7 +158,7 @@ snipend -
   using BinaryFoldConstant by auto
 
 snipbegin \<open>AddShiftConstantRight\<close>
-optimization AddShiftConstantRight: "(c1 + y) \<mapsto> y + c1 when \<not>(is_ConstantExpr y)"
+optimization AddShiftConstantRight: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps

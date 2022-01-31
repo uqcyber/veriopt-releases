@@ -5,7 +5,7 @@ theory ConditionalPhase
 begin
 
 phase Conditional
-  trm size
+  terminating size
 begin
 
 lemma negates: "is_IntVal32 e \<or> is_IntVal64 e \<Longrightarrow> val_to_bool (val[e]) \<equiv> \<not>(val_to_bool (val[\<not>e]))"

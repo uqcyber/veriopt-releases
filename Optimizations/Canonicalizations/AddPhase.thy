@@ -4,7 +4,7 @@ theory AddPhase
 begin
 
 phase SnipPhase 
-  trm size
+  terminating size
 begin
 
 optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<mapsto> ConstantExpr (bin_eval op v1 v2)"

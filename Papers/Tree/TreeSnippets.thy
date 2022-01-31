@@ -1,7 +1,7 @@
 theory TreeSnippets
   imports 
-    Semantics.TreeToGraphThms
     Optimizations.CanonicalizationSyntax
+    Semantics.TreeToGraphThms
     Veriopt.Snipping
     "HOL-Library.OptionalSugar"
 begin
@@ -45,19 +45,26 @@ text "@{thm redundant_sub}"
 snipend -
 
 phase tmp
-  trm size
+  terminating size
 begin
-snipbegin \<open>minus-same\<close>
-optimization MinusSame: "(e::int32) - e \<mapsto> const (IntVal32 0)"
-  snipend -
+snipbegin \<open>sub-same-32\<close>
+optimization sub_same: "(e::int32) - e \<mapsto> const (IntVal32 0)"
+snipend -
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto[1] using Rep_int32 evalDet is_IntVal32_def
   apply (smt (verit, del_insts) eq_iff_diff_eq_0 evaltree.simps int_constants_valid intval_sub.simps(1) is_int_val.simps(1) mem_Collect_eq)
   unfolding size.simps
   by (metis add_strict_increasing gr_implies_not0 less_one linorder_not_le size_gt_0)
+
+snipbegin \<open>sub-same-64\<close>
+optimization sub_same_64: "(e::int64) - e \<mapsto> const (IntVal64 0)"
+  snipend -
+  apply auto
+   apply (metis (no_types, opaque_lifting) ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet int64_eval int_and_equal_bits.simps(2) intval_sub.simps(2))
+  by (simp add: Suc_le_eq add_strict_increasing size_gt_0)
 end
 
-thm_oracles MinusSame
+thm_oracles sub_same
 
 
 snipbegin \<open>ast-example\<close>
@@ -143,7 +150,7 @@ text \<open>@{rule BinaryFoldConstant}\<close>
 snipend -*)
 
 phase SnipPhase 
-  trm size
+  terminating size
 begin
 snipbegin \<open>BinaryFoldConstant\<close>
 optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<mapsto> ConstantExpr (bin_eval op v1 v2) when int_and_equal_bits v1 v2 "
@@ -222,9 +229,11 @@ snipend -
 
 end
 
+definition trm where "trm = size"
+
 snipbegin \<open>phase\<close>
 phase AddCanonicalizations
-  trm size
+  terminating trm
 begin
   text_raw "\\dots"
 end

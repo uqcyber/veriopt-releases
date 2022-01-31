@@ -1,8 +1,7 @@
 theory CanonicalizationSyntax
   imports 
-    CanonicalizationTreeProofs 
-    HOL.Ctr_Sugar
     OptimizationDSL.Canonicalization
+    CanonicalizationTreeProofs 
 begin
 
 typedef int32 = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal32 v))}"
@@ -289,7 +288,7 @@ ML_val \<open>@{term "hello = case_IRExpr
 
 
 phase Canonicalization
-  trm size
+  terminating size
 begin
 
 (*
@@ -364,7 +363,7 @@ end
 print_context
 
 phase DirectTranslationTest
-  trm size
+  terminating size
 begin
 
 (*

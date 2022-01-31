@@ -4,7 +4,7 @@ theory Canonicalization
     Phase
   keywords
     "phase" :: thy_decl and 
-    "trm" :: quasi_command and
+    "terminating" :: quasi_command and
     "print_phases" :: diag and
     "optimization" :: thy_goal_defn
 begin
@@ -49,7 +49,7 @@ structure RewritePhase = DSL_Phase(RewriteRule);
 
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>phase\<close> "enter an optimization phase"
-   (Parse.binding --| Parse.$$$ "trm" -- Parse.const --| Parse.begin
+   (Parse.binding --| Parse.$$$ "terminating" -- Parse.const --| Parse.begin
      >> (Toplevel.begin_main_target true o RewritePhase.setup));
 
 fun print_phases ctxt =

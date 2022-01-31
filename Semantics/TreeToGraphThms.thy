@@ -662,10 +662,10 @@ proof -
 qed
 
 lemma graph_semantics_preservation_subscript:
-  assumes a: "e\<^sub>1 \<ge> e\<^sub>2"
+  assumes a: "e\<^sub>1' \<ge> e\<^sub>2'"
   assumes b: "({n} \<unlhd> as_set g\<^sub>1) \<subseteq> as_set g\<^sub>2"
-  assumes c: "g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1"
-  assumes d: "g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2"
+  assumes c: "g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1'"
+  assumes d: "g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2'"
   shows "graph_refinement g\<^sub>1 g\<^sub>2"
   using graph_semantics_preservation assms by simp
 

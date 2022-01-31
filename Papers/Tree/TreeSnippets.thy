@@ -68,7 +68,7 @@ thm_oracles sub_same
 
 
 snipbegin \<open>ast-example\<close>
-text "@{value[display,margin=25] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"
+text "@{value[display] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"
 snipend -
 
 snipbegin \<open>abstract-syntax-tree\<close>

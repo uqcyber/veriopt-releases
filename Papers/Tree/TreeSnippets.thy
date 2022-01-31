@@ -86,11 +86,11 @@ snipend -
 
 snipbegin \<open>tree-semantics\<close>
 text \<open>
-\induct{@{thm[mode=Rule] evaltree.ConstantExpr [no_vars]}}{semantics:constant}
-\induct{@{thm[mode=Rule] evaltree.ParameterExpr [no_vars]}}{semantics:parameter}
-\induct{@{thm[mode=Rule] evaltree.ConditionalExpr [no_vars]}}{semantics:conditional}
 \induct{@{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}}{semantics:unary}
 \induct{@{thm[mode=Rule] evaltree.BinaryExpr [no_vars]}}{semantics:binary}
+\induct{@{thm[mode=Rule] evaltree.ConditionalExpr [no_vars]}}{semantics:conditional}
+\induct{@{thm[mode=Rule] evaltree.ConstantExpr [no_vars]}}{semantics:constant}
+\induct{@{thm[mode=Rule] evaltree.ParameterExpr [no_vars]}}{semantics:parameter}
 \induct{@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}}{semantics:leaf}
 \<close>
 snipend -

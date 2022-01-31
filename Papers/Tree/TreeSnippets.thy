@@ -341,6 +341,10 @@ snipbegin \<open>term-graph-refines-term\<close>
 text \<open>@{thm[display] graph_represents_expression_def [no_vars]}\<close>
 snipend -
 
+snipbegin \<open>term-graph-evaluation\<close>
+text \<open>@{thm[display] term_graph_evaluation [no_vars]}\<close>
+snipend -
+
 snipbegin \<open>graph-construction\<close>
 text \<open>@{thm[display, margin=40] graph_construction [no_vars]}\<close>
 snipend -

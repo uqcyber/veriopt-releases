@@ -99,6 +99,11 @@ lemma mono_mul:
   by (metis IRNode.inject(27) MulNodeE repDet rep_mul)
 
 
+lemma term_graph_evaluation:
+  "(g \<turnstile> n \<unlhd> e) \<Longrightarrow> (\<forall> m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> ([g,m,p] \<turnstile> n \<mapsto> v))"
+  unfolding graph_represents_expression_def apply auto
+  by (meson encodeeval_def)
+
 lemma encodes_contains:
   "g \<turnstile> n \<simeq> e \<Longrightarrow>
   kind g n \<noteq> NoNode"

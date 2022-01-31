@@ -500,6 +500,6 @@ lemma graph_refinement:
 definition graph_represents_expression :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRExpr \<Rightarrow> bool" 
   ("_ \<turnstile> _ \<unlhd> _" 50)
   where
-  "graph_represents_expression g n e = (\<forall> m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> ([g,m,p] \<turnstile> n \<mapsto> v))"
+  "(g \<turnstile> n \<unlhd> e) = (\<exists>e' . (g \<turnstile> n \<simeq> e') \<and> (e' \<le> e))"
 
 end

@@ -157,13 +157,13 @@ snipend -
 
   using BinaryFoldConstant by auto
 
-snipbegin \<open>AddShiftConstantRight\<close>
-optimization AddShiftConstantRight: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+snipbegin \<open>AddCommuteConstantRight\<close>
+optimization AddCommuteConstantRight: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
    apply (rule conjE, simp, simp del: le_expr_def)
-  snipbegin \<open>AddShiftConstantRightObligation\<close>
+  snipbegin \<open>AddCommuteConstantRightObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
 

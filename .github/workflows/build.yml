@@ -23,7 +23,7 @@ jobs:
           ${{ runner.os }}-Isabelle2021-${{ hashFiles('ROOT') }}
       
     - name: Build Sessions
-      uses: NieDzejkob/isabelle-action@v1.8
+      uses: BraeWebb/isabelle-action@v1.9
       with:
         args: "build -b -P site -D . -v"
         heapCacheDir: .heaps

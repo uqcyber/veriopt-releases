@@ -13,7 +13,9 @@ datatype 'a Rewrite =
 datatype 'a ExtraNotation =
   ConditionalNotation 'a 'a 'a ("_ ? _ : _") |
   EqualsNotation 'a 'a ("_ eq _") |
-  ConstantNotation 'a ("const _" 120)
+  ConstantNotation 'a ("const _" 120) |
+  TrueNotation ("true") |
+  FalseNotation ("false")
 
 ML_file \<open>markup.ML\<close>
 
@@ -34,6 +36,8 @@ fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.UnsignedRightShift = @{term BinaryExpr} $ @{term BinURightShift}
   | markup DSL_Tokens.Conditional = @{term ConditionalExpr}
   | markup DSL_Tokens.Constant = @{term ConstantExpr}
+  | markup DSL_Tokens.TrueConstant = @{term "ConstantExpr (IntVal32 1)"}
+  | markup DSL_Tokens.FalseConstant = @{term "ConstantExpr (IntVal32 0)"}
 end
 
 structure IntValTranslator : DSL_TRANSLATION =
@@ -52,6 +56,8 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.UnsignedRightShift = @{term intval_uright_shift}
   | markup DSL_Tokens.Conditional = @{term intval_conditional}
   | markup DSL_Tokens.Constant = @{term IntVal32}
+  | markup DSL_Tokens.TrueConstant = @{term "IntVal32 1"}
+  | markup DSL_Tokens.FalseConstant = @{term "IntVal32 0"}
 end
 
 structure IRExprMarkup = DSL_Markup(IRExprTranslator);

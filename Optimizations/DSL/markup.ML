@@ -22,6 +22,8 @@ datatype Tokens =
   | UnsignedRightShift
   | Conditional
   | Constant
+  | TrueConstant
+  | FalseConstant
 end
 
 signature DSL_TRANSLATION =
@@ -63,6 +65,10 @@ fun markup_constant (str, typ) =
     | ("Markup.ExtraNotation.EqualsNotation", _) => Translator.markup DSL_Tokens.Equals
     | ("\<^const>Markup.ExtraNotation.ConstantNotation", _) => Translator.markup DSL_Tokens.Constant
     | ("Markup.ExtraNotation.ConstantNotation", _) => Translator.markup DSL_Tokens.Constant
+    | ("\<^const>Markup.ExtraNotation.TrueNotation", _) => Translator.markup DSL_Tokens.TrueConstant
+    | ("Markup.ExtraNotation.TrueNotation", _) => Translator.markup DSL_Tokens.TrueConstant
+    | ("\<^const>Markup.ExtraNotation.FalseNotation", _) => Translator.markup DSL_Tokens.FalseConstant
+    | ("Markup.ExtraNotation.FalseNotation", _) => Translator.markup DSL_Tokens.FalseConstant
     | ("\<^const>Groups.plus_class.plus", _) => Translator.markup DSL_Tokens.Add
     | ("Groups.plus_class.plus", _) => Translator.markup DSL_Tokens.Add
     | ("\<^const>Groups.minus_class.minus", _) => Translator.markup DSL_Tokens.Sub

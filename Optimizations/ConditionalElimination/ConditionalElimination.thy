@@ -662,6 +662,7 @@ the individual traversal steps from the Step relation and the optimizations
 from the ConditionalEliminationStep relation to perform a transformation of the
 whole graph.
 \<close>
+(*
 
 inductive ConditionalEliminationPhase 
   :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> IRGraph \<Rightarrow> bool" where
@@ -967,5 +968,6 @@ next
 qed
 qed
 end
+*)
 
 end

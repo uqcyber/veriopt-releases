@@ -388,44 +388,6 @@ lemma not_excluded_keep_type:
   shows "kind g1 n = kind g2 n \<and> stamp g1 n = stamp g2 n"
   using assms unfolding as_set_def domain_subtraction_def by blast
 
-(*
-experiment begin
-lemma a: "(\<exists>e. (g \<turnstile> n \<simeq> e)) \<Longrightarrow> n \<in> ids g"
-  using no_encoding by blast
-
-lemma b: "(\<forall>n \<in> ids g1 . (n \<in> ids g1) \<longrightarrow> (n \<in> ids g2)) \<Longrightarrow> ids g1 \<subseteq> ids g2"
-  by blast
-
-lemma c: "(\<forall>n \<in> ids g1 . (\<exists>e1. (g1 \<turnstile> n \<simeq> e1)) \<longrightarrow> (\<exists>e2. (g2 \<turnstile> n \<simeq> e2))) \<Longrightarrow> ids g1 \<subseteq> ids g2"
-  using a b sorry
-
-lemma refinement_implies_subset:
-  "graph_refinement g1 g2 \<Longrightarrow> ids g1 \<subseteq> ids g2"
-  unfolding graph_represents_expression_def graph_refinement_def
-  using no_encoding c
-  by meson
-
-lemma experimental:
-  "(ids g\<^sub>1 \<subseteq> ids g\<^sub>2) \<and>
-      (\<forall>n. n \<in> ids g\<^sub>1 \<longrightarrow> (\<forall>e. (g\<^sub>1 \<turnstile> n \<simeq> e) \<longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e)))
-      \<Longrightarrow> graph_refinement g\<^sub>1 g\<^sub>2"
-  unfolding graph_represents_expression_def graph_refinement_def
-  by blast
-
-lemma experimental2:
-  "graph_refinement g\<^sub>1 g\<^sub>2 = ((ids g\<^sub>1 \<subseteq> ids g\<^sub>2) \<and>
-    (\<forall>n. n \<in> ids g\<^sub>1 \<longrightarrow> (\<forall>e. (g\<^sub>1 \<turnstile> n \<simeq> e) \<longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e))))"
-  using refinement_implies_subset
-  by (meson graph_refinement_def graph_represents_expression_def)
-
-lemma experimental3:
-  "graph_refinement g\<^sub>1 g\<^sub>2 = 
-    (\<forall>n. n \<in> ids g\<^sub>1 \<longrightarrow> (\<forall>e. (g\<^sub>1 \<turnstile> n \<simeq> e) \<longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e)))"
-  using graph_refinement_def graph_represents_expression_def by blast
-
-end
-*)
-
 method metis_node_eq_unary for node :: "'a \<Rightarrow> IRNode" =
   (match IRNode.inject in i: "(node _ = node _) = _" \<Rightarrow> 
       \<open>metis i\<close>)
@@ -447,6 +409,7 @@ theorem graph_semantics_preservation:
   unfolding graph_refinement_def apply rule
   apply (metis b d ids_some no_encoding not_excluded_keep_type singleton_iff subsetI)
   apply (rule allI) apply (rule impI) apply (rule allI) apply (rule impI)
+  unfolding graph_represents_expression_def
 proof -
   fix n e1
   assume e: "n \<in> ids g1"
@@ -1096,6 +1059,7 @@ proof -
     by blast
   then show ?thesis unfolding graph_refinement_def apply rule
     apply (rule allI) apply (rule impI) apply (rule allI) apply (rule impI)
+    unfolding graph_represents_expression_def
     proof -
       fix n e1
       assume 1:"n \<in> ids g1"

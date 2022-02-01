@@ -426,20 +426,19 @@ definition encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<
 
 subsection \<open>Graph Refinement\<close>
 
-definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
-  "graph_refinement g\<^sub>1 g\<^sub>2 = 
-        ((ids g\<^sub>1 \<subseteq> ids g\<^sub>2) \<and>
-        (\<forall> n . n \<in> ids g\<^sub>1 \<longrightarrow> (\<forall>e\<^sub>1. (g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1) \<longrightarrow> (\<exists>e\<^sub>2. (g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2) \<and> e\<^sub>1 \<ge> e\<^sub>2))))"
-
-lemma graph_refinement:
-  "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
-  by (meson encodeeval_def graph_refinement_def le_expr_def)
-
 definition graph_represents_expression :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRExpr \<Rightarrow> bool" 
   ("_ \<turnstile> _ \<unlhd> _" 50)
   where
   "(g \<turnstile> n \<unlhd> e) = (\<exists>e' . (g \<turnstile> n \<simeq> e') \<and> (e' \<le> e))"
 
+definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "graph_refinement g\<^sub>1 g\<^sub>2 = 
+        ((ids g\<^sub>1 \<subseteq> ids g\<^sub>2) \<and>
+        (\<forall> n . n \<in> ids g\<^sub>1 \<longrightarrow> (\<forall>e. (g\<^sub>1 \<turnstile> n \<simeq> e) \<longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e))))"
+
+lemma graph_refinement:
+  "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
+  by (meson encodeeval_def graph_refinement_def graph_represents_expression_def le_expr_def)
 
 subsection \<open>Maximal Sharing\<close>
 

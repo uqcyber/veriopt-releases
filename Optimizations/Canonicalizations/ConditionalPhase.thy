@@ -19,12 +19,12 @@ optimization negate_condition: "((\<not>e) ? x : y) \<mapsto> (e ? y : x)"
     apply (smt (verit) ConditionalExpr)
     unfolding size.simps by simp
 
-optimization const_true: "((const(IntVal32 1)) ? x : y) \<mapsto> x"
+optimization const_true: "(true ? x : y) \<mapsto> x"
    apply unfold_optimization
    apply force
   unfolding size.simps by simp
 
-optimization const_false: "((const(IntVal32 0)) ? x : y) \<mapsto> y"
+optimization const_false: "(false ? x : y) \<mapsto> y"
    apply unfold_optimization
    apply force
   unfolding size.simps by simp

@@ -1,5 +1,6 @@
 theory TreeSnippets
   imports 
+    Canonicalizations.ConditionalPhase
     Optimizations.CanonicalizationSyntax
     Semantics.TreeToGraphThms
     Snippets.Snipping
@@ -22,6 +23,13 @@ notation (latex)
 
 notation (latex)
   size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
+
+(* lengthen rewrite arrow slightly
+notation (latex)
+  Transform ("_ \<longmapsto> _")
+notation (latex)
+  Conditional ("_ \<longmapsto> _ \<^latex>\<open> when \<close> _")
+*)
 
 (* hide type casting *)
 translations
@@ -238,6 +246,37 @@ begin
   text_raw "\\dots"
 end
 snipend -
+
+snipbegin \<open>phase-example\<close>
+phase Conditional
+  terminating trm
+begin
+snipend -
+
+snipbegin \<open>phase-example-1\<close>optimization negate_condition: "(\<not>e ? x : y) \<mapsto> (e ? y : x)"snipend -
+  using ConditionalPhase.negate_condition
+   by (auto simp: trm_def)
+
+snipbegin \<open>phase-example-2\<close>optimization const_true: "(true ? x : y) \<mapsto> x"snipend -
+  by (auto simp: trm_def)
+
+snipbegin \<open>phase-example-3\<close>optimization const_false: "(false ? x : y) \<mapsto> y"snipend -
+  by (auto simp: trm_def)
+
+snipbegin \<open>phase-example-4\<close>optimization equal_branches: "(e ? x : x) \<mapsto> x"snipend -
+  by (auto simp: trm_def)
+
+snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((x < y) ? x : y) \<mapsto> x
+                   when (stamp_under (stamp_expr x) (stamp_expr y) \<and> wff_stamps)"snipend -
+  using ConditionalPhase.condition_bounds_x(1)
+  by (blast, auto simp: trm_def)
+
+snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < y) ? x : y) \<mapsto> y
+                   when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wff_stamps)"snipend -
+  using ConditionalPhase.condition_bounds_y(1)
+  by (blast, auto simp: trm_def)
+
+snipbegin \<open>phase-example-7\<close>endsnipend -
 
 snipbegin \<open>termination\<close>
 text \<open>\begin{tabular}{l@ {~~@{text "="}~~}l}

@@ -444,7 +444,8 @@ theorem graph_semantics_preservation:
   assumes c: "g1 \<turnstile> n' \<simeq> e1'"
   assumes d: "g2 \<turnstile> n' \<simeq> e2'"
   shows "graph_refinement g1 g2"
-  unfolding graph_refinement_def 
+  unfolding graph_refinement_def apply rule
+  apply (metis b d ids_some no_encoding not_excluded_keep_type singleton_iff subsetI)
   apply (rule allI) apply (rule impI) apply (rule allI) apply (rule impI)
 proof -
   fix n e1
@@ -1093,7 +1094,7 @@ lemma subset_refines:
 proof -
   have "ids g1 \<subseteq> ids g2" using assms unfolding as_set_def
     by blast
-  show ?thesis unfolding graph_refinement_def
+  then show ?thesis unfolding graph_refinement_def apply rule
     apply (rule allI) apply (rule impI) apply (rule allI) apply (rule impI)
     proof -
       fix n e1

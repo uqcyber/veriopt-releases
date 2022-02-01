@@ -276,7 +276,7 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
   using ConditionalPhase.condition_bounds_y(1)
   by (blast, auto simp: trm_def)
 
-snipbegin \<open>phase-example-7\<close>endsnipend -
+snipbegin \<open>phase-example-7\<close>end snipend -
 
 snipbegin \<open>termination\<close>
 text \<open>\begin{tabular}{l@ {~~@{text "="}~~}l}

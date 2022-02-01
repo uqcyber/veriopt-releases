@@ -6,6 +6,8 @@ theory TreeToGraph
     Graph.IRGraph
 begin
 
+subsection \<open>Subgraph to Data-flow Tree\<close>
+
 fun find_node_and_stamp :: "IRGraph \<Rightarrow> (IRNode \<times> Stamp) \<Rightarrow> ID option" where
   "find_node_and_stamp g (n,s) =
      find (\<lambda>i. kind g i = n \<and> stamp g i = s) (sorted_list_of_set(ids g))"
@@ -162,18 +164,6 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprLi
 definition wf_term_graph :: "MapState \<Rightarrow> Params \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "wf_term_graph m p g n = (\<exists> e. (g \<turnstile> n \<simeq> e) \<and> (\<exists> v. ([m, p] \<turnstile> e \<mapsto> v)))"
 
-text_raw \<open>\Snip{repRules}%
-\begin{center}
-@{thm[mode=Rule] rep.ConstantNode [no_vars]}\\[8px]
-@{thm[mode=Rule] rep.ParameterNode [no_vars]}\\[8px]
-@{thm[mode=Rule] rep.AbsNode [no_vars]}\\[8px]
-@{thm[mode=Rule] rep.AddNode [no_vars]}\\[8px]
-@{thm[mode=Rule] rep.MulNode [no_vars]}\\[8px]
-@{thm[mode=Rule] rep.SubNode [no_vars]}\\[8px]
-@{thm[mode=Rule] rep.LeafNode [no_vars]}\\[8px]
-\end{center}
-\EndSnip\<close>
-
 values "{t. eg2_sq \<turnstile> 4 \<simeq> t}"
 
 inductive_cases ConstantNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -239,6 +229,9 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   SignExtendNodeE
   ZeroExtendNodeE
   LeafNodeE
+
+
+subsection \<open>Data-flow Tree to Subgraph\<close>
 
 fun unary_node :: "IRUnaryOp \<Rightarrow> ID \<Rightarrow> IRNode" where
   "unary_node UnaryAbs v = AbsNode v" |
@@ -405,11 +398,6 @@ text_raw \<open>\Snip{unrepRules}%
 \end{center}
 \EndSnip\<close>
 
-definition sq_param0 :: IRExpr where
-  "sq_param0 = BinaryExpr BinMul 
-    (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))
-    (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))"
-
 (*
 instantiation IRGraph :: equal begin
 
@@ -428,66 +416,15 @@ end
 values "{(n, g) . (eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, n))}"
 
 
-(*
-inductive
-  encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
-  for g m p where
-  "\<lbrakk>g \<turnstile> n \<simeq> n; [m,p] \<turnstile> n \<mapsto> v\<rbrakk> \<Longrightarrow> [g, m, p] \<turnstile> n \<mapsto> v"
-*)
+subsection \<open>Lift Data-flow Tree Semantics\<close>
 
 definition encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" 
   ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
   where
   "encodeeval g m p n v = (\<exists> e. (g \<turnstile> n \<simeq> e) \<and> ([m,p] \<turnstile> e \<mapsto> v))"
 
-(*lemma "([g, m, p] \<turnstile> n \<mapsto> v) = (g \<turnstile> n \<simeq> n) \<and> ([m,p] \<turnstile> n \<mapsto> v)"
-   sledgehammer
-*)
 
-values "{v. evaltree new_map_state [IntVal32 5] sq_param0 v}"
-
-(* We add all the inductive rules as unsafe intro rules. *)
-declare evaltree.intros [intro]
-declare evaltrees.intros [intro]
-
-(* We derive a safe elimination (forward) reasoning rule for each case.
-  Note that each pattern is as general as possible. *)
-inductive_cases ConstantExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (ConstantExpr c) \<mapsto> val"
-inductive_cases ParameterExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (ParameterExpr i s) \<mapsto> val"
-inductive_cases ConditionalExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (ConditionalExpr c t f) \<mapsto> val"
-inductive_cases UnaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> val"
-inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> val"
-inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (LeafExpr n s) \<mapsto> val"
-inductive_cases ConstantVarE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (ConstantVar x) \<mapsto> val"
-inductive_cases VariableExprE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (VariableExpr x s) \<mapsto> val"
-inductive_cases EvalNilE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> [] \<mapsto>\<^sub>L vals"
-inductive_cases EvalConsE[elim!]:\<^marker>\<open>tag invisible\<close>
-  "[m,p] \<turnstile> (x#yy) \<mapsto>\<^sub>L vals"
-
-(* group these forward rules into a named set *)
-lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> = 
-  ConstantExprE
-  ParameterExprE
-  ConditionalExprE
-  UnaryExprE
-  BinaryExprE
-  LeafExprE
-  ConstantVarE
-  VariableExprE
-  EvalNilE
-  EvalConsE
-
-
-
+subsection \<open>Graph Refinement\<close>
 
 definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
   "graph_refinement g\<^sub>1 g\<^sub>2 = 
@@ -501,5 +438,12 @@ definition graph_represents_expression :: "IRGraph \<Rightarrow> ID \<Rightarrow
   ("_ \<turnstile> _ \<unlhd> _" 50)
   where
   "(g \<turnstile> n \<unlhd> e) = (\<exists>e' . (g \<turnstile> n \<simeq> e') \<and> (e' \<le> e))"
+
+
+subsection \<open>Maximal Sharing\<close>
+
+definition maximal_sharing:
+  "maximal_sharing g = (\<forall> n\<^sub>1 n\<^sub>2 . n\<^sub>1 \<in> ids g \<and> n\<^sub>2 \<in> ids g \<longrightarrow> 
+      (\<forall> e. (g \<turnstile> n\<^sub>1 \<simeq> e) \<and> (g \<turnstile> n\<^sub>2 \<simeq> e) \<longrightarrow> n\<^sub>1 = n\<^sub>2))"
 
 end

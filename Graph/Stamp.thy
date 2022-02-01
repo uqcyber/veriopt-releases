@@ -154,6 +154,14 @@ fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
 *)
 
+(* Once all other constantAsStamp alternatives have been implemented,
+   this should be proved and constant semantics should be updated.
+lemma constants_valid:
+  assumes "v \<noteq> UndefVal"
+  shows "valid_value v (constantAsStamp v)"
+  using assms apply (induction v; auto)
+*)
+
 fun compatible :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "compatible (IntegerStamp b1 _ _) (IntegerStamp b2 _ _) = (b1 = b2)" |
   "compatible (VoidStamp) (VoidStamp) = True" |

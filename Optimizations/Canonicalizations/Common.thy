@@ -1,3 +1,5 @@
+section \<open>Canonicalization Phase\<close>
+
 theory Common
   imports 
     OptimizationDSL.Canonicalization

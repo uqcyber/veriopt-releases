@@ -1,6 +1,10 @@
+subsection \<open>Evaluation Stamp Theorems\<close>
+
 theory StampEvalThms
   imports Semantics.IRTreeEvalThms
 begin
+
+subsubsection \<open>Evaluated Value Satisfies Stamps\<close>
 
 (* these two were weirdly hard to prove given it should be by definition *)
 lemma size32: "size v = 32" for v :: "32 word"
@@ -339,7 +343,6 @@ lemma lower_bound_64:
   shows "valid_value val s \<Longrightarrow> sint v \<ge> (stpi_lower s)"
   using assms
   by force
-
 
 (* these two proofs should really not be so tricky *)
 lemma stamp_under_semantics:

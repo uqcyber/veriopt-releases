@@ -1,18 +1,9 @@
 chapter "veriopt"
 
-session Veriopt = "HOL-Library" +
+session Graph in Graph = "HOL-Library" +
   description
-    "Veriopt ROOT session containing shared libraries"
+    "GraalVM Intermediate Representation encoding"
   options [document = pdf, document_output = "output"]
-  theories
-    Snipping
-  document_files (in "./latex")
-    "root.tex"
-    "mathpartir.sty"
-
-session Graph in Graph = Veriopt +
-  description
-    "GraalVM IR structure"
   theories
     Values
     IRNodes
@@ -20,16 +11,15 @@ session Graph in Graph = Veriopt +
     Stamp
     IRGraph
     Traversal
-    (* StampLattice *)
-    (*Comparison*)
-    (* CFG -- will add back once sorries are fixed *)
+    Comparison
+  document_files (in "../latex")
+    "root.tex"
+    "mathpartir.sty"
 
 session Semantics in Semantics = Graph +
   description
-    "Semantics of GraalVM graphs"
-  options [document = pdf,
-           document_output = "output",
-           show_question_marks = false]
+    "Semantics of the GraalVM IR"
+  options [document = pdf, document_output = "output"]
   sessions
     "HOL-Eisbach"
   theories
@@ -47,6 +37,8 @@ session Proofs in Proofs = Semantics +
   description
     "Supporting proof theories and definitions"
   options [quick_and_dirty] (* two sorries in experimental blocks in StampEvalThms *)
+  sessions
+    Snippets
   theories
     Bisimulation
     Form
@@ -57,10 +49,10 @@ session Proofs in Proofs = Semantics +
 
 session OptimizationDSL in "Optimizations/DSL" = Proofs +
   description
-    "DSL for optimizations"
-  options [document = pdf,
-           document_output = "output",
-           show_question_marks = false]
+    "DSL for expressing optimizations"
+  options [document = pdf, document_output = "output"]
+  sessions
+    Snippets
   theories
     Markup
     Phase
@@ -71,23 +63,35 @@ session OptimizationDSL in "Optimizations/DSL" = Proofs +
 
 session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL +
   description
-    "Canonicalization optimizations"
+    "Canonicalization phase"
+  options [document = pdf, document_output = "output"]
   theories
     Common
     (*AddPhase*)
     ConditionalPhase
+  document_files (in "../../latex")
+    "root.tex"
+    "mathpartir.sty"
+
+session ConditionalElimination in "Optimizations/ConditionalElimination" = Proofs +
+  description
+    "(experimental) Conditional elimination phase"
+  options [quick_and_dirty,
+           document = pdf, document_output = "output"]
+  theories
+    ConditionalElimination
+  document_files (in "../../latex")
+    "root.tex"
+    "mathpartir.sty"
 
 session Optimizations in Optimizations = OptimizationDSL +
   description
-    "Graph transformation optimizations"
+    "(deprecated) Graph transformation optimizations"
   options [quick_and_dirty] (* Many sorries in CanonicalizationTreeProofs but all in experiment *)
   theories
-    (*Canonicalization*)
     CanonicalizationTree
     CanonicalizationTreeProofs
     CanonicalizationSyntax
-    (*ConditionalElimination
-    Construction*)
 
 session Tests in Tests = Semantics +
   description
@@ -99,24 +103,41 @@ session Tests in Tests = Semantics +
     (*Test: ArithmeticTesting*)
     (*ConditionalEliminationTests*)
 
-\<comment>\<open>All documentation sessions\<close>
+\<comment>\<open>Documentation sessions\<close>
 
-session Document in "Papers/Main" = Optimizations +
+session Snippets = "HOL-Library" +
+  description
+    "Additional commands to enable the generation of LaTeX snippets of theories"
+  options [document = pdf, document_output = "output"]
+  theories
+    Snipping
+  document_files (in "./latex")
+    "root.tex"
+    "mathpartir.sty"
+
+
+session Document in "Papers/Main" = Canonicalizations +
   description
     "Whole project document"
-  options [document = pdf, document_output = "output",
-           document_variants="document:outline=/proof"]
+  options [quick_and_dirty,
+           document = pdf, document_output = "output"]
   sessions
     Graph
     Semantics
     Proofs
-    Optimizations
+    OptimizationDSL
+    Canonicalizations
+    ConditionalElimination
+  theories
+    ConditionalElimination.ConditionalElimination
   document_theories
     Graph.Values
     Graph.IRNodes
     Graph.IRNodeHierarchy
     Graph.Stamp
     Graph.IRGraph
+    Graph.Traversal
+    Graph.Comparison
 
     Semantics.IRTreeEval
     Semantics.IRTreeEvalThms
@@ -130,16 +151,23 @@ session Document in "Papers/Main" = Optimizations +
     Proofs.IRGraphFrames
     Proofs.Rewrites
     Proofs.Stuttering
-    Graph.Traversal
+    Proofs.StampEvalThms
 
-    Optimizations.CanonicalizationTree
-    Optimizations.CanonicalizationTreeProofs
+    OptimizationDSL.Markup
+    OptimizationDSL.Phase
+    OptimizationDSL.Canonicalization
+
+    Canonicalizations.Common
+    Canonicalizations.ConditionalPhase
+
+    ConditionalElimination.ConditionalElimination
   document_files (in ".")
     "root.tex"
   document_files (in "../Stamps")
     "lattice.tex"
   document_files (in "../../latex")
     "mathpartir.sty"
+
 
 \<comment>\<open>Snippets for papers\<close>
 
@@ -156,28 +184,14 @@ session SemanticsPaper in "Papers/Semantics" = Optimizations +
     "mathpartir.sty"
 *)
 
-session ValidationPaper in "Papers/Validation" = Tests +
-  description
-    "Content for paper on validation efforts"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
-  sessions
-    Optimizations
-  theories
-    ValidationSnippets
-  document_files (in "../../latex")
-    "root.tex"
-    "mathpartir.sty"
 
-(*
-session Stamps in "Papers/Stamps" = Graph +
+session StampLattice in "Papers/Stamps" = Graph +
   description
-    "GraalVM Stamp Theory"
-  options [document = pdf,
-           document_output = "document",
-           document_variants="document:outline=/proof"]
-  sessions
-    Graph
+    "(experimental) Investigation of an alternative approach to representing stamps in Isabelle/HOL"
+  options [quick_and_dirty,
+           document = pdf, document_output = "output"]
+  theories
+    Graph.StampLattice
   document_theories
     Graph.StampLattice
   document_files (in ".")
@@ -185,31 +199,31 @@ session Stamps in "Papers/Stamps" = Graph +
     "lattice.tex"
   document_files (in "../../latex")
     "mathpartir.sty"
-*)
 
-session TreePaper in "Papers/Tree" = Optimizations +
+
+session TreePaperSnippets in "Papers/Tree" = Optimizations +
   description
-    "Content for paper on validation efforts"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
+    "Snippets of Isabelle theories used for the preparation of the future paper ``Verifying term graph optimizations using Isabelle/HOL''"
+  options [document = pdf, document_output = "output"]
+  sessions
+    Snippets
   theories
     TreeSnippets
     SlideSnippets
-  document_theories
-    Optimizations.CanonicalizationSyntax
   document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"
 
 
-session Canonicalization in "Papers/Canonicalization" = Optimizations +
+session ValidationPaperSnippets in "Papers/Validation" = Tests +
   description
-    "Canonicalization optimizations"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
-  document_theories
-    Optimizations.CanonicalizationSyntax
-  document_files (in ".")
-    "root.tex"
+    "Snippets of Isabelle theories used for the preparation of the future paper ``Validating Faithful Formalization of an Existing Compiler''"
+  options [document = pdf, document_output = "output"]
+  sessions
+    Snippets
+    Optimizations
+  theories
+    ValidationSnippets
   document_files (in "../../latex")
+    "root.tex"
     "mathpartir.sty"

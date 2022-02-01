@@ -1,3 +1,5 @@
+subsection \<open>Canonicalization DSL\<close>
+
 theory Canonicalization
   imports
     Markup

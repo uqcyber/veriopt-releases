@@ -1,4 +1,4 @@
-section \<open>Control-flow Graph Traversal\<close>
+subsection \<open>Control-flow Graph Traversal\<close>
 
 theory
   Traversal

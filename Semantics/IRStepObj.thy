@@ -5,7 +5,7 @@ theory IRStepObj
     TreeToGraph
 begin
 
-subsection \<open>Heap\<close> (* TODO: find a better location for heap definition *)
+subsection \<open>Object Heap\<close>
 
 text \<open>
 The heap model we introduce maps field references to object instances to runtime values.

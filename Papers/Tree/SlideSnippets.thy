@@ -1,7 +1,7 @@
 theory SlideSnippets
   imports
     Semantics.TreeToGraphThms
-    Veriopt.Snipping
+    Snippets.Snipping
 begin
 
 notation (latex)

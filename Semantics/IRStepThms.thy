@@ -1,9 +1,9 @@
-section \<open>Properties of Control-flow Semantics\<close>
+subsection \<open>Control-flow Semantics Theorems\<close>
 
 theory IRStepThms
   imports
     IRStepObj
-    IRTreeEvalThms
+    TreeToGraphThms
 begin
 
 text \<open>
@@ -81,12 +81,11 @@ next
 qed
 *)
 
+subsubsection \<open>Control-flow Step is Deterministic\<close>
+
 theorem stepDet:
    "(g, p \<turnstile> (nid,m,h) \<rightarrow> next) \<Longrightarrow>
    (\<forall> next'. ((g, p \<turnstile> (nid,m,h) \<rightarrow> next') \<longrightarrow> next = next'))"
-
-
-
 proof (induction rule: "step.induct")
   case (SequentialNode nid "next" m h)
   have notif: "\<not>(is_IfNode (kind g nid))"

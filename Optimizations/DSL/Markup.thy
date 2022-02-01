@@ -1,5 +1,7 @@
+section \<open>Optization DSLs\<close> (* first theory in list, not related to file contents *)
+
 theory Markup
-  imports Semantics.IRTreeEval Veriopt.Snipping
+  imports Semantics.IRTreeEval Snippets.Snipping
 begin
 
 datatype 'a Rewrite =

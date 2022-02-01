@@ -2,7 +2,7 @@ theory TreeSnippets
   imports 
     Optimizations.CanonicalizationSyntax
     Semantics.TreeToGraphThms
-    Veriopt.Snipping
+    Snippets.Snipping
     "HOL-Library.OptionalSugar"
 begin
 

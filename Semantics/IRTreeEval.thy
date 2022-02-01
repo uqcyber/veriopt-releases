@@ -4,7 +4,6 @@ theory IRTreeEval
   imports
     Graph.Values
     Graph.Stamp
-    "HOL-Library.Word"
 begin
 
 text \<open>
@@ -195,17 +194,6 @@ inductive
     valid_value val s\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> LeafExpr n s \<mapsto> val"
 
-text_raw \<open>\Snip{evalRules}%
-\begin{center}
-@{thm[mode=Rule] evaltree.ConstantExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] evaltree.ParameterExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] evaltree.ConditionalExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] evaltree.BinaryExpr [no_vars]}\\[8px]
-@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}\\[8px]
-\end{center}
-\EndSnip\<close>
-
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalT)
   [show_steps,show_mode_inference,show_intermediate_results] 
   evaltree .
@@ -225,6 +213,52 @@ inductive
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as evalTs)
   evaltrees .
 
+definition sq_param0 :: IRExpr where
+  "sq_param0 = BinaryExpr BinMul 
+    (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))
+    (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))"
+
+values "{v. evaltree new_map_state [IntVal32 5] sq_param0 v}"
+
+(* We add all the inductive rules as unsafe intro rules. *)
+declare evaltree.intros [intro]
+declare evaltrees.intros [intro]
+
+(* We derive a safe elimination (forward) reasoning rule for each case.
+  Note that each pattern is as general as possible. *)
+inductive_cases ConstantExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (ConstantExpr c) \<mapsto> val"
+inductive_cases ParameterExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (ParameterExpr i s) \<mapsto> val"
+inductive_cases ConditionalExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (ConditionalExpr c t f) \<mapsto> val"
+inductive_cases UnaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> val"
+inductive_cases BinaryExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (BinaryExpr op xe ye) \<mapsto> val"
+inductive_cases LeafExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (LeafExpr n s) \<mapsto> val"
+inductive_cases ConstantVarE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (ConstantVar x) \<mapsto> val"
+inductive_cases VariableExprE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (VariableExpr x s) \<mapsto> val"
+inductive_cases EvalNilE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> [] \<mapsto>\<^sub>L vals"
+inductive_cases EvalConsE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "[m,p] \<turnstile> (x#yy) \<mapsto>\<^sub>L vals"
+
+(* group these forward rules into a named set *)
+lemmas EvalTreeE\<^marker>\<open>tag invisible\<close> = 
+  ConstantExprE
+  ParameterExprE
+  ConditionalExprE
+  UnaryExprE
+  BinaryExprE
+  LeafExprE
+  ConstantVarE
+  VariableExprE
+  EvalNilE
+  EvalConsE
 
 subsection \<open>Data-flow Tree Refinement\<close>
 

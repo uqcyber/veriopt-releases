@@ -3,7 +3,7 @@ theory ValidationSnippets
     Graph.Values
     Optimizations.CanonicalizationTree
     Semantics.IRStepObj
-    Veriopt.Snipping
+    Snippets.Snipping
 begin
 
 notation (latex)

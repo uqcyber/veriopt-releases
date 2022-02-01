@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><link rel="stylesheet" type="text/css" href="isabelle.css"/>
+<title>File ‹phase.ML›</title>
+</head>
+
+
+<body>
+<div class="head">
+<h1>File ‹phase.ML›</h1>
+</div>
+
+<pre class="source"><span class="comment1">(*  Title:      Optimizations/DSL/phase.ML
+    Author:     Brae Webb
+
+Organisation of rules into phases.
+*)</span>
+
+<span class="keyword1"><span class="keyword">signature</span></span> <span class="entity">Rule</span> <span class="main">=</span>
+<span class="keyword2"><span class="keyword">sig</span></span>
+  <span class="keyword1"><span class="keyword">type</span></span> <span class="entity">T</span>
+  <span class="keyword1"><span class="keyword">val</span></span> pretty<span class="main">:</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> <span class="entity">T</span> <span class="main">-&gt;</span> Pretty.T
+<span class="keyword2"><span class="keyword">end</span></span>
+
+<span class="keyword1"><span class="keyword">signature</span></span> <span class="entity">DSL_PHASE</span> <span class="main">=</span>
+<span class="keyword2"><span class="keyword">sig</span></span>
+<span class="keyword1"><span class="keyword">type</span></span> <span class="entity">T</span><span class="main">;</span>
+
+<span class="keyword1"><span class="keyword">type</span></span> <span class="entity">phase</span> <span class="main">=</span>
+  <span class="main">{</span>name<span class="main">:</span> binding<span class="main">,</span>
+   trm<span class="main">:</span> term<span class="main">,</span>
+   rules<span class="main">:</span> <span class="main">(</span>binding<span class="main">,</span> <span class="entity">T</span><span class="main">)</span> <span class="entity">Map.map</span><span class="main">}</span>
+
+<span class="keyword1"><span class="keyword">type</span></span> <span class="entity">config</span> <span class="main">=</span> <span class="main">(</span>binding * string<span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">val</span></span> current<span class="main">:</span> theory <span class="main">-&gt;</span> <span class="entity">phase</span> option
+<span class="keyword1"><span class="keyword">val</span></span> phases<span class="main">:</span> theory <span class="main">-&gt;</span> <span class="entity">phase</span> list
+<span class="keyword1"><span class="keyword">val</span></span> register<span class="main">:</span> <span class="main">(</span>binding * <span class="entity">T</span><span class="main">)</span> <span class="main">-&gt;</span> theory <span class="main">-&gt;</span> theory
+
+<span class="keyword1"><span class="keyword">val</span></span> enter<span class="main">:</span> <span class="entity">config</span> <span class="main">-&gt;</span> theory <span class="main">-&gt;</span> <span class="entity">Proof.context</span>
+<span class="keyword1"><span class="keyword">val</span></span> exit<span class="main">:</span> local_theory <span class="main">-&gt;</span> local_theory
+<span class="keyword1"><span class="keyword">val</span></span> setup<span class="main">:</span> <span class="entity">config</span> <span class="main">-&gt;</span> theory <span class="main">-&gt;</span> local_theory
+
+<span class="keyword1"><span class="keyword">val</span></span> pretty<span class="main">:</span> <span class="entity">phase</span> <span class="main">-&gt;</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> Pretty.T
+
+<span class="keyword2"><span class="keyword">end</span></span><span class="main">;</span>
+
+<span class="keyword1"><span class="keyword">functor</span></span> <span class="entity">DSL_Phase</span><span class="main">(</span>Rule<span class="main">:</span> <span class="entity">Rule</span><span class="main">)</span><span class="main">:</span> <span class="entity">DSL_PHASE</span> <span class="main">=</span>
+<span class="keyword2"><span class="keyword">struct</span></span>
+<span class="keyword1"><span class="keyword">type</span></span> <span class="entity">T</span> <span class="main">=</span> <span class="entity">Rule.T</span>
+
+<span class="keyword1"><span class="keyword">type</span></span> <span class="entity">phase</span> <span class="main">=</span>
+  <span class="main">{</span>name<span class="main">:</span> binding<span class="main">,</span>
+   trm<span class="main">:</span> term<span class="main">,</span>
+   rules<span class="main">:</span> <span class="main">(</span>binding<span class="main">,</span> <span class="entity">T</span><span class="main">)</span> <span class="entity">Map.map</span><span class="main">}</span>
+
+<span class="keyword1"><span class="keyword">type</span></span> <span class="entity">store</span> <span class="main">=</span> <span class="main">(</span>binding<span class="main">,</span> <span class="entity">phase</span><span class="main">)</span> <span class="entity">Map.map</span>
+
+<span class="keyword1"><span class="keyword">datatype</span></span> <span class="entity">status</span> <span class="main">=</span>
+  <span class="entity">NoPhase</span> <span class="main">|</span>
+  <span class="entity">InPhase</span> <span class="keyword2"><span class="keyword">of</span></span> binding
+
+<span class="keyword1"><span class="keyword">type</span></span> <span class="entity">state</span> <span class="main">=</span>
+  <span class="main">{</span>store<span class="main">:</span> <span class="entity">store</span><span class="main">,</span>
+   status<span class="main">:</span> <span class="entity">status</span><span class="main">}</span>
+
+<span class="keyword1"><span class="keyword">type</span></span> <span class="entity">config</span> <span class="main">=</span> <span class="main">(</span>binding * string<span class="main">)</span>
+
+
+<span class="keyword1"><span class="keyword">val</span></span> <span class="entity">empty</span> <span class="main">=</span> <span class="main">{</span>store<span class="main">=</span><span class="entity">Map.empty</span><span class="main">,</span> status<span class="main">=</span><span class="entity">NoPhase</span><span class="main">}</span><span class="main">;</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">merge_statuses</span> <span class="main">(</span><span class="entity">NoPhase</span><span class="main">,</span> <span class="entity">NoPhase</span><span class="main">)</span> <span class="main">=</span> <span class="entity">NoPhase</span>
+  <span class="main">|</span> <span class="entity">merge_statuses</span> <span class="main">(</span><span class="entity">NoPhase</span><span class="main">,</span> <span class="entity">InPhase</span> <span class="entity">name</span><span class="main">)</span> <span class="main">=</span> <span class="entity">InPhase</span> <span class="entity">name</span>
+  <span class="main">|</span> <span class="entity">merge_statuses</span> <span class="main">(</span><span class="entity">InPhase</span> <span class="entity">name</span><span class="main">,</span> <span class="entity">NoPhase</span><span class="main">)</span> <span class="main">=</span> <span class="entity">InPhase</span> <span class="entity">name</span>
+  <span class="main">|</span> <span class="entity">merge_statuses</span> <span class="main">(</span><span class="entity">InPhase</span> <span class="main">_</span><span class="main">,</span> <span class="entity">InPhase</span> <span class="main">_</span><span class="main">)</span> <span class="main">=</span> <span class="keyword3"><span class="keyword">raise</span></span> ERROR <span class="inner_quoted">"oh no"</span>
+
+<span class="keyword1"><span class="keyword">structure</span></span> <span class="entity">PhaseData</span> <span class="main">=</span> Theory_Data
+<span class="main">(</span>
+  <span class="keyword1"><span class="keyword">type</span></span> <span class="entity">T</span> <span class="main">=</span> <span class="entity">state</span><span class="main">;</span>
+  <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">empty</span> <span class="main">=</span> <span class="entity">empty</span><span class="main">;</span>
+  <span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">merge</span> <span class="main">(</span><span class="entity">lhs</span><span class="main">,</span> <span class="entity">rhs</span><span class="main">)</span> <span class="main">=</span> 
+    <span class="main">{</span>status<span class="main">=</span><span class="entity">merge_statuses</span> <span class="main">(</span><span class="main">#</span>status <span class="entity">lhs</span><span class="main">,</span> <span class="main">#</span>status <span class="entity">rhs</span><span class="main">)</span><span class="main">,</span>
+     store<span class="main">=</span> <span class="main">#</span>store <span class="entity">lhs</span><span class="main">}</span>
+<span class="main">)</span><span class="main">;</span>
+
+<span class="keyword1"><span class="keyword">val</span></span> <span class="entity">state</span> <span class="main">=</span> PhaseData.get<span class="main">;</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">phase_name</span> <span class="entity">thy</span> <span class="main">=</span> 
+  <span class="main">(</span><span class="keyword2"><span class="keyword">case</span></span> <span class="main">#</span>status <span class="main">(</span><span class="entity">state</span> <span class="entity">thy</span><span class="main">)</span> <span class="keyword2"><span class="keyword">of</span></span>
+    <span class="entity">NoPhase</span> <span class="main">=&gt;</span> NONE
+    <span class="main">|</span> <span class="entity">InPhase</span> <span class="entity">name</span> <span class="main">=&gt;</span> SOME <span class="entity">name</span><span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">phase_by_name</span> <span class="entity">data</span> <span class="entity">name</span> <span class="main">:</span> <span class="entity">phase</span> option <span class="main">=</span>
+  <span class="keyword2"><span class="keyword">let</span></span>
+    <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">lookup</span> <span class="main">=</span> snd <span class="main">(</span><span class="main">#</span>store <span class="entity">data</span><span class="main">)</span><span class="main">;</span>
+  <span class="keyword2"><span class="keyword">in</span></span>
+    <span class="keyword2"><span class="keyword">case</span></span> <span class="entity">name</span> <span class="keyword2"><span class="keyword">of</span></span>
+      NONE <span class="main">=&gt;</span> NONE
+      <span class="main">|</span> SOME <span class="entity">n</span> <span class="main">=&gt;</span> <span class="entity">lookup</span> <span class="entity">n</span>
+  <span class="keyword2"><span class="keyword">end</span></span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">current</span> <span class="entity">thy</span> <span class="main">=</span> 
+  <span class="keyword2"><span class="keyword">let</span></span>
+    <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">phase</span> <span class="main">=</span> <span class="entity">phase_name</span> <span class="entity">thy</span><span class="main">;</span>
+  <span class="keyword2"><span class="keyword">in</span></span>
+    <span class="entity">phase_by_name</span> <span class="main">(</span><span class="entity">state</span> <span class="entity">thy</span><span class="main">)</span> <span class="entity">phase</span>
+  <span class="keyword2"><span class="keyword">end</span></span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">phases</span> <span class="entity">thy</span> <span class="main">=</span> <span class="entity">Map.values</span> <span class="main">(</span><span class="main">#</span>store <span class="main">(</span><span class="entity">state</span> <span class="entity">thy</span><span class="main">)</span><span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">expand_phase</span> <span class="entity">rule</span> <span class="main">(</span><span class="entity">phase</span><span class="main">:</span> <span class="entity">phase</span><span class="main">)</span><span class="main">:</span> <span class="entity">phase</span> <span class="main">=</span>
+  <span class="main">{</span>name <span class="main">=</span> <span class="main">(</span><span class="main">#</span>name <span class="entity">phase</span><span class="main">)</span><span class="main">,</span> trm <span class="main">=</span> <span class="main">(</span><span class="main">#</span>trm <span class="entity">phase</span><span class="main">)</span><span class="main">,</span>
+    rules <span class="main">=</span> <span class="entity">Map.insert</span> <span class="main">(</span><span class="main">#</span>rules <span class="entity">phase</span><span class="main">)</span> <span class="entity">rule</span><span class="main">}</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">insert_rule'</span> <span class="entity">t</span> <span class="entity">phase</span> <span class="entity">data</span> <span class="main">=</span>
+  <span class="keyword2"><span class="keyword">let</span></span>
+    <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">phase'</span> <span class="main">=</span> <span class="entity">expand_phase</span> <span class="entity">t</span> <span class="entity">phase</span><span class="main">;</span>
+    <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">data'</span> <span class="main">=</span> <span class="entity">Map.insert</span> <span class="main">(</span><span class="main">#</span>store <span class="entity">data</span><span class="main">)</span> <span class="main">(</span><span class="main">#</span>name <span class="entity">phase</span><span class="main">,</span> <span class="entity">phase'</span><span class="main">)</span>
+  <span class="keyword2"><span class="keyword">in</span></span>
+    <span class="main">{</span>status<span class="main">=</span> <span class="main">#</span>status <span class="entity">data</span><span class="main">,</span> store<span class="main">=</span> <span class="entity">data'</span><span class="main">}</span>
+  <span class="keyword2"><span class="keyword">end</span></span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">insert_rule</span> <span class="entity">t</span> <span class="entity">data</span> <span class="main">=</span>
+  <span class="keyword2"><span class="keyword">let</span></span>
+    <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">phase</span> <span class="main">=</span> <span class="main">(</span><span class="keyword2"><span class="keyword">case</span></span> <span class="main">(</span><span class="main">#</span>status <span class="entity">data</span><span class="main">)</span> <span class="keyword2"><span class="keyword">of</span></span>
+      <span class="entity">NoPhase</span> <span class="main">=&gt;</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"Optimization phase missing"</span><span class="main">,</span> <span class="main">[</span><span class="main">]</span><span class="main">)</span> <span class="main">|</span>
+      <span class="entity">InPhase</span> <span class="entity">name</span> <span class="main">=&gt;</span> <span class="entity">phase_by_name</span> <span class="entity">data</span> <span class="main">(</span>SOME <span class="entity">name</span><span class="main">)</span>
+    <span class="main">)</span><span class="main">;</span>
+    <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">data'</span> <span class="main">=</span> <span class="main">(</span><span class="keyword2"><span class="keyword">case</span></span> <span class="entity">phase</span> <span class="keyword2"><span class="keyword">of</span></span>
+      NONE <span class="main">=&gt;</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"Optimization phase missing"</span><span class="main">,</span> <span class="main">[</span><span class="main">]</span><span class="main">)</span> <span class="main">|</span>
+      SOME <span class="entity">phase</span> <span class="main">=&gt;</span> <span class="entity">insert_rule'</span> <span class="entity">t</span> <span class="entity">phase</span> <span class="entity">data</span>
+    <span class="main">)</span><span class="main">;</span>
+  <span class="keyword2"><span class="keyword">in</span></span>
+    <span class="entity">data'</span>
+  <span class="keyword2"><span class="keyword">end</span></span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">register</span> <span class="entity">t</span> <span class="entity">thy</span> <span class="main">=</span> PhaseData.map <span class="main">(</span><span class="entity">insert_rule</span> <span class="entity">t</span><span class="main">)</span> <span class="entity">thy</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">new_phase</span> <span class="entity">name</span> <span class="entity">trm</span> <span class="main">=</span> <span class="main">{</span>name <span class="main">=</span> <span class="entity">name</span><span class="main">,</span> trm <span class="main">=</span> <span class="entity">trm</span><span class="main">,</span> rules <span class="main">=</span> <span class="entity">Map.empty</span><span class="main">}</span><span class="main">;</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">enter'</span> <span class="entity">name</span> <span class="entity">trm</span> <span class="entity">thy</span> <span class="main">=</span> PhaseData.map <span class="main">(</span><span class="keyword1"><span class="keyword">fn</span></span> <span class="entity">state</span> <span class="main">=&gt;</span>
+  <span class="keyword2"><span class="keyword">case</span></span> <span class="main">(</span><span class="main">#</span>status <span class="entity">state</span><span class="main">)</span> <span class="keyword2"><span class="keyword">of</span></span>
+    <span class="entity">NoPhase</span> <span class="main">=&gt;</span> <span class="main">{</span>status<span class="main">=</span><span class="entity">InPhase</span> <span class="entity">name</span><span class="main">,</span> store<span class="main">=</span><span class="entity">Map.insert</span> <span class="main">(</span><span class="main">#</span>store <span class="entity">state</span><span class="main">)</span> <span class="main">(</span><span class="entity">name</span><span class="main">,</span> <span class="entity">new_phase</span> <span class="entity">name</span> <span class="entity">trm</span><span class="main">)</span><span class="main">}</span> <span class="main">|</span>
+    <span class="entity">InPhase</span> <span class="main">_</span> <span class="main">=&gt;</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"optimization phase already established"</span><span class="main">,</span> <span class="main">[</span><span class="main">]</span><span class="main">)</span>
+  <span class="main">)</span> <span class="entity">thy</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">enter</span> <span class="main">(</span><span class="entity">name</span><span class="main">,</span> <span class="entity">trm</span><span class="main">)</span> <span class="entity">thy</span> <span class="main">=</span>
+  Proof_Context.init_global <span class="main">(</span><span class="entity">enter'</span> <span class="entity">name</span> <span class="main">(</span>Syntax.read_term_global <span class="entity">thy</span> <span class="entity">trm</span><span class="main">)</span> <span class="entity">thy</span><span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">exit'</span> <span class="entity">thy</span> <span class="main">=</span> PhaseData.map <span class="main">(</span><span class="keyword1"><span class="keyword">fn</span></span> <span class="entity">state</span> <span class="main">=&gt;</span>
+  <span class="keyword2"><span class="keyword">case</span></span> <span class="main">(</span><span class="main">#</span>status <span class="entity">state</span><span class="main">)</span> <span class="keyword2"><span class="keyword">of</span></span>
+    <span class="entity">NoPhase</span> <span class="main">=&gt;</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"no phase to exit"</span><span class="main">,</span> <span class="main">[</span><span class="main">]</span><span class="main">)</span> <span class="main">|</span>
+    <span class="entity">InPhase</span> <span class="main">_</span> <span class="main">=&gt;</span> <span class="main">{</span>status<span class="main">=</span><span class="entity">NoPhase</span><span class="main">,</span> store<span class="main">=</span><span class="main">(</span><span class="main">#</span>store <span class="entity">state</span><span class="main">)</span><span class="main">}</span>
+  <span class="main">)</span> <span class="entity">thy</span>
+
+<span class="keyword1"><span class="keyword">val</span></span> <span class="entity">exit</span> <span class="main">=</span> Local_Theory.background_theory <span class="entity">exit'</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty_phase</span> <span class="main">(</span><span class="entity">phase</span><span class="main">:</span><span class="entity">phase</span><span class="main">)</span> <span class="entity">ctxt</span> <span class="main">=</span>
+  Pretty.block 
+    <span class="main">[</span>Pretty.str <span class="inner_quoted">"phase: "</span><span class="main">,</span> Binding.pretty <span class="main">(</span><span class="main">#</span>name <span class="entity">phase</span><span class="main">)</span><span class="main">,</span> Pretty.fbrk<span class="main">,</span>
+     Pretty.str <span class="inner_quoted">"trm: "</span><span class="main">,</span> Syntax.pretty_term <span class="entity">ctxt</span> <span class="main">(</span><span class="main">#</span>trm <span class="entity">phase</span><span class="main">)</span><span class="main">,</span> Pretty.fbrk<span class="main">,</span>
+     Pretty.big_list <span class="inner_quoted">"rules:"</span> <span class="main">(</span>map <span class="main">(</span><span class="entity">Rule.pretty</span> <span class="entity">ctxt</span><span class="main">)</span> <span class="main">(</span><span class="entity">Map.values</span> <span class="main">(</span><span class="main">#</span>rules <span class="entity">phase</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">]</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty</span> <span class="entity">phase</span> <span class="entity">ctxt</span> <span class="main">=</span>
+  <span class="entity">pretty_phase</span> <span class="entity">phase</span> <span class="entity">ctxt</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty'</span> <span class="entity">state</span> <span class="entity">ctxt</span> <span class="main">=</span>
+  <span class="keyword2"><span class="keyword">case</span></span> <span class="main">(</span><span class="main">#</span>status <span class="entity">state</span><span class="main">)</span> <span class="keyword2"><span class="keyword">of</span></span>
+    <span class="entity">NoPhase</span> <span class="main">=&gt;</span> Pretty.str <span class="inner_quoted">"No phase"</span> <span class="main">|</span>
+    <span class="entity">InPhase</span> <span class="entity">name</span> <span class="main">=&gt;</span> 
+      <span class="main">(</span><span class="keyword2"><span class="keyword">case</span></span> <span class="entity">Map.lookup</span> <span class="main">(</span><span class="main">#</span>store <span class="entity">state</span><span class="main">)</span> <span class="entity">name</span> <span class="keyword2"><span class="keyword">of</span></span>
+        NONE <span class="main">=&gt;</span> <span class="keyword3"><span class="keyword">raise</span></span> ERROR <span class="inner_quoted">"Bug"</span> <span class="main">|</span>
+        SOME <span class="entity">phase</span> <span class="main">=&gt;</span> <span class="entity">pretty_phase</span> <span class="entity">phase</span> <span class="entity">ctxt</span>
+      <span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty''</span> <span class="entity">ctxt</span> <span class="main">=</span>
+  <span class="main">[</span><span class="entity">pretty'</span> <span class="main">(</span><span class="entity">state</span> <span class="main">(</span>Proof_Context.theory_of <span class="entity">ctxt</span><span class="main">)</span><span class="main">)</span> <span class="entity">ctxt</span><span class="main">]</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">setup</span> <span class="entity">config</span> <span class="entity">thy</span> <span class="main">=</span>
+  Local_Theory.init 
+    <span class="main">{</span>background_naming <span class="main">=</span> Sign.naming_of <span class="entity">thy</span><span class="main">,</span>
+        setup <span class="main">=</span> <span class="entity">enter</span> <span class="entity">config</span><span class="main">,</span>
+        conclude <span class="main">=</span> <span class="entity">exit</span><span class="main">}</span>
+    <span class="main">{</span>define <span class="main">=</span> <span class="entity">Generic_Target.define</span> <span class="entity">Generic_Target.theory_target_foundation</span><span class="main">,</span>
+        notes <span class="main">=</span> <span class="entity">Generic_Target.notes</span> <span class="entity">Generic_Target.theory_target_notes</span><span class="main">,</span>
+        abbrev <span class="main">=</span> <span class="entity">Generic_Target.abbrev</span> <span class="entity">Generic_Target.theory_target_abbrev</span><span class="main">,</span>
+        declaration <span class="main">=</span> K <span class="entity">Generic_Target.theory_declaration</span><span class="main">,</span>
+        theory_registration <span class="main">=</span>  <span class="entity">Generic_Target.theory_registration</span><span class="main">,</span>
+        locale_dependency <span class="main">=</span> <span class="keyword1"><span class="keyword">fn</span></span> <span class="main">_</span> <span class="main">=&gt;</span> error <span class="inner_quoted">"Not possible in instantiation target"</span><span class="main">,</span>
+        pretty <span class="main">=</span> <span class="entity">pretty''</span><span class="main">}</span>
+    <span class="entity">thy</span>
+
+<span class="keyword2"><span class="keyword">end</span></span></pre>
+</body>
+
+</html>

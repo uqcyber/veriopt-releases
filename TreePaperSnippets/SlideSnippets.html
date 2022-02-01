@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><link rel="stylesheet" type="text/css" href="isabelle.css"/>
+<title>Theory SlideSnippets</title>
+</head>
+
+
+<body>
+<div class="head">
+<h1>Theory SlideSnippets</h1>
+</div>
+
+<pre class="source"><span class="keyword1"><span class="command"><span>theory</span></span></span><span> </span><span>SlideSnippets</span><span>
+  </span><span class="keyword2"><span class="keyword"><span>imports</span></span></span><span>
+    </span><a href="../Semantics/TreeToGraphThms.html"><span>Semantics.TreeToGraphThms</span></a><span>
+    </span><a href="../Snippets/Snipping.html"><span>Snippets.Snipping</span></a><span>
+</span><span class="keyword2"><span class="keyword"><span>begin</span></span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>notation</span></span></span><span> </span><span class="main"><span>(</span></span><span>latex</span><span class="main"><span>)</span></span><span>
+  </span><a class="entity_ref" href="../Graph/IRGraph.html#IRGraph.kind|const"><span>kind</span></a><span> </span><span class="main"><span>(</span></span><span class="quoted"><span>"</span><span>_</span><span class="keyword1"><span>⟪</span></span><span>_</span><span class="keyword1"><span>⟫</span></span><span>"</span></span><span class="main"><span>)</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>notation</span></span></span><span> </span><span class="main"><span>(</span></span><span>latex</span><span class="main"><span>)</span></span><span>
+  </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr|const"><span>IRTreeEval.ord_IRExpr_inst.less_eq_IRExpr</span></a><span> </span><span class="main"><span>(</span></span><span class="quoted"><span>"</span><span>_</span><span> </span><span class="keyword1"><span>⟼</span></span><span> </span><span>_</span><span>"</span></span><span class="main"><span>)</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>abstract-syntax-tree</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>datatype</span></span><span>[</span><span>display</span><span>,</span><span>margin</span><span>=40] </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.IRExpr|type"><span>IRExpr</span></a><span class="antiquote"><span>}</span></span></span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>tree-semantics</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\induct{</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>mode</span><span>=Rule] </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.evaltree.ConstantExpr|fact"><span>evaltree.ConstantExpr</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>}{semantics:constant}
+</span><span>\induct{</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>mode</span><span>=Rule] </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.evaltree.ParameterExpr|fact"><span>evaltree.ParameterExpr</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>}{semantics:parameter}
+</span><span>\induct{</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>mode</span><span>=Rule] </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.evaltree.UnaryExpr|fact"><span>evaltree.UnaryExpr</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>}{semantics:unary}
+</span><span>\induct{</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>mode</span><span>=Rule] </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.evaltree.BinaryExpr|fact"><span>evaltree.BinaryExpr</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>}{semantics:binary}
+</span><span>\induct{</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>mode</span><span>=Rule] </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.evaltree.LeafExpr|fact"><span>evaltree.LeafExpr</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>}{semantics:leaf}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>expression-refinement</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\begin{center}
+</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span> </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.le_expr_def|fact"><span>le_expr_def</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span> 
+</span><span>\end{center}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>graph2tree</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\induct{</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>mode</span><span>=Rule] </span><a class="entity_ref" href="../Semantics/TreeToGraph.html#TreeToGraph.rep.ConstantNode|fact"><span>rep.ConstantNode</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>}{semantics:constant}
+</span><span>\induct{</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>mode</span><span>=Rule] </span><a class="entity_ref" href="../Semantics/TreeToGraph.html#TreeToGraph.rep.AbsNode|fact"><span>rep.AbsNode</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>}{semantics:unary}
+</span><span>\induct{</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>mode</span><span>=Rule] </span><a class="entity_ref" href="../Semantics/TreeToGraph.html#TreeToGraph.rep.AddNode|fact"><span>rep.AddNode</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>}{semantics:binary}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>graph-semantics</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\begin{center}
+</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span> </span><a class="entity_ref" href="../Semantics/TreeToGraph.html#TreeToGraph.encodeeval_def|fact"><span>encodeeval_def</span></a><span class="antiquote"><span>}</span></span></span><span>
+</span><span>\end{center}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>graph-refinement</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\begin{center}
+</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>display</span><span>, </span><span>margin</span><span>=60] </span><a class="entity_ref" href="../Semantics/TreeToGraph.html#TreeToGraph.graph_refinement_def|fact"><span>graph_refinement_def</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>
+</span><span>\end{center}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="comment1"><span>(</span><span>*</span><span> hide as_set, should treat IRGraph as a set of pairs in paper </span><span>*</span><span>)</span></span><span>
+</span><span class="keyword1"><span class="command"><span>translations</span></span></span><span>
+  </span><span class="quoted"><span>"</span><span class="free"><span>n</span></span><span>"</span></span><span> </span><span class="main"><span>&lt;=</span></span><span> </span><span class="quoted"><span>"</span><span class="keyword1"><span>CONST</span></span><span> </span><a class="entity_ref" href="../Graph/IRGraph.html#IRGraph.as_set|const"><span>as_set</span></a><span> </span><span class="free"><span>n</span></span><span>"</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>graph-semantics-preservation</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\begin{center}
+</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>display</span><span>, </span><span>margin</span><span>=30] </span><a class="entity_ref" href="../Semantics/TreeToGraphThms.html#TreeToGraphThms.graph_semantics_preservation|fact"><span>graph_semantics_preservation</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>
+</span><span>\end{center}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>maximal-sharing</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>display</span><span>, </span><span>margin</span><span>=50] </span><a class="entity_ref" href="../Semantics/TreeToGraph.html#TreeToGraph.maximal_sharing|fact"><span>maximal_sharing</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>tree-to-graph-rewriting</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\begin{center}
+</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>display</span><span>, </span><span>margin</span><span>=40] </span><a class="entity_ref" href="../Semantics/TreeToGraphThms.html#TreeToGraphThms.tree_to_graph_rewriting|fact"><span>tree_to_graph_rewriting</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>
+</span><span>\end{center}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>graph-represents-expression</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\begin{center}
+</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>display</span><span>] </span><a class="entity_ref" href="../Semantics/TreeToGraph.html#TreeToGraph.graph_represents_expression_def|fact"><span>graph_represents_expression_def</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>
+</span><span>\end{center}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>graph-construction</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+</span><span>\begin{center}
+</span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>thm</span></span><span>[</span><span>display</span><span>, </span><span>margin</span><span>=40] </span><a class="entity_ref" href="../Semantics/TreeToGraphThms.html#TreeToGraphThms.graph_construction|fact"><span>graph_construction</span></a><span> </span><span class="main"><span>[</span></span><span class="operator"><span>no_vars</span></span><span class="main"><span>]</span></span><span class="antiquote"><span>}</span></span></span><span>
+</span><span>\end{center}</span><span>
+</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
+
+</span><span class="keyword2"><span class="keyword"><span>end</span></span></span></pre>
+</body>
+
+</html>

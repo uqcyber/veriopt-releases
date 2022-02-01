@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><link rel="stylesheet" type="text/css" href="isabelle.css"/>
+<title>File ‹markup.ML›</title>
+</head>
+
+
+<body>
+<div class="head">
+<h1>File ‹markup.ML›</h1>
+</div>
+
+<pre class="source"><span class="comment1">(*  Title:      Optimizations/DSL/markup.ML
+    Author:     Brae Webb
+
+Lift shorthand expressions to the full type.
+*)</span>
+
+<span class="keyword1"><span class="keyword">structure</span></span> <span class="entity">DSL_Tokens</span> <span class="main">=</span>
+<span class="keyword2"><span class="keyword">struct</span></span>
+
+<span class="keyword1"><span class="keyword">datatype</span></span> <span class="entity">Tokens</span> <span class="main">=</span>
+    <span class="entity">Add</span>
+  <span class="main">|</span> <span class="entity">Sub</span>
+  <span class="main">|</span> <span class="entity">Mul</span>
+  <span class="main">|</span> <span class="entity">And</span>
+  <span class="main">|</span> <span class="entity">Less</span>
+  <span class="main">|</span> <span class="entity">Abs</span>
+  <span class="main">|</span> <span class="entity">Equals</span>
+  <span class="main">|</span> <span class="entity">Not</span>
+  <span class="main">|</span> <span class="entity">Negate</span>
+  <span class="main">|</span> <span class="entity">LeftShift</span>
+  <span class="main">|</span> <span class="entity">RightShift</span>
+  <span class="main">|</span> <span class="entity">UnsignedRightShift</span>
+  <span class="main">|</span> <span class="entity">Conditional</span>
+  <span class="main">|</span> <span class="entity">Constant</span>
+  <span class="main">|</span> <span class="entity">TrueConstant</span>
+  <span class="main">|</span> <span class="entity">FalseConstant</span>
+<span class="keyword2"><span class="keyword">end</span></span>
+
+<span class="keyword1"><span class="keyword">signature</span></span> <span class="entity">DSL_TRANSLATION</span> <span class="main">=</span>
+<span class="keyword2"><span class="keyword">sig</span></span>
+<span class="keyword1"><span class="keyword">val</span></span> markup<span class="main">:</span> <span class="entity">DSL_Tokens.Tokens</span> <span class="main">-&gt;</span> term
+<span class="keyword2"><span class="keyword">end</span></span>
+
+<span class="keyword1"><span class="keyword">signature</span></span> <span class="entity">DSL_MARKUP</span> <span class="main">=</span>
+<span class="keyword2"><span class="keyword">sig</span></span>
+  <span class="keyword1"><span class="keyword">val</span></span> const_expr<span class="main">:</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> term list <span class="main">-&gt;</span> term
+  <span class="keyword1"><span class="keyword">val</span></span> equals_expr<span class="main">:</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> term list <span class="main">-&gt;</span> term
+
+  <span class="keyword1"><span class="keyword">val</span></span> markup_expr<span class="main">:</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> term list <span class="main">-&gt;</span> term
+
+  <span class="keyword1"><span class="keyword">val</span></span> rewrite<span class="main">:</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> term list <span class="main">-&gt;</span> term
+  <span class="keyword1"><span class="keyword">val</span></span> conditional_rewrite<span class="main">:</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> term list <span class="main">-&gt;</span> term
+<span class="keyword2"><span class="keyword">end</span></span><span class="main">;</span>
+
+<span class="keyword1"><span class="keyword">functor</span></span> <span class="entity">DSL_Markup</span><span class="main">(</span>Translator<span class="main">:</span> <span class="entity">DSL_TRANSLATION</span><span class="main">)</span><span class="main">:</span> <span class="entity">DSL_MARKUP</span> <span class="main">=</span>
+<span class="keyword2"><span class="keyword">struct</span></span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">const_expr</span> <span class="main">_</span> <span class="main">[</span><span class="entity">c</span> <span class="keyword1"><span class="keyword">as</span></span> Const <span class="main">_</span><span class="main">]</span> <span class="main">=</span>
+    <span class="antiquoted"><span class="antiquote">@{</span><span class="operator">const</span> ConstantExpr<span class="antiquote">}</span></span> $ <span class="main">(</span><span class="antiquoted"><span class="antiquote">@{</span><span class="operator">const</span> IntVal32<span class="antiquote">}</span></span> $ <span class="entity">c</span><span class="main">)</span>
+  <span class="main">|</span> <span class="entity">const_expr</span> <span class="main">_</span> <span class="main">[</span><span class="entity">x</span> $ <span class="entity">y</span><span class="main">]</span> <span class="main">=</span>
+    <span class="antiquoted"><span class="antiquote">@{</span><span class="operator">const</span> ConstantExpr<span class="antiquote">}</span></span> $ <span class="main">(</span><span class="antiquoted"><span class="antiquote">@{</span><span class="operator">const</span> IntVal32<span class="antiquote">}</span></span> $ <span class="main">(</span><span class="entity">x</span> $ <span class="entity">y</span><span class="main">)</span><span class="main">)</span>
+  <span class="main">|</span> <span class="entity">const_expr</span> <span class="main">_</span> <span class="entity">ts</span> <span class="main">=</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"const_expr"</span><span class="main">,</span> <span class="entity">ts</span><span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">equals_expr</span> <span class="main">_</span> <span class="main">[</span><span class="entity">lhs</span><span class="main">,</span> <span class="entity">rhs</span><span class="main">]</span> <span class="main">=</span>
+    <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Equals</span> $ <span class="entity">lhs</span> $ <span class="entity">rhs</span>
+  <span class="main">|</span> <span class="entity">equals_expr</span> <span class="main">_</span> <span class="entity">ts</span> <span class="main">=</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"equals_expr"</span><span class="main">,</span> <span class="entity">ts</span><span class="main">)</span>
+
+
+<span class="comment1">(* Shorthand expressions *)</span>
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">markup_constant</span> <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span> <span class="main">=</span>
+  <span class="keyword2"><span class="keyword">case</span></span> <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span> <span class="keyword2"><span class="keyword">of</span></span>
+    <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Markup.ExtraNotation.ConditionalNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Conditional</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Markup.ExtraNotation.ConditionalNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Conditional</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Markup.ExtraNotation.EqualsNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Equals</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Markup.ExtraNotation.EqualsNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Equals</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Markup.ExtraNotation.ConstantNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Constant</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Markup.ExtraNotation.ConstantNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Constant</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Markup.ExtraNotation.TrueNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.TrueConstant</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Markup.ExtraNotation.TrueNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.TrueConstant</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Markup.ExtraNotation.FalseNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.FalseConstant</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Markup.ExtraNotation.FalseNotation"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.FalseConstant</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Groups.plus_class.plus"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Add</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Groups.plus_class.plus"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Add</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Groups.minus_class.minus"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Sub</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Groups.minus_class.minus"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Sub</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Groups.times_class.times"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Mul</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Groups.times_class.times"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Mul</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>HOL.conj"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.And</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"HOL.conj"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.And</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Groups.uminus_class.uminus"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Negate</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Groups.uminus_class.uminus"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Negate</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>HOL.Not"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Not</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"HOL.Not"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Not</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Orderings.ord_class.less"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Less</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Orderings.ord_class.less"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Less</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Groups.abs_class.abs"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Abs</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Groups.abs_class.abs"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Abs</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Values.shiftl"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.LeftShift</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Values.shiftl"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.LeftShift</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Values.shiftr"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.RightShift</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Values.shiftr"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.RightShift</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Values.sshiftr"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.UnsignedRightShift</span>
+    <span class="main">|</span> <span class="main">(</span><span class="inner_quoted">"Values.sshiftr"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.UnsignedRightShift</span>
+    <span class="main">|</span> <span class="main">_</span> <span class="main">=&gt;</span> Const <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">markup_free</span> <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span> <span class="main">=</span>
+  <span class="keyword2"><span class="keyword">case</span></span> <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span> <span class="keyword2"><span class="keyword">of</span></span>
+    <span class="main">(</span><span class="inner_quoted">"abs"</span><span class="main">,</span> <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">Translator.markup</span> <span class="entity">DSL_Tokens.Abs</span>
+    <span class="main">|</span> <span class="main">(</span><span class="entity">var</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span> <span class="main">=&gt;</span> Free <span class="main">(</span><span class="entity">var</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">trm</span><span class="main">]</span> <span class="main">=</span>
+  <span class="keyword2"><span class="keyword">let</span></span>
+    <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">res</span> <span class="main">=</span> <span class="main">(</span><span class="keyword2"><span class="keyword">case</span></span> <span class="entity">trm</span> <span class="keyword2"><span class="keyword">of</span></span>
+      Const <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">markup_constant</span> <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span>
+    <span class="main">|</span> <span class="entity">e</span> <span class="keyword1"><span class="keyword">as</span></span> <span class="main">(</span><span class="main">(</span>Const <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>IRTreeEval.IRExpr.ConstantExpr"</span><span class="main">,</span><span class="main">_</span><span class="main">)</span><span class="main">)</span> $ <span class="main">_</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">e</span> <span class="comment1">(* ignore within a constant *)</span>
+    <span class="main">|</span> <span class="main">(</span><span class="entity">e</span> <span class="keyword1"><span class="keyword">as</span></span> <span class="main">(</span>Const <span class="main">(</span><span class="inner_quoted">"<span class="hidden">\&lt;^</span><span class="control">const</span><span class="hidden">&gt;</span>Markup.Rewrite.Conditional"</span><span class="main">,</span><span class="main">_</span><span class="main">)</span><span class="main">)</span><span class="main">)</span> $ <span class="entity">lhs</span> $ <span class="entity">rhs</span> $ <span class="entity">cond</span> <span class="main">=&gt;</span> 
+      <span class="entity">e</span> $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">lhs</span><span class="main">]</span> $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">rhs</span><span class="main">]</span> $ <span class="entity">cond</span>
+    <span class="main">|</span> <span class="main">(</span><span class="entity">e</span> <span class="keyword1"><span class="keyword">as</span></span> <span class="main">(</span>Const <span class="main">(</span><span class="inner_quoted">"Markup.Rewrite.Conditional"</span><span class="main">,</span><span class="main">_</span><span class="main">)</span><span class="main">)</span><span class="main">)</span> $ <span class="entity">lhs</span> $ <span class="entity">rhs</span> $ <span class="entity">cond</span> <span class="main">=&gt;</span> 
+      <span class="entity">e</span> $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">lhs</span><span class="main">]</span> $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">rhs</span><span class="main">]</span> $ <span class="entity">cond</span>
+    <span class="main">|</span> <span class="main">(</span><span class="entity">x</span> $ <span class="entity">y</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="main">(</span><span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">x</span><span class="main">]</span> $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">y</span><span class="main">]</span><span class="main">)</span>
+    <span class="main">|</span> Free <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span> <span class="main">=&gt;</span> <span class="entity">markup_free</span> <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">)</span>
+    <span class="main">|</span> Abs <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">,</span> <span class="entity">trm</span><span class="main">)</span> <span class="main">=&gt;</span> Abs <span class="main">(</span><span class="entity">str</span><span class="main">,</span> <span class="entity">typ</span><span class="main">,</span> <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">trm</span><span class="main">]</span><span class="main">)</span>
+    <span class="main">|</span> <span class="main">_</span> <span class="main">=&gt;</span> <span class="entity">trm</span><span class="main">)</span><span class="main">;</span>
+  <span class="keyword2"><span class="keyword">in</span></span>
+    <span class="entity">res</span>
+  <span class="keyword2"><span class="keyword">end</span></span>
+  <span class="main">|</span> <span class="entity">markup_expr</span> <span class="main">_</span> <span class="entity">ts</span> <span class="main">=</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"markup_expr"</span><span class="main">,</span> <span class="entity">ts</span><span class="main">)</span>
+
+
+<span class="comment1">(* Rewrite syntax *)</span>
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">rewrite</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">pre</span><span class="main">,</span> <span class="entity">post</span><span class="main">]</span> <span class="main">=</span>
+  Const <span class="main">(</span><span class="inner_quoted">"Transform"</span><span class="main">,</span> <span class="antiquoted"><span class="antiquote">@{</span><span class="operator">typ</span> <span class="quoted">"<span class="tfree">'a</span> <span class="main">=&gt;</span> <span class="tfree">'a</span> <span class="main">⇒</span> <span class="tfree">'a</span> Rewrite"</span><span class="antiquote">}</span></span><span class="main">)</span>
+    $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">pre</span><span class="main">]</span>
+    $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">post</span><span class="main">]</span>
+
+  <span class="main">|</span> <span class="entity">rewrite</span> <span class="main">_</span> <span class="entity">ts</span> <span class="main">=</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"rewrite"</span><span class="main">,</span> <span class="entity">ts</span><span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">conditional_rewrite</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">pre</span><span class="main">,</span> <span class="entity">post</span><span class="main">,</span> <span class="entity">cond</span><span class="main">]</span> <span class="main">=</span>
+  Const <span class="main">(</span><span class="inner_quoted">"Conditional"</span><span class="main">,</span> <span class="antiquoted"><span class="antiquote">@{</span><span class="operator">typ</span> <span class="quoted">"<span class="tfree">'a</span> <span class="main">⇒</span> <span class="tfree">'a</span> <span class="main">⇒</span> bool <span class="main">⇒</span> <span class="tfree">'a</span> Rewrite"</span><span class="antiquote">}</span></span><span class="main">)</span>
+    $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">pre</span><span class="main">]</span>
+    $ <span class="entity">markup_expr</span> <span class="entity">ctxt</span> <span class="main">[</span><span class="entity">post</span><span class="main">]</span>
+    $ <span class="entity">cond</span>
+
+  <span class="main">|</span> <span class="entity">conditional_rewrite</span> <span class="main">_</span> <span class="entity">ts</span> <span class="main">=</span> <span class="keyword3"><span class="keyword">raise</span></span> TERM <span class="main">(</span><span class="inner_quoted">"conditional_rewrite"</span><span class="main">,</span> <span class="entity">ts</span><span class="main">)</span>
+
+<span class="keyword2"><span class="keyword">end</span></span></pre>
+</body>
+
+</html>

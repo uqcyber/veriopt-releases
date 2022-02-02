@@ -1073,8 +1073,8 @@ proof -
 
 lemma graph_construction:
   "e\<^sub>1 \<ge> e\<^sub>2
-  \<and> as_set g\<^sub>1 \<subseteq> as_set g\<^sub>2 \<and> maximal_sharing g\<^sub>1
-  \<and> (g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2) \<and> maximal_sharing g\<^sub>2
+  \<and> as_set g\<^sub>1 \<subseteq> as_set g\<^sub>2
+  \<and> (g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2)
   \<Longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e\<^sub>1) \<and> graph_refinement g\<^sub>1 g\<^sub>2"
   using subset_refines
   by (meson encodeeval_def graph_represents_expression_def le_expr_def)

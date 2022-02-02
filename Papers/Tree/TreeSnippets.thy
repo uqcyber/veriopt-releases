@@ -24,6 +24,12 @@ notation (latex)
 notation (latex)
   size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
 
+translations
+  "y > x" <= "x < y"
+
+notation (latex)
+  greater ("_ > _")
+
 (* lengthen rewrite arrow slightly
 notation (latex)
   Transform ("_ \<longmapsto> _")

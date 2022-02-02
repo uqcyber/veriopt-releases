@@ -81,8 +81,8 @@ fun rewrite_preservation :: "IRExpr Rewrite \<Rightarrow> bool" where
   "rewrite_preservation (Transitive x) = rewrite_preservation x"
 
 fun rewrite_termination :: "IRExpr Rewrite \<Rightarrow> (IRExpr \<Rightarrow> nat) \<Rightarrow> bool" where
-  "rewrite_termination (Transform x y) trm = (trm y < trm x)" |
-  "rewrite_termination (Conditional x y cond) trm = (cond \<longrightarrow> (trm y < trm x))" |
+  "rewrite_termination (Transform x y) trm = (trm x > trm y)" |
+  "rewrite_termination (Conditional x y cond) trm = (cond \<longrightarrow> (trm x > trm y))" |
   "rewrite_termination (Sequential x y) trm = (rewrite_termination x trm \<and> rewrite_termination y trm)" |
   "rewrite_termination (Transitive x) trm = rewrite_termination x trm"
 

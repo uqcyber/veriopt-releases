@@ -39,7 +39,7 @@ declare
 
 fun size :: "IRExpr \<Rightarrow> nat" where
   "size (UnaryExpr op e) = (size e) + 1" |
-  "size (BinaryExpr BinAdd x y) = (size x) + ((size y) * 2)" |
+  "size (BinaryExpr BinAdd x y) = (size x) + (2 * (size y))" |
   "size (BinaryExpr op x y) = (size x) + (size y)" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr c) = 1" |
@@ -77,7 +77,7 @@ qed
 
 lemma binary_expr_size_gte_2: "size (BinaryExpr op x y) \<ge> 2"
   apply (induction "BinaryExpr op x y") apply auto apply (cases op; auto) using size_gt_0
-  apply (metis One_nat_def Suc_leI add_le_mono mult_2_right numeral_Bit0 numeral_code(1) trans_le_add2)
+  apply (simp add: Suc_leI trans_le_add2)
   by (metis Suc_leI add_2_eq_Suc' add_Suc_shift add_mono numeral_2_eq_2 size_gt_0)+
 
 lemma "size e = 1 = is_ConstantExpr e"

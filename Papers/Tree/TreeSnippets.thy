@@ -62,7 +62,7 @@ phase tmp
   terminating size
 begin
 snipbegin \<open>sub-same-32\<close>
-optimization sub_same: "(e::int32) - e \<mapsto> const (IntVal32 0)"
+optimization sub_same_32: "(e::int32) - e \<mapsto> const (IntVal32 0)"
 snipend -
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto[1] using Rep_int32 evalDet is_IntVal32_def
@@ -78,7 +78,7 @@ optimization sub_same_64: "(e::int64) - e \<mapsto> const (IntVal64 0)"
   by (simp add: Suc_le_eq add_strict_increasing size_gt_0)
 end
 
-thm_oracles sub_same
+thm_oracles sub_same_32
 
 
 snipbegin \<open>ast-example\<close>
@@ -113,6 +113,8 @@ snipend -
 snipbegin \<open>tree-evaluation-deterministic\<close>
 text \<open>@{thm[display] evalDet [no_vars]}\<close>
 snipend -
+
+thm_oracles evalDet
 
 snipbegin \<open>expression-refinement\<close>
 text \<open>@{thm le_expr_def [no_vars]} \<close>
@@ -203,25 +205,25 @@ snipend -
   using neutral_zero(1) rewrite_preservation.simps(1) apply blast
   by auto
 
-snipbegin \<open>NeutralLeftSub\<close>
-optimization NeutralLeftSub: "((e\<^sub>1::int) - (e\<^sub>2::int)) + e\<^sub>2 \<mapsto> e\<^sub>1"
+snipbegin \<open>InverseLeftSub\<close>
+optimization InverseLeftSub: "((e\<^sub>1::int) - (e\<^sub>2::int)) + e\<^sub>2 \<mapsto> e\<^sub>1"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
    apply (rule conjE, simp, simp del: le_expr_def)
-  snipbegin \<open>NeutralLeftSubObligation\<close>
+  snipbegin \<open>InverseLeftSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
 
   using neutral_left_add_sub by auto
 
-snipbegin \<open>NeutralRightSub\<close>
-optimization NeutralRightSub: "(e\<^sub>2::int) + ((e\<^sub>1::int) - e\<^sub>2) \<mapsto> e\<^sub>1"
+snipbegin \<open>InverseRightSub\<close>
+optimization InverseRightSub: "(e\<^sub>2::int) + ((e\<^sub>1::int) - e\<^sub>2) \<mapsto> e\<^sub>1"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
    apply (rule conjE, simp, simp del: le_expr_def)
-  snipbegin \<open>NeutralRightSubObligation\<close>
+  snipbegin \<open>InverseRightSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
 

@@ -280,7 +280,7 @@ lemma encodeEvalDet:
    v1 = v2"
   by (metis encodeeval_def evalDet repDet)
 
-lemma graphDet: "([g,m,p] \<turnstile> nid \<mapsto> v\<^sub>1) \<and> ([g,m,p] \<turnstile> nid \<mapsto> v\<^sub>2) \<Longrightarrow> v\<^sub>1 = v\<^sub>2"
+lemma graphDet: "([g,m,p] \<turnstile> n \<mapsto> v\<^sub>1) \<and> ([g,m,p] \<turnstile> n \<mapsto> v\<^sub>2) \<Longrightarrow> v\<^sub>1 = v\<^sub>2"
   using encodeEvalDet by blast
 
 

@@ -129,7 +129,8 @@ optimization AddShiftConstantRight: "((const v) + y) \<mapsto> y + (const v) whe
   unfolding le_expr_def
   apply (rule impI)
   subgoal premises 1
-  apply (rule allI impI)+
+    apply (rule allI impI)+
+    (* apply auto  -- unfolds premise eval, but not concl. *)
     subgoal premises 2 for m p va
       apply (rule BinaryExprE[OF 2])  (* go forward from v+y *)
       subgoal premises 3 for x ya
@@ -142,14 +143,103 @@ optimization AddShiftConstantRight: "((const v) + y) \<mapsto> y + (const v) whe
     done
   done
 
+(* take 2 - want to unfold to bin_eval etc... *)
+lemma unfold_bin:
+  assumes ok: "val \<noteq> UndefVal"
+  shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> val) = (\<exists> x y.
+          (([m,p] \<turnstile> xe \<mapsto> x) \<and>
+           ([m,p] \<turnstile> ye \<mapsto> y) \<and>
+           (val = bin_eval op x y)
+        ))" (is "?L = ?R")  (* (\<exists> x y. (?R1 \<and> ?R2 \<and> ?R3))" *)
+  apply (unfold iff_conv_conj_imp; rule conjI; rule impI)
+proof (goal_cases)
+  case 1
+  assume 3: ?L
+  show ?R by (rule evaltree.cases[OF 3]; blast+)
+next
+  case 2
+  assume ?R
+  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> x" and "[m,p] \<turnstile> ye \<mapsto> y" and "val = bin_eval op x y"
+    by auto
+  then show ?L
+    using ok by (rule BinaryExpr)
+qed
+
+lemma unfold_const:
+  shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (valid_value v (constantAsStamp c) \<and> c = v)"
+  by blast 
+
+lemma unfold_valid32 [simp]:
+  "valid_value y (constantAsStamp (IntVal32 v)) = (y = IntVal32 v)"
+  by (induction y; auto dest: signed_word_eqI)
+
+lemma unfold_valid64 [simp]:
+  "valid_value y (constantAsStamp (IntVal64 v)) = (y = IntVal64 v)"
+  by (induction y; auto dest: signed_word_eqI)
+
+
+lemma unfold_bin2:
+  shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> val) = (\<exists> x y.
+          (([m,p] \<turnstile> xe \<mapsto> x) \<and>
+           ([m,p] \<turnstile> ye \<mapsto> y) \<and>
+           (val = bin_eval op x y) \<and>
+           (val \<noteq> UndefVal)
+        ))" (is "?L = ?R")  (* (\<exists> x y. (?R1 \<and> ?R2 \<and> ?R3))" *)
+  apply (unfold iff_conv_conj_imp; rule conjI; rule impI)
+proof (goal_cases)
+  case 1
+  assume 3: ?L
+  show ?R by (rule evaltree.cases[OF 3]; blast+)
+next
+  case 2
+  assume ?R
+  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> x"
+        and "[m,p] \<turnstile> ye \<mapsto> y"
+        and "val = bin_eval op x y"
+        and "val \<noteq> UndefVal"
+    by auto
+  then show ?L
+     by (rule BinaryExpr)
+qed
+
+(* TODO: define is_neutral and then lemmas like this: 
+lemma simp_neutral:
+  assumes n: "is_neutral op (IntVal32 n)" 
+  shows "bin_eval op x (IntVal32 n) = x"
+  apply (induction op)
+  unfolding is_neutral.simps 
+  using n apply auto
+*)
+
+(* poor-mans is_neutral lemma *)
+lemma is_neutral_0 [simp]:
+  assumes 1: "intval_add x (IntVal32 0) \<noteq> UndefVal"
+  shows "intval_add x (IntVal32 0) = x"
+  using 1 by (induction x; simp)
+
+
+optimization AddShiftConstantRight2: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+  apply unfold_optimization
+  unfolding le_expr_def unfold_bin2 unfold_const
+  apply auto
+  subgoal for m p ya
+    apply (rule exI[of _ "ya"])
+    by (simp add: intval_add_sym)
+  (* termination proof *)
+  using size_non_const by fastforce
+
+
 optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e"
   apply unfold_optimization
-  sorry
+  unfolding le_expr_def unfold_bin2 unfold_const unfold_valid32
+   apply (metis bin_eval.simps(1) is_neutral_0)
+  using size_non_const by fastforce
+
 
 ML_val \<open>@{term \<open>x = y\<close>}\<close>
 
 optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<mapsto> e\<^sub>1"
-  apply unfold_optimization unfolding intval.simps
+    apply unfold_optimization unfolding intval.simps
   using intval_add.simps intval_sub.simps
     apply (metis (no_types, lifting) diff_add_cancel val_to_bool.cases)
   sorry

@@ -5,6 +5,7 @@ imports
   TreeToGraph
   IRTreeEvalThms
   "HOL-Eisbach.Eisbach"
+  "HOL-Eisbach.Eisbach_Tools"
 begin
 
 subsubsection \<open>Extraction and Evaluation of Expression Trees is Deterministic.\<close>
@@ -984,141 +985,66 @@ inductive_cases UnaryRepE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases BinaryRepE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr op xe ye)"
 
-lemma subset_refnode:
-  assumes "as_set g1 \<subseteq> as_set g2"
-  assumes "kind g1 n = RefNode n'"
-  assumes "(g1 \<turnstile> n' \<simeq> e') \<Longrightarrow> (g2 \<turnstile> n' \<simeq> e')"
-  shows "(g1 \<turnstile> n \<simeq> e) \<Longrightarrow> (g2 \<turnstile> n \<simeq> e)"
-proof -
-  assume eval: "(g1 \<turnstile> n \<simeq> e)"
-  have "n \<in> ids g1"
-    using assms(1,2) RefNode by simp
-  then have "kind g1 n = kind g2 n"
-    using assms(1) unfolding as_set_def by auto
-  have n'e: "g1 \<turnstile> n' \<simeq> e"
-    using eval assms(2) rep_ref by simp
-  then have "n' \<in> ids g1"
-    using no_encoding by blast
-  then have "kind g1 n' = kind g2 n'"
-    using assms(1) unfolding as_set_def by auto
-  have "g2 \<turnstile> n' \<simeq> e"
-    using n'e assms(3) repDet
-    sorry
-  then show "(g2 \<turnstile> n \<simeq> e)"
-    using RefNode \<open>kind g1 n = kind g2 n\<close> assms(2) assms(3) by presburger
-qed
 
+lemma eval_contains_id[simp]: "g1 \<turnstile> n \<simeq> e \<Longrightarrow> n \<in> ids g1"
+  using no_encoding by blast
+
+lemma subset_kind[simp]: "as_set g1 \<subseteq> as_set g2 \<Longrightarrow> g1 \<turnstile> n \<simeq> e \<Longrightarrow> kind g1 n = kind g2 n"
+  using eval_contains_id unfolding as_set_def
+  by blast
+
+lemma subset_stamp[simp]: "as_set g1 \<subseteq> as_set g2 \<Longrightarrow> g1 \<turnstile> n \<simeq> e \<Longrightarrow> stamp g1 n = stamp g2 n"
+  using eval_contains_id unfolding as_set_def
+  by blast
+
+method solve_subset_eval uses as_set eval =
+  (metis eval as_set subset_kind subset_stamp |
+   metis eval as_set subset_kind)
+
+(*
+lemmas rep_rules =
+  ConstantNode
+  ParameterNode
+  ConditionalNode
+
+method solve_subset_eval uses as_set =
+  (match premises in "kind _ _ = node _ \<Longrightarrow> _" for node \<Rightarrow>
+    \<open>match rep_rules in eval: "kind _ _ = node _ \<Longrightarrow> _" \<Rightarrow> 
+       \<open>metis eval as_set subset_kind\<close>\<close>)
+
+method solve_subset_debug uses as_set =
+  (match premises in k: "kind _ _ = node _ _" for node \<Rightarrow>
+    \<open>match rep_rules in eval: "kind _ _ = node _ _ \<Longrightarrow> _" \<Rightarrow> 
+       \<open>print_term node\<close>\<close>)
+*)
 
 lemma subset_implies_evals:
   assumes "as_set g1 \<subseteq> as_set g2"
-  shows "(g1 \<turnstile> n \<simeq> e) \<Longrightarrow> (g2 \<turnstile> n \<simeq> e)"
-proof (induction e arbitrary: n)
-  case (UnaryExpr op e)
-  then have "n \<in> ids g1"
-    using no_encoding by metis
-  then have "kind g1 n = kind g2 n"
-    using assms unfolding as_set_def
-    by blast
-  then show ?case apply (cases "is_RefNode (kind g1 n)") defer
-    using UnaryExpr UnaryRepE
-    using AbsNode LogicNegationNode NarrowNode NegateNode NotNode SignExtendNode ZeroExtendNode
-     apply (smt (verit) is_RefNode_def)
-    using UnaryExpr.IH UnaryExpr.prems
-    using subset_refnode repDet assms is_RefNode_def
-    by meson
-next
-  case (BinaryExpr op e1 e2)
-  then have "n \<in> ids g1"
-    using no_encoding by metis
-  then have "kind g1 n = kind g2 n"
-    using assms unfolding as_set_def
-    by blast
-  then show ?case apply (cases "is_RefNode (kind g1 n)") defer
-    using BinaryExpr BinaryRepE
-    using AddNode MulNode SubNode AndNode OrNode XorNode IntegerBelowNode IntegerEqualsNode IntegerLessThanNode
-     apply (smt (verit) is_RefNode_def)
-    by (meson BinaryExpr.IH(1) BinaryExpr.prems assms is_RefNode_def subset_refnode)
-next
-  case (ConditionalExpr e1 e2 e3)
-  then have "n \<in> ids g1"
-    using no_encoding by metis
-  then have "kind g1 n = kind g2 n"
-    using assms unfolding as_set_def
-    by blast
-  then show ?case
-    apply (cases "is_RefNode (kind g1 n)") defer
-    using ConditionalExpr ConditionalExprE is_RefNode_def
-    apply (smt (verit, best) ConditionalNode ConditionalNodeE)
-    by (meson ConditionalExpr.IH(3) ConditionalExpr.prems assms is_RefNode_def subset_refnode)
-next
-  case (ConstantExpr x)
-  then have "n \<in> ids g1"
-    using no_encoding by metis
-  then have "kind g1 n = kind g2 n"
-    using assms unfolding as_set_def
-    by blast
-  then show ?case apply (cases "is_RefNode (kind g1 n)") defer
-    using ConstantExpr ConstantExprE is_RefNode_def
-     apply (metis ConstantNode ConstantNodeE)
-    by (meson IRExpr.simps(30) assms is_RefNode_def local.ConstantExpr repDet subset_refnode)
-next
-  case (ParameterExpr x1 x2)
-  then have in_g1: "n \<in> ids g1"
-    using no_encoding by metis
-  then have kinds: "kind g1 n = kind g2 n"
-    using assms unfolding as_set_def
-    by blast
-  from in_g1 have stamps: "stamp g1 n = stamp g2 n"
-    using assms unfolding as_set_def
-    by blast
-  from kinds stamps show ?case apply (cases "is_RefNode (kind g1 n)") defer
-    using ParameterExpr ParameterExprE is_RefNode_def
-     apply (metis ParameterNode ParameterNodeE)
-    by (meson IRExpr.distinct(17) assms is_RefNode_def local.ParameterExpr repDet subset_refnode)
-next
-  case (LeafExpr nid s)
-  then have in_g1: "n \<in> ids g1"
-    using no_encoding by force
-  then have kinds: "kind g1 n = kind g2 n"
-    using assms unfolding as_set_def
-    by blast
-  from in_g1 have stamps: "stamp g1 n = stamp g2 n"
-    using assms unfolding as_set_def
-    by blast
-  from kinds stamps show ?case apply (cases "is_RefNode (kind g1 n)") defer
-    using LeafExpr LeafExprE LeafNode is_RefNode_def
-    apply (smt (z3) IRExpr.distinct(29) IRExpr.simps(16) IRExpr.simps(28) rep.simps) (* slow *)
-    by (meson IRExpr.simps(27) assms is_RefNode_def local.LeafExpr repDet subset_refnode)
-next
-  case (ConstantVar x)
-  then have in_g1: "n \<in> ids g1"
-    using no_encoding by force
-  then have kinds: "kind g1 n = kind g2 n"
-    using assms unfolding as_set_def
-    by blast
-  from in_g1 have stamps: "stamp g1 n = stamp g2 n"
-    using assms unfolding as_set_def
-    by blast
-  from kinds stamps show ?case apply (cases "is_RefNode (kind g1 n)") defer
-    using ConstantVar ConstantVarE is_RefNode_def
-     apply (smt (z3) IRExpr.distinct(11) IRExpr.distinct(23) IRExpr.distinct(33) rep.simps) (* very slow *)
-    by (meson ConstantVar IRExpr.distinct(33) assms is_RefNode_def repDet subset_refnode)
-next 
-  case (VariableExpr x s)
-  then have in_g1: "n \<in> ids g1"
-    using no_encoding by blast
-  then have kinds: "kind g1 n = kind g2 n"
-    using assms unfolding as_set_def
-    by blast
-  from in_g1 have stamps: "stamp g1 n = stamp g2 n"
-    using assms unfolding as_set_def
-    by blast
-  from kinds stamps show ?case apply (cases "is_RefNode (kind g1 n)") defer
-    using VariableExpr VariableExprE is_RefNode_def
-     apply (smt (z3) IRExpr.simps(22) IRExpr.simps(34) IRExpr.simps(44) rep.simps)
-    by (meson IRExpr.simps(33) VariableExpr assms is_RefNode_def repDet subset_refnode)
-qed
-
+  assumes "(g1 \<turnstile> n \<simeq> e)"
+  shows "(g2 \<turnstile> n \<simeq> e)"
+  using assms(2)
+  apply (induction e)
+                      apply (solve_subset_eval as_set: assms(1) eval: ConstantNode)
+                     apply (solve_subset_eval as_set: assms(1) eval: ParameterNode)
+                    apply (solve_subset_eval as_set: assms(1) eval: ConditionalNode)
+                   apply (solve_subset_eval as_set: assms(1) eval: AbsNode)
+                  apply (solve_subset_eval as_set: assms(1) eval: NotNode)
+                 apply (solve_subset_eval as_set: assms(1) eval: NegateNode)
+                apply (solve_subset_eval as_set: assms(1) eval: LogicNegationNode)
+               apply (solve_subset_eval as_set: assms(1) eval: AddNode)
+              apply (solve_subset_eval as_set: assms(1) eval: MulNode)
+             apply (solve_subset_eval as_set: assms(1) eval: SubNode)
+            apply (solve_subset_eval as_set: assms(1) eval: AndNode)
+           apply (solve_subset_eval as_set: assms(1) eval: OrNode)
+          apply (solve_subset_eval as_set: assms(1) eval: XorNode)
+         apply (solve_subset_eval as_set: assms(1) eval: IntegerBelowNode)
+        apply (solve_subset_eval as_set: assms(1) eval: IntegerEqualsNode)
+       apply (solve_subset_eval as_set: assms(1) eval: IntegerLessThanNode)
+      apply (solve_subset_eval as_set: assms(1) eval: NarrowNode)
+     apply (solve_subset_eval as_set: assms(1) eval: SignExtendNode)
+    apply (solve_subset_eval as_set: assms(1) eval: ZeroExtendNode)
+   apply (solve_subset_eval as_set: assms(1) eval: LeafNode)
+  by (solve_subset_eval as_set: assms(1) eval: RefNode)
 
 lemma subset_refines:
   assumes "as_set g1 \<subseteq> as_set g2"

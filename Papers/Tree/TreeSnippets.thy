@@ -330,6 +330,7 @@ text \<open>
 \induct{@{thm[mode=Rule] rep.SignExtendNode [no_vars]}}{rep:convert}
 \induct{@{thm[mode=Rule] rep.AddNode [no_vars]}}{rep:binary}
 \induct{@{thm[mode=Rule] rep.LeafNode [no_vars]}}{rep:leaf}
+\induct{@{thm[mode=Rule] rep.RefNode [no_vars]}}{rep:ref}
 \<close>
 snipend -
 

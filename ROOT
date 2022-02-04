@@ -20,7 +20,7 @@ session Graph in Graph = "HOL-Library" +
 session Semantics in Semantics = Graph +
   description
     "Semantics of the GraalVM IR"
-  options [document = pdf, document_output = "output",
+  options [quick_and_dirty, document = pdf, document_output = "output",
            show_question_marks = false]
   sessions
     "HOL-Eisbach"

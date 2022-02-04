@@ -142,7 +142,13 @@ inductive
   LeafNode:
   "\<lbrakk>is_preevaluated (kind g n);
     stamp g n = s\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<simeq> (LeafExpr n s)"
+    \<Longrightarrow> g \<turnstile> n \<simeq> (LeafExpr n s)" |
+
+(* Ref Node *)
+  RefNode:
+  "\<lbrakk>kind g n = RefNode n';
+    g \<turnstile> n' \<simeq> e\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> e"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
 

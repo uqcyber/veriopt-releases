@@ -182,7 +182,7 @@ lemma encode_in_ids:
   using assms
   apply (induction rule: rep.induct)
   apply simp+
-  by fastforce
+  by fastforce+
 
 lemma eval_in_ids:
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
@@ -377,6 +377,14 @@ next
   case (LeafNode n s)
   then show ?case
     by (metis kind_unchanged rep.LeafNode stamp_unchanged)
+next
+  case (RefNode n n')
+  then have "kind g2 n = RefNode n'"
+    using kind_unchanged by metis
+  then have "n' \<in> eval_usages g1 n"
+    by (metis IRNodes.inputs_of_RefNode RefNode.hyps(1) RefNode.hyps(2) encode_in_ids inputs.elims inputs_are_usages list.set_intros(1))
+  then show ?case
+    by (metis IRNodes.inputs_of_RefNode RefNode.IH RefNode.hyps(1) RefNode.hyps(2) RefNode.prems(1) \<open>kind g2 n = RefNode n'\<close> child_unchanged encode_in_ids inputs.elims list.set_intros(1) local.wf rep.RefNode)
 qed
 qed
 
@@ -405,7 +413,7 @@ proof -
   proof (induct e v1 arbitrary: nid rule: "evaltree.induct")
     case (ConstantExpr c)
     then show ?case
-      by (metis ConstantNode ConstantNodeE kind_unchanged)
+      by (meson local.wf stay_same_encoding)
   next
     case (ParameterExpr i s)
     have "g2 \<turnstile> nid \<simeq> ParameterExpr i s"

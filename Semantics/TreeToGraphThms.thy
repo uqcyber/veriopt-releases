@@ -136,28 +136,38 @@ lemma rep_load_field [rep]:
    (\<exists>s. e = LeafExpr n s)"
   by (induction rule: rep.induct; auto)
 
+lemma rep_ref [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   kind g n = RefNode n' \<Longrightarrow>
+   g \<turnstile> n' \<simeq> e"
+  by (induction rule: rep.induct; auto)
+
 
 method solve_det uses node =
   (match node in "kind _ _ = node _" for node \<Rightarrow> 
     \<open>match rep in r: "_ \<Longrightarrow> _ = node _ \<Longrightarrow> _" \<Rightarrow> 
       \<open>match IRNode.inject in i: "(node _ = node _) = _" \<Rightarrow>
         \<open>match RepE in e: "_ \<Longrightarrow> (\<And>x. _ = node x \<Longrightarrow> _) \<Longrightarrow> _" \<Rightarrow>
-          \<open>metis i e r\<close>\<close>\<close>\<close> |
+          \<open>match IRNode.distinct in d: "node _ \<noteq> RefNode _" \<Rightarrow>
+            \<open>metis i e r d\<close>\<close>\<close>\<close>\<close> |
    match node in "kind _ _ = node _ _" for node \<Rightarrow> 
     \<open>match rep in r: "_ \<Longrightarrow> _ = node _ _ \<Longrightarrow> _" \<Rightarrow> 
       \<open>match IRNode.inject in i: "(node _ _ = node _ _) = _" \<Rightarrow>
         \<open>match RepE in e: "_ \<Longrightarrow> (\<And>x y. _ = node x y \<Longrightarrow> _) \<Longrightarrow> _" \<Rightarrow>
-          \<open>metis i e r\<close>\<close>\<close>\<close> |
+          \<open>match IRNode.distinct in d: "node _ _ \<noteq> RefNode _" \<Rightarrow>
+            \<open>metis i e r d\<close>\<close>\<close>\<close>\<close> |
    match node in "kind _ _ = node _ _ _" for node \<Rightarrow> 
     \<open>match rep in r: "_ \<Longrightarrow> _ = node _ _ _ \<Longrightarrow> _" \<Rightarrow> 
       \<open>match IRNode.inject in i: "(node _ _ _ = node _ _ _) = _" \<Rightarrow>
         \<open>match RepE in e: "_ \<Longrightarrow> (\<And>x y z. _ = node x y z \<Longrightarrow> _) \<Longrightarrow> _" \<Rightarrow>
-          \<open>metis i e r\<close>\<close>\<close>\<close> |
+          \<open>match IRNode.distinct in d: "node _ _ _ \<noteq> RefNode _" \<Rightarrow>
+            \<open>metis i e r d\<close>\<close>\<close>\<close>\<close> |
   match node in "kind _ _ = node _ _ _" for node \<Rightarrow> 
     \<open>match rep in r: "_ \<Longrightarrow> _ = node _ _ _ \<Longrightarrow> _" \<Rightarrow> 
       \<open>match IRNode.inject in i: "(node _ _ _ = node _ _ _) = _" \<Rightarrow>
         \<open>match RepE in e: "_ \<Longrightarrow> (\<And>x. _ = node _ _ x \<Longrightarrow> _) \<Longrightarrow> _" \<Rightarrow>
-          \<open>metis i e r\<close>\<close>\<close>\<close>)
+          \<open>match IRNode.distinct in d: "node _ _ _ \<noteq> RefNode _" \<Rightarrow>
+            \<open>metis i e r d\<close>\<close>\<close>\<close>\<close>)
 
 text \<open>Now we can prove that 'rep' and 'eval', and their list versions, are deterministic.
 \<close>
@@ -168,14 +178,17 @@ proof (induction arbitrary: e\<^sub>2 rule: "rep.induct")
   then show ?case using rep_constant by auto
 next
   case (ParameterNode n i s)
-  then show ?case using rep_parameter by auto
+  then show ?case
+    by (metis IRNode.disc(2685) ParameterNodeE is_RefNode_def rep_parameter)
 next
   case (ConditionalNode n c t f ce te fe)
-  then show ?case 
-    by (solve_det node: ConditionalNode)
+  then show ?case
+    using IRNode.distinct(593)
+    using IRNode.inject(6) ConditionalNodeE rep_conditional
+    by metis
 next
   case (AbsNode n x xe)
-  then show ?case 
+  then show ?case
     by (solve_det node: AbsNode)
 next
   case (NotNode n x xe)
@@ -227,20 +240,24 @@ next
     by (solve_det node: IntegerLessThanNode)
 next
   case (NarrowNode n x xe)
-  then show ?case   
-    by (metis IRNode.inject(28) NarrowNodeE rep_narrow)
+  then show ?case
+    by (metis IRNode.distinct(2203) IRNode.inject(28) NarrowNodeE rep_narrow)
 next
   case (SignExtendNode n x xe)
-  then show ?case
-    using SignExtendNodeE rep_sign_extend IRNode.inject(39)
-    by (metis IRNode.inject(39) rep_sign_extend)
+  then show ?case 
+    by (metis IRNode.distinct(2599) IRNode.inject(39) SignExtendNodeE rep_sign_extend)
 next
   case (ZeroExtendNode n x xe)
   then show ?case
-    by (metis IRNode.inject(50) ZeroExtendNodeE rep_zero_extend)
+    by (metis IRNode.distinct(2753) IRNode.inject(50) ZeroExtendNodeE rep_zero_extend)
 next
   case (LeafNode n s)
-  then show ?case using rep_load_field LeafNodeE by blast 
+  then show ?case using rep_load_field LeafNodeE
+    by (metis is_preevaluated.simps(53))
+next
+  case (RefNode n')
+  then show ?case
+    using rep_ref by blast
 qed
 
 lemma repAllDet:
@@ -340,7 +357,8 @@ lemma mono_conditional_graph:
   assumes "ce1 \<ge> ce2 \<and> te1 \<ge> te2 \<and> fe1 \<ge> fe2"
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
-  by (metis ConditionalNodeE IRNode.inject(6) assms(1) assms(2) assms(3) assms(4) assms(5) assms(6) mono_conditional repDet rep_conditional)
+  using ConditionalNodeE IRNode.inject(6) assms(1) assms(2) assms(3) assms(4) assms(5) assms(6) mono_conditional repDet rep_conditional
+  by (smt (verit, best) ConditionalNode)
 
 lemma mono_add:
   assumes "kind g1 n = AddNode x y \<and> kind g2 n = AddNode x y"
@@ -349,8 +367,8 @@ lemma mono_add:
   assumes "xe1 \<ge> xe2 \<and> ye1 \<ge> ye2"
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
-  using mono_binary assms
-  by (metis AddNodeE IRNode.inject(2) repDet rep_add)
+  using mono_binary assms AddNodeE IRNode.inject(2) repDet rep_add
+  by (metis IRNode.distinct(205))
 
 lemma mono_mul:
   assumes "kind g1 n = MulNode x y \<and> kind g2 n = MulNode x y"
@@ -359,8 +377,8 @@ lemma mono_mul:
   assumes "xe1 \<ge> xe2 \<and> ye1 \<ge> ye2"
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
-  using mono_binary assms
-  by (metis IRNode.inject(27) MulNodeE repDet rep_mul)
+  using mono_binary assms IRNode.inject(27) MulNodeE repDet rep_mul
+  by (smt (verit, best) MulNode)
 
 
 lemma term_graph_evaluation:
@@ -374,6 +392,7 @@ lemma encodes_contains:
   apply (induction rule: rep.induct)
   apply (match IRNode.distinct in e: "?n \<noteq> NoNode" \<Rightarrow>
           \<open>presburger add: e\<close>)+
+  apply force
   by fastforce
 
 lemma no_encoding:
@@ -923,8 +942,12 @@ proof -
       qed
     next
       case (LeafNode n s)
-    then show ?case
-      by (metis eq_refl rep.LeafNode)
+      then show ?case
+        by (metis eq_refl rep.LeafNode)
+    next
+      case (RefNode n')
+      then show ?case
+        by (metis a b c d no_encoding not_excluded_keep_type rep.RefNode repDet singletonD)
     qed
   qed
 qed
@@ -961,57 +984,97 @@ inductive_cases UnaryRepE[elim!]:\<^marker>\<open>tag invisible\<close>
 inductive_cases BinaryRepE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr op xe ye)"
 
+lemma subset_refnode:
+  assumes "as_set g1 \<subseteq> as_set g2"
+  assumes "kind g1 n = RefNode n'"
+  assumes "(g1 \<turnstile> n' \<simeq> e') \<Longrightarrow> (g2 \<turnstile> n' \<simeq> e')"
+  shows "(g1 \<turnstile> n \<simeq> e) \<Longrightarrow> (g2 \<turnstile> n \<simeq> e)"
+proof -
+  assume eval: "(g1 \<turnstile> n \<simeq> e)"
+  have "n \<in> ids g1"
+    using assms(1,2) RefNode by simp
+  then have "kind g1 n = kind g2 n"
+    using assms(1) unfolding as_set_def by auto
+  have n'e: "g1 \<turnstile> n' \<simeq> e"
+    using eval assms(2) rep_ref by simp
+  then have "n' \<in> ids g1"
+    using no_encoding by blast
+  then have "kind g1 n' = kind g2 n'"
+    using assms(1) unfolding as_set_def by auto
+  have "g2 \<turnstile> n' \<simeq> e"
+    using n'e assms(3) repDet
+    sorry
+  then show "(g2 \<turnstile> n \<simeq> e)"
+    using RefNode \<open>kind g1 n = kind g2 n\<close> assms(2) assms(3) by presburger
+qed
+
+
 lemma subset_implies_evals:
   assumes "as_set g1 \<subseteq> as_set g2"
   shows "(g1 \<turnstile> n \<simeq> e) \<Longrightarrow> (g2 \<turnstile> n \<simeq> e)"
 proof (induction e arbitrary: n)
   case (UnaryExpr op e)
   then have "n \<in> ids g1"
-    using no_encoding by force
+    using no_encoding by metis
   then have "kind g1 n = kind g2 n"
     using assms unfolding as_set_def
     by blast
-  then show ?case using UnaryExpr UnaryRepE
-    by (smt (verit, ccfv_threshold) AbsNode LogicNegationNode NarrowNode NegateNode NotNode SignExtendNode ZeroExtendNode)
+  then show ?case apply (cases "is_RefNode (kind g1 n)") defer
+    using UnaryExpr UnaryRepE
+    using AbsNode LogicNegationNode NarrowNode NegateNode NotNode SignExtendNode ZeroExtendNode
+     apply (smt (verit) is_RefNode_def)
+    using UnaryExpr.IH UnaryExpr.prems
+    using subset_refnode repDet assms is_RefNode_def
+    by meson
 next
   case (BinaryExpr op e1 e2)
   then have "n \<in> ids g1"
-    using no_encoding by force
+    using no_encoding by metis
   then have "kind g1 n = kind g2 n"
     using assms unfolding as_set_def
     by blast
-  then show ?case using BinaryExpr BinaryRepE
-    by (smt (verit, ccfv_threshold) AddNode MulNode SubNode AndNode OrNode XorNode IntegerBelowNode IntegerEqualsNode IntegerLessThanNode)
+  then show ?case apply (cases "is_RefNode (kind g1 n)") defer
+    using BinaryExpr BinaryRepE
+    using AddNode MulNode SubNode AndNode OrNode XorNode IntegerBelowNode IntegerEqualsNode IntegerLessThanNode
+     apply (smt (verit) is_RefNode_def)
+    by (meson BinaryExpr.IH(1) BinaryExpr.prems assms is_RefNode_def subset_refnode)
 next
   case (ConditionalExpr e1 e2 e3)
   then have "n \<in> ids g1"
-    using no_encoding by force
+    using no_encoding by metis
   then have "kind g1 n = kind g2 n"
     using assms unfolding as_set_def
     by blast
-  then show ?case using ConditionalExpr ConditionalExprE
-    by (smt (verit, best) ConditionalNode ConditionalNodeE)
+  then show ?case
+    apply (cases "is_RefNode (kind g1 n)") defer
+    using ConditionalExpr ConditionalExprE is_RefNode_def
+    apply (smt (verit, best) ConditionalNode ConditionalNodeE)
+    by (meson ConditionalExpr.IH(3) ConditionalExpr.prems assms is_RefNode_def subset_refnode)
 next
   case (ConstantExpr x)
   then have "n \<in> ids g1"
-    using no_encoding by force
+    using no_encoding by metis
   then have "kind g1 n = kind g2 n"
     using assms unfolding as_set_def
     by blast
-  then show ?case using ConstantExpr ConstantExprE
-    by (metis ConstantNode ConstantNodeE)
+  then show ?case apply (cases "is_RefNode (kind g1 n)") defer
+    using ConstantExpr ConstantExprE is_RefNode_def
+     apply (metis ConstantNode ConstantNodeE)
+    by (meson IRExpr.simps(30) assms is_RefNode_def local.ConstantExpr repDet subset_refnode)
 next
   case (ParameterExpr x1 x2)
   then have in_g1: "n \<in> ids g1"
-    using no_encoding by force
+    using no_encoding by metis
   then have kinds: "kind g1 n = kind g2 n"
     using assms unfolding as_set_def
     by blast
   from in_g1 have stamps: "stamp g1 n = stamp g2 n"
     using assms unfolding as_set_def
     by blast
-  from kinds stamps show ?case using ParameterExpr ParameterExprE
-    by (metis ParameterNode ParameterNodeE)
+  from kinds stamps show ?case apply (cases "is_RefNode (kind g1 n)") defer
+    using ParameterExpr ParameterExprE is_RefNode_def
+     apply (metis ParameterNode ParameterNodeE)
+    by (meson IRExpr.distinct(17) assms is_RefNode_def local.ParameterExpr repDet subset_refnode)
 next
   case (LeafExpr nid s)
   then have in_g1: "n \<in> ids g1"
@@ -1022,8 +1085,10 @@ next
   from in_g1 have stamps: "stamp g1 n = stamp g2 n"
     using assms unfolding as_set_def
     by blast
-  from kinds stamps show ?case using LeafExpr LeafExprE LeafNode 
-    by (smt (z3) IRExpr.distinct(29) IRExpr.simps(16) IRExpr.simps(28) rep.simps) (* slow *)
+  from kinds stamps show ?case apply (cases "is_RefNode (kind g1 n)") defer
+    using LeafExpr LeafExprE LeafNode is_RefNode_def
+    apply (smt (z3) IRExpr.distinct(29) IRExpr.simps(16) IRExpr.simps(28) rep.simps) (* slow *)
+    by (meson IRExpr.simps(27) assms is_RefNode_def local.LeafExpr repDet subset_refnode)
 next
   case (ConstantVar x)
   then have in_g1: "n \<in> ids g1"
@@ -1034,20 +1099,24 @@ next
   from in_g1 have stamps: "stamp g1 n = stamp g2 n"
     using assms unfolding as_set_def
     by blast
-  from kinds stamps show ?case using ConstantVar
-    using rep.simps by blast
+  from kinds stamps show ?case apply (cases "is_RefNode (kind g1 n)") defer
+    using ConstantVar ConstantVarE is_RefNode_def
+     apply (smt (z3) IRExpr.distinct(11) IRExpr.distinct(23) IRExpr.distinct(33) rep.simps) (* very slow *)
+    by (meson ConstantVar IRExpr.distinct(33) assms is_RefNode_def repDet subset_refnode)
 next 
   case (VariableExpr x s)
   then have in_g1: "n \<in> ids g1"
-    using no_encoding by force
+    using no_encoding by blast
   then have kinds: "kind g1 n = kind g2 n"
     using assms unfolding as_set_def
     by blast
   from in_g1 have stamps: "stamp g1 n = stamp g2 n"
     using assms unfolding as_set_def
     by blast
-  from kinds stamps show ?case using VariableExpr
-    using rep.simps by blast
+  from kinds stamps show ?case apply (cases "is_RefNode (kind g1 n)") defer
+    using VariableExpr VariableExprE is_RefNode_def
+     apply (smt (z3) IRExpr.simps(22) IRExpr.simps(34) IRExpr.simps(44) rep.simps)
+    by (meson IRExpr.simps(33) VariableExpr assms is_RefNode_def repDet subset_refnode)
 qed
 
 

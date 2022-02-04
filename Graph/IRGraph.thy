@@ -58,6 +58,9 @@ lift_definition irgraph :: "(ID \<times> (IRNode \<times> Stamp)) list \<Rightar
 definition as_set :: "IRGraph \<Rightarrow> (ID \<times> (IRNode \<times> Stamp)) set" where
   "as_set g = {(n, kind g n, stamp g n) | n . n \<in> ids g}"
 
+definition true_ids :: "IRGraph \<Rightarrow> ID set" where
+  "true_ids g = ids g - {n \<in> ids g. \<exists>n' . kind g n = RefNode n'}"
+
 definition domain_subtraction :: "'a set \<Rightarrow> ('a \<times> 'b) set \<Rightarrow> ('a \<times> 'b) set"
   (infix "\<unlhd>" 30) where
   "domain_subtraction s r = {(x, y) . (x, y) \<in> r \<and> x \<notin> s}"

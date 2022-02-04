@@ -449,7 +449,7 @@ lemma graph_refinement:
 subsection \<open>Maximal Sharing\<close>
 
 definition maximal_sharing:
-  "maximal_sharing g = (\<forall> n\<^sub>1 n\<^sub>2 . n\<^sub>1 \<in> ids g \<and> n\<^sub>2 \<in> ids g \<longrightarrow> 
+  "maximal_sharing g = (\<forall> n\<^sub>1 n\<^sub>2 . n\<^sub>1 \<in> true_ids g \<and> n\<^sub>2 \<in> true_ids g \<longrightarrow> 
       (\<forall> e. (g \<turnstile> n\<^sub>1 \<simeq> e) \<and> (g \<turnstile> n\<^sub>2 \<simeq> e) \<longrightarrow> n\<^sub>1 = n\<^sub>2))"
 
 end

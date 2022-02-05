@@ -143,7 +143,8 @@ optimization AddShiftConstantRight: "((const v) + y) \<mapsto> y + (const v) whe
     done
   done
 
-(* take 2 - want to unfold to bin_eval etc... *)
+subsection \<open>Take 2: Unfold eval quadruples down to bin-eval level\<close>
+
 lemma unfold_bin:
   assumes ok: "val \<noteq> UndefVal"
   shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> val) = (\<exists> x y.
@@ -240,9 +241,51 @@ ML_val \<open>@{term \<open>x = y\<close>}\<close>
 
 optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<mapsto> e\<^sub>1"
     apply unfold_optimization unfolding intval.simps
-  using intval_add.simps intval_sub.simps
+(* NOTE: this unfolds to three goals, but the first one assumes e1 e2 are values?
+ 1. intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 \<noteq> UndefVal \<and>
+    e\<^sub>1 \<noteq> UndefVal \<longrightarrow>
+    intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 = e\<^sub>1
+ 2. intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 \<noteq> UndefVal \<and>
+    e\<^sub>1 \<noteq> UndefVal \<longrightarrow>
+    intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 = e\<^sub>1 \<Longrightarrow>
+    BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2 \<sqsupseteq> e\<^sub>1
+ 3. Common.size e\<^sub>1
+    < Common.size
+       (BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2)
+*)
+   using intval_add.simps intval_sub.simps
     apply (metis (no_types, lifting) diff_add_cancel val_to_bool.cases)
-  sorry
+  unfolding le_expr_def unfold_bin2 unfold_const unfold_valid32
+  subgoal premises p1
+    unfolding bin_eval.simps
+    apply ((rule allI)+; rule impI)
+    subgoal premises p2 for m p v
+      print_facts
+    proof -
+      obtain x y xa where xa: "[m,p] \<turnstile> e\<^sub>1 \<mapsto> xa" and "xa \<noteq> UndefVal"
+        and y: "[m,p] \<turnstile> e\<^sub>2 \<mapsto> y"      and "y \<noteq> UndefVal"
+        and x: "x = intval_sub xa y" and "x \<noteq> UndefVal"
+        and v: "v = intval_add x y"  and "v \<noteq> UndefVal"
+        by (metis evalDet p2 evaltree_not_undef)
+      then have "v = intval_add (intval_sub xa y) y" by auto
+      then have "v = xa"
+        using p1 p2 apply simp
+        by (smt (z3) Value.distinct(9) Value.inject(1) Value.inject(2) \<open>v \<noteq> UndefVal\<close> x \<open>x \<noteq> UndefVal\<close> diff_add_cancel intval_add.elims intval_sub.elims) 
+      then show "[m,p] \<turnstile> e\<^sub>1 \<mapsto> v"
+        by (simp add: xa)
+      thm intval_add.elims
+    qed
+    done
+  using size_non_const by fastforce
+
+lemma just_goal2: 
+  assumes 1: "(\<forall> a b. (intval_add (intval_sub a b) b \<noteq> UndefVal \<and> a \<noteq> UndefVal \<longrightarrow>
+    intval_add (intval_sub a b) b = a))"
+  shows "(BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2) \<ge> e\<^sub>1"
+  unfolding le_expr_def unfold_bin2 
+  apply simp
+  by (metis 1 evalDet evaltree_not_undef) 
+
 
 optimization NeutralRightSub[intval]: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<mapsto> e\<^sub>1"
   apply unfold_optimization

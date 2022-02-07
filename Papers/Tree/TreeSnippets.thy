@@ -398,5 +398,8 @@ text \<open>@{thm[display, margin=40] graph_construction [no_vars]}\<close>
 snipend -
 thm_oracles graph_construction
 
+snipbegin \<open>term-graph-reconstruction\<close>
+text \<open>@{thm[display] term_graph_reconstruction [no_vars]}\<close>
+snipend -
 
 end

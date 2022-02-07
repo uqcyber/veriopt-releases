@@ -20,7 +20,7 @@ session Graph in Graph = "HOL-Library" +
 session Semantics in Semantics = Graph +
   description
     "Semantics of the GraalVM IR"
-  options [document = pdf, document_output = "output",
+  options [quick_and_dirty, document = pdf, document_output = "output",
            show_question_marks = false]
   sessions
     "HOL-Eisbach"
@@ -28,6 +28,8 @@ session Semantics in Semantics = Graph +
     IRTreeEval
     IRTreeEvalThms
     TreeToGraph
+    Form
+    IRGraphFrames
     TreeToGraphThms
     IRStepObj
     IRStepThms
@@ -43,8 +45,6 @@ session Proofs in Proofs = Semantics +
     Snippets
   theories
     Bisimulation
-    Form
-    IRGraphFrames
     Rewrites
     Stuttering
     StampEvalThms
@@ -149,13 +149,13 @@ session Document in "Papers/Main" = Canonicalizations +
     Semantics.IRTreeEval
     Semantics.IRTreeEvalThms
     Semantics.TreeToGraph
+    Semantics.Form
+    Semantics.IRGraphFrames
     Semantics.TreeToGraphThms
     Semantics.IRStepObj
     Semantics.IRStepThms
 
     Proofs.Bisimulation
-    Proofs.Form
-    Proofs.IRGraphFrames
     Proofs.Rewrites
     Proofs.Stuttering
     Proofs.StampEvalThms

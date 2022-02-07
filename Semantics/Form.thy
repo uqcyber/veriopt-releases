@@ -3,7 +3,6 @@ subsection \<open>Formedness Properties\<close>
 theory Form
 imports
   Semantics.TreeToGraph
-  Snippets.Snipping
 begin
 
 definition wf_start where
@@ -31,10 +30,8 @@ definition wf_ends where
       is_AbstractEndNode (kind g n) \<longrightarrow>
       card (usages g n) > 0)"
 
-snipbegin \<open>wf-graph\<close>
 fun wf_graph :: "IRGraph \<Rightarrow> bool" where
   "wf_graph g = (wf_start g \<and> wf_closed g \<and> wf_phis g \<and> wf_ends g)"
-snipend -
 
 lemmas wf_folds =
   wf_graph.simps

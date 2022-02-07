@@ -2,9 +2,8 @@ section \<open>Conditional Elimination Phase\<close>
 
 theory ConditionalElimination
   imports
-    Proofs.IRGraphFrames
+    Semantics.IRGraphFrames
     Proofs.Stuttering
-    Proofs.Form
     Proofs.Rewrites
     Proofs.Bisimulation
 begin

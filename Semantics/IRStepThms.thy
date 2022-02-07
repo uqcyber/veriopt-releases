@@ -257,7 +257,8 @@ qed
 
 lemma stepRefNode:
   "\<lbrakk>kind g nid = RefNode nid'\<rbrakk> \<Longrightarrow> g, p \<turnstile> (nid,m,h) \<rightarrow> (nid',m,h)"
-  by (simp add: SequentialNode)
+  using SequentialNode
+  by (metis IRNodes.successors_of_RefNode is_sequential_node.simps(7) nth_Cons_0)
 
 lemma IfNodeStepCases: 
   assumes "kind g nid = IfNode cond tb fb"
@@ -270,14 +271,14 @@ lemma IfNodeStepCases:
 
 lemma IfNodeSeq:
   shows "kind g nid = IfNode cond tb fb \<longrightarrow> \<not>(is_sequential_node (kind g nid))"
-  unfolding is_sequential_node.simps by simp
+  unfolding is_sequential_node.simps
+  using is_sequential_node.simps(18) by presburger
   
 lemma IfNodeCond:
   assumes "kind g nid = IfNode cond tb fb"
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "\<exists> condE v. ((g \<turnstile> cond \<simeq> condE) \<and> ([m, p] \<turnstile> condE \<mapsto> v))"
   using assms(2,1) by (induct "(nid,m,h)" "(nid',m,h)" rule: step.induct; auto)
-
 
 lemma step_in_ids:
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"

@@ -4,7 +4,7 @@ theory TreeToGraphThms
 imports
   TreeToGraph
   IRTreeEvalThms
-  Proofs.IRGraphFrames
+  IRGraphFrames
   "HOL-Eisbach.Eisbach"
   "HOL-Eisbach.Eisbach_Tools"
 begin
@@ -1187,26 +1187,28 @@ lemma graph_construction:
   by (meson encodeeval_def graph_represents_expression_def le_expr_def)
 
 
-lemma find_exists_kind[simp]:
+subsubsection \<open>Term Graph Reconstruction\<close>
+
+lemma find_exists_kind:
   assumes "find_node_and_stamp g (node, s) = Some nid"
   shows "kind g nid = node"
   using assms unfolding find_node_and_stamp.simps
   by (metis (mono_tags, lifting) find_Some_iff)
 
-lemma find_exists_stamp[simp]:
+lemma find_exists_stamp:
   assumes "find_node_and_stamp g (node, s) = Some nid"
   shows "stamp g nid = s"
   using assms unfolding find_node_and_stamp.simps
   by (metis (mono_tags, lifting) find_Some_iff)
 
-lemma find_new_kind[simp]:
+lemma find_new_kind:
   assumes "g' = add_node nid (node, s) g"
   assumes "node \<noteq> NoNode"
   shows "kind g' nid = node"
   using assms
   using add_node_lookup by presburger
 
-lemma find_new_stamp[simp]:
+lemma find_new_stamp:
   assumes "g' = add_node nid (node, s) g"
   assumes "node \<noteq> NoNode"
   shows "stamp g' nid = s"

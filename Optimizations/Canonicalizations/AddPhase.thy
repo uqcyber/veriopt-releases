@@ -3,7 +3,11 @@ theory AddPhase
     Common
     Semantics.IRTreeEvalThms
 begin
-
+(*
+lemma eval_not_undef:
+  "([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> v \<noteq> UndefVal"
+  by (induction e; auto)
+*)
 section \<open>Typing Properties for Integer Values\<close>
 
 text \<open>We use three simple typing properties on integer values: 
@@ -203,6 +207,15 @@ next
      by (rule BinaryExpr)
 qed
 
+
+optimization AddShiftConstantRight2: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+  apply unfold_optimization
+  unfolding le_expr_def
+   apply (auto simp: intval_add_sym)
+  (* termination proof *)
+  using size_non_const by fastforce
+
+
 (* TODO: define is_neutral and then lemmas like this: 
 lemma simp_neutral:
   assumes n: "is_neutral op (IntVal32 n)" 
@@ -219,22 +232,11 @@ lemma is_neutral_0 [simp]:
   using 1 by (induction x; simp)
 
 
-optimization AddShiftConstantRight2: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
-  apply unfold_optimization
-  unfolding le_expr_def unfold_bin2 unfold_const
-  apply auto
-  subgoal for m p ya
-    apply (rule exI[of _ "ya"])
-    by (simp add: intval_add_sym)
-  (* termination proof *)
-  using size_non_const by fastforce
-
-
 optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e"
-  apply unfold_optimization
-  unfolding le_expr_def unfold_bin2 unfold_const unfold_valid32
-   apply (metis bin_eval.simps(1) is_neutral_0)
-  using size_non_const by fastforce
+   apply unfold_optimization
+  unfolding le_expr_def apply auto
+  unfolding is_neutral_0 apply auto
+  done
 
 
 ML_val \<open>@{term \<open>x = y\<close>}\<close>
@@ -278,14 +280,30 @@ optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<ma
     done
   using size_non_const by fastforce
 
+(* a little helper lemma for using universal quantified assumptions *)
+lemma allE2: "(\<forall>x y. P x y) \<Longrightarrow> (P a b \<Longrightarrow> R) \<Longrightarrow> R"
+  by simp
+
 lemma just_goal2: 
   assumes 1: "(\<forall> a b. (intval_add (intval_sub a b) b \<noteq> UndefVal \<and> a \<noteq> UndefVal \<longrightarrow>
     intval_add (intval_sub a b) b = a))"
   shows "(BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2) \<ge> e\<^sub>1"
+(* without unfold_bin2: but can this be done better?  *)
+  unfolding le_expr_def 
+  apply (auto)
+  subgoal premises 2 for m p y xa ya
+  print_facts
+  thm evalDet[of m p e2 y ya]
+  apply (simp add:evalDet[OF 2(1) 2(4)])
+  thm allE2[of _ xa ya]
+  using 1 apply (rule allE2[of _ xa ya])
+  using 2 by (metis evalDet evaltree_not_undef) 
+  
+(* using unfold_bin2:
   unfolding le_expr_def unfold_bin2 
   apply simp
   by (metis 1 evalDet evaltree_not_undef) 
-
+*)
 
 optimization NeutralRightSub[intval]: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<mapsto> e\<^sub>1"
   apply unfold_optimization

@@ -1493,4 +1493,165 @@ theorem term_graph_reconstruction:
   qed
   done
 
+
+subsubsection \<open>Data-flow Tree to Subgraph Preserves Maximal Sharing\<close>
+
+lemma same_kind_stamp_encodes_equal:
+  assumes "kind g n = kind g n'"
+  assumes "stamp g n = stamp g n'"
+  assumes "\<not>(is_preevaluated (kind g n))"
+  shows "\<forall> e. (g \<turnstile> n \<simeq> e) \<longrightarrow> (g \<turnstile> n' \<simeq> e)"
+  apply (rule allI)
+  subgoal for e
+    apply (rule impI)
+    subgoal premises eval using eval assms
+      apply (induction e)
+    using ConstantNode apply presburger
+    using ParameterNode apply presburger 
+                        apply (metis ConditionalNode)
+                        apply (metis AbsNode)
+                       apply (metis NotNode)
+                      apply (metis NegateNode)
+                     apply (metis LogicNegationNode)
+                    apply (metis AddNode)
+                   apply (metis MulNode)
+                  apply (metis SubNode)
+                 apply (metis AndNode)
+                apply (metis OrNode)
+               apply (metis XorNode)
+              apply (metis LeftShiftNode)
+             apply (metis RightShiftNode)
+            apply (metis UnsignedRightShiftNode)
+           apply (metis IntegerBelowNode)
+          apply (metis IntegerEqualsNode)
+         apply (metis IntegerLessThanNode)
+        apply (metis NarrowNode)
+       apply (metis SignExtendNode)
+      apply (metis ZeroExtendNode)
+    defer
+     apply (metis RefNode)
+    by blast
+    done
+  done
+
+lemma new_node_not_present:
+  assumes "find_node_and_stamp g (node, s) = None"
+  assumes "n = get_fresh_id g"
+  assumes "g' = add_node n (node, s) g"
+  shows "\<forall> n' \<in> true_ids g. (\<forall>e. ((g \<turnstile> n \<simeq> e) \<and> (g \<turnstile> n' \<simeq> e)) \<longrightarrow> n = n')"
+  using assms
+  using encode_in_ids fresh_ids by blast
+
+lemma true_ids_def:
+  "true_ids g = {n \<in> ids g. \<not>(is_RefNode (kind g n)) \<and> ((kind g n) \<noteq> NoNode)}"
+  unfolding true_ids_def ids_def
+  using ids_def is_RefNode_def by fastforce
+
+lemma ids_add_updatev1:
+  "k \<noteq> NoNode \<Longrightarrow> g' = add_node nid (k, s) g \<Longrightarrow> ids g' = ids g \<union> {n}"
+  using add_node.rep_eq ids.rep_eq sorry
+
+lemma ids_add_update:
+  assumes "n \<notin> ids g"
+  assumes "g' = add_node n (node, s) g"
+  assumes "node \<noteq> NoNode"
+  shows "ids g' = ids g \<union> {n}"
+  using assms unfolding add_node_def ids_def sorry
+
+lemma true_ids_add_update:
+  assumes "n \<notin> ids g"
+  assumes "g' = add_node n (node, s) g"
+  assumes "\<not>(is_RefNode node)"
+  assumes "node \<noteq> NoNode"
+  shows "true_ids g' = true_ids g \<union> {n}"
+proof -
+  have "kind g' n = node" using assms
+    using add_node_lookup by presburger
+  then have "ids g' = ids g \<union> {n}"
+    using assms ids_add_update
+    by presburger
+  then show ?thesis using assms(3) true_ids_def
+    by (smt (verit, ccfv_SIG) Collect_cong Diff_insert_absorb IRGraph.true_ids_def Un_insert_right \<open>kind g' n = node\<close> add_node_def assms(1) assms(2) insert_Diff_if insert_iff is_RefNode_def mem_Collect_eq replace_node_def replace_node_unchanged sup_bot.right_neutral)
+qed
+
+lemma maintain_maximal_sharing:
+  assumes "maximal_sharing g"
+  assumes "true_ids g' = true_ids g \<union> {n}"
+  assumes "\<forall> n' \<in> true_ids g. (\<forall>e. ((g \<turnstile> n \<simeq> e) \<and> (g \<turnstile> n' \<simeq> e)) \<longrightarrow> n = n')"
+  shows "maximal_sharing g'"
+  using assms unfolding maximal_sharing sorry
+
+
+theorem unrep_maximal_sharing:
+  "maximal_sharing g \<Longrightarrow> (g \<triangleleft> e \<leadsto> (g', n)) \<Longrightarrow> maximal_sharing g'"
+  subgoal premises prems using prems(2,1)
+  proof (induction g e "(g', n)" arbitrary: g' n)
+    case (ConstantNodeSame g c n)
+    then show ?case by blast
+  next
+    case (ConstantNodeNew g c n g')
+    moreover have "\<not>(is_RefNode (ConstantNode c)) \<and> ConstantNode c \<noteq> NoNode"
+      by simp
+    moreover have "n \<notin> ids g"
+      using calculation(2) fresh_ids by blast
+    ultimately show ?case using new_node_not_present true_ids_add_update
+      maintain_maximal_sharing 
+      by metis
+  next
+    case (ParameterNodeSame g i s n)
+    then show ?case by blast
+  next
+    case (ParameterNodeNew g i s n g')
+    moreover have "\<not>(is_RefNode (ParameterNode i)) \<and> ParameterNode i \<noteq> NoNode"
+      by simp
+    moreover have "n \<notin> ids g"
+      using calculation(2) fresh_ids by blast
+    ultimately show ?case using new_node_not_present true_ids_add_update
+      maintain_maximal_sharing
+      by metis
+  next
+    case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
+    then show ?case by blast
+  next
+    case (ConditionalNodeNew g ce g2 c te g3 t fe g4 f s' n g')
+    moreover have "\<not>(is_RefNode (ConditionalNode c t f)) \<and> ConditionalNode c t f \<noteq> NoNode"
+      by simp
+    moreover have "n \<notin> ids g4"
+      using fresh_ids
+      using calculation(9) by blast
+    ultimately show ?case using new_node_not_present true_ids_add_update
+      maintain_maximal_sharing
+      by metis
+  next
+    case (UnaryNodeSame g xe g2 x s' op n)
+    then show ?case by blast
+  next
+    case (UnaryNodeNew g xe g2 x s' op n g')
+    moreover have "\<not>(is_RefNode (unary_node op x)) \<and> unary_node op x \<noteq> NoNode"
+      by (cases op; auto)
+    moreover have "n \<notin> ids g2"
+      using fresh_ids
+      using calculation(5) by blast
+    ultimately show ?case using new_node_not_present true_ids_add_update
+      maintain_maximal_sharing 
+      by metis
+  next
+    case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
+    then show ?case by blast
+  next
+    case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
+    moreover have "\<not>(is_RefNode (bin_node op x y)) \<and> bin_node op x y \<noteq> NoNode"
+      by (cases op; auto)
+    moreover have "n \<notin> ids g3"
+      using fresh_ids
+      using calculation(7) by blast
+    ultimately show ?case using new_node_not_present true_ids_add_update
+      maintain_maximal_sharing 
+      by metis
+  next
+    case (AllLeafNodes g n s)
+    then show ?case by blast
+  qed
+  done
+
 end

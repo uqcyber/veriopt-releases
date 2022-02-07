@@ -1219,7 +1219,9 @@ lemma sorted_bottom:
   assumes "finite xs"
   assumes "x \<in> xs"
   shows "x \<le> last(sorted_list_of_set(xs::nat set))"
-  using assms unfolding sorted_list_of_set_def sorry (* no, really, sorry *)
+  using assms
+  using sorted2_simps(2) sorted_list_of_set(2)
+  by (smt (verit, del_insts) Diff_iff Max_ge Max_in empty_iff list.set(1) snoc_eq_iff_butlast sorted_insort_is_snoc sorted_list_of_set(1) sorted_list_of_set.fold_insort_key.infinite sorted_list_of_set.fold_insort_key.remove)
 
 lemma fresh: "finite xs \<Longrightarrow> last(sorted_list_of_set(xs::nat set)) + 1 \<notin> xs"
   using sorted_bottom

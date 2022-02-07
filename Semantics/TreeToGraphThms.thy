@@ -96,6 +96,24 @@ lemma rep_xor [rep]:
    (\<exists>xe ye. e = BinaryExpr BinXor xe ye)"
   by (induction rule: rep.induct; auto)
 
+lemma rep_left_shift [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   kind g n = LeftShiftNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinLeftShift xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_right_shift [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   kind g n = RightShiftNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinRightShift xe ye)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_unsigned_right_shift [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   kind g n = UnsignedRightShiftNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinURightShift xe ye)"
+  by (induction rule: rep.induct; auto)
+
 lemma rep_integer_below [rep]:
   "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = IntegerBelowNode x y \<Longrightarrow>
@@ -228,6 +246,18 @@ next
   case (XorNode n x y xe ye)
   then show ?case
     by (solve_det node: XorNode)
+next
+  case (LeftShiftNode n x y xe ye)
+  then show ?case
+    by (solve_det node: LeftShiftNode)
+next
+  case (RightShiftNode n x y xe ye)
+  then show ?case
+    by (solve_det node: RightShiftNode)
+next
+  case (UnsignedRightShiftNode n x y xe ye)
+  then show ?case
+    by (solve_det node: UnsignedRightShiftNode)
 next
   case (IntegerBelowNode n x y xe ye)
   then show ?case
@@ -772,6 +802,84 @@ proof -
           by meson
       qed
     next
+      case (LeftShiftNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<simeq> BinaryExpr BinLeftShift xe1 ye1" using f LeftShiftNode
+        by (simp add: LeftShiftNode.hyps(2) rep.LeftShiftNode)
+      obtain xn yn where l: "kind g1 n = LeftShiftNode xn yn"
+        using LeftShiftNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<simeq> xe1"
+        using LeftShiftNode.hyps(1) LeftShiftNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<simeq> ye1"
+        using LeftShiftNode.hyps(1) LeftShiftNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<simeq> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<simeq> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
+          using LeftShiftNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary LeftShiftNode)
+        have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
+          using LeftShiftNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary LeftShiftNode)
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinLeftShift xe2 ye2) \<and> BinaryExpr BinLeftShift xe1 ye1 \<ge> BinaryExpr BinLeftShift xe2 ye2"
+          by (metis LeftShiftNode.prems l mono_binary rep.LeftShiftNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (RightShiftNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<simeq> BinaryExpr BinRightShift xe1 ye1" using f RightShiftNode
+        by (simp add: RightShiftNode.hyps(2) rep.RightShiftNode)
+      obtain xn yn where l: "kind g1 n = RightShiftNode xn yn"
+        using RightShiftNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<simeq> xe1"
+        using RightShiftNode.hyps(1) RightShiftNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<simeq> ye1"
+        using RightShiftNode.hyps(1) RightShiftNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<simeq> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<simeq> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
+          using RightShiftNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary RightShiftNode)
+        have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
+          using RightShiftNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary RightShiftNode)
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinRightShift xe2 ye2) \<and> BinaryExpr BinRightShift xe1 ye1 \<ge> BinaryExpr BinRightShift xe2 ye2"
+          by (metis RightShiftNode.prems l mono_binary rep.RightShiftNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
+      case (UnsignedRightShiftNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<simeq> BinaryExpr BinURightShift xe1 ye1" using f UnsignedRightShiftNode
+        by (simp add: UnsignedRightShiftNode.hyps(2) rep.UnsignedRightShiftNode)
+      obtain xn yn where l: "kind g1 n = UnsignedRightShiftNode xn yn"
+        using UnsignedRightShiftNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<simeq> xe1"
+        using UnsignedRightShiftNode.hyps(1) UnsignedRightShiftNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<simeq> ye1"
+        using UnsignedRightShiftNode.hyps(1) UnsignedRightShiftNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<simeq> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<simeq> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
+          using UnsignedRightShiftNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary UnsignedRightShiftNode)
+        have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
+          using UnsignedRightShiftNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary UnsignedRightShiftNode)
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinURightShift xe2 ye2) \<and> BinaryExpr BinURightShift xe1 ye1 \<ge> BinaryExpr BinURightShift xe2 ye2"
+          by (metis UnsignedRightShiftNode.prems l mono_binary rep.UnsignedRightShiftNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
       case (IntegerBelowNode n x y xe1 ye1)
       have k: "g1 \<turnstile> n \<simeq> BinaryExpr BinIntegerBelow xe1 ye1" using f IntegerBelowNode
         by (simp add: IntegerBelowNode.hyps(2) rep.IntegerBelowNode)
@@ -1025,19 +1133,22 @@ lemma subset_implies_evals:
   shows "(g2 \<turnstile> n \<simeq> e)"
   using assms(2)
   apply (induction e)
-                      apply (solve_subset_eval as_set: assms(1) eval: ConstantNode)
-                     apply (solve_subset_eval as_set: assms(1) eval: ParameterNode)
-                    apply (solve_subset_eval as_set: assms(1) eval: ConditionalNode)
-                   apply (solve_subset_eval as_set: assms(1) eval: AbsNode)
-                  apply (solve_subset_eval as_set: assms(1) eval: NotNode)
-                 apply (solve_subset_eval as_set: assms(1) eval: NegateNode)
-                apply (solve_subset_eval as_set: assms(1) eval: LogicNegationNode)
-               apply (solve_subset_eval as_set: assms(1) eval: AddNode)
-              apply (solve_subset_eval as_set: assms(1) eval: MulNode)
-             apply (solve_subset_eval as_set: assms(1) eval: SubNode)
-            apply (solve_subset_eval as_set: assms(1) eval: AndNode)
-           apply (solve_subset_eval as_set: assms(1) eval: OrNode)
-          apply (solve_subset_eval as_set: assms(1) eval: XorNode)
+                          apply (solve_subset_eval as_set: assms(1) eval: ConstantNode)
+                         apply (solve_subset_eval as_set: assms(1) eval: ParameterNode)
+                        apply (solve_subset_eval as_set: assms(1) eval: ConditionalNode)
+                       apply (solve_subset_eval as_set: assms(1) eval: AbsNode)
+                      apply (solve_subset_eval as_set: assms(1) eval: NotNode)
+                     apply (solve_subset_eval as_set: assms(1) eval: NegateNode)
+                    apply (solve_subset_eval as_set: assms(1) eval: LogicNegationNode)
+                   apply (solve_subset_eval as_set: assms(1) eval: AddNode)
+                  apply (solve_subset_eval as_set: assms(1) eval: MulNode)
+                 apply (solve_subset_eval as_set: assms(1) eval: SubNode)
+                apply (solve_subset_eval as_set: assms(1) eval: AndNode)
+               apply (solve_subset_eval as_set: assms(1) eval: OrNode)
+             apply (solve_subset_eval as_set: assms(1) eval: XorNode)
+            apply (solve_subset_eval as_set: assms(1) eval: LeftShiftNode)
+           apply (solve_subset_eval as_set: assms(1) eval: RightShiftNode)
+          apply (solve_subset_eval as_set: assms(1) eval: UnsignedRightShiftNode)
          apply (solve_subset_eval as_set: assms(1) eval: IntegerBelowNode)
         apply (solve_subset_eval as_set: assms(1) eval: IntegerEqualsNode)
        apply (solve_subset_eval as_set: assms(1) eval: IntegerLessThanNode)
@@ -1129,19 +1240,22 @@ lemma graph_unchanged_rep_unchanged:
   shows "(g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
   apply (rule impI) subgoal premises e using e assms
     apply (induction n e)
-                        apply (metis no_encoding rep.ConstantNode)
-                       apply (metis no_encoding rep.ParameterNode)
-                      apply (metis no_encoding rep.ConditionalNode)
-                     apply (metis no_encoding rep.AbsNode)
-                    apply (metis no_encoding rep.NotNode)
-                   apply (metis no_encoding rep.NegateNode)
-                  apply (metis no_encoding rep.LogicNegationNode)
-                 apply (metis no_encoding rep.AddNode)
-                apply (metis no_encoding rep.MulNode)
-               apply (metis no_encoding rep.SubNode)
-              apply (metis no_encoding rep.AndNode)
-             apply (metis no_encoding rep.OrNode)
-            apply (metis no_encoding rep.XorNode)
+                          apply (metis no_encoding rep.ConstantNode)
+                         apply (metis no_encoding rep.ParameterNode)
+                        apply (metis no_encoding rep.ConditionalNode)
+                       apply (metis no_encoding rep.AbsNode)
+                      apply (metis no_encoding rep.NotNode)
+                     apply (metis no_encoding rep.NegateNode)
+                    apply (metis no_encoding rep.LogicNegationNode)
+                   apply (metis no_encoding rep.AddNode)
+                  apply (metis no_encoding rep.MulNode)
+                 apply (metis no_encoding rep.SubNode)
+                apply (metis no_encoding rep.AndNode)
+               apply (metis no_encoding rep.OrNode)
+               apply (metis no_encoding rep.XorNode)
+              apply (metis no_encoding rep.LeftShiftNode)
+             apply (metis no_encoding rep.RightShiftNode)
+            apply (metis no_encoding rep.UnsignedRightShiftNode)
            apply (metis no_encoding rep.IntegerBelowNode)
           apply (metis no_encoding rep.IntegerEqualsNode)
          apply (metis no_encoding rep.IntegerLessThanNode)
@@ -1334,7 +1448,13 @@ theorem term_graph_reconstruction:
       using SubNode bin_node.simps(3) apply presburger
       using AndNode bin_node.simps(4) apply presburger
       using OrNode bin_node.simps(5) apply presburger
-      using XorNode bin_node.simps(6) apply presburger sorry
+      using XorNode bin_node.simps(6) apply presburger
+      using LeftShiftNode bin_node.simps(7) apply presburger
+      using RightShiftNode bin_node.simps(8) apply presburger
+      using UnsignedRightShiftNode bin_node.simps(9) apply presburger
+      using IntegerEqualsNode bin_node.simps(10) apply presburger
+      using IntegerLessThanNode bin_node.simps(11) apply presburger
+      using IntegerBelowNode bin_node.simps(12) by presburger
   next
     case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
     moreover have "bin_node op x y \<noteq> NoNode"
@@ -1356,7 +1476,13 @@ theorem term_graph_reconstruction:
       using SubNode bin_node.simps(3) apply presburger
       using AndNode bin_node.simps(4) apply presburger
       using OrNode bin_node.simps(5) apply presburger
-      using XorNode bin_node.simps(6) apply presburger sorry
+      using XorNode bin_node.simps(6) apply presburger
+      using LeftShiftNode bin_node.simps(7) apply presburger
+      using RightShiftNode bin_node.simps(8) apply presburger
+      using UnsignedRightShiftNode bin_node.simps(9) apply presburger
+      using IntegerEqualsNode bin_node.simps(10) apply presburger
+      using IntegerLessThanNode bin_node.simps(11) apply presburger
+      using IntegerBelowNode bin_node.simps(12) by presburger
   next
     case (AllLeafNodes g n s)
     then show ?case using rep.LeafNode by blast

@@ -320,6 +320,33 @@ next
   then show ?case using XorNode inputs_of_XorNode
     by (metis \<open>kind g2 n = XorNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.XorNode)
 next
+case (LeftShiftNode n x y xe ye)
+  then have "kind g2 n = LeftShiftNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_XorNode inputs_of_are_usages
+    by (metis LeftShiftNode.hyps(1) LeftShiftNode.hyps(2) LeftShiftNode.hyps(3) IRNodes.inputs_of_LeftShiftNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using LeftShiftNode inputs_of_LeftShiftNode
+    by (metis \<open>kind g2 n = LeftShiftNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.LeftShiftNode)
+next
+case (RightShiftNode n x y xe ye)
+  then have "kind g2 n = RightShiftNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_RightShiftNode inputs_of_are_usages
+    by (metis RightShiftNode.hyps(1) RightShiftNode.hyps(2) RightShiftNode.hyps(3) IRNodes.inputs_of_RightShiftNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using RightShiftNode inputs_of_RightShiftNode
+    by (metis \<open>kind g2 n = RightShiftNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.RightShiftNode)
+next
+case (UnsignedRightShiftNode n x y xe ye)
+  then have "kind g2 n = UnsignedRightShiftNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_UnsignedRightShiftNode inputs_of_are_usages
+    by (metis UnsignedRightShiftNode.hyps(1) UnsignedRightShiftNode.hyps(2) UnsignedRightShiftNode.hyps(3) IRNodes.inputs_of_UnsignedRightShiftNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using UnsignedRightShiftNode inputs_of_UnsignedRightShiftNode
+    by (metis \<open>kind g2 n = UnsignedRightShiftNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.UnsignedRightShiftNode)
+next
   case (IntegerBelowNode n x y xe ye)
   then have "kind g2 n = IntegerBelowNode x y"
     using kind_unchanged by metis

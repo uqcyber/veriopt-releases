@@ -104,6 +104,24 @@ inductive
     g \<turnstile> y \<simeq> ye\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinXor xe ye)" |
 
+  LeftShiftNode:
+  "\<lbrakk>kind g n = LeftShiftNode x y;
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+   \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinLeftShift xe ye)" |
+
+  RightShiftNode:
+  "\<lbrakk>kind g n = RightShiftNode x y;
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+   \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinRightShift xe ye)" |
+
+  UnsignedRightShiftNode:
+  "\<lbrakk>kind g n = UnsignedRightShiftNode x y;
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+   \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinURightShift xe ye)" |
+
   IntegerBelowNode:
   "\<lbrakk>kind g n = IntegerBelowNode x y;
     g \<turnstile> x \<simeq> xe;
@@ -198,6 +216,12 @@ inductive_cases OrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinOr xe ye)"
 inductive_cases XorNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinXor xe ye)"
+inductive_cases LeftShiftNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (BinaryExpr BinLeftShift xe ye)"
+inductive_cases RightShiftNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (BinaryExpr BinRightShift xe ye)"
+inductive_cases UnsignedRightShiftNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (BinaryExpr BinURightShift xe ye)"
 inductive_cases IntegerBelowNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerBelow xe ye)"
 inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -228,6 +252,9 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   AndNodeE
   OrNodeE
   XorNodeE
+  LeftShiftNodeE
+  RightShiftNodeE
+  UnsignedRightShiftNodeE
   IntegerBelowNodeE
   IntegerEqualsNodeE
   IntegerLessThanNodeE

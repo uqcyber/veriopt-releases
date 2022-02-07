@@ -301,8 +301,6 @@ value "get_fresh_id (add_node 6 (ParameterNode 2, default_stamp) eg2_sq)"
 *)
 inductive
   unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<triangleleft> _ \<leadsto> _" 55)
-  and
-  unrepList :: "IRGraph \<Rightarrow> IRExpr list \<Rightarrow> (IRGraph \<times> ID list) \<Rightarrow> bool" ("_ \<triangleleft>\<^sub>L _ \<leadsto> _" 55)
    where
 
   ConstantNodeSame:
@@ -326,17 +324,21 @@ inductive
     \<Longrightarrow> g \<triangleleft> (ParameterExpr i s) \<leadsto> (g', n)" |
 
   ConditionalNodeSame:
-  "\<lbrakk>g \<triangleleft>\<^sub>L [ce, te, fe] \<leadsto> (g2, [c, t, f]);
-    s' = meet (stamp g2 t) (stamp g2 f);
-    find_node_and_stamp g2 (ConditionalNode c t f, s') = Some n\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ConditionalExpr ce te fe) \<leadsto> (g2, n)" |
+  "\<lbrakk>g \<triangleleft> ce \<leadsto> (g2, c);
+    g2 \<triangleleft> te \<leadsto> (g3, t);
+    g3 \<triangleleft> fe \<leadsto> (g4, f);
+    s' = meet (stamp g4 t) (stamp g4 f);
+    find_node_and_stamp g4 (ConditionalNode c t f, s') = Some n\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (ConditionalExpr ce te fe) \<leadsto> (g4, n)" |
 
   ConditionalNodeNew:
-  "\<lbrakk>g \<triangleleft>\<^sub>L [ce, te, fe] \<leadsto> (g2, [c, t, f]);
-    s' = meet (stamp g2 t) (stamp g2 f);
-    find_node_and_stamp g2 (ConditionalNode c t f, s') = None;
-    n = get_fresh_id g2;
-    g' = add_node n (ConditionalNode c t f, s') g2\<rbrakk>
+  "\<lbrakk>g \<triangleleft> ce \<leadsto> (g2, c);
+    g2 \<triangleleft> te \<leadsto> (g3, t);
+    g3 \<triangleleft> fe \<leadsto> (g4, f);
+    s' = meet (stamp g4 t) (stamp g4 f);
+    find_node_and_stamp g4 (ConditionalNode c t f, s') = None;
+    n = get_fresh_id g4;
+    g' = add_node n (ConditionalNode c t f, s') g4\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (ConditionalExpr ce te fe) \<leadsto> (g', n)" |
 
   UnaryNodeSame:
@@ -354,24 +356,27 @@ inductive
     \<Longrightarrow> g \<triangleleft> (UnaryExpr op xe) \<leadsto> (g', n)" |
 
   BinaryNodeSame:
-  "\<lbrakk>g \<triangleleft>\<^sub>L [xe, ye] \<leadsto> (g2, [x, y]);
-    s' = stamp_binary op (stamp g2 x) (stamp g2 y);
-    find_node_and_stamp g2 (bin_node op x y, s') = Some n\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g2, n)" |
+  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
+    g2 \<triangleleft> ye \<leadsto> (g3, y);
+    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
+    find_node_and_stamp g3 (bin_node op x y, s') = Some n\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g3, n)" |
 
   BinaryNodeNew:
-  "\<lbrakk>g \<triangleleft>\<^sub>L [xe, ye] \<leadsto> (g2, [x, y]);
-    s' = stamp_binary op (stamp g2 x) (stamp g2 y);
-    find_node_and_stamp g2 (bin_node op x y, s') = None;
-    n = get_fresh_id g2;
-    g' = add_node n (bin_node op x y, s') g2\<rbrakk>
+  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
+    g2 \<triangleleft> ye \<leadsto> (g3, y);
+    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
+    find_node_and_stamp g3 (bin_node op x y, s') = None;
+    n = get_fresh_id g3;
+    g' = add_node n (bin_node op x y, s') g3\<rbrakk>
     \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g', n)" |
 
   AllLeafNodes:
-  "stamp g n = s
-    \<Longrightarrow> g \<triangleleft> (LeafExpr n s) \<leadsto> (g, n)" |
+  "\<lbrakk>stamp g n = s;
+    is_preevaluated (kind g n)\<rbrakk>
+    \<Longrightarrow> g \<triangleleft> (LeafExpr n s) \<leadsto> (g, n)"
 
-  UnrepNil:
+(*  UnrepNil:
   "g \<triangleleft>\<^sub>L [] \<leadsto> (g, [])" |
 
 (* TODO: this will fail for [xe,ye] where they are not equal.
@@ -380,27 +385,26 @@ inductive
   UnrepCons:
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
     g2 \<triangleleft>\<^sub>L xes \<leadsto> (g3, xs)\<rbrakk>
-    \<Longrightarrow> g \<triangleleft>\<^sub>L (xe#xes) \<leadsto> (g3, x#xs)"
+    \<Longrightarrow> g \<triangleleft>\<^sub>L (xe#xes) \<leadsto> (g3, x#xs)"*)
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE)
 (*
   [show_steps,show_mode_inference,show_intermediate_results] 
 *)  unrep .
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepListE) unrepList .
 
 text_raw \<open>\Snip{unrepRules}%
 \begin{center}
-@{thm[mode=Rule] unrep_unrepList.ConstantNodeSame [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.ConstantNodeNew [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.ParameterNodeSame [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.ParameterNodeNew [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.ConditionalNodeSame [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.ConditionalNodeNew [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.BinaryNodeSame [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.BinaryNodeNew [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.UnaryNodeSame [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.UnaryNodeNew [no_vars]}\\[8px]
-@{thm[mode=Rule] unrep_unrepList.AllLeafNodes [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ConstantNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ConstantNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ParameterNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ParameterNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ConditionalNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.ConditionalNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.BinaryNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.BinaryNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.UnaryNodeSame [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.UnaryNodeNew [no_vars]}\\[8px]
+@{thm[mode=Rule] unrep.AllLeafNodes [no_vars]}\\[8px]
 \end{center}
 \EndSnip\<close>
 

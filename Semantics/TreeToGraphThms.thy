@@ -4,6 +4,7 @@ theory TreeToGraphThms
 imports
   TreeToGraph
   IRTreeEvalThms
+  Proofs.IRGraphFrames
   "HOL-Eisbach.Eisbach"
   "HOL-Eisbach.Eisbach_Tools"
 begin
@@ -1073,5 +1074,293 @@ lemma graph_construction:
   \<Longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e\<^sub>1) \<and> graph_refinement g\<^sub>1 g\<^sub>2"
   using subset_refines
   by (meson encodeeval_def graph_represents_expression_def le_expr_def)
+
+
+lemma find_exists_kind[simp]:
+  assumes "find_node_and_stamp g (node, s) = Some nid"
+  shows "kind g nid = node"
+  using assms unfolding find_node_and_stamp.simps
+  by (metis (mono_tags, lifting) find_Some_iff)
+
+lemma find_exists_stamp[simp]:
+  assumes "find_node_and_stamp g (node, s) = Some nid"
+  shows "stamp g nid = s"
+  using assms unfolding find_node_and_stamp.simps
+  by (metis (mono_tags, lifting) find_Some_iff)
+
+lemma find_new_kind[simp]:
+  assumes "g' = add_node nid (node, s) g"
+  assumes "node \<noteq> NoNode"
+  shows "kind g' nid = node"
+  using assms
+  using add_node_lookup by presburger
+
+lemma find_new_stamp[simp]:
+  assumes "g' = add_node nid (node, s) g"
+  assumes "node \<noteq> NoNode"
+  shows "stamp g' nid = s"
+  using assms
+  using add_node_lookup by presburger
+
+lemma sorted_bottom:
+  assumes "finite xs"
+  assumes "x \<in> xs"
+  shows "x \<le> last(sorted_list_of_set(xs::nat set))"
+  using assms unfolding sorted_list_of_set_def sorry (* no, really, sorry *)
+
+lemma fresh: "finite xs \<Longrightarrow> last(sorted_list_of_set(xs::nat set)) + 1 \<notin> xs"
+  using sorted_bottom
+  using not_le by auto
+
+lemma fresh_ids:
+  assumes "n \<in> ids g"
+  assumes "n' = get_fresh_id g"
+  shows "n \<noteq> n'"
+proof -
+  have "finite (ids g)" using Rep_IRGraph by auto
+  then show ?thesis
+    using assms fresh unfolding get_fresh_id.simps
+    by blast
+qed
+
+lemma graph_unchanged_rep_unchanged:
+  assumes "\<forall>n \<in> ids g. kind g n = kind g' n"
+  assumes "\<forall>n \<in> ids g. stamp g n = stamp g' n"
+  shows "(g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
+  apply (rule impI) subgoal premises e using e assms
+    apply (induction n e)
+                        apply (metis no_encoding rep.ConstantNode)
+                       apply (metis no_encoding rep.ParameterNode)
+                      apply (metis no_encoding rep.ConditionalNode)
+                     apply (metis no_encoding rep.AbsNode)
+                    apply (metis no_encoding rep.NotNode)
+                   apply (metis no_encoding rep.NegateNode)
+                  apply (metis no_encoding rep.LogicNegationNode)
+                 apply (metis no_encoding rep.AddNode)
+                apply (metis no_encoding rep.MulNode)
+               apply (metis no_encoding rep.SubNode)
+              apply (metis no_encoding rep.AndNode)
+             apply (metis no_encoding rep.OrNode)
+            apply (metis no_encoding rep.XorNode)
+           apply (metis no_encoding rep.IntegerBelowNode)
+          apply (metis no_encoding rep.IntegerEqualsNode)
+         apply (metis no_encoding rep.IntegerLessThanNode)
+        apply (metis no_encoding rep.NarrowNode)
+       apply (metis no_encoding rep.SignExtendNode)
+      apply (metis no_encoding rep.ZeroExtendNode)
+     apply (metis no_encoding rep.LeafNode)
+    by (metis no_encoding rep.RefNode)
+  done
+
+lemma fresh_node_preserves_other_nodes:
+  assumes "n' = get_fresh_id g"
+  assumes "g' = add_node n' x g"
+  shows "\<forall> n \<in> ids g . (g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
+  using assms
+proof -
+  have "n' \<notin> ids g" using assms
+    using fresh_ids by blast
+  have kinds: "\<forall>n \<in> ids g. kind g n = kind g' n"
+    by (metis DiffD2 Diff_insert_absorb \<open>n' \<notin> ids g\<close> add_changed assms(2) other_node_unchanged)
+  have stamps: "\<forall>n \<in> ids g. stamp g n = stamp g' n"
+    by (metis (mono_tags, lifting) DiffD2 Diff_insert_absorb \<open>n' \<notin> ids g\<close> add_changed assms(2) changeonly.elims(2))
+  show ?thesis using kinds stamps graph_unchanged_rep_unchanged by blast
+qed
+
+lemma unrep_subset[simp]:
+  assumes "g \<triangleleft> e \<leadsto> (g', n)"
+  shows "ids g \<subseteq> ids g'"
+  using assms apply (induction g e "(g', n)" arbitrary: g' n)
+  apply blast
+  apply (metis (no_types, lifting) DiffD2 Diff_insert_absorb add_changed fresh_ids ids_some other_node_unchanged subsetI)
+  apply blast
+  apply (metis Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids subsetI unchanged.elims(2))
+  apply blast
+  apply (metis (no_types, lifting) Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids in_mono subsetI unchanged.elims(2))
+  apply blast
+  apply (metis Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids subset_eq unchanged.elims(2))
+  apply blast
+  apply (metis Diff_insert_absorb add_changed disjoint_change fresh_ids in_mono insert_Diff1 singletonI subsetI unchanged.simps)
+  by blast
+  
+lemma unrep_unchanged:
+  assumes "g \<triangleleft> e \<leadsto> (g', n)"
+  shows "\<forall> n \<in> ids g . \<forall> e. (g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
+  using assms
+proof (induction g e "(g', n)" arbitrary: g' n e)
+  case (ConstantNodeSame g c n)
+  then show ?case
+    by blast
+next
+  case (ConstantNodeNew g c n g')
+  then show ?case
+    using fresh_node_preserves_other_nodes
+    by meson
+next
+  case (ParameterNodeSame g i s n)
+  then show ?case
+    by blast
+next
+  case (ParameterNodeNew g i s n g')
+  then show ?case
+    using fresh_node_preserves_other_nodes by meson
+next
+  case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
+  then show ?case using unrep_subset
+    by (metis (full_types) no_encoding)
+next
+  case (ConditionalNodeNew g ce g2 c te g3 t fe g4 f s' n g')
+  then show ?case
+    using eval_contains_id fresh_node_preserves_other_nodes by blast
+next
+  case (UnaryNodeSame g xe g2 x s' op n)
+  then show ?case
+    by blast
+next
+  case (UnaryNodeNew g xe g2 x s' op n g')
+  then show ?case
+    by (meson eval_contains_id fresh_node_preserves_other_nodes)
+next
+  case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
+  then show ?case
+    by (metis (full_types) no_encoding)
+next
+  case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
+  then show ?case
+    by (metis (full_types) encode_in_ids fresh_node_preserves_other_nodes)
+next
+  case (AllLeafNodes g n s)
+  then show ?case
+    by blast
+qed
+
+
+theorem term_graph_reconstruction:
+  "g \<triangleleft> e \<leadsto> (g', n) \<Longrightarrow> g' \<turnstile> n \<simeq> e"
+  subgoal premises e using e
+  proof (induction g e "(g', n)" arbitrary: g' n)
+    case (ConstantNodeSame g' c n)
+    then have "kind g' n = ConstantNode c"
+      using find_exists_kind local.ConstantNodeSame by blast
+    then show ?case using ConstantNode by blast
+  next
+    case (ConstantNodeNew g c)
+    then show ?case
+      using ConstantNode IRNode.distinct(683) add_node_lookup by presburger
+  next
+    case (ParameterNodeSame i s)
+    then show ?case
+      by (metis ParameterNode find_exists_kind find_exists_stamp)
+  next
+    case (ParameterNodeNew g i s)
+    then show ?case
+      by (metis IRNode.distinct(2447) ParameterNode add_node_lookup)
+  next
+    case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
+    then have k: "kind g4 n = ConditionalNode c t f"
+      using find_exists_kind by blast
+    have c: "g4 \<turnstile> c \<simeq> ce" using local.ConditionalNodeSame unrep_unchanged
+      using no_encoding by blast
+    have t: "g4 \<turnstile> t \<simeq> te" using local.ConditionalNodeSame unrep_unchanged
+      using no_encoding by blast
+    have f: "g4 \<turnstile> f \<simeq> fe" using local.ConditionalNodeSame unrep_unchanged
+      using no_encoding by blast
+    then show ?case using c t f
+      using ConditionalNode k by blast
+  next
+    case (ConditionalNodeNew g ce g2 c te g3 t fe g4 f s' n g')
+    moreover have "ConditionalNode c t f \<noteq> NoNode"
+      using unary_node.elims by blast
+    ultimately have k: "kind g' n = ConditionalNode c t f"
+      using find_new_kind local.ConditionalNodeNew
+      by presburger
+    then have c: "g' \<turnstile> c \<simeq> ce" using local.ConditionalNodeNew unrep_unchanged
+      using no_encoding
+      by (metis ConditionalNodeNew.hyps(9) fresh_node_preserves_other_nodes)
+    then have t: "g' \<turnstile> t \<simeq> te" using local.ConditionalNodeNew unrep_unchanged
+      using no_encoding fresh_node_preserves_other_nodes
+      by metis
+    then have f: "g' \<turnstile> f \<simeq> fe" using local.ConditionalNodeNew unrep_unchanged
+      using no_encoding fresh_node_preserves_other_nodes
+      by metis
+    then show ?case using c t f
+      using ConditionalNode k by blast
+  next
+    case (UnaryNodeSame g xe g' x s' op n)
+    then have k: "kind g' n = unary_node op x"
+      using find_exists_kind local.UnaryNodeSame by blast
+    then have "g' \<turnstile> x \<simeq> xe" using local.UnaryNodeSame by blast
+    then show ?case using k
+      apply (cases op)
+      using AbsNode unary_node.simps(1) apply presburger
+      using NegateNode unary_node.simps(3) apply presburger
+      using NotNode unary_node.simps(2) apply presburger
+      using LogicNegationNode unary_node.simps(4) apply presburger
+      using NarrowNode unary_node.simps(5) apply presburger
+      using SignExtendNode unary_node.simps(6) apply presburger
+      using ZeroExtendNode unary_node.simps(7) by presburger
+  next
+    case (UnaryNodeNew g xe g2 x s' op n g')
+    moreover have "unary_node op x \<noteq> NoNode"
+      using unary_node.elims by blast
+    ultimately have k: "kind g' n = unary_node op x"
+      using find_new_kind local.UnaryNodeNew
+      by presburger
+    have "x \<in> ids g2" using local.UnaryNodeNew
+      using eval_contains_id by blast
+    then have "x \<noteq> n" using local.UnaryNodeNew(5) fresh_ids by blast
+    have "g' \<turnstile> x \<simeq> xe" using local.UnaryNodeNew fresh_node_preserves_other_nodes
+      using \<open>x \<in> ids g2\<close> by blast
+    then show ?case using k
+      apply (cases op)
+      using AbsNode unary_node.simps(1) apply presburger
+      using NegateNode unary_node.simps(3) apply presburger
+      using NotNode unary_node.simps(2) apply presburger
+      using LogicNegationNode unary_node.simps(4) apply presburger
+      using NarrowNode unary_node.simps(5) apply presburger
+      using SignExtendNode unary_node.simps(6) apply presburger
+      using ZeroExtendNode unary_node.simps(7) by presburger
+  next
+    case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
+    then have k: "kind g3 n = bin_node op x y"
+      using find_exists_kind by blast
+    have x: "g3 \<turnstile> x \<simeq> xe" using local.BinaryNodeSame unrep_unchanged
+      using no_encoding by blast
+    have y: "g3 \<turnstile> y \<simeq> ye" using local.BinaryNodeSame unrep_unchanged
+      using no_encoding by blast
+    then show ?case using x y k apply (cases op)
+      using AddNode bin_node.simps(1) apply presburger
+      using MulNode bin_node.simps(2) apply presburger
+      using SubNode bin_node.simps(3) apply presburger
+      using AndNode bin_node.simps(4) apply presburger
+      using OrNode bin_node.simps(5) apply presburger
+      using XorNode bin_node.simps(6) apply presburger sorry
+  next
+    case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
+    moreover have "bin_node op x y \<noteq> NoNode"
+      using bin_node.elims by blast
+    ultimately have k: "kind g' n = bin_node op x y"
+      using find_new_kind local.BinaryNodeNew
+      by presburger
+    then have k: "kind g' n = bin_node op x y"
+      using find_exists_kind by blast
+    have x: "g' \<turnstile> x \<simeq> xe" using local.BinaryNodeNew unrep_unchanged
+      using no_encoding
+      by (meson fresh_node_preserves_other_nodes)
+    have y: "g' \<turnstile> y \<simeq> ye" using local.BinaryNodeNew unrep_unchanged
+      using no_encoding
+      by (meson fresh_node_preserves_other_nodes)
+    then show ?case using x y k apply (cases op)
+      using AddNode bin_node.simps(1) apply presburger
+      using MulNode bin_node.simps(2) apply presburger
+      using SubNode bin_node.simps(3) apply presburger
+      using AndNode bin_node.simps(4) apply presburger
+      using OrNode bin_node.simps(5) apply presburger
+      using XorNode bin_node.simps(6) apply presburger sorry
+  next
+    case (AllLeafNodes g n s)
+    then show ?case using rep.LeafNode by blast
+  qed
+  done
 
 end

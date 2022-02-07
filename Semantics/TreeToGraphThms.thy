@@ -1228,9 +1228,8 @@ lemma fresh: "finite xs \<Longrightarrow> last(sorted_list_of_set(xs::nat set)) 
   using not_le by auto
 
 lemma fresh_ids:
-  assumes "n \<in> ids g"
-  assumes "n' = get_fresh_id g"
-  shows "n \<noteq> n'"
+  assumes "n = get_fresh_id g"
+  shows "n \<notin> ids g"
 proof -
   have "finite (ids g)" using Rep_IRGraph by auto
   then show ?thesis
@@ -1270,88 +1269,74 @@ lemma graph_unchanged_rep_unchanged:
     by (metis no_encoding rep.RefNode)
   done
 
+lemma fresh_node_subset:
+  assumes "n \<notin> ids g"
+  assumes "g' = add_node n (k, s) g"
+  shows "as_set g \<subseteq> as_set g'"
+  using assms
+  by (smt (verit, del_insts) Collect_mono_iff Diff_idemp Diff_insert_absorb add_changed as_set_def disjoint_change unchanged.simps)
+
+lemma unrep_subset:
+  assumes "(g \<triangleleft> e \<leadsto> (g', n))"
+  shows "as_set g \<subseteq> as_set g'"
+  using assms proof (induction g e "(g', n)" arbitrary: g' n)
+  case (ConstantNodeSame g c n)
+  then show ?case by blast
+next
+  case (ConstantNodeNew g c n g')
+  then show ?case using fresh_ids fresh_node_subset
+    by presburger
+next
+  case (ParameterNodeSame g i s n)
+  then show ?case by blast
+next
+  case (ParameterNodeNew g i s n g')
+  then show ?case using fresh_ids fresh_node_subset
+    by presburger
+next
+  case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
+  then show ?case by blast
+next
+  case (ConditionalNodeNew g ce g2 c te g3 t fe g4 f s' n g')
+  then show ?case using fresh_ids fresh_node_subset
+    by (meson subset_trans)
+next
+  case (UnaryNodeSame g xe g2 x s' op n)
+  then show ?case by blast
+next
+  case (UnaryNodeNew g xe g2 x s' op n g')
+  then show ?case using fresh_ids fresh_node_subset
+    by (meson subset_trans)
+next
+  case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
+  then show ?case by blast
+next
+  case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
+  then show ?case using fresh_ids fresh_node_subset
+    by (meson subset_trans)
+next
+  case (AllLeafNodes g n s)
+  then show ?case by blast
+qed
+
 lemma fresh_node_preserves_other_nodes:
   assumes "n' = get_fresh_id g"
   assumes "g' = add_node n' x g"
   shows "\<forall> n \<in> ids g . (g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
   using assms
-proof -
-  have "n' \<notin> ids g" using assms
-    using fresh_ids by blast
-  have kinds: "\<forall>n \<in> ids g. kind g n = kind g' n"
-    by (metis DiffD2 Diff_insert_absorb \<open>n' \<notin> ids g\<close> add_changed assms(2) other_node_unchanged)
-  have stamps: "\<forall>n \<in> ids g. stamp g n = stamp g' n"
-    by (metis (mono_tags, lifting) DiffD2 Diff_insert_absorb \<open>n' \<notin> ids g\<close> add_changed assms(2) changeonly.elims(2))
-  show ?thesis using kinds stamps graph_unchanged_rep_unchanged by blast
-qed
+  by (smt (verit, ccfv_SIG) Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids graph_unchanged_rep_unchanged unchanged.elims(2))
 
-lemma unrep_subset[simp]:
+lemma unrep_ids_subset[simp]:
   assumes "g \<triangleleft> e \<leadsto> (g', n)"
   shows "ids g \<subseteq> ids g'"
-  using assms apply (induction g e "(g', n)" arbitrary: g' n)
-  apply blast
-  apply (metis (no_types, lifting) DiffD2 Diff_insert_absorb add_changed fresh_ids ids_some other_node_unchanged subsetI)
-  apply blast
-  apply (metis Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids subsetI unchanged.elims(2))
-  apply blast
-  apply (metis (no_types, lifting) Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids in_mono subsetI unchanged.elims(2))
-  apply blast
-  apply (metis Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids subset_eq unchanged.elims(2))
-  apply blast
-  apply (metis Diff_insert_absorb add_changed disjoint_change fresh_ids in_mono insert_Diff1 singletonI subsetI unchanged.simps)
-  by blast
-  
+  using assms unrep_subset
+  by (meson graph_refinement_def subset_refines)
+
 lemma unrep_unchanged:
   assumes "g \<triangleleft> e \<leadsto> (g', n)"
   shows "\<forall> n \<in> ids g . \<forall> e. (g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
-  using assms
-proof (induction g e "(g', n)" arbitrary: g' n e)
-  case (ConstantNodeSame g c n)
-  then show ?case
-    by blast
-next
-  case (ConstantNodeNew g c n g')
-  then show ?case
-    using fresh_node_preserves_other_nodes
-    by meson
-next
-  case (ParameterNodeSame g i s n)
-  then show ?case
-    by blast
-next
-  case (ParameterNodeNew g i s n g')
-  then show ?case
-    using fresh_node_preserves_other_nodes by meson
-next
-  case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
-  then show ?case using unrep_subset
-    by (metis (full_types) no_encoding)
-next
-  case (ConditionalNodeNew g ce g2 c te g3 t fe g4 f s' n g')
-  then show ?case
-    using eval_contains_id fresh_node_preserves_other_nodes by blast
-next
-  case (UnaryNodeSame g xe g2 x s' op n)
-  then show ?case
-    by blast
-next
-  case (UnaryNodeNew g xe g2 x s' op n g')
-  then show ?case
-    by (meson eval_contains_id fresh_node_preserves_other_nodes)
-next
-  case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
-  then show ?case
-    by (metis (full_types) no_encoding)
-next
-  case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
-  then show ?case
-    by (metis (full_types) encode_in_ids fresh_node_preserves_other_nodes)
-next
-  case (AllLeafNodes g n s)
-  then show ?case
-    by blast
-qed
-
+  using assms unrep_subset fresh_node_preserves_other_nodes
+  by (meson subset_implies_evals)
 
 theorem term_graph_reconstruction:
   "g \<triangleleft> e \<leadsto> (g', n) \<Longrightarrow> g' \<turnstile> n \<simeq> e"
@@ -1494,6 +1479,8 @@ theorem term_graph_reconstruction:
   done
 
 
+
+(*
 subsubsection \<open>Data-flow Tree to Subgraph Preserves Maximal Sharing\<close>
 
 lemma same_kind_stamp_encodes_equal:
@@ -1547,16 +1534,52 @@ lemma true_ids_def:
   unfolding true_ids_def ids_def
   using ids_def is_RefNode_def by fastforce
 
-lemma ids_add_updatev1:
-  "k \<noteq> NoNode \<Longrightarrow> g' = add_node nid (k, s) g \<Longrightarrow> ids g' = ids g \<union> {n}"
-  using add_node.rep_eq ids.rep_eq sorry
+
+lemma add_node_some_node_def:
+  assumes "k \<noteq> NoNode"
+  assumes "g' = add_node nid (k, s) g"
+  shows "g' = Abs_IRGraph ((Rep_IRGraph g)(nid \<mapsto> (k, s)))"
+  using assms
+  by (metis Rep_IRGraph_inverse add_node.rep_eq fst_conv)
+
+lemma dropdown:
+  assumes "update = (\<lambda>k nid g. (if fst k = NoNode then g else g(nid \<mapsto> k)))"
+  assumes "g' = update (k, s) (nid::ID) g"
+  assumes "k \<noteq> NoNode"
+  shows "{nid \<in> dom g' . \<nexists>s. g' nid = (Some (NoNode, s))} = ({nid \<in> dom g . \<nexists>s. g nid = (Some (NoNode, s))} \<union> {nid})"
+proof -
+  have "g' = g(nid \<mapsto> (k, s))"
+    using assms
+    by simp
+  then have "\<forall> s. g' nid \<noteq> (Some (NoNode, s))"
+    by (simp add: assms(3))
+  have "dom g' = dom g \<union> {nid}"
+    by (simp add: \<open>g' = g(nid \<mapsto> (k, s))\<close>)
+  have "{nid \<in> dom g . \<forall>s. g nid \<noteq> (Some (NoNode, s))} \<subseteq> {nid \<in> dom g' . \<forall>s. g' nid \<noteq> (Some (NoNode, s))}"
+    using \<open>\<forall>s. g' nid \<noteq> Some (NoNode, s)\<close> \<open>g' = g(nid \<mapsto> (k, s))\<close> by auto
+  then show ?thesis using assms(3) sorry
+qed
+
+lemma ids_add_update_v1:
+  assumes "g' = add_node nid (k, s) g"
+  assumes "k \<noteq> NoNode"
+  shows "dom (Rep_IRGraph g') = dom (Rep_IRGraph g) \<union> {nid}"
+  using assms ids.rep_eq add_node_some_node_def
+  by (simp add: add_node.rep_eq)
+
+lemma ids_add_update_v2:
+  assumes "g' = add_node nid (k, s) g"
+  assumes "k \<noteq> NoNode"
+  shows "nid \<in> ids g'"
+  using assms
+  using find_new_kind ids_some by presburger
 
 lemma ids_add_update:
-  assumes "n \<notin> ids g"
-  assumes "g' = add_node n (node, s) g"
-  assumes "node \<noteq> NoNode"
-  shows "ids g' = ids g \<union> {n}"
-  using assms unfolding add_node_def ids_def sorry
+  assumes "g' = add_node nid (k, s) g"
+  assumes "k \<noteq> NoNode"
+  shows "ids g' = ids g \<union> {nid}"
+  using assms add_node.rep_eq ids.rep_eq
+  using dropdown sorry
 
 lemma true_ids_add_update:
   assumes "n \<notin> ids g"
@@ -1574,12 +1597,107 @@ proof -
     by (smt (verit, ccfv_SIG) Collect_cong Diff_insert_absorb IRGraph.true_ids_def Un_insert_right \<open>kind g' n = node\<close> add_node_def assms(1) assms(2) insert_Diff_if insert_iff is_RefNode_def mem_Collect_eq replace_node_def replace_node_unchanged sup_bot.right_neutral)
 qed
 
+
 lemma maintain_maximal_sharing:
   assumes "maximal_sharing g"
-  assumes "true_ids g' = true_ids g \<union> {n}"
-  assumes "\<forall> n' \<in> true_ids g. (\<forall>e. ((g \<turnstile> n \<simeq> e) \<and> (g \<turnstile> n' \<simeq> e)) \<longrightarrow> n = n')"
+  assumes "as_set g \<subseteq> as_set g'"
+  assumes "new_nodes = true_ids g' - true_ids g"
+  assumes "\<forall> n1 n2. n1 \<in> new_nodes \<and> n2 \<in> new_nodes
+           \<longrightarrow> (\<forall>e. ((g' \<turnstile> n1 \<simeq> e) \<and> (g' \<turnstile> n2 \<simeq> e)) \<longrightarrow> n1 = n2)"
   shows "maximal_sharing g'"
-  using assms unfolding maximal_sharing sorry
+  unfolding maximal_sharing
+  apply (rule allI)+ apply (rule impI) apply (rule conjE)
+  using assms unfolding maximal_sharing sledgehammer
+proof -
+  fix n1 n2
+  assume n1in: "n1 \<in> true_ids g'"
+  assume n2in: "n2 \<in> true_ids g'"
+  from n1in n2in have "\<forall>e. (g \<turnstile> n1 \<simeq> e) \<and> (g \<turnstile> n2 \<simeq> e) \<longrightarrow> n1 = n2"
+    by (metis (no_types, lifting) TreeToGraphThms.true_ids_def assms(1) assms(2) maximal_sharing mem_Collect_eq no_encoding subset_kind)
+  then show  "\<forall>e. (g' \<turnstile> n1 \<simeq> e) \<and> (g' \<turnstile> n2 \<simeq> e) \<longrightarrow> n1 = n2"
+    proof (cases "n1 = n")
+      case True
+      then show ?thesis using assms(3) n2in sorry
+    next
+      case False
+      then show ?thesis using assms(2) 
+    qed
+  qed
+
+lemma convert_maximal:
+  assumes "\<forall>n n'. n \<in> true_ids g \<and> n' \<in> true_ids g \<longrightarrow> (\<forall>e e'. (g \<turnstile> n \<simeq> e) \<and> (g \<turnstile> n' \<simeq> e') \<longrightarrow> e \<noteq> e')"
+  shows "maximal_sharing g"
+  using assms
+  using maximal_sharing by blast
+
+lemma fresh_node_unique:
+  assumes "find_node_and_stamp g (k, s) = None"
+  assumes "g' = add_node n (k, s) g"
+  assumes "g' \<turnstile> n \<simeq> e"
+  shows "\<forall>n' \<in> true_ids g. \<forall>e. (g \<turnstile> n' \<simeq> e') \<longrightarrow> e \<noteq> e'"
+  using assms sorry
+
+lemma add_node_new:
+  assumes "n \<notin> ids g"
+  assumes "g' = add_node n (k, s) g"
+  assumes "\<not>(is_RefNode k)"
+  assumes "k \<noteq> NoNode"
+  shows "true_ids g' - true_ids g = {n}"
+  using assms true_ids_add_update
+  by (simp add: IRGraph.true_ids_def insert_Diff_if)
+
+lemma new_nodes_maximal_sharing:
+  assumes "g \<triangleleft> e \<leadsto> (g', n)"
+  assumes "new = true_ids g' - true_ids g"
+  shows "\<forall>n'' \<in> new. \<forall>n' \<in> true_ids g. (\<forall>e. (g' \<turnstile> n1 \<simeq> e) \<and> (g' \<turnstile> n2 \<simeq> e) \<longrightarrow> n1 = n2)"
+  using assms(1,2) proof (induction g e "(g', n)" arbitrary: g' n)
+  case (ConstantNodeSame g c n)
+  then show ?case
+    by blast
+next
+  case (ConstantNodeNew g c n g')
+  then have "new = {n}" using add_node_new
+    using IRNode.disc(2657) IRNode.distinct(683) fresh_ids by presburger
+  then show ?case using fresh_node_unique convert_maximal sorry
+next
+  case (ParameterNodeSame g i s n)
+  then show ?case sorry
+next
+  case (ParameterNodeNew g i s n g')
+  then show ?case sorry
+next
+  case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
+  then show ?case sorry
+next
+  case (ConditionalNodeNew g ce g2 c te g3 t fe g4 f s' n g')
+  then show ?case sorry
+next
+  case (UnaryNodeSame g xe g2 x s' op n)
+  then show ?case sorry
+next
+  case (UnaryNodeNew g xe g2 x s' op n g')
+  then show ?case sorry
+next
+  case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
+  then show ?case sorry
+next
+  case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
+  then show ?case sorry
+next
+  case (AllLeafNodes g n s)
+  then show ?case sorry
+qed
+
+lemma maintain_maximal_sharing:
+  assumes "maximal_sharing g"
+  assumes "g \<triangleleft> e \<leadsto> (g', n)"
+  shows "maximal_sharing g'"
+  unfolding maximal_sharing apply (rule allI)+
+  subgoal for n1 n2
+    apply (cases "n1 \<in> true_ids g \<and> n2 \<in> true_ids g")
+    using assms unfolding maximal_sharing using unrep_unchanged sorry
+  using new_nodes_maximal_sharing assms
+  done
 
 
 theorem unrep_maximal_sharing:
@@ -1595,8 +1713,8 @@ theorem unrep_maximal_sharing:
     moreover have "n \<notin> ids g"
       using calculation(2) fresh_ids by blast
     ultimately show ?case using new_node_not_present true_ids_add_update
-      maintain_maximal_sharing 
-      by metis
+      maintain_maximal_sharing fresh_node_subset
+      by (meson encodes_contains fresh_ids ids_some)
   next
     case (ParameterNodeSame g i s n)
     then show ?case by blast
@@ -1607,8 +1725,8 @@ theorem unrep_maximal_sharing:
     moreover have "n \<notin> ids g"
       using calculation(2) fresh_ids by blast
     ultimately show ?case using new_node_not_present true_ids_add_update
-      maintain_maximal_sharing
-      by metis
+      maintain_maximal_sharing fresh_node_subset
+      by (meson encodes_contains fresh_ids ids_some)
   next
     case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
     then show ?case by blast
@@ -1620,8 +1738,8 @@ theorem unrep_maximal_sharing:
       using fresh_ids
       using calculation(9) by blast
     ultimately show ?case using new_node_not_present true_ids_add_update
-      maintain_maximal_sharing
-      by metis
+      maintain_maximal_sharing fresh_node_subset
+      by (meson encodes_contains fresh_ids ids_some)
   next
     case (UnaryNodeSame g xe g2 x s' op n)
     then show ?case by blast
@@ -1633,8 +1751,8 @@ theorem unrep_maximal_sharing:
       using fresh_ids
       using calculation(5) by blast
     ultimately show ?case using new_node_not_present true_ids_add_update
-      maintain_maximal_sharing 
-      by metis
+      maintain_maximal_sharing fresh_node_subset
+      by (meson encodes_contains fresh_ids ids_some)
   next
     case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
     then show ?case by blast
@@ -1646,12 +1764,13 @@ theorem unrep_maximal_sharing:
       using fresh_ids
       using calculation(7) by blast
     ultimately show ?case using new_node_not_present true_ids_add_update
-      maintain_maximal_sharing 
-      by metis
+      maintain_maximal_sharing fresh_node_subset
+      by (meson encodes_contains fresh_ids ids_some)
   next
     case (AllLeafNodes g n s)
     then show ?case by blast
   qed
   done
+*)
 
 end

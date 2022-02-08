@@ -4,38 +4,38 @@ theory CanonicalizationSyntax
     CanonicalizationTreeProofs 
 begin
 
-typedef int32 = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal32 v))}"
+typedef i32e = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal32 v))}"
   by auto
 
-lemma int32_eval:
-  "\<forall>v. \<exists>vv. ([m, p] \<turnstile> (Rep_int32 e) \<mapsto> v) \<longrightarrow> ([m, p] \<turnstile> (Rep_int32 e) \<mapsto> IntVal32 vv)"
-  using Rep_int32 is_IntVal32_def by fastforce
+lemma i32e_eval:
+  "\<forall>v. \<exists>vv. ([m, p] \<turnstile> (Rep_i32e e) \<mapsto> v) \<longrightarrow> ([m, p] \<turnstile> (Rep_i32e e) \<mapsto> IntVal32 vv)"
+  using Rep_i32e is_IntVal32_def by fastforce
 
 lemma int32_binary:
-  assumes "[m, p] \<turnstile> BinaryExpr op (Rep_int32 x) (Rep_int32 y) \<mapsto> v"
+  assumes "[m, p] \<turnstile> BinaryExpr op (Rep_i32e x) (Rep_i32e y) \<mapsto> v"
   shows "\<exists>xv yv. v = bin_eval op (IntVal32 xv) (IntVal32 yv)"
-  using assms apply auto using Rep_int32 is_IntVal32_def
+  using assms apply auto using Rep_i32e is_IntVal32_def
   by (metis (mono_tags, lifting) mem_Collect_eq)
 
-typedef int64 = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal64 v))}"
+typedef i64e = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal64 v))}"
   by auto
 
-lemma int64_eval:
-  "\<forall>v. \<exists>vv. ([m, p] \<turnstile> (Rep_int64 e) \<mapsto> v) \<longrightarrow> ([m, p] \<turnstile> (Rep_int64 e) \<mapsto> IntVal64 vv)"
-  using Rep_int64 is_IntVal64_def by fastforce
+lemma i64e_eval:
+  "\<forall>v. \<exists>vv. ([m, p] \<turnstile> (Rep_i64e e) \<mapsto> v) \<longrightarrow> ([m, p] \<turnstile> (Rep_i64e e) \<mapsto> IntVal64 vv)"
+  using Rep_i64e is_IntVal64_def by fastforce
 
 lemma int64_binary:
-  assumes "[m, p] \<turnstile> BinaryExpr op (Rep_int64 x) (Rep_int64 y) \<mapsto> v"
+  assumes "[m, p] \<turnstile> BinaryExpr op (Rep_i64e x) (Rep_i64e y) \<mapsto> v"
   shows "\<exists>xv yv. v = bin_eval op (IntVal64 xv) (IntVal64 yv)"
-  using assms apply auto using Rep_int64 is_IntVal64_def
+  using assms apply auto using Rep_i64e is_IntVal64_def
   by (metis (mono_tags, lifting) mem_Collect_eq)
 
-typedef int = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal32 v \<or> is_IntVal64 v))}"
+typedef intExp = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> (is_IntVal32 v \<or> is_IntVal64 v))}"
   by auto
 
 declare
   [[coercion_enabled]]
-  [[coercion Rep_int, coercion Rep_int32, coercion Rep_int64]]
+  [[coercion Rep_intExp, coercion Rep_i32e, coercion Rep_i64e]]
 
 fun size :: "IRExpr \<Rightarrow> nat" where
   "size (UnaryExpr op e) = (size e) + 1" |
@@ -316,7 +316,7 @@ value "constant_add_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (Constan
 print_context
 
 optimization constant_shift:
-  "((const c) + (e::int)) \<mapsto> (e + (const c)) when (\<not>(is_ConstantExpr e))"
+  "((const c) + (e::intExp)) \<mapsto> (e + (const c)) when (\<not>(is_ConstantExpr e))"
    unfolding rewrite_preservation.simps apply (rule impI) defer apply simp
    using nonconstants_gt_one apply fastforce
    by (smt (verit, ccfv_SIG) BinaryExprE add.commute bin_eval.simps(1) evaltree.intros(5) le_expr_def plus_Value_def)
@@ -326,34 +326,34 @@ print_context
 thm constant_shift
 
 optimization neutral_zero:
-  "((e::int32) + const(IntVal32 0)) \<mapsto> e"
+  "((e::i32e) + const(IntVal32 0)) \<mapsto> e"
    defer apply simp+
-  using Rep_int32 is_IntVal32_def by fastforce
+  using Rep_i32e is_IntVal32_def by fastforce
 
 ML_val \<open>@{term "(e1 - e2) + e2 \<mapsto> e1"}\<close>
 
 optimization neutral_left_add_sub:
-  "((e1::int) - (e2::int)) + e2 \<mapsto> e1"
+  "((e1::intExp) - (e2::intExp)) + e2 \<mapsto> e1"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
-  using Rep_int is_IntVal32_def is_IntVal64_def
+  using Rep_intExp is_IntVal32_def is_IntVal64_def
   apply (smt (verit, ccfv_threshold) diff_add_cancel evalDet intval_add.simps(1) intval_add.simps(2) intval_sub.simps(1) intval_sub.simps(12) intval_sub.simps(2) intval_sub.simps(5) mem_Collect_eq)
   by (simp add: size_gt_0)
 
 optimization neutral_right_add_sub:
-  "(e1::int) + ((e2::int) - e1) \<mapsto> e2"
+  "(e1::intExp) + ((e2::intExp) - e1) \<mapsto> e2"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
-  apply (smt (verit, del_insts) CanonicalizationSyntax.int.Rep_int add.commute diff_add_cancel evalDet intval_add.simps(1) intval_add.simps(2) intval_sub.simps(1) intval_sub.simps(12) intval_sub.simps(2) intval_sub.simps(5) is_IntVal32_def is_IntVal64_def mem_Collect_eq)
+  apply (smt (verit, del_insts) Rep_intExp add.commute diff_add_cancel evalDet intval_add.simps(1) intval_add.simps(2) intval_sub.simps(1) intval_sub.simps(12) intval_sub.simps(2) intval_sub.simps(5) is_IntVal32_def is_IntVal64_def mem_Collect_eq)
   using size_gt_0 by auto
 
 
 optimization add_ynegate:
-  "((x::int32) + (-(y::int32))) \<mapsto> (x - y)"
+  "((x::i32e) + (-(y::i32e))) \<mapsto> (x - y)"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
   using Groups.group_add_class.add_uminus_conv_diff
-  by (metis BinaryExpr bin_eval.simps(3) evalDet int32_eval intval_add.simps(1) intval_negate.simps(1) intval_sub.simps(1))
+  by (metis BinaryExpr bin_eval.simps(3) evalDet i32e_eval intval_add.simps(1) intval_negate.simps(1) intval_sub.simps(1))
   
 print_context
 
@@ -418,7 +418,7 @@ optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_ev
   using evaltree.ConstantExpr int_constants_valid unary_eval_preserves_validity by simp
 *)
 
-optimization AndEqual: "((x::int) & x) \<mapsto> x"
+optimization AndEqual: "((x::intExp) & x) \<mapsto> x"
    apply auto
   apply (smt (verit, best) demorgans_rewrites_helper(3) evalDet evaltree.simps int_constants_valid intval_and.simps(15) intval_and.simps(9) is_int_val.elims(3) stamprange)
   unfolding size.simps
@@ -442,7 +442,7 @@ lemma neutral_and:
 context
   includes bit_operations_syntax
 begin
-optimization AndNeutral: "((x::int32) & (const (IntVal32 (NOT 0)))) \<mapsto> x"
+optimization AndNeutral: "((x::i32e) & (const (IntVal32 (NOT 0)))) \<mapsto> x"
    apply auto
   by (smt (z3) Value.distinct(9) bin_eval.simps(4) intval_and.elims neutral_and unrestricted_32bit_always_valid unrestricted_stamp.simps(2))
 
@@ -528,10 +528,10 @@ optimization AddRightNegateToSub: "x + -e \<mapsto> x - e"
   unfolding size.simps
   by simp
 
-optimization MulEliminator: "((x::int32) * const(IntVal32 0)) \<mapsto> const(IntVal32 0)"
+optimization MulEliminator: "((x::i32e) * const(IntVal32 0)) \<mapsto> const(IntVal32 0)"
    apply auto
   using Rings.mult_zero_class.mult_zero_right
-  apply (metis (no_types, opaque_lifting) ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet int32_eval int_and_equal_bits.simps(1) intval_mul.simps(1) intval_sub.simps(1))
+  apply (metis (no_types, opaque_lifting) ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet i32e_eval int_and_equal_bits.simps(1) intval_mul.simps(1) intval_sub.simps(1))
     unfolding size.simps
     by (simp add: size_gt_0)
 

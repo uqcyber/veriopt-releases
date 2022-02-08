@@ -34,8 +34,8 @@ type_synonym objref = "nat option"
 
 datatype (discs_sels) Value  =
   UndefVal |
-  IntVal32 int32 |  (* includes boolean *)
-  IntVal64 int64 |
+  IntVal32 "32 word" |  (* includes boolean *)
+  IntVal64 "64 word" |
   (* FloatVal float | not supported *)
   ObjRef objref |
   ObjStr string

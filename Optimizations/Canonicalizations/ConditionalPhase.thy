@@ -38,16 +38,23 @@ optimization equal_branches: "(e ? x : x) \<mapsto> x"
 definition wff_stamps :: bool where
   "wff_stamps = (\<forall>m p expr val . ([m,p] \<turnstile> expr \<mapsto> val) \<longrightarrow> valid_value val (stamp_expr expr))"
 
-optimization condition_bounds_x: "((x < y) ? x : y) \<mapsto> x when (stamp_under (stamp_expr x) (stamp_expr y) \<and> wff_stamps)"
+definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
+  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
+
+optimization condition_bounds_x: "((x < y) ? x : y) \<mapsto> x 
+    when (stamp_under (stamp_expr x) (stamp_expr y) \<and> wf_stamp x \<and> wf_stamp y)"
    apply unfold_optimization
   using stamp_under_semantics
-  using wff_stamps_def apply fastforce
+  using wf_stamp_def
+  apply (smt (verit, best) ConditionalExprE le_expr_def stamp_under.simps)
   unfolding size.simps by simp
 
-optimization condition_bounds_y: "((x < y) ? x : y) \<mapsto> y when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wff_stamps)"
+optimization condition_bounds_y: "((x < y) ? x : y) \<mapsto> y 
+    when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wf_stamp x \<and> wf_stamp y)"
    apply unfold_optimization
   using stamp_under_semantics_inversed
-  using wff_stamps_def apply fastforce
+  using wf_stamp_def
+  apply (smt (verit, best) ConditionalExprE le_expr_def stamp_under.simps)
   unfolding size.simps by simp
 
 (*extra one*)

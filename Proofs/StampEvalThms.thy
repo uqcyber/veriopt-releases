@@ -348,7 +348,8 @@ lemma lower_bound_64:
 lemma stamp_under_semantics:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"
   assumes "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> v"
-  assumes stamp_implies_valid_value: "\<forall>m p expr val . ([m,p] \<turnstile> expr \<mapsto> val) \<longrightarrow> valid_value val (stamp_expr expr)"
+  assumes xvalid: "(\<forall>m p v. ([m, p] \<turnstile> x \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr x))"
+  assumes yvalid: "(\<forall>m p v. ([m, p] \<turnstile> y \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr y))"
   shows "val_to_bool v"
 proof -
   obtain xval where xval_def: "[m, p] \<turnstile> x \<mapsto> xval"
@@ -367,14 +368,14 @@ proof -
     using assms(2)
     by (metis BinaryExprE bin_eval.simps(11) evalDet xval_def yval_def)
   have "is_IntVal32 xval \<Longrightarrow> ((\<exists> lo hi. stamp_expr x = IntegerStamp 32 lo hi) \<and> (\<exists> lo hi. stamp_expr y = IntegerStamp 32 lo hi))"
-    using assms(2) binary_eval_bits_equal stamp_implies_valid_value valid_value.elims(2) xval_def
-    by (smt (verit) BinaryExprE Value.discI(2) Value.distinct_disc(9) assms(2) binary_eval_bits_equal stamp_implies_valid_value valid_value.elims(2) xval_def)
+    using assms(2) binary_eval_bits_equal valid_value.elims(2) xval_def
+    by (metis Value.distinct(9) Value.distinct_disc(9) \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> \<open>is_IntVal64 xval = is_IntVal64 yval\<close> is_IntVal32_def xvalid yval_def yvalid)
   have "is_IntVal64 xval \<Longrightarrow> ((\<exists> lo hi. stamp_expr x = IntegerStamp 64 lo hi) \<and> (\<exists> lo hi. stamp_expr y = IntegerStamp 64 lo hi))"
-    by (smt (verit, best) BinaryExprE \<open>intval_less_than xval yval \<noteq> UndefVal\<close> assms(2) binary_eval_bits_equal intval_less_than.simps(5) is_IntVal64_def stamp_implies_valid_value valid_value.elims(2) yval_def)
+    by (metis (full_types) \<open>is_IntVal64 xval = is_IntVal64 yval\<close> is_IntVal64_def stamprange valid_value.simps(2) xval_def xvalid yval_def yvalid)
   have xvalid: "valid_value xval (stamp_expr x)"
-    using stamp_implies_valid_value xval_def by auto
+    using xvalid xval_def by auto
   have yvalid: "valid_value yval (stamp_expr y)"
-    using stamp_implies_valid_value yval_def by auto
+    using yvalid yval_def by auto
   { assume c: "is_IntVal32 xval"
     obtain xxval where x32: "xval = IntVal32 xxval"
       using c is_IntVal32_def by blast
@@ -430,7 +431,8 @@ qed
 lemma stamp_under_semantics_inversed:
   assumes "stamp_under (stamp_expr y) (stamp_expr x)"
   assumes "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> v"
-  assumes stamp_implies_valid_value: "\<forall>m p expr val . ([m,p] \<turnstile> expr \<mapsto> val) \<longrightarrow> valid_value val (stamp_expr expr)"
+  assumes xvalid: "(\<forall>m p v. ([m, p] \<turnstile> x \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr x))"
+  assumes yvalid: "(\<forall>m p v. ([m, p] \<turnstile> y \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr y))"
   shows "\<not>(val_to_bool v)"
 proof -
   obtain xval where xval_def: "[m, p] \<turnstile> x \<mapsto> xval"
@@ -438,9 +440,9 @@ proof -
   obtain yval where yval_def: "[m, p] \<turnstile> y \<mapsto> yval"
     using assms(2) by blast
   have "is_IntVal32 xval \<or> is_IntVal64 xval"
-    by (metis is_IntVal32_def is_IntVal64_def stamp_implies_valid_value valid_value.elims(2) xval_def)
+    by (metis is_IntVal32_def is_IntVal64_def xvalid valid_value.elims(2) xval_def)
   have "is_IntVal32 yval \<or> is_IntVal64 yval"
-    by (metis is_IntVal32_def is_IntVal64_def stamp_implies_valid_value valid_value.elims(2) yval_def)
+    by (metis is_IntVal32_def is_IntVal64_def yvalid valid_value.elims(2) yval_def)
   have "is_IntVal32 xval = is_IntVal32 yval"
     by (metis BinaryExprE Value.collapse(2) \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> assms(2) bin_eval.simps(11) evalDet intval_less_than.simps(12) intval_less_than.simps(5) is_IntVal32_def xval_def yval_def)
   have "is_IntVal64 xval = is_IntVal64 yval"
@@ -449,13 +451,13 @@ proof -
     using assms(2)
     by (metis BinaryExprE bin_eval.simps(11) evalDet xval_def yval_def)
   have "is_IntVal32 xval \<Longrightarrow> ((\<exists> lo hi. stamp_expr x = IntegerStamp 32 lo hi) \<and> (\<exists> lo hi. stamp_expr y = IntegerStamp 32 lo hi))"
-    by (smt (verit) BinaryExprE Value.discI(2) Value.distinct_disc(9) assms(2) binary_eval_bits_equal stamp_implies_valid_value valid_value.elims(2) xval_def)
+    by (smt (verit) BinaryExprE Value.discI(2) Value.distinct_disc(9) assms(2) binary_eval_bits_equal xvalid yvalid valid_value.elims(2) xval_def)
   have "is_IntVal64 xval \<Longrightarrow> ((\<exists> lo hi. stamp_expr x = IntegerStamp 64 lo hi) \<and> (\<exists> lo hi. stamp_expr y = IntegerStamp 64 lo hi))"
-    by (smt (verit, best) BinaryExprE \<open>intval_less_than xval yval \<noteq> UndefVal\<close> assms(2) binary_eval_bits_equal intval_less_than.simps(5) is_IntVal64_def stamp_implies_valid_value valid_value.elims(2) yval_def)
+    by (smt (verit, best) BinaryExprE \<open>intval_less_than xval yval \<noteq> UndefVal\<close> assms(2) binary_eval_bits_equal intval_less_than.simps(5) is_IntVal64_def xvalid yvalid valid_value.elims(2) yval_def)
   have xvalid: "valid_value xval (stamp_expr x)"
-    using stamp_implies_valid_value xval_def by auto
+    using xvalid xval_def by auto
   have yvalid: "valid_value yval (stamp_expr y)"
-    using stamp_implies_valid_value yval_def by auto
+    using yvalid yval_def by auto
   { assume c: "is_IntVal32 xval"
     obtain xxval where x32: "xval = IntVal32 xxval"
       using c is_IntVal32_def by blast

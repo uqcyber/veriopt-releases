@@ -255,6 +255,8 @@ begin
 end
 snipend -
 
+hide_const (open) "Form.wf_stamp"
+
 snipbegin \<open>phase-example\<close>
 phase Conditional
   terminating trm
@@ -275,12 +277,13 @@ snipbegin \<open>phase-example-4\<close>optimization equal_branches: "(e ? x : x
   by (auto simp: trm_def)
 
 snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((x < y) ? x : y) \<mapsto> x
-                   when (stamp_under (stamp_expr x) (stamp_expr y) \<and> wff_stamps)"snipend -
+                   when (stamp_under (stamp_expr x) (stamp_expr y) 
+                            \<and> wf_stamp x \<and> wf_stamp y)"snipend -
   using ConditionalPhase.condition_bounds_x(1)
   by (blast, auto simp: trm_def)
 
 snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < y) ? x : y) \<mapsto> y
-                   when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wff_stamps)"snipend -
+                   when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wf_stamp x \<and> wf_stamp y)"snipend -
   using ConditionalPhase.condition_bounds_y(1)
   by (blast, auto simp: trm_def)
 

@@ -1326,6 +1326,12 @@ lemma fresh_node_preserves_other_nodes:
   using assms
   by (smt (verit, ccfv_SIG) Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids graph_unchanged_rep_unchanged unchanged.elims(2))
 
+lemma found_node_preserves_other_nodes:
+  assumes "find_node_and_stamp g (k, s) = Some n"
+  shows "(g \<turnstile> n \<simeq> e) \<longleftrightarrow> (g \<turnstile> n \<simeq> e)"
+  using assms
+  by blast
+
 lemma unrep_ids_subset[simp]:
   assumes "g \<triangleleft> e \<leadsto> (g', n)"
   shows "ids g \<subseteq> ids g'"
@@ -1478,7 +1484,176 @@ theorem term_graph_reconstruction:
   qed
   done
 
+lemma ref_refinement:
+  assumes "g \<turnstile> n \<simeq> e\<^sub>1"
+  assumes "kind g n' = RefNode n"
+  shows "g \<turnstile> n' \<unlhd> e\<^sub>1"
+  using assms RefNode
+  by (meson equal_refines graph_represents_expression_def)
 
+lemma unrep_refines:
+  assumes "g \<triangleleft> e \<leadsto> (g', n)"
+  shows "graph_refinement g g'"
+  using assms
+  using graph_refinement_def subset_refines unrep_subset by blast
+
+lemma add_new_node_refines:
+  assumes "n \<notin> ids g"
+  assumes "g' = add_node n (k, s) g"
+  shows "graph_refinement g g'"
+  using assms unfolding graph_refinement
+  using fresh_node_subset subset_refines by presburger
+
+lemma add_node_as_set:
+  assumes "g' = add_node n (k, s) g"
+  shows "({n} \<unlhd> as_set g) \<subseteq> as_set g'"
+  using assms unfolding as_set_def domain_subtraction_def 
+  using add_changed
+  by (smt (z3) case_prodE changeonly.simps mem_Collect_eq prod.sel(1) subsetI)
+
+(*
+lemma only_n_changes:
+  assumes "({n} \<unlhd> as_set g) \<subseteq> as_set g'"
+  shows "\<forall>n'. n' \<in> ids g - {n} \<longrightarrow> (\<forall>e. (g \<turnstile> n' \<simeq> e) \<longrightarrow> (g' \<turnstile> n' \<simeq> e))"
+  apply (rule allI) apply (rule impI)
+  subgoal premises set for n' apply (rule allI) apply (rule impI)
+    subgoal premises eval for e
+      using eval set assms proof (induction n' e )
+      case (ConstantNode n c)
+      then show ?case
+        by (metis Diff_iff not_excluded_keep_type rep.ConstantNode)
+    next
+      case (ParameterNode n i s)
+      then show ?case
+        by (metis DiffD1 DiffD2 not_excluded_keep_type rep.ParameterNode)
+    next
+      case (ConditionalNode n c t f ce te fe)
+      then show ?case sorry
+    next
+      case (AbsNode n x xe)
+      then show ?case sorry
+    next
+      case (NotNode n x xe)
+      then show ?case sorry
+    next
+      case (NegateNode n x xe)
+      then show ?case sorry
+    next
+      case (LogicNegationNode n x xe)
+      then show ?case sorry
+    next
+      case (AddNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (MulNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (SubNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (AndNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (OrNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (XorNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (LeftShiftNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (RightShiftNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (UnsignedRightShiftNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (IntegerBelowNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (IntegerEqualsNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (IntegerLessThanNode n x y xe ye)
+      then show ?case sorry
+    next
+      case (NarrowNode n inputBits resultBits x xe)
+      then show ?case sorry
+    next
+      case (SignExtendNode n inputBits resultBits x xe)
+      then show ?case sorry
+    next
+      case (ZeroExtendNode n inputBits resultBits x xe)
+      then show ?case sorry
+    next
+      case (LeafNode n s)
+      then show ?case sorry
+    next
+      case (RefNode n n' e)
+      then show ?case sorry
+    qed
+     
+      apply (metis ConstantNode DiffE not_excluded_keep_type)
+      apply (metis DiffD1 DiffD2 ParameterNode not_excluded_keep_type) sorry
+  proof -
+    have "kind g n' = kind g' n'"
+      using assms set
+      by (meson Diff_iff not_excluded_keep_type)
+    moreover have "stamp g n' = stamp g' n'"
+      using assms set
+      by (meson DiffE not_excluded_keep_type)
+    ultimately show "\<forall>e. (g \<turnstile> n' \<simeq> e) \<longrightarrow> (g' \<turnstile> n' \<simeq> e)"
+      using assms sorry
+  qed
+  done*)
+
+(*
+theorem constructive_refinement:
+  assumes 1: "e\<^sub>1 \<ge> e\<^sub>2"
+  assumes "g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1"
+  assumes "g\<^sub>1 \<triangleleft> e\<^sub>2 \<leadsto> (g\<^sub>2, n')"
+  assumes "n \<noteq> n'"
+  assumes "g\<^sub>3 = add_node n (RefNode n', stamp g\<^sub>2 n') g\<^sub>2"
+  shows "graph_refinement g\<^sub>1 g\<^sub>3"
+proof -
+  have step1: "graph_refinement g\<^sub>1 g\<^sub>2"
+    using assms(2,3)
+    by (simp add: subset_refines unrep_subset)
+  have "ids g\<^sub>2 \<subseteq> ids g\<^sub>3"
+    using assms(5)
+    by (metis (no_types, lifting) IRNode.distinct(2755) add_node_def assms(2) assms(3) find_new_kind ids_some insertE insert_Diff no_encoding replace_node_def replace_node_unchanged subsetI unrep_unchanged)
+  have 3: "g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>1"
+    using assms(3)
+    using assms(2) subset_implies_evals unrep_subset by blast
+  have g2rep: "g\<^sub>2 \<turnstile> n' \<simeq> e\<^sub>2"
+    using assms(3) term_graph_reconstruction by auto
+  have 2: "({n} \<unlhd> as_set g\<^sub>2) \<subseteq> as_set g\<^sub>3"
+    using assms(5) add_node_as_set by blast
+ (* have only_n_changes: "\<forall>n'. n'\<in>ids g\<^sub>2 - {n} \<longrightarrow> (\<forall> e. ((g\<^sub>2 \<turnstile> n' \<simeq> e) \<longrightarrow> (g\<^sub>3 \<turnstile> n' \<simeq> e)))"
+    apply (rule allI) subgoal for n'
+      apply (cases "n' = n") apply blast apply (rule impI)
+      subgoal premises ne
+        apply (subgoal_tac "n' \<in> ids g\<^sub>2") defer using ne apply blast
+        using ne(1) sorry
+      done
+    done*)
+  have n'con: "n' \<in> ids g\<^sub>2 - {n}"
+    using assms(4) encode_in_ids g2rep by blast
+  have g3rep: "g\<^sub>3 \<turnstile> n' \<simeq> e\<^sub>2"
+    using g2rep assms(4) 2 n'con sorry
+  have refkind: "kind g\<^sub>3 n = RefNode n'"
+    using assms(5) add_node_lookup
+    by (metis IRNode.distinct(2755))
+  then have 4: "g\<^sub>3 \<turnstile> n \<simeq> e\<^sub>2"
+    using assms
+    using RefNode g3rep by blast
+  have step2: "graph_refinement g\<^sub>2 g\<^sub>3"
+    using graph_semantics_preservation 1 2 3 4 by blast
+  from step1 step2 show ?thesis
+    by (meson assms(3) graph_refinement_def order_trans subsetD subset_implies_evals unrep_subset)
+qed
+*)
 
 (*
 subsubsection \<open>Data-flow Tree to Subgraph Preserves Maximal Sharing\<close>

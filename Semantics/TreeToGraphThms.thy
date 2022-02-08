@@ -1321,14 +1321,14 @@ qed
 
 lemma fresh_node_preserves_other_nodes:
   assumes "n' = get_fresh_id g"
-  assumes "g' = add_node n' x g"
+  assumes "g' = add_node n' (k, s) g"
   shows "\<forall> n \<in> ids g . (g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
   using assms
   by (smt (verit, ccfv_SIG) Diff_idemp Diff_insert_absorb add_changed disjoint_change fresh_ids graph_unchanged_rep_unchanged unchanged.elims(2))
 
 lemma found_node_preserves_other_nodes:
   assumes "find_node_and_stamp g (k, s) = Some n"
-  shows "(g \<turnstile> n \<simeq> e) \<longleftrightarrow> (g \<turnstile> n \<simeq> e)"
+  shows "\<forall> n \<in> ids g. (g \<turnstile> n \<simeq> e) \<longleftrightarrow> (g \<turnstile> n \<simeq> e)"
   using assms
   by blast
 
@@ -1609,6 +1609,18 @@ lemma only_n_changes:
   done*)
 
 (*
+lemma ref_add_represents:
+  assumes "g \<turnstile> n \<simeq> e"
+  assumes "n' \<notin> eval_usages g n"
+  assumes "g' = add_node n' (RefNode n, s) g"
+  shows "g' \<turnstile> n' \<unlhd> e"
+  using assms
+  unfolding graph_represents_expression_def
+  apply (induction e arbitrary: n')
+  sorry
+*)
+
+(*
 theorem constructive_refinement:
   assumes 1: "e\<^sub>1 \<ge> e\<^sub>2"
   assumes "g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1"
@@ -1640,22 +1652,28 @@ proof -
     done*)
   have n'con: "n' \<in> ids g\<^sub>2 - {n}"
     using assms(4) encode_in_ids g2rep by blast
-  have g3rep: "g\<^sub>3 \<turnstile> n' \<simeq> e\<^sub>2"
-    using g2rep assms(4) 2 n'con sorry
+  have "kind g\<^sub>3 n = RefNode n'"
+    using assms(5) find_new_kind by blast
+  then have g3rep: "(g\<^sub>3 \<turnstile> n' \<unlhd> e\<^sub>2)"
+    using g2rep assms(4) 2 unfolding graph_represents_expression_def sorry
   have refkind: "kind g\<^sub>3 n = RefNode n'"
     using assms(5) add_node_lookup
     by (metis IRNode.distinct(2755))
-  then have 4: "g\<^sub>3 \<turnstile> n \<simeq> e\<^sub>2"
+  then have 4: "g\<^sub>3 \<turnstile> n \<unlhd> e\<^sub>2"
     using assms
-    using RefNode g3rep by blast
+    using RefNode g3rep
+    by (meson graph_represents_expression_def)
   have step2: "graph_refinement g\<^sub>2 g\<^sub>3"
-    using graph_semantics_preservation 1 2 3 4 by blast
+    using graph_semantics_preservation 1 2 3 4
+    by (meson graph_represents_expression_def order_trans)
   from step1 step2 show ?thesis
     by (meson assms(3) graph_refinement_def order_trans subsetD subset_implies_evals unrep_subset)
 qed
 *)
 
+
 (*
+
 subsubsection \<open>Data-flow Tree to Subgraph Preserves Maximal Sharing\<close>
 
 lemma same_kind_stamp_encodes_equal:
@@ -1717,6 +1735,7 @@ lemma add_node_some_node_def:
   using assms
   by (metis Rep_IRGraph_inverse add_node.rep_eq fst_conv)
 
+(*
 lemma dropdown:
   assumes "update = (\<lambda>k nid g. (if fst k = NoNode then g else g(nid \<mapsto> k)))"
   assumes "g' = update (k, s) (nid::ID) g"
@@ -1734,6 +1753,7 @@ proof -
     using \<open>\<forall>s. g' nid \<noteq> Some (NoNode, s)\<close> \<open>g' = g(nid \<mapsto> (k, s))\<close> by auto
   then show ?thesis using assms(3) sorry
 qed
+*)
 
 lemma ids_add_update_v1:
   assumes "g' = add_node nid (k, s) g"
@@ -1754,7 +1774,7 @@ lemma ids_add_update:
   assumes "k \<noteq> NoNode"
   shows "ids g' = ids g \<union> {nid}"
   using assms add_node.rep_eq ids.rep_eq
-  using dropdown sorry
+  sorry
 
 lemma true_ids_add_update:
   assumes "n \<notin> ids g"
@@ -1772,7 +1792,7 @@ proof -
     by (smt (verit, ccfv_SIG) Collect_cong Diff_insert_absorb IRGraph.true_ids_def Un_insert_right \<open>kind g' n = node\<close> add_node_def assms(1) assms(2) insert_Diff_if insert_iff is_RefNode_def mem_Collect_eq replace_node_def replace_node_unchanged sup_bot.right_neutral)
 qed
 
-
+(*
 lemma maintain_maximal_sharing:
   assumes "maximal_sharing g"
   assumes "as_set g \<subseteq> as_set g'"
@@ -1782,7 +1802,7 @@ lemma maintain_maximal_sharing:
   shows "maximal_sharing g'"
   unfolding maximal_sharing
   apply (rule allI)+ apply (rule impI) apply (rule conjE)
-  using assms unfolding maximal_sharing sledgehammer
+  using assms unfolding maximal_sharing
 proof -
   fix n1 n2
   assume n1in: "n1 \<in> true_ids g'"
@@ -1790,14 +1810,15 @@ proof -
   from n1in n2in have "\<forall>e. (g \<turnstile> n1 \<simeq> e) \<and> (g \<turnstile> n2 \<simeq> e) \<longrightarrow> n1 = n2"
     by (metis (no_types, lifting) TreeToGraphThms.true_ids_def assms(1) assms(2) maximal_sharing mem_Collect_eq no_encoding subset_kind)
   then show  "\<forall>e. (g' \<turnstile> n1 \<simeq> e) \<and> (g' \<turnstile> n2 \<simeq> e) \<longrightarrow> n1 = n2"
-    proof (cases "n1 = n")
+    proof (cases "n1 \<in> new_nodes")
       case True
       then show ?thesis using assms(3) n2in sorry
     next
       case False
-      then show ?thesis using assms(2) 
+      then show ?thesis using assms(2) sorry
     qed
   qed
+*)
 
 lemma convert_maximal:
   assumes "\<forall>n n'. n \<in> true_ids g \<and> n' \<in> true_ids g \<longrightarrow> (\<forall>e e'. (g \<turnstile> n \<simeq> e) \<and> (g \<turnstile> n' \<simeq> e') \<longrightarrow> e \<noteq> e')"
@@ -1805,12 +1826,39 @@ lemma convert_maximal:
   using assms
   using maximal_sharing by blast
 
+lemma ids_finite: "finite (ids g)"
+  using Rep_IRGraph ids.rep_eq by simp
+
+lemma unwrap_sorted: "set (sorted_list_of_set (ids g)) = ids g"
+  using Rep_IRGraph set_sorted_list_of_set ids_finite
+  by blast
+
+lemma find_none:
+  assumes "find_node_and_stamp g (k, s) = None"
+  shows "\<forall> n \<in> ids g. kind g n \<noteq> k \<or> stamp g n \<noteq> s"
+proof -
+  have "(\<nexists>n. n \<in> ids g \<and> (kind g n = k \<and> stamp g n = s))"
+    using assms unfolding find_node_and_stamp.simps using find_None_iff unwrap_sorted
+    by (metis (mono_tags, lifting))
+  then show ?thesis
+    by blast
+qed
+
 lemma fresh_node_unique:
   assumes "find_node_and_stamp g (k, s) = None"
+  assumes "n = get_fresh_id g"
   assumes "g' = add_node n (k, s) g"
   assumes "g' \<turnstile> n \<simeq> e"
-  shows "\<forall>n' \<in> true_ids g. \<forall>e. (g \<turnstile> n' \<simeq> e') \<longrightarrow> e \<noteq> e'"
-  using assms sorry
+  shows "\<forall>n' . n' \<in> true_ids g \<longrightarrow> (\<forall>e'. (g \<turnstile> n' \<simeq> e') \<longrightarrow> e \<noteq> e')"
+  apply (rule allI) apply (rule impI) apply (rule allI)
+  subgoal premises true for n' e' apply (rule impI)
+    subgoal premises eval
+      apply (subgoal_tac "n \<noteq> n'")
+      defer using assms
+      apply (metis eval fresh_ids no_encoding)
+      using eval apply (induction n' e') using find_none sorry
+    done
+  done
 
 lemma add_node_new:
   assumes "n \<notin> ids g"
@@ -1862,6 +1910,15 @@ next
   case (AllLeafNodes g n s)
   then show ?case sorry
 qed
+
+lemma fresh_maintain_maximal_sharing:
+  assumes "maximal_sharing g"
+  assumes "find_node_and_stamp g (k, s) = None"
+  assumes "n = get_fresh_id g"
+  assumes "g' = add_node n (k, s) g"
+  shows "maximal_sharing g'"
+  using assms 
+  by (smt (z3) Collect_cong DiffD1 DiffD2 Rep_IRGraph_inverse TreeToGraphThms.true_ids_def Un_commute add_changed add_node.rep_eq add_node_new disjoint_change find_new_kind fresh_ids fresh_node_subset fst_conv ids_add_update insert_Diff insert_Diff1 insert_iff insert_is_Un maintain_maximal_sharing node_unchanged)
 
 lemma maintain_maximal_sharing:
   assumes "maximal_sharing g"

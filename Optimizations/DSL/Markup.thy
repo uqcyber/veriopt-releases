@@ -5,8 +5,8 @@ theory Markup
 begin
 
 datatype 'a Rewrite =
-  Transform 'a 'a ("_ \<mapsto> _" 10) |
-  Conditional 'a 'a "bool" ("_ \<mapsto> _ when _" 70) |
+  Transform 'a 'a ("_ \<longmapsto> _" 10) |
+  Conditional 'a 'a "bool" ("_ \<longmapsto> _ when _" 70) |
   Sequential "'a Rewrite" "'a Rewrite" |
   Transitive "'a Rewrite"
 
@@ -83,7 +83,7 @@ snipbegin \<open>value expression example\<close>
 value "val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]"
 text \<open>@{term \<open>val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
 snipend -
-value "exp[((e\<^sub>1 - e\<^sub>2) + (const (IntVal32 0)) + e\<^sub>2) \<mapsto> e\<^sub>1 when True]"
-value "val[((e\<^sub>1 - e\<^sub>2) + (const 0) + e\<^sub>2) \<mapsto> e\<^sub>1 when True]"
+value "exp[((e\<^sub>1 - e\<^sub>2) + (const (IntVal32 0)) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
+value "val[((e\<^sub>1 - e\<^sub>2) + (const 0) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
 
 end

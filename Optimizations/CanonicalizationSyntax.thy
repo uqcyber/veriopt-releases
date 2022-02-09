@@ -303,12 +303,6 @@ optimization constant_add:
 *)
 
 
-optimization constant_add:
-  "((const v1) + (const v2)) \<mapsto> ConstantExpr (intval_add v1 v2)"
-  unfolding le_expr_def apply (cases; auto) using evaltree.ConstantExpr defer
-   apply simp
-  sorry
-
 (*
 value "constant_add_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (ConstantExpr (IntVal32 0)))"
 *)
@@ -316,7 +310,7 @@ value "constant_add_code (BinaryExpr BinAdd (ConstantExpr (IntVal32 0)) (Constan
 print_context
 
 optimization constant_shift:
-  "((const c) + (e::intExp)) \<mapsto> (e + (const c)) when (\<not>(is_ConstantExpr e))"
+  "((const c) + (e::intExp)) \<longmapsto> (e + (const c)) when (\<not>(is_ConstantExpr e))"
    unfolding rewrite_preservation.simps apply (rule impI) defer apply simp
    using nonconstants_gt_one apply fastforce
    by (smt (verit, ccfv_SIG) BinaryExprE add.commute bin_eval.simps(1) evaltree.intros(5) le_expr_def plus_Value_def)
@@ -326,14 +320,14 @@ print_context
 thm constant_shift
 
 optimization neutral_zero:
-  "((e::i32e) + const(IntVal32 0)) \<mapsto> e"
+  "((e::i32e) + const(IntVal32 0)) \<longmapsto> e"
    defer apply simp+
   using Rep_i32e is_IntVal32_def by fastforce
 
-ML_val \<open>@{term "(e1 - e2) + e2 \<mapsto> e1"}\<close>
+ML_val \<open>@{term "(e1 - e2) + e2 \<longmapsto> e1"}\<close>
 
 optimization neutral_left_add_sub:
-  "((e1::intExp) - (e2::intExp)) + e2 \<mapsto> e1"
+  "((e1::intExp) - (e2::intExp)) + e2 \<longmapsto> e1"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
   using Rep_intExp is_IntVal32_def is_IntVal64_def
@@ -341,7 +335,7 @@ optimization neutral_left_add_sub:
   by (simp add: size_gt_0)
 
 optimization neutral_right_add_sub:
-  "(e1::intExp) + ((e2::intExp) - e1) \<mapsto> e2"
+  "(e1::intExp) + ((e2::intExp) - e1) \<longmapsto> e2"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
   apply (smt (verit, del_insts) Rep_intExp add.commute diff_add_cancel evalDet intval_add.simps(1) intval_add.simps(2) intval_sub.simps(1) intval_sub.simps(12) intval_sub.simps(2) intval_sub.simps(5) is_IntVal32_def is_IntVal64_def mem_Collect_eq)
@@ -349,7 +343,7 @@ optimization neutral_right_add_sub:
 
 
 optimization add_ynegate:
-  "((x::i32e) + (-(y::i32e))) \<mapsto> (x - y)"
+  "((x::i32e) + (-(y::i32e))) \<longmapsto> (x - y)"
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     rule conjE, simp) apply auto
   using Groups.group_add_class.add_uminus_conv_diff
@@ -418,13 +412,13 @@ optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_ev
   using evaltree.ConstantExpr int_constants_valid unary_eval_preserves_validity by simp
 *)
 
-optimization AndEqual: "((x::intExp) & x) \<mapsto> x"
+optimization AndEqual: "((x::intExp) & x) \<longmapsto> x"
    apply auto
   apply (smt (verit, best) demorgans_rewrites_helper(3) evalDet evaltree.simps int_constants_valid intval_and.simps(15) intval_and.simps(9) is_int_val.elims(3) stamprange)
   unfolding size.simps
   by (simp add: size_gt_0)
 
-optimization AndShiftConstantRight: "((const x) + y) \<mapsto> y + (const x) when ~(is_ConstantExpr y)"
+optimization AndShiftConstantRight: "((const x) + y) \<longmapsto> y + (const x) when ~(is_ConstantExpr y)"
   apply simp
    apply (smt (verit, ccfv_threshold) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
   unfolding size.simps using nonconstants_gt_one by auto
@@ -442,19 +436,19 @@ lemma neutral_and:
 context
   includes bit_operations_syntax
 begin
-optimization AndNeutral: "((x::i32e) & (const (IntVal32 (NOT 0)))) \<mapsto> x"
+optimization AndNeutral: "((x::i32e) & (const (IntVal32 (NOT 0)))) \<longmapsto> x"
    apply auto
   by (smt (z3) Value.distinct(9) bin_eval.simps(4) intval_and.elims neutral_and unrestricted_32bit_always_valid unrestricted_stamp.simps(2))
 
 end
 
-optimization ConditionalEqualBranches: "(b ? v : v) \<mapsto> v"
+optimization ConditionalEqualBranches: "(b ? v : v) \<longmapsto> v"
   apply simp
    apply force
   unfolding size.simps
   by auto
 
-optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<mapsto> y when (type x = Integer \<and> type_safe x y)"
+optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y when (type x = Integer \<and> type_safe x y)"
    apply auto
   by (smt (z3) bool_to_val.simps(2) evalDet intval_equals.elims val_to_bool.simps(1))
 
@@ -487,12 +481,12 @@ lemma bin_eval_preserves_validity:
   by (metis (full_types))
 
 
-optimization BinaryFoldConstant: "BinaryExpr op (const e1) (const e2) \<mapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
+optimization BinaryFoldConstant: "BinaryExpr op (const e1) (const e2) \<longmapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
    apply auto
    apply (simp add: ConstantExpr bin_eval_preserves_validity)
   using nonconstants_gt_one by simp
 
-optimization AddShiftConstantRight: "((const c) + y) \<mapsto> y + (const c) when ~(is_ConstantExpr y)"
+optimization AddShiftConstantRight: "((const c) + y) \<longmapsto> y + (const c) when ~(is_ConstantExpr y)"
   apply simp
    apply (smt (verit, del_insts) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
   unfolding size.simps using nonconstants_gt_one by simp
@@ -505,7 +499,7 @@ lemma neutral_add:
   shows "bin_eval BinAdd x (IntVal32 (0)) = x"
   using assms bin_eval.simps(4) by (cases x; auto)
 
-optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
+optimization AddNeutral: "(e + (const (IntVal32 0))) \<longmapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
    apply auto
   by (metis bin_eval.simps(1) default_stamp default_stamp_def intval_add.simps(3) intval_add.simps(5) intval_add.simps(8) intval_add.simps(9) intval_negate.elims neutral_add unrestricted_32bit_always_valid)
 
@@ -516,19 +510,19 @@ lemma intval_negateadd_equals_sub_left: "bin_eval BinAdd (unary_eval UnaryNeg e)
 lemma intval_negateadd_equals_sub_right: "bin_eval BinAdd x (unary_eval UnaryNeg e) = bin_eval BinSub x e"
   by (cases e; auto; cases x; auto)
 
-optimization AddLeftNegateToSub: "-e + y \<mapsto> y - e"
+optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   apply simp using intval_negateadd_equals_sub_left
    apply (metis BinaryExpr BinaryExprE UnaryExprE)
   unfolding size.simps
   by simp
 
-optimization AddRightNegateToSub: "x + -e \<mapsto> x - e"
+optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
   apply simp using intval_negateadd_equals_sub_right
    apply (metis BinaryExpr BinaryExprE UnaryExprE)
   unfolding size.simps
   by simp
 
-optimization MulEliminator: "((x::i32e) * const(IntVal32 0)) \<mapsto> const(IntVal32 0)"
+optimization MulEliminator: "((x::i32e) * const(IntVal32 0)) \<longmapsto> const(IntVal32 0)"
    apply auto
   using Rings.mult_zero_class.mult_zero_right
   apply (metis (no_types, opaque_lifting) ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet i32e_eval int_and_equal_bits.simps(1) intval_mul.simps(1) intval_sub.simps(1))
@@ -539,7 +533,7 @@ lemma "(x::('a::len) word) * 1 = x"
   
   by simp
 
-optimization MulNeutral: "(x * const(IntVal32 1)) \<mapsto> x"
+optimization MulNeutral: "(x * const(IntVal32 1)) \<longmapsto> x"
    apply auto
   using Groups.comm_monoid_mult_class.mult.comm_neutral
   by (smt (z3) Value.distinct(9) intval_mul.elims neutral_rewrite_helper(1) unrestricted_32bit_always_valid unrestricted_stamp.simps(2))

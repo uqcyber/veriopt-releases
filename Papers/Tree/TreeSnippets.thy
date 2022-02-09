@@ -28,7 +28,7 @@ translations
   "y > x" <= "x < y"
 
 notation (latex)
-  greater ("_ > _")
+  greater ("_ >/ _")
 
 (* lengthen rewrite arrow slightly
 notation (latex)
@@ -194,7 +194,7 @@ snipend -
   unfolding rewrite_preservation.simps rewrite_termination.simps
    apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddCommuteConstantRightObligation\<close>
-  text \<open>@{subgoals[display]}\<close>
+  text \<open>@{subgoals[display,margin=50]}\<close>
   snipend -
 
   using AddShiftConstantRight by auto
@@ -283,9 +283,9 @@ snipbegin \<open>phase-example-3\<close>optimization const_false: "(false ? x : 
 snipbegin \<open>phase-example-4\<close>optimization equal_branches: "(e ? x : x) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((x < y) ? x : y) \<longmapsto> x
-                   when (stamp_under (stamp_expr x) (stamp_expr y) 
-                            \<and> wf_stamp x \<and> wf_stamp y)"snipend -
+snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x
+                   when (stamp_under (stamp_expr u) (stamp_expr v) 
+                            \<and> wf_stamp u \<and> wf_stamp v)"snipend -
   using ConditionalPhase.condition_bounds_x(1)
   by (blast, auto simp: trm_def)
 

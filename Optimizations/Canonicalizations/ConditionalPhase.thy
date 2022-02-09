@@ -41,8 +41,8 @@ definition wff_stamps :: bool where
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
-optimization condition_bounds_x: "((x < y) ? x : y) \<longmapsto> x 
-    when (stamp_under (stamp_expr x) (stamp_expr y) \<and> wf_stamp x \<and> wf_stamp y)"
+optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x 
+    when (stamp_under (stamp_expr u) (stamp_expr v) \<and> wf_stamp u \<and> wf_stamp v)"
    apply unfold_optimization
   using stamp_under_semantics
   using wf_stamp_def

@@ -451,6 +451,7 @@ method metis_node_eq_ternary for node :: "'a \<Rightarrow> 'a \<Rightarrow> 'a \
 
 subsubsection \<open>Lift Data-flow Tree Refinement to Graph Refinement\<close>
 
+
 theorem graph_semantics_preservation:
   assumes a: "e1' \<ge> e2'"
   assumes b: "({n'} \<unlhd> as_set g1) \<subseteq> as_set g2"
@@ -1608,19 +1609,89 @@ lemma only_n_changes:
   qed
   done*)
 
-(*
-lemma ref_add_represents:
-  assumes "g \<turnstile> n \<simeq> e"
-  assumes "n' \<notin> eval_usages g n"
-  assumes "g' = add_node n' (RefNode n, s) g"
-  shows "g' \<turnstile> n' \<unlhd> e"
-  using assms
-  unfolding graph_represents_expression_def
-  apply (induction e arbitrary: n')
-  sorry
-*)
+method ref_represents uses node =
+  (metis IRNode.distinct(2755) RefNode dual_order.refl find_new_kind fresh_node_subset node subset_implies_evals)
 
 (*
+lemma
+  assumes "kind g n = RefNode n'"
+  assumes "g \<turnstile> n \<simeq> e"
+  assumes "n \<noteq> n'"
+  shows "n \<notin> eval_usages g n'"
+  using assms(2,1,3) apply (induction e arbitrary: n; auto) sorry
+
+
+lemma unaffected_rep:
+  assumes "({n} \<unlhd> as_set g) \<subseteq> as_set g'"
+  assumes "g \<turnstile> n' \<simeq> e"
+  assumes "n \<notin> eval_usages g n'"
+  shows "g' \<turnstile> n' \<simeq> e"
+  using assms(2)
+proof -
+  have ne: "n \<noteq> n'"
+    using assms(3)
+    using assms(2) eval_contains_id eval_usages_self by blast
+  show ?thesis 
+    using assms(2) assms ne apply (induction e) using ne 
+                        apply (metis ConstantNode encodes_contains not_excluded_keep_type not_in_g singleton_iff)
+                      apply (metis ParameterNode empty_iff encode_in_ids insertE not_excluded_keep_type)
+    sorry
+qed
+
+lemma ref_add_represents:
+  assumes "g \<turnstile> n \<unlhd> e"
+  assumes "g \<turnstile> n' \<unlhd> e"
+  assumes "g' = add_node n' (RefNode n, s) g"
+  assumes "n' \<notin> eval_usages g n"
+  shows "g' \<turnstile> n' \<unlhd> e" using assms
+  by (metis IRNode.distinct(2755) RefNode add_node_as_set find_new_kind graph_represents_expression_def unaffected_rep)
+(*proof -
+  have as_set: "({n'} \<unlhd> as_set g) \<subseteq> as_set g'"
+    using assms(3)
+    by (simp add: add_node_as_set)
+  have "kind g' n' = RefNode n"
+    using assms(3)
+    using find_new_kind by blast
+  show ?thesis unfolding graph_represents_expression_def 
+  proof -
+    obtain e' where e'def: "(g \<turnstile> n \<simeq> e') \<and> e \<ge> e'"
+      using assms(1) graph_represents_expression_def by blast
+    then obtain e2' where "g' \<turnstile> n \<simeq> e2'"
+      using as_set using unaffected_rep
+      using assms(4) by blast
+    obtain e'' where e''def: "(g \<turnstile> n' \<simeq> e'') \<and> e \<ge> e''"
+      using assms(2) graph_represents_expression_def by blast
+    have "g' \<turnstile> n' \<simeq> e''"
+      using as_set e''def sorry
+    show "\<exists>e'. (g' \<turnstile> n' \<simeq> e') \<and> e \<ge> e'"
+   sorry
+   sorry
+                      (*apply (ref_represents node: rep.ConstantNode)
+                      apply (ref_represents node: rep.ParameterNode)
+                      apply (ref_represents node: rep.ConditionalNode)
+                      apply (ref_represents node: rep.AbsNode)
+                     apply (ref_represents node: rep.NotNode)
+                    apply (ref_represents node: rep.NegateNode)
+                   apply (ref_represents node: rep.LogicNegationNode)
+                  apply (ref_represents node: rep.AddNode)
+                 apply (ref_represents node: rep.MulNode)
+                apply (ref_represents node: rep.SubNode)
+               apply (ref_represents node: rep.AndNode)
+              apply (ref_represents node: rep.OrNode)
+             apply (ref_represents node: rep.XorNode)
+            apply (ref_represents node: rep.LeftShiftNode)
+           apply (ref_represents node: rep.RightShiftNode)
+          apply (ref_represents node: rep.UnsignedRightShiftNode)
+         apply (ref_represents node: rep.IntegerBelowNode)
+        apply (ref_represents node: rep.IntegerEqualsNode)
+       apply (ref_represents node: rep.IntegerLessThanNode)
+      apply (ref_represents node: rep.NarrowNode)
+     apply (ref_represents node: rep.SignExtendNode)
+    apply (ref_represents node: rep.ZeroExtendNode)
+   apply (ref_represents node: rep.LeafNode)
+  by (ref_represents node: rep.RefNode)*)
+*)
+
 theorem constructive_refinement:
   assumes 1: "e\<^sub>1 \<ge> e\<^sub>2"
   assumes "g\<^sub>1 \<turnstile> n \<simeq> e\<^sub>1"
@@ -1638,28 +1709,23 @@ proof -
   have 3: "g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>1"
     using assms(3)
     using assms(2) subset_implies_evals unrep_subset by blast
-  have g2rep: "g\<^sub>2 \<turnstile> n' \<simeq> e\<^sub>2"
-    using assms(3) term_graph_reconstruction by auto
+  then have g2rep1: "g\<^sub>2 \<turnstile> n \<unlhd> e\<^sub>1"
+    using 1 unfolding graph_represents_expression_def
+    by blast
+  have g2rep: "g\<^sub>2 \<turnstile> n' \<unlhd> e\<^sub>1"
+    using assms(3) term_graph_reconstruction
+    using "1" graph_construction by blast
   have 2: "({n} \<unlhd> as_set g\<^sub>2) \<subseteq> as_set g\<^sub>3"
     using assms(5) add_node_as_set by blast
- (* have only_n_changes: "\<forall>n'. n'\<in>ids g\<^sub>2 - {n} \<longrightarrow> (\<forall> e. ((g\<^sub>2 \<turnstile> n' \<simeq> e) \<longrightarrow> (g\<^sub>3 \<turnstile> n' \<simeq> e)))"
-    apply (rule allI) subgoal for n'
-      apply (cases "n' = n") apply blast apply (rule impI)
-      subgoal premises ne
-        apply (subgoal_tac "n' \<in> ids g\<^sub>2") defer using ne apply blast
-        using ne(1) sorry
-      done
-    done*)
-  have n'con: "n' \<in> ids g\<^sub>2 - {n}"
-    using assms(4) encode_in_ids g2rep by blast
   have "kind g\<^sub>3 n = RefNode n'"
     using assms(5) find_new_kind by blast
-  then have g3rep: "(g\<^sub>3 \<turnstile> n' \<unlhd> e\<^sub>2)"
-    using g2rep assms(4) 2 unfolding graph_represents_expression_def sorry
+  have g3rep: "(g\<^sub>3 \<turnstile> n' \<unlhd> e\<^sub>1)"
+    using g2rep1 g2rep assms(4) 2 ref_add_represents g2rep1 sorry
+    (*by (meson \<open>kind g\<^sub>3 n = RefNode n'\<close> assms(5) graph_represents_expression_def rep_ref)*)
   have refkind: "kind g\<^sub>3 n = RefNode n'"
     using assms(5) add_node_lookup
     by (metis IRNode.distinct(2755))
-  then have 4: "g\<^sub>3 \<turnstile> n \<unlhd> e\<^sub>2"
+  then have 4: "g\<^sub>3 \<turnstile> n \<unlhd> e\<^sub>1"
     using assms
     using RefNode g3rep
     by (meson graph_represents_expression_def)

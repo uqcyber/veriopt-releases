@@ -39,9 +39,9 @@ notation (latex)
 
 (* hide type casting *)
 translations
-  "n" <= "CONST Rep_intExp n"
-  "n" <= "CONST Rep_i32e n"
-  "n" <= "CONST Rep_i64e n"
+  "n" <= "CONST Rep_intexp n"
+  "n" <= "CONST Rep_i32exp n"
+  "n" <= "CONST Rep_i64exp n"
 
 
 lemma vminusv: "\<forall>vv v . vv = IntVal32 v \<longrightarrow> v - v = 0"
@@ -69,16 +69,16 @@ phase tmp
   terminating size
 begin
 snipbegin \<open>sub-same-32\<close>
-optimization sub_same_32: "(e::i32e) - e \<longmapsto> const (IntVal32 0)"
+optimization sub_same_32: "(e::i32exp) - e \<longmapsto> const (IntVal32 0)"
 snipend -
   apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
-    rule conjE, simp) apply auto[1] using Rep_i32e evalDet is_IntVal32_def
+    rule conjE, simp) apply auto[1] using Rep_i32exp evalDet is_IntVal32_def
   apply (smt (verit, del_insts) eq_iff_diff_eq_0 evaltree.simps int_constants_valid intval_sub.simps(1) is_int_val.simps(1) mem_Collect_eq)
   unfolding size.simps
   by (metis add_strict_increasing gr_implies_not0 less_one linorder_not_le size_gt_0)
 
 snipbegin \<open>sub-same-64\<close>
-optimization sub_same_64: "(e::i64e) - e \<longmapsto> const (IntVal64 0)"
+optimization sub_same_64: "(e::i64exp) - e \<longmapsto> const (IntVal64 0)"
   snipend -
   apply auto
    apply (metis (no_types, opaque_lifting) ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet i64e_eval int_and_equal_bits.simps(2) intval_sub.simps(2))
@@ -200,7 +200,7 @@ snipend -
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
-optimization AddNeutral: "((e::i32e) + (const (IntVal32 0))) \<longmapsto> e"
+optimization AddNeutral: "((e::i32exp) + (const (IntVal32 0))) \<longmapsto> e"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
@@ -213,7 +213,7 @@ snipend -
   by auto
 
 snipbegin \<open>InverseLeftSub\<close>
-optimization InverseLeftSub: "((e\<^sub>1::intExp) - (e\<^sub>2::intExp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
+optimization InverseLeftSub: "((e\<^sub>1::intexp) - (e\<^sub>2::intexp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
@@ -225,7 +225,7 @@ snipend -
   using neutral_left_add_sub by auto
 
 snipbegin \<open>InverseRightSub\<close>
-optimization InverseRightSub: "(e\<^sub>2::intExp) + ((e\<^sub>1::intExp) - e\<^sub>2) \<longmapsto> e\<^sub>1"
+optimization InverseRightSub: "(e\<^sub>2::intexp) + ((e\<^sub>1::intexp) - e\<^sub>2) \<longmapsto> e\<^sub>1"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps
@@ -413,7 +413,7 @@ text \<open>@{thm[display] term_graph_reconstruction [no_vars]}\<close>
 snipend -
 
 snipbegin \<open>refined-insert\<close>
-text \<open>@{thm[display] refined_insert [no_vars]}\<close>
+text \<open>@{thm[display, margin=40] refined_insert [no_vars]}\<close>
 snipend -
 
 end

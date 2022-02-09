@@ -63,7 +63,7 @@ phase SnipPhase
   terminating size
 begin
 
-optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<mapsto> ConstantExpr (bin_eval op v1 v2)"
+optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2)"
    apply unfold_optimization
    defer apply (cases op; simp)
   unfolding le_expr_def
@@ -87,7 +87,7 @@ optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<mapsto> 
       have xy: "v = bin_eval op x y" using prems x y by simp
       have int: "is_IntVal v" using bin_eval_int prems by auto
       show ?thesis
-        unfolding prems x y xy (* get it in form: ConstantExpr c \<mapsto> c *)
+        unfolding prems x y xy (* get it in form: ConstantExpr c \<longmapsto> c *)
         apply (rule ConstantExpr)
         apply (rule validIntConst)
         using prems x y xy int by auto+
@@ -126,7 +126,7 @@ lemma binadd_commute:
 
 
 (* horrible backward proof - needs improving *)
-optimization AddShiftConstantRight: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
   apply unfold_optimization
    defer using size_non_const apply fastforce
   print_facts
@@ -208,7 +208,7 @@ next
 qed
 
 
-optimization AddShiftConstantRight2: "((const v) + y) \<mapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
   apply unfold_optimization
   unfolding le_expr_def
    apply (auto simp: intval_add_sym)
@@ -232,7 +232,7 @@ lemma is_neutral_0 [simp]:
   using 1 by (induction x; simp)
 
 
-optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e"
+optimization AddNeutral: "(e + (const (IntVal32 0))) \<longmapsto> e"
    apply unfold_optimization
   unfolding le_expr_def apply auto
   unfolding is_neutral_0 apply auto
@@ -241,7 +241,7 @@ optimization AddNeutral: "(e + (const (IntVal32 0))) \<mapsto> e"
 
 ML_val \<open>@{term \<open>x = y\<close>}\<close>
 
-optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<mapsto> e\<^sub>1"
+optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
     apply unfold_optimization unfolding intval.simps
 (* NOTE: this unfolds to three goals, but the first one assumes e1 e2 are values?
  1. intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 \<noteq> UndefVal \<and>
@@ -298,6 +298,7 @@ lemma just_goal2:
   thm allE2[of _ xa ya]
   using 1 apply (rule allE2[of _ xa ya])
   using 2 by (metis evalDet evaltree_not_undef) 
+  done
   
 (* using unfold_bin2:
   unfolding le_expr_def unfold_bin2 
@@ -305,12 +306,12 @@ lemma just_goal2:
   by (metis 1 evalDet evaltree_not_undef) 
 *)
 
-optimization NeutralRightSub[intval]: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<mapsto> e\<^sub>1"
+optimization NeutralRightSub[intval]: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
   apply unfold_optimization
   using NeutralLeftSub(1) intval_add_sym apply auto[1]
   sorry
 
-optimization AddToSub: "-e + y \<mapsto> y - e"
+optimization AddToSub: "-e + y \<longmapsto> y - e"
   apply unfold_optimization
   sorry
 

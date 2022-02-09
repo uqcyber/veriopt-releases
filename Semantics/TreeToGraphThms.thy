@@ -1278,7 +1278,7 @@ lemma fresh_node_subset:
   by (smt (verit, del_insts) Collect_mono_iff Diff_idemp Diff_insert_absorb add_changed as_set_def disjoint_change unchanged.simps)
 
 lemma unrep_subset:
-  assumes "(g \<triangleleft> e \<leadsto> (g', n))"
+  assumes "(g \<oplus> e \<leadsto> (g', n))"
   shows "as_set g \<subseteq> as_set g'"
   using assms proof (induction g e "(g', n)" arbitrary: g' n)
   case (ConstantNodeSame g c n)
@@ -1334,20 +1334,21 @@ lemma found_node_preserves_other_nodes:
   by blast
 
 lemma unrep_ids_subset[simp]:
-  assumes "g \<triangleleft> e \<leadsto> (g', n)"
+  assumes "g \<oplus> e \<leadsto> (g', n)"
   shows "ids g \<subseteq> ids g'"
   using assms unrep_subset
   by (meson graph_refinement_def subset_refines)
 
 lemma unrep_unchanged:
-  assumes "g \<triangleleft> e \<leadsto> (g', n)"
+  assumes "g \<oplus> e \<leadsto> (g', n)"
   shows "\<forall> n \<in> ids g . \<forall> e. (g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
   using assms unrep_subset fresh_node_preserves_other_nodes
   by (meson subset_implies_evals)
 
 theorem term_graph_reconstruction:
-  "g \<triangleleft> e \<leadsto> (g', n) \<Longrightarrow> g' \<turnstile> n \<simeq> e"
-  subgoal premises e using e
+  "g \<oplus> e \<leadsto> (g', n) \<Longrightarrow> (g' \<turnstile> n \<simeq> e) \<and> as_set g \<subseteq> as_set g'"
+  subgoal premises e apply (rule conjI) defer
+    using e unrep_subset apply blast using e
   proof (induction g e "(g', n)" arbitrary: g' n)
     case (ConstantNodeSame g' c n)
     then have "kind g' n = ConstantNode c"
@@ -1493,7 +1494,7 @@ lemma ref_refinement:
   by (meson equal_refines graph_represents_expression_def)
 
 lemma unrep_refines:
-  assumes "g \<triangleleft> e \<leadsto> (g', n)"
+  assumes "g \<oplus> e \<leadsto> (g', n)"
   shows "graph_refinement g g'"
   using assms
   using graph_refinement_def subset_refines unrep_subset by blast
@@ -1512,7 +1513,60 @@ lemma add_node_as_set:
   using add_changed
   by (smt (z3) case_prodE changeonly.simps mem_Collect_eq prod.sel(1) subsetI)
 
+
+theorem refined_insert:
+  assumes "e\<^sub>1 \<ge> e\<^sub>2"
+  assumes "g\<^sub>1 \<oplus> e\<^sub>2 \<leadsto> (g\<^sub>2, n')"
+  shows "(g\<^sub>2 \<turnstile> n' \<unlhd> e\<^sub>1) \<and> graph_refinement g\<^sub>1 g\<^sub>2"
+  using assms
+  using graph_construction term_graph_reconstruction by blast
+
+lemma ids_finite: "finite (ids g)"
+  using Rep_IRGraph ids.rep_eq by simp
+
+lemma unwrap_sorted: "set (sorted_list_of_set (ids g)) = ids g"
+  using Rep_IRGraph set_sorted_list_of_set ids_finite
+  by blast
+
+lemma find_none:
+  assumes "find_node_and_stamp g (k, s) = None"
+  shows "\<forall> n \<in> ids g. kind g n \<noteq> k \<or> stamp g n \<noteq> s"
+proof -
+  have "(\<nexists>n. n \<in> ids g \<and> (kind g n = k \<and> stamp g n = s))"
+    using assms unfolding find_node_and_stamp.simps using find_None_iff unwrap_sorted
+    by (metis (mono_tags, lifting))
+  then show ?thesis
+    by blast
+qed
+
+
 (*
+lemma
+  assumes "maximal_sharing g\<^sub>1"
+  assumes "e\<^sub>1 \<ge> e\<^sub>2"
+  assumes "g\<^sub>1 \<oplus> e\<^sub>2 \<leadsto> (g\<^sub>2, n')"
+  shows "maximal_sharing g\<^sub>2"
+  using assms(3,1)
+  apply (induction g\<^sub>1 e\<^sub>2 "(g\<^sub>2, n')" arbitrary: g\<^sub>2 n') 
+  apply blast using find_none sorry
+*)
+
+
+(*
+lemma
+  assumes "maximal_sharing g"
+  assumes "g \<oplus> e \<leadsto> (g', n)"
+  shows "\<forall>n' . n' \<in> ids g' - ids g \<longrightarrow> 
+         (\<forall>e . (g' \<turnstile> n' \<simeq> e) \<longrightarrow> 
+          \<not>(\<exists>n'' . n'' \<in> true_ids g' \<and> n'' = n' \<and> (g' \<turnstile> n'' \<simeq> e)))"
+  using assms(2)
+  apply (induction g e "(g', n)" arbitrary: g' n) 
+  apply blast sorry
+
+lemma
+  "maximal_sharing g \<Longrightarrow> g \<oplus> e \<leadsto> (g', n) \<Longrightarrow> maximal_sharing g'"
+  sorry
+
 lemma only_n_changes:
   assumes "({n} \<unlhd> as_set g) \<subseteq> as_set g'"
   shows "\<forall>n'. n' \<in> ids g - {n} \<longrightarrow> (\<forall>e. (g \<turnstile> n' \<simeq> e) \<longrightarrow> (g' \<turnstile> n' \<simeq> e))"

@@ -44,14 +44,21 @@ translations
   "n" <= "CONST Rep_i64e n"
 
 
-lemma vminusv: "\<forall>vv v . vv = IntVal64 v \<longrightarrow> v - v = 0"
+lemma vminusv: "\<forall>vv v . vv = IntVal32 v \<longrightarrow> v - v = 0"
   by simp
 thm_oracles vminusv
 
+lemma vminusv2: "\<forall> v::int32 . v - v = 0"
+  by simp
+
 lemma redundant_sub:
-  "\<forall>vv\<^sub>1 vv\<^sub>2 v\<^sub>1 v\<^sub>2 . vv\<^sub>1 = IntVal64 v\<^sub>1 \<and> vv\<^sub>2 = IntVal64 v\<^sub>2 \<longrightarrow> v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
+  "\<forall>vv\<^sub>1 vv\<^sub>2 v\<^sub>1 v\<^sub>2 . vv\<^sub>1 = IntVal32 v\<^sub>1 \<and> vv\<^sub>2 = IntVal32 v\<^sub>2 \<longrightarrow> v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
   by simp
 thm_oracles redundant_sub
+
+lemma redundant_sub2:
+  "\<forall> (v\<^sub>1::int32) (v\<^sub>2::int32) . v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
+  by simp
 
 snipbegin \<open>val-eq\<close>
 text "@{thm vminusv}"
@@ -403,6 +410,10 @@ thm_oracles graph_construction
 
 snipbegin \<open>term-graph-reconstruction\<close>
 text \<open>@{thm[display] term_graph_reconstruction [no_vars]}\<close>
+snipend -
+
+snipbegin \<open>refined-insert\<close>
+text \<open>@{thm[display] refined_insert [no_vars]}\<close>
 snipend -
 
 end

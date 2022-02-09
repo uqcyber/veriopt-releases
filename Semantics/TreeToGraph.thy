@@ -327,81 +327,81 @@ value "get_fresh_id (add_node 6 (ParameterNode 2, default_stamp) eg2_sq)"
    This means that we can try to re-use existing nodes by finding node IDs bottom-up.
 *)
 inductive
-  unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<triangleleft> _ \<leadsto> _" 55)
+  unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<oplus> _ \<leadsto> _" 55)
    where
 
   ConstantNodeSame:
   "\<lbrakk>find_node_and_stamp g (ConstantNode c, constantAsStamp c) = Some n\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ConstantExpr c) \<leadsto> (g, n)" |
+    \<Longrightarrow> g \<oplus> (ConstantExpr c) \<leadsto> (g, n)" |
 
   ConstantNodeNew:
   "\<lbrakk>find_node_and_stamp g (ConstantNode c, constantAsStamp c) = None;
     n = get_fresh_id g;
     g' = add_node n (ConstantNode c, constantAsStamp c) g \<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ConstantExpr c) \<leadsto> (g', n)" |
+    \<Longrightarrow> g \<oplus> (ConstantExpr c) \<leadsto> (g', n)" |
 
   ParameterNodeSame:
   "\<lbrakk>find_node_and_stamp g (ParameterNode i, s) = Some n\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ParameterExpr i s) \<leadsto> (g, n)" |
+    \<Longrightarrow> g \<oplus> (ParameterExpr i s) \<leadsto> (g, n)" |
 
   ParameterNodeNew:
   "\<lbrakk>find_node_and_stamp g (ParameterNode i, s) = None;
     n = get_fresh_id g;
     g' = add_node n (ParameterNode i, s) g\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ParameterExpr i s) \<leadsto> (g', n)" |
+    \<Longrightarrow> g \<oplus> (ParameterExpr i s) \<leadsto> (g', n)" |
 
   ConditionalNodeSame:
-  "\<lbrakk>g \<triangleleft> ce \<leadsto> (g2, c);
-    g2 \<triangleleft> te \<leadsto> (g3, t);
-    g3 \<triangleleft> fe \<leadsto> (g4, f);
+  "\<lbrakk>g \<oplus> ce \<leadsto> (g2, c);
+    g2 \<oplus> te \<leadsto> (g3, t);
+    g3 \<oplus> fe \<leadsto> (g4, f);
     s' = meet (stamp g4 t) (stamp g4 f);
     find_node_and_stamp g4 (ConditionalNode c t f, s') = Some n\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ConditionalExpr ce te fe) \<leadsto> (g4, n)" |
+    \<Longrightarrow> g \<oplus> (ConditionalExpr ce te fe) \<leadsto> (g4, n)" |
 
   ConditionalNodeNew:
-  "\<lbrakk>g \<triangleleft> ce \<leadsto> (g2, c);
-    g2 \<triangleleft> te \<leadsto> (g3, t);
-    g3 \<triangleleft> fe \<leadsto> (g4, f);
+  "\<lbrakk>g \<oplus> ce \<leadsto> (g2, c);
+    g2 \<oplus> te \<leadsto> (g3, t);
+    g3 \<oplus> fe \<leadsto> (g4, f);
     s' = meet (stamp g4 t) (stamp g4 f);
     find_node_and_stamp g4 (ConditionalNode c t f, s') = None;
     n = get_fresh_id g4;
     g' = add_node n (ConditionalNode c t f, s') g4\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (ConditionalExpr ce te fe) \<leadsto> (g', n)" |
+    \<Longrightarrow> g \<oplus> (ConditionalExpr ce te fe) \<leadsto> (g', n)" |
 
   UnaryNodeSame:
-  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
+  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
     s' = stamp_unary op (stamp g2 x);
     find_node_and_stamp g2 (unary_node op x, s') = Some n\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (UnaryExpr op xe) \<leadsto> (g2, n)" |
+    \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g2, n)" |
 
   UnaryNodeNew:
-  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
+  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
     s' = stamp_unary op (stamp g2 x);
     find_node_and_stamp g2 (unary_node op x, s') = None;
     n = get_fresh_id g2;
     g' = add_node n (unary_node op x, s') g2\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (UnaryExpr op xe) \<leadsto> (g', n)" |
+    \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g', n)" |
 
   BinaryNodeSame:
-  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g2 \<triangleleft> ye \<leadsto> (g3, y);
+  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
+    g2 \<oplus> ye \<leadsto> (g3, y);
     s' = stamp_binary op (stamp g3 x) (stamp g3 y);
     find_node_and_stamp g3 (bin_node op x y, s') = Some n\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g3, n)" |
+    \<Longrightarrow> g \<oplus> (BinaryExpr op xe ye) \<leadsto> (g3, n)" |
 
   BinaryNodeNew:
-  "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
-    g2 \<triangleleft> ye \<leadsto> (g3, y);
+  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
+    g2 \<oplus> ye \<leadsto> (g3, y);
     s' = stamp_binary op (stamp g3 x) (stamp g3 y);
     find_node_and_stamp g3 (bin_node op x y, s') = None;
     n = get_fresh_id g3;
     g' = add_node n (bin_node op x y, s') g3\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (BinaryExpr op xe ye) \<leadsto> (g', n)" |
+    \<Longrightarrow> g \<oplus> (BinaryExpr op xe ye) \<leadsto> (g', n)" |
 
   AllLeafNodes:
   "\<lbrakk>stamp g n = s;
     is_preevaluated (kind g n)\<rbrakk>
-    \<Longrightarrow> g \<triangleleft> (LeafExpr n s) \<leadsto> (g, n)"
+    \<Longrightarrow> g \<oplus> (LeafExpr n s) \<leadsto> (g, n)"
 
 (*  UnrepNil:
   "g \<triangleleft>\<^sub>L [] \<leadsto> (g, [])" |
@@ -450,7 +450,7 @@ qed
 end
 *)
 
-values "{(n, g) . (eg2_sq \<triangleleft> sq_param0 \<leadsto> (g, n))}"
+values "{(n, g) . (eg2_sq \<oplus> sq_param0 \<leadsto> (g, n))}"
 
 
 subsection \<open>Lift Data-flow Tree Semantics\<close>
@@ -481,6 +481,6 @@ subsection \<open>Maximal Sharing\<close>
 
 definition maximal_sharing:
   "maximal_sharing g = (\<forall> n\<^sub>1 n\<^sub>2 . n\<^sub>1 \<in> true_ids g \<and> n\<^sub>2 \<in> true_ids g \<longrightarrow> 
-      (\<forall> e. (g \<turnstile> n\<^sub>1 \<simeq> e) \<and> (g \<turnstile> n\<^sub>2 \<simeq> e) \<longrightarrow> n\<^sub>1 = n\<^sub>2))"
+      (\<forall> e. (g \<turnstile> n\<^sub>1 \<simeq> e) \<and> (g \<turnstile> n\<^sub>2 \<simeq> e) \<and> (stamp g n\<^sub>1 = stamp g n\<^sub>2) \<longrightarrow> n\<^sub>1 = n\<^sub>2))"
 
 end

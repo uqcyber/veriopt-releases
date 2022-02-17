@@ -190,13 +190,11 @@ lemma unfold_bin2:
            (val = bin_eval op x y) \<and>
            (val \<noteq> UndefVal)
         ))" (is "?L = ?R")  (* (\<exists> x y. (?R1 \<and> ?R2 \<and> ?R3))" *)
-  apply (unfold iff_conv_conj_imp; rule conjI; rule impI)
-proof (goal_cases)
-  case 1
+
+proof (unfold iff_conv_conj_imp; rule conjI; rule impI; goal_cases)
   assume 3: ?L
   show ?R by (rule evaltree.cases[OF 3]; blast+)
 next
-  case 2
   assume ?R
   then obtain x y where "[m,p] \<turnstile> xe \<mapsto> x"
         and "[m,p] \<turnstile> ye \<mapsto> y"
@@ -280,6 +278,7 @@ optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<lo
     done
   using size_non_const by fastforce
 
+
 (* a little helper lemma for using universal quantified assumptions *)
 lemma allE2: "(\<forall>x y. P x y) \<Longrightarrow> (P a b \<Longrightarrow> R) \<Longrightarrow> R"
   by simp
@@ -309,7 +308,49 @@ lemma just_goal2:
 optimization NeutralRightSub[intval]: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
   apply unfold_optimization
   using NeutralLeftSub(1) intval_add_sym apply auto[1]
-  sorry
+  oops
+
+(* these are the three proof obligations it should generate? *)
+lemma NeutralRightSub_1: "intval_add a (intval_sub b a) \<noteq> UndefVal \<and>
+    b \<noteq> UndefVal \<longrightarrow>
+    intval_add a (intval_sub b a) = b" (is "?U1 \<and> ?U2 \<longrightarrow> ?C")
+proof 
+  assume "?U1 \<and> ?U2"
+  (* split into 32 and 64 bit cases: *)
+  then have i: "(is_IntVal32 a \<and> is_IntVal32 b) \<or> (is_IntVal64 a \<and> is_IntVal64 b)" (is "?I32 \<or> ?I64")
+    by (metis Value.exhaust_disc intval_add.simps(10) intval_add.simps(15) intval_add.simps(16) intval_add_sym intval_sub.simps(12) intval_sub.simps(5) intval_sub.simps(8) intval_sub.simps(9) is_IntVal32_def is_IntVal64_def is_ObjRef_def is_ObjStr_def)
+  then show ?C
+  proof (rule disjE)
+    assume i32: ?I32
+    show ?C using i32 add.commute is_IntVal32_def by auto
+  next
+    assume i64: ?I64
+    show ?C using i64 add.commute is_IntVal64_def by auto
+  qed
+qed
+
+lemma NeutralRightSub_2:
+  (* does not use the assms because uses NeutralRightSub_1 instead *)
+  "(( intval_add a (intval_sub b a) \<noteq> UndefVal \<and> b \<noteq> UndefVal
+      \<longrightarrow> intval_add a (intval_sub b a) = b)
+    \<Longrightarrow> BinaryExpr BinAdd e\<^sub>2 (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) \<ge> e\<^sub>1)"
+  unfolding le_expr_def unfold_bin2
+  subgoal premises 1
+    apply (rule allI)+
+    subgoal for m p v
+      apply auto
+      subgoal premises 2 for a b c
+        thm evalDet[OF 2(1) 2(5)] (* show that a and c are the same *)
+        unfolding evalDet[OF 2(1) 2(5)]
+        using "2"(2) "2"(4) NeutralRightSub_1 \<open>a = c\<close> by fastforce 
+      done
+    done
+  done
+
+lemma NeutralRightSub_3:
+  "(Common.size e\<^sub>1 < Common.size (BinaryExpr BinAdd e\<^sub>2 (BinaryExpr BinSub e\<^sub>1 e\<^sub>2)))"
+  using size_non_const by fastforce
+
 
 optimization AddToSub: "-e + y \<longmapsto> y - e"
   apply unfold_optimization

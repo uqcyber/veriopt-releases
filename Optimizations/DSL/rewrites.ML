@@ -76,11 +76,11 @@ fun rewrite_cmd ((bind, options), opt) ctxt =
     val intval = case options of [[token]] => Token.content_of token = "intval" | _ => false;
     val name = Binding.name_of bind;
     
-    val term = IRExprMarkup.markup_expr ctxt [(Syntax.parse_term ctxt opt)];
+    val term = IRExprMarkup.markup_expr [] ctxt [(Syntax.parse_term ctxt opt)];
     val rewrite = of_term name term;
 
     val intval_preservation = (if intval 
-      then intval_of ctxt (IntValMarkup.markup_expr ctxt [(Syntax.parse_term ctxt opt)])
+      then intval_of ctxt (IntValMarkup.markup_expr [term] ctxt [(Syntax.parse_term ctxt opt)])
       else @{term True})
     val extra = (if intval then [(intval_preservation, [intval_preservation])] else [])
 

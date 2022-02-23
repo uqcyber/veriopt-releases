@@ -66,12 +66,12 @@ structure IntValMarkup = DSL_Markup(IntValTranslator);
 
 snipbegin \<open>ir expression translation\<close>
 syntax "_expandExpr" :: "term \<Rightarrow> term" ("exp[_]")
-parse_translation \<open> [( @{syntax_const "_expandExpr"} , IRExprMarkup.markup_expr)] \<close>
+parse_translation \<open> [( @{syntax_const "_expandExpr"} , IRExprMarkup.markup_expr [])] \<close>
 snipend -
 
 snipbegin \<open>value expression translation\<close>
 syntax "_expandIntVal" :: "term \<Rightarrow> term" ("val[_]")
-parse_translation \<open> [( @{syntax_const "_expandIntVal"} , IntValMarkup.markup_expr)] \<close>
+parse_translation \<open> [( @{syntax_const "_expandIntVal"} , IntValMarkup.markup_expr [])] \<close>
 snipend -
 
 snipbegin \<open>ir expression example\<close>

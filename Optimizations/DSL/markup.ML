@@ -36,10 +36,10 @@ sig
   val const_expr: Proof.context -> term list -> term
   val equals_expr: Proof.context -> term list -> term
 
-  val markup_expr: Proof.context -> term list -> term
+  val markup_expr: term list -> Proof.context -> term list -> term
 
-  val rewrite: Proof.context -> term list -> term
-  val conditional_rewrite: Proof.context -> term list -> term
+  val rewrite: term list -> Proof.context -> term list -> term
+  val conditional_rewrite: term list -> Proof.context -> term list -> term
 end;
 
 functor DSL_Markup(Translator: DSL_TRANSLATION): DSL_MARKUP =
@@ -93,44 +93,49 @@ fun markup_constant (str, typ) =
     | ("Values.sshiftr", _) => Translator.markup DSL_Tokens.UnsignedRightShift
     | _ => Const (str, typ)
 
-fun markup_free (str, typ) =
+fun find_free (taken, goal) =
+  (singleton
+    (Name.variant_list 
+      (fold Term.add_free_names taken [])) goal)
+
+fun markup_free taken (str, typ) =
   case (str, typ) of
     ("abs", _) => Translator.markup DSL_Tokens.Abs
-    | (var, typ) => Free (var, typ)
+    | (var, typ) => Free (find_free (taken, var), typ)
 
-fun markup_expr ctxt [trm] =
+fun markup_expr taken ctxt [trm] =
   let
     val res = (case trm of
       Const (str, typ) => markup_constant (str, typ)
     | e as ((Const ("\<^const>IRTreeEval.IRExpr.ConstantExpr",_)) $ _) => e (* ignore within a constant *)
     | (e as (Const ("\<^const>Markup.Rewrite.Conditional",_))) $ lhs $ rhs $ cond => 
-      e $ markup_expr ctxt [lhs] $ markup_expr ctxt [rhs] $ cond
+      e $ markup_expr taken ctxt [lhs] $ markup_expr taken ctxt [rhs] $ cond
     | (e as (Const ("Markup.Rewrite.Conditional",_))) $ lhs $ rhs $ cond => 
-      e $ markup_expr ctxt [lhs] $ markup_expr ctxt [rhs] $ cond
-    | (x $ y) => (markup_expr ctxt [x] $ markup_expr ctxt [y])
-    | Free (str, typ) => markup_free (str, typ)
-    | Abs (str, typ, trm) => Abs (str, typ, markup_expr ctxt [trm])
+      e $ markup_expr taken ctxt [lhs] $ markup_expr taken ctxt [rhs] $ cond
+    | (x $ y) => (markup_expr taken ctxt [x] $ markup_expr taken ctxt [y])
+    | Free (str, typ) => markup_free taken (str, typ)
+    | Abs (str, typ, trm) => Abs (str, typ, markup_expr taken ctxt [trm])
     | _ => trm);
   in
     res
   end
-  | markup_expr _ ts = raise TERM ("markup_expr", ts)
+  | markup_expr _ _ ts = raise TERM ("markup_expr", ts)
 
 
 (* Rewrite syntax *)
-fun rewrite ctxt [pre, post] =
+fun rewrite taken ctxt [pre, post] =
   Const ("Transform", @{typ "'a => 'a \<Rightarrow> 'a Rewrite"})
-    $ markup_expr ctxt [pre]
-    $ markup_expr ctxt [post]
+    $ markup_expr taken ctxt [pre]
+    $ markup_expr taken ctxt [post]
 
-  | rewrite _ ts = raise TERM ("rewrite", ts)
+  | rewrite _ _ ts = raise TERM ("rewrite", ts)
 
-fun conditional_rewrite ctxt [pre, post, cond] =
+fun conditional_rewrite taken ctxt [pre, post, cond] =
   Const ("Conditional", @{typ "'a \<Rightarrow> 'a \<Rightarrow> bool \<Rightarrow> 'a Rewrite"})
-    $ markup_expr ctxt [pre]
-    $ markup_expr ctxt [post]
+    $ markup_expr taken ctxt [pre]
+    $ markup_expr taken ctxt [post]
     $ cond
 
-  | conditional_rewrite _ ts = raise TERM ("conditional_rewrite", ts)
+  | conditional_rewrite _ _ ts = raise TERM ("conditional_rewrite", ts)
 
 end

@@ -170,6 +170,8 @@ next
     using ok by (rule BinaryExpr)
 qed
 
+(* TODO: unfold_unary *)
+
 lemma unfold_const:
   shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (valid_value v (constantAsStamp c) \<and> c = v)"
   by blast 
@@ -190,8 +192,7 @@ lemma unfold_bin2:
            (val = bin_eval op x y) \<and>
            (val \<noteq> UndefVal)
         ))" (is "?L = ?R")  (* (\<exists> x y. (?R1 \<and> ?R2 \<and> ?R3))" *)
-
-proof (unfold iff_conv_conj_imp; rule conjI; rule impI; goal_cases)
+proof (intro iffI)
   assume 3: ?L
   show ?R by (rule evaltree.cases[OF 3]; blast+)
 next
@@ -204,6 +205,15 @@ next
   then show ?L
      by (rule BinaryExpr)
 qed
+
+lemma unfold_unary2:
+  shows "([m,p] \<turnstile> UnaryExpr op xe \<mapsto> val)
+         = (\<exists> x.
+             (([m,p] \<turnstile> xe \<mapsto> x) \<and>
+              (val = unary_eval op x) \<and>
+              (val \<noteq> UndefVal)
+             ))" (is "?L = ?R")
+  by auto
 
 
 optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
@@ -241,13 +251,14 @@ ML_val \<open>@{term \<open>x = y\<close>}\<close>
 
 optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
     apply unfold_optimization unfolding intval.simps
-(* NOTE: this unfolds to three goals, but the first one assumes e1 e2 are values?
- 1. intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 \<noteq> UndefVal \<and>
-    e\<^sub>1 \<noteq> UndefVal \<longrightarrow>
-    intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 = e\<^sub>1
- 2. intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 \<noteq> UndefVal \<and>
-    e\<^sub>1 \<noteq> UndefVal \<longrightarrow>
-    intval_add (intval_sub e\<^sub>1 e\<^sub>2) e\<^sub>2 = e\<^sub>1 \<Longrightarrow>
+(* NOTE: this unfolds to three goals, but the first one is not easy to instantiate.
+         Maybe it needs to be universally quantified like 'just_goal2' below.
+ 1. intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' \<noteq> UndefVal \<and>
+    e\<^sub>1' \<noteq> UndefVal \<longrightarrow>
+    intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' = e\<^sub>1'
+ 2. intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' \<noteq> UndefVal \<and>
+    e\<^sub>1' \<noteq> UndefVal \<longrightarrow>
+    intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' = e\<^sub>1' \<Longrightarrow>
     BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2 \<sqsupseteq> e\<^sub>1
  3. Common.size e\<^sub>1
     < Common.size
@@ -255,9 +266,19 @@ optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<lo
 *)
    using intval_add.simps intval_sub.simps
     apply (metis (no_types, lifting) diff_add_cancel val_to_bool.cases)
-  unfolding le_expr_def unfold_bin2 unfold_const unfold_valid32
+  unfolding le_expr_def unfold_bin2 unfold_const unfold_valid32 bin_eval.simps
+(*  subgoal premises
+   apply (auto)
+    subgoal premises p2 for m p x y ya
+    print_facts
+    thm evalDet[of m p e\<^sub>2 ya y]
+    (* use evalDet to deduce ya=y and rewrite ya to y *)
+    using p2 apply (simp add: evalDet[of m p e\<^sub>2 ya y])
+    apply (subgoal_tac "intval_add (intval_sub x y) y = x")
+    apply simp
+*)
+
   subgoal premises p1
-    unfolding bin_eval.simps
     apply ((rule allI)+; rule impI)
     subgoal premises p2 for m p v
       print_facts
@@ -269,6 +290,7 @@ optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<lo
         by (metis evalDet p2 evaltree_not_undef)
       then have "v = intval_add (intval_sub xa y) y" by auto
       then have "v = xa"
+        print_facts
         using p1 p2 apply simp
         by (smt (z3) Value.distinct(9) Value.inject(1) Value.inject(2) \<open>v \<noteq> UndefVal\<close> x \<open>x \<noteq> UndefVal\<close> diff_add_cancel intval_add.elims intval_sub.elims) 
       then show "[m,p] \<turnstile> e\<^sub>1 \<mapsto> v"
@@ -287,7 +309,7 @@ lemma just_goal2:
   assumes 1: "(\<forall> a b. (intval_add (intval_sub a b) b \<noteq> UndefVal \<and> a \<noteq> UndefVal \<longrightarrow>
     intval_add (intval_sub a b) b = a))"
   shows "(BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2) \<ge> e\<^sub>1"
-(* without unfold_bin2: but can this be done better?  *)
+(* without unfold_bin2: but can this be done better?  
   unfolding le_expr_def 
   apply (auto)
   subgoal premises 2 for m p y xa ya
@@ -298,12 +320,11 @@ lemma just_goal2:
   using 1 apply (rule allE2[of _ xa ya])
   using 2 by (metis evalDet evaltree_not_undef) 
   done
-  
-(* using unfold_bin2:
-  unfolding le_expr_def unfold_bin2 
-  apply simp
-  by (metis 1 evalDet evaltree_not_undef) 
 *)
+(*  using unfold_bin2: *)
+  unfolding le_expr_def unfold_bin2 bin_eval.simps
+  by (metis 1 evalDet evaltree_not_undef)
+
 
 optimization NeutralRightSub[intval]: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
   apply unfold_optimization
@@ -352,13 +373,64 @@ lemma NeutralRightSub_3:
   using size_non_const by fastforce
 
 
-optimization AddToSub: "-e + y \<longmapsto> y - e"
-  apply unfold_optimization
+lemma binEvalBoth32:
+  assumes 1: "is_IntVal32 x"
+  shows "bin_eval op x y \<noteq> UndefVal \<longrightarrow> is_IntVal32 y"
+  apply (induction op)
+  unfolding bin_eval.simps
+  using 1 is_IntVal32_def
+  apply simp
+  (*
+apply (smt (verit) intval_add.simps(10) intval_add.simps(12) intval_add.simps(15) intval_add.simps(16) is_IntVal32_def val_to_bool.elims(1))
+*)
   sorry
 
-print_context
-end
+
+(* Should we prove this at the bin_eval level or the lower level: intval_*? *)
+lemma AddToSubHelper:
+  assumes 1: "unary_eval UnaryNeg e \<noteq> UndefVal" (is "?E \<noteq> UndefVal")
+  assumes 2: "bin_eval BinAdd (unary_eval UnaryNeg e) y \<noteq> UndefVal" (is "?Y \<noteq> UndefVal")
+  shows "bin_eval BinAdd (unary_eval UnaryNeg e) y = bin_eval BinSub y e"
+proof -
+  have "is_IntVal ?E" by (rule unary_eval_int[OF 1])
+  then have 3: "is_IntVal32 ?E \<or> is_IntVal64 ?E"
+    unfolding is_IntVal_def by simp
+  have "is_IntVal ?Y" by (rule bin_eval_int[OF 2])
+  then have 4: "is_IntVal32 ?Y \<or> is_IntVal64 ?Y" unfolding is_IntVal_def by simp
+  show ?thesis 
+  (* try splitting into 32 and 64 bit cases? *)
+  proof (rule disjE[OF 3])
+    assume "is_IntVal32 ?E"
+    then have "is_IntVal32 y"
+      using 2 binEvalBoth32 by blast
+    then show ?thesis
+      unfolding bin_eval.simps unary_eval.simps
+      (* TODO: unfold intval_add/sub/negate? *)
+      sorry
+  next
+    show ?thesis
+      sorry
+  qed
+qed
+
+(* The LowLevel version is much easier to prove! And equally easy to use. *)
+lemma AddToSubHelperLowLevel:
+  shows "intval_add (intval_negate e) y = intval_sub y e"
+  by (induction y; induction e; auto)
+
+optimization AddToSub: "-e + y \<longmapsto> y - e"
+   apply unfold_optimization
+  unfolding le_expr_def unfold_bin2 unfold_unary2 bin_eval.simps unary_eval.simps
+  using AddToSubHelperLowLevel by auto
+  end
 
 print_phases
 
+(* Questions:
+ Why doesn't subgoal handle \forall and \<longrightarrow> ?
+ Then this pattern might become just a single subgoal?
+  subgoal premises p1
+    apply ((rule allI)+; rule impI)
+    subgoal premises p2 for m p v
+*)
 end

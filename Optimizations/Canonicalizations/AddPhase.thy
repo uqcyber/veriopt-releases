@@ -350,6 +350,7 @@ proof
   qed
 qed
 
+(* An experiment to see if the generated assumption is useful? *)
 lemma NeutralRightSub_2:
   (* does not use the assms because uses NeutralRightSub_1 instead *)
   "(( intval_add a (intval_sub b a) \<noteq> UndefVal \<and> b \<noteq> UndefVal
@@ -373,47 +374,9 @@ lemma NeutralRightSub_3:
   using size_non_const by fastforce
 
 
-lemma binEvalBoth32:
-  assumes 1: "is_IntVal32 x"
-  shows "bin_eval op x y \<noteq> UndefVal \<longrightarrow> is_IntVal32 y"
-  apply (induction op)
-  unfolding bin_eval.simps
-  using 1 is_IntVal32_def
-  apply simp
-  (*
-apply (smt (verit) intval_add.simps(10) intval_add.simps(12) intval_add.simps(15) intval_add.simps(16) is_IntVal32_def val_to_bool.elims(1))
-*)
-  sorry
-
-
-(* Should we prove this at the bin_eval level or the lower level: intval_*? *)
-lemma AddToSubHelper:
-  assumes 1: "unary_eval UnaryNeg e \<noteq> UndefVal" (is "?E \<noteq> UndefVal")
-  assumes 2: "bin_eval BinAdd (unary_eval UnaryNeg e) y \<noteq> UndefVal" (is "?Y \<noteq> UndefVal")
-  shows "bin_eval BinAdd (unary_eval UnaryNeg e) y = bin_eval BinSub y e"
-proof -
-  have "is_IntVal ?E" by (rule unary_eval_int[OF 1])
-  then have 3: "is_IntVal32 ?E \<or> is_IntVal64 ?E"
-    unfolding is_IntVal_def by simp
-  have "is_IntVal ?Y" by (rule bin_eval_int[OF 2])
-  then have 4: "is_IntVal32 ?Y \<or> is_IntVal64 ?Y" unfolding is_IntVal_def by simp
-  show ?thesis 
-  (* try splitting into 32 and 64 bit cases? *)
-  proof (rule disjE[OF 3])
-    assume "is_IntVal32 ?E"
-    then have "is_IntVal32 y"
-      using 2 binEvalBoth32 by blast
-    then show ?thesis
-      unfolding bin_eval.simps unary_eval.simps
-      (* TODO: unfold intval_add/sub/negate? *)
-      sorry
-  next
-    show ?thesis
-      sorry
-  qed
-qed
-
-(* The LowLevel version is much easier to prove! And equally easy to use. *)
+(* The LowLevel version, intval_*, of this helper lemma is much easier
+   to prove than the bin_eval level.  And equally easy to use in AddToSub.
+ *)
 lemma AddToSubHelperLowLevel:
   shows "intval_add (intval_negate e) y = intval_sub y e"
   by (induction y; induction e; auto)

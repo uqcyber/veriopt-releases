@@ -374,6 +374,41 @@ lemma NeutralRightSub_3:
   using size_non_const by fastforce
 
 
+
+(* Demonstration of our FOUR levels of expression rewrites:
+   =======================================================
+  level 1 (Java-like): "-e + y \<longmapsto> y - e"
+  level 2 (expr trees): "rewrite_preservation
+     (BinaryExpr BinAdd (UnaryExpr UnaryNeg e) y \<longmapsto> BinaryExpr BinSub y e) &&&
+    rewrite_termination
+     (BinaryExpr BinAdd (UnaryExpr UnaryNeg e) y \<longmapsto> BinaryExpr BinSub y e)
+     Common.size"
+  level 2b: "BinaryExpr BinAdd (UnaryExpr UnaryNeg e) y \<le> BinaryExpr BinSub y e"
+  level 2c: "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinAdd (UnaryExpr UnaryNeg e) y \<mapsto> v)
+                   \<longrightarrow> ([m,p] \<turnstile> BinaryExpr BinSub y e \<mapsto> v)"
+  level 3 (intval ops): "\<And>m p xa ya.
+       [m,p] \<turnstile> e \<mapsto> xa \<Longrightarrow>
+       [m,p] \<turnstile> y \<mapsto> ya \<Longrightarrow>
+       intval_negate xa \<noteq> UndefVal \<Longrightarrow>
+       intval_add (intval_negate xa) ya \<noteq> UndefVal \<Longrightarrow>
+       \<exists>x. ([m,p] \<turnstile> y \<mapsto> x) \<and>
+           (\<exists>y. ([m,p] \<turnstile> e \<mapsto> y) \<and>
+                intval_add (intval_negate xa) ya =
+                intval_sub x y)"
+  level 3b: "\<forall>m p v.
+       (\<exists>x ya.
+           (\<exists>xa. ([m,p] \<turnstile> e \<mapsto> xa) \<and>
+                 x = intval_negate xa \<and> x \<noteq> UndefVal) \<and>
+                 ([m,p] \<turnstile> y \<mapsto> ya) \<and>
+                 v = intval_add x ya \<and> v \<noteq> UndefVal) \<longrightarrow>
+       (\<exists>x ya.
+           ([m,p] \<turnstile> y \<mapsto> x) \<and>
+           ([m,p] \<turnstile> e \<mapsto> ya) \<and>
+            v = intval_sub x ya \<and> v \<noteq> UndefVal)"
+  level 4 (Word library): "-ev + yv = yv - ev" (twice, for 32-bit and 64-bit)
+*)
+
+
 (* The LowLevel version, intval_*, of this helper lemma is much easier
    to prove than the bin_eval level.  And equally easy to use in AddToSub.
  *)
@@ -383,11 +418,40 @@ lemma AddToSubHelperLowLevel:
 
 optimization AddToSub: "-e + y \<longmapsto> y - e"
    apply unfold_optimization
-  unfolding le_expr_def unfold_bin2 unfold_unary2 bin_eval.simps unary_eval.simps
+  unfolding le_expr_def  unfold_bin2 unfold_unary2 bin_eval.simps unary_eval.simps
   using AddToSubHelperLowLevel by auto
   end
 
 print_phases
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 (* Questions:
  Why doesn't subgoal handle \forall and \<longrightarrow> ?

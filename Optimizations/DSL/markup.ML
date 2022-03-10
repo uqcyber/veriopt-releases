@@ -12,6 +12,8 @@ datatype Tokens =
   | Sub
   | Mul
   | And
+  | Or
+  | Xor
   | Less
   | Abs
   | Equals
@@ -77,6 +79,10 @@ fun markup_constant (str, typ) =
     | ("Groups.times_class.times", _) => Translator.markup DSL_Tokens.Mul
     | ("\<^const>HOL.conj", _) => Translator.markup DSL_Tokens.And
     | ("HOL.conj", _) => Translator.markup DSL_Tokens.And
+    | ("\<^const>HOL.disj", _) => Translator.markup DSL_Tokens.Or
+    | ("HOL.distj", _) => Translator.markup DSL_Tokens.Or
+    | ("\<^const>Markup.ExtraNotation.ExclusiveOr", _) => Translator.markup DSL_Tokens.Xor
+    | ("Markup.ExtraNotation.ExclusiveOr", _) => Translator.markup DSL_Tokens.Xor
     | ("\<^const>Groups.uminus_class.uminus", _) => Translator.markup DSL_Tokens.Negate
     | ("Groups.uminus_class.uminus", _) => Translator.markup DSL_Tokens.Negate
     | ("\<^const>HOL.Not", _) => Translator.markup DSL_Tokens.Not

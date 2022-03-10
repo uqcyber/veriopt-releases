@@ -15,7 +15,8 @@ datatype 'a ExtraNotation =
   EqualsNotation 'a 'a ("_ eq _") |
   ConstantNotation 'a ("const _" 120) |
   TrueNotation ("true") |
-  FalseNotation ("false")
+  FalseNotation ("false") |
+  ExclusiveOr 'a 'a ("_ \<oplus> _")
 
 ML_file \<open>markup.ML\<close>
 
@@ -26,6 +27,8 @@ fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.Sub = @{term BinaryExpr} $ @{term BinSub}
   | markup DSL_Tokens.Mul = @{term BinaryExpr} $ @{term BinMul}
   | markup DSL_Tokens.And = @{term BinaryExpr} $ @{term BinAnd}
+  | markup DSL_Tokens.Or = @{term BinaryExpr} $ @{term BinOr}
+  | markup DSL_Tokens.Xor = @{term BinaryExpr} $ @{term BinXor}
   | markup DSL_Tokens.Abs = @{term UnaryExpr} $ @{term UnaryAbs}
   | markup DSL_Tokens.Less = @{term BinaryExpr} $ @{term BinIntegerLessThan}
   | markup DSL_Tokens.Equals = @{term BinaryExpr} $ @{term BinIntegerEquals}
@@ -46,6 +49,8 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.Sub = @{term intval_sub}
   | markup DSL_Tokens.Mul = @{term intval_mul}
   | markup DSL_Tokens.And = @{term intval_and}
+  | markup DSL_Tokens.Or = @{term intval_or}
+  | markup DSL_Tokens.Xor = @{term intval_xor}
   | markup DSL_Tokens.Abs = @{term intval_abs}
   | markup DSL_Tokens.Less = @{term intval_less_than}
   | markup DSL_Tokens.Equals = @{term intval_equals}

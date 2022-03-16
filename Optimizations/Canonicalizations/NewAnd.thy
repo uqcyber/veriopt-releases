@@ -15,6 +15,10 @@ definition IRExpr_down :: "IRExpr \<Rightarrow> int64" where
   "IRExpr_down e = 0"
 end
 
+lemma negative_all_set_32:
+  "n < 32 \<Longrightarrow> bit (-1::int32) n"
+  apply transfer by auto
+
 locale stamp_mask =
   fixes up :: "IRExpr \<Rightarrow> int64" ("\<up>")
   fixes down :: "IRExpr \<Rightarrow> int64" ("\<down>")
@@ -43,9 +47,9 @@ lemma not_may_implies_false_64:
   by (smt (verit, best) bit.double_compl)
 
 lemma must_implies_true_32:
-  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
+  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> n < 32 \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
   using down_spec32
-  using bit.compl_zero bit_and_iff bit_minus_1_iff bit_not_iff_eq impossible_bit sorry
+  by (metis bit.compl_zero bit_and_iff bit_not_iff bit_unsigned_iff negative_all_set_32)
 lemma must_implies_true_64:
   "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
   using down_spec64
@@ -59,7 +63,7 @@ lemma not_must_implies_either_64:
   by simp
 
 lemma must_implies_may_32:
-  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
+  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> n < 32 \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
   by (meson must_implies_true_32 not_may_implies_false_32)
 lemma must_implies_may_64:
   "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
@@ -180,11 +184,18 @@ lemma opt_termination:
 
 end
 
+lemma ucast_zero: "(ucast (0::int64)::int32) = 0"
+  by simp
+
+lemma ucast_minus_one: "(ucast (-1::int64)::int32) = -1"
+  apply transfer by auto
+
 interpretation dummy: stamp_mask
   "IRExpr_up :: IRExpr \<Rightarrow> int64"
   "IRExpr_down :: IRExpr \<Rightarrow> int64"
   unfolding IRExpr_up_def IRExpr_down_def
-  apply unfold_locales sorry
+  apply unfold_locales
+  by (simp add: ucast_minus_one)+
 
 phase NewAnd
   terminating size

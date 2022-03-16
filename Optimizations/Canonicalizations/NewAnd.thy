@@ -140,6 +140,13 @@ lemma intval_eliminate_y_32:
   shows "intval_and (intval_or x y) z = intval_and x z"
   using assms eliminate_y by (cases x; cases y; cases z; auto)
 
+lemma intval_and_commute:
+  "intval_and x y = intval_and y x"
+  by (cases x; cases y; auto simp: and.commute)
+
+lemma intval_or_commute:
+  "intval_or x y = intval_or y x"
+  by (cases x; cases y; auto simp: or.commute)
 
 lemma opt_semantics:
   "and (\<up>y) (\<up>z) = 0 \<longrightarrow>
@@ -175,7 +182,42 @@ lemma opt_semantics:
       qed
       done
     done
-  qed
+qed
+
+lemma opt_semantics_2:
+  "and (\<up>x) (\<up>z) = 0 \<longrightarrow> BinaryExpr BinAnd (BinaryExpr BinOr x y) z \<ge> BinaryExpr BinAnd y z"
+  proof -
+    show ?thesis apply simp apply (rule impI; rule allI; rule allI; rule allI)
+      subgoal premises p for m p v apply (rule impI) subgoal premises e
+      proof -
+        obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+          using e by auto
+        obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+          using e by auto
+        obtain zv where zv: "[m,p] \<turnstile> z \<mapsto> zv"
+          using e by auto
+        have and_or_is_def: "intval_and (intval_or xv yv) zv \<noteq> UndefVal"
+          using e 
+          by (smt (verit, best) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet xv yv zv)
+        then have type_safe: "(is_IntVal32 xv \<and> is_IntVal32 yv \<and> is_IntVal32 zv) \<or> (is_IntVal64 xv \<and> is_IntVal64 yv \<and> is_IntVal64 zv)"
+          by (cases xv; cases yv; cases zv; auto)
+        then have and_is_def: "intval_and xv zv \<noteq> UndefVal"
+          using is_IntVal32_def is_IntVal64_def by force
+        then have up_implies: "(intval_and xv zv) = IntVal32 0 \<or> (intval_and xv zv) = IntVal64 0"
+          using p xv zv zero_anded_up_zero_value_intval
+          by blast
+        have lhs: "v = intval_and (intval_or xv yv) zv"
+          using e
+          by (smt (verit) BinaryExprE \<open>[m,p] \<turnstile> x \<mapsto> xv\<close> \<open>[m,p] \<turnstile> y \<mapsto> yv\<close> \<open>[m,p] \<turnstile> z \<mapsto> zv\<close> bin_eval.simps(4) bin_eval.simps(5) evalDet)
+        then have rhs: "v = intval_and yv zv"
+          using intval_eliminate_y_32 intval_eliminate_y_64 up_implies
+          by (smt (verit) Value.disc(6) Value.simps(6) and_or_is_def intval_and.simps(1) intval_and.simps(2) intval_or_commute is_IntVal32_def is_IntVal64_def type_safe)
+        from lhs rhs show ?thesis
+          using and_or_is_def yv zv by auto
+      qed
+      done
+    done
+qed
  
 lemma opt_termination:
   "and (\<up>y) (\<up>z) = 0 \<longrightarrow>
@@ -190,7 +232,7 @@ lemma ucast_zero: "(ucast (0::int64)::int32) = 0"
 lemma ucast_minus_one: "(ucast (-1::int64)::int32) = -1"
   apply transfer by auto
 
-interpretation dummy: stamp_mask
+interpretation simple_mask: stamp_mask
   "IRExpr_up :: IRExpr \<Rightarrow> int64"
   "IRExpr_down :: IRExpr \<Rightarrow> int64"
   unfolding IRExpr_up_def IRExpr_down_def
@@ -201,11 +243,40 @@ phase NewAnd
   terminating size
 begin
 
-optimization opt: "((x | y) & z) \<longmapsto> x & z
-                   when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
+optimization redundant_lhs_y_or: "((x | y) & z) \<longmapsto> x & z
+                                when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
    apply unfold_optimization
-  using dummy.opt_semantics apply blast
+  using simple_mask.opt_semantics apply blast
   by simp
+
+optimization redundant_lhs_x_or: "((x | y) & z) \<longmapsto> y & z
+                                when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
+   apply unfold_optimization
+  using simple_mask.opt_semantics_2 apply blast
+  by simp
+
+lemma commute_and: "BinaryExpr BinAnd x z \<ge> BinaryExpr BinAnd z x"
+  apply simp
+  using simple_mask.stamp_mask_axioms stamp_mask.intval_and_commute by auto
+
+optimization redundant_rhs_y_or: "(z & (x | y)) \<longmapsto> z & x
+                                when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
+   apply unfold_optimization
+  using simple_mask.opt_semantics
+  apply (meson commute_and order.trans)
+  by simp
+
+optimization redundant_rhs_x_or: "(z & (x | y)) \<longmapsto> z & y
+                                when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
+   apply unfold_optimization
+  using simple_mask.opt_semantics_2
+  apply (meson commute_and order_trans)
+  by simp
+
+(*
+optimization redundant_lhs_add: "((x + y) & z) \<longmapsto> x & z
+                               when ((and (IRExpr_up y) (IRExpr_down z)) = 0)"
+*)
 
 end
 

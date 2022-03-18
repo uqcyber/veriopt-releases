@@ -5,6 +5,57 @@ theory NewAnd
     Semantics.IRTreeEvalThms
 begin
 
+lemma bin_distribute_and_over_or:
+  "and z (or x y) = or (and z x) (and z y)"
+  by (smt (verit, best) bit_and_iff bit_eqI bit_or_iff)
+
+lemma intval_distribute_and_over_or:
+  "val[z & (x | y)] = val[(z & x) | (z & y)]"
+  apply (cases x; cases y; cases z; auto)
+  by (simp add: bit.conj_disj_distrib)+
+
+lemma exp_distribute_and_over_or:
+  "exp[z & (x | y)] \<ge> exp[(z & x) | (z & y)]"
+  apply simp using intval_distribute_and_over_or
+  using BinaryExpr bin_eval.simps(4,5)
+  using intval_or.simps(10) intval_or.simps(3)
+  by fastforce
+
+
+lemma intval_and_commute:
+  "val[x & y] = val[y & x]"
+  by (cases x; cases y; auto simp: and.commute)
+
+lemma intval_or_commute:
+  "val[x | y] = val[y | x]"
+  by (cases x; cases y; auto simp: or.commute)
+
+lemma exp_and_commute:
+  "exp[x & z] \<ge> exp[z & x]"
+  apply simp using intval_and_commute by auto
+
+lemma exp_or_commute:
+  "exp[x | y] \<ge> exp[y | x]"
+  apply simp using intval_or_commute by auto
+
+
+lemma bin_eliminate_y:
+  assumes "and y z = 0"
+  shows "and (or x y) z = and x z"
+  using assms
+  by (simp add: and.commute bin_distribute_and_over_or)
+
+lemma intval_eliminate_y_64:
+  assumes "val[y & z] = IntVal64 0"
+  shows "val[(x | y) & z] = val[x & z]"
+  using assms bin_eliminate_y by (cases x; cases y; cases z; auto)
+
+lemma intval_eliminate_y_32:
+  assumes "val[y & z] = IntVal32 0"
+  shows "val[(x | y) & z] = val[x & z]"
+  using assms bin_eliminate_y by (cases x; cases y; cases z; auto)
+
+
 context
   includes bit_operations_syntax
 begin
@@ -109,45 +160,6 @@ lemma zero_anded_up_zero_value_intval:
   using zero_anded_up_zero_value_32 apply presburger
   using zero_anded_up_zero_value_64 by blast
 
-lemma distribute_and:
-  "and z (or x y) = or (and z x) (and z y)"
-  by (smt (verit, best) bit_and_iff bit_eqI bit_or_iff)
-
-lemma distribute_and_intval:
-  assumes "intval_and z (intval_or x y) \<noteq> UndefVal"
-  assumes "intval_or (intval_and z x) (intval_and z y) \<noteq> UndefVal"
-  shows "intval_and z (intval_or x y) = intval_or (intval_and z x) (intval_and z y)" (is "?lhs = ?rhs")
-  using assms apply (cases x; cases y; cases z; auto)
-  by (simp add: distribute_and)+
-
-lemma eliminate_y:
-  assumes "and y z = 0"
-  shows "and (or x y) z = and x z"
-  using assms distribute_and
-  by (metis and.commute or.right_neutral)
-
-lemma intval_eliminate_y_64:
-  assumes "intval_and (intval_or x y) z \<noteq> UndefVal"
-  assumes "intval_and x z \<noteq> UndefVal"
-  assumes "intval_and y z = IntVal64 0"
-  shows "intval_and (intval_or x y) z = intval_and x z"
-  using assms eliminate_y by (cases x; cases y; cases z; auto)
-
-lemma intval_eliminate_y_32:
-  assumes "intval_and (intval_or x y) z \<noteq> UndefVal"
-  assumes "intval_and x z \<noteq> UndefVal"
-  assumes "intval_and y z = IntVal32 0"
-  shows "intval_and (intval_or x y) z = intval_and x z"
-  using assms eliminate_y by (cases x; cases y; cases z; auto)
-
-lemma intval_and_commute:
-  "intval_and x y = intval_and y x"
-  by (cases x; cases y; auto simp: and.commute)
-
-lemma intval_or_commute:
-  "intval_or x y = intval_or y x"
-  by (cases x; cases y; auto simp: or.commute)
-
 lemma opt_semantics:
   "and (\<up>y) (\<up>z) = 0 \<longrightarrow>
     BinaryExpr BinAnd (BinaryExpr BinOr x y) z \<ge> BinaryExpr BinAnd x z"
@@ -176,7 +188,7 @@ lemma opt_semantics:
           by (smt (verit) BinaryExprE \<open>[m,p] \<turnstile> x \<mapsto> xv\<close> \<open>[m,p] \<turnstile> y \<mapsto> yv\<close> \<open>[m,p] \<turnstile> z \<mapsto> zv\<close> bin_eval.simps(4) bin_eval.simps(5) evalDet)
         then have rhs: "v = intval_and xv zv"
           using intval_eliminate_y_32 intval_eliminate_y_64 up_implies
-          by (metis (no_types, opaque_lifting) Value.distinct(1) Value.distinct(3) and_or_is_def intval_and.simps(1) intval_and.simps(2) is_IntVal32_def is_IntVal64_def type_safe)
+          by presburger
         from lhs rhs show ?thesis
           using and_or_is_def xv zv by auto
       qed
@@ -239,6 +251,8 @@ interpretation simple_mask: stamp_mask
   apply unfold_locales
   by (simp add: ucast_minus_one)+
 
+
+
 phase NewAnd
   terminating size
 begin
@@ -255,22 +269,18 @@ optimization redundant_lhs_x_or: "((x | y) & z) \<longmapsto> y & z
   using simple_mask.opt_semantics_2 apply blast
   by simp
 
-lemma commute_and: "BinaryExpr BinAnd x z \<ge> BinaryExpr BinAnd z x"
-  apply simp
-  using simple_mask.stamp_mask_axioms stamp_mask.intval_and_commute by auto
-
 optimization redundant_rhs_y_or: "(z & (x | y)) \<longmapsto> z & x
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
    apply unfold_optimization
   using simple_mask.opt_semantics
-  apply (meson commute_and order.trans)
+  apply (meson exp_and_commute order.trans)
   by simp
 
 optimization redundant_rhs_x_or: "(z & (x | y)) \<longmapsto> z & y
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
    apply unfold_optimization
   using simple_mask.opt_semantics_2
-  apply (meson commute_and order_trans)
+  apply (meson exp_and_commute order_trans)
   by simp
 
 (*

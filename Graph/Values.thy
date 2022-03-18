@@ -172,17 +172,17 @@ context
 begin
 
 
-fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "&&*" 64) where
+fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_and (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 AND v2))" |
   "intval_and (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 AND v2))" |
   "intval_and _ _ = UndefVal"
 
-fun intval_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "||*" 59) where
+fun intval_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_or (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 OR v2))" |
   "intval_or (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 OR v2))" |
   "intval_or _ _ = UndefVal"
 
-fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" (infix "^*" 59) where
+fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_xor (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 XOR v2))" |
   "intval_xor (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 XOR v2))" |
   "intval_xor _ _ = UndefVal"

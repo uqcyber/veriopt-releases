@@ -1,7 +1,6 @@
 theory NewAnd
   imports
     Common
-    "HOL-Library.FSet"
     Semantics.IRTreeEvalThms
 begin
 
@@ -176,7 +175,7 @@ lemma must_implies_may_64:
   "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
   by (meson must_implies_true_64 not_may_implies_false_64)
 
-lemma zero_anded_up_zero_value_32:
+lemma bin_up_and_zero_implies_zero_32:
   assumes "and (\<up>x) (\<up>y) = 0"
   assumes "[m, p] \<turnstile> x \<mapsto> IntVal32 xv"
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal32 yv"
@@ -184,7 +183,7 @@ lemma zero_anded_up_zero_value_32:
   using assms
   by (smt (verit) and.commute bit.compl_one bit.compl_zero bit.conj_disj_distrib bit.de_Morgan_disj or_eq_not_not_and stamp_mask.up_spec32 stamp_mask_axioms ucast_0 unsigned_and_eq word_log_esimps(3) word_not_dist(2))
 
-lemma zero_anded_up_zero_value_64:
+lemma bin_up_and_zero_implies_zero_64:
   assumes "and (\<up>x) (\<up>y) = 0"
   assumes "[m, p] \<turnstile> x \<mapsto> IntVal64 xv"
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal64 yv"
@@ -192,96 +191,43 @@ lemma zero_anded_up_zero_value_64:
   using assms
   by (smt (verit) and_eq_not_not_or bit.conj_disj_distrib bit.conj_disj_distrib2 stamp_mask.up_spec64 stamp_mask_axioms word_ao_absorbs(2) word_ao_absorbs(8) word_log_esimps(3) word_not_dist(2))
 
-lemma intval_stepup_32:
-  assumes "and xv yv = 0"
-  assumes "intval_and (IntVal32 xv) (IntVal32 yv) \<noteq> UndefVal"
-  shows "(intval_and (IntVal32 xv) (IntVal32 yv)) = IntVal32 0"
-  using assms
-  by force
-
-lemma intval_stepup_64:
-  assumes "and xv yv = 0"
-  assumes "intval_and (IntVal64 xv) (IntVal64 yv) \<noteq> UndefVal"
-  shows "(intval_and (IntVal64 xv) (IntVal64 yv)) = IntVal64 0"
-  using assms
-  by force
-
-lemma zero_anded_up_zero_value_intval:
+lemma intval_up_and_zero_implies_zero:
   assumes "and (\<up>x) (\<up>y) = 0"
   assumes "[m, p] \<turnstile> x \<mapsto> xv"
   assumes "[m, p] \<turnstile> y \<mapsto> yv"
   assumes "intval_and xv yv \<noteq> UndefVal"
   shows "intval_and xv yv = IntVal32 0 \<or> intval_and xv yv = IntVal64 0"
   using assms apply (cases xv; cases yv; auto)
-  using zero_anded_up_zero_value_32 apply presburger
-  using zero_anded_up_zero_value_64 by blast
+  using bin_up_and_zero_implies_zero_32 apply presburger
+  using bin_up_and_zero_implies_zero_64 by blast
 
-lemma opt_semantics:
+
+lemma exp_eliminate_y:
   "and (\<up>y) (\<up>z) = 0 \<longrightarrow> BinaryExpr BinAnd (BinaryExpr BinOr x y) z \<ge> BinaryExpr BinAnd x z"
   apply simp apply (rule impI; rule allI; rule allI; rule allI)
   subgoal premises p for m p v apply (rule impI) subgoal premises e
-    proof -
-      obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
-        using e by auto
-      obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
-        using e by auto
-      obtain zv where zv: "[m,p] \<turnstile> z \<mapsto> zv"
-        using e by auto
-      have and_or_is_def: "intval_and (intval_or xv yv) zv \<noteq> UndefVal"
-        using e 
-        by (smt (verit, best) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet xv yv zv)
-      then have type_safe: "(is_IntVal32 xv \<and> is_IntVal32 yv \<and> is_IntVal32 zv) \<or> (is_IntVal64 xv \<and> is_IntVal64 yv \<and> is_IntVal64 zv)"
-        by (cases xv; cases yv; cases zv; auto)
-      then have and_is_def: "intval_and yv zv \<noteq> UndefVal"
-        using is_IntVal32_def is_IntVal64_def by force
-      then have up_implies: "(intval_and yv zv) = IntVal32 0 \<or> (intval_and yv zv) = IntVal64 0"
-        using p yv zv zero_anded_up_zero_value_intval
-        by blast
-      have lhs: "v = intval_and (intval_or xv yv) zv"
-        using e xv yv zv
-        by (smt (verit) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet)
-      then have rhs: "v = intval_and xv zv"
-        using intval_eliminate_y_32 intval_eliminate_y_64 up_implies
-        by presburger
-      from lhs rhs show ?thesis
-        using and_or_is_def xv zv by auto
-    qed
-    done
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using e by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using e by auto
+    obtain zv where zv: "[m,p] \<turnstile> z \<mapsto> zv"
+      using e by auto
+    have lhs: "v = val[(xv | yv) & zv]"
+      using xv yv zv
+      by (smt (verit, best) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) e evalDet)
+    then have "v = val[(xv & zv) | (yv & zv)]"
+      by (simp add: intval_and_commute intval_distribute_and_over_or)
+    also have "val[yv & zv] = IntVal32 0 \<or> val[yv & zv] = IntVal64 0"
+      using intval_up_and_zero_implies_zero
+      by (metis calculation e evaltree_not_undef intval_or.simps(10) p yv zv)
+    ultimately have rhs: "v = intval_and xv zv"
+      using intval_eliminate_y_32 intval_eliminate_y_64 lhs by presburger
+    from lhs rhs show ?thesis
+      by (metis BinaryExpr BinaryExprE bin_eval.simps(4) e xv zv)
+  qed
   done
-
-lemma opt_semantics_2:
-  "and (\<up>x) (\<up>z) = 0 \<longrightarrow> BinaryExpr BinAnd (BinaryExpr BinOr x y) z \<ge> BinaryExpr BinAnd y z"
-  apply simp apply (rule impI; rule allI; rule allI; rule allI)
-  subgoal premises p for m p v apply (rule impI) subgoal premises e
-    proof -
-      obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
-        using e by auto
-      obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
-        using e by auto
-      obtain zv where zv: "[m,p] \<turnstile> z \<mapsto> zv"
-        using e by auto
-      have and_or_is_def: "intval_and (intval_or xv yv) zv \<noteq> UndefVal"
-        using e 
-        by (smt (verit, best) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet xv yv zv)
-      then have type_safe: "(is_IntVal32 xv \<and> is_IntVal32 yv \<and> is_IntVal32 zv) \<or> (is_IntVal64 xv \<and> is_IntVal64 yv \<and> is_IntVal64 zv)"
-        by (cases xv; cases yv; cases zv; auto)
-      then have and_is_def: "intval_and xv zv \<noteq> UndefVal"
-        using is_IntVal32_def is_IntVal64_def by force
-      then have up_implies: "(intval_and xv zv) = IntVal32 0 \<or> (intval_and xv zv) = IntVal64 0"
-        using p xv zv zero_anded_up_zero_value_intval
-        by blast
-      have lhs: "v = intval_and (intval_or xv yv) zv"
-        using e xv yv zv
-        by (smt (verit) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet)
-      then have rhs: "v = intval_and yv zv"
-        using intval_eliminate_y_32 intval_eliminate_y_64 up_implies
-        using intval_or_commute by auto
-      from lhs rhs show ?thesis
-        using and_or_is_def yv zv by auto
-    qed
-    done
   done
-
 end
 
 lemma ucast_zero: "(ucast (0::int64)::int32) = 0"
@@ -306,27 +252,28 @@ begin
 optimization redundant_lhs_y_or: "((x | y) & z) \<longmapsto> x & z
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
    apply unfold_optimization
-  using simple_mask.opt_semantics apply blast
+  using simple_mask.exp_eliminate_y apply blast
   by simp
 
 optimization redundant_lhs_x_or: "((x | y) & z) \<longmapsto> y & z
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
    apply unfold_optimization
-  using simple_mask.opt_semantics_2 apply blast
+  using simple_mask.exp_eliminate_y
+  apply (meson exp_or_commute mono_binary order_refl order_trans)
   by simp
 
 optimization redundant_rhs_y_or: "(z & (x | y)) \<longmapsto> z & x
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
    apply unfold_optimization
-  using simple_mask.opt_semantics
+  using simple_mask.exp_eliminate_y
   apply (meson exp_and_commute order.trans)
   by simp
 
 optimization redundant_rhs_x_or: "(z & (x | y)) \<longmapsto> z & y
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
    apply unfold_optimization
-  using simple_mask.opt_semantics_2
-  apply (meson exp_and_commute order_trans)
+  using simple_mask.exp_eliminate_y 
+  apply (meson dual_order.trans exp_and_commute exp_or_commute mono_binary order_refl)
   by simp
 
 (*

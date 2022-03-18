@@ -65,8 +65,29 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.FalseConstant = @{term "IntVal32 0"}
 end
 
+structure WordTranslator : DSL_TRANSLATION =
+struct
+fun markup DSL_Tokens.Add = @{term plus}
+  | markup DSL_Tokens.Sub = @{term minus}
+  | markup DSL_Tokens.Mul = @{term times}
+  | markup DSL_Tokens.And = @{term Bit_Operations.semiring_bit_operations_class.and}
+  | markup DSL_Tokens.Or = @{term or}
+  | markup DSL_Tokens.Xor = @{term xor}
+  | markup DSL_Tokens.Abs = @{term abs}
+  | markup DSL_Tokens.Less = @{term less}
+  | markup DSL_Tokens.Equals = @{term HOL.eq}
+  | markup DSL_Tokens.Not = @{term not}
+  | markup DSL_Tokens.Negate = @{term uminus}
+  | markup DSL_Tokens.LeftShift = @{term shiftl}
+  | markup DSL_Tokens.RightShift = @{term signed_shiftr}
+  | markup DSL_Tokens.UnsignedRightShift = @{term shiftr}
+  | markup DSL_Tokens.TrueConstant = @{term 1}
+  | markup DSL_Tokens.FalseConstant = @{term 0}
+end
+
 structure IRExprMarkup = DSL_Markup(IRExprTranslator);
 structure IntValMarkup = DSL_Markup(IntValTranslator);
+structure WordMarkup = DSL_Markup(WordTranslator);
 \<close>
 
 snipbegin \<open>ir expression translation\<close>
@@ -77,6 +98,11 @@ snipend -
 snipbegin \<open>value expression translation\<close>
 syntax "_expandIntVal" :: "term \<Rightarrow> term" ("val[_]")
 parse_translation \<open> [( @{syntax_const "_expandIntVal"} , IntValMarkup.markup_expr [])] \<close>
+snipend -
+
+snipbegin \<open>word expression translation\<close>
+syntax "_expandWord" :: "term \<Rightarrow> term" ("bin[_]")
+parse_translation \<open> [( @{syntax_const "_expandWord"} , WordMarkup.markup_expr [])] \<close>
 snipend -
 
 snipbegin \<open>ir expression example\<close>
@@ -90,5 +116,10 @@ text \<open>@{term \<open>val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<
 snipend -
 value "exp[((e\<^sub>1 - e\<^sub>2) + (const (IntVal32 0)) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
 value "val[((e\<^sub>1 - e\<^sub>2) + (const 0) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
+
+snipbegin \<open>word expression example\<close>
+value "bin[x & y | z]"
+text \<open>@{term \<open>val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
+snipend -
 
 end

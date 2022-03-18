@@ -5,7 +5,7 @@ theory NewAnd
 begin
 
 lemma bin_distribute_and_over_or:
-  "and z (or x y) = or (and z x) (and z y)"
+  "bin[z & (x | y)] = bin[(z & x) | (z & y)]"
   by (smt (verit, best) bit_and_iff bit_eqI bit_or_iff)
 
 lemma intval_distribute_and_over_or:
@@ -47,8 +47,8 @@ lemma exp_xor_commute:
 
 
 lemma bin_eliminate_y:
-  assumes "and y z = 0"
-  shows "and (or x y) z = and x z"
+  assumes "bin[y & z] = 0"
+  shows "bin[(x | y) & z] = bin[x & z]"
   using assms
   by (simp add: and.commute bin_distribute_and_over_or)
 
@@ -174,6 +174,10 @@ lemma must_implies_may_32:
 lemma must_implies_may_64:
   "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
   by (meson must_implies_true_64 not_may_implies_false_64)
+end
+
+context stamp_mask
+begin
 
 lemma bin_up_and_zero_implies_zero_32:
   assumes "and (\<up>x) (\<up>y) = 0"
@@ -195,16 +199,15 @@ lemma intval_up_and_zero_implies_zero:
   assumes "and (\<up>x) (\<up>y) = 0"
   assumes "[m, p] \<turnstile> x \<mapsto> xv"
   assumes "[m, p] \<turnstile> y \<mapsto> yv"
-  assumes "intval_and xv yv \<noteq> UndefVal"
-  shows "intval_and xv yv = IntVal32 0 \<or> intval_and xv yv = IntVal64 0"
+  assumes "val[xv & yv] \<noteq> UndefVal"
+  shows "val[xv & yv] = IntVal32 0 \<or> val[xv & yv] = IntVal64 0"
   using assms apply (cases xv; cases yv; auto)
   using bin_up_and_zero_implies_zero_32 apply presburger
   using bin_up_and_zero_implies_zero_64 by blast
 
-
 lemma exp_eliminate_y:
   "and (\<up>y) (\<up>z) = 0 \<longrightarrow> BinaryExpr BinAnd (BinaryExpr BinOr x y) z \<ge> BinaryExpr BinAnd x z"
-  apply simp apply (rule impI; rule allI; rule allI; rule allI)
+  apply simp apply (rule impI; rule allI; rule allI; rule allI) 
   subgoal premises p for m p v apply (rule impI) subgoal premises e
   proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
@@ -221,13 +224,14 @@ lemma exp_eliminate_y:
     also have "val[yv & zv] = IntVal32 0 \<or> val[yv & zv] = IntVal64 0"
       using intval_up_and_zero_implies_zero
       by (metis calculation e evaltree_not_undef intval_or.simps(10) p yv zv)
-    ultimately have rhs: "v = intval_and xv zv"
+    ultimately have rhs: "v = val[xv & zv]"
       using intval_eliminate_y_32 intval_eliminate_y_64 lhs by presburger
     from lhs rhs show ?thesis
       by (metis BinaryExpr BinaryExprE bin_eval.simps(4) e xv zv)
   qed
   done
   done
+
 end
 
 lemma ucast_zero: "(ucast (0::int64)::int32) = 0"

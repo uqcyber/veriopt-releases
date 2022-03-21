@@ -11,7 +11,7 @@ lemma bin_distribute_and_over_or:
 lemma intval_distribute_and_over_or:
   "val[z & (x | y)] = val[(z & x) | (z & y)]"
   apply (cases x; cases y; cases z; auto)
-  by (simp add: bit.conj_disj_distrib)+
+  using bin_distribute_and_over_or by blast+
 
 lemma exp_distribute_and_over_or:
   "exp[z & (x | y)] \<ge> exp[(z & x) | (z & y)]"

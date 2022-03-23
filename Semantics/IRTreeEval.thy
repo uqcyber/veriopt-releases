@@ -131,7 +131,10 @@ fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_eval UnaryNeg v = intval_negate v" |
   "unary_eval UnaryNot v = intval_not v" |
   "unary_eval UnaryLogicNegation v = intval_logic_negation v" |
-  "unary_eval op v1 = UndefVal"
+  "unary_eval (UnaryNarrow inBits outBits) v = intval_narrow inBits outBits v" |
+  "unary_eval (UnarySignExtend inBits outBits) v = intval_sign_extend inBits outBits v" |
+  "unary_eval (UnaryZeroExtend inBits outBits) v = intval_zero_extend inBits outBits v"
+(*  "unary_eval op v1 = UndefVal" *)
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "bin_eval BinAdd v1 v2 = intval_add v1 v2" |

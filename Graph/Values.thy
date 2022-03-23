@@ -224,7 +224,57 @@ fun intval_logic_negation :: "Value \<Rightarrow> Value" where
   "intval_logic_negation (IntVal32 v) = (if v = 0 then (IntVal32 1) else (IntVal32 0))" |
   "intval_logic_negation (IntVal64 v) = (if v = 0 then (IntVal64 1) else (IntVal64 0))" |
   "intval_logic_negation _ = UndefVal"
-  
+
+
+fun narrow_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
+  "narrow_helper inBits outBits v =
+    (if inBits < outBits then UndefVal
+     else if outBits = 32 then (IntVal32 v)
+     else if outBits = 16 then (IntVal32 (v AND 0xFFFF))
+     else if outBits = 8 then (IntVal32 (v AND 0xFF))
+     else UndefVal)"
+
+fun intval_narrow :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_narrow inBits outBits (IntVal32 v) = narrow_helper inBits outBits v" |
+  "intval_narrow inBits outBits (IntVal64 v) = narrow_helper inBits outBits (ucast v)" |
+  "intval_narrow _ _ _ = UndefVal"
+
+value "intval_narrow 16 8 (IntVal64 (-2))"  (* gives 254 *)
+
+
+fun choose_32_64 :: "nat \<Rightarrow> int64 \<Rightarrow> Value" where
+  "choose_32_64 outBits v = (if outBits = 64 then (IntVal64 v) else (IntVal32 (scast v)))"
+
+fun sign_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where
+  "sign_extend_helper inBits outBits v =
+    (if outBits < inBits then UndefVal
+     else if inBits = 32 then choose_32_64 outBits v
+     else if inBits = 16 then choose_32_64 outBits (scast ((ucast v) :: int16))
+     else if inBits = 8 then choose_32_64 outBits (scast ((ucast v) :: int16))
+     else UndefVal)"
+
+fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_sign_extend inBits outBits (IntVal32 v) = sign_extend_helper inBits outBits (scast v)" |
+  "intval_sign_extend inBits outBits (IntVal64 v) = sign_extend_helper inBits outBits v" |
+  "intval_sign_extend _ _ _ = UndefVal"
+
+value "intval_sign_extend 8 32 (IntVal64 (-2))"
+
+
+fun zero_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where
+  "zero_extend_helper inBits outBits v =
+    (if outBits < inBits then UndefVal
+     else if inBits = 32 then choose_32_64 outBits v
+     else if inBits = 16 then choose_32_64 outBits (ucast ((ucast v) :: int16))
+     else if inBits = 8 then choose_32_64 outBits (ucast ((ucast v) :: int16))
+     else UndefVal)"
+
+fun intval_zero_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_zero_extend inBits outBits (IntVal32 v) = zero_extend_helper inBits outBits (ucast v)" |
+  "intval_zero_extend inBits outBits (IntVal64 v) = zero_extend_helper inBits outBits v" |
+  "intval_zero_extend _ _ _ = UndefVal"
+
+value "intval_zero_extend 8 32 (IntVal64 (-2))"
 
 (*
 lemma [code]: "shiftl1 n = n * 2"

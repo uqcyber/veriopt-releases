@@ -8,54 +8,6 @@ lemma eval_not_undef:
   "([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> v \<noteq> UndefVal"
   by (induction e; auto)
 *)
-section \<open>Typing Properties for Integer Values\<close>
-
-text \<open>We use three simple typing properties on integer values: 
-   is_IntVal32, is_IntVal64 and the more general is_IntVal.\<close>
-
-definition is_IntVal :: "Value \<Rightarrow> bool" where
-  "is_IntVal v = (is_IntVal32 v \<or> is_IntVal64 v)"
-
-lemma unary_eval_int:
-  assumes def: "unary_eval op x \<noteq> UndefVal"
-  shows "is_IntVal (unary_eval op x)"
-  apply (cases op; cases x)
-  unfolding is_IntVal_def using def by auto
-
-lemma bin_eval_int:
-  assumes def: "bin_eval op x y \<noteq> UndefVal"
-  shows "is_IntVal (bin_eval op x y)"
-  apply (cases op; cases x; cases y)  (* 300 cases! *)
-  unfolding is_IntVal_def using def apply auto (* prove the 294 easy cases *)
-  by (metis (full_types) bool_to_val.simps is_IntVal32_def)+
-
-lemma int_stamp32:
-  assumes i: "is_IntVal32 v"
-  shows "is_IntegerStamp (constantAsStamp v)"
-  using i unfolding is_IntegerStamp_def is_IntVal32_def by auto
-
-lemma int_stamp64:
-  assumes i: "is_IntVal64 v"
-  shows "is_IntegerStamp (constantAsStamp v)"
-  using i unfolding is_IntegerStamp_def is_IntVal64_def by auto
-
-lemma int_stamp_both:
-  assumes i: "is_IntVal v"
-  shows "is_IntegerStamp (constantAsStamp v)"
-  using i unfolding is_IntVal_def is_IntegerStamp_def
-  using int_stamp32 int_stamp64 is_IntegerStamp_def by auto 
-
-lemma validDefIntConst:
-  assumes "v \<noteq> UndefVal"
-  assumes "is_IntegerStamp (constantAsStamp v)"
-  shows "valid_value v (constantAsStamp v)"
-  using assms by (cases v; auto)
-
-lemma validIntConst:
-  assumes i: "is_IntVal v"
-  shows "valid_value v (constantAsStamp v)"
-  using i int_stamp_both is_IntVal_def validDefIntConst by auto 
-
 
 section \<open>Optimizations for Add Nodes\<close>
 

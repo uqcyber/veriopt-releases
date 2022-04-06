@@ -97,20 +97,44 @@ fun is_ground :: "IRExpr \<Rightarrow> bool" where
 typedef GroundExpr = "{ e :: IRExpr . is_ground e }"
   using is_ground.simps(6) by blast
 
-(* ======== TODO: Functions for re-calculating stamps ========== *)
+
+
+subsection \<open>Functions for re-calculating stamps\<close> 
+
+text \<open>Note: all integer calculations are done as 32 or 64 bit calculations.
+  Most operators have the same output bits as their inputs.
+  But the following 'fixed_32' binary operators always output 32 bits.
+  And the unary operators that are not 'normal_unary' are narrowing 
+  or widening operators, so the result bits is specified by the operator.
+\<close>
+
+abbreviation fixed_32 :: "IRBinaryOp set" where
+  "fixed_32 \<equiv> {BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
+
+abbreviation normal_unary :: "IRUnaryOp set" where
+  "normal_unary \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation}"
+
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
-  "stamp_unary op (IntegerStamp b lo hi) = unrestricted_stamp (IntegerStamp b lo hi)" |
+(*
+  "stamp_unary op (IntegerStamp b lo hi) =
+    (let bits = (if op \<in> normal_unary 
+                 then (if b=64 then 64 else 32)
+                 else (ir_resultBits op)) in
+    unrestricted_stamp (IntegerStamp bits lo hi))" |
+*)
+  "stamp_unary op (IntegerStamp b lo hi) =
+    (if op \<in> normal_unary 
+     then unrestricted_stamp (IntegerStamp (if b=64 then 64 else 32) lo hi) 
+     else unrestricted_stamp (IntegerStamp (ir_resultBits op) lo hi))" |
   (* for now... *)
   "stamp_unary op _ = IllegalStamp"
 
-definition fixed_32 :: "IRBinaryOp set" where
-  "fixed_32 = {BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
-
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_binary op (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
-    (case op \<in> fixed_32 of True \<Rightarrow> unrestricted_stamp (IntegerStamp 32 lo1 hi1) |
-    False \<Rightarrow>
-    (if (b1 = b2) then unrestricted_stamp (IntegerStamp b1 lo1 hi1) else IllegalStamp))" |
+    (if (b1 \<noteq> b2) then IllegalStamp else
+      (if op \<notin> fixed_32 \<and> b1=64
+       then unrestricted_stamp (IntegerStamp 64 lo1 hi1)
+       else unrestricted_stamp (IntegerStamp 32 lo1 hi1)))" |
   (* for now... *)
   "stamp_binary op _ _ = IllegalStamp"
 

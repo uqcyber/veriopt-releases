@@ -148,9 +148,13 @@ qed
 lemma uminus_intstamp_prop:
   assumes "type x = Integer"
   shows "type exp[-x] = Integer"
-  using assms unfolding type_def type_safe_def
-  using stamp_expr.simps(1) stamp_unary.simps(1)
-  by (metis Stamp.collapse(1) Stamp.discI(1) type_def unfold_type unrestricted_stamp.simps(2))
+proof -
+  obtain b lo hi where "stamp_expr x = IntegerStamp b lo hi"
+    using assms is_IntegerStamp_def by auto
+  then show ?thesis
+    using assms unfolding type_def type_safe_def
+    by simp
+qed
 
 
 lemma "(size exp[x + (-y)]) > (size exp[x - y])"
@@ -414,9 +418,10 @@ optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_ev
 
 optimization AndEqual: "((x::intexp) & x) \<longmapsto> x"
    apply auto
-  apply (smt (verit, best) demorgans_rewrites_helper(3) evalDet evaltree.simps int_constants_valid intval_and.simps(15) intval_and.simps(9) is_int_val.elims(3) stamprange)
-  unfolding size.simps
+  using evalDet int_constants_valid demorgans_rewrites_helper(3) is_int_val.elims(3)
+  apply (metis constantAsStamp.elims intval_and.simps(10) intval_and.simps(15) intval_and.simps(16))
   by (simp add: size_gt_0)
+
 
 optimization AndShiftConstantRight: "((const x) + y) \<longmapsto> y + (const x) when ~(is_ConstantExpr y)"
   apply simp

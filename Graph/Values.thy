@@ -16,7 +16,7 @@ currently allowed by our semantics, ranging from basic integer types
 to object references and arrays.
 
 Note that Java supports 64, 32, 16, 8 signed ints, plus 1 bit (boolean)
-ints, but during calculations the smaller sizes are expanded to 32 bits,
+ints, but during calculations the smaller sizes are sign-extended to 32 bits,
 so here we model just 32 and 64 bit values.
 
 An object reference is an option type where the @{term None} object reference
@@ -34,11 +34,28 @@ type_synonym objref = "nat option"
 
 datatype (discs_sels) Value  =
   UndefVal |
-  IntVal32 "32 word" |  (* includes boolean *)
+  IntVal32 "32 word" |  (* also used for 16, 8, and 1-bit (boolean) values *)
   IntVal64 "64 word" |
   (* FloatVal float | not supported *)
   ObjRef objref |
   ObjStr string
+
+text \<open>Characterise integer values, covering both 32 and 64 bit.
+  If a node has a stamp smaller than 32 bits (16, 8, or 1 bit),
+  then the value will be sign-extended to 32 bits.
+  This is necessary to match what the stamps specify 
+  E.g. an 8-bit stamp has a default range of -128..+127.
+  And a 1-bit stamp has a default range of -1..0, surprisingly.
+\<close>
+
+definition is_IntVal :: "Value \<Rightarrow> bool" where
+  "is_IntVal v = (is_IntVal32 v \<or> is_IntVal64 v)"
+
+text \<open>Extract signed integer values from both 32 and 64 bit.\<close>
+
+fun intval :: "Value \<Rightarrow> int" where
+  "intval (IntVal32 v) = sint v" |
+  "intval (IntVal64 v) = sint v"
 
 
 fun wf_bool :: "Value \<Rightarrow> bool" where
@@ -226,31 +243,43 @@ fun intval_logic_negation :: "Value \<Rightarrow> Value" where
   "intval_logic_negation _ = UndefVal"
 
 
+abbreviation narrow_outBits :: "nat set" where
+  "narrow_outBits \<equiv> {8, 16, 32}"
+
+
+(* TODO: extend this to handle 1-bit outputs too? *)
 fun narrow_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
-  "narrow_helper inBits outBits v =
-    (if inBits < outBits then UndefVal
+  "narrow_helper inBits outBits val =
+    (if outBits \<le> inBits \<and> outBits \<in> narrow_outBits
+     then IntVal32 (signed_take_bit (outBits - 1) val)
+     else UndefVal)"
+
+value "sint(signed_take_bit 0 (1 :: int32))" (* gives -1, which matches compiler *)
+
+(* Was:
      else if outBits = 32 then (IntVal32 v)
      else if outBits = 16 then (IntVal32 (v AND 0xFFFF))
      else if outBits = 8 then (IntVal32 (v AND 0xFF))
      else UndefVal)"
-
+*)
 fun intval_narrow :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_narrow inBits outBits (IntVal32 v) = narrow_helper inBits outBits v" |
-  "intval_narrow inBits outBits (IntVal64 v) = narrow_helper inBits outBits (ucast v)" |
+  "intval_narrow inBits outBits (IntVal64 v) = narrow_helper inBits outBits (scast v)" |
   "intval_narrow _ _ _ = UndefVal"
 
-value "intval_narrow 16 8 (IntVal64 (-2))"  (* gives 254 *)
+value "intval(intval_narrow 16 8 (IntVal64 (512 - 2)))"  (* gives -2 (IntVal32 4294967294) *)
 
 
 fun choose_32_64 :: "nat \<Rightarrow> int64 \<Rightarrow> Value" where
   "choose_32_64 outBits v = (if outBits = 64 then (IntVal64 v) else (IntVal32 (scast v)))"
 
+(* TODO: extend this to handle 1-bit inputs too? *)
 fun sign_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where
   "sign_extend_helper inBits outBits v =
     (if outBits < inBits then UndefVal
      else if inBits = 32 then choose_32_64 outBits v
      else if inBits = 16 then choose_32_64 outBits (scast ((ucast v) :: int16))
-     else if inBits = 8 then choose_32_64 outBits (scast ((ucast v) :: int16))
+     else if inBits = 8 then choose_32_64 outBits (scast ((ucast v) :: int8))
      else UndefVal)"
 
 fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
@@ -261,12 +290,13 @@ fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarro
 value "intval_sign_extend 8 32 (IntVal64 (-2))"
 
 
+(* TODO: extend this to handle 1-bit inputs too? *)
 fun zero_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where
   "zero_extend_helper inBits outBits v =
     (if outBits < inBits then UndefVal
      else if inBits = 32 then choose_32_64 outBits v
      else if inBits = 16 then choose_32_64 outBits (ucast ((ucast v) :: int16))
-     else if inBits = 8 then choose_32_64 outBits (ucast ((ucast v) :: int16))
+     else if inBits = 8 then choose_32_64 outBits (ucast ((ucast v) :: int8))
      else UndefVal)"
 
 fun intval_zero_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where

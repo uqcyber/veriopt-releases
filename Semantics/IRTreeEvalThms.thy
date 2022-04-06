@@ -23,6 +23,57 @@ lemma evalAllDet:
   using evalDet by force
 
 
+
+subsubsection \<open>Typing Properties for Integer Evaluation Functions\<close>
+
+text \<open>We use three simple typing properties on integer values: 
+   is_IntVal32, is_IntVal64 and the more general is_IntVal.\<close>
+
+(* Note: this will need qualifying once we have non-integer unary ops. *)
+lemma unary_eval_int:
+  assumes def: "unary_eval op x \<noteq> UndefVal"
+  shows "is_IntVal (unary_eval op x)"
+  apply (cases op; cases x)
+  unfolding is_IntVal_def using def apply auto
+           apply presburger+
+  done
+
+lemma bin_eval_int:
+  assumes def: "bin_eval op x y \<noteq> UndefVal"
+  shows "is_IntVal (bin_eval op x y)"
+  apply (cases op; cases x; cases y)  (* 300 cases! *)
+  unfolding is_IntVal_def using def apply auto (* prove the 294 easy cases *)
+  by (metis (full_types) bool_to_val.simps is_IntVal32_def)+
+
+lemma int_stamp32:
+  assumes i: "is_IntVal32 v"
+  shows "is_IntegerStamp (constantAsStamp v)"
+  using i unfolding is_IntegerStamp_def is_IntVal32_def by auto
+
+lemma int_stamp64:
+  assumes i: "is_IntVal64 v"
+  shows "is_IntegerStamp (constantAsStamp v)"
+  using i unfolding is_IntegerStamp_def is_IntVal64_def by auto
+
+lemma int_stamp_both:
+  assumes i: "is_IntVal v"
+  shows "is_IntegerStamp (constantAsStamp v)"
+  using i unfolding is_IntVal_def is_IntegerStamp_def
+  using int_stamp32 int_stamp64 is_IntegerStamp_def by auto 
+
+lemma validDefIntConst:
+  assumes "v \<noteq> UndefVal"
+  assumes "is_IntegerStamp (constantAsStamp v)"
+  shows "valid_value v (constantAsStamp v)"
+  using assms by (cases v; auto)
+
+lemma validIntConst:
+  assumes i: "is_IntVal v"
+  shows "valid_value v (constantAsStamp v)"
+  using i int_stamp_both is_IntVal_def validDefIntConst by auto 
+
+
+
 subsubsection \<open>Evaluation Results are Valid\<close>
 
 text \<open>A valid value cannot be $UndefVal$.\<close>
@@ -44,12 +95,24 @@ lemma valid_ObjStamp[elim]:
       (\<exists>v. val = ObjRef v)"
   using valid_value.simps by (metis val_to_bool.cases)
 
+lemma valid_int8[elim]:
+  shows "valid_value val (IntegerStamp 8 l h) \<Longrightarrow>
+      (\<exists>v. val = IntVal32 v)"
+  apply (rule val_to_bool.cases[of val])
+  using Value.distinct by simp+
+
+lemma valid_int16[elim]:
+  shows "valid_value val (IntegerStamp 16 l h) \<Longrightarrow>
+      (\<exists>v. val = IntVal32 v)"
+  apply (rule val_to_bool.cases[of val])
+  using Value.distinct by simp+
+
 lemma valid_int32[elim]:
   shows "valid_value val (IntegerStamp 32 l h) \<Longrightarrow>
       (\<exists>v. val = IntVal32 v)"
   apply (rule val_to_bool.cases[of val])
   using Value.distinct by simp+
-                    
+
 lemma valid_int64[elim]:
   shows "valid_value val (IntegerStamp 64 l h) \<Longrightarrow>
       (\<exists>v. val = IntVal64 v)"
@@ -59,6 +122,8 @@ lemma valid_int64[elim]:
 lemmas valid_value_elims =
   valid_VoidStamp
   valid_ObjStamp
+  valid_int8
+  valid_int16
   valid_int32
   valid_int64
 
@@ -113,7 +178,7 @@ lemma valid32or64_both:
   assumes "valid_value x (IntegerStamp b lox hix)"
   and "valid_value y (IntegerStamp b loy hiy)"
   shows "(\<exists> v1 v2. x = IntVal32 v1 \<and> y = IntVal32 v2) \<or> (\<exists> v3 v4. x = IntVal64 v3 \<and> y = IntVal64 v4)"
-  using assms valid32or64 valid32 valid_value.elims(2) valid_value.simps(1) by metis
+  using assms valid32or64 valid32 by (metis valid_int64 valid_value.simps(2))  
 
 
 subsubsection \<open>Example Data-flow Optimisations\<close>
@@ -183,8 +248,9 @@ lemma never_void:
   using valid_value.simps
   using assms(2) by force
 
+(* These were trivially true, due to operator precedence errors.
 lemma stamp32:
-  "\<exists>v . xv = IntVal32 v \<longleftrightarrow> valid_value xv (IntegerStamp 32 lo hi)"
+  "\<exists>v . ((xv = IntVal32 v) \<longleftrightarrow> valid_value xv (IntegerStamp 32 lo hi))"
   using valid_int32
   by (metis (full_types) Value.inject(1) zero_neq_one)
 
@@ -192,11 +258,13 @@ lemma stamp64:
   "\<exists>v . xv = IntVal64 v \<longleftrightarrow> valid_value xv (IntegerStamp 64 lo hi)"
   using valid_int64
   by (metis (full_types) Value.inject(2) zero_neq_one)
+*)
 
+(* This lemma is no longer true once we allow some non-integer values.
 lemma stamprange:
-  "valid_value v s \<longrightarrow> (\<exists>b lo hi. (s = IntegerStamp b lo hi) \<and> (b = 32 \<or> b = 64))"
-  using valid_value.elims stamp32 stamp64
-  by (smt (verit, del_insts))
+  "valid_value v s \<longrightarrow> (\<exists>b lo hi. (s = IntegerStamp b lo hi) \<and> (b=8 \<or> b=16 \<or> b=32 \<or> b=64))"
+  using valid_value.elims
+*)  
 
 lemma compatible_trans:
   "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"

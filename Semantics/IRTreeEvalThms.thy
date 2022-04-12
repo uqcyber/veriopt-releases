@@ -27,7 +27,7 @@ lemma evalAllDet:
 subsubsection \<open>Typing Properties for Integer Evaluation Functions\<close>
 
 text \<open>We use three simple typing properties on integer values: 
-   is_IntVal32, is_IntVal64 and the more general is_IntVal.\<close>
+   $is_IntVal32, is_IntVal64$ and the more general $is_IntVal$.\<close>
 
 (* Note: this will need qualifying once we have non-integer unary ops. *)
 lemma unary_eval_int:
@@ -226,8 +226,8 @@ That is, optimizing a subexpression anywhere deep inside a top-level expression
 also optimizes that top-level expression.  
 
 Note that we might also be able to do
-this via reusing Isabelle's 'mono' operator (HOL.Orderings theory), proving instantiations
-like 'mono (UnaryExpr op)', but it is not obvious how to do this for both arguments
+this via reusing Isabelle's $mono$ operator (HOL.Orderings theory), proving instantiations
+like $mono (UnaryExpr op)$, but it is not obvious how to do this for both arguments
 of the binary expressions.\<close>
 
 lemma mono_unary: 

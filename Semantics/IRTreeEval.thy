@@ -103,8 +103,8 @@ subsection \<open>Functions for re-calculating stamps\<close>
 
 text \<open>Note: all integer calculations are done as 32 or 64 bit calculations.
   Most operators have the same output bits as their inputs.
-  But the following 'fixed_32' binary operators always output 32 bits.
-  And the unary operators that are not 'normal_unary' are narrowing 
+  But the following $fixed_32$ binary operators always output 32 bits.
+  And the unary operators that are not $normal_unary$ are narrowing 
   or widening operators, so the result bits is specified by the operator.
 \<close>
 

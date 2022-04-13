@@ -35,7 +35,7 @@ lemma unary_eval_int:
   shows "is_IntVal (unary_eval op x)"
   apply (cases op; cases x)
   unfolding is_IntVal_def using def apply auto
-           apply presburger+
+  apply (presburger | meson neq0_conv)+
   done
 
 lemma bin_eval_int:
@@ -95,6 +95,12 @@ lemma valid_ObjStamp[elim]:
       (\<exists>v. val = ObjRef v)"
   using valid_value.simps by (metis val_to_bool.cases)
 
+lemma valid_int1[elim]:
+  shows "valid_value val (IntegerStamp 1 lo hi) \<Longrightarrow>
+      (\<exists>v. val = IntVal32 v)"
+  apply (rule val_to_bool.cases[of val])
+  using Value.distinct by simp+
+
 lemma valid_int8[elim]:
   shows "valid_value val (IntegerStamp 8 l h) \<Longrightarrow>
       (\<exists>v. val = IntVal32 v)"
@@ -122,6 +128,7 @@ lemma valid_int64[elim]:
 lemmas valid_value_elims =
   valid_VoidStamp
   valid_ObjStamp
+  valid_int1
   valid_int8
   valid_int16
   valid_int32

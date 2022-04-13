@@ -142,7 +142,7 @@ proof -
     (* now deduce some stamp information *)
     then obtain b lo hi where se: "stamp_expr expr = IntegerStamp b lo hi"
       using 6 is_IntegerStamp_def by auto
-    then have "((b=32 \<or> b=16 \<or> b=8) \<and> (sint ve \<ge> lo) \<and> (sint ve \<le> hi))"
+    then have "((b=32 \<or> b=16 \<or> b=8 \<or> b=1) \<and> (sint ve \<ge> lo) \<and> (sint ve \<le> hi))"
       using 4 32 se by simp 
     then have "stamp_expr (UnaryExpr UnaryAbs expr) = unrestricted_stamp (IntegerStamp 32 lo hi)"
       using se by fastforce
@@ -229,6 +229,10 @@ lemma signed_take_bit_int_greater_eq_minus_exp [simp]:
 
 lemma signed_take_bit_int_less_exp [simp]:
   \<open>signed_take_bit n k < 2 ^ n\<close>
+
+lemma signed_take_bit_eq_take_bit_shift:
+  \<open>signed_take_bit n k = take_bit (Suc n) (k + 2 ^ n) - 2 ^ n\<close>
+  for k :: int
 
 MOD lemmas
 ----------
@@ -339,13 +343,13 @@ proof -
     then obtain r32 where 
       r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) i32"
       by simp
-    obtain b lo hi where "stamp_expr expr = IntegerStamp b lo hi"
+    obtain b lo hi where se: "stamp_expr expr = IntegerStamp b lo hi"
       using assms 1 valid_value.elims(2) by blast
     (* now make stamp deductions *)
     then have u: "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
              = unrestricted_stamp (IntegerStamp outBits lo hi)"
       using i by simp
-    then consider "outBits=32" | "outBits=16" | "outBits=8"
+    then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
       by (metis r1 assms(3) insertE narrow_helper.elims singletonD) 
     then show ?thesis
     proof (cases)
@@ -383,6 +387,19 @@ proof -
         then show ?thesis
           using 3 u r32 lo hi by simp
       qed
+    next
+      case 4  (* narrow to 1 bit *)
+      then show ?thesis
+      proof -
+        have hi: "sint r32 < 2^(outBits-1)"
+          using r32 signed_take_bit_int_less_exp_word
+          by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
+                power_increasing sint_above_size word_size)
+        then have lo: "- (2^(outBits-1)) \<le> sint r32"
+          using 4 r32 signed_take_bit_int_greater_eq_minus_exp_word by force
+        then show ?thesis 
+          using 4 u r32 lo hi by simp
+      qed
     qed
   next (* TODO: proof is identical to above - combine them! *)
     case 2  (* input is IntVal64 *)
@@ -400,7 +417,7 @@ proof -
     then have u: "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
              = unrestricted_stamp (IntegerStamp outBits lo hi)"
       using i by simp
-    then consider "outBits=32" | "outBits=16" | "outBits=8"
+    then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
       by (metis r1 assms(3) insertE narrow_helper.elims singletonD) 
     then show ?thesis
     proof (cases)
@@ -436,6 +453,19 @@ proof -
              size32 wsst_TYs(3) zero_less_numeral)
         then show ?thesis
           using 3 u r32 lo hi by simp
+      qed
+    next
+      case 4  (* narrow to 1 bit *)
+      then show ?thesis
+      proof -
+        have hi: "sint r32 < 2^(outBits-1)"
+          using r32 signed_take_bit_int_less_exp_word
+          by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
+                power_increasing sint_above_size word_size)
+        then have lo: "- (2^(outBits-1)) \<le> sint r32"
+          using 4 r32 signed_take_bit_int_greater_eq_minus_exp_word by fastforce
+        then show ?thesis
+          using 4 u r32 lo hi by simp
       qed
     qed
   qed
@@ -595,11 +625,11 @@ proof (cases stamp1)
         by (simp add: True meet_def val_def)
     next
       case False
-      then have bit32: "b = 32 \<or> b = 16 \<or> b = 8"
+      then have bit32: "b = 32 \<or> b = 16 \<or> b = 8 \<or> b = 1"
         using assms(1) IntegerStamp valid_value.simps valid32or64_both
         by (metis \<open>b = b2\<close> stamp2_def)
       then obtain x where val_def: "val = IntVal32 x"
-        using IntegerStamp assms(1) valid32 valid_int16 valid_int8
+        using IntegerStamp assms(1) valid32 valid_int16 valid_int8 valid_int1
         using \<open>b = b2\<close> stamp2_def by blast 
       have min: "sint x \<ge> min lo lo2" 
         using val_def

@@ -28,7 +28,11 @@ datatype Stamp =
 fun bit_bounds :: "nat \<Rightarrow> (int \<times> int)" where
   "bit_bounds bits = (((2 ^ bits) div 2) * -1, ((2 ^ bits) div 2) - 1)"
 
-value "bit_bounds 1"  (* gives (-1, 0), which matches the compiler stamps. *)
+
+experiment begin
+corollary "bit_bounds 1 = (-1, 0)" by simp  (* this matches the compiler stamps. *)
+end
+
 
 (* NOTE: the FloatStamp has been commented out to allow use of code generation facilities *)
 (*
@@ -144,7 +148,7 @@ fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
 
 \<comment> \<open>Define when a runtime value is valid for a stamp\<close>
 fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
-  "valid_value (IntVal32 v) (IntegerStamp b l h) = ((b=32 \<or> b=16 \<or> b=8) \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
+  "valid_value (IntVal32 v) (IntegerStamp b l h) = ((b=32 \<or> b=16 \<or> b=8 \<or> b=1) \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
   "valid_value (IntVal64 v) (IntegerStamp b l h) = (b=64 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
   "valid_value (ObjRef ref) (ObjectStamp klass exact nonNull alwaysNull) = 

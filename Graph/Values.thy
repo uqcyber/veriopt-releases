@@ -244,10 +244,8 @@ fun intval_logic_negation :: "Value \<Rightarrow> Value" where
 
 
 abbreviation narrow_outBits :: "nat set" where
-  "narrow_outBits \<equiv> {8, 16, 32}"
+  "narrow_outBits \<equiv> {1, 8, 16, 32}"
 
-
-(* TODO: extend this to handle 1-bit outputs too? *)
 fun narrow_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
   "narrow_helper inBits outBits val =
     (if outBits \<le> inBits \<and> outBits \<in> narrow_outBits
@@ -273,13 +271,13 @@ value "intval(intval_narrow 16 8 (IntVal64 (512 - 2)))"  (* gives -2 (IntVal32 4
 fun choose_32_64 :: "nat \<Rightarrow> int64 \<Rightarrow> Value" where
   "choose_32_64 outBits v = (if outBits = 64 then (IntVal64 v) else (IntVal32 (scast v)))"
 
-(* TODO: extend this to handle 1-bit inputs too? *)
 fun sign_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where
   "sign_extend_helper inBits outBits v =
     (if outBits < inBits then UndefVal
      else if inBits = 32 then choose_32_64 outBits v
      else if inBits = 16 then choose_32_64 outBits (scast ((ucast v) :: int16))
      else if inBits = 8 then choose_32_64 outBits (scast ((ucast v) :: int8))
+     else if inBits = 1 then choose_32_64 outBits (scast ((ucast v) :: int1))
      else UndefVal)"
 
 fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
@@ -287,24 +285,20 @@ fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarro
   "intval_sign_extend inBits outBits (IntVal64 v) = sign_extend_helper inBits outBits v" |
   "intval_sign_extend _ _ _ = UndefVal"
 
-value "intval_sign_extend 8 32 (IntVal64 (-2))"
 
-
-(* TODO: extend this to handle 1-bit inputs too? *)
 fun zero_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where
   "zero_extend_helper inBits outBits v =
     (if outBits < inBits then UndefVal
      else if inBits = 32 then choose_32_64 outBits v
      else if inBits = 16 then choose_32_64 outBits (ucast ((ucast v) :: int16))
      else if inBits = 8 then choose_32_64 outBits (ucast ((ucast v) :: int8))
+     else if inBits = 1 then choose_32_64 outBits (ucast ((ucast v) :: int1))
      else UndefVal)"
 
 fun intval_zero_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_zero_extend inBits outBits (IntVal32 v) = zero_extend_helper inBits outBits (ucast v)" |
   "intval_zero_extend inBits outBits (IntVal64 v) = zero_extend_helper inBits outBits v" |
   "intval_zero_extend _ _ _ = UndefVal"
-
-value "intval_zero_extend 8 32 (IntVal64 (-2))"
 
 (*
 lemma [code]: "shiftl1 n = n * 2"
@@ -364,6 +358,21 @@ fun intval_uright_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 
 end
 
+
+section \<open>Examples of Narrowing / Widening Functions\<close>
+
+experiment begin
+corollary "intval_sign_extend 8 32 (IntVal64 (-2)) = IntVal32 (-2)" by simp
+corollary "intval_sign_extend 1 32 (IntVal64 (-2)) = IntVal32 0"    by simp
+corollary "intval_sign_extend 1 32 (IntVal64 (-3)) = IntVal32 (-1)" by simp
+
+corollary "intval_sign_extend 8 32 (IntVal64 (-2)) = IntVal32 (-2)" by simp
+corollary "intval_sign_extend 1 32 (IntVal64 (-2)) = IntVal32 0"    by simp
+corollary "intval_sign_extend 1 32 (IntVal64 (-3)) = IntVal32 (-1)" by simp
+
+corollary "intval_zero_extend 8 32 (IntVal64 (-2)) = IntVal32 254" by simp
+corollary "intval_zero_extend 1 32 (IntVal64 (-1)) = IntVal32 1"   by code_simp
+end
 
 (* Other possibly-helpful lemmas from WORD and its ancestors:
 

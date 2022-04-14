@@ -4,7 +4,7 @@ theory StampEvalThms
   imports Semantics.IRTreeEvalThms
 begin
 
-subsubsection \<open>Evaluated Value Satisfies Stamps\<close>
+subsubsection \<open>Support Lemmas for Stamps and Upper/Lower Bounds\<close>
 
 (* these two were weirdly hard to prove given it should be by definition *)
 lemma size32: "size v = 32" for v :: "32 word"
@@ -78,25 +78,28 @@ lemma unary_obj: "val = ObjRef x \<Longrightarrow> unary_eval op val = UndefVal"
   by (cases op; auto)
 
 
+subsubsection \<open>Validity of UnaryAbs\<close>
+
+
 text \<open>A set of lemmas for each evaltree step.
    Questions: 
    1. do we need separate 32/64 lemmas?  
       Yes, I think so, because almost every operator behaves differently on each width.
-      And it makes the matching more direct, does not need is_IntVal_def etc.
+      And it makes the matching more direct, does not need $is_IntVal_def$ etc.
    2. is this top-down approach (assume the result node evaluation) best?
       Maybe.  It seems to be the shortest/simplest trigger?
 \<close>
 lemma unary_abs_result64:
-  assumes 1:"[m,p] \<turnstile> (UnaryExpr UnaryAbs e) \<mapsto> IntVal64 v"
-  shows "\<exists> ve. ([m, p] \<turnstile> e \<mapsto> IntVal64 ve) \<and>
+  assumes "[m,p] \<turnstile> (UnaryExpr UnaryAbs e) \<mapsto> IntVal64 v"
+  obtains ve where "([m, p] \<turnstile> e \<mapsto> IntVal64 ve) \<and>
            v = (if ve <s 0 then -ve else ve)"
 proof -
   obtain ve where "[m,p] \<turnstile> e \<mapsto> IntVal64 ve"
-    by (smt (verit, best) 1 UnaryExprE Value.distinct evalDet intval_abs.elims unary_eval.simps(1))
+    by (smt (verit, best) assms UnaryExprE Value.distinct evalDet intval_abs.elims unary_eval.simps(1))
   then show ?thesis
-    by (metis 1 UnaryExprE Value.inject(2) evalDet intval_abs.simps(2) unary_eval.simps(1))
+    by (metis UnaryExprE Value.sel(2) assms evalDet intval_abs.simps(2) that unary_eval.simps(1))
 qed
-(* or backwards proof:
+(* or backwards proof (for exists version of the rule):
   apply (rule UnaryExprE[OF 1])
   subgoal premises 2 for va
     using 2 apply (cases va; simp)
@@ -130,7 +133,7 @@ proof -
   then have 6: "is_IntegerStamp (stamp_expr expr)"
     using assms valid_value.elims(2) by fastforce
   then consider v32 where "result = IntVal32 v32" | v64 where "result = IntVal64 v64"
-    by (metis "2" "3" Value.collapse(1) Value.collapse(2) is_IntVal_def unary_eval_int)
+    by (metis 2 3 Value.collapse(1) Value.collapse(2) is_IntVal_def unary_eval_int)
   then show ?thesis
   proof cases
     case 1 (* 32 bit *)
@@ -142,7 +145,7 @@ proof -
     (* now deduce some stamp information *)
     then obtain b lo hi where se: "stamp_expr expr = IntegerStamp b lo hi"
       using 6 is_IntegerStamp_def by auto
-    then have "((b=32 \<or> b=16 \<or> b=8 \<or> b=1) \<and> (sint ve \<ge> lo) \<and> (sint ve \<le> hi))"
+    then have "((b=32 \<or> b=16 \<or> b=8 \<or> b=1) \<and> (lo \<le> sint ve) \<and> (sint ve \<le> hi))"
       using 4 32 se by simp 
     then have "stamp_expr (UnaryExpr UnaryAbs expr) = unrestricted_stamp (IntegerStamp 32 lo hi)"
       using se by fastforce
@@ -158,7 +161,7 @@ proof -
     (* now deduce some stamp information *)
     then obtain b lo hi where se: "stamp_expr expr = IntegerStamp b lo hi"
       using 6 is_IntegerStamp_def by auto
-    then have range64: "b=64 \<and> (sint ve \<ge> lo) \<and> (sint ve \<le> hi)"
+    then have range64: "b=64 \<and> (lo \<le> sint ve) \<and> (sint ve \<le> hi)"
       using 4 64 se by simp
     then have "stamp_expr (UnaryExpr UnaryAbs expr) = unrestricted_stamp (IntegerStamp b lo hi)"
       using se by simp
@@ -167,6 +170,10 @@ proof -
   qed
 qed
 
+
+
+
+subsubsection \<open>Validity of UnaryNarrow\<close>
 
 (* possibly helpful?
 lemma sint_less:
@@ -294,9 +301,9 @@ lemma sint_mod_eq_uint:
             take_bit_signed_take_bit unsigned_take_bit_eq)
 
 
-text \<open>Possibly helpful lemmas about signed_take_bit, to help with UnaryNarrow.
+text \<open>Possibly helpful lemmas about $signed_take_bit$, to help with UnaryNarrow.
   Note: we could use signed to convert between bit-widths, instead of 
-  signed_take_bit.  But this has to be done separately for each bit-width type.\<close>
+  $signed_take_bit$.  But this has to be done separately for each bit-width type.\<close>
 
 value "sint(signed_take_bit 7 (128 :: int8))"
 
@@ -320,6 +327,51 @@ lemma signed_take_bit_int_greater_eq_minus_exp_word:
      signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp)
 
 
+lemma unary_narrow_helper32:
+  assumes "[m,p] \<turnstile> expr \<mapsto> IntVal32 i32"
+  assumes "stamp_expr expr = IntegerStamp b lo hi"
+  assumes "r32 = signed_take_bit (outBits - 1) i32"
+  assumes "result = IntVal32 r32"
+  assumes "outBits=32 \<or> outBits=16 \<or> outBits=8 \<or> outBits=1"
+  assumes "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
+             = unrestricted_stamp (IntegerStamp outBits lo hi)"
+  shows "valid_value result (stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr))"
+proof -
+  have hi: "sint r32 < 2^(outBits-1)"
+    using assms signed_take_bit_int_less_exp_word
+    by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
+          power_increasing sint_above_size word_size)
+  then have lo: "- (2^(outBits-1)) \<le> sint r32"
+    using assms signed_take_bit_int_greater_eq_minus_exp_word
+    by (smt (verit, best) diff_le_self less_le_trans power_less_imp_less_exp sint_ge)
+  then show ?thesis
+    using assms lo hi apply simp
+    by (metis int_power_div_base lessI zero_less_numeral) 
+qed
+
+lemma unary_narrow_helper64:
+  assumes "[m,p] \<turnstile> expr \<mapsto> IntVal64 i64"
+  assumes "stamp_expr expr = IntegerStamp b lo hi"
+  assumes "r32 = signed_take_bit (outBits - 1) (scast i64)"
+  assumes "result = IntVal32 r32"
+  assumes "outBits=32 \<or> outBits=16 \<or> outBits=8 \<or> outBits=1"
+  assumes "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
+             = unrestricted_stamp (IntegerStamp outBits lo hi)"
+  shows "valid_value result (stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr))"
+proof -
+  have hi: "sint r32 < 2^(outBits-1)"
+    using assms signed_take_bit_int_less_exp_word
+    by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
+          power_increasing sint_above_size word_size)
+  then have lo: "- (2^(outBits-1)) \<le> sint r32"
+    using assms signed_take_bit_int_greater_eq_minus_exp_word
+    by (smt (verit, best) diff_le_self less_le_trans power_less_imp_less_exp sint_ge)
+  then show ?thesis
+    using assms lo hi apply simp
+    by (metis int_power_div_base lessI zero_less_numeral)
+qed
+
+
 lemma unary_narrow_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval (UnaryNarrow inBits outBits) val"
@@ -327,8 +379,15 @@ lemma unary_narrow_implies_valid_value:
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr))"
 proof -
+  (* make some deductions about the input stamp of expr *)
   have i: "is_IntegerStamp (stamp_expr expr)"
     using assms valid_value.elims(2) by fastforce 
+  then obtain b lo hi where se:"stamp_expr expr = IntegerStamp b lo hi"
+    by (auto simp add: assms valid_value.elims(2) is_IntegerStamp_def)
+  then have "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
+             = unrestricted_stamp (IntegerStamp outBits lo hi)"
+    by simp
+  (* make some general deductions about result, then split into 32/64 bit cases *)
   have "result = intval_narrow inBits outBits val"
     by (simp add: assms(2)) 
   then consider i32 where "val = IntVal32 i32" | i64 where "val = IntVal64 i64"
@@ -343,134 +402,30 @@ proof -
     then obtain r32 where 
       r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) i32"
       by simp
-    obtain b lo hi where se: "stamp_expr expr = IntegerStamp b lo hi"
-      using assms 1 valid_value.elims(2) by blast
-    (* now make stamp deductions *)
-    then have u: "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
-             = unrestricted_stamp (IntegerStamp outBits lo hi)"
-      using i by simp
     then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
       by (metis r1 assms(3) insertE narrow_helper.elims singletonD) 
     then show ?thesis
-    proof (cases)
-      case 1  (* narrow to 32 bits *)
-      then show ?thesis 
-        using r2 u unrestricted_32bit_always_valid by presburger 
-    next
-      (* TODO: these next two cases have same proof - can we combine them? *)
-      case 2  (* narrow to 16 bits *)
-      then show ?thesis
-      proof -
-        have hi: "sint r32 < 2^(outBits-1)"
-          using r32 signed_take_bit_int_less_exp_word
-          by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
-                power_increasing sint_above_size word_size)
-        then have lo: "- (2^(outBits-1)) \<le> sint r32"
-          using r32 signed_take_bit_int_greater_eq_minus_exp_word
-          by (metis 2 add_diff_cancel_left' diff_less less_imp_diff_less numeral_Bit0 
-             size32 wsst_TYs(3) zero_less_numeral)
-        then show ?thesis
-          using 2 u r32 lo hi by simp
-      qed
-    next
-      case 3  (* narrow to 8 bits *)
-      then show ?thesis
-      proof -
-        have hi: "sint r32 < 2^(outBits-1)"
-          using r32 signed_take_bit_int_less_exp_word
-          by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
-                power_increasing sint_above_size word_size)
-        then have lo: "- (2^(outBits-1)) \<le> sint r32"
-          using r32 signed_take_bit_int_greater_eq_minus_exp_word
-          by (metis 3 add_diff_cancel_left' diff_less less_imp_diff_less numeral_Bit0 
-             size32 wsst_TYs(3) zero_less_numeral)
-        then show ?thesis
-          using 3 u r32 lo hi by simp
-      qed
-    next
-      case 4  (* narrow to 1 bit *)
-      then show ?thesis
-      proof -
-        have hi: "sint r32 < 2^(outBits-1)"
-          using r32 signed_take_bit_int_less_exp_word
-          by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
-                power_increasing sint_above_size word_size)
-        then have lo: "- (2^(outBits-1)) \<le> sint r32"
-          using 4 r32 signed_take_bit_int_greater_eq_minus_exp_word by force
-        then show ?thesis 
-          using 4 u r32 lo hi by simp
-      qed
-    qed
-  next (* TODO: proof is identical to above - combine them! *)
+      using 1 assms(1) r32 se unary_narrow_helper32 by fastforce 
+  next 
     case 2  (* input is IntVal64 *)
-    print_facts
+    (* Nb. proof differs from above by scast, so not easy to combine them. *)
     then have r1: "result = narrow_helper inBits outBits (scast i64)"
       using assms by simp
-    then have r2: "result =  (IntVal32 (signed_take_bit (outBits - 1) (scast i64)))"
+    then have r2: "result = (IntVal32 (signed_take_bit (outBits - 1) (scast i64)))"
       using assms by (metis narrow_helper.simps)
     then obtain r32 where 
       r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) (scast i64)"
       by simp
-    obtain b lo hi where "stamp_expr expr = IntegerStamp b lo hi"
-      using assms 2 valid_value.elims(2) by blast
-    (* now make stamp deductions *)
-    then have u: "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
-             = unrestricted_stamp (IntegerStamp outBits lo hi)"
-      using i by simp
     then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
       by (metis r1 assms(3) insertE narrow_helper.elims singletonD) 
     then show ?thesis
-    proof (cases)
-      case 1  (* narrow to 32 bits *)
-      then show ?thesis 
-        using r2 u unrestricted_32bit_always_valid by presburger 
-    next      (* TODO: these next two cases have same proof - can we combine them? *)
-      case 2  (* narrow to 16 bits *)
-      then show ?thesis
-      proof -
-        have hi: "sint r32 < 2^(outBits-1)"
-          using r32 signed_take_bit_int_less_exp_word
-          by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
-                power_increasing sint_above_size word_size)
-        then have lo: "- (2^(outBits-1)) \<le> sint r32"
-          using r32 signed_take_bit_int_greater_eq_minus_exp_word
-          by (metis 2 add_diff_cancel_left' diff_less less_imp_diff_less numeral_Bit0 
-             size32 wsst_TYs(3) zero_less_numeral)
-        then show ?thesis
-          using 2 u r32 lo hi by simp
-      qed
-    next
-      case 3  (* narrow to 8 bits *)
-      then show ?thesis
-      proof -
-        have hi: "sint r32 < 2^(outBits-1)"
-          using r32 signed_take_bit_int_less_exp_word
-          by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
-                power_increasing sint_above_size word_size)
-        then have lo: "- (2^(outBits-1)) \<le> sint r32"
-          using r32 signed_take_bit_int_greater_eq_minus_exp_word
-          by (metis 3 add_diff_cancel_left' diff_less less_imp_diff_less numeral_Bit0 
-             size32 wsst_TYs(3) zero_less_numeral)
-        then show ?thesis
-          using 3 u r32 lo hi by simp
-      qed
-    next
-      case 4  (* narrow to 1 bit *)
-      then show ?thesis
-      proof -
-        have hi: "sint r32 < 2^(outBits-1)"
-          using r32 signed_take_bit_int_less_exp_word
-          by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
-                power_increasing sint_above_size word_size)
-        then have lo: "- (2^(outBits-1)) \<le> sint r32"
-          using 4 r32 signed_take_bit_int_greater_eq_minus_exp_word by fastforce
-        then show ?thesis
-          using 4 u r32 lo hi by simp
-      qed
-    qed
+      using 2 assms(1) r32 se unary_narrow_helper64 by fastforce
   qed
 qed
 
+
+
+subsubsection \<open>Validity of all Unary Operators\<close>
 
 lemma unary_eval_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
@@ -591,6 +546,10 @@ proof -
     qed
   qed
 
+
+
+subsubsection \<open>Validity of Stamp Meet and Join Operators\<close>
+
 lemma stamp_meet_is_valid:
   assumes "valid_value val stamp1 \<or> valid_value val stamp2"
   assumes "meet stamp1 stamp2 \<noteq> IllegalStamp"
@@ -685,6 +644,10 @@ proof -
   then show ?thesis using stamp_meet_is_valid using stamp_expr.simps(6)
     using assms(2) assms(6) by presburger
 qed
+
+
+
+subsubsection \<open>Validity of Whole Expression Tree Evaluation\<close>
 
 experiment begin
 lemma stamp_implies_valid_value:

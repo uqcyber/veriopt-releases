@@ -3,11 +3,6 @@ theory AddPhase
     Common
     Semantics.IRTreeEvalThms
 begin
-(*
-lemma eval_not_undef:
-  "([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> v \<noteq> UndefVal"
-  by (induction e; auto)
-*)
 
 section \<open>Optimizations for Add Nodes\<close>
 
@@ -52,12 +47,6 @@ thm BinaryFoldConstant(1)
 thm BinaryFoldConstant(2)
 thm BinaryFoldConstant
 value "BinaryFoldConstant_code (ConstantExpr (IntVal32 0))"
-
-lemma size_pos[simp]: "0 < size y"
-  apply (induction y; auto?)
-  subgoal premises prems for op a b
-    using prems by (induction op; auto)
-  done
 
 lemma size_non_add: "op \<noteq> BinAdd \<Longrightarrow> size (BinaryExpr op a b) = size a + size b"
   by (induction op; auto)
@@ -375,31 +364,6 @@ optimization AddToSub: "-e + y \<longmapsto> y - e"
   end
 
 print_phases
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

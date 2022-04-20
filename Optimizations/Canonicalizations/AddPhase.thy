@@ -43,23 +43,6 @@ optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmaps
   done
 
 
-thm BinaryFoldConstant(1)
-thm BinaryFoldConstant(2)
-thm BinaryFoldConstant
-value "BinaryFoldConstant_code (ConstantExpr (IntVal32 0))"
-
-lemma size_non_add: "op \<noteq> BinAdd \<Longrightarrow> size (BinaryExpr op a b) = size a + size b"
-  by (induction op; auto)
-
-lemma size_non_const:
-  "\<not> is_ConstantExpr y \<Longrightarrow> 1 < size y"
-  using size_pos apply (induction y; auto)
-  subgoal premises prems for op a b
-    apply (cases "op = BinAdd")
-    using size_non_add size_pos apply auto
-    by (simp add: Suc_lessI one_is_add)+
-  done         
-
 lemma binadd_commute:
   assumes "bin_eval BinAdd x y \<noteq> UndefVal"
   shows "bin_eval BinAdd x y = bin_eval BinAdd y x"
@@ -70,7 +53,6 @@ lemma binadd_commute:
 optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
   apply unfold_optimization
    defer using size_non_const apply fastforce
-  print_facts
   unfolding le_expr_def
   apply (rule impI)
   subgoal premises 1
@@ -87,74 +69,6 @@ optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v)
       done
     done
   done
-
-subsection \<open>Take 2: Unfold eval quadruples down to bin-eval level\<close>
-
-lemma unfold_bin:
-  assumes ok: "val \<noteq> UndefVal"
-  shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> val) = (\<exists> x y.
-          (([m,p] \<turnstile> xe \<mapsto> x) \<and>
-           ([m,p] \<turnstile> ye \<mapsto> y) \<and>
-           (val = bin_eval op x y)
-        ))" (is "?L = ?R")  (* (\<exists> x y. (?R1 \<and> ?R2 \<and> ?R3))" *)
-  apply (unfold iff_conv_conj_imp; rule conjI; rule impI)
-proof (goal_cases)
-  case 1
-  assume 3: ?L
-  show ?R by (rule evaltree.cases[OF 3]; blast+)
-next
-  case 2
-  assume ?R
-  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> x" and "[m,p] \<turnstile> ye \<mapsto> y" and "val = bin_eval op x y"
-    by auto
-  then show ?L
-    using ok by (rule BinaryExpr)
-qed
-
-(* TODO: unfold_unary *)
-
-lemma unfold_const:
-  shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (valid_value v (constantAsStamp c) \<and> c = v)"
-  by blast 
-
-lemma unfold_valid32 [simp]:
-  "valid_value y (constantAsStamp (IntVal32 v)) = (y = IntVal32 v)"
-  by (induction y; auto dest: signed_word_eqI)
-
-lemma unfold_valid64 [simp]:
-  "valid_value y (constantAsStamp (IntVal64 v)) = (y = IntVal64 v)"
-  by (induction y; auto dest: signed_word_eqI)
-
-
-lemma unfold_bin2:
-  shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> val) = (\<exists> x y.
-          (([m,p] \<turnstile> xe \<mapsto> x) \<and>
-           ([m,p] \<turnstile> ye \<mapsto> y) \<and>
-           (val = bin_eval op x y) \<and>
-           (val \<noteq> UndefVal)
-        ))" (is "?L = ?R")  (* (\<exists> x y. (?R1 \<and> ?R2 \<and> ?R3))" *)
-proof (intro iffI)
-  assume 3: ?L
-  show ?R by (rule evaltree.cases[OF 3]; blast+)
-next
-  assume ?R
-  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> x"
-        and "[m,p] \<turnstile> ye \<mapsto> y"
-        and "val = bin_eval op x y"
-        and "val \<noteq> UndefVal"
-    by auto
-  then show ?L
-     by (rule BinaryExpr)
-qed
-
-lemma unfold_unary2:
-  shows "([m,p] \<turnstile> UnaryExpr op xe \<mapsto> val)
-         = (\<exists> x.
-             (([m,p] \<turnstile> xe \<mapsto> x) \<and>
-              (val = unary_eval op x) \<and>
-              (val \<noteq> UndefVal)
-             ))" (is "?L = ?R")
-  by auto
 
 
 optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
@@ -207,7 +121,7 @@ optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<lo
 *)
    using intval_add.simps intval_sub.simps
     apply (metis (no_types, lifting) diff_add_cancel val_to_bool.cases)
-  unfolding le_expr_def unfold_bin2 unfold_const unfold_valid32 bin_eval.simps
+  unfolding le_expr_def unfold_binary unfold_const unfold_valid32 bin_eval.simps
 (*  subgoal premises
    apply (auto)
     subgoal premises p2 for m p x y ya
@@ -250,7 +164,7 @@ lemma just_goal2:
   assumes 1: "(\<forall> a b. (intval_add (intval_sub a b) b \<noteq> UndefVal \<and> a \<noteq> UndefVal \<longrightarrow>
     intval_add (intval_sub a b) b = a))"
   shows "(BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2) \<ge> e\<^sub>1"
-(* without unfold_bin2: but can this be done better?  
+(* without unfold_binary: but can this be done better?  
   unfolding le_expr_def 
   apply (auto)
   subgoal premises 2 for m p y xa ya
@@ -262,8 +176,8 @@ lemma just_goal2:
   using 2 by (metis evalDet evaltree_not_undef) 
   done
 *)
-(*  using unfold_bin2: *)
-  unfolding le_expr_def unfold_bin2 bin_eval.simps
+(*  using unfold_binary: *)
+  unfolding le_expr_def unfold_binary bin_eval.simps
   by (metis 1 evalDet evaltree_not_undef)
 
 
@@ -297,7 +211,7 @@ lemma NeutralRightSub_2:
   "(( intval_add a (intval_sub b a) \<noteq> UndefVal \<and> b \<noteq> UndefVal
       \<longrightarrow> intval_add a (intval_sub b a) = b)
     \<Longrightarrow> BinaryExpr BinAdd e\<^sub>2 (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) \<ge> e\<^sub>1)"
-  unfolding le_expr_def unfold_bin2
+  unfolding le_expr_def unfold_binary
   subgoal premises 1
     apply (rule allI)+
     subgoal for m p v
@@ -359,7 +273,6 @@ lemma AddToSubHelperLowLevel:
 
 optimization AddToSub: "-e + y \<longmapsto> y - e"
    apply unfold_optimization
-  unfolding le_expr_def  unfold_bin2 unfold_unary2 bin_eval.simps unary_eval.simps
   using AddToSubHelperLowLevel by auto
   end
 
@@ -369,7 +282,7 @@ print_phases
 
 
 
-(* Questions:
+(* Isabelle Isar Questions:
  Why doesn't subgoal handle \forall and \<longrightarrow> ?
  Then this pattern might become just a single subgoal?
   subgoal premises p1

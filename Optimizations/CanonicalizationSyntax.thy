@@ -80,7 +80,7 @@ lemma binary_expr_size_gte_2: "size (BinaryExpr op x y) \<ge> 2"
   apply (simp add: Suc_leI trans_le_add2)
   by (metis Suc_leI add_2_eq_Suc' add_Suc_shift add_mono numeral_2_eq_2 size_gt_0)+
 
-lemma "size e = 1 = is_ConstantExpr e"
+lemma size_eq_1: "(size e = 1) = is_ConstantExpr e"
   apply (cases e; auto) using size_gt_0
   apply (metis) using size_gt_0
   by (metis binary_expr_size_gte_2 lessI not_less numeral_2_eq_2)
@@ -92,6 +92,10 @@ lemma nonconstants_gt_one: "\<not> (is_ConstantExpr e) \<Longrightarrow> size e 
 
 lemma size_det: "x = y \<Longrightarrow> size x = size y"
   by auto
+
+lemma size_non_add: "op \<noteq> BinAdd \<Longrightarrow> size (BinaryExpr op a b) = size a + size b"
+  by (induction op; auto)
+
 
 value "exp[abs e]"
 ML_val \<open>@{term "abs e"}\<close>

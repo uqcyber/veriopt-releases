@@ -359,5 +359,64 @@ lemma graph_refined:
   shows "\<forall> m m' h h'. (g \<turnstile> (x1, m, h) \<rightarrow> (nid, m', h'))
                   \<longrightarrow> (g \<turnstile> (x2, m, h) \<rightarrow> (nid, m', h'))"
 *)
+
+
+subsection \<open>Unfolding rules for evaltree quadruples down to bin-eval level\<close>
+
+text \<open>These rewrite rules can be useful when proving optimizations.
+  They support top-down rewriting of each level of the tree into the 
+  lower-level $bin_eval$ / $unary_eval$ level, simply by saying
+  $unfolding unfold_evaltree$.\<close>
+
+lemma unfold_const:
+  shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (valid_value v (constantAsStamp c) \<and> c = v)"
+  by blast 
+
+lemma unfold_valid32 [simp]:
+  "valid_value y (constantAsStamp (IntVal32 v)) = (y = IntVal32 v)"
+  by (induction y; auto dest: signed_word_eqI)
+
+lemma unfold_valid64 [simp]:
+  "valid_value y (constantAsStamp (IntVal64 v)) = (y = IntVal64 v)"
+  by (induction y; auto dest: signed_word_eqI)
+
+lemma unfold_binary:
+  shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> val) = (\<exists> x y.
+          (([m,p] \<turnstile> xe \<mapsto> x) \<and>
+           ([m,p] \<turnstile> ye \<mapsto> y) \<and>
+           (val = bin_eval op x y) \<and>
+           (val \<noteq> UndefVal)
+        ))" (is "?L = ?R")  (* (\<exists> x y. (?R1 \<and> ?R2 \<and> ?R3))" *)
+proof (intro iffI)
+  assume 3: ?L
+  show ?R by (rule evaltree.cases[OF 3]; blast+)
+next
+  assume ?R
+  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> x"
+        and "[m,p] \<turnstile> ye \<mapsto> y"
+        and "val = bin_eval op x y"
+        and "val \<noteq> UndefVal"
+    by auto
+  then show ?L
+     by (rule BinaryExpr)
+qed
+
+lemma unfold_unary:
+  shows "([m,p] \<turnstile> UnaryExpr op xe \<mapsto> val)
+         = (\<exists> x.
+             (([m,p] \<turnstile> xe \<mapsto> x) \<and>
+              (val = unary_eval op x) \<and>
+              (val \<noteq> UndefVal)
+             ))" (is "?L = ?R")
+  by auto
+
+(* TODO: conditional *)
+
+lemmas unfold_evaltree =
+  unfold_binary
+  unfold_unary
+  unfold_const
+  unfold_valid32
+  unfold_valid64
 end
 

@@ -78,6 +78,10 @@ fun is_int_val :: "Value \<Rightarrow> bool" where
   "is_int_val (IntVal64 v) = True" |
   "is_int_val _ = False"
 
+
+
+subsection \<open>Arithmetic Operators\<close>
+
 text \<open>
 We need to introduce arithmetic operations which agree with the JVM.
 
@@ -183,6 +187,11 @@ definition modulo_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 instance proof qed
 end
 
+
+
+subsection \<open>Bitwise Operators and Comparisons\<close>
+
+
 (* NOTE: this bitwise syntax bundle is added for Isabelle 2021-1. *)
 context
   includes bit_operations_syntax
@@ -242,6 +251,19 @@ fun intval_logic_negation :: "Value \<Rightarrow> Value" where
   "intval_logic_negation (IntVal64 v) = (if v = 0 then (IntVal64 1) else (IntVal64 0))" |
   "intval_logic_negation _ = UndefVal"
 
+lemma intval_eq32:
+  assumes "intval_equals (IntVal32 v1) v2 \<noteq> UndefVal"
+  shows "is_IntVal32 v2"
+  by (metis Value.exhaust_disc assms intval_equals.simps(10) intval_equals.simps(12) intval_equals.simps(15) intval_equals.simps(16) is_IntVal64_def is_ObjRef_def is_ObjStr_def)
+
+lemma intval_eq32_simp:
+  assumes "intval_equals (IntVal32 v1) v2 \<noteq> UndefVal"
+  shows "intval_equals (IntVal32 v1) v2 = bool_to_val (v1 = un_IntVal32 v2)"
+  by (metis Value.collapse(1) assms intval_eq32 intval_equals.simps(1))
+
+
+
+subsection \<open>Narrowing and Widening Operators\<close>
 
 abbreviation narrow_outBits :: "nat set" where
   "narrow_outBits \<equiv> {1, 8, 16, 32}"
@@ -266,6 +288,11 @@ fun intval_narrow :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Va
   "intval_narrow _ _ _ = UndefVal"
 
 value "intval(intval_narrow 16 8 (IntVal64 (512 - 2)))"  (* gives -2 (IntVal32 4294967294) *)
+
+lemma narrow_gives_32:
+  assumes "intval_narrow inBits outBits value \<noteq> UndefVal"
+  shows "is_IntVal32 (intval_narrow inBits outBits value)"
+  using assms by (cases "value"; simp; presburger)
 
 
 fun choose_32_64 :: "nat \<Rightarrow> int64 \<Rightarrow> Value" where
@@ -299,6 +326,10 @@ fun intval_zero_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarro
   "intval_zero_extend inBits outBits (IntVal32 v) = zero_extend_helper inBits outBits (ucast v)" |
   "intval_zero_extend inBits outBits (IntVal64 v) = zero_extend_helper inBits outBits v" |
   "intval_zero_extend _ _ _ = UndefVal"
+
+
+
+subsection \<open>Bit-Shifting Operators\<close>
 
 (*
 lemma [code]: "shiftl1 n = n * 2"

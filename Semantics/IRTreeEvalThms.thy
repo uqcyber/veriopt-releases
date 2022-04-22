@@ -368,10 +368,6 @@ text \<open>These rewrite rules can be useful when proving optimizations.
   lower-level $bin_eval$ / $unary_eval$ level, simply by saying
   $unfolding unfold_evaltree$.\<close>
 
-lemma unfold_const:
-  shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (valid_value v (constantAsStamp c) \<and> c = v)"
-  by blast 
-
 lemma unfold_valid32 [simp]:
   "valid_value y (constantAsStamp (IntVal32 v)) = (y = IntVal32 v)"
   by (induction y; auto dest: signed_word_eqI)
@@ -379,6 +375,20 @@ lemma unfold_valid32 [simp]:
 lemma unfold_valid64 [simp]:
   "valid_value y (constantAsStamp (IntVal64 v)) = (y = IntVal64 v)"
   by (induction y; auto dest: signed_word_eqI)
+
+(* the general case, for all constants *)
+lemma unfold_const:
+  shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (valid_value v (constantAsStamp c) \<and> v = c)"
+  by blast 
+
+corollary unfold_const32:
+  shows "([m,p] \<turnstile> ConstantExpr (IntVal32 c) \<mapsto> v) = (v = IntVal32 c)"
+  using unfold_valid32 by blast 
+
+corollary unfold_const64:
+  shows "([m,p] \<turnstile> ConstantExpr (IntVal64 c) \<mapsto> v) = (v = IntVal64 c)"
+  using unfold_valid64 by blast 
+
 
 lemma unfold_binary:
   shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> val) = (\<exists> x y.
@@ -415,8 +425,14 @@ lemma unfold_unary:
 lemmas unfold_evaltree =
   unfold_binary
   unfold_unary
-  unfold_const
+  unfold_const32
+  unfold_const64
   unfold_valid32
   unfold_valid64
-end
 
+(* we could add this more general rule too, for completeness:
+  unfold_const
+  but we want the more specific unfold_const32/64 rules to have priority.
+  This does not seem possible with 'lemmas' - order is ignored.
+*)
+end

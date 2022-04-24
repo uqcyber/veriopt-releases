@@ -2,8 +2,6 @@ section \<open>Conditional Elimination Phase\<close>
 
 theory ConditionalElimination
   imports
-    Semantics.IRGraphFrames
-    Proofs.Stuttering
     Proofs.Rewrites
     Proofs.Bisimulation
 begin
@@ -96,7 +94,7 @@ qed
 lemma logic_negation_relation_tree:
   assumes "[m, p] \<turnstile> y \<mapsto> val"
   assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation y \<mapsto> invval"
-  assumes "intval \<noteq> UndefVal"
+  assumes "invval \<noteq> UndefVal"
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
 proof -
   obtain v where "invval = unary_eval UnaryLogicNegation v"
@@ -109,7 +107,7 @@ lemma logic_negation_relation:
   assumes "[g, m, p] \<turnstile> y \<mapsto> val"
   assumes "kind g neg = LogicNegationNode y"
   assumes "[g, m, p] \<turnstile> neg \<mapsto> invval"
-  assumes "intval \<noteq> UndefVal"
+  assumes "invval \<noteq> UndefVal"
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
 proof -
   obtain yencode where "g \<turnstile> y \<simeq> yencode"

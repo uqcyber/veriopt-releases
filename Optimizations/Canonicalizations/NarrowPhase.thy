@@ -1,8 +1,6 @@
 theory NarrowPhase
   imports
-    "HOL-Library.Word"
-    Canonicalizations.Common
-    Semantics.IRTreeEvalThms
+    Common
 begin
 (*
 lemma eval_not_undef:

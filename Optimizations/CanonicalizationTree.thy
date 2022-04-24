@@ -2,7 +2,6 @@ section \<open>Canonicalization Phase\<close>
 
 theory CanonicalizationTree
   imports
-    Semantics.TreeToGraph
     Semantics.IRTreeEval
 begin
 

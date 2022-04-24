@@ -3,7 +3,6 @@ subsection \<open>Graph Rewriting\<close>
 theory
   Rewrites
 imports
-  Semantics.IRGraphFrames
   Stuttering
 begin
 

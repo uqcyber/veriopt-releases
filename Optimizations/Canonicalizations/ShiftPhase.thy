@@ -1,7 +1,6 @@
 theory ShiftPhase
   imports 
     Common
-    Proofs.StampEvalThms
 begin
 
 phase Shift

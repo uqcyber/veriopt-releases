@@ -3,7 +3,6 @@ subsection \<open>Conditional Expression\<close>
 theory ConditionalPhase
   imports
     Common
-    Proofs.StampEvalThms
 begin
 
 phase Conditional
@@ -41,6 +40,7 @@ definition wff_stamps :: bool where
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
+(*
 optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x 
     when (stamp_under (stamp_expr u) (stamp_expr v) \<and> wf_stamp u \<and> wf_stamp v)"
    apply unfold_optimization
@@ -64,6 +64,7 @@ optimization b[intval]: "((x eq y) ? x : y) \<longmapsto> y"
     unfolding intval.simps
     apply (smt (z3) BinaryExprE ConditionalExprE Value.inject(1) Value.inject(2) bin_eval.simps(10) bool_to_val.simps(2) evalDet intval_equals.simps(1) intval_equals.simps(10) intval_equals.simps(12) intval_equals.simps(15) intval_equals.simps(16) intval_equals.simps(2) intval_equals.simps(5) intval_equals.simps(8) intval_equals.simps(9) le_expr_def val_to_bool.cases val_to_bool.elims(2))
   unfolding size.simps by auto
+*)
 
 end
 

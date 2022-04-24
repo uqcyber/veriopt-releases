@@ -3,6 +3,7 @@ section \<open>Canonicalization Phase\<close>
 theory Common
   imports 
     OptimizationDSL.Canonicalization
+    Semantics.IRTreeEvalThms
     "HOL-Eisbach.Eisbach"
 begin
 

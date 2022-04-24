@@ -1,7 +1,6 @@
 theory NewAnd
   imports
     Common
-    Semantics.IRTreeEvalThms
 begin
 
 lemma bin_distribute_and_over_or:

@@ -2,7 +2,6 @@ subsection \<open>Tree to Graph Theorems\<close>
 
 theory TreeToGraphThms
 imports
-  TreeToGraph
   IRTreeEvalThms
   IRGraphFrames
   "HOL-Eisbach.Eisbach"

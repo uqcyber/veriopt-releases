@@ -2,7 +2,6 @@ section \<open>Data-flow Semantics\<close>
 
 theory IRTreeEval
   imports
-    Graph.Values
     Graph.Stamp
 begin
 

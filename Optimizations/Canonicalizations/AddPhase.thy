@@ -1,7 +1,6 @@
 theory AddPhase
   imports
     Common
-    Semantics.IRTreeEvalThms
 begin
 
 section \<open>Optimizations for Add Nodes\<close>

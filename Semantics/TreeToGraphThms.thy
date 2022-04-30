@@ -2613,6 +2613,21 @@ lemma conditional_rep_kind:
   shows "kind g n = ConditionalNode c t f"
   using assms ConditionalNodeE sorry
 
+lemma unary_rep_kind:
+  assumes "g \<turnstile> n \<simeq> UnaryExpr op xe"
+  assumes "g \<turnstile> x \<simeq> xe"
+  assumes "\<not>(\<exists>n'. kind g n = RefNode n')"
+  shows "kind g n = unary_node op x"
+  using assms apply (cases op) using AbsNodeE sorry
+
+lemma binary_rep_kind:
+  assumes "g \<turnstile> n \<simeq> BinaryExpr op xe ye"
+  assumes "g \<turnstile> x \<simeq> xe"
+  assumes "g \<turnstile> y \<simeq> ye"
+  assumes "\<not>(\<exists>n'. kind g n = RefNode n')"
+  shows "kind g n = bin_node op x y"
+  using assms sorry
+
 theorem unrep_maximal_sharing:
   assumes "maximal_sharing g"
   assumes "wf_closed g"
@@ -2973,14 +2988,252 @@ theorem unrep_maximal_sharing:
     then show ?case by blast
   next
     case (UnaryNodeNew g xe g2 x s' op n g')
-    then show ?case sorry
+    then have k: "kind g' n = unary_node op x"
+      using find_new_kind
+      by (metis add_node_lookup fresh_ids ids_some)
+    have "stamp g' n = s'"
+      by (metis UnaryNodeNew.hyps(6) empty_iff find_new_stamp ids_some insertI1 k not_in_g_inputs unary_inputs)
+    then have repn: "g' \<turnstile> n \<simeq> UnaryExpr op xe"
+      using k
+      using UnaryNodeNew.hyps(1) UnaryNodeNew.hyps(3) UnaryNodeNew.hyps(4) UnaryNodeNew.hyps(5) UnaryNodeNew.hyps(6) term_graph_reconstruction unrep.UnaryNodeNew by blast
+    from ConstantNodeNew have "\<not>(is_RefNode (unary_node op x)) \<and> unary_node op x \<noteq> NoNode"
+      by (cases op; auto)
+    then have dom: "true_ids g' = true_ids g2 \<union> {n}"
+      using UnaryNodeNew.hyps(5) UnaryNodeNew.hyps(6) fresh_ids true_ids_add_update by presburger
+    have new: "n \<notin> ids g"
+      using fresh_ids
+      by (meson UnaryNodeNew.hyps(1) UnaryNodeNew.hyps(5) unrep_preserves_contains)
+    obtain new where "new = true_ids g' - true_ids g2"
+      by simp
+    then have new_def: "new = {n}"
+      using dom
+      by (metis Diff_cancel Diff_iff Un_insert_right UnaryNodeNew.hyps(5) fresh_ids insert_Diff_if sup_bot.right_neutral true_ids)
+    then have unchanged: "(new \<unlhd> as_set g') = as_set g2"
+      using new add_node_as_set_eq
+      using UnaryNodeNew.hyps(5) UnaryNodeNew.hyps(6) fresh_ids by presburger
+    then have kind_eq: "\<forall>n' . n' \<notin> new \<longrightarrow> kind g2 n' = kind g' n'"
+      by (metis UnaryNodeNew.hyps(6) add_node_as_set equalityD1 local.new_def not_excluded_keep_type not_in_g)
+    from unchanged have stamp_eq: "\<forall>n' \<in> ids g . n' \<notin> new \<longrightarrow> stamp g2 n' = stamp g' n'"
+      using not_excluded_keep_type new_def new
+      by (metis UnaryNodeNew.hyps(1) UnaryNodeNew.hyps(6) add_node_as_set unrep_preserves_contains)
+    have max_g2: "maximal_sharing g2"
+      by (simp add: UnaryNodeNew.hyps(2) UnaryNodeNew.prems(1) UnaryNodeNew.prems(2))
+    show ?case unfolding maximal_sharing apply (rule allI; rule allI; rule impI)
+      using max_g2 unfolding maximal_sharing apply auto
+      proof -
+      fix n\<^sub>1 n\<^sub>2 e
+      assume 1: "\<forall>n\<^sub>1 n\<^sub>2.
+          n\<^sub>1 \<in> true_ids g2 \<and> n\<^sub>2 \<in> true_ids g2 \<longrightarrow>
+          (\<exists>e. (g2 \<turnstile> n\<^sub>1 \<simeq> e) \<and> (g2 \<turnstile> n\<^sub>2 \<simeq> e) \<and> stamp g2 n\<^sub>1 = stamp g2 n\<^sub>2) \<longrightarrow> n\<^sub>1 = n\<^sub>2"
+      assume "n\<^sub>1 \<in> true_ids g'"
+      assume "n\<^sub>2 \<in> true_ids g'"
+      show "g' \<turnstile> n\<^sub>1 \<simeq> e \<Longrightarrow> g' \<turnstile> n\<^sub>2 \<simeq> e \<Longrightarrow> stamp g' n\<^sub>1 = stamp g' n\<^sub>2 \<Longrightarrow> n\<^sub>1 = n\<^sub>2" 
+      proof (cases "n\<^sub>1 \<in> true_ids g2")
+        case n1: True
+        then show "g' \<turnstile> n\<^sub>1 \<simeq> e \<Longrightarrow> g' \<turnstile> n\<^sub>2 \<simeq> e \<Longrightarrow> stamp g' n\<^sub>1 = stamp g' n\<^sub>2 \<Longrightarrow> n\<^sub>1 = n\<^sub>2"
+        proof (cases "n\<^sub>2 \<in> true_ids g2")
+          case n2: True
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have n1rep: "g2 \<turnstile> n\<^sub>1 \<simeq> e"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            using Diff_iff IRGraph.true_ids_def UnaryNodeNew.hyps(1) UnaryNodeNew.prems(1) n1 unchanged unrep_preserves_closure by auto
+          have n2rep: "g2 \<turnstile> n\<^sub>2 \<simeq> e"
+            using n2rep' kind_eq stamp_eq new_def add_preserves_rep
+            by (metis (no_types, lifting) Diff_iff IRGraph.true_ids_def UnaryNodeNew.hyps(1) UnaryNodeNew.prems(1) n2 unchanged unrep_preserves_closure)
+          have "stamp g2 n\<^sub>1 = stamp g2 n\<^sub>2"
+            by (metis UnaryNodeNew.hyps(5) UnaryNodeNew.hyps(6) \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> fresh_ids fresh_node_subset n1rep n2rep subset_stamp)
+          then show ?thesis using 1
+            using n1 n2
+            using n1rep n2rep by blast
+        next
+          case n2: False
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have new_n2: "n\<^sub>2 = n"
+            using \<open>n\<^sub>2 \<in> true_ids g'\<close> dom n2 by auto
+          then have ne: "n\<^sub>2 \<notin> ids g2"
+            using new n2
+            using UnaryNodeNew.hyps(5) fresh_ids by blast
+          have unrep_un: "g2 \<turnstile> n\<^sub>1 \<simeq> UnaryExpr op xe"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            by (metis (no_types, lifting) Diff_iff IRGraph.true_ids_def UnaryNodeNew.hyps(1) UnaryNodeNew.prems(1) n1 n2rep' new_n2 repDet repn unchanged unrep_preserves_closure)
+          have rep: "(g2 \<turnstile> x \<simeq> xe)"
+            using UnaryNodeNew.hyps(1) term_graph_reconstruction by auto
+          have not_ref: "\<not>(\<exists>n'. kind g2 n\<^sub>1 = RefNode n')"
+            using TreeToGraphThms.true_ids_def n1 by force
+          then have "kind g2 n\<^sub>1 = unary_node op x"
+            using unrep_un unary_rep_kind rep by simp
+            (*apply (frule ConditionalNodeE[where ?g = g4 and ?n = n\<^sub>1 and ?ce = ce and ?te = te and ?fe = fe])*)
+          then show ?thesis using find_none UnaryNodeNew.hyps(4)
+            by (metis UnaryNodeNew.hyps(6) \<open>stamp g' n = s'\<close> \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> fresh_node_subset ne new_n2 no_encoding subset_stamp unrep_un)
+        qed
+      next
+        case n1: False
+        then show "g' \<turnstile> n\<^sub>1 \<simeq> e \<Longrightarrow> g' \<turnstile> n\<^sub>2 \<simeq> e \<Longrightarrow> stamp g' n\<^sub>1 = stamp g' n\<^sub>2 \<Longrightarrow> n\<^sub>1 = n\<^sub>2"
+        proof (cases "n\<^sub>2 \<in> true_ids g2")
+          case n2: True
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have new_n1: "n\<^sub>1 = n"
+            using \<open>n\<^sub>1 \<in> true_ids g'\<close> dom n1 by auto
+          then have ne: "n\<^sub>1 \<notin> ids g2"
+            using new n1
+            using UnaryNodeNew.hyps(5) fresh_ids by blast
+          have unrep_un: "g2 \<turnstile> n\<^sub>2 \<simeq> UnaryExpr op xe"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            by (metis (no_types, lifting) Diff_iff IRGraph.true_ids_def UnaryNodeNew.hyps(1) UnaryNodeNew.prems(1) n2 n2rep' new_n1 repDet repn unchanged unrep_preserves_closure)
+          have rep: "(g2 \<turnstile> x \<simeq> xe)"
+            using UnaryNodeNew.hyps(1) term_graph_reconstruction by presburger
+          have not_ref: "\<not>(\<exists>n'. kind g2 n\<^sub>2 = RefNode n')"
+            using TreeToGraphThms.true_ids_def n2 by fastforce
+          then have "kind g2 n\<^sub>2 = unary_node op x"
+            using unary_rep_kind
+            using local.rep unrep_un by presburger
+          then show ?thesis using find_none UnaryNodeNew.hyps(4)
+            by (metis UnaryNodeNew.hyps(6) \<open>stamp g' n = s'\<close> \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> fresh_node_subset ne new_n1 no_encoding subset_stamp unrep_un)
+        next
+          case n2: False
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have "n\<^sub>1 = n \<and> n\<^sub>2 = n"
+            using \<open>n\<^sub>1 \<in> true_ids g'\<close> dom n1
+            using \<open>n\<^sub>2 \<in> true_ids g'\<close> n2
+            by simp
+          then show ?thesis
+            by simp
+        qed
+      qed
+    qed
   next
     case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
     then show ?case
       using unrep_preserves_closure by blast
   next
     case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
-    then show ?case sorry
+    then have k: "kind g' n = bin_node op x y"
+      using find_new_kind
+      by (metis add_node_lookup fresh_ids ids_some)
+    have "stamp g' n = s'"
+      by (metis BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) BinaryNodeNew.hyps(5) BinaryNodeNew.hyps(6) BinaryNodeNew.hyps(7) BinaryNodeNew.hyps(8) find_new_stamp ids_some k unrep.BinaryNodeNew unrep_contains)
+    then have repn: "g' \<turnstile> n \<simeq> BinaryExpr op xe ye"
+      using k
+      using BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) BinaryNodeNew.hyps(5) BinaryNodeNew.hyps(6) BinaryNodeNew.hyps(7) BinaryNodeNew.hyps(8) term_graph_reconstruction unrep.BinaryNodeNew by blast
+    from BinaryNodeNew have "\<not>(is_RefNode (bin_node op x y)) \<and> bin_node op x y \<noteq> NoNode"
+      by (cases op; auto) (* slow *)
+    then have dom: "true_ids g' = true_ids g3 \<union> {n}"
+      using BinaryNodeNew.hyps(7) BinaryNodeNew.hyps(8) fresh_ids true_ids_add_update by presburger
+    have new: "n \<notin> ids g"
+      using fresh_ids
+      by (meson BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) BinaryNodeNew.hyps(7) unrep_preserves_contains)
+    obtain new where "new = true_ids g' - true_ids g3"
+      by simp
+    then have new_def: "new = {n}"
+      using dom
+      by (metis BinaryNodeNew.hyps(7) Diff_cancel Diff_iff Un_insert_right fresh_ids insert_Diff_if sup_bot.right_neutral true_ids)
+    then have unchanged: "(new \<unlhd> as_set g') = as_set g3"
+      using new add_node_as_set_eq
+      using BinaryNodeNew.hyps(7) BinaryNodeNew.hyps(8) fresh_ids by presburger
+    then have kind_eq: "\<forall>n' . n' \<notin> new \<longrightarrow> kind g3 n' = kind g' n'"
+      by (metis BinaryNodeNew.hyps(8) add_node_as_set equalityD1 local.new_def not_excluded_keep_type not_in_g)
+    from unchanged have stamp_eq: "\<forall>n' \<in> ids g . n' \<notin> new \<longrightarrow> stamp g3 n' = stamp g' n'"
+      using not_excluded_keep_type new_def new
+      by (metis BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) BinaryNodeNew.hyps(8) add_node_as_set unrep_preserves_contains)
+    have max_g3: "maximal_sharing g3"
+      using BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(2) BinaryNodeNew.hyps(4) BinaryNodeNew.prems(1) BinaryNodeNew.prems(2) unrep_preserves_closure by blast
+    show ?case unfolding maximal_sharing apply (rule allI; rule allI; rule impI)
+      using max_g3 unfolding maximal_sharing apply auto
+      proof -
+      fix n\<^sub>1 n\<^sub>2 e
+      assume 1: "\<forall>n\<^sub>1 n\<^sub>2.
+          n\<^sub>1 \<in> true_ids g3 \<and> n\<^sub>2 \<in> true_ids g3 \<longrightarrow>
+          (\<exists>e. (g3 \<turnstile> n\<^sub>1 \<simeq> e) \<and> (g3 \<turnstile> n\<^sub>2 \<simeq> e) \<and> stamp g3 n\<^sub>1 = stamp g3 n\<^sub>2) \<longrightarrow> n\<^sub>1 = n\<^sub>2"
+      assume "n\<^sub>1 \<in> true_ids g'"
+      assume "n\<^sub>2 \<in> true_ids g'"
+      show "g' \<turnstile> n\<^sub>1 \<simeq> e \<Longrightarrow> g' \<turnstile> n\<^sub>2 \<simeq> e \<Longrightarrow> stamp g' n\<^sub>1 = stamp g' n\<^sub>2 \<Longrightarrow> n\<^sub>1 = n\<^sub>2" 
+      proof (cases "n\<^sub>1 \<in> true_ids g3")
+        case n1: True
+        then show "g' \<turnstile> n\<^sub>1 \<simeq> e \<Longrightarrow> g' \<turnstile> n\<^sub>2 \<simeq> e \<Longrightarrow> stamp g' n\<^sub>1 = stamp g' n\<^sub>2 \<Longrightarrow> n\<^sub>1 = n\<^sub>2"
+        proof (cases "n\<^sub>2 \<in> true_ids g3")
+          case n2: True
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have n1rep: "g3 \<turnstile> n\<^sub>1 \<simeq> e"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            by (metis (no_types, lifting) BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) BinaryNodeNew.prems(1) Diff_iff IRGraph.true_ids_def n1 unchanged unrep_preserves_closure)
+          have n2rep: "g3 \<turnstile> n\<^sub>2 \<simeq> e"
+            using n2rep' kind_eq stamp_eq new_def add_preserves_rep
+            by (metis BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) BinaryNodeNew.prems(1) DiffE n2 true_ids unchanged unrep_preserves_closure)
+          have "stamp g3 n\<^sub>1 = stamp g3 n\<^sub>2"
+            by (metis BinaryNodeNew.hyps(7) BinaryNodeNew.hyps(8) \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> fresh_ids fresh_node_subset n1rep n2rep subset_stamp)
+          then show ?thesis using 1
+            using n1 n2
+            using n1rep n2rep by blast
+        next
+          case n2: False
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have new_n2: "n\<^sub>2 = n"
+            using \<open>n\<^sub>2 \<in> true_ids g'\<close> dom n2 by auto
+          then have ne: "n\<^sub>2 \<notin> ids g3"
+            using new n2
+            using BinaryNodeNew.hyps(7) fresh_ids by presburger
+          have unrep_bin: "g3 \<turnstile> n\<^sub>1 \<simeq> BinaryExpr op xe ye"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            by (metis BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) BinaryNodeNew.prems(1) DiffE \<open>new = true_ids g' - true_ids g3\<close> encodes_contains ids_some n1 n2rep' new_n2 repDet repn unchanged unrep_preserves_closure)
+          have rep: "(g3 \<turnstile> x \<simeq> xe) \<and> (g3 \<turnstile> y \<simeq> ye)"
+            by (meson BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) term_graph_reconstruction unrep_contains unrep_unchanged)
+          have not_ref: "\<not>(\<exists>n'. kind g3 n\<^sub>1 = RefNode n')"
+            using TreeToGraphThms.true_ids_def n1 by force
+          then have "kind g3 n\<^sub>1 = bin_node op x y"
+            using unrep_bin binary_rep_kind rep by simp
+          then show ?thesis using find_none BinaryNodeNew.hyps(6)
+            by (metis BinaryNodeNew.hyps(8) \<open>stamp g' n = s'\<close> \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> fresh_node_subset ne new_n2 no_encoding subset_stamp unrep_bin)
+        qed
+      next
+        case n1: False
+        then show "g' \<turnstile> n\<^sub>1 \<simeq> e \<Longrightarrow> g' \<turnstile> n\<^sub>2 \<simeq> e \<Longrightarrow> stamp g' n\<^sub>1 = stamp g' n\<^sub>2 \<Longrightarrow> n\<^sub>1 = n\<^sub>2"
+        proof (cases "n\<^sub>2 \<in> true_ids g3")
+          case n2: True
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have new_n1: "n\<^sub>1 = n"
+            using \<open>n\<^sub>1 \<in> true_ids g'\<close> dom n1 by auto
+          then have ne: "n\<^sub>1 \<notin> ids g3"
+            using new n1
+            using BinaryNodeNew.hyps(7) fresh_ids by blast
+          have unrep_bin: "g3 \<turnstile> n\<^sub>2 \<simeq> BinaryExpr op xe ye"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            by (metis (mono_tags, lifting) BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) BinaryNodeNew.prems(1) Diff_iff IRGraph.true_ids_def n2 n2rep' new_n1 repDet repn unchanged unrep_preserves_closure)
+          have rep: "(g3 \<turnstile> x \<simeq> xe) \<and> (g3 \<turnstile> y \<simeq> ye)"
+            using BinaryNodeNew.hyps(1) BinaryNodeNew.hyps(3) term_graph_reconstruction unrep_contains unrep_unchanged by blast
+          have not_ref: "\<not>(\<exists>n'. kind g3 n\<^sub>2 = RefNode n')"
+            using TreeToGraphThms.true_ids_def n2 by fastforce
+          then have "kind g3 n\<^sub>2 = bin_node op x y"
+            using unrep_bin binary_rep_kind rep by simp
+          then show ?thesis using find_none BinaryNodeNew.hyps(6)
+            by (metis BinaryNodeNew.hyps(8) \<open>stamp g' n = s'\<close> \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> fresh_node_subset ne new_n1 no_encoding subset_stamp unrep_bin)
+        next
+          case n2: False
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have "n\<^sub>1 = n \<and> n\<^sub>2 = n"
+            using \<open>n\<^sub>1 \<in> true_ids g'\<close> dom n1
+            using \<open>n\<^sub>2 \<in> true_ids g'\<close> n2
+            by simp
+          then show ?thesis
+            by simp
+        qed
+      qed
+    qed
   next
     case (AllLeafNodes g n s)
     then show ?case by blast

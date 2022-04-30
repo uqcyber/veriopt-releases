@@ -2030,6 +2030,7 @@ lemma convert_maximal:
   using assms
   using maximal_sharing by blast
 
+experiment begin
 lemma fresh_node_unique:
   assumes "find_node_and_stamp g (k, s) = None"
   assumes "n = get_fresh_id g"
@@ -2051,6 +2052,7 @@ proof -
     done
   done
 qed
+end
 
 (*
   apply (rule allI) apply (rule impI) apply (rule allI)
@@ -2141,6 +2143,7 @@ lemma maintain_maximal_sharing:
   using new_nodes_maximal_sharing assms
   done*)
 
+(*
 lemma fresh_sharing:
   assumes "g' \<turnstile> n \<simeq> e"
   assumes "find_node_and_stamp g (k, s) = None"
@@ -2220,6 +2223,7 @@ next
   case (RefNode n n' e)
   then show ?case sorry
 qed
+*)
 
 
 (*lemma
@@ -2241,13 +2245,35 @@ lemma add_node_as_set_eq:
   using add_node_set_eq 
   by (smt (z3) Collect_cong Rep_IRGraph_inverse UnCI UnE add_node.rep_eq as_set_def case_prodE2 case_prodI2 le_boolE le_boolI' mem_Collect_eq prod.sel(1) singletonD singletonI)
 
+lemma true_ids:
+  "true_ids g = ids g - {n \<in> ids g. is_RefNode (kind g n)}"
+  unfolding true_ids_def
+  by fastforce
+
+lemma as_set_ids:
+  assumes "as_set g = as_set g'"
+  shows "ids g = ids g'"
+  using assms
+  by (metis antisym equalityD1 graph_refinement_def subset_refines)
+
+lemma ids_add_update:
+  assumes "k \<noteq> NoNode"
+  assumes "n \<notin> ids g"
+  assumes "g' = add_node n (k, s) g"
+  shows "ids g' = ids g \<union> {n}"
+  using assms apply (subst assms(3)) using add_node_set_eq as_set_ids
+  by (smt (verit, del_insts) Collect_cong Diff_idemp Diff_insert_absorb Un_commute add_node.rep_eq add_node_def ids.rep_eq ids_add_update_v1 ids_add_update_v2 insertE insert_Collect insert_is_Un map_upd_Some_unfold mem_Collect_eq replace_node_def replace_node_unchanged)
+
+
 lemma true_ids_add_update:
-  assumes "node \<noteq> NoNode"
+  assumes "k \<noteq> NoNode"
   assumes "n \<notin> ids g"
   assumes "g' = add_node n (k, s) g"
   assumes "\<not>(is_RefNode k)"
   shows "true_ids g' = true_ids g \<union> {n}"
-  using assms unfolding as_set_def add_node_def true_ids_def apply simp apply transfer sorry
+  using assms using true_ids ids_add_update
+  by (smt (z3) Collect_cong Diff_iff Diff_insert_absorb Un_commute add_node_def find_new_kind insert_Diff_if insert_is_Un mem_Collect_eq replace_node_def replace_node_unchanged)
+
 
 lemma new_def:
   assumes "(new \<unlhd> as_set g') = as_set g"
@@ -2334,61 +2360,279 @@ next
       using rep.NotNode by presburger
   next
     case (NegateNode n x xe)
-    then show ?case sorry
+    then have kind: "kind g n = NegateNode x"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using NegateNode
+      using rep.NegateNode by presburger
   next
     case (LogicNegationNode n x xe)
-    then show ?case sorry
+    then have kind: "kind g n = LogicNegationNode x"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using LogicNegationNode
+      using rep.LogicNegationNode by presburger
   next
     case (AddNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = AddNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using AddNode
+      using rep.AddNode by presburger
   next
     case (MulNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = MulNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using MulNode
+      using rep.MulNode by presburger
   next
     case (SubNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = SubNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using SubNode
+      using rep.SubNode by presburger
   next
     case (AndNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = AndNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using AndNode
+      using rep.AndNode by presburger
   next
     case (OrNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = OrNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using OrNode
+      using rep.OrNode by presburger
   next
     case (XorNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = XorNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using XorNode
+      using rep.XorNode by presburger
   next
     case (LeftShiftNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = LeftShiftNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using LeftShiftNode
+      using rep.LeftShiftNode by presburger
   next
     case (RightShiftNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = RightShiftNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using RightShiftNode
+      using rep.RightShiftNode by presburger
   next
     case (UnsignedRightShiftNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = UnsignedRightShiftNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using UnsignedRightShiftNode
+      using rep.UnsignedRightShiftNode by presburger
   next
     case (IntegerBelowNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = IntegerBelowNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using IntegerBelowNode
+      using rep.IntegerBelowNode by presburger
   next
     case (IntegerEqualsNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = IntegerEqualsNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using IntegerEqualsNode
+      using rep.IntegerEqualsNode by presburger
   next
     case (IntegerLessThanNode n x y xe ye)
-    then show ?case sorry
+    then have kind: "kind g n = IntegerLessThanNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using IntegerLessThanNode
+      using rep.IntegerLessThanNode by presburger
   next
     case (NarrowNode n inputBits resultBits x xe)
-    then show ?case sorry
+    then have kind: "kind g n = NarrowNode inputBits resultBits x"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using NarrowNode
+      using rep.NarrowNode by presburger
   next
     case (SignExtendNode n inputBits resultBits x xe)
-    then show ?case sorry
+    then have kind: "kind g n = SignExtendNode inputBits resultBits x"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using SignExtendNode
+      using rep.SignExtendNode by presburger
   next
     case (ZeroExtendNode n inputBits resultBits x xe)
-    then show ?case sorry
+    then have kind: "kind g n = ZeroExtendNode inputBits resultBits x"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using ZeroExtendNode
+      using rep.ZeroExtendNode by presburger
   next
     case (LeafNode n s)
-    then show ?case sorry
+    then show ?case
+      by (metis no_encoding rep.LeafNode)
   next
     case (RefNode n n' e)
-    then show ?case sorry
+    then have kind: "kind g n = RefNode n'"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{n'} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "n' \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "n' \<notin> new"
+      using new_def unchanged by blast
+    then show ?case
+      using RefNode
+      using rep.RefNode by presburger
   qed 
 qed
 
@@ -2429,7 +2673,7 @@ theorem unrep_maximal_sharing:
       by (metis ConstantNodeNew.hyps(3) add_node_as_set)
     show ?case unfolding maximal_sharing apply (rule allI; rule allI; rule impI)
       using ConstantNodeNew(5) unfolding maximal_sharing apply auto
-      (*using preserves dom*) proof -
+      proof -
       fix n\<^sub>1 n\<^sub>2 e
       assume 1: "\<forall>n\<^sub>1 n\<^sub>2.
           n\<^sub>1 \<in> true_ids g \<and> n\<^sub>2 \<in> true_ids g \<longrightarrow>
@@ -2457,16 +2701,56 @@ theorem unrep_maximal_sharing:
             using n1 n2
             using n1rep n2rep by blast
         next
-          case False
-          then show ?thesis sorry
+          case n2: False
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have n1rep: "g \<turnstile> n\<^sub>1 \<simeq> e"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            using ConstantNodeNew.prems(1) IRGraph.true_ids_def n1 unchanged by auto
+          have n2rep: "g \<turnstile> n\<^sub>2 \<simeq> e"
+            using n2rep' kind_eq stamp_eq new_def add_preserves_rep
+            using ConstantNodeNew.prems(1) IRGraph.true_ids_def unchanged
+            by (metis (mono_tags, lifting) ConstantNodeE ConstantNodeNew.hyps(1) ConstantNodeNew.hyps(3) DiffD2 UnE \<open>kind g' n = ConstantNode c\<close> \<open>n\<^sub>1 \<in> true_ids g'\<close> \<open>n\<^sub>2 \<in> true_ids g'\<close> \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> dom encodes_contains eval_contains_id find_new_stamp find_none mem_Collect_eq n1rep n2 rep_constant singletonD)
+          have "stamp g n\<^sub>1 = stamp g n\<^sub>2"
+            by (metis ConstantNodeNew.hyps(3) \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> fresh_node_subset n1rep n2rep new subset_stamp)
+          then show ?thesis using n1rep n2rep
+            by (metis UnE \<open>n\<^sub>2 \<in> true_ids g'\<close> dom empty_iff insertE n2 new no_encoding)
         qed
       next
-        case False
-        then show ?thesis proof (cases "n\<^sub>2 \<in> true_ids g")
-          case True
-          then show ?thesis sorry
+        case n1: False
+        then show "g' \<turnstile> n\<^sub>1 \<simeq> e \<Longrightarrow> g' \<turnstile> n\<^sub>2 \<simeq> e \<Longrightarrow> stamp g' n\<^sub>1 = stamp g' n\<^sub>2 \<Longrightarrow> n\<^sub>1 = n\<^sub>2"
+        proof (cases "n\<^sub>2 \<in> true_ids g")
+          case n2: True
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have n1rep: "g \<turnstile> n\<^sub>1 \<simeq> e"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            using ConstantNodeNew.prems(1) IRGraph.true_ids_def n1 unchanged
+            by (smt (verit, best) ConstantNodeE ConstantNodeNew.hyps(1) ConstantNodeNew.hyps(3) IRNode.disc(2703) TreeToGraphThms.true_ids_def UnE \<open>kind g' n = ConstantNode c\<close> \<open>n\<^sub>1 \<in> true_ids g'\<close> \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> dom find_new_stamp find_none mem_Collect_eq n2 n2rep' rep_constant singletonD)
+          have n2rep: "g \<turnstile> n\<^sub>2 \<simeq> e"
+            using n2rep' kind_eq stamp_eq new_def add_preserves_rep
+            using ConstantNodeNew.prems(1) IRGraph.true_ids_def unchanged
+            using n2 by blast
+          have "stamp g n\<^sub>1 = stamp g n\<^sub>2"
+            by (metis ConstantNodeNew.hyps(3) \<open>stamp g' n\<^sub>1 = stamp g' n\<^sub>2\<close> fresh_node_subset n1rep n2rep new subset_stamp)
+          then show ?thesis
+            by (metis UnE \<open>n\<^sub>1 \<in> true_ids g'\<close> dom n1 n1rep new no_encoding singletonD)
         next
-          case False
+          case n2: False
+          assume n1rep': "g' \<turnstile> n\<^sub>1 \<simeq> e"
+          assume n2rep': "g' \<turnstile> n\<^sub>2 \<simeq> e"
+          assume "stamp g' n\<^sub>1 = stamp g' n\<^sub>2"
+          have n1rep: "g \<turnstile> n\<^sub>1 \<simeq> e"
+            using n1rep' kind_eq stamp_eq new_def add_preserves_rep
+            using ConstantNodeNew.prems(1) IRGraph.true_ids_def n1 unchanged
+            sorry
+          have n2rep: "g \<turnstile> n\<^sub>2 \<simeq> e"
+            using n2rep' kind_eq stamp_eq new_def add_preserves_rep
+            using ConstantNodeNew.prems(1) IRGraph.true_ids_def unchanged
+            using n2 sorry
+          have "stamp g n\<^sub>1 = stamp g n\<^sub>2"
           then show ?thesis sorry
         qed
       qed

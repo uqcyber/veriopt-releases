@@ -109,11 +109,11 @@ fun input_edges :: "IRGraph \<Rightarrow> ID rel" where
   "input_edges g = (\<Union> i \<in> ids g. {(i,j)|j. j \<in> (inputs g i)})"
 \<comment> \<open>Find all the nodes in the graph that have nid as an input - the usages of nid\<close>
 fun usages :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
-  "usages g nid = {j. j \<in> ids g \<and> (j,nid) \<in> input_edges g}"
+  "usages g nid = {i. i \<in> ids g \<and> nid \<in> inputs g i}"
 fun successor_edges :: "IRGraph \<Rightarrow> ID rel" where
   "successor_edges g = (\<Union> i \<in> ids g. {(i,j)|j . j \<in> (succ  g i)})"
 fun predecessors :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
-  "predecessors g nid = {j. j \<in> ids g \<and> (j,nid) \<in> successor_edges g}"
+  "predecessors g nid = {i. i \<in> ids g \<and> nid \<in> succ g i}"
 fun nodes_of :: "IRGraph \<Rightarrow> (IRNode \<Rightarrow> bool) \<Rightarrow> ID set" where
   "nodes_of g sel = {nid \<in> ids g . sel (kind g nid)}"
 fun edge :: "(IRNode \<Rightarrow> 'a) \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> 'a" where

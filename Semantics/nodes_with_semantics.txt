@@ -1,0 +1,55 @@
+# this file lists all nodes we want to translate into Isabelle
+# because we have defined the semantics of those nodes.
+
+# nodes that have semantics implemented in IRStepObj.thy
+EndNode
+FrameState  # we ignore these
+IfNode
+InvokeNode
+InvokeWithExceptionNode
+LoadFieldNode
+LoopBeginNode
+LoopEndNode
+MergeNode
+MethodCallTargetNode
+NewInstanceNode
+ReturnNode
+SignedDivNode
+SignedRemNode
+StoreFieldNode
+UnwindNode
+ValuePhiNode
+# sequential nodes
+BeginNode
+KillingBeginNode
+LoopBeginNode
+LoopExitNode
+MergeNode
+RefNode
+StartNode
+
+# expression nodes with semantics implemented in IRTreeEval.thy
+AbsNode
+AddNode
+AndNode
+ConditionalNode
+ConstantNode
+IntegerBelowNode
+IntegerEqualsNode
+IntegerLessThanNode
+LeftShiftNode
+LogicNegationNode
+MulNode
+NarrowNode
+NegateNode
+NotNode
+OrNode
+ParameterNode
+RefNode
+RightShiftNode
+SignExtendNode
+SubNode
+UnsignedRightShiftNode
+XorNode
+ZeroExtendNode
+

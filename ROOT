@@ -21,7 +21,7 @@ session Semantics in Semantics = Graph +
   description
     "Semantics of the GraalVM IR"
   options [document = pdf, document_output = "output",
-           show_question_marks = false]
+           show_question_marks = false, quick_and_dirty]
   sessions
     "HOL-Eisbach"
   theories
@@ -104,7 +104,7 @@ session Tests in Tests = Semantics +
   theories
     AssertTesting
     ExecExamples
-    (*Test: UnitTesting*)
+    UnitTesting
     (*Test: ArithmeticTesting*)
     (*ConditionalEliminationTests*)
 

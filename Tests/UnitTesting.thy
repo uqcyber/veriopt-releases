@@ -3,10 +3,11 @@ section \<open>Testing of IR Semantics based on GraalVM Unit Tests\<close>
 theory UnitTesting
   imports
     Semantics.IRStepObj
-    (*Parsing*)
 begin
 
-declare [[ML_source_trace, ML_debugger]]
+declare [[ML_source_trace]]
+
+subsection \<open>Unit test helper functions\<close>
 
 inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
   where
@@ -16,15 +17,19 @@ inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE) static_test .
 
+
 (* get the return value of the top-most function *)
 fun get_result :: "(IRGraph \<times> ID \<times> MapState \<times> Params) \<Rightarrow> Value" where
   "get_result (g,i,m,p) = m 0"
-(* export_code get_result *)
 
 
-(* object_test and program_test run a static initialisation block first
-   (to initialise static fields etc.), then a named method.
-*)
+text \<open>$object_test$ and $program_test$ run a static initialisation block first
+   (to initialise static fields etc.), then a named method graph.  
+  The $program_test$ driver takes an expected result value as an input,
+  whereas the $object_test$ driver takes a result-checking function as input.
+  This result-checking function is given the output heap as well as the result of the method,
+  so that it can check various fields or properties of the method output.
+  \<close>
 inductive object_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> (Value \<Rightarrow> FieldRefHeap \<Rightarrow> bool) => bool"
   where
   InitStatics:
@@ -57,448 +62,121 @@ inductive program_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value l
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testP) program_test .
 
-(* Lorg/graalvm/compiler/core/test/VeriOptFactorialTest;.factAsAnObject*)
-definition unit_factAsAnObject_2 :: Program where
-  "unit_factAsAnObject_2 = Map.empty (
-  ''org.graalvm.compiler.core.test.VeriOptFactorialTest.factAsAnObject(I)Lorg/graalvm/compiler/core/test/VeriOptFactorialTest$FactResult;'' \<mapsto> irgraph [
+
+subsection \<open>Unit test helper functions - Debug versions\<close>
+
+inductive program_test_debug :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> nat \<Rightarrow> ID \<times> MapState \<times> Params \<Rightarrow> bool"
+  where
+  NoStatics:
+  "\<lbrakk>'''' \<notin> dom prog;
+    Some g = prog m;
+    config1 = (g, 0, new_map_state, ps);
+    exec_debug prog ([config1, config1], new_heap) steps ((end2 # xs2), heap2) \<rbrakk>
+    \<Longrightarrow> program_test_debug prog m ps steps (prod.snd end2)"
+(* output end2 has type: "(IRGraph \<times> ID \<times> MapState \<times> Params)" *)
+code_pred (
+    modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testPin,
+           i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as testPout) program_test_debug .
+
+(* Example of using program_test_debug:
+values "{m | m . program_test_debug prog mathodName paramList steps m}"
+*)
+
+inductive static_test_debug :: "IRGraph \<Rightarrow> Value list \<Rightarrow> nat \<Rightarrow>  ID \<times> MapState \<times> Params \<Rightarrow> bool"
+  where
+  "program_test_debug (Map.empty (''_'' \<mapsto> g)) ''_'' ps steps out 
+   \<Longrightarrow> static_test_debug g ps steps out"
+code_pred (
+    modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testGin,
+           i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as testGout) static_test_debug .
+
+(* Example of using static_test_debug:
+values "{m | m . static_test_debug graph paramList steps m}"
+*)
+
+
+
+subsection \<open>Start of Translated Unit Tests\<close>
+
+
+
+(* Lorg/graalvm/compiler/jtt/hotpath/HP_field02;.HP_field02_test*)
+definition unit_HP_field02_test_1936 :: Program where
+  "unit_HP_field02_test_1936 = Map.empty (
+  ''org.graalvm.compiler.jtt.hotpath.HP_field02.test(I)I'' \<mapsto> irgraph [
   (0, (StartNode (Some 2) 3), VoidStamp),
   (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
   (2, (FrameState [] None None None), IllegalStamp),
-  (3, (NewInstanceNode 3 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' None 6), ObjectStamp ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' True True False),
-  (4, (FrameState [] None None None), IllegalStamp),
-  (5, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (6, (StoreFieldNode 6 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' 5 (Some 8) (Some 3) 10), VoidStamp),
-  (7, (FrameState [] None None None), IllegalStamp),
-  (8, (FrameState [] (Some 7) None None), IllegalStamp),
-  (10, (EndNode), VoidStamp),
-  (11, (LoopBeginNode [10] None (Some 13) 20), VoidStamp),
-  (12, (ValuePhiNode 12 [1, 25] 11), IntegerStamp 32 (-2147483648) (2147483647)),
-  (13, (FrameState [] None None None), IllegalStamp),
-  (14, (ConstantNode (IntVal32 (2))), IntegerStamp 32 (2) (2)),
-  (15, (IntegerLessThanNode 12 14), VoidStamp),
-  (16, (BeginNode 22), VoidStamp),
-  (18, (LoopExitNode 11 (Some 19) 27), VoidStamp),
-  (19, (FrameState [] None None None), IllegalStamp),
-  (20, (IfNode 15 18 16), VoidStamp),
-  (21, (MethodCallTargetNode ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult.multiply(I)V'' [3, 12]), VoidStamp),
-  (22, (InvokeNode 22 21 None None (Some 23) 26), VoidStamp),
-  (23, (FrameState [] None None None), IllegalStamp),
-  (24, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
-  (25, (AddNode 12 24), IntegerStamp 32 (-2147483648) (2147483647)),
-  (26, (LoopEndNode 11), VoidStamp),
-  (27, (ReturnNode (Some 3) None), VoidStamp)
+  (3, (NewInstanceNode 3 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass'' None 21), ObjectStamp ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass'' True True False),
+  (4, (ConstantNode (ObjRef None)), ObjectStamp ''null'' False False True),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (FrameState [] None None None), IllegalStamp),
+  (7, (FrameState [] (Some 6) None None), IllegalStamp),
+  (20, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
+  (21, (StoreFieldNode 21 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::a'' 20 (Some 7) (Some 3) 22), VoidStamp),
+  (22, (StoreFieldNode 22 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::b'' 20 (Some 7) (Some 3) 23), VoidStamp),
+  (23, (StoreFieldNode 23 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::c'' 20 (Some 7) (Some 3) 9), VoidStamp),
+  (8, (MethodCallTargetNode ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass.run(I)I'' [3, 1]), VoidStamp),
+  (9, (InvokeNode 9 8 None None (Some 10) 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (FrameState [] None None None), IllegalStamp),
+  (11, (ReturnNode (Some 9) None), VoidStamp)
   ],
-  ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult.multiply(I)V'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 4), VoidStamp),
-  (1, (ParameterNode 0), ObjectStamp ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' True True False),
+  ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass.run(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 6), VoidStamp),
+  (1, (ParameterNode 0), ObjectStamp ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass'' True True False),
   (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
   (3, (FrameState [] None None None), IllegalStamp),
-  (4, (LoadFieldNode 4 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' (Some 1) 6), IntegerStamp 32 (-2147483648) (2147483647)),
-  (5, (MulNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (StoreFieldNode 6 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' 5 (Some 7) (Some 1) 8), VoidStamp),
-  (7, (FrameState [] None None None), IllegalStamp),
-  (8, (ReturnNode None None), VoidStamp)
-  ]
-  )"
-fun check_result_2 :: "Value \<Rightarrow> FieldRefHeap \<Rightarrow> bool" where
-  "check_result_2 (ObjRef x) h = (h_load_field ''value'' x h = (IntVal32 (120)))" |
-  "check_result_2 _ _ = False"
-(* code_thms check_result_2 *)
-(* export_code check_result_2 *)
-(* declare [[code_preproc_trace]] *)
-value "object_test unit_factAsAnObject_2 
-    ''org.graalvm.compiler.core.test.VeriOptFactorialTest.factAsAnObject(I)Lorg/graalvm/compiler/core/test/VeriOptFactorialTest$FactResult;''
-    [(IntVal32 (5))]
-    check_result_2"
-(* But this gives the following error:
-     exception Match raised (line 8104 of "generated code")'
-*)
-
-
-
-(* Lorg/graalvm/compiler/api/directives/test/OpaqueDirectiveTest;.booleanSnippet*)
-definition unit_booleanSnippet_21 :: IRGraph where  "unit_booleanSnippet_21 = irgraph [
-  (0, (StartNode (Some 1) 3), VoidStamp),
-  (1, (FrameState [] None None None), IllegalStamp),
-  (2, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (3, (ReturnNode (Some 2) None), VoidStamp)
-  ]"
-value "static_test unit_booleanSnippet_21 [] (IntVal32 (1))"
-
-(*
-graph \<open>
-0: (StartNode (Some 2) 11, VoidStamp)
-1: (ParameterNode 0, IntegerStamp 32 (-2147483648) (2147483647))
-2: (FrameState [] None None None, IllegalStamp)
-3: (ConstantNode (IntVal32 (3)), IntegerStamp 32 (3) (3))
-4: (ConstantNode (IntVal32 (4)), IntegerStamp 32 (4) (4))
-5: (IntegerLessThanNode 1 4, VoidStamp)
-6: (ConstantNode (IntVal32 (0)), IntegerStamp 32 (0) (0))
-7: (ConstantNode (IntVal32 (1)), IntegerStamp 32 (1) (1))
-8: (ConditionalNode 5 6 7, IntegerStamp 32 (0) (1))
-9: (BeginNode 12, VoidStamp)
-10: (BeginNode 13, VoidStamp)
-11: (IfNode 5 10 9, VoidStamp)
-12: (ReturnNode (Some 7) None, VoidStamp)
-13: (ReturnNode (Some 7) None, VoidStamp)
-\<close>
-
-graph_file \<open>test.graph\<close>
-*)
-
-
-(* Lorg/graalvm/compiler/api/directives/test/BlackholeDirectiveTest;.booleanSnippet*)
-definition unit_booleanSnippet_3 :: IRGraph where  "unit_booleanSnippet_3 = irgraph [
-  (0, (StartNode (Some 2) 11), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (FrameState [] None None None), IllegalStamp),
-  (3, (ConstantNode (IntVal32 (3))), IntegerStamp 32 (3) (3)),
-  (4, (ConstantNode (IntVal32 (4))), IntegerStamp 32 (4) (4)),
-  (5, (IntegerLessThanNode 1 4), VoidStamp),
-  (6, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
-  (7, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (8, (ConditionalNode 5 6 7), IntegerStamp 32 (0) (1)),
-  (9, (BeginNode 12), VoidStamp),
-  (10, (BeginNode 13), VoidStamp),
-  (11, (IfNode 5 10 9), VoidStamp),
-  (12, (ReturnNode (Some 7) None), VoidStamp),
-  (13, (ReturnNode (Some 7) None), VoidStamp)
-  ]"
-value "static_test unit_booleanSnippet_3 [(IntVal32 (5))] (IntVal32 (1))"
-
-
-(* Lorg/graalvm/compiler/core/test/DontReuseArgumentSpaceTest;.callTwice*)
-definition unit_callTwice_343 :: Program where
-  "unit_callTwice_343 = Map.empty (
-  ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.callTwice(IIIIIIIIII)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 11) 13), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (ParameterNode 2), IntegerStamp 32 (-2147483648) (2147483647)),
-  (4, (ParameterNode 3), IntegerStamp 32 (-2147483648) (2147483647)),
-  (5, (ParameterNode 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (ParameterNode 5), IntegerStamp 32 (-2147483648) (2147483647)),
-  (7, (ParameterNode 6), IntegerStamp 32 (-2147483648) (2147483647)),
-  (8, (ParameterNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
-  (9, (ParameterNode 8), IntegerStamp 32 (-2147483648) (2147483647)),
-  (10, (ParameterNode 9), IntegerStamp 32 (-2147483648) (2147483647)),
-  (11, (FrameState [] None None None), IllegalStamp),
-  (12, (MethodCallTargetNode ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.killArguments(IIIIIIIIII)I'' [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), VoidStamp),
-  (13, (InvokeNode 13 12 None None (Some 14) 16), IntegerStamp 32 (-2147483648) (2147483647)),
+  (4, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (EndNode), VoidStamp),
+  (7, (LoopBeginNode [6, 48] None (Some 9) 15), VoidStamp),
+  (8, (ValuePhiNode 8 [4, 47] 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (IntegerLessThanNode 2 8), VoidStamp),
+  (11, (BeginNode 21), VoidStamp),
+  (13, (LoopExitNode 7 (Some 14) 49), VoidStamp),
   (14, (FrameState [] None None None), IllegalStamp),
-  (15, (MethodCallTargetNode ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.killArguments(IIIIIIIIII)I'' [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), VoidStamp),
-  (16, (InvokeNode 16 15 None None (Some 17) 18), IntegerStamp 32 (-2147483648) (2147483647)),
-  (17, (FrameState [] None None None), IllegalStamp),
-  (18, (ReturnNode (Some 16) None), VoidStamp)
-  ],
-  ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.killArguments(IIIIIIIIII)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 11) 21), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (ParameterNode 2), IntegerStamp 32 (-2147483648) (2147483647)),
-  (4, (ParameterNode 3), IntegerStamp 32 (-2147483648) (2147483647)),
-  (5, (ParameterNode 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (ParameterNode 5), IntegerStamp 32 (-2147483648) (2147483647)),
-  (7, (ParameterNode 6), IntegerStamp 32 (-2147483648) (2147483647)),
-  (8, (ParameterNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
-  (9, (ParameterNode 8), IntegerStamp 32 (-2147483648) (2147483647)),
-  (10, (ParameterNode 9), IntegerStamp 32 (-2147483648) (2147483647)),
-  (11, (FrameState [] None None None), IllegalStamp),
-  (12, (AddNode 1 2), IntegerStamp 32 (-2147483648) (2147483647)),
-  (13, (AddNode 3 12), IntegerStamp 32 (-2147483648) (2147483647)),
-  (14, (AddNode 4 13), IntegerStamp 32 (-2147483648) (2147483647)),
-  (15, (AddNode 5 14), IntegerStamp 32 (-2147483648) (2147483647)),
-  (16, (AddNode 6 15), IntegerStamp 32 (-2147483648) (2147483647)),
-  (17, (AddNode 7 16), IntegerStamp 32 (-2147483648) (2147483647)),
-  (18, (AddNode 8 17), IntegerStamp 32 (-2147483648) (2147483647)),
-  (19, (AddNode 9 18), IntegerStamp 32 (-2147483648) (2147483647)),
-  (20, (AddNode 10 19), IntegerStamp 32 (-2147483648) (2147483647)),
-  (21, (ReturnNode (Some 20) None), VoidStamp)
+  (15, (IfNode 10 13 11), VoidStamp),
+  (16, (ConstantNode (IntVal32 (5))), IntegerStamp 32 (5) (5)),
+  (17, (ConstantNode (IntVal32 (6))), IntegerStamp 32 (6) (6)),
+  (18, (IntegerLessThanNode 8 17), VoidStamp),
+  (19, (BeginNode 22), VoidStamp),
+  (20, (BeginNode 32), VoidStamp),
+  (21, (IfNode 18 20 19), VoidStamp),
+  (22, (LoadFieldNode 22 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::a'' (Some 1) 24), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (AddNode 8 22), IntegerStamp 32 (-2147483648) (2147483647)),
+  (24, (StoreFieldNode 24 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::a'' 23 (Some 25) (Some 1) 37), VoidStamp),
+  (25, (FrameState [] None None None), IllegalStamp),
+  (27, (ConstantNode (IntVal32 (7))), IntegerStamp 32 (7) (7)),
+  (28, (ConstantNode (IntVal32 (8))), IntegerStamp 32 (8) (8)),
+  (29, (IntegerLessThanNode 8 28), VoidStamp),
+  (30, (BeginNode 33), VoidStamp),
+  (31, (BeginNode 40), VoidStamp),
+  (32, (IfNode 29 31 30), VoidStamp),
+  (33, (LoadFieldNode 33 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::b'' (Some 1) 35), IntegerStamp 32 (-2147483648) (2147483647)),
+  (34, (AddNode 8 33), IntegerStamp 32 (-2147483648) (2147483647)),
+  (35, (StoreFieldNode 35 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::b'' 34 (Some 36) (Some 1) 39), VoidStamp),
+  (36, (FrameState [] None None None), IllegalStamp),
+  (37, (EndNode), VoidStamp),
+  (38, (MergeNode [37, 39, 44] (Some 45) 48), VoidStamp),
+  (39, (EndNode), VoidStamp),
+  (40, (LoadFieldNode 40 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::c'' (Some 1) 42), IntegerStamp 32 (-2147483648) (2147483647)),
+  (41, (AddNode 8 40), IntegerStamp 32 (-2147483648) (2147483647)),
+  (42, (StoreFieldNode 42 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::c'' 41 (Some 43) (Some 1) 44), VoidStamp),
+  (43, (FrameState [] None None None), IllegalStamp),
+  (44, (EndNode), VoidStamp),
+  (45, (FrameState [] None None None), IllegalStamp),
+  (46, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
+  (47, (AddNode 8 46), IntegerStamp 32 (-2147483648) (2147483647)),
+  (48, (LoopEndNode 7), VoidStamp),
+  (49, (LoadFieldNode 49 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::a'' (Some 1) 50), IntegerStamp 32 (-2147483648) (2147483647)),
+  (50, (LoadFieldNode 50 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::b'' (Some 1) 52), IntegerStamp 32 (-2147483648) (2147483647)),
+  (51, (AddNode 49 50), IntegerStamp 32 (-2147483648) (2147483647)),
+  (52, (LoadFieldNode 52 ''org.graalvm.compiler.jtt.hotpath.HP_field02$TestClass::c'' (Some 1) 54), IntegerStamp 32 (-2147483648) (2147483647)),
+  (53, (AddNode 51 52), IntegerStamp 32 (-2147483648) (2147483647)),
+  (54, (ReturnNode (Some 53) None), VoidStamp)
   ]
   )"
-value "program_test unit_callTwice_343 ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.callTwice(IIIIIIIIII)I'' [(IntVal32 (1)), (IntVal32 (2)), (IntVal32 (3)), (IntVal32 (4)), (IntVal32 (5)), (IntVal32 (6)), (IntVal32 (7)), (IntVal32 (8)), (IntVal32 (9)), (IntVal32 (10))] (IntVal32 (55))"
+value "program_test unit_HP_field02_test_1936 ''org.graalvm.compiler.jtt.hotpath.HP_field02.test(I)I'' [(IntVal32 (40))] (IntVal32 (820))"
 
-
-(* Lorg/graalvm/compiler/replacements/test/UnsignedIntegerTest;.compareInteger*)
-definition unit_compareInteger_16194 :: Program where
-  "unit_compareInteger_16194 = Map.empty (
-  ''org.graalvm.compiler.replacements.test.UnsignedIntegerTest.compareInteger(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 5), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (MethodCallTargetNode ''java.lang.Integer.compareUnsigned(II)I'' [1, 2]), VoidStamp),
-  (5, (InvokeNode 5 4 None None (Some 6) 7), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (FrameState [] None None None), IllegalStamp),
-  (7, (ReturnNode (Some 5) None), VoidStamp)
-  ],
-  ''java.lang.Integer.compareUnsigned(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 8), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (ConstantNode (IntVal32 (-2147483648))), IntegerStamp 32 (-2147483648) (-2147483648)),
-  (5, (AddNode 1 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (AddNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (7, (MethodCallTargetNode ''java.lang.Integer.compare(II)I'' [5, 6]), VoidStamp),
-  (8, (InvokeNode 8 7 None None (Some 9) 10), IntegerStamp 32 (-2147483648) (2147483647)),
-  (9, (FrameState [] None None None), IllegalStamp),
-  (10, (ReturnNode (Some 8) None), VoidStamp)
-  ],
-  ''java.lang.Integer.compare(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 7), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (IntegerLessThanNode 1 2), VoidStamp),
-  (5, (BeginNode 16), VoidStamp),
-  (6, (BeginNode 14), VoidStamp),
-  (7, (IfNode 4 6 5), VoidStamp),
-  (8, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
-  (10, (IntegerEqualsNode 1 2), VoidStamp),
-  (11, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
-  (12, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (13, (ConditionalNode 10 11 12), IntegerStamp 32 (0) (1)),
-  (14, (EndNode), VoidStamp),
-  (15, (MergeNode [14, 16] (Some 18) 19), VoidStamp),
-  (16, (EndNode), VoidStamp),
-  (17, (ValuePhiNode 17 [8, 13] 15), IntegerStamp 32 (-1) (1)),
-  (18, (FrameState [] None None None), IllegalStamp),
-  (19, (ReturnNode (Some 17) None), VoidStamp)
-  ]
-  )"
-value "program_test unit_compareInteger_16194 ''org.graalvm.compiler.replacements.test.UnsignedIntegerTest.compareInteger(II)I'' [(IntVal32 (5)), (IntVal32 (7))] (IntVal32 (-1))"
-
-
-(* Lorg/graalvm/compiler/replacements/test/UnsignedIntegerTest;.compareInteger*)
-definition unit_compareInteger_16197 :: Program where
-  "unit_compareInteger_16197 = Map.empty (
-  ''org.graalvm.compiler.replacements.test.UnsignedIntegerTest.compareInteger(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 5), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (MethodCallTargetNode ''java.lang.Integer.compareUnsigned(II)I'' [1, 2]), VoidStamp),
-  (5, (InvokeNode 5 4 None None (Some 6) 7), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (FrameState [] None None None), IllegalStamp),
-  (7, (ReturnNode (Some 5) None), VoidStamp)
-  ],
-  ''java.lang.Integer.compareUnsigned(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 8), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (ConstantNode (IntVal32 (-2147483648))), IntegerStamp 32 (-2147483648) (-2147483648)),
-  (5, (AddNode 1 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (AddNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (7, (MethodCallTargetNode ''java.lang.Integer.compare(II)I'' [5, 6]), VoidStamp),
-  (8, (InvokeNode 8 7 None None (Some 9) 10), IntegerStamp 32 (-2147483648) (2147483647)),
-  (9, (FrameState [] None None None), IllegalStamp),
-  (10, (ReturnNode (Some 8) None), VoidStamp)
-  ],
-  ''java.lang.Integer.compare(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 7), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (IntegerLessThanNode 1 2), VoidStamp),
-  (5, (BeginNode 16), VoidStamp),
-  (6, (BeginNode 14), VoidStamp),
-  (7, (IfNode 4 6 5), VoidStamp),
-  (8, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
-  (10, (IntegerEqualsNode 1 2), VoidStamp),
-  (11, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
-  (12, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (13, (ConditionalNode 10 11 12), IntegerStamp 32 (0) (1)),
-  (14, (EndNode), VoidStamp),
-  (15, (MergeNode [14, 16] (Some 18) 19), VoidStamp),
-  (16, (EndNode), VoidStamp),
-  (17, (ValuePhiNode 17 [8, 13] 15), IntegerStamp 32 (-1) (1)),
-  (18, (FrameState [] None None None), IllegalStamp),
-  (19, (ReturnNode (Some 17) None), VoidStamp)
-  ]
-  )"
-value "program_test unit_compareInteger_16197 ''org.graalvm.compiler.replacements.test.UnsignedIntegerTest.compareInteger(II)I'' [(IntVal32 (-3)), (IntVal32 (-7))] (IntVal32 (1))"
-
-
-(* Lorg/graalvm/compiler/replacements/test/UnsignedIntegerTest;.compareInteger*)
-definition unit_compareInteger_16200 :: Program where
-  "unit_compareInteger_16200 = Map.empty (
-  ''org.graalvm.compiler.replacements.test.UnsignedIntegerTest.compareInteger(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 5), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (MethodCallTargetNode ''java.lang.Integer.compareUnsigned(II)I'' [1, 2]), VoidStamp),
-  (5, (InvokeNode 5 4 None None (Some 6) 7), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (FrameState [] None None None), IllegalStamp),
-  (7, (ReturnNode (Some 5) None), VoidStamp)
-  ],
-  ''java.lang.Integer.compareUnsigned(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 8), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (ConstantNode (IntVal32 (-2147483648))), IntegerStamp 32 (-2147483648) (-2147483648)),
-  (5, (AddNode 1 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (AddNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (7, (MethodCallTargetNode ''java.lang.Integer.compare(II)I'' [5, 6]), VoidStamp),
-  (8, (InvokeNode 8 7 None None (Some 9) 10), IntegerStamp 32 (-2147483648) (2147483647)),
-  (9, (FrameState [] None None None), IllegalStamp),
-  (10, (ReturnNode (Some 8) None), VoidStamp)
-  ],
-  ''java.lang.Integer.compare(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 7), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (IntegerLessThanNode 1 2), VoidStamp),
-  (5, (BeginNode 16), VoidStamp),
-  (6, (BeginNode 14), VoidStamp),
-  (7, (IfNode 4 6 5), VoidStamp),
-  (8, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
-  (10, (IntegerEqualsNode 1 2), VoidStamp),
-  (11, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
-  (12, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (13, (ConditionalNode 10 11 12), IntegerStamp 32 (0) (1)),
-  (14, (EndNode), VoidStamp),
-  (15, (MergeNode [14, 16] (Some 18) 19), VoidStamp),
-  (16, (EndNode), VoidStamp),
-  (17, (ValuePhiNode 17 [8, 13] 15), IntegerStamp 32 (-1) (1)),
-  (18, (FrameState [] None None None), IllegalStamp),
-  (19, (ReturnNode (Some 17) None), VoidStamp)
-  ]
-  )"
-value "program_test unit_compareInteger_16200 ''org.graalvm.compiler.replacements.test.UnsignedIntegerTest.compareInteger(II)I'' [(IntVal32 (-3)), (IntVal32 (7))] (IntVal32 (1))"
-
-
-(* Lorg/graalvm/compiler/replacements/test/UnsignedIntegerTest;.compareInteger*)
-definition unit_compareInteger_16203 :: Program where
-  "unit_compareInteger_16203 = Map.empty (
-  ''org.graalvm.compiler.replacements.test.UnsignedIntegerTest.compareInteger(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 5), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (MethodCallTargetNode ''java.lang.Integer.compareUnsigned(II)I'' [1, 2]), VoidStamp),
-  (5, (InvokeNode 5 4 None None (Some 6) 7), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (FrameState [] None None None), IllegalStamp),
-  (7, (ReturnNode (Some 5) None), VoidStamp)
-  ],
-  ''java.lang.Integer.compareUnsigned(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 8), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (ConstantNode (IntVal32 (-2147483648))), IntegerStamp 32 (-2147483648) (-2147483648)),
-  (5, (AddNode 1 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (6, (AddNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
-  (7, (MethodCallTargetNode ''java.lang.Integer.compare(II)I'' [5, 6]), VoidStamp),
-  (8, (InvokeNode 8 7 None None (Some 9) 10), IntegerStamp 32 (-2147483648) (2147483647)),
-  (9, (FrameState [] None None None), IllegalStamp),
-  (10, (ReturnNode (Some 8) None), VoidStamp)
-  ],
-  ''java.lang.Integer.compare(II)I'' \<mapsto> irgraph [
-  (0, (StartNode (Some 3) 7), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
-  (3, (FrameState [] None None None), IllegalStamp),
-  (4, (IntegerLessThanNode 1 2), VoidStamp),
-  (5, (BeginNode 16), VoidStamp),
-  (6, (BeginNode 14), VoidStamp),
-  (7, (IfNode 4 6 5), VoidStamp),
-  (8, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
-  (10, (IntegerEqualsNode 1 2), VoidStamp),
-  (11, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
-  (12, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (13, (ConditionalNode 10 11 12), IntegerStamp 32 (0) (1)),
-  (14, (EndNode), VoidStamp),
-  (15, (MergeNode [14, 16] (Some 18) 19), VoidStamp),
-  (16, (EndNode), VoidStamp),
-  (17, (ValuePhiNode 17 [8, 13] 15), IntegerStamp 32 (-1) (1)),
-  (18, (FrameState [] None None None), IllegalStamp),
-  (19, (ReturnNode (Some 17) None), VoidStamp)
-  ]
-  )"
-value "program_test unit_compareInteger_16203 ''org.graalvm.compiler.replacements.test.UnsignedIntegerTest.compareInteger(II)I'' [(IntVal32 (42)), (IntVal32 (-5))] (IntVal32 (-1))"
-
-
-(* Lorg/graalvm/compiler/core/test/ConditionalNodeTest;.conditionalTest0*)
-definition unit_conditionalTest0_80 :: IRGraph where  "unit_conditionalTest0_80 = irgraph [
-  (0, (StartNode (Some 2) 7), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (FrameState [] None None None), IllegalStamp),
-  (3, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (4, (IntegerEqualsNode 1 3), VoidStamp),
-  (5, (BeginNode 14), VoidStamp),
-  (6, (BeginNode 10), VoidStamp),
-  (7, (IfNode 4 6 5), VoidStamp),
-  (8, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
-  (9, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
-  (10, (StoreFieldNode 10 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink1'' 9 (Some 11) None 16), VoidStamp),
-  (11, (FrameState [] None None None), IllegalStamp),
-  (13, (ConstantNode (IntVal32 (6))), IntegerStamp 32 (6) (6)),
-  (14, (StoreFieldNode 14 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink1'' 3 (Some 15) None 18), VoidStamp),
-  (15, (FrameState [] None None None), IllegalStamp),
-  (16, (EndNode), VoidStamp),
-  (17, (MergeNode [16, 18] (Some 20) 21), VoidStamp),
-  (18, (EndNode), VoidStamp),
-  (19, (ValuePhiNode 19 [8, 13] 17), IntegerStamp 32 (-1) (6)),
-  (20, (FrameState [] None None None), IllegalStamp),
-  (21, (StoreFieldNode 21 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink0'' 3 (Some 22) None 27), VoidStamp),
-  (22, (FrameState [] None None None), IllegalStamp),
-  (23, (FrameState [] None None None), IllegalStamp),
-  (24, (IntegerLessThanNode 19 13), VoidStamp),
-  (25, (BeginNode 29), VoidStamp),
-  (26, (BeginNode 31), VoidStamp),
-  (27, (IfNode 24 26 25), VoidStamp),
-  (29, (EndNode), VoidStamp),
-  (30, (MergeNode [29, 31] (Some 34) 35), VoidStamp),
-  (31, (EndNode), VoidStamp),
-  (32, (ValuePhiNode 32 [19, 13] 30), IntegerStamp 32 (-1) (6)),
-  (33, (FrameState [] None None None), IllegalStamp),
-  (34, (FrameState [] (Some 33) None None), IllegalStamp),
-  (35, (ReturnNode (Some 32) None), VoidStamp)
-  ]"
-value "static_test unit_conditionalTest0_80 [(IntVal32 (0))] (IntVal32 (6))"
-
-
-(* Lorg/graalvm/compiler/core/test/ConditionalNodeTest;.conditionalTest0*)
-definition unit_conditionalTest0_81 :: IRGraph where  "unit_conditionalTest0_81 = irgraph [
-  (0, (StartNode (Some 2) 7), VoidStamp),
-  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
-  (2, (FrameState [] None None None), IllegalStamp),
-  (3, (ConstantNode (IntVal32 (1))), IntegerStamp 32 (1) (1)),
-  (4, (IntegerEqualsNode 1 3), VoidStamp),
-  (5, (BeginNode 14), VoidStamp),
-  (6, (BeginNode 10), VoidStamp),
-  (7, (IfNode 4 6 5), VoidStamp),
-  (8, (ConstantNode (IntVal32 (-1))), IntegerStamp 32 (-1) (-1)),
-  (9, (ConstantNode (IntVal32 (0))), IntegerStamp 32 (0) (0)),
-  (10, (StoreFieldNode 10 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink1'' 9 (Some 11) None 16), VoidStamp),
-  (11, (FrameState [] None None None), IllegalStamp),
-  (13, (ConstantNode (IntVal32 (6))), IntegerStamp 32 (6) (6)),
-  (14, (StoreFieldNode 14 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink1'' 3 (Some 15) None 18), VoidStamp),
-  (15, (FrameState [] None None None), IllegalStamp),
-  (16, (EndNode), VoidStamp),
-  (17, (MergeNode [16, 18] (Some 20) 21), VoidStamp),
-  (18, (EndNode), VoidStamp),
-  (19, (ValuePhiNode 19 [8, 13] 17), IntegerStamp 32 (-1) (6)),
-  (20, (FrameState [] None None None), IllegalStamp),
-  (21, (StoreFieldNode 21 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink0'' 3 (Some 22) None 27), VoidStamp),
-  (22, (FrameState [] None None None), IllegalStamp),
-  (23, (FrameState [] None None None), IllegalStamp),
-  (24, (IntegerLessThanNode 19 13), VoidStamp),
-  (25, (BeginNode 29), VoidStamp),
-  (26, (BeginNode 31), VoidStamp),
-  (27, (IfNode 24 26 25), VoidStamp),
-  (29, (EndNode), VoidStamp),
-  (30, (MergeNode [29, 31] (Some 34) 35), VoidStamp),
-  (31, (EndNode), VoidStamp),
-  (32, (ValuePhiNode 32 [19, 13] 30), IntegerStamp 32 (-1) (6)),
-  (33, (FrameState [] None None None), IllegalStamp),
-  (34, (FrameState [] (Some 33) None None), IllegalStamp),
-  (35, (ReturnNode (Some 32) None), VoidStamp)
-  ]"
 
 end

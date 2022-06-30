@@ -428,16 +428,30 @@ end
 section \<open>Examples of Narrowing / Widening Functions\<close>
 
 experiment begin
-corollary "intval_sign_extend 8 32 (IntVal64 (-2)) = IntVal32 (-2)" by simp
-corollary "intval_sign_extend 1 32 (IntVal64 (-2)) = IntVal32 0"    by simp
-corollary "intval_sign_extend 1 32 (IntVal64 (-3)) = IntVal32 (-1)" by simp
+corollary "intval_sign_extend 8 32 (IntVal32 (-2)) = IntVal32 (-2)" by simp
+corollary "intval_sign_extend 1 32 (IntVal32 (-2)) = IntVal32 0"    by simp
+corollary "intval_sign_extend 1 32 (IntVal32 (-3)) = IntVal32 (-1)" by simp
 
-corollary "intval_sign_extend 8 32 (IntVal64 (-2)) = IntVal32 (-2)" by simp
-corollary "intval_sign_extend 1 32 (IntVal64 (-2)) = IntVal32 0"    by simp
-corollary "intval_sign_extend 1 32 (IntVal64 (-3)) = IntVal32 (-1)" by simp
+corollary "intval_sign_extend 8 32 (IntVal32 (-2)) = IntVal32 (-2)" by simp
+corollary "intval_sign_extend 1 32 (IntVal32 (-2)) = IntVal32 0"    by simp
+corollary "intval_sign_extend 1 32 (IntVal32 (-3)) = IntVal32 (-1)" by simp
 
+(* now test some 64 bit inputs and outputs *)
+corollary "intval_sign_extend 8 32 (IntVal64 (-2)) = UndefVal" by simp
+corollary "intval_sign_extend 8 64 (IntVal64 (-2)) = UndefVal" by simp
+corollary "intval_sign_extend 8 64 (IntVal32 (-2)) = IntVal64 (-2)" by simp
+corollary "intval_sign_extend 64 64 (IntVal64 (-2)) = IntVal64 (-2)" by simp
+end
+
+
+experiment begin
+corollary "intval_zero_extend 8 32 (IntVal32 (-2)) = IntVal32 254" by simp
+corollary "intval_zero_extend 1 32 (IntVal32 (-1)) = IntVal32 1"   by code_simp
+
+(* now test some 64 bit inputs and outputs *)
 corollary "intval_zero_extend 8 32 (IntVal64 (-2)) = IntVal32 254" by simp
-corollary "intval_zero_extend 1 32 (IntVal64 (-1)) = IntVal32 1"   by code_simp
+corollary "intval_zero_extend 8 64 (IntVal32 (-2)) = IntVal64 254" by simp
+corollary "intval_zero_extend 8 64 (IntVal64 (-2)) = IntVal64 254" by simp
 end
 
 (* Other possibly-helpful lemmas from WORD and its ancestors:

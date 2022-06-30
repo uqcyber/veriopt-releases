@@ -3,7 +3,7 @@ section \<open>Canonicalization Phase\<close>
 theory CanonicalizationTreeProofs
   imports
     CanonicalizationTree
-    Semantics.IRTreeEvalThms
+    Proofs.StampEvalThms
 begin
 
 lemma neutral_rewrite_helper:

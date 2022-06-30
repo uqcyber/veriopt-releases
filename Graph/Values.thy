@@ -268,6 +268,12 @@ subsection \<open>Narrowing and Widening Operators\<close>
 abbreviation narrow_outBits :: "nat set" where
   "narrow_outBits \<equiv> {1, 8, 16, 32}"
 
+abbreviation widen_inBits :: "nat set" where
+  "widen_inBits \<equiv> {1, 8, 16, 32}"
+
+abbreviation widen_outBits :: "nat set" where
+  "widen_outBits \<equiv> {1, 8, 16, 32, 64}"
+
 fun narrow_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
   "narrow_helper inBits outBits val =
     (if outBits \<le> inBits \<and> outBits \<in> narrow_outBits
@@ -298,19 +304,42 @@ lemma narrow_gives_32:
 fun choose_32_64 :: "nat \<Rightarrow> int64 \<Rightarrow> Value" where
   "choose_32_64 outBits v = (if outBits = 64 then (IntVal64 v) else (IntVal32 (scast v)))"
 
-fun sign_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where
-  "sign_extend_helper inBits outBits v =
-    (if outBits < inBits then UndefVal
-     else if inBits = 32 then choose_32_64 outBits v
+value "sint (signed_take_bit 7 ((256 + 128) :: int64))"
+
+fun sign_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
+  "sign_extend_helper inBits outBits val =
+    (if outBits \<ge> inBits \<and> 
+        outBits \<in> widen_outBits \<and>
+        inBits \<in> widen_inBits then
+       (if outBits = 64 
+        then IntVal64 (scast (signed_take_bit (inBits - 1) val))
+        else IntVal32 (signed_take_bit (inBits - 1) val))
+    else UndefVal)"
+
+lemma sign_extend_ok:
+  assumes "sign_extend_helper inBits outBits val \<noteq> UndefVal"
+  shows "outBits \<ge> inBits \<and> 
+        outBits \<in> widen_outBits \<and>
+        inBits \<in> widen_inBits"
+  by (meson assms sign_extend_helper.simps)
+
+value "intval (sign_extend_helper 8 64 ((256 + 254) :: int32))"
+
+(*
+WAS:
+     (if inBits = 32 then choose_32_64 outBits v
      else if inBits = 16 then choose_32_64 outBits (scast ((ucast v) :: int16))
      else if inBits = 8 then choose_32_64 outBits (scast ((ucast v) :: int8))
      else if inBits = 1 then choose_32_64 outBits (scast ((ucast v) :: int1))
-     else UndefVal)"
+*)
 
 fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_sign_extend inBits outBits (IntVal32 v) = sign_extend_helper inBits outBits (scast v)" |
-  "intval_sign_extend inBits outBits (IntVal64 v) = sign_extend_helper inBits outBits v" |
+  "intval_sign_extend inBits outBits (IntVal32 v) =
+     sign_extend_helper inBits outBits v" |
+  "intval_sign_extend inBits outBits (IntVal64 v) = 
+     (if inBits=64 \<and> outBits=64 then IntVal64 v else UndefVal)" |
   "intval_sign_extend _ _ _ = UndefVal"
+
 
 
 fun zero_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where

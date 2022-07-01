@@ -30,6 +30,10 @@ type_synonym int16 = "16 word" \<comment> \<open>short\<close>
 type_synonym int8 = "8 word" \<comment> \<open>char\<close>
 type_synonym int1 = "1 word" \<comment> \<open>boolean\<close>
 
+abbreviation valid_int_widths :: "nat set" where
+  "valid_int_widths \<equiv> {1, 8, 16, 32, 64}"
+
+
 type_synonym objref = "nat option"
 
 datatype (discs_sels) Value  =
@@ -268,12 +272,6 @@ subsection \<open>Narrowing and Widening Operators\<close>
 abbreviation narrow_outBits :: "nat set" where
   "narrow_outBits \<equiv> {1, 8, 16, 32}"
 
-abbreviation widen_inBits :: "nat set" where
-  "widen_inBits \<equiv> {1, 8, 16, 32}"
-
-abbreviation widen_outBits :: "nat set" where
-  "widen_outBits \<equiv> {1, 8, 16, 32, 64}"
-
 fun narrow_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
   "narrow_helper inBits outBits val =
     (if outBits \<le> inBits \<and> outBits \<in> narrow_outBits
@@ -308,22 +306,15 @@ value "sint (signed_take_bit 7 ((256 + 128) :: int64))"
 
 fun sign_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
   "sign_extend_helper inBits outBits val =
-    (if outBits \<ge> inBits \<and> 
-        outBits \<in> widen_outBits \<and>
-        inBits \<in> widen_inBits then
+    (if inBits \<le> outBits \<and> inBits \<le> 32 \<and>
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths
+     then
        (if outBits = 64 
         then IntVal64 (scast (signed_take_bit (inBits - 1) val))
         else IntVal32 (signed_take_bit (inBits - 1) val))
-    else UndefVal)"
+     else UndefVal)"
 
-lemma sign_extend_ok:
-  assumes "sign_extend_helper inBits outBits val \<noteq> UndefVal"
-  shows "outBits \<ge> inBits \<and> 
-        outBits \<in> widen_outBits \<and>
-        inBits \<in> widen_inBits"
-  by (meson assms sign_extend_helper.simps)
-
-value "intval (sign_extend_helper 8 64 ((256 + 254) :: int32))"
 
 (*
 WAS:
@@ -341,20 +332,60 @@ fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarro
   "intval_sign_extend _ _ _ = UndefVal"
 
 
-
-fun zero_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int64 \<Rightarrow> Value" where
-  "zero_extend_helper inBits outBits v =
-    (if outBits < inBits then UndefVal
-     else if inBits = 32 then choose_32_64 outBits v
-     else if inBits = 16 then choose_32_64 outBits (ucast ((ucast v) :: int16))
-     else if inBits = 8 then choose_32_64 outBits (ucast ((ucast v) :: int8))
-     else if inBits = 1 then choose_32_64 outBits (ucast ((ucast v) :: int1))
+fun zero_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
+  "zero_extend_helper inBits outBits val =
+    (if inBits \<le> outBits \<and> inBits \<le> 32 \<and>
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths
+     then
+       (if outBits = 64
+        then IntVal64 (ucast (take_bit inBits val))
+        else IntVal32 (take_bit inBits val))
      else UndefVal)"
 
 fun intval_zero_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_zero_extend inBits outBits (IntVal32 v) = zero_extend_helper inBits outBits (ucast v)" |
-  "intval_zero_extend inBits outBits (IntVal64 v) = zero_extend_helper inBits outBits v" |
+  "intval_zero_extend inBits outBits (IntVal32 v) =
+     zero_extend_helper inBits outBits v" |
+  "intval_zero_extend inBits outBits (IntVal64 v) = 
+     (if inBits=64 \<and> outBits=64 then IntVal64 v else UndefVal)" |
   "intval_zero_extend _ _ _ = UndefVal"
+
+
+text \<open>Some well-formedness results to help reasoning about narrowing and widening operators\<close>
+
+lemma sign_extend_helper_ok:
+  assumes "sign_extend_helper inBits outBits val \<noteq> UndefVal"
+  shows "0 < inBits \<and> inBits \<le> 32 \<and>
+        inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths"
+  using assms sign_extend_helper.simps neq0_conv by fastforce
+
+lemma intval_sign_extend_ok:
+  assumes "intval_sign_extend inBits outBits val \<noteq> UndefVal"
+  shows "0 < inBits \<and>
+        inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths"
+  using assms sign_extend_helper_ok intval_sign_extend.simps neq0_conv
+  by (smt (verit, best) insertCI intval_sign_extend.elims order_le_less zero_neq_numeral) 
+
+lemma zero_extend_helper_ok:
+  assumes "zero_extend_helper inBits outBits val \<noteq> UndefVal"
+  shows "0 < inBits \<and> inBits \<le> 32 \<and>
+        inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths"
+  using assms zero_extend_helper.simps neq0_conv by fastforce
+
+lemma intval_zero_extend_ok:
+  assumes "intval_zero_extend inBits outBits val \<noteq> UndefVal"
+  shows "0 < inBits \<and>
+        inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths"
+  using assms zero_extend_helper_ok intval_zero_extend.simps neq0_conv
+  by (smt (verit, best) insertCI intval_zero_extend.elims order_le_less zero_neq_numeral) 
 
 
 
@@ -401,6 +432,11 @@ definition signed_shiftr :: "'a :: len word \<Rightarrow> nat \<Rightarrow> 'a :
 value "(128 :: 8 word) >> 2"
 
 
+text \<open>Note that Java shift operators use unary numeric promotion, unlike other binary 
+  operators, which use binary numeric promotion (see the Java language reference manual).
+  This means that the left-hand input determines the output size, while the 
+  right-hand input can be any size.\<close>
+
 fun intval_left_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_left_shift (IntVal32 v1) (IntVal32 v2) = IntVal32 (v1 << unat (v2 AND 0x1f))" |
   "intval_left_shift (IntVal32 v1) (IntVal64 v2) = IntVal32 (v1 << unat (v2 AND 0x1f))" |
@@ -428,10 +464,14 @@ end
 section \<open>Examples of Narrowing / Widening Functions\<close>
 
 experiment begin
-corollary "intval_sign_extend 8 32 (IntVal32 (-2)) = IntVal32 (-2)" by simp
-corollary "intval_sign_extend 1 32 (IntVal32 (-2)) = IntVal32 0"    by simp
-corollary "intval_sign_extend 1 32 (IntVal32 (-3)) = IntVal32 (-1)" by simp
+corollary "intval_narrow 32 8 (IntVal32 (256 + 128)) = IntVal32 (-128)" by simp
+corollary "intval_narrow 32 8 (IntVal32 (-2)) = IntVal32 (-2)" by simp
+corollary "intval_narrow 32 1 (IntVal32 (-2)) = IntVal32 0"    by simp
+corollary "intval_narrow 32 1 (IntVal32 (-3)) = IntVal32 (-1)" by simp
+end
 
+experiment begin
+corollary "intval_sign_extend 8 32 (IntVal32 (256 + 128)) = IntVal32 (-128)" by simp
 corollary "intval_sign_extend 8 32 (IntVal32 (-2)) = IntVal32 (-2)" by simp
 corollary "intval_sign_extend 1 32 (IntVal32 (-2)) = IntVal32 0"    by simp
 corollary "intval_sign_extend 1 32 (IntVal32 (-3)) = IntVal32 (-1)" by simp
@@ -440,29 +480,24 @@ corollary "intval_sign_extend 1 32 (IntVal32 (-3)) = IntVal32 (-1)" by simp
 corollary "intval_sign_extend 8 32 (IntVal64 (-2)) = UndefVal" by simp
 corollary "intval_sign_extend 8 64 (IntVal64 (-2)) = UndefVal" by simp
 corollary "intval_sign_extend 8 64 (IntVal32 (-2)) = IntVal64 (-2)" by simp
+corollary "intval_sign_extend 32 64 (IntVal32 (-2)) = IntVal64 (-2)" by simp
 corollary "intval_sign_extend 64 64 (IntVal64 (-2)) = IntVal64 (-2)" by simp
 end
 
 
 experiment begin
+corollary "intval_zero_extend 8 32 (IntVal32 (256 + 128)) = IntVal32 128" by simp
 corollary "intval_zero_extend 8 32 (IntVal32 (-2)) = IntVal32 254" by simp
-corollary "intval_zero_extend 1 32 (IntVal32 (-1)) = IntVal32 1"   by code_simp
+corollary "intval_zero_extend 1 32 (IntVal32 (-1)) = IntVal32 1"   by simp
+corollary "intval_zero_extend 1 32 (IntVal32 (-2)) = IntVal32 0"   by simp
 
 (* now test some 64 bit inputs and outputs *)
-corollary "intval_zero_extend 8 32 (IntVal64 (-2)) = IntVal32 254" by simp
+corollary "intval_zero_extend 8 32 (IntVal64 (-2)) = UndefVal" by simp
+corollary "intval_zero_extend 8 64 (IntVal64 (-2)) = UndefVal" by simp
 corollary "intval_zero_extend 8 64 (IntVal32 (-2)) = IntVal64 254" by simp
-corollary "intval_zero_extend 8 64 (IntVal64 (-2)) = IntVal64 254" by simp
+corollary "intval_zero_extend 32 64 (IntVal32 (-2)) = IntVal64 4294967294" by simp
 end
 
-(* Other possibly-helpful lemmas from WORD and its ancestors:
-
-lemma signed_take_bit_add:
-  \<open>signed_take_bit n (signed_take_bit n k + signed_take_bit n l) = signed_take_bit n (k + l)\<close>
-
-lemma plus_dist:
-  \<open>Word.the_int (v + w) = take_bit LENGTH('a) (Word.the_int v + Word.the_int w)\<close>
-  for v w :: \<open>'a::len word\<close>
-*)
 
 (* ========================================================================
    Commutative and Associative results.  (Not used yet).

@@ -213,13 +213,11 @@ proof -
   have def: "result \<noteq> UndefVal"
     using assms
     by blast 
-  then have out: "outBits \<in> widen_outBits"
-    using assms sign_extend_ok by blast
-  then have "outBits \<noteq> 64"
-    using assms def
-    by (metis Value.distinct(9) sign_extend_helper.simps) 
-  then have out32: "outBits \<le> 32"
-    using assms out by force 
+  then have ok: "0 < inBits \<and> inBits \<le> 32 \<and>
+        inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths"
+    using assms sign_extend_helper_ok by blast
   then have lo: "-(2 ^ (inBits - 1)) \<le> sint (signed_take_bit (inBits - 1) val)"
     using signed_take_bit_int_greater_eq_minus_exp_word
     by (smt (verit, best) diff_le_self not_less power_increasing_iff sint_below_size wsst_TYs(3))
@@ -228,8 +226,8 @@ proof -
     by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral power_increasing sint_above_size wsst_TYs(3))
   show ?thesis 
     unfolding bit_bounds.simps fst_def ival
-    using assms ival out32 lo hi order_le_less
-    by blast
+    using assms ival ok lo hi order_le_less
+    by force
 qed
 
 
@@ -776,31 +774,28 @@ proof -
     then obtain i32 where i32: "result = sign_extend_helper inBits outBits i32"
       using assms intval_sign_extend.simps
       by (metis is_IntVal64_def se unary_eval.simps(6) valid32or64)
-    then have ok: "inBits \<le> outBits \<and> 
-          outBits \<in> widen_outBits \<and>
-          inBits \<in> widen_inBits"
-      using assms sign_extend_ok by blast
-    then have size: "(outBits = 64) = (is_IntVal64 result)"
-      by (simp add: i32)
-    then have gt0: "0 < inBits"
-      using ok by force
+    then have ok: "0 < inBits \<and> inBits \<le> 32 \<and>
+        inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths"
+      using assms sign_extend_helper_ok by blast
     then show ?thesis
     proof (cases "outBits = 64")
       case True
       then obtain r64 where "result = IntVal64 r64"
-        using size is_IntVal64_def by blast 
+        by (metis assms(3) i32 sign_extend_helper.simps) 
       then show ?thesis
         using True u unrestricted_64bit_always_valid by presburger
     next
       case False
       then obtain r32 where r32: "result = IntVal32 r32"
-        using size ok i32 by force
+        using ok i32 by force
       then have lohi: "-(2 ^ (inBits - 1)) \<le> sint r32 \<and> sint r32 < 2 ^ (inBits - 1)"
         using sign_extend_helper_output_range32
         by (smt (verit, ccfv_threshold) False Value.inject(1) assms(3) diff_le_self i32 linorder_not_le power_less_imp_less_exp sign_extend_helper.simps signed_take_bit_int_less_exp_word sint_lt) 
       then have bnds: "fst (bit_bounds inBits) \<le> sint r32 \<and> sint r32 \<le> snd (bit_bounds inBits)"
         unfolding bit_bounds.simps fst_def
-        using gt0 lower_bounds_equiv upper_bounds_equiv by simp
+        using ok lower_bounds_equiv upper_bounds_equiv by simp
       then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
         using ok False by fastforce
       then show ?thesis

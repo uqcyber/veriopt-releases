@@ -147,6 +147,15 @@ lemma unrestricted_stamp32_always_valid [simp]:
   shows "valid_value result (unrestricted_stamp (IntegerStamp bits lo hi))"
   using assms valid_value.simps(1) unrestricted_stamp.simps(2) by presburger
 
+lemma larger_stamp32_always_valid [simp]:
+  assumes "valid_value result (unrestricted_stamp (IntegerStamp inBits lo hi))"
+  assumes "result = IntVal32 ival"
+  assumes "outBits = 32 \<or> outBits = 16 \<or> outBits = 8 \<or> outBits = 1"
+  assumes "inBits \<le> outBits"
+  shows "valid_value result (unrestricted_stamp (IntegerStamp outBits lo hi))"
+  using assms by (smt (z3)  bit_bounds.simps diff_le_mono linorder_not_less lower_bounds_equiv not_numeral_le_zero numerals(1) power_increasing_iff prod.sel(1) prod.sel(2) unrestricted_stamp.simps(2) valid_value.simps(1))
+  
+
 text \<open>Possibly helpful lemmas about $signed_take_bit$, to help with UnaryNarrow.
   Note: we could use signed to convert between bit-widths, instead of 
   $signed_take_bit$.  But this has to be done separately for each bit-width type.\<close>
@@ -787,10 +796,8 @@ proof -
     then obtain i32 where i32: "result = sign_extend_helper inBits outBits i32"
       using assms intval_sign_extend.simps
       by (metis is_IntVal64_def se unary_eval.simps(6) valid32or64)
-    then have ok: "0 < inBits \<and> inBits \<le> 32 \<and>
-        inBits \<le> outBits \<and> 
-        outBits \<in> valid_int_widths \<and>
-        inBits \<in> valid_int_widths"
+    then have ok: "0 < inBits \<and> inBits \<le> 32 \<and> inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and> inBits \<in> valid_int_widths"
       using assms sign_extend_helper_ok by blast
     then show ?thesis
     proof (cases "outBits = 64")
@@ -809,30 +816,12 @@ proof -
       then have bnds: "fst (bit_bounds inBits) \<le> sint r32 \<and> sint r32 \<le> snd (bit_bounds inBits)"
         unfolding bit_bounds.simps fst_def
         using ok lower_bounds_equiv upper_bounds_equiv by simp
-      then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
+      then have v: "valid_value result (unrestricted_stamp (IntegerStamp inBits lo hi))"
+        using ok r32 by force 
+      then have "outBits=1 \<or> outBits=8 \<or> outBits=16 \<or> outBits=32"
         using ok False by fastforce
       then show ?thesis
-      proof (cases)
-        case 1
-        then show ?thesis
-          unfolding u r32
-          using unrestricted_32bit_always_valid by blast
-      next
-        case 2
-        then show ?thesis 
-          unfolding u r32 using lohi
-          by (smt (verit, best) One_nat_def assms(3) bit_bounds.simps diff_le_mono i32 int_power_div_base power_increasing prod.sel(1) prod.sel(2) sign_extend_helper.simps unrestricted_stamp32_always_valid zero_less_numeral) 
-      next
-        case 3
-        then show ?thesis
-          unfolding u r32 using lohi
-          by (smt (verit, best) One_nat_def assms(3) bit_bounds.simps diff_le_mono i32 int_power_div_base power_increasing prod.sel(1) prod.sel(2) sign_extend_helper.simps unrestricted_stamp32_always_valid zero_less_numeral) 
-      next
-        case 4
-        then show ?thesis
-          unfolding u r32 using lohi
-          by (smt (verit, ccfv_SIG) assms(3) bit_bounds.simps bot_nat_0.extremum_unique cancel_comm_monoid_add_class.diff_cancel diff_le_mono i32 numerals(1) prod.sel(1) prod.sel(2) sign_extend_helper.simps unrestricted_stamp32_always_valid upper_bounds_equiv zero_less_numeral)
-      qed
+        unfolding u using ok v r32 larger_stamp32_always_valid by presburger 
     qed
   qed
 qed

@@ -319,7 +319,7 @@ proof -
   then have 6: "is_IntegerStamp (stamp_expr expr)"
     using assms valid_value.elims(2) by fastforce
   then consider v32 where "result = IntVal32 v32" | v64 where "result = IntVal64 v64"
-    by (metis 2 3 Value.collapse(1) Value.collapse(2) is_IntVal_def unary_eval_int)
+    by (metis "2" "4" Stamp.collapse(1) intval_abs.simps(1) intval_abs.simps(2) unary_eval.simps(1) valid32or64)
   then show ?thesis
   proof cases
     case 1 (* 32 bit *)
@@ -653,42 +653,55 @@ proof -
     using assms valid_value.elims(2) by fastforce 
   then obtain b lo hi where se:"stamp_expr expr = IntegerStamp b lo hi"
     by (auto simp add: assms valid_value.elims(2) is_IntegerStamp_def)
-  then have "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
+  then have u: "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
              = unrestricted_stamp (IntegerStamp outBits lo hi)"
     by simp
   (* make some general deductions about result, then split into 32/64 bit cases *)
-  have "result = intval_narrow inBits outBits val"
+  have r: "result = intval_narrow inBits outBits val"
     by (simp add: assms(2)) 
+  then have ok: "0 < outBits \<and> outBits \<le> inBits \<and> 
+        outBits \<in> valid_int_widths \<and> inBits \<in> valid_int_widths"
+      using assms intval_narrow_ok by simp 
   then consider i32 where "val = IntVal32 i32" | i64 where "val = IntVal64 i64"
-    using assms by (metis intval_narrow.elims)
+    using assms by (metis se valid32or64) 
   then show ?thesis
   proof cases
-    case 1
+    case 1 (* input is IntVal32 and inBits < 64 *)
     then have r1: "result = narrow_helper inBits outBits i32"
-      using assms by simp
-    then have r2: "result =  (IntVal32 (signed_take_bit (outBits - 1) i32))"
+      using assms r by (metis intval_narrow.simps(1)) 
+    then have r2: "result = (IntVal32 (signed_take_bit (outBits - 1) i32))"
       using assms by (metis narrow_helper.simps)
     then obtain r32 where 
       r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) i32"
       by simp
-    then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
-      by (metis r1 assms(3) insertE narrow_helper.elims singletonD) 
+    then have "outBits=32 \<or> outBits=16 \<or> outBits=8 \<or> outBits=1"
+      using ok 1 assms by force 
     then show ?thesis
-      using 1 assms(1) r32 se unary_narrow_helper32 by fastforce 
+      using ok 1 assms u r32 se unary_narrow_helper32 by force
   next 
-    case 2  (* input is IntVal64 *)
-    (* Nb. proof differs from above by scast, so not easy to combine them. *)
-    then have r1: "result = narrow_helper inBits outBits (scast i64)"
-      using assms by simp
-    then have r2: "result = (IntVal32 (signed_take_bit (outBits - 1) (scast i64)))"
-      using assms by (metis narrow_helper.simps)
-    then obtain r32 where 
-      r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) (scast i64)"
-      by simp
-    then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
-      by (metis r1 assms(3) insertE narrow_helper.elims singletonD) 
+    case 2  (* input is IntVal64 and inBits=64 *)
+    then have in64: "inBits = 64"
+      using assms ok intval_narrow.simps(2) r by presburger 
     then show ?thesis
-      using 2 assms(1) r32 se unary_narrow_helper64 by fastforce
+      proof (cases "outBits = 64")
+        case True
+        then show ?thesis
+          using 2 in64 r u intval_narrow.simps(2) unrestricted_64bit_always_valid by presburger
+      next
+        case False
+        (* Nb. proof differs from case 1 above by scast, so not easy to combine them. *)
+        then have out32: "outBits=32 \<or> outBits=16 \<or> outBits=8 \<or> outBits=1"
+          using ok assms by force 
+        then have r1: "result = narrow_helper inBits outBits (scast i64)"
+          using assms "2" False in64 r ok narrow_takes_64 by simp
+        then have r2: "result = (IntVal32 (signed_take_bit (outBits - 1) (scast i64)))"
+          using assms by (metis narrow_helper.simps)
+        then obtain r32 where 
+          r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) (scast i64)"
+          by simp
+        then show ?thesis
+          using assms 2 r32 out32 u se unary_narrow_helper64 by blast 
+      qed
   qed
 qed
 

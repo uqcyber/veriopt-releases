@@ -211,15 +211,12 @@ next
 (* we first investigate the case of narrowing from 32 to 8 bits *)
 
 optimization Issue2011_Bug:
-  "(BinaryExpr BinIntegerEquals
-      (ConstantExpr (IntVal32 value))
+  "((const (IntVal32 value)) eq
       (UnaryExpr (UnaryNarrow inBits outBits) expr))
    \<longmapsto>
-   (BinaryExpr BinIntegerEquals
-      (ConstantExpr (IntVal32 (CodeUtil_signExtend32 value outBits)))
-      expr)
+   ((const (IntVal32 (CodeUtil_signExtend32 value outBits)))
+      eq expr)
    when (inBits = 32 \<and> outBits = 8)"
-   apply unfold_optimization
   apply (rule impI)
   subgoal premises 1 
   unfolding le_expr_def unfold_evaltree bin_eval.simps unary_eval.simps

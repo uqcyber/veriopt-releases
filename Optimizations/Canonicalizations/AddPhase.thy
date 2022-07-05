@@ -10,8 +10,7 @@ phase SnipPhase
 begin
 
 optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2)"
-   apply unfold_optimization
-   defer apply (cases op; simp)
+  apply (cases op; simp)
   unfolding le_expr_def
   apply (rule allI impI)+
   subgoal premises bin for m p v
@@ -41,6 +40,7 @@ optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmaps
     done
   done
 
+print_facts
 
 lemma binadd_commute:
   assumes "bin_eval BinAdd x y \<noteq> UndefVal"
@@ -50,8 +50,7 @@ lemma binadd_commute:
 
 (* horrible backward proof - needs improving *)
 optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
-  apply unfold_optimization
-   defer using size_non_const apply fastforce
+  using size_non_const apply fastforce
   unfolding le_expr_def
   apply (rule impI)
   subgoal premises 1
@@ -71,7 +70,6 @@ optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v)
 
 
 optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
-  apply unfold_optimization
   unfolding le_expr_def
    apply (auto simp: intval_add_sym)
   (* termination proof *)
@@ -95,7 +93,6 @@ lemma is_neutral_0 [simp]:
 
 
 optimization AddNeutral: "(e + (const (IntVal32 0))) \<longmapsto> e"
-   apply unfold_optimization
   unfolding le_expr_def apply auto
   unfolding is_neutral_0 apply auto
   done
@@ -104,7 +101,7 @@ optimization AddNeutral: "(e + (const (IntVal32 0))) \<longmapsto> e"
 ML_val \<open>@{term \<open>x = y\<close>}\<close>
 
 optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
-    apply unfold_optimization unfolding intval.simps
+   prefer 3 unfolding intval.simps
 (* NOTE: this unfolds to three goals, but the first one is not easy to instantiate.
          Maybe it needs to be universally quantified like 'just_goal2' below.
  1. intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' \<noteq> UndefVal \<and>
@@ -181,7 +178,6 @@ lemma just_goal2:
 
 
 optimization NeutralRightSub[intval]: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
-  apply unfold_optimization
   using NeutralLeftSub(1) intval_add_sym apply auto[1]
   oops
 
@@ -224,7 +220,7 @@ lemma NeutralRightSub_2:
   done
 
 lemma NeutralRightSub_3:
-  "(Common.size e\<^sub>1 < Common.size (BinaryExpr BinAdd e\<^sub>2 (BinaryExpr BinSub e\<^sub>1 e\<^sub>2)))"
+  "(size e\<^sub>1 < size (BinaryExpr BinAdd e\<^sub>2 (BinaryExpr BinSub e\<^sub>1 e\<^sub>2)))"
   using size_non_const by fastforce
 
 
@@ -267,11 +263,11 @@ lemma NeutralRightSub_3:
    to prove than the bin_eval level.  And equally easy to use in AddToSub.
  *)
 lemma AddToSubHelperLowLevel:
-  shows "intval_add (intval_negate e) y = intval_sub y e"
+  shows "intval_add (intval_negate e) y = intval_sub y e" (is "?x = ?y")
   by (induction y; induction e; auto)
 
+
 optimization AddToSub: "-e + y \<longmapsto> y - e"
-   apply unfold_optimization
   using AddToSubHelperLowLevel by auto
   end
 

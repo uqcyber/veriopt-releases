@@ -19,6 +19,7 @@ datatype Tokens =
   | Equals
   | Not
   | Negate
+  | LogicNegate
   | LeftShift
   | RightShift
   | UnsignedRightShift
@@ -71,6 +72,8 @@ fun markup_constant (str, typ) =
     | ("Markup.ExtraNotation.TrueNotation", _) => Translator.markup DSL_Tokens.TrueConstant
     | ("\<^const>Markup.ExtraNotation.FalseNotation", _) => Translator.markup DSL_Tokens.FalseConstant
     | ("Markup.ExtraNotation.FalseNotation", _) => Translator.markup DSL_Tokens.FalseConstant
+    | ("\<^const>Markup.ExtraNotation.LogicNegationNotation", _) => Translator.markup DSL_Tokens.LogicNegate
+    | ("Markup.ExtraNotation.LogicNegationNotation", _) => Translator.markup DSL_Tokens.LogicNegate
     | ("\<^const>Groups.plus_class.plus", _) => Translator.markup DSL_Tokens.Add
     | ("Groups.plus_class.plus", _) => Translator.markup DSL_Tokens.Add
     | ("\<^const>Groups.minus_class.minus", _) => Translator.markup DSL_Tokens.Sub
@@ -102,7 +105,7 @@ fun markup_constant (str, typ) =
 fun find_free (taken, goal) =
   (singleton
     (Name.variant_list 
-      (fold Term.add_free_names taken [])) goal)
+      (fold Term.add_tfree_names taken [])) goal)
 
 fun markup_free taken (str, typ) =
   case (str, typ) of

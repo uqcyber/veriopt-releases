@@ -54,7 +54,7 @@ qed
 
 optimization e:
   "x * (const c) \<longmapsto> x << (const n) when (n = intval_log2 c \<and> in_bounds n 0 32)"
-   apply unfold_optimization apply simp using e_intval
+  using e_intval
   using BinaryExprE ConstantExprE bin_eval.simps(2,7) sorry
 
 end

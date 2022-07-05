@@ -8,6 +8,9 @@ theory Values
     "HOL-Library.LaTeXsugar"
 begin
 
+lemma "-((x::float)-y) = (y-x)"
+  by simp
+
 text \<open>
 In order to properly implement the IR semantics we first introduce
 a type that represents runtime values.
@@ -47,6 +50,9 @@ text \<open>Characterise integer values, covering both 32 and 64 bit.
   E.g. an 8-bit stamp has a default range of -128..+127.
   And a 1-bit stamp has a default range of -1..0, surprisingly.
 \<close>
+
+definition logic_negate :: "('a::len) word \<Rightarrow> 'a word" where
+  "logic_negate x = (if x = 0 then 1 else 0)"
 
 definition is_IntVal :: "Value \<Rightarrow> bool" where
   "is_IntVal v = (is_IntVal32 v \<or> is_IntVal64 v)"
@@ -247,8 +253,8 @@ fun intval_conditional :: "Value \<Rightarrow> Value \<Rightarrow> Value \<Right
   "intval_conditional cond tv fv = (if (val_to_bool cond) then tv else fv)"
 
 fun intval_logic_negation :: "Value \<Rightarrow> Value" where
-  "intval_logic_negation (IntVal32 v) = (if v = 0 then (IntVal32 1) else (IntVal32 0))" |
-  "intval_logic_negation (IntVal64 v) = (if v = 0 then (IntVal64 1) else (IntVal64 0))" |
+  "intval_logic_negation (IntVal32 v) = (IntVal32 (logic_negate v))" |
+  "intval_logic_negation (IntVal64 v) = (IntVal64 (logic_negate v))" |
   "intval_logic_negation _ = UndefVal"
 
 lemma intval_eq32:

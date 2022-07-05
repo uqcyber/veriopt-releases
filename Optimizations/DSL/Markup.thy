@@ -16,7 +16,11 @@ datatype 'a ExtraNotation =
   ConstantNotation 'a ("const _" 120) |
   TrueNotation ("true") |
   FalseNotation ("false") |
-  ExclusiveOr 'a 'a ("_ \<oplus> _")
+  ExclusiveOr 'a 'a ("_ \<oplus> _") |
+  LogicNegationNotation 'a ("!_")
+
+definition word :: "('a::len) word \<Rightarrow> 'a word" where
+  "word x = x"
 
 ML_file \<open>markup.ML\<close>
 
@@ -32,8 +36,9 @@ fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.Abs = @{term UnaryExpr} $ @{term UnaryAbs}
   | markup DSL_Tokens.Less = @{term BinaryExpr} $ @{term BinIntegerLessThan}
   | markup DSL_Tokens.Equals = @{term BinaryExpr} $ @{term BinIntegerEquals}
-  | markup DSL_Tokens.Not = @{term UnaryExpr} $ @{term UnaryLogicNegation}
+  | markup DSL_Tokens.Not = @{term UnaryExpr} $ @{term UnaryNot}
   | markup DSL_Tokens.Negate = @{term UnaryExpr} $ @{term UnaryNeg}
+  | markup DSL_Tokens.LogicNegate = @{term UnaryExpr} $ @{term UnaryLogicNegation}
   | markup DSL_Tokens.LeftShift = @{term BinaryExpr} $ @{term BinLeftShift}
   | markup DSL_Tokens.RightShift = @{term BinaryExpr} $ @{term BinRightShift}
   | markup DSL_Tokens.UnsignedRightShift = @{term BinaryExpr} $ @{term BinURightShift}
@@ -54,8 +59,9 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.Abs = @{term intval_abs}
   | markup DSL_Tokens.Less = @{term intval_less_than}
   | markup DSL_Tokens.Equals = @{term intval_equals}
-  | markup DSL_Tokens.Not = @{term intval_logic_negation}
+  | markup DSL_Tokens.Not = @{term intval_not}
   | markup DSL_Tokens.Negate = @{term intval_negate}
+  | markup DSL_Tokens.LogicNegate = @{term intval_logic_negation}
   | markup DSL_Tokens.LeftShift = @{term intval_left_shift}
   | markup DSL_Tokens.RightShift = @{term intval_right_shift}
   | markup DSL_Tokens.UnsignedRightShift = @{term intval_uright_shift}
@@ -78,9 +84,11 @@ fun markup DSL_Tokens.Add = @{term plus}
   | markup DSL_Tokens.Equals = @{term HOL.eq}
   | markup DSL_Tokens.Not = @{term not}
   | markup DSL_Tokens.Negate = @{term uminus}
+  | markup DSL_Tokens.LogicNegate = @{term logic_negate}
   | markup DSL_Tokens.LeftShift = @{term shiftl}
   | markup DSL_Tokens.RightShift = @{term signed_shiftr}
   | markup DSL_Tokens.UnsignedRightShift = @{term shiftr}
+  | markup DSL_Tokens.Constant = @{term word}
   | markup DSL_Tokens.TrueConstant = @{term 1}
   | markup DSL_Tokens.FalseConstant = @{term 0}
 end
@@ -121,5 +129,23 @@ snipbegin \<open>word expression example\<close>
 value "bin[x & y | z]"
 text \<open>@{term \<open>val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
 snipend -
+
+value "bin[-x]"
+value "val[-x]"
+value "exp[-x]"
+
+value "bin[!x]"
+value "val[!x]"
+value "exp[!x]"
+
+value "bin[\<not>x]"
+value "val[\<not>x]"
+value "exp[\<not>x]"
+
+value "bin[~x]"
+value "val[~x]"
+value "exp[~x]"
+
+value "~x"
 
 end

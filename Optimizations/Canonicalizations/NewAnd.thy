@@ -254,30 +254,22 @@ begin
 
 optimization redundant_lhs_y_or: "((x | y) & z) \<longmapsto> x & z
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-   apply unfold_optimization
-  using simple_mask.exp_eliminate_y apply blast
-  by simp
+  using simple_mask.exp_eliminate_y by blast
 
 optimization redundant_lhs_x_or: "((x | y) & z) \<longmapsto> y & z
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-   apply unfold_optimization
   using simple_mask.exp_eliminate_y
-  apply (meson exp_or_commute mono_binary order_refl order_trans)
-  by simp
+  by (meson exp_or_commute mono_binary order_refl order_trans)
 
 optimization redundant_rhs_y_or: "(z & (x | y)) \<longmapsto> z & x
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-   apply unfold_optimization
   using simple_mask.exp_eliminate_y
-  apply (meson exp_and_commute order.trans)
-  by simp
+  by (meson exp_and_commute order.trans)
 
 optimization redundant_rhs_x_or: "(z & (x | y)) \<longmapsto> z & y
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-   apply unfold_optimization
-  using simple_mask.exp_eliminate_y 
-  apply (meson dual_order.trans exp_and_commute exp_or_commute mono_binary order_refl)
-  by simp
+  using simple_mask.exp_eliminate_y
+  by (meson dual_order.trans exp_and_commute exp_or_commute mono_binary order_refl)
 
 (*
 optimization redundant_lhs_add: "((x + y) & z) \<longmapsto> x & z

@@ -174,6 +174,16 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
+lemmas eval_thms =
+  intval_abs.simps intval_negate.simps intval_not.simps
+  intval_logic_negation.simps intval_narrow.simps
+  intval_sign_extend.simps intval_zero_extend.simps
+  intval_add.simps intval_mul.simps intval_sub.simps
+  intval_and.simps intval_or.simps intval_xor.simps
+  intval_left_shift.simps intval_right_shift.simps
+  intval_uright_shift.simps intval_equals.simps
+  intval_less_than.simps intval_below.simps
+
 inductive not_undef_or_fail :: "Value \<Rightarrow> Value \<Rightarrow> bool" where
   "\<lbrakk>value \<noteq> UndefVal\<rbrakk> \<Longrightarrow> not_undef_or_fail value value"
 

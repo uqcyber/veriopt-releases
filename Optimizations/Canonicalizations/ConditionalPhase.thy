@@ -9,29 +9,24 @@ phase Conditional
   terminating size
 begin
 
-lemma negates: "is_IntVal32 e \<or> is_IntVal64 e \<Longrightarrow> val_to_bool (val[e]) \<equiv> \<not>(val_to_bool (val[\<not>e]))"
-  by (smt (verit, best) Value.disc(1) Value.disc(10) Value.disc(4) Value.disc(5) Value.disc(6) Value.disc(9) intval_logic_negation.elims val_to_bool.simps(1) val_to_bool.simps(2) zero_neq_one)
+lemma negates: "is_IntVal32 e \<or> is_IntVal64 e \<Longrightarrow> val_to_bool (val[e]) \<equiv> \<not>(val_to_bool (val[!e]))"
+  using intval_logic_negation.simps unfolding logic_negate_def
+  by (smt (verit, best) Value.collapse(1) is_IntVal64_def val_to_bool.simps(1) val_to_bool.simps(2) zero_neq_one)
 
-optimization negate_condition: "((\<not>e) ? x : y) \<longmapsto> (e ? y : x)"
-    apply unfold_optimization apply simp using negates
-    using ConditionalExprE UnaryExprE intval_logic_negation.elims unary_eval.simps(4) val_to_bool.simps(1) val_to_bool.simps(2) zero_neq_one
-    apply (smt (verit) ConditionalExpr)
-    unfolding size.simps by simp
+lemma negation_condition_intval: 
+  assumes "e \<noteq> UndefVal \<and> \<not>(is_ObjRef e) \<and> \<not>(is_ObjStr e)"
+  shows "val[(!e) ? x : y] = val[e ? y : x]"
+  using assms by (cases e; auto simp: negates logic_negate_def)
 
-optimization const_true: "(true ? x : y) \<longmapsto> x"
-   apply unfold_optimization
-   apply force
-  unfolding size.simps by simp
+optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x)"
+    apply simp using negation_condition_intval
+  by (smt (verit, ccfv_SIG) ConditionalExpr ConditionalExprE Value.collapse(3) Value.collapse(4) Value.exhaust_disc evaltree_not_undef intval_logic_negation.simps(4) intval_logic_negation.simps(5) negates unary_eval.simps(4) unfold_unary)
 
-optimization const_false: "(false ? x : y) \<longmapsto> y"
-   apply unfold_optimization
-   apply force
-  unfolding size.simps by simp
+optimization const_true: "(true ? x : y) \<longmapsto> x" .
 
-optimization equal_branches: "(e ? x : x) \<longmapsto> x"
-   apply unfold_optimization
-   apply force
-  unfolding size.simps by auto
+optimization const_false: "(false ? x : y) \<longmapsto> y" .
+
+optimization equal_branches: "(e ? x : x) \<longmapsto> x" .
 
 (* this will be removable after some work *)
 definition wff_stamps :: bool where

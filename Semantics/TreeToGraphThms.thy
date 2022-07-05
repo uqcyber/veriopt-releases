@@ -2012,7 +2012,7 @@ proof (cases "n \<in> new")
 next
   case False
   then have kind_eq: "\<forall> n' . n' \<notin> new \<longrightarrow> kind g n' = kind g' n'"
-    \<comment>\<open>can be more general than stamp_eq because NoNode default is equal\<close>
+    \<comment>\<open>can be more general than $stamp\_eq$ because NoNode default is equal\<close>
     using unchanged not_excluded_keep_type
     by (smt (z3) case_prodE domain_subtraction_def ids_some mem_Collect_eq subsetI)
   from False have stamp_eq: "\<forall> n' \<in> ids g' . n' \<notin> new \<longrightarrow> stamp g n' = stamp g' n'"

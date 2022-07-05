@@ -17,6 +17,9 @@ lemma size64: "size v = 64" for v :: "64 word"
   using One_nat_def add.right_neutral add_Suc_right len_of_numeral_defs(2) len_of_numeral_defs(3) mult.right_neutral mult_Suc_right numeral_2_eq_2 numeral_Bit0
   by (smt (verit, del_insts) mult.commute)
 
+declare [[show_types=true]]
+
+(* Nb. sint_ge and sint_lt subsume these lemmas? *)
 lemma signed_int_bottom32: "-(((2::int) ^ 31)) \<le> sint (v::int32)"
   using sint_range_size size32
   by (smt (verit, ccfv_SIG) One_nat_def Suc_pred add_Suc add_Suc_right eval_nat_numeral(3) nat.inject numeral_2_eq_2 numeral_Bit0 numeral_Bit1 zero_less_numeral)
@@ -61,12 +64,12 @@ lemma bit_bounds_max64: "((snd (bit_bounds 64))) \<ge> (sint (v::int64))"
   unfolding bit_bounds.simps fst_def using signed_int_top64 upper_bounds_equiv64
   by auto
 
-lemma unrestricted_32bit_always_valid:
+lemma unrestricted_32bit_always_valid [simp]:
   "valid_value (IntVal32 v) (unrestricted_stamp (IntegerStamp 32 lo hi))"
   using valid_value.simps(1) bit_bounds_min32 bit_bounds_max32
   using unrestricted_stamp.simps(2) by presburger
 
-lemma unrestricted_64bit_always_valid:
+lemma unrestricted_64bit_always_valid [simp]:
   "valid_value (IntVal64 v) (unrestricted_stamp (IntegerStamp 64 lo hi))"
   using valid_value.simps(2) bit_bounds_min64 bit_bounds_max64
   using unrestricted_stamp.simps(2) by presburger
@@ -76,6 +79,197 @@ lemma unary_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVa
 
 lemma unary_obj: "val = ObjRef x \<Longrightarrow> unary_eval op val = UndefVal"
   by (cases op; auto)
+
+
+(* MU: try to generalise the above for various bit lengths. *)
+lemma lower_bounds_equiv: 
+  assumes "N > 0"
+  shows "-(((2::int) ^ (N-1))) = (2::int) ^ N div 2 * - 1"
+  by (simp add: assms int_power_div_base)
+
+lemma upper_bounds_equiv:
+  assumes "N > 0"
+  shows "(2::int) ^ (N-1) = (2::int) ^ N div 2"
+  by (simp add: assms int_power_div_base)
+
+
+text \<open>Next we show that casting a word to a wider word preserves any upper/lower bounds.\<close>
+
+lemma scast_max_bound:
+  assumes "sint (v :: 'a :: len word) < M"
+  assumes "LENGTH('a) < LENGTH('b)"
+  shows "sint ((scast v) :: 'b :: len word) < M"
+  unfolding Word.scast_eq Word.sint_sbintrunc'
+  using Bit_Operations.signed_take_bit_int_eq_self_iff
+  by (smt (verit, best) One_nat_def assms(1) assms(2) decr_length_less_iff linorder_not_le power_strict_increasing_iff signed_take_bit_int_less_self_iff sint_greater_eq) 
+(* helpful thms?
+  Word.scast_eq: scast (?w::?'b word) = word_of_int (sint ?w)
+  Word.sint_lt: sint (?x::?'a word) < (2::int) ^ (LENGTH(?'a) - (1::nat)
+  Word.sint_uint: sint (w::'a word) = signed_take_bit (LENGTH('a) - Suc (0::nat)) (uint w)
+  Word.sint_sbintrunc' :  sint (word_of_int (?bin::int)) = signed_take_bit (LENGTH(?'a) - (1::nat)) ?bin
+  Word.int_word_sint   - moves up, takes mod, then moves down
+  Bit_Operations.signed_take_bit_int_eq_self_iff:
+    (signed_take_bit (?n::nat) (?k::int) = ?k) = (- ((2::int) ^ ?n) \<sqsubseteq> ?k \<and> ?k < (2::int) ^ ?n)
+  Bit_Operations.signed_take_bit_int_eq_self:
+    - ((2::int) ^ (?n::nat)) \<sqsubseteq> (?k::int) \<Longrightarrow> ?k < (2::int) ^ ?n \<Longrightarrow> signed_take_bit ?n ?k = ?k
+*)
+
+lemma scast_min_bound:
+  assumes "M \<le> sint (v :: 'a :: len word)"
+  assumes "LENGTH('a) < LENGTH('b)"
+  shows "M \<le> sint ((scast v) :: 'b :: len word)"
+  unfolding Word.scast_eq Word.sint_sbintrunc'
+  using Bit_Operations.signed_take_bit_int_eq_self_iff
+  by (smt (verit) One_nat_def Suc_pred assms(1) assms(2) len_gt_0 less_Suc_eq order_less_le order_less_le_trans power_le_imp_le_exp signed_take_bit_int_greater_eq_self_iff sint_lt)
+
+lemma scast_bigger_max_bound:
+  assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
+  shows "sint result < 2 ^ LENGTH('a) div 2"
+  using sint_lt upper_bounds_equiv scast_max_bound
+  by (smt (verit, best) assms(1) len_gt_0 signed_scast_eq signed_take_bit_int_greater_self_iff sint_ge sint_less upper_bounds_equiv) 
+
+lemma scast_bigger_min_bound:
+  assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
+  shows "- (2 ^ LENGTH('a) div 2) \<le> sint result"
+  using sint_ge lower_bounds_equiv scast_min_bound
+  by (smt (verit) assms len_gt_0 nat_less_le not_less scast_max_bound)
+
+lemma scast_bigger_bit_bounds:
+  assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
+  shows "fst (bit_bounds (LENGTH('a))) \<le> sint result \<and> sint result \<le> snd (bit_bounds (LENGTH('a)))"
+  using assms scast_bigger_min_bound scast_bigger_max_bound
+  by auto
+
+lemma unrestricted_stamp32_always_valid [simp]:
+  assumes "fst (bit_bounds bits) \<le> sint ival \<and> sint ival \<le> snd (bit_bounds bits)"
+  assumes "bits = 32 \<or> bits = 16 \<or> bits = 8 \<or> bits = 1"
+  assumes "result = IntVal32 ival"
+  shows "valid_value result (unrestricted_stamp (IntegerStamp bits lo hi))"
+  using assms valid_value.simps(1) unrestricted_stamp.simps(2) by presburger
+
+lemma larger_stamp32_always_valid [simp]:
+  assumes "valid_value result (unrestricted_stamp (IntegerStamp inBits lo hi))"
+  assumes "result = IntVal32 ival"
+  assumes "outBits = 32 \<or> outBits = 16 \<or> outBits = 8 \<or> outBits = 1"
+  assumes "inBits \<le> outBits"
+  shows "valid_value result (unrestricted_stamp (IntegerStamp outBits lo hi))"
+  using assms by (smt (z3)  bit_bounds.simps diff_le_mono linorder_not_less lower_bounds_equiv not_numeral_le_zero numerals(1) power_increasing_iff prod.sel(1) prod.sel(2) unrestricted_stamp.simps(2) valid_value.simps(1))
+  
+
+text \<open>Possibly helpful lemmas about $signed_take_bit$, to help with UnaryNarrow.
+  Note: we could use signed to convert between bit-widths, instead of 
+  $signed_take_bit$.  But this has to be done separately for each bit-width type.\<close>
+
+value "sint(signed_take_bit 7 (128 :: int8))"
+
+
+ML_val \<open>@{thm signed_take_bit_decr_length_iff}\<close>
+declare [[show_types=true]]
+ML_val \<open>@{thm signed_take_bit_int_less_exp}\<close>
+
+lemma signed_take_bit_int_less_exp_word:
+  assumes "n < LENGTH('a)"
+  shows "sint(signed_take_bit n (k :: 'a :: len word)) < (2::int) ^ n"
+  apply transfer
+  by (smt (verit, best) not_take_bit_negative signed_take_bit_eq_take_bit_shift 
+     signed_take_bit_int_less_exp take_bit_int_greater_self_iff) 
+
+lemma signed_take_bit_int_greater_eq_minus_exp_word:
+  assumes "n < LENGTH('a)"
+  shows "- (2 ^ n) \<le> sint(signed_take_bit n (k :: 'a :: len word))"
+  apply transfer
+  by (smt (verit, best) signed_take_bit_int_greater_eq_minus_exp 
+     signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp)
+
+
+text \<open>Some important lemmas showing that sign_extend_helper produces integer results
+   whose range is determined by the inBits parameter.\<close>
+
+lemma sign_extend_helper_output_range64:
+  assumes "result = sign_extend_helper inBits outBits val"
+  assumes "result = IntVal64 ival"
+  shows "outBits = 64 \<and> -(2 ^ (inBits - 1)) \<le> sint ival \<and> sint ival \<le> 2 ^ (inBits - 1)"
+(* or?  "(fst (bit_bounds inBits)) \<le> sint ival \<and> sint ival \<le> (snd (bit_bounds inBits))" *)
+proof -
+  have ival: "ival = (scast (signed_take_bit (inBits - 1) val))"
+    using assms sign_extend_helper.simps
+    by (smt (verit, ccfv_SIG) Value.distinct(3) Value.inject(2) Value.simps(14))
+  then have lo: "-(2 ^ (inBits - 1)) \<le> sint (signed_take_bit (inBits - 1) val)"
+    using signed_take_bit_int_greater_eq_minus_exp_word
+    by (smt (verit, best) diff_le_self not_less power_increasing_iff sint_below_size wsst_TYs(3))
+  then have lo2: "-(2 ^ (inBits - 1)) \<le> sint (scast (signed_take_bit (inBits - 1) val))"
+    by (smt (verit, best) diff_less len_gt_0 less_Suc_eq power_strict_increasing_iff signed_scast_eq signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp_word sint_range_size wsst_TYs(3))
+  have hi: "sint (signed_take_bit (inBits - 1) val) < 2 ^ (inBits - 1)"
+    using signed_take_bit_int_less_exp_word
+    by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral power_increasing sint_above_size wsst_TYs(3))
+  then have hi2: "sint (scast (signed_take_bit (inBits - 1) val)) < 2 ^ (inBits - 1)"
+    by (smt (verit) One_nat_def lo signed_scast_eq signed_take_bit_int_less_eq_self_iff sint_lt)
+  show ?thesis 
+    unfolding bit_bounds.simps fst_def ival
+    using assms lo2 hi2 order_le_less
+    by (metis Value.distinct(3) Value.distinct(9) sign_extend_helper.simps)
+qed
+
+lemma sign_extend_helper_output_range32:
+  assumes "result = sign_extend_helper inBits outBits val"
+  assumes "result = IntVal32 ival"
+  shows "outBits \<le> 32 \<and> -(2 ^ (inBits - 1)) \<le> sint ival \<and> sint ival \<le> 2 ^ (inBits - 1)"
+(* or? "(fst (bit_bounds inBits)) \<le> sint ival \<and> sint ival \<le> (snd (bit_bounds inBits))" *)
+proof -
+  have ival: "ival = (signed_take_bit (inBits - 1) val)"
+    using assms sign_extend_helper.simps
+    by (smt (verit, ccfv_SIG) Value.distinct(1) Value.inject(1) Value.simps(14) scast_id)
+  have def: "result \<noteq> UndefVal"
+    using assms
+    by blast 
+  then have ok: "0 < inBits \<and> inBits \<le> 32 \<and>
+        inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths"
+    using assms sign_extend_helper_ok by blast
+  then have lo: "-(2 ^ (inBits - 1)) \<le> sint (signed_take_bit (inBits - 1) val)"
+    using signed_take_bit_int_greater_eq_minus_exp_word
+    by (smt (verit, best) diff_le_self not_less power_increasing_iff sint_below_size wsst_TYs(3))
+  have hi: "sint (signed_take_bit (inBits - 1) val) < 2 ^ (inBits - 1)"
+    using signed_take_bit_int_less_exp_word
+    by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral power_increasing sint_above_size wsst_TYs(3))
+  show ?thesis 
+    unfolding bit_bounds.simps fst_def ival
+    using assms ival ok lo hi order_le_less
+    by force
+qed
+
+
+
+
+subsubsection \<open>Support Lemmas for integer input/output size of unary and binary operators\<close>
+
+text \<open>These help us to deduce integer sizes through expressions.  Not used yet.\<close>
+
+lemma unary_abs_io32:
+  assumes "result = unary_eval UnaryAbs val"
+  assumes "result = IntVal32 r32"
+  shows "\<exists>v32. val = IntVal32 v32"
+  by (smt (verit, best) Value.distinct(9) Value.simps(6) assms(1) assms(2) intval_abs.elims unary_eval.simps(1))
+
+lemma unary_abs_io64:
+  assumes "result = unary_eval UnaryAbs val"
+  assumes "result = IntVal64 r64"
+  shows "\<exists>v64. val = IntVal64 v64"
+  by (metis Value.collapse(2) Value.collapse(3) Value.collapse(4) Value.disc(3) Value.exhaust_disc Value.simps(8) assms(1) assms(2) intval_abs.simps(1) intval_abs.simps(5) is_IntVal32_def unary_eval.simps(1) unary_obj unary_undef)
+
+lemma unary_neg_io32:
+  assumes "result = unary_eval UnaryNeg val"
+  assumes "result = IntVal32 r32"
+  shows "\<exists>v32. val = IntVal32 v32"
+  by (metis Value.disc(7) Value.distinct(1) assms(1) assms(2) intval_negate.elims is_IntVal64_def unary_eval.simps(2))
+
+lemma unary_neg_io64:
+  assumes "result = unary_eval UnaryNeg val"
+  assumes "result = IntVal64 r64"
+  shows "\<exists>v64. val = IntVal64 v64"
+  by (metis Value.disc(3) Value.simps(8) assms(1) assms(2) intval_negate.elims is_IntVal32_def unary_eval.simps(2))
+
 
 
 subsubsection \<open>Validity of UnaryAbs\<close>
@@ -89,6 +283,7 @@ text \<open>A set of lemmas for each evaltree step.
    2. is this top-down approach (assume the result node evaluation) best?
       Maybe.  It seems to be the shortest/simplest trigger?
 \<close>
+
 lemma unary_abs_result64:
   assumes "[m,p] \<turnstile> (UnaryExpr UnaryAbs e) \<mapsto> IntVal64 v"
   obtains ve where "([m, p] \<turnstile> e \<mapsto> IntVal64 ve) \<and>
@@ -133,7 +328,7 @@ proof -
   then have 6: "is_IntegerStamp (stamp_expr expr)"
     using assms valid_value.elims(2) by fastforce
   then consider v32 where "result = IntVal32 v32" | v64 where "result = IntVal64 v64"
-    by (metis 2 3 Value.collapse(1) Value.collapse(2) is_IntVal_def unary_eval_int)
+    by (metis "2" "4" Stamp.collapse(1) intval_abs.simps(1) intval_abs.simps(2) unary_eval.simps(1) valid32or64)
   then show ?thesis
   proof cases
     case 1 (* 32 bit *)
@@ -171,6 +366,114 @@ proof -
 qed
 
 
+
+subsubsection \<open>Validity of UnaryNeg\<close>
+
+(* These lemmas are not needed:
+
+lemma unary_neg_resultE:
+  assumes "[m,p] \<turnstile> (UnaryExpr UnaryNeg e) \<mapsto> v"
+  shows "\<exists> ve. (([m, p] \<turnstile> e \<mapsto> ve) \<and> (v = intval_negate ve))"
+  using assms unary_eval.simps(2) by blast
+
+lemma unary_neg_result64_exists:
+  assumes 1: "[m,p] \<turnstile> (UnaryExpr UnaryNeg e) \<mapsto> IntVal64 v"
+  shows "\<exists> ie. (([m, p] \<turnstile> e \<mapsto> IntVal64 ie) \<and> (v = -ie))" 
+  apply (rule UnaryExprE[OF 1])
+  subgoal premises 2 for va
+    using 2 by (cases va; simp)
+  done
+
+lemma unary_neg_result64_obtains:
+  assumes "[m,p] \<turnstile> (UnaryExpr UnaryNeg e) \<mapsto> IntVal64 v"
+  obtains ie where "([m, p] \<turnstile> e \<mapsto> IntVal64 ie) \<and> (v = -ie)" 
+  using assms unary_neg_resultE
+  by (metis (no_types, lifting) Value.disc(3) Value.disc(6) Value.discI(2) Value.inject(2) intval_negate.elims is_IntVal32_def) 
+or
+proof -
+  obtain ie where "[m,p] \<turnstile> e \<mapsto> IntVal64 ie"
+    by (metis assms UnaryExprE Value.distinct(9) intval_negate.elims unary_eval.simps(2)) 
+  then show ?thesis
+    by (metis UnaryExprE Value.inject(2) assms evalDet intval_negate.simps(2) that unary_eval.simps(2))
+qed
+
+
+lemma unary_neg_result32:
+  assumes 1:"[m,p] \<turnstile> (UnaryExpr UnaryNeg e) \<mapsto> IntVal32 v"
+  shows "\<exists> ve. ([m, p] \<turnstile> e \<mapsto> IntVal32 ve) \<and>
+           v = (if ve <s 0 then -ve else ve)"
+proof -
+  obtain ve where "[m,p] \<turnstile> e \<mapsto> IntVal32 ve"
+    by (smt (verit, best) 1 UnaryExprE Value.distinct evalDet intval_abs.elims unary_eval.simps(1))
+  then show ?thesis
+    by (metis UnaryExprE Value.inject(1) assms evalDet intval_abs.simps(1) unary_eval.simps(1))
+qed
+*)
+
+lemma unary_neg_implies_valid_value:
+  assumes 1:"[m,p] \<turnstile> expr \<mapsto> val"
+  assumes 2:"result = unary_eval UnaryNeg val"
+  assumes 3:"result \<noteq> UndefVal"
+  assumes 4:"valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr UnaryNeg expr))"
+proof -
+  have 6: "result = intval_negate val"
+    using assms by auto
+  then have 7: "is_IntegerStamp (stamp_expr expr)"
+    using assms valid_value.elims(2) by fastforce
+  then obtain b lo hi where se: "stamp_expr expr = IntegerStamp b lo hi"
+    using 7 assms valid_value.elims(2) is_IntegerStamp_def by auto
+  then have "stamp_expr (UnaryExpr UnaryNeg expr) = unrestricted_stamp (IntegerStamp (if b=64 then 64 else 32) lo hi)"
+    using assms by auto
+  then show ?thesis
+    using assms 6 se 
+    by (smt (verit, best) intval_negate.simps(1) intval_negate.simps(2) unrestricted_32bit_always_valid unrestricted_64bit_always_valid valid32or64 valid_int64 valid_value.simps(2)) 
+qed
+
+
+subsubsection \<open>Validity of UnaryNot\<close>
+
+lemma unary_not_implies_valid_value:
+  assumes 1:"[m,p] \<turnstile> expr \<mapsto> val"
+  assumes 2:"result = unary_eval UnaryNot val"
+  assumes 3:"result \<noteq> UndefVal"
+  assumes 4:"valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr UnaryNot expr))"
+proof -
+  have 6: "result = intval_not val"
+    using assms by auto
+  then have 7: "is_IntegerStamp (stamp_expr expr)"
+    using assms valid_value.elims(2) by fastforce
+  then obtain b lo hi where se: "stamp_expr expr = IntegerStamp b lo hi"
+    using 7 assms valid_value.elims(2) is_IntegerStamp_def by auto
+  then have "stamp_expr (UnaryExpr UnaryNot expr) = unrestricted_stamp (IntegerStamp (if b=64 then 64 else 32) lo hi)"
+    using assms by auto
+  then show ?thesis
+    using assms 6 se 
+    by (smt (verit, best) intval_not.simps(1) intval_not.simps(2) unrestricted_32bit_always_valid unrestricted_64bit_always_valid valid32or64 valid_int64 valid_value.simps(2)) 
+qed
+
+subsubsection \<open>Validity of UnaryLogicNegation\<close>
+
+lemma unary_logic_negation_implies_valid_value:
+  assumes 1:"[m,p] \<turnstile> expr \<mapsto> val"
+  assumes 2:"result = unary_eval UnaryLogicNegation val"
+  assumes 3:"result \<noteq> UndefVal"
+  assumes 4:"valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr UnaryLogicNegation expr))"
+proof -
+  have 6: "result = intval_logic_negation val"
+    using assms by auto
+  then have 7: "is_IntegerStamp (stamp_expr expr)"
+    using assms valid_value.elims(2) by fastforce
+  then obtain b lo hi where se: "stamp_expr expr = IntegerStamp b lo hi"
+    using 7 assms valid_value.elims(2) is_IntegerStamp_def by auto
+  then have "stamp_expr (UnaryExpr UnaryLogicNegation expr) = unrestricted_stamp (IntegerStamp (if b=64 then 64 else 32) lo hi)"
+    using assms by auto
+  then show ?thesis
+    using assms 6 se 
+    by (smt (verit, best) intval_logic_negation.simps(1) intval_logic_negation.simps(2) unrestricted_32bit_always_valid unrestricted_64bit_always_valid valid32or64 valid_int64 valid_value.simps(2)) 
+qed
 
 
 subsubsection \<open>Validity of UnaryNarrow\<close>
@@ -301,31 +604,6 @@ lemma sint_mod_eq_uint:
             take_bit_signed_take_bit unsigned_take_bit_eq)
 
 
-text \<open>Possibly helpful lemmas about $signed_take_bit$, to help with UnaryNarrow.
-  Note: we could use signed to convert between bit-widths, instead of 
-  $signed_take_bit$.  But this has to be done separately for each bit-width type.\<close>
-
-value "sint(signed_take_bit 7 (128 :: int8))"
-
-
-ML_val \<open>@{thm signed_take_bit_decr_length_iff}\<close>
-declare [[show_types=true]]
-ML_val \<open>@{thm signed_take_bit_int_less_exp}\<close>
-
-lemma signed_take_bit_int_less_exp_word:
-  assumes "n < LENGTH('a)"
-  shows "sint(signed_take_bit n (k :: 'a :: len word)) < (2::int) ^ n"
-  apply transfer
-  by (smt (verit, best) not_take_bit_negative signed_take_bit_eq_take_bit_shift 
-     signed_take_bit_int_less_exp take_bit_int_greater_self_iff) 
-
-lemma signed_take_bit_int_greater_eq_minus_exp_word:
-  assumes "n < LENGTH('a)"
-  shows "- (2 ^ n) \<le> sint(signed_take_bit n (k :: 'a :: len word))"
-  apply transfer
-  by (smt (verit, best) signed_take_bit_int_greater_eq_minus_exp 
-     signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp)
-
 
 lemma unary_narrow_helper32:
   assumes "[m,p] \<turnstile> expr \<mapsto> IntVal32 i32"
@@ -384,45 +662,169 @@ proof -
     using assms valid_value.elims(2) by fastforce 
   then obtain b lo hi where se:"stamp_expr expr = IntegerStamp b lo hi"
     by (auto simp add: assms valid_value.elims(2) is_IntegerStamp_def)
-  then have "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
+  then have u: "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
              = unrestricted_stamp (IntegerStamp outBits lo hi)"
     by simp
   (* make some general deductions about result, then split into 32/64 bit cases *)
-  have "result = intval_narrow inBits outBits val"
+  have r: "result = intval_narrow inBits outBits val"
     by (simp add: assms(2)) 
+  then have ok: "0 < outBits \<and> outBits \<le> inBits \<and> 
+        outBits \<in> valid_int_widths \<and> inBits \<in> valid_int_widths"
+      using assms intval_narrow_ok by simp 
   then consider i32 where "val = IntVal32 i32" | i64 where "val = IntVal64 i64"
-    using assms by (metis intval_narrow.elims)
+    using assms by (metis se valid32or64) 
   then show ?thesis
   proof cases
-    case 1
+    case 1 (* input is IntVal32 and inBits < 64 *)
     then have r1: "result = narrow_helper inBits outBits i32"
-      using assms by simp
-    then have r2: "result =  (IntVal32 (signed_take_bit (outBits - 1) i32))"
+      using assms r by (metis intval_narrow.simps(1)) 
+    then have r2: "result = (IntVal32 (signed_take_bit (outBits - 1) i32))"
       using assms by (metis narrow_helper.simps)
     then obtain r32 where 
       r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) i32"
       by simp
-    then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
-      by (metis r1 assms(3) insertE narrow_helper.elims singletonD) 
+    then have "outBits=32 \<or> outBits=16 \<or> outBits=8 \<or> outBits=1"
+      using ok 1 assms by force 
     then show ?thesis
-      using 1 assms(1) r32 se unary_narrow_helper32 by fastforce 
+      using ok 1 assms u r32 se unary_narrow_helper32 by force
   next 
-    case 2  (* input is IntVal64 *)
-    (* Nb. proof differs from above by scast, so not easy to combine them. *)
-    then have r1: "result = narrow_helper inBits outBits (scast i64)"
-      using assms by simp
-    then have r2: "result = (IntVal32 (signed_take_bit (outBits - 1) (scast i64)))"
-      using assms by (metis narrow_helper.simps)
-    then obtain r32 where 
-      r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) (scast i64)"
-      by simp
-    then consider "outBits=32" | "outBits=16" | "outBits=8" | "outBits=1"
-      by (metis r1 assms(3) insertE narrow_helper.elims singletonD) 
+    case 2  (* input is IntVal64 and inBits=64 *)
+    then have in64: "inBits = 64"
+      using assms ok intval_narrow.simps(2) r by presburger 
     then show ?thesis
-      using 2 assms(1) r32 se unary_narrow_helper64 by fastforce
+      proof (cases "outBits = 64")
+        case True
+        then show ?thesis
+          using 2 in64 r u intval_narrow.simps(2) unrestricted_64bit_always_valid by presburger
+      next
+        case False
+        (* Nb. proof differs from case 1 above by scast, so not easy to combine them. *)
+        then have out32: "outBits=32 \<or> outBits=16 \<or> outBits=8 \<or> outBits=1"
+          using ok assms by force 
+        then have r1: "result = narrow_helper inBits outBits (scast i64)"
+          using assms "2" False in64 r ok narrow_takes_64 by simp
+        then have r2: "result = (IntVal32 (signed_take_bit (outBits - 1) (scast i64)))"
+          using assms by (metis narrow_helper.simps)
+        then obtain r32 where 
+          r32: "result = IntVal32 r32 \<and> r32 = signed_take_bit (outBits - 1) (scast i64)"
+          by simp
+        then show ?thesis
+          using assms 2 r32 out32 u se unary_narrow_helper64 by blast 
+      qed
   qed
 qed
 
+
+
+subsubsection \<open>Validity of UnarySignExtend\<close>
+
+(*
+lemma unary_sign_extend_helper32:
+  assumes "[m,p] \<turnstile> expr \<mapsto> IntVal32 i32"
+  assumes "stamp_expr expr = IntegerStamp b lo hi"
+  assumes "r32 = signed_take_bit (outBits - 1) i32"
+  assumes "result = IntVal32 r32"
+  assumes "outBits=32 \<or> outBits=16 \<or> outBits=8 \<or> outBits=1"
+  assumes "stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr) 
+             = unrestricted_stamp (IntegerStamp outBits lo hi)"
+  shows "valid_value result (stamp_expr (UnaryExpr (UnaryNarrow inBits outBits) expr))"
+proof -
+  have hi: "sint r32 < 2^(outBits-1)"
+    using assms signed_take_bit_int_less_exp_word
+    by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral 
+          power_increasing sint_above_size word_size)
+  then have lo: "- (2^(outBits-1)) \<le> sint r32"
+    using assms signed_take_bit_int_greater_eq_minus_exp_word
+    by (smt (verit, best) diff_le_self less_le_trans power_less_imp_less_exp sint_ge)
+  then show ?thesis
+    using assms lo hi apply simp
+    by (metis int_power_div_base lessI zero_less_numeral) 
+qed
+
+
+lemma sign_extend_range:
+  assumes "(result :: int64) = scast (v :: 'a :: len word)"
+  shows "fst (bit_bounds LENGTH('a)) \<le> sint result \<and> sint result \<le> snd (bit_bounds LENGTH('a))"
+  using scast_bit_bounds
+  using assms len_gt_0 by blast 
+*)
+
+
+lemma valid_sign_extend32_or_less:
+  assumes "(result :: int32) = scast (v :: 'a :: len word)"
+  assumes "LENGTH('a) = 32 \<or> LENGTH('a) = 16 \<or> LENGTH('a) = 8 \<or> LENGTH('a) = 1"
+  shows "valid_value (IntVal32 result) (IntegerStamp LENGTH('a) 
+                              (fst (bit_bounds (LENGTH('a)))) 
+                              (snd (bit_bounds (LENGTH('a)))))"
+  unfolding valid_value.simps 
+  using scast_bigger_bit_bounds assms by blast
+
+
+lemma valid_sign_extend64:
+  assumes "(result :: int64) = scast (v :: 'a :: len word)"
+  shows "valid_value (IntVal64 result) (IntegerStamp 64 
+                              (fst (bit_bounds (LENGTH('a)))) 
+                              (snd (bit_bounds (LENGTH('a)))))"
+  unfolding valid_value.simps 
+  using scast_bigger_bit_bounds
+  using assms(1) len_gt_0 by blast
+
+
+lemma unary_sign_extend_implies_valid_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "result = unary_eval (UnarySignExtend inBits outBits) val"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr (UnarySignExtend inBits outBits) expr))"
+proof -
+  (* make some deductions about the input stamp of expr *)
+  have i: "is_IntegerStamp (stamp_expr expr)"
+    using assms valid_value.elims(2) by fastforce 
+  then obtain b lo hi where se:"stamp_expr expr = IntegerStamp b lo hi"
+    by (auto simp add: assms valid_value.elims(2) is_IntegerStamp_def)
+  then have u: "stamp_expr (UnaryExpr (UnarySignExtend inBits outBits) expr) 
+             = unrestricted_stamp (IntegerStamp outBits lo hi)"
+    by simp
+  then show ?thesis
+  proof (cases "is_IntVal64 val")
+    case True
+    then show ?thesis
+      using assms u unrestricted_64bit_always_valid
+      using is_IntVal64_def by fastforce
+  next
+    case False
+    then obtain i32 where i32: "result = sign_extend_helper inBits outBits i32"
+      using assms intval_sign_extend.simps
+      by (metis is_IntVal64_def se unary_eval.simps(6) valid32or64)
+    then have ok: "0 < inBits \<and> inBits \<le> 32 \<and> inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and> inBits \<in> valid_int_widths"
+      using assms sign_extend_helper_ok by blast
+    then show ?thesis
+    proof (cases "outBits = 64")
+      case True
+      then obtain r64 where "result = IntVal64 r64"
+        by (metis assms(3) i32 sign_extend_helper.simps) 
+      then show ?thesis
+        using True u unrestricted_64bit_always_valid by presburger
+    next
+      case False
+      then obtain r32 where r32: "result = IntVal32 r32"
+        using ok i32 by force
+      then have lohi: "-(2 ^ (inBits - 1)) \<le> sint r32 \<and> sint r32 < 2 ^ (inBits - 1)"
+        using sign_extend_helper_output_range32
+        by (smt (verit, ccfv_threshold) False Value.inject(1) assms(3) diff_le_self i32 linorder_not_le power_less_imp_less_exp sign_extend_helper.simps signed_take_bit_int_less_exp_word sint_lt) 
+      then have bnds: "fst (bit_bounds inBits) \<le> sint r32 \<and> sint r32 \<le> snd (bit_bounds inBits)"
+        unfolding bit_bounds.simps fst_def
+        using ok lower_bounds_equiv upper_bounds_equiv by simp
+      then have v: "valid_value result (unrestricted_stamp (IntegerStamp inBits lo hi))"
+        using ok r32 by force 
+      then have "outBits=1 \<or> outBits=8 \<or> outBits=16 \<or> outBits=32"
+        using ok False by fastforce
+      then show ?thesis
+        unfolding u using ok v r32 larger_stamp32_always_valid by presburger 
+    qed
+  qed
+qed
 
 
 subsubsection \<open>Validity of all Unary Operators\<close>
@@ -438,24 +840,27 @@ proof (cases op)
   then show ?thesis using assms unary_abs_implies_valid_value by presburger
 next
   case UnaryNeg
-  then show ?thesis sorry
+  then show ?thesis using assms unary_neg_implies_valid_value by presburger
 next
   case UnaryNot
-  then show ?thesis sorry
+  then show ?thesis using assms unary_not_implies_valid_value by presburger
 next
   case UnaryLogicNegation
-  then show ?thesis sorry
+  then show ?thesis using assms unary_logic_negation_implies_valid_value by presburger
 next
   case (UnaryNarrow x51 x52)
   then show ?thesis using assms unary_narrow_implies_valid_value by presburger
 next
   case (UnarySignExtend x61 x62)
-  then show ?thesis sorry
+  then show ?thesis using assms unary_sign_extend_implies_valid_value by presburger
 next
   case (UnaryZeroExtend x71 x72)
   then show ?thesis sorry
 qed
 
+
+
+subsubsection \<open>Support Lemmas for Binary Operators\<close>
 
 lemma binary_undef: "v1 = UndefVal \<or> v2 = UndefVal \<Longrightarrow> bin_eval op v1 v2 = UndefVal"
   by (cases op; auto)
@@ -475,6 +880,7 @@ lemma binary_eval_bits_equal:
   sorry
 *)
 
+(* Not true any more, now that the bit-shift operators can take mixed 32/64 bit arguments.
 lemma binary_eval_values:
   assumes "\<exists>x y. result = IntVal32 x \<or> result = IntVal64 y"
   assumes "result = bin_eval op val1 val2"
@@ -482,6 +888,7 @@ lemma binary_eval_values:
   using assms apply (cases result)
       apply simp apply (cases op; cases val1; cases val2; auto)
     apply (cases op; cases val1; cases val2; auto) by auto+
+*)
 
 lemma binary_eval_implies_valid_value:
   assumes "[m,p] \<turnstile> expr1 \<mapsto> val1"
@@ -508,9 +915,11 @@ proof -
   from expr2_intstamp obtain b2 lo2 hi2 where stamp_expr2_def: "stamp_expr expr2 = (IntegerStamp b2 lo2 hi2)"
     using is_IntegerStamp_def by auto
 
+(* Problem: this is no longer true for the bit-shifting operators:
   have "\<exists> x32 x64 y32 y64 . (val1 = IntVal32 x32 \<and> val2 = IntVal32 y32) \<or> (val1 = IntVal64 x64 \<and> val2 = IntVal64 y64)"
     using is_IntVal assms(3) binary_eval_values
     by presburger
+*)
 
 (* TODO: we have a problem here with the 32-bit case, because
    the input stamps could be 32/16/8 bits.
@@ -521,7 +930,6 @@ proof -
 *)
   have "b1 = b2"
     using assms(3,4,5,6) stamp_expr1_def stamp_expr2_def
-    using binary_eval_values
     sorry
   then have stamp_def: "stamp_expr (BinaryExpr op expr1 expr2) = 
       (if op \<notin> fixed_32 \<and> b1=64

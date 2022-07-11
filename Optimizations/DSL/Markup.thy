@@ -16,7 +16,8 @@ datatype 'a ExtraNotation =
   ConstantNotation 'a ("const _" 120) |
   TrueNotation ("true") |
   FalseNotation ("false") |
-  ExclusiveOr 'a 'a ("_ \<oplus> _")
+  ExclusiveOr 'a 'a ("_ \<oplus> _") |
+  ShortCircuitOr 'a 'a ("_ || _")
 
 ML_file \<open>markup.ML\<close>
 
@@ -29,6 +30,7 @@ fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.And = @{term BinaryExpr} $ @{term BinAnd}
   | markup DSL_Tokens.Or = @{term BinaryExpr} $ @{term BinOr}
   | markup DSL_Tokens.Xor = @{term BinaryExpr} $ @{term BinXor}
+  | markup DSL_Tokens.ShortCircuitOr = @{term BinaryExpr} $ @{term BinShortCircuitOr}
   | markup DSL_Tokens.Abs = @{term UnaryExpr} $ @{term UnaryAbs}
   | markup DSL_Tokens.Less = @{term BinaryExpr} $ @{term BinIntegerLessThan}
   | markup DSL_Tokens.Equals = @{term BinaryExpr} $ @{term BinIntegerEquals}
@@ -50,6 +52,7 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.Mul = @{term intval_mul}
   | markup DSL_Tokens.And = @{term intval_and}
   | markup DSL_Tokens.Or = @{term intval_or}
+  | markup DSL_Tokens.ShortCircuitOr = @{term intval_short_circuit_or}
   | markup DSL_Tokens.Xor = @{term intval_xor}
   | markup DSL_Tokens.Abs = @{term intval_abs}
   | markup DSL_Tokens.Less = @{term intval_less_than}

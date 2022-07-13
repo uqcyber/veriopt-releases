@@ -104,6 +104,12 @@ inductive
     g \<turnstile> y \<simeq> ye\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinXor xe ye)" |
 
+  ShortCircuitOrNode:
+  "\<lbrakk>kind g n = ShortCircuitOrNode x y;
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinShortCircuitOr xe ye)" |
+
   LeftShiftNode:
   "\<lbrakk>kind g n = LeftShiftNode x y;
     g \<turnstile> x \<simeq> xe;
@@ -169,7 +175,6 @@ inductive
     \<Longrightarrow> g \<turnstile> n \<simeq> e"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
-code_pred (modes: i \<Rightarrow> o \<Rightarrow> i \<Rightarrow> bool as exprE) rep .
 
 
 inductive
@@ -217,6 +222,8 @@ inductive_cases OrNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinOr xe ye)"
 inductive_cases XorNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinXor xe ye)"
+inductive_cases ShortCircuitOrE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (BinaryExpr BinShortCircuitOr xe ye)"
 inductive_cases LeftShiftNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinLeftShift xe ye)"
 inductive_cases RightShiftNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -253,6 +260,7 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   AndNodeE
   OrNodeE
   XorNodeE
+  ShortCircuitOrE
   LeftShiftNodeE
   RightShiftNodeE
   UnsignedRightShiftNodeE
@@ -285,12 +293,21 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinAnd x y = AndNode x y" |
   "bin_node BinOr  x y = OrNode x y" |
   "bin_node BinXor x y = XorNode x y" |
+  "bin_node BinShortCircuitOr x y = ShortCircuitOrNode x y" |
   "bin_node BinLeftShift x y = LeftShiftNode x y" |
   "bin_node BinRightShift x y = RightShiftNode x y" |
   "bin_node BinURightShift x y = UnsignedRightShiftNode x y" |
   "bin_node BinIntegerEquals x y = IntegerEqualsNode x y" |
   "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y" |
   "bin_node BinIntegerBelow x y = IntegerBelowNode x y"
+
+
+(* cast a signed result into the desired finite bit width *)
+fun choose_32_64 :: "int \<Rightarrow> int64 \<Rightarrow> Value" where
+  "choose_32_64 bits val = 
+      (if bits = 32 
+       then (IntVal32 (ucast val))
+       else (IntVal64 (val)))"
 
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
@@ -319,56 +336,77 @@ value "get_fresh_id (add_node 6 (ParameterNode 2, default_stamp) eg2_sq)"
 
    This means that we can try to re-use existing nodes by finding node IDs bottom-up.
 *)
-
-(* TODO: document distinction between unrep and add_expr *)
 inductive
   unrep :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool" ("_ \<oplus> _ \<leadsto> _" 55)
-  and
-  add_expr :: "IRGraph \<Rightarrow> IRExpr \<Rightarrow> (IRGraph \<times> ID) \<Rightarrow> bool"
-  where
+   where
 
-  Exists:
-  "\<lbrakk>g \<turnstile> n \<simeq> e\<rbrakk>
-    \<Longrightarrow> g \<oplus> e \<leadsto> (g, n)" |
-
-  NotExists:
-  "\<lbrakk>\<not>(\<exists>n. (g \<turnstile> n \<simeq> e));
-    add_expr g e (g', n')\<rbrakk>
-    \<Longrightarrow> g \<oplus> e \<leadsto> (g', n')" |
+  ConstantNodeSame:
+  "\<lbrakk>find_node_and_stamp g (ConstantNode c, constantAsStamp c) = Some n\<rbrakk>
+    \<Longrightarrow> g \<oplus> (ConstantExpr c) \<leadsto> (g, n)" |
 
   ConstantNodeNew:
-  "\<lbrakk>n = get_fresh_id g;
+  "\<lbrakk>find_node_and_stamp g (ConstantNode c, constantAsStamp c) = None;
+    n = get_fresh_id g;
     g' = add_node n (ConstantNode c, constantAsStamp c) g \<rbrakk>
-    \<Longrightarrow> add_expr g (ConstantExpr c) (g', n)" |
+    \<Longrightarrow> g \<oplus> (ConstantExpr c) \<leadsto> (g', n)" |
+
+  ParameterNodeSame:
+  "\<lbrakk>find_node_and_stamp g (ParameterNode i, s) = Some n\<rbrakk>
+    \<Longrightarrow> g \<oplus> (ParameterExpr i s) \<leadsto> (g, n)" |
 
   ParameterNodeNew:
-  "\<lbrakk>n = get_fresh_id g;
+  "\<lbrakk>find_node_and_stamp g (ParameterNode i, s) = None;
+    n = get_fresh_id g;
     g' = add_node n (ParameterNode i, s) g\<rbrakk>
-    \<Longrightarrow> add_expr g (ParameterExpr i s) (g', n)" |
+    \<Longrightarrow> g \<oplus> (ParameterExpr i s) \<leadsto> (g', n)" |
+
+  ConditionalNodeSame:
+  "\<lbrakk>g \<oplus> ce \<leadsto> (g2, c);
+    g2 \<oplus> te \<leadsto> (g3, t);
+    g3 \<oplus> fe \<leadsto> (g4, f);
+    s' = meet (stamp g4 t) (stamp g4 f);
+    find_node_and_stamp g4 (ConditionalNode c t f, s') = Some n\<rbrakk>
+    \<Longrightarrow> g \<oplus> (ConditionalExpr ce te fe) \<leadsto> (g4, n)" |
 
   ConditionalNodeNew:
   "\<lbrakk>g \<oplus> ce \<leadsto> (g2, c);
     g2 \<oplus> te \<leadsto> (g3, t);
     g3 \<oplus> fe \<leadsto> (g4, f);
     s' = meet (stamp g4 t) (stamp g4 f);
+    find_node_and_stamp g4 (ConditionalNode c t f, s') = None;
     n = get_fresh_id g4;
     g' = add_node n (ConditionalNode c t f, s') g4\<rbrakk>
-    \<Longrightarrow> add_expr g (ConditionalExpr ce te fe) (g', n)" |
+    \<Longrightarrow> g \<oplus> (ConditionalExpr ce te fe) \<leadsto> (g', n)" |
+
+  UnaryNodeSame:
+  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
+    s' = stamp_unary op (stamp g2 x);
+    find_node_and_stamp g2 (unary_node op x, s') = Some n\<rbrakk>
+    \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g2, n)" |
 
   UnaryNodeNew:
   "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
     s' = stamp_unary op (stamp g2 x);
+    find_node_and_stamp g2 (unary_node op x, s') = None;
     n = get_fresh_id g2;
     g' = add_node n (unary_node op x, s') g2\<rbrakk>
-    \<Longrightarrow> add_expr g (UnaryExpr op xe) (g', n)" |
+    \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g', n)" |
+
+  BinaryNodeSame:
+  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
+    g2 \<oplus> ye \<leadsto> (g3, y);
+    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
+    find_node_and_stamp g3 (bin_node op x y, s') = Some n\<rbrakk>
+    \<Longrightarrow> g \<oplus> (BinaryExpr op xe ye) \<leadsto> (g3, n)" |
 
   BinaryNodeNew:
   "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
     g2 \<oplus> ye \<leadsto> (g3, y);
     s' = stamp_binary op (stamp g3 x) (stamp g3 y);
+    find_node_and_stamp g3 (bin_node op x y, s') = None;
     n = get_fresh_id g3;
     g' = add_node n (bin_node op x y, s') g3\<rbrakk>
-    \<Longrightarrow> add_expr g (BinaryExpr op xe ye) (g', n)" |
+    \<Longrightarrow> g \<oplus> (BinaryExpr op xe ye) \<leadsto> (g', n)" |
 
   AllLeafNodes:
   "\<lbrakk>stamp g n = s;
@@ -385,11 +423,11 @@ inductive
   "\<lbrakk>g \<triangleleft> xe \<leadsto> (g2, x);
     g2 \<triangleleft>\<^sub>L xes \<leadsto> (g3, xs)\<rbrakk>
     \<Longrightarrow> g \<triangleleft>\<^sub>L (xe#xes) \<leadsto> (g3, x#xs)"*)
-(*
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE)
 
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE)
+(*
   [show_steps,show_mode_inference,show_intermediate_results] 
-  unrep .
+*)  unrep .
 
 text_raw \<open>\Snip{unrepRules}%
 \begin{center}
@@ -454,5 +492,5 @@ subsection \<open>Maximal Sharing\<close>
 definition maximal_sharing:
   "maximal_sharing g = (\<forall> n\<^sub>1 n\<^sub>2 . n\<^sub>1 \<in> true_ids g \<and> n\<^sub>2 \<in> true_ids g \<longrightarrow> 
       (\<forall> e. (g \<turnstile> n\<^sub>1 \<simeq> e) \<and> (g \<turnstile> n\<^sub>2 \<simeq> e) \<and> (stamp g n\<^sub>1 = stamp g n\<^sub>2) \<longrightarrow> n\<^sub>1 = n\<^sub>2))"
-*)
+
 end

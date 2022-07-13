@@ -95,6 +95,12 @@ lemma rep_xor [rep]:
    (\<exists>xe ye. e = BinaryExpr BinXor xe ye)"
   by (induction rule: rep.induct; auto)
 
+lemma rep_short_circuit_or [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   kind g n = ShortCircuitOrNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinShortCircuitOr xe ye)"
+  by (induction rule: rep.induct; auto)
+
 lemma rep_left_shift [rep]:
   "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = LeftShiftNode x y \<Longrightarrow>
@@ -245,6 +251,10 @@ next
   case (XorNode n x y xe ye)
   then show ?case
     by (solve_det node: XorNode)
+next
+  case (ShortCircuitOrNode n x y xe ye)
+  then show ?case
+    by (solve_det node: ShortCircuitOrNode)
 next
   case (LeftShiftNode n x y xe ye)
   then show ?case
@@ -802,6 +812,32 @@ proof -
           by meson
       qed
     next
+    case (ShortCircuitOrNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<simeq> BinaryExpr BinShortCircuitOr xe1 ye1" using f ShortCircuitOrNode
+        by (simp add: ShortCircuitOrNode.hyps(2) rep.ShortCircuitOrNode)
+      obtain xn yn where l: "kind g1 n = ShortCircuitOrNode xn yn"
+        using ShortCircuitOrNode.hyps(1) by blast
+      then have mx: "g1 \<turnstile> xn \<simeq> xe1"
+        using ShortCircuitOrNode.hyps(1) ShortCircuitOrNode.hyps(2) by fastforce
+      from l have my: "g1 \<turnstile> yn \<simeq> ye1"
+        using ShortCircuitOrNode.hyps(1) ShortCircuitOrNode.hyps(3) by fastforce
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<simeq> xe1" using mx by simp
+        have "g1 \<turnstile> yn \<simeq> ye1" using my by simp
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
+          using ShortCircuitOrNode
+          using a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary ShortCircuitOrNode)
+        have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
+          using ShortCircuitOrNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis_node_eq_binary ShortCircuitOrNode)
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinShortCircuitOr xe2 ye2) \<and> BinaryExpr BinShortCircuitOr xe1 ye1 \<ge> BinaryExpr BinShortCircuitOr xe2 ye2"
+          by (metis ShortCircuitOrNode.prems l mono_binary rep.ShortCircuitOrNode xer)
+        then show ?thesis
+          by meson
+      qed
+    next
       case (LeftShiftNode n x y xe1 ye1)
       have k: "g1 \<turnstile> n \<simeq> BinaryExpr BinLeftShift xe1 ye1" using f LeftShiftNode
         by (simp add: LeftShiftNode.hyps(2) rep.LeftShiftNode)
@@ -1145,7 +1181,8 @@ lemma subset_implies_evals:
                  apply (solve_subset_eval as_set: assms(1) eval: SubNode)
                 apply (solve_subset_eval as_set: assms(1) eval: AndNode)
                apply (solve_subset_eval as_set: assms(1) eval: OrNode)
-             apply (solve_subset_eval as_set: assms(1) eval: XorNode)
+              apply (solve_subset_eval as_set: assms(1) eval: XorNode)
+             apply (solve_subset_eval as_set: assms(1) eval: ShortCircuitOrNode)
             apply (solve_subset_eval as_set: assms(1) eval: LeftShiftNode)
            apply (solve_subset_eval as_set: assms(1) eval: RightShiftNode)
           apply (solve_subset_eval as_set: assms(1) eval: UnsignedRightShiftNode)
@@ -1255,7 +1292,8 @@ lemma graph_unchanged_rep_unchanged:
                  apply (metis no_encoding rep.SubNode)
                 apply (metis no_encoding rep.AndNode)
                apply (metis no_encoding rep.OrNode)
-               apply (metis no_encoding rep.XorNode)
+                apply (metis no_encoding rep.XorNode)
+               apply (metis no_encoding rep.ShortCircuitOrNode)
               apply (metis no_encoding rep.LeftShiftNode)
              apply (metis no_encoding rep.RightShiftNode)
             apply (metis no_encoding rep.UnsignedRightShiftNode)
@@ -1445,12 +1483,13 @@ theorem term_graph_reconstruction:
       using AndNode bin_node.simps(4) apply presburger
       using OrNode bin_node.simps(5) apply presburger
       using XorNode bin_node.simps(6) apply presburger
-      using LeftShiftNode bin_node.simps(7) apply presburger
-      using RightShiftNode bin_node.simps(8) apply presburger
-      using UnsignedRightShiftNode bin_node.simps(9) apply presburger
-      using IntegerEqualsNode bin_node.simps(10) apply presburger
-      using IntegerLessThanNode bin_node.simps(11) apply presburger
-      using IntegerBelowNode bin_node.simps(12) by presburger
+      using ShortCircuitOrNode bin_node.simps(7) apply presburger
+      using LeftShiftNode bin_node.simps(8) apply presburger
+      using RightShiftNode bin_node.simps(9) apply presburger
+      using UnsignedRightShiftNode bin_node.simps(10) apply presburger
+      using IntegerEqualsNode bin_node.simps(11) apply presburger
+      using IntegerLessThanNode bin_node.simps(12) apply presburger
+      using IntegerBelowNode bin_node.simps(13) by presburger
   next
     case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
     moreover have "bin_node op x y \<noteq> NoNode"
@@ -1473,12 +1512,13 @@ theorem term_graph_reconstruction:
       using AndNode bin_node.simps(4) apply presburger
       using OrNode bin_node.simps(5) apply presburger
       using XorNode bin_node.simps(6) apply presburger
-      using LeftShiftNode bin_node.simps(7) apply presburger
-      using RightShiftNode bin_node.simps(8) apply presburger
-      using UnsignedRightShiftNode bin_node.simps(9) apply presburger
-      using IntegerEqualsNode bin_node.simps(10) apply presburger
-      using IntegerLessThanNode bin_node.simps(11) apply presburger
-      using IntegerBelowNode bin_node.simps(12) by presburger
+      using ShortCircuitOrNode bin_node.simps(7) apply presburger
+      using LeftShiftNode bin_node.simps(8) apply presburger
+      using RightShiftNode bin_node.simps(9) apply presburger
+      using UnsignedRightShiftNode bin_node.simps(10) apply presburger
+      using IntegerEqualsNode bin_node.simps(11) apply presburger
+      using IntegerLessThanNode bin_node.simps(12) apply presburger
+      using IntegerBelowNode bin_node.simps(13) by presburger
   next
     case (AllLeafNodes g n s)
     then show ?case using rep.LeafNode by blast
@@ -1880,7 +1920,8 @@ lemma same_kind_stamp_encodes_equal:
                   apply (metis SubNode)
                  apply (metis AndNode)
                 apply (metis OrNode)
-               apply (metis XorNode)
+                apply (metis XorNode)
+                apply (metis ShortCircuitOrNode)
               apply (metis LeftShiftNode)
              apply (metis RightShiftNode)
             apply (metis UnsignedRightShiftNode)
@@ -2194,6 +2235,21 @@ next
       using new_def unchanged by blast
     then show ?case using XorNode
       using rep.XorNode by presburger
+  next
+    case (ShortCircuitOrNode n x y xe ye)
+    then have kind: "kind g n = ShortCircuitOrNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      using kind unfolding inputs.simps by simp
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed unfolding wf_closed_def
+      using isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using new_def unchanged by blast
+    then show ?case using ShortCircuitOrNode
+      using rep.ShortCircuitOrNode by presburger
   next
     case (LeftShiftNode n x y xe ye)
     then have kind: "kind g n = LeftShiftNode x y"

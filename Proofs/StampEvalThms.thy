@@ -158,7 +158,7 @@ lemma larger_stamp32_always_valid [simp]:
 
 text \<open>Possibly helpful lemmas about $signed_take_bit$, to help with UnaryNarrow.
   Note: we could use signed to convert between bit-widths, instead of 
-  $signed_take_bit$.  But this has to be done separately for each bit-width type.\<close>
+  signed\_take\_bit.  But this has to be done separately for each bit-width type.\<close>
 
 value "sint(signed_take_bit 7 (128 :: int8))"
 
@@ -182,7 +182,7 @@ lemma signed_take_bit_int_greater_eq_minus_exp_word:
      signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp)
 
 
-text \<open>Some important lemmas showing that sign_extend_helper produces integer results
+text \<open>Some important lemmas showing that sign\_extend\_helper produces integer results
    whose range is determined by the inBits parameter.\<close>
 
 lemma sign_extend_helper_output_range64:
@@ -279,7 +279,7 @@ text \<open>A set of lemmas for each evaltree step.
    Questions: 
    1. do we need separate 32/64 lemmas?  
       Yes, I think so, because almost every operator behaves differently on each width.
-      And it makes the matching more direct, does not need $is_IntVal_def$ etc.
+      And it makes the matching more direct, does not need is\_IntVal\_def etc.
    2. is this top-down approach (assume the result node evaluation) best?
       Maybe.  It seems to be the shortest/simplest trigger?
 \<close>

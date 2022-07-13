@@ -319,6 +319,15 @@ next
   then show ?case using XorNode inputs_of_XorNode
     by (metis \<open>kind g2 n = XorNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.XorNode)
 next
+  case (ShortCircuitOrNode n x y xe ye)
+  then have "kind g2 n = ShortCircuitOrNode x y"
+    using kind_unchanged by metis
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    using inputs_of_XorNode inputs_of_are_usages
+    by (metis ShortCircuitOrNode.hyps(1) ShortCircuitOrNode.hyps(2) ShortCircuitOrNode.hyps(3) IRNodes.inputs_of_ShortCircuitOrNode encode_in_ids in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case using ShortCircuitOrNode inputs_of_ShortCircuitOrNode
+    by (metis \<open>kind g2 n = ShortCircuitOrNode x y\<close> child_member child_unchanged encode_in_ids ids_some member_rec(1) rep.ShortCircuitOrNode)
+next
 case (LeftShiftNode n x y xe ye)
   then have "kind g2 n = LeftShiftNode x y"
     using kind_unchanged by metis

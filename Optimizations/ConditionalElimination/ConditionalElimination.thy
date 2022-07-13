@@ -121,7 +121,7 @@ proof -
     using assms(1,2,3,4) using logic_negate_type sorry
   have "invval = bool_to_val (\<not>(val_to_bool val))"
     using assms(1,2,3) evalDet unary_eval.simps(4)
-    by (smt (verit, ccfv_SIG) UnaryExprE \<open>[m,p] \<turnstile> UnaryExpr UnaryLogicNegation yencode \<mapsto> invval\<close> \<open>g \<turnstile> y \<simeq> yencode\<close> bool_to_val.simps(1) bool_to_val.simps(2) encodeeval_def intval_logic_negation.simps(1) logic_negate_type repDet val_to_bool.simps(1))
+    by (smt (verit, ccfv_threshold) UnaryExprE \<open>[g,m,p] \<turnstile> y \<mapsto> IntVal32 v1\<close> \<open>[m,p] \<turnstile> UnaryExpr UnaryLogicNegation yencode \<mapsto> invval\<close> \<open>g \<turnstile> y \<simeq> yencode\<close> bool_to_val.simps(1) bool_to_val.simps(2) encodeeval_def graphDet intval_logic_negation.simps(1) logic_negate_def val_to_bool.simps(1))
   have "val_to_bool invval \<longleftrightarrow> \<not>(val_to_bool val)" 
     using \<open>invval = bool_to_val (\<not> val_to_bool val)\<close> by force
   then show ?thesis
@@ -181,10 +181,10 @@ next
       using eq_imp_less.prems(2) by blast
     have eqeval: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals x y) \<mapsto> intval_equals xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(10) eq_imp_less.prems(1) evalDet)
+      by (metis BinaryExprE bin_eval.simps(11) eq_imp_less.prems(1) evalDet)
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> intval_less_than xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) eq_imp_less.prems(2) evalDet)
+      by (metis BinaryExprE bin_eval.simps(12) eq_imp_less.prems(2) evalDet)
     have "val_to_bool (intval_equals xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than xval yval))"
       using assms(4) apply (cases xval; cases yval; auto)
       apply (metis (full_types) val_to_bool.simps(1) Values.bool_to_val.simps(2) signed.less_irrefl)
@@ -202,10 +202,10 @@ next
       using eq_imp_less_rev.prems(2) by blast
     have eqeval: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals x y) \<mapsto> intval_equals xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(10) eq_imp_less_rev.prems(1) evalDet)
+      by (metis BinaryExprE bin_eval.simps(11) eq_imp_less_rev.prems(1) evalDet)
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan y x) \<mapsto> intval_less_than yval xval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) eq_imp_less_rev.prems(2) evalDet)
+      by (metis BinaryExprE bin_eval.simps(12) eq_imp_less_rev.prems(2) evalDet)
     have "val_to_bool (intval_equals xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than yval xval))"
       using assms(4) apply (cases xval; cases yval; auto)
       apply (metis (full_types) val_to_bool.simps(1) Values.bool_to_val.simps(2) signed.less_irrefl)
@@ -223,10 +223,10 @@ next
       using less_imp_rev_less.prems(2) by blast
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> intval_less_than xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) evalDet less_imp_rev_less.prems(1))
+      by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_rev_less.prems(1))
     have revlesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan y x) \<mapsto> intval_less_than yval xval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) evalDet less_imp_rev_less.prems(2))
+      by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_rev_less.prems(2))
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than yval xval))"
       using assms(4) apply (cases xval; cases yval; auto)
       apply (metis val_to_bool.simps(1) Values.bool_to_val.elims signed.not_less_iff_gr_or_eq)
@@ -243,10 +243,10 @@ next
       using less_imp_not_eq.prems(1) by blast
     have eqeval: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals x y) \<mapsto> intval_equals xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(10) evalDet less_imp_not_eq.prems(2))
+      by (metis BinaryExprE bin_eval.simps(11) evalDet less_imp_not_eq.prems(2))
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> intval_less_than xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) evalDet less_imp_not_eq.prems(1))
+      by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_not_eq.prems(1))
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_equals xval yval))"
       using assms(4) apply (cases xval; cases yval; auto)
        apply (metis (full_types) bool_to_val.simps(2) signed.less_imp_not_eq val_to_bool.simps(1))
@@ -263,10 +263,10 @@ next
       using less_imp_not_eq_rev.prems(1) by blast
     have eqeval: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals y x) \<mapsto> intval_equals yval xval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(10) evalDet less_imp_not_eq_rev.prems(2))
+      by (metis BinaryExprE bin_eval.simps(11) evalDet less_imp_not_eq_rev.prems(2))
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> intval_less_than xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) evalDet less_imp_not_eq_rev.prems(1))
+      by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_not_eq_rev.prems(1))
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_equals yval xval))"
       using assms(4) apply (cases xval; cases yval; auto)
       apply (metis (full_types) bool_to_val.simps(2) signed.less_imp_not_eq2 val_to_bool.simps(1))
@@ -341,7 +341,7 @@ lemma
 proof -
   have "v = intval_equals xval yval"
     using assms(1, 2, 3, 4) BinaryExprE IntegerEqualsNode bin_eval.simps(7)
-    by (smt (verit) bin_eval.simps(10) encodeeval_def evalDet repDet)
+    by (smt (verit) bin_eval.simps(11) encodeeval_def evalDet repDet)
   then show ?thesis using intval_equals.simps val_to_bool.simps sorry
 qed
 

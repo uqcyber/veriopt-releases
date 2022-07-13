@@ -65,23 +65,34 @@ text "@{thm vminusv}"
 text "@{thm redundant_sub}"
 snipend -
 
+lemma sub_same_32_val:
+  assumes "val[e - e] \<noteq> UndefVal"
+  assumes "is_IntVal32 e"
+  shows "val[e - e] = val[const 0]"
+  using assms by (cases e; auto)
+
 phase tmp
   terminating size
 begin
 snipbegin \<open>sub-same-32\<close>
 optimization sub_same_32: "(e::i32exp) - e \<longmapsto> const (IntVal32 0)"
-snipend -
-  apply (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
-    rule conjE, simp) apply auto[1] using Rep_i32exp evalDet is_IntVal32_def
-  apply (smt (verit, del_insts) eq_iff_diff_eq_0 evaltree.simps int_constants_valid intval_sub.simps(1) is_int_val.simps(1) mem_Collect_eq)
+  snipend -
+  defer apply simp using sub_same_32_val
+  apply (metis Value.disc(2) bin_eval.simps(3) evalDet i32e_eval unfold_binary unfold_const32)
   unfolding size.simps
   by (metis add_strict_increasing gr_implies_not0 less_one linorder_not_le size_gt_0)
+
+lemma sub_same_64_val:
+  assumes "val[e - e] \<noteq> UndefVal"
+  assumes "is_IntVal64 e"
+  shows "val[e - e] = val[IntVal64 0]"
+  using assms by (cases e; auto)
 
 snipbegin \<open>sub-same-64\<close>
 optimization sub_same_64: "(e::i64exp) - e \<longmapsto> const (IntVal64 0)"
   snipend -
-  apply auto
-   apply (metis (no_types, opaque_lifting) ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet i64e_eval int_and_equal_bits.simps(2) intval_sub.simps(2))
+  defer apply simp using sub_same_64_val
+  apply (metis Value.discI(2) bin_eval.simps(3) evalDet i64e_eval unfold_binary unfold_const64)
   by (simp add: Suc_le_eq add_strict_increasing size_gt_0)
 end
 
@@ -209,8 +220,7 @@ snipend -
   text \<open>@{subgoals[display]}\<close>
   snipend -
 
-  using neutral_zero(1) rewrite_preservation.simps(1) apply blast
-  by auto
+  using neutral_zero(1) rewrite_preservation.simps(1) by blast
 
 snipbegin \<open>InverseLeftSub\<close>
 optimization InverseLeftSub: "((e\<^sub>1::intexp) - (e\<^sub>2::intexp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
@@ -270,7 +280,7 @@ phase Conditional
 begin
 snipend -
 
-snipbegin \<open>phase-example-1\<close>optimization negate_condition: "(\<not>e ? x : y) \<longmapsto> (e ? y : x)"snipend -
+snipbegin \<open>phase-example-1\<close>optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x)"snipend -
   using ConditionalPhase.negate_condition
    by (auto simp: trm_def)
 
@@ -283,6 +293,7 @@ snipbegin \<open>phase-example-3\<close>optimization const_false: "(false ? x : 
 snipbegin \<open>phase-example-4\<close>optimization equal_branches: "(e ? x : x) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
+(*
 snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x
                    when (stamp_under (stamp_expr u) (stamp_expr v) 
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -
@@ -293,6 +304,7 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
                    when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wf_stamp x \<and> wf_stamp y)"snipend -
   using ConditionalPhase.condition_bounds_y(1)
   by (blast, auto simp: trm_def)
+*)
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 

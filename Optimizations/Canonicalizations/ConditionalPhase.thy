@@ -36,11 +36,28 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
 (*
+lemma stamp_under_defn:
+  assumes "stamp_under (stamp_expr x) (stamp_expr y)"
+  assumes "wf_stamp x \<and> wf_stamp y"
+  assumes "([m, p] \<turnstile> x \<mapsto> xv) \<and> ([m, p] \<turnstile> y \<mapsto> yv)"
+  shows "val_to_bool val[xv < yv]"
+proof -
+  have xval: "valid_value xv (stamp_expr x)"
+    using assms wf_stamp_def by blast
+  have yval: "valid_value yv (stamp_expr y)"
+    using assms wf_stamp_def by blast
+  show ?thesis using xval yval
+    apply (cases "stamp_expr x"; cases "stamp_expr y"; auto simp: valid_value.simps)
+    using assms(1) unfolding stamp_under.simps sorry
+qed
+    
+
 optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x 
     when (stamp_under (stamp_expr u) (stamp_expr v) \<and> wf_stamp u \<and> wf_stamp v)"
-   apply unfold_optimization
-  using stamp_under_semantics
-  using wf_stamp_def
+  apply simp apply (rule impI) apply (rule allI)+ apply (rule impI)
+  using stamp_under_defn
+  by force
+  by (metis intval_less_than.simps(15) stamp_under.elims(3) val_to_bool.simps(3))
   apply (smt (verit, best) ConditionalExprE le_expr_def stamp_under.simps)
   unfolding size.simps by simp
 

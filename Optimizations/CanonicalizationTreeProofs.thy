@@ -493,7 +493,7 @@ next
       apply (cases "intval_equals xval yval")
       using val_to_bool.simps(2) sorry
     then have "res = yval"
-      by (smt (verit, ccfv_threshold) BinaryExprE ConditionalExprE bin_eval.simps(10) cond_eq.hyps(1) cond_eq.prems(1) evalDet xeval yeval)
+      by (smt (verit, ccfv_threshold) BinaryExprE ConditionalExprE bin_eval.simps(11) cond_eq.hyps(1) cond_eq.prems(1) evalDet xeval yeval)
     then show ?thesis
       using cond_eq.prems(1) cond_eq.prems(2) xeval yeval evalDet by auto
   qed
@@ -506,7 +506,7 @@ next
   then show ?case proof (cases "val_to_bool(intval_less_than xval yval)")
     case True
     then show ?thesis
-      by (smt (verit, best) BinaryExprE ConditionalExprE bin_eval.simps(11) condition_bounds_x.hyps(1) condition_bounds_x.prems(1) condition_bounds_x.prems(2) evalDet xeval yeval)
+      by (smt (verit, best) BinaryExprE ConditionalExprE bin_eval.simps(12) condition_bounds_x.hyps(1) condition_bounds_x.prems(1) condition_bounds_x.prems(2) evalDet xeval yeval)
   next
     case False
     then have "stpi_upper stampx = stpi_lower stampy"
@@ -532,7 +532,7 @@ next
   then show ?case proof (cases "val_to_bool(intval_less_than xval yval)")
     case True
     then show ?thesis
-      by (smt (verit, best) BinaryExprE ConditionalExprE bin_eval.simps(11) condition_bounds_y.hyps(1) condition_bounds_y.prems(1) condition_bounds_y.prems(2) evalDet xeval yeval)
+      by (smt (verit, best) BinaryExprE ConditionalExprE bin_eval.simps(12) condition_bounds_y.hyps(1) condition_bounds_y.prems(1) condition_bounds_y.prems(2) evalDet xeval yeval)
   next
     case False
     have "stpi_upper stampx = stpi_lower stampy"

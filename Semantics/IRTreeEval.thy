@@ -53,6 +53,7 @@ datatype IRBinaryOp =
   | BinAnd
   | BinOr
   | BinXor
+  | BinShortCircuitOr
   | BinLeftShift
   | BinRightShift
   | BinURightShift
@@ -166,6 +167,7 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinAnd v1 v2 = intval_and v1 v2" |
   "bin_eval BinOr  v1 v2 = intval_or v1 v2" |
   "bin_eval BinXor v1 v2 = intval_xor v1 v2" |
+  "bin_eval BinShortCircuitOr v1 v2 = intval_short_circuit_or v1 v2" |
   "bin_eval BinLeftShift v1 v2 = intval_left_shift v1 v2" |
   "bin_eval BinRightShift v1 v2 = intval_right_shift v1 v2" |
   "bin_eval BinURightShift v1 v2 = intval_uright_shift v1 v2" |

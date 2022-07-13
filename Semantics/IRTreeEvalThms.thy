@@ -29,14 +29,22 @@ subsubsection \<open>Typing Properties for Integer Evaluation Functions\<close>
 text \<open>We use three simple typing properties on integer values: 
    $is_IntVal32, is_IntVal64$ and the more general $is_IntVal$.\<close>
 
+lemma unary_eval_not_obj_ref:
+  shows "unary_eval op x \<noteq> ObjRef v"
+  by (cases op; cases x; auto)
+
+lemma unary_eval_not_obj_str:
+  shows "unary_eval op x \<noteq> ObjStr v"
+  by (cases op; cases x; auto)
+
 (* Note: this will need qualifying once we have non-integer unary ops. *)
 lemma unary_eval_int:
   assumes def: "unary_eval op x \<noteq> UndefVal"
   shows "is_IntVal (unary_eval op x)"
-  apply (cases op; cases x)
-  unfolding is_IntVal_def using def apply auto
-  apply (presburger | meson neq0_conv)+
-  done
+  unfolding is_IntVal_def using def
+  apply (cases "unary_eval op x"; auto)
+  using unary_eval_not_obj_ref unary_eval_not_obj_str by simp+
+
 
 lemma bin_eval_int:
   assumes def: "bin_eval op x y \<noteq> UndefVal"

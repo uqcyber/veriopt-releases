@@ -207,7 +207,7 @@ proof -
   show ?thesis 
     unfolding bit_bounds.simps fst_def ival
     using assms lo2 hi2 order_le_less
-    by (metis Value.distinct(3) Value.distinct(9) sign_extend_helper.simps)
+    by (smt (verit, best) Value.simps(14) Value.simps(8) sign_extend_helper.simps)
 qed
 
 lemma sign_extend_helper_output_range32:
@@ -1125,16 +1125,17 @@ proof -
   obtain yval where yval_def: "[m, p] \<turnstile> y \<mapsto> yval"
     using assms(2) by blast
   have "is_IntVal32 xval \<or> is_IntVal64 xval"
-    by (metis BinaryExprE Value.exhaust_disc assms(2) bin_eval.simps(11) binary_obj binary_undef evalDet intval_less_than.simps(9) is_ObjRef_def is_ObjStr_def xval_def)
+    by (metis BinaryExprE Value.collapse(3) Value.collapse(4) Value.exhaust_disc assms(2) binary_obj evalDet evaltree_not_undef valid_value.simps(19) xval_def xvalid)
   have "is_IntVal32 yval \<or> is_IntVal64 yval"
-    by (metis BinaryExprE Value.exhaust_disc assms(2) bin_eval.simps(11) binary_obj binary_undef evalDet intval_less_than.simps(16) is_ObjRef_def is_ObjStr_def yval_def)
+    by (metis BinaryExprE Value.collapse(3) Value.collapse(4) Value.exhaust_disc assms(2) binary_obj evalDet evaltree_not_undef valid_value.simps(19) yval_def yvalid)
   have "is_IntVal32 xval = is_IntVal32 yval"
-    by (metis BinaryExprE Value.collapse(2) \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> assms(2) bin_eval.simps(11) evalDet intval_less_than.simps(12) intval_less_than.simps(5) is_IntVal32_def xval_def yval_def)
+    using BinaryExprE Value.collapse(2) \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> assms(2) bin_eval.simps(11) evalDet intval_less_than.simps(12) intval_less_than.simps(5) is_IntVal32_def xval_def yval_def
+    by (smt (verit, ccfv_SIG) bin_eval.simps(12))
   have "is_IntVal64 xval = is_IntVal64 yval"
     using \<open>is_IntVal32 xval = is_IntVal32 yval\<close> \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> by blast
   have "(intval_less_than xval yval) \<noteq> UndefVal"
     using assms(2)
-    by (metis BinaryExprE bin_eval.simps(11) evalDet xval_def yval_def)
+    by (metis bin_eval.simps(12) evalDet unfold_binary xval_def yval_def)
   have "is_IntVal32 xval \<Longrightarrow> ((\<exists> lo hi. stamp_expr x = IntegerStamp 32 lo hi) \<and> (\<exists> lo hi. stamp_expr y = IntegerStamp 32 lo hi))"
     (* using assms(2) binary_eval_bits_equal valid_value.elims(2) xval_def
     by (metis Value.distinct(9) Value.distinct_disc(9) \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> \<open>is_IntVal64 xval = is_IntVal64 yval\<close> is_IntVal32_def xvalid yval_def yvalid)
@@ -1197,7 +1198,7 @@ proof -
   have "(intval_less_than xval yval) = IntVal32 1"
     using \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> case32 case64 by fastforce
   then show ?thesis
-    by (metis BinaryExprE assms(2) bin_eval.simps(11) evalDet val_to_bool.simps(1) xval_def yval_def zero_neq_one)
+    by (metis EvalTreeE(5) assms(2) bin_eval.simps(12) evalDet val_to_bool.simps(1) xval_def yval_def zero_neq_one)
 qed
 
 lemma stamp_under_semantics_inversed:
@@ -1212,18 +1213,18 @@ proof -
   obtain yval where yval_def: "[m, p] \<turnstile> y \<mapsto> yval"
     using assms(2) by blast
   have "is_IntVal32 xval \<or> is_IntVal64 xval"
-    by (metis BinaryExprE Value.discI(1) Value.discI(2) assms(2) bin_eval.simps(11) binary_obj 
+    by (metis BinaryExprE Value.discI(1) Value.discI(2) assms(2) bin_eval.simps(12) binary_obj 
        constantAsStamp.elims evalDet evaltree_not_undef intval_less_than.simps(9) xval_def)
   have "is_IntVal32 yval \<or> is_IntVal64 yval"
-    by (metis BinaryExprE Value.discI(1) Value.discI(2) assms(2) bin_eval.simps(11) binary_obj 
+    by (metis BinaryExprE Value.discI(1) Value.discI(2) assms(2) bin_eval.simps(12) binary_obj 
         constantAsStamp.elims evalDet evaltree_not_undef intval_less_than.simps(16) yval_def)
   have "is_IntVal32 xval = is_IntVal32 yval"
-    by (metis BinaryExprE Value.collapse(2) \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> assms(2) bin_eval.simps(11) evalDet intval_less_than.simps(12) intval_less_than.simps(5) is_IntVal32_def xval_def yval_def)
+    by (metis BinaryExprE Value.collapse(2) \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> assms(2) bin_eval.simps(12) evalDet intval_less_than.simps(12) intval_less_than.simps(5) is_IntVal32_def xval_def yval_def)
   have "is_IntVal64 xval = is_IntVal64 yval"
     using \<open>is_IntVal32 xval = is_IntVal32 yval\<close> \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> \<open>is_IntVal32 yval \<or> is_IntVal64 yval\<close> by blast
   have "(intval_less_than xval yval) \<noteq> UndefVal"
     using assms(2)
-    by (metis BinaryExprE bin_eval.simps(11) evalDet xval_def yval_def)
+    by (metis BinaryExprE bin_eval.simps(12) evalDet xval_def yval_def)
   have "is_IntVal32 xval \<Longrightarrow> ((\<exists> lo hi. stamp_expr x = IntegerStamp 32 lo hi) \<and> (\<exists> lo hi. stamp_expr y = IntegerStamp 32 lo hi))"
     (* by (smt (verit) BinaryExprE Value.discI(2) Value.distinct_disc(9) assms(2) binary_eval_bits_equal xvalid yvalid valid_value.elims(2) xval_def)
     *)
@@ -1285,7 +1286,7 @@ proof -
   have "(intval_less_than xval yval) = IntVal32 0"
     using \<open>is_IntVal32 xval \<or> is_IntVal64 xval\<close> case32 case64 by fastforce
   then show ?thesis
-    by (metis BinaryExprE assms(2) bin_eval.simps(11) evalDet val_to_bool.simps(1) xval_def yval_def)
+    by (metis BinaryExprE assms(2) bin_eval.simps(12) evalDet val_to_bool.simps(1) xval_def yval_def)
 qed
 
 end

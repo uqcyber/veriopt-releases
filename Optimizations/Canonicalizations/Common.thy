@@ -24,4 +24,13 @@ lemma size_non_const:
     by (simp add: Suc_lessI one_is_add)+
   done
 
+
+definition well_formed_equal :: "Value \<Rightarrow> Value \<Rightarrow> bool" 
+  (infix "\<approx>" 50) where
+  "well_formed_equal v\<^sub>1 v\<^sub>2 = (v\<^sub>1 \<noteq> UndefVal \<longrightarrow> v\<^sub>1 = v\<^sub>2)"
+
+lemma well_formed_equal_defn [simp]:
+  "well_formed_equal v\<^sub>1 v\<^sub>2 = (v\<^sub>1 \<noteq> UndefVal \<longrightarrow> v\<^sub>1 = v\<^sub>2)"
+  unfolding well_formed_equal_def by simp
+
 end

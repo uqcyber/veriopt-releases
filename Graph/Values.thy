@@ -223,11 +223,8 @@ fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_xor (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 XOR v2))" |
   "intval_xor _ _ = UndefVal"
 
-(* TODO: temp guess at semantics *)
 fun intval_short_circuit_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_short_circuit_or (IntVal32 v1) (IntVal32 v2) = (IntVal32 (v1 OR v2))" |
-  "intval_short_circuit_or (IntVal64 v1) (IntVal64 v2) = (IntVal64 (v1 OR v2))" |
-  "intval_short_circuit_or _ _ = UndefVal"
+  "intval_short_circuit_or v1 v2 = (bool_to_val ((val_to_bool v1) \<or> (val_to_bool v2)))"
 
 fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_equals (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |

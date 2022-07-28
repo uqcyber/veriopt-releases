@@ -37,6 +37,26 @@ lemma unary_eval_not_obj_str:
   shows "unary_eval op x \<noteq> ObjStr v"
   by (cases op; cases x; auto)
 
+(* declare [[show_types = true]] *)
+
+(* TODO: try proving some results about int_[un]signed_value? *)
+(* TODO
+lemma negative_iff_top_bit:
+  fixes v :: "'a :: len word"
+  assumes "b < LENGTH('a)"
+  shows "(signed_take_bit b v <s 0) = bit v b"
+  using signed_take_bit_negative_iff apply transfer
+
+lemma signed_eq_unsigned:
+  assumes "int_signed_value b v \<ge> 0"
+  shows "int_signed_value b v = int_unsigned_value b v"
+proof -
+  thm signed_take_bit_negative_iff
+
+  have "\<not> bit v b"
+    using assms int_signed_value.simps 
+*)
+
 (* Note: this will need qualifying once we have non-integer unary ops. *)
 lemma unary_eval_int:
   assumes def: "unary_eval op x \<noteq> UndefVal"
@@ -45,7 +65,7 @@ lemma unary_eval_int:
   apply (cases "unary_eval op x"; auto)
   using unary_eval_not_obj_ref unary_eval_not_obj_str by simp+
 
-
+(* TODO:
 lemma bin_eval_int:
   assumes def: "bin_eval op x y \<noteq> UndefVal"
   shows "is_IntVal (bin_eval op x y)"
@@ -54,33 +74,23 @@ lemma bin_eval_int:
   apply presburger+ (* prove 6 more easy cases *)
   by (metis (full_types) bool_to_val.simps)+
 
-lemma int_stamp32:
-  assumes i: "is_IntVal32 v"
-  shows "is_IntegerStamp (constantAsStamp v)"
-  using i unfolding is_IntegerStamp_def is_IntVal32_def by auto
-
-lemma int_stamp64:
-  assumes i: "is_IntVal64 v"
-  shows "is_IntegerStamp (constantAsStamp v)"
-  using i unfolding is_IntegerStamp_def is_IntVal64_def by auto
-
-lemma int_stamp_both:
+lemma int_stamp:
   assumes i: "is_IntVal v"
   shows "is_IntegerStamp (constantAsStamp v)"
-  using i unfolding is_IntVal_def is_IntegerStamp_def
-  using int_stamp32 int_stamp64 is_IntegerStamp_def by auto 
+  using i unfolding is_IntegerStamp_def is_IntVal_def by auto
 
 lemma validDefIntConst:
   assumes "v \<noteq> UndefVal"
   assumes "is_IntegerStamp (constantAsStamp v)"
   shows "valid_value v (constantAsStamp v)"
-  using assms by (cases v; auto)
+  using assms apply (cases v; auto)
+
 
 lemma validIntConst:
   assumes i: "is_IntVal v"
   shows "valid_value v (constantAsStamp v)"
   using i int_stamp_both is_IntVal_def validDefIntConst by auto 
-
+*)
 
 
 subsubsection \<open>Evaluation Results are Valid\<close>
@@ -104,44 +114,15 @@ lemma valid_ObjStamp[elim]:
       (\<exists>v. val = ObjRef v)"
   using valid_value.simps by (metis val_to_bool.cases)
 
-lemma valid_int1[elim]:
-  shows "valid_value val (IntegerStamp 1 lo hi) \<Longrightarrow>
-      (\<exists>v. val = IntVal32 v)"
-  apply (rule val_to_bool.cases[of val])
-  using Value.distinct by simp+
-
-lemma valid_int8[elim]:
-  shows "valid_value val (IntegerStamp 8 l h) \<Longrightarrow>
-      (\<exists>v. val = IntVal32 v)"
-  apply (rule val_to_bool.cases[of val])
-  using Value.distinct by simp+
-
-lemma valid_int16[elim]:
-  shows "valid_value val (IntegerStamp 16 l h) \<Longrightarrow>
-      (\<exists>v. val = IntVal32 v)"
-  apply (rule val_to_bool.cases[of val])
-  using Value.distinct by simp+
-
-lemma valid_int32[elim]:
-  shows "valid_value val (IntegerStamp 32 l h) \<Longrightarrow>
-      (\<exists>v. val = IntVal32 v)"
-  apply (rule val_to_bool.cases[of val])
-  using Value.distinct by simp+
-
-lemma valid_int64[elim]:
-  shows "valid_value val (IntegerStamp 64 l h) \<Longrightarrow>
-      (\<exists>v. val = IntVal64 v)"
-  apply (rule val_to_bool.cases[of val])
-  using Value.distinct by simp+
+lemma valid_int[elim]:
+  shows "valid_value val (IntegerStamp b lo hi) \<Longrightarrow>
+      (\<exists>v. val = IntVal b v)"
+  using valid_value.elims(2) by fastforce
 
 lemmas valid_value_elims =
   valid_VoidStamp
   valid_ObjStamp
-  valid_int1
-  valid_int8
-  valid_int16
-  valid_int32
-  valid_int64
+  valid_int
 
 
 lemma evaltree_not_undef:
@@ -151,69 +132,70 @@ lemma evaltree_not_undef:
   using valid_not_undef by auto
 
 
-lemma leafint32:
-  assumes ev: "[m,p] \<turnstile> LeafExpr i (IntegerStamp 32 lo hi) \<mapsto> val"
-  shows "\<exists>v. val = (IntVal32 v)"
+lemma leafint:
+  assumes ev: "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val"
+  shows "\<exists>b v. val = (IntVal b v)"
 (* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
 proof - 
-  have "valid_value val (IntegerStamp 32 lo hi)"
+  have "valid_value val (IntegerStamp b lo hi)"
     using ev by (rule LeafExprE; simp)
   then show ?thesis by auto
 qed
 
-
-lemma leafint64:
-  assumes ev: "[m,p] \<turnstile> LeafExpr i (IntegerStamp 64 lo hi) \<mapsto> val"
-  shows "\<exists>v. val = (IntVal64 v)"
-(* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
-proof -
-  have "valid_value val (IntegerStamp 64 lo hi)"
-    using ev by (rule LeafExprE; simp)
-  then show ?thesis by auto
-qed
 
 lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (-2147483648) 2147483647"
   using default_stamp_def by auto
 
-lemma valid32 [simp]:
-  assumes "valid_value val (IntegerStamp 32 lo hi)"
-  shows "\<exists>v. (val = (IntVal32 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
-  using assms valid_int32 by force 
+lemma valid_value_signed_int_range [simp]:
+  assumes "valid_value val (IntegerStamp b lo hi)"
+  assumes "lo < 0"
+  shows "\<exists>v. (val = IntVal b v \<and> 
+             lo \<le> int_signed_value b v \<and> 
+             int_signed_value b v \<le> hi)"
+  using assms valid_int
+  by (metis valid_value.simps(1)) 
 
-lemma valid64 [simp]:
-  assumes "valid_value val (IntegerStamp 64 lo hi)"
-  shows "\<exists>v. (val = (IntVal64 v) \<and> lo \<le> sint v \<and> sint v \<le> hi)"
-  using assms valid_int64 by force
-
-lemma valid32or64:
-  assumes "valid_value x (IntegerStamp b lo hi)"
-  shows "(\<exists> v1. (x = IntVal32 v1)) \<or> (\<exists> v2. (x = IntVal64 v2))"
-  using valid32 valid64 assms valid_value.elims(2) by blast
-
-lemma valid32or64_both:
-  assumes "valid_value x (IntegerStamp b lox hix)"
-  and "valid_value y (IntegerStamp b loy hiy)"
-  shows "(\<exists> v1 v2. x = IntVal32 v1 \<and> y = IntVal32 v2) \<or> (\<exists> v3 v4. x = IntVal64 v3 \<and> y = IntVal64 v4)"
-  using assms valid32or64 valid32 by (metis valid_int64 valid_value.simps(2))  
+lemma valid_value_unsigned_int_range [simp]:
+  assumes "valid_value val (IntegerStamp b lo hi)"
+  assumes "0 \<le> lo"
+  shows "\<exists>v. (val = IntVal b v \<and> 
+             lo \<le> int_unsigned_value b v \<and> 
+             int_unsigned_value b v \<le> hi)"
+  using assms valid_int
+  by fastforce
 
 
 subsubsection \<open>Example Data-flow Optimisations\<close>
 
+(* TODO: need to know that valid_values fit within b bits!
+   This requires that the bounds also fit within b bits!
+lemma valid_value_fits:
+  assumes "valid_value (IntVal b v) (IntegerStamp b lo hi)"
+  assumes "0 \<le> lo"
+  shows "take_bit b v = v"
+  using assms valid_value_unsigned_int_range 
+*)
+
 (* An example refinement: a + 0 = a *)
+(*
 lemma a0a_helper [simp]:
-  assumes a: "valid_value v (IntegerStamp 32 lo hi)"
-  shows "intval_add v (IntVal32 0) = v"
+  assumes a: "valid_value v (IntegerStamp b lo hi)"
+  shows "intval_add v (IntVal b 0) = v"
 proof -
-  obtain v32 :: int32 where "v = (IntVal32 v32)" using a valid32 by blast
-  then show ?thesis by simp 
+  obtain v64 :: int64 where "v = (IntVal b v64)" using a valid_int by blast 
+  then have "v64+0=v64" by simp
+  then have "intval_add (IntVal b v64) (IntVal b 0) = IntVal b (take_bit b v64)"
+    by auto
+  then show ?thesis 
 qed
 
 lemma a0a: "(BinaryExpr BinAdd (LeafExpr 1 default_stamp) (ConstantExpr (IntVal32 0)))
               \<ge> (LeafExpr 1 default_stamp)"
   by (auto simp add: evaltree.LeafExpr)
-
+*)
 
 (* Another example refinement: x + (y - x) \<ge> y *)
+(* TODO:
 lemma xyx_y_helper [simp]:
   assumes "valid_value x (IntegerStamp 32 lox hix)"
   assumes "valid_value y (IntegerStamp 32 loy hiy)"
@@ -232,7 +214,7 @@ lemma xyx_y:
        (LeafExpr x (IntegerStamp 32 lox hix))))
    \<ge> (LeafExpr y (IntegerStamp 32 loy hiy))"
   by (auto simp add: LeafExpr)
-
+*)
 
 
 subsubsection \<open>Monotonicity of Expression Refinement\<close>
@@ -377,27 +359,30 @@ text \<open>These rewrite rules can be useful when proving optimizations.
   lower-level $bin_eval$ / $unary_eval$ level, simply by saying
   $unfolding unfold_evaltree$.\<close>
 
+(* TODO:
 lemma unfold_valid32 [simp]:
-  "valid_value y (constantAsStamp (IntVal32 v)) = (y = IntVal32 v)"
+  "valid_value y (constantAsStamp (IntVal b v)) = (y = IntVal b v)"
   by (induction y; auto dest: signed_word_eqI)
 
 lemma unfold_valid64 [simp]:
   "valid_value y (constantAsStamp (IntVal64 v)) = (y = IntVal64 v)"
   by (induction y; auto dest: signed_word_eqI)
+*)
 
 (* the general case, for all constants *)
 lemma unfold_const:
   shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (valid_value v (constantAsStamp c) \<and> v = c)"
   by blast 
 
+(* TODO:
 corollary unfold_const32:
-  shows "([m,p] \<turnstile> ConstantExpr (IntVal32 c) \<mapsto> v) = (v = IntVal32 c)"
+  shows "([m,p] \<turnstile> ConstantExpr (IntVal 32 c) \<mapsto> v) = (v = IntVal 32 c)"
   using unfold_valid32 by blast 
 
 corollary unfold_const64:
   shows "([m,p] \<turnstile> ConstantExpr (IntVal64 c) \<mapsto> v) = (v = IntVal64 c)"
   using unfold_valid64 by blast 
-
+*)
 
 lemma unfold_binary:
   shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> val) = (\<exists> x y.
@@ -434,10 +419,12 @@ lemma unfold_unary:
 lemmas unfold_evaltree =
   unfold_binary
   unfold_unary
+(*
   unfold_const32
   unfold_const64
   unfold_valid32
   unfold_valid64
+*)
 
 (* we could add this more general rule too, for completeness:
   unfold_const

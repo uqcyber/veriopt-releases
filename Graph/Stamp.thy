@@ -142,7 +142,7 @@ fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
 
 fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
-  "constantAsStamp (IntVal b v) = (IntegerStamp b (sint v) (sint v))" |
+  "constantAsStamp (IntVal b v) = (IntegerStamp b (int_signed_value b v) (int_signed_value b v))" |
   (* TODO: float *)
   "constantAsStamp _ = IllegalStamp"
 

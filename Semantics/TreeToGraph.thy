@@ -302,13 +302,6 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinIntegerBelow x y = IntegerBelowNode x y"
 
 
-(* cast a signed result into the desired finite bit width *)
-fun choose_32_64 :: "int \<Rightarrow> int64 \<Rightarrow> Value" where
-  "choose_32_64 bits val = 
-      (if bits = 32 
-       then (IntVal32 (ucast val))
-       else (IntVal64 (val)))"
-
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "n \<notin> ids g \<Longrightarrow> fresh_id g n"

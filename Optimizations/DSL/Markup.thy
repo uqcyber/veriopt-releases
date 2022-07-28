@@ -125,8 +125,10 @@ snipbegin \<open>value expression example\<close>
 value "val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]"
 text \<open>@{term \<open>val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
 snipend -
-value "exp[((e\<^sub>1 - e\<^sub>2) + (const (IntVal32 0)) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
+value "exp[((e\<^sub>1 - e\<^sub>2) + (const (IntVal 32 0)) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
+(* TODO: update this one for new IntVal values?
 value "val[((e\<^sub>1 - e\<^sub>2) + (const 0) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
+*)
 
 snipbegin \<open>word expression example\<close>
 value "bin[x & y | z]"

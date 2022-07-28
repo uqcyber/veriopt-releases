@@ -50,9 +50,9 @@ functor DSL_Markup(Translator: DSL_TRANSLATION): DSL_MARKUP =
 struct
 
 fun const_expr _ [c as Const _] =
-    @{const ConstantExpr} $ (@{const IntVal32} $ c)
+    @{const ConstantExpr} $ (@{const IntVal} $ c)
   | const_expr _ [x $ y] =
-    @{const ConstantExpr} $ (@{const IntVal32} $ (x $ y))
+    @{const ConstantExpr} $ (@{const IntVal} $ (x $ y))
   | const_expr _ ts = raise TERM ("const_expr", ts)
 
 fun equals_expr _ [lhs, rhs] =

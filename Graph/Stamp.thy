@@ -34,6 +34,7 @@ corollary "bit_bounds 1 = (-1, 0)" by simp  (* this matches the compiler stamps.
 end
 
 
+
 (* NOTE: the FloatStamp has been commented out to allow use of code generation facilities *)
 (*
 definition pos_infinity :: "float" where
@@ -129,7 +130,7 @@ the asConstant function converts the stamp to a value where one can be inferred.
 \<close>
 (* NOTE: we could also add a 32-bit version of this if needed. *)
 fun asConstant :: "Stamp \<Rightarrow> Value" where
-  "asConstant (IntegerStamp b l h) = (if l = h then IntVal64 (word_of_int l) else UndefVal)" |
+  "asConstant (IntegerStamp b l h) = (if l = h then IntVal b (word_of_int l) else UndefVal)" |
   "asConstant _ = UndefVal"
 
 \<comment> \<open>Determine if two stamps never have value overlaps i.e. their join is empty\<close>
@@ -141,15 +142,18 @@ fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "neverDistinct stamp1 stamp2 = (asConstant stamp1 = asConstant stamp2 \<and> asConstant stamp1 \<noteq> UndefVal)"
 
 fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
-  "constantAsStamp (IntVal32 v) = (IntegerStamp (nat 32) (sint v) (sint v))" |
-  "constantAsStamp (IntVal64 v) = (IntegerStamp (nat 64) (sint v) (sint v))" |
+  "constantAsStamp (IntVal b v) = (IntegerStamp b (sint v) (sint v))" |
   (* TODO: float *)
   "constantAsStamp _ = IllegalStamp"
 
 \<comment> \<open>Define when a runtime value is valid for a stamp\<close>
 fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
-  "valid_value (IntVal32 v) (IntegerStamp b l h) = ((b=32 \<or> b=16 \<or> b=8 \<or> b=1) \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
-  "valid_value (IntVal64 v) (IntegerStamp b l h) = (b=64 \<and> (sint v \<ge> l) \<and> (sint v \<le> h))" |
+  "valid_value (IntVal b1 v1) (IntegerStamp b l h) =
+     (if b1 = b then
+       (if l < 0 
+        then (l \<le> int_signed_value b1 v1 \<and> int_signed_value b1 v1 \<le> h)
+        else (l \<le> int_unsigned_value b1 v1 \<and> int_unsigned_value b1 v1 \<le> h))
+      else False)" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
   "valid_value (ObjRef ref) (ObjectStamp klass exact nonNull alwaysNull) = 
      ((alwaysNull \<longrightarrow> ref = None) \<and> (ref=None \<longrightarrow> \<not> nonNull))" |
@@ -184,4 +188,6 @@ integer stamp with an unrestricted range. We use @{text default_stamp} as it is 
 definition default_stamp :: "Stamp" where
   "default_stamp = (unrestricted_stamp (IntegerStamp 32 0 0))"
 
+(* TODO: should we check that the upper bits are zero? *)
+value "valid_value (IntVal 32 (-2)) default_stamp"
 end

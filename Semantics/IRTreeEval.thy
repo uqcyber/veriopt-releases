@@ -256,7 +256,7 @@ definition sq_param0 :: IRExpr where
     (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))
     (ParameterExpr 0 (IntegerStamp 32 (- 2147483648) 2147483647))"
 
-values "{v. evaltree new_map_state [IntVal32 5] sq_param0 v}"
+values "{v. evaltree new_map_state [IntVal 32 5] sq_param0 v}"
 
 (* We add all the inductive rules as unsafe intro rules. *)
 declare evaltree.intros [intro]

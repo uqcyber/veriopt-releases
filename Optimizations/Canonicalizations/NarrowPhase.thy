@@ -2,6 +2,9 @@ theory NarrowPhase
   imports
     Common
 begin
+
+nitpick_params [sat_solver = smart, max_threads = 1, verbose=true]
+
 (*
 lemma eval_not_undef:
   "([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> v \<noteq> UndefVal"
@@ -39,6 +42,10 @@ definition CodeUtil_signExtend :: "int64 \<Rightarrow> nat \<Rightarrow> int64" 
           else value AND NOT((-1) << inputBits))
      else value)"
 
+(* TODO? prove that this is equal to: 
+       (value << (64 - inputBits)) >>> (64 - inputBits)
+*)
+
 (* temporary version for 32-bit in and out. *)
 definition CodeUtil_signExtend32 :: "int32 \<Rightarrow> nat \<Rightarrow> int32" where
   "CodeUtil_signExtend32 value inputBits =
@@ -59,6 +66,13 @@ definition CodeUtil_zeroExtend :: "int64 \<Rightarrow> nat \<Rightarrow> int64" 
      then value AND NOT((-1) << inputBits)
      else value)"
 
+(* temporary version for 32-bit in and out. *)
+definition CodeUtil_zeroExtend32 :: "int32 \<Rightarrow> nat \<Rightarrow> int32" where
+  "CodeUtil_zeroExtend32 value inputBits =
+    (if inputBits < 64
+     then value AND NOT((-1) << inputBits)
+     else value)"
+
 (*
 //     public static long narrow(long value, int resultBits) {
 //         long ret = value & mask(resultBits);
@@ -67,6 +81,10 @@ definition CodeUtil_zeroExtend :: "int64 \<Rightarrow> nat \<Rightarrow> int64" 
 *)
 definition CodeUtil_narrow :: "int64 \<Rightarrow> nat \<Rightarrow> int64" where
   "CodeUtil_narrow value resultBits =
+    signed_take_bit (resultBits - 1) (value AND mask resultBits)"
+
+definition CodeUtil_narrow32 :: "int32 \<Rightarrow> nat \<Rightarrow> int32" where
+  "CodeUtil_narrow32 value resultBits =
     signed_take_bit (resultBits - 1) (value AND mask resultBits)"
 
 end
@@ -98,74 +116,65 @@ corollary "sint(CodeUtil_narrow 0x0001 1) = -1" by code_simp
 end
 
 
+(* nitpick demo: gives kodkod warning:
+    Kodkod warning: cannot launch SAT solver, falling back on "DefaultSAT4J" 
 
+lemma "P \<longleftrightarrow> Q"
+  nitpick
+*)
 
 phase Issue2011Phase 
   terminating size
 begin
 
 fun isDefaultForKind :: "Value \<Rightarrow> bool" where
-  "isDefaultForKind (IntVal32 val) = (val = 0)" |
-  "isDefaultForKind (IntVal64 val) = (val = 0)" |
+  "isDefaultForKind (IntVal b val) = (val = 0)" |
   "isDefaultForKind _ = False"
 
+value "not(-1 << 8 :: int32)"
+value "mask 7 :: int32"
 
 lemma shift_n_eq_bit_n:
   fixes val :: \<open>'a::len word\<close>
   shows "(and (val >>> n) 1 = 1) = bit val n"
   by (simp add: bit_iff_and_drop_bit_eq_1 shiftr_def)
 
+declare [[show_types=true]]
 lemma neg1_shift_eq_mask:
   fixes val :: \<open>'a::len word\<close>
+  fixes n :: nat
   assumes "n < LENGTH('a)"
   assumes "0 < n"
-  shows "(- 1 << n) = not (mask (n - 1))" (is "?A = ?B")
-proof (rule bit_eqI)
-  fix pos
-  assume "possible_bit TYPE('b) pos"
-  show "bit (- 1 << n) pos = bit (not (mask (n - 1))) pos"
-  proof (cases "pos < n")
-    case True
-    then have "bit (- 1 << n) pos = False"
-      by (simp add: bit_push_bit_iff shiftl_def)
-    moreover have "bit (not (mask (n - 1))) pos = False"
-      sorry (* apply (induction pos) *)
-    then show ?thesis
-      using calculation by blast
-  next
-    case False
-    then have "bit (- 1 << n) pos = True"
-      sorry
-    moreover have "bit (not (mask (n - 1))) pos = True"
-      by (metis False One_nat_def Suc_pred assms(2) bit_imp_possible_bit bit_mask_iff bit_not_iff calculation less_SucI)
-    then show ?thesis
-      using calculation by blast
-  qed
-qed
+  shows "((- 1 << n) :: 'a::len word) = not (mask n)" (is "?A = ?B")
+  by (simp add: shiftl_def)
 
-value "bit (- (1 :: int32) << 8) 8"
-value "bit (not (mask 7) :: int32) 6"
+lemma take_bit_suc:
+  fixes v :: int32
+  assumes "\<not> bit v (n::nat)"
+  shows "take_bit (Suc n::nat) v = take_bit (n::nat) v"
+  by (smt (verit, best) assms bit_take_bit_iff le_eq_less_or_eq less_Suc_eq_le linorder_not_less
+         signed_take_bit_eq_if_positive signed_take_bit_take_bit take_bit_signed_take_bit)
+
 
 
 lemma narrow_reverse_pos:
-  assumes "and (val32 >>> 7) 1 \<noteq> 1"
-  assumes "val = IntVal32 val32"
-  shows "(i32 = un_IntVal32(intval_narrow 32 8 val))
-        \<longleftrightarrow> (and i32 (not (- 1 << 8)) = un_IntVal32 val)"
-  unfolding assms intval_narrow.simps narrow_helper.simps
-  apply simp
+  assumes 1: "and (val32 >>> 7) 1 \<noteq> 1"
+  assumes pos: "\<not> bit val32 7"
+  assumes 4: "revKonst = and konst (not (- 1 << 8))"
+  assumes 5: "intval_narrow 32 8 (IntVal32 revKonst) = IntVal32 konst"
+  shows "IntVal32 konst = intval_narrow 32 8 (IntVal32 val32)
+        \<longleftrightarrow>
+         revKonst = val32"
   oops
 
 (* this is where the Issue2011 bug should appear. *)
 lemma narrow_reverse_neg:
   assumes "and (val32 >>> 7) 1 = 1"
-  assumes "val = IntVal32 val32"
-  shows "(i32 = un_IntVal32(intval_narrow 32 8 val))
-        \<longleftrightarrow> (or i32 (- 1 << 8) = un_IntVal32 val)"
-  unfolding assms intval_narrow.simps narrow_helper.simps signed_take_bit_def
-  using assms apply simp
-  unfolding shift_n_eq_bit_n apply simp
-  (* TODO: use thm neg1_shift_eq_mask to rewrite (- 1 << 8) *)
+  assumes neg: "bit val32 7"  (* 8-bit val32 is negative *)
+  assumes "val32 = 0xC0"     (* example value from bug report *)
+  shows "IntVal 32 i32 = intval_narrow 32 8 (IntVal 32 val32)
+        \<longleftrightarrow> 
+         IntVal 32 (or i32 (- 1 << 8)) = (IntVal 32 val32)"
   oops
 
 
@@ -181,7 +190,24 @@ lemma unfold_ex2_ex_let: "(\<exists>y. (\<exists>x. (R x y \<and> y=E x \<and> Q
 lemma unfold_ex_bubble_out: "(P \<and> (\<exists>x. Q x) \<and> R) = (\<exists>x. (Q x \<and> P \<and> R))"
   by auto
 
-(* use context assumptions about definedness to deduce int size *)
+(* TODO: make this more general, but still usable in unfolding?
+lemma unfold_intval_eq32: 
+  "((intval_equals (IntVal32 v1) v2 = intval_equals (IntVal32 v3) v4) \<and>
+   (intval_equals (IntVal32 v1) v2 \<noteq> UndefVal))
+   = ((v1 = un_IntVal32 v2) = (v3 = un_IntVal32 v4) \<and>
+      is_IntVal32 v2 \<and> is_IntVal32 v4)" (is "?A = (?B = ?C \<and> ?I2 \<and> ?I4)")
+  proof (intro iffI)
+    assume ?A
+    show "?B = ?C \<and> ?I2 \<and> ?I4"
+      by (smt (verit, best) Value.sel(1) \<open>intval_equals (IntVal32 (v1::32 word)) (v2::Value) = intval_equals (IntVal32 (v3::32 word)) (v4::Value) \<and> intval_equals (IntVal32 v1) v2 \<noteq> UndefVal\<close> bool_to_val.elims intval_eq32 intval_eq32_simp zero_neq_one)
+  next
+    assume "?B = ?C \<and> ?I2 \<and> ?I4"
+    show ?A
+      by (smt (verit, best) Value.collapse(1) Value.disc(1) Value.discI(1) \<open>((v1::32 word) = un_IntVal32 (v2::Value)) = ((v3::32 word) = un_IntVal32 (v4::Value)) \<and> is_IntVal32 v2 \<and> is_IntVal32 v4\<close> bool_to_val.simps(1) bool_to_val.simps(2) intval_equals.simps(1))
+  qed
+*)
+
+(* TODO: update!  use context assumptions about definedness to deduce int size
 lemma eq_must_be_int32:
   assumes "intval_equals (IntVal32 a) b \<noteq> UndefVal"
   shows "(intval_equals (IntVal32 a) b = intval_equals (IntVal32 c) d)
@@ -206,10 +232,27 @@ next
   then show "(intval_equals (IntVal32 a) b = intval_equals (IntVal32 c) d)"
     using 2 
     oops
+*)
 
-
-(* we first investigate the case of narrowing from 32 to 8 bits *)
-
+(* we first investigate the case of narrowing from 32 to 8 bits.
+Input: Constant constant == ValueNode nonConstant
+       ConvertNode convert = (ConvertNode) nonConstant;  // actually a NarrowNode
+  TODO: add some of these side conditions:
+  if isConstantConversionSupported(convert, view, smallestCompareWidth)
+  ConstantNode newConstant = canonicalConvertConstant(constantReflection, metaAccess, 
+                                      condition, convert, constant, view);
+  i.e. {
+     if (convert.preservesOrder(condition, constant, constantReflection)) {
+        Constant reverseConverted = convert.reverse(constant, constantReflection);
+              i.e. = table.getSignExtend().foldConstant(getResultBits(), getInputBits(), constant)
+        if (reverseConverted != null && 
+            convert.convert(reverseConverted, constantReflection).equals(constant))
+                     i.e.  = narrow(reverseConverted) = constant
+      return ConstantNode.forConstant(convert.getValue().stamp(view), reverseConverted, metaAccess);
+     }
+  if newConstant != null
+  return newConstant == convert.getValue()
+*)
 optimization Issue2011_Bug:
   "((const (IntVal32 value)) eq
       (UnaryExpr (UnaryNarrow inBits outBits) expr))
@@ -223,13 +266,51 @@ optimization Issue2011_Bug:
    apply (rule allI impI)+
   unfolding ex_neg_all_pos unfold_ex_bubble_out
   subgoal premises 2 for m p v x y ev
-      apply (rule exI[of _ "IntVal32 (CodeUtil_signExtend32 value outBits)"]; rule exI[of _ ev])
+    apply (rule exI[of _ "IntVal32 (CodeUtil_signExtend32 value outBits)"];
+           rule exI[of _ ev])
       unfolding CodeUtil_signExtend32_def 
-      apply (simp add: 1 2) (*  eq_must_be_int32) *)
-      unfolding imp_conjL[symmetric]
-
-      unfolding intval_equals.simps imp_conjL[symmetric]
+ (*     apply (simp add: 1 2 unfold_intval_eq32)
+      this gives two conjuncts, which are similar to above lemmas:
+1. (and (value >>> (7::nat)) (1::32 word) = (1::32 word) \<longrightarrow>
+     (value = un_IntVal32 (intval_narrow (32::nat) (8::nat) ev)) =
+     (or value (- (1::32 word) << (8::nat)) = un_IntVal32 ev) \<and>
+     is_IntVal32 (intval_narrow (32::nat) (8::nat) ev) \<and> is_IntVal32 ev)
+2.  (and (value >>> (7::nat)) (1::32 word) \<noteq> (1::32 word) \<longrightarrow>
+     (value = un_IntVal32 (intval_narrow (32::nat) (8::nat) ev)) =
+     (and value (not (- (1::32 word) << (8::nat))) = un_IntVal32 ev) \<and>
+     is_IntVal32 (intval_narrow (32::nat) (8::nat) ev) \<and> is_IntVal32 ev)
+ *)
+      print_facts
       oops
+
+
+optimization Issue2011_Fix:
+  "(BinaryExpr BinIntegerEquals
+      (ConstantExpr (IntVal32 value))
+      (UnaryExpr (UnaryNarrow inBits outBits) expr))
+   \<longmapsto>
+   (BinaryExpr BinIntegerEquals
+      (ConstantExpr (IntVal32 (CodeUtil_zeroExtend32 value outBits)))
+      expr)
+   when (inBits = 32 \<and> outBits = 8)"
+  apply (rule impI)
+  subgoal premises 1 
+  unfolding le_expr_def unfold_evaltree bin_eval.simps unary_eval.simps
+   apply (rule allI impI)+
+  unfolding ex_neg_all_pos unfold_ex_bubble_out
+  subgoal premises 2 for m p v x y ev
+      apply (rule exI[of _ "IntVal32 (CodeUtil_zeroExtend32 value outBits)"]; rule exI[of _ ev])
+      unfolding CodeUtil_zeroExtend32_def 
+(*      apply (simp add: 1 2 unfold_intval_eq32)
+      apply (rule conjI)
+ this gives two goals (first one is false, e.g. ev=0x100):
+ 1. (value = un_IntVal32 (intval_narrow (32::nat) (8::nat) ev)) =
+    (and value (not (- (1::32 word) << (8::nat))) = un_IntVal32 ev)
+ 2. is_IntVal32 (intval_narrow (32::nat) (8::nat) ev) \<and> is_IntVal32 ev
+*) 
+      print_facts
+      oops
+
 
   
 (* other side-conditions in the code:
@@ -277,5 +358,19 @@ optimization e:
 +//   && let newConstant = ConstantNode.forConstant(narrow.getValue().stamp(view), reverseConverted, metaAccess)
 +//   && newConstant != null
 *)
+
+lemma negate_min32:
+  fixes y :: int32
+  assumes "y = (0x80000000 :: int32)"
+  shows "-y = (0x80000000 :: int32)"
+  using assms apply code_simp
+  by force
+
+lemma sub_min32:
+  fixes y :: int32
+  assumes "y = (0x80000000 :: int32)"
+  shows "x - y = x + y"
+  unfolding assms negate_min32
+  by simp 
 
 end

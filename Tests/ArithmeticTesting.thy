@@ -12,6 +12,15 @@ inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE) static_test .
 
+
+(* temporary back-compatible functions for tests *)
+fun IntVal32 :: "int64 \<Rightarrow> Value" where
+  "IntVal32 val = new_int 32 val"
+
+fun IntVal64 :: "int64 \<Rightarrow> Value" where
+  "IntVal64 val = new_int 64 val"
+
+
 definition arith_test_add_ints32 :: IRGraph where
   "arith_test_add_ints32 = irgraph [
     (0, (StartNode (Some 3) 5), VoidStamp),

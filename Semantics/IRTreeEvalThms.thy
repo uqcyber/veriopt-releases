@@ -49,9 +49,10 @@ lemma unary_eval_int:
 lemma bin_eval_int:
   assumes def: "bin_eval op x y \<noteq> UndefVal"
   shows "is_IntVal (bin_eval op x y)"
-  apply (cases op; cases x; cases y)  (* 300 cases! *)
-  unfolding is_IntVal_def using def apply auto (* prove the 294 easy cases *)
-  by (metis (full_types) bool_to_val.simps is_IntVal32_def)+
+  apply (cases op; cases x; cases y)  (* 192 cases! *)
+  unfolding is_IntVal_def using def apply auto (* leaves 14 cases*)
+  apply presburger+ (* prove 6 more easy cases *)
+  by (metis (full_types) bool_to_val.simps)+
 
 lemma int_stamp32:
   assumes i: "is_IntVal32 v"

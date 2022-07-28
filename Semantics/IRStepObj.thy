@@ -265,7 +265,7 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow
 subsubsection \<open>Heap Testing\<close>
 
 definition p3:: Params where
-  "p3 = [IntVal32 3]"
+  "p3 = [IntVal 32 3]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{(prod.fst(prod.snd (prod.snd (hd (prod.fst res))))) 0 
@@ -299,7 +299,7 @@ definition eg4_sq :: IRGraph where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
 values "{h_load_field field_sq (Some 0) (prod.snd res) | res.
-          (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*4* res}"
+          (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
 
 end
 

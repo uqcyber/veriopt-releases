@@ -242,6 +242,63 @@ qed
 
 
 
+lemma take_bit_smaller_range:
+  assumes "n < LENGTH('a)"
+  assumes "val = sint(take_bit n (k :: 'a :: len word))"
+  shows "0 \<le> val \<and> val < (2::int) ^ n"
+  by (simp add: assms signed_take_bit_eq)
+
+lemma take_bit_same_size_nochange:
+  assumes "n = LENGTH('a)"
+  shows "k = take_bit n (k :: 'a :: len word)"
+  by (simp add: assms)
+
+lemma take_bit_same_size_range:
+  assumes "n = LENGTH('a)"
+  assumes "val = take_bit n (k :: 'a :: len word)"
+  shows "- (2 ^ n div 2) \<le> sint val \<and>
+          sint val < 2 ^ n div 2"
+  using assms lower_bounds_equiv sint_ge sint_lt by auto
+
+
+
+lemma signed_take_bit_int_greater_eq_minus_exp_word:
+  assumes "n < LENGTH('a)"
+  shows "- (2 ^ n) \<le> sint(signed_take_bit n (k :: 'a :: len word))"
+  apply transfer
+  by (smt (verit, best) signed_take_bit_int_greater_eq_minus_exp 
+     signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp)
+
+lemma zero_extend_helper_output_range32:
+  assumes "result = zero_extend_helper inBits outBits val"
+  assumes "result = IntVal32 ival"
+  shows "outBits \<le> 32 \<and> -(2 ^ (inBits - 1)) \<le> sint ival \<and> sint ival \<le> 2 ^ (inBits - 1)"
+(* or? "(fst (bit_bounds inBits)) \<le> sint ival \<and> sint ival \<le> (snd (bit_bounds inBits))" *)
+proof -
+  have ival: "ival = (signed_take_bit (inBits - 1) val)"
+    using assms sign_extend_helper.simps
+    by (smt (verit, ccfv_SIG) Value.distinct(1) Value.inject(1) Value.simps(14) scast_id)
+  have def: "result \<noteq> UndefVal"
+    using assms
+    by blast 
+  then have ok: "0 < inBits \<and> inBits \<le> 32 \<and>
+        inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and>
+        inBits \<in> valid_int_widths"
+    using assms sign_extend_helper_ok by blast
+  then have lo: "-(2 ^ (inBits - 1)) \<le> sint (signed_take_bit (inBits - 1) val)"
+    using signed_take_bit_int_greater_eq_minus_exp_word
+    by (smt (verit, best) diff_le_self not_less power_increasing_iff sint_below_size wsst_TYs(3))
+  have hi: "sint (signed_take_bit (inBits - 1) val) < 2 ^ (inBits - 1)"
+    using signed_take_bit_int_less_exp_word
+    by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral power_increasing sint_above_size wsst_TYs(3))
+  show ?thesis 
+    unfolding bit_bounds.simps fst_def ival
+    using assms ival ok lo hi order_le_less
+    by force
+qed
+
+
 subsubsection \<open>Support Lemmas for integer input/output size of unary and binary operators\<close>
 
 text \<open>These help us to deduce integer sizes through expressions.  Not used yet.\<close>
@@ -827,6 +884,92 @@ proof -
 qed
 
 
+subsubsection \<open>Validity of UnaryZeroExtend\<close>
+
+lemma unary_zero_extend_implies_valid_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "result = unary_eval (UnaryZeroExtend inBits outBits) val"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr (UnaryZeroExtend inBits outBits) expr))"
+  proof -
+  (* make some deductions about the input stamp of expr *)
+  have i: "is_IntegerStamp (stamp_expr expr)"
+    using assms valid_value.elims(2) by fastforce 
+  then obtain b lo hi where se:"stamp_expr expr = IntegerStamp b lo hi"
+    by (auto simp add: assms valid_value.elims(2) is_IntegerStamp_def)
+  then have u: "stamp_expr (UnaryExpr (UnaryZeroExtend inBits outBits) expr) 
+             = unrestricted_stamp (IntegerStamp outBits lo hi)"
+    by simp
+  then show ?thesis
+  proof (cases "is_IntVal64 val")
+    case True
+    then show ?thesis
+      using assms u unrestricted_64bit_always_valid
+      using is_IntVal64_def by fastforce
+  next
+    case False
+    then obtain i32 where i32: "result = zero_extend_helper inBits outBits i32"
+      using assms intval_zero_extend.simps
+      by (metis is_IntVal64_def se unary_eval.simps(7) valid32or64)
+    then have ok: "0 < inBits \<and> inBits \<le> 32 \<and> inBits \<le> outBits \<and> 
+        outBits \<in> valid_int_widths \<and> inBits \<in> valid_int_widths"
+      using assms zero_extend_helper_ok by blast
+    then show ?thesis
+    proof (cases "outBits = 64")
+      case True
+      then obtain r64 where "result = IntVal64 r64"
+        by (metis assms(3) i32 zero_extend_helper.simps) 
+      then show ?thesis
+        using True u unrestricted_64bit_always_valid by presburger
+    next
+      case False
+      then have le32: "outBits \<le> 32"
+        using ok by force
+      then obtain r32 where result32: "result = IntVal32 r32"
+        using ok i32 by force
+      then have r32: "r32 =  take_bit inBits i32"
+        using ok i32 le32 zero_extend_helper.simps False by force 
+      then show ?thesis
+      proof (cases "inBits = 32")  (* we return the whole 32 bits, so signed. *)
+        case True
+        then have range32: "-(2 ^ (inBits - 1)) \<le> sint r32 \<and> sint r32 < 2 ^ (inBits - 1)"
+          by (metis One_nat_def sint_range_size size32)
+        then show ?thesis
+          using ok True result32 u
+          by (metis le32 le_antisym unrestricted_32bit_always_valid)
+      next
+        case False  (* inBits < 32 bits, so range is 0 .. 2^inBits *)
+        then have lt32: "inBits < 32"
+          using ok le32 by simp
+        then have range16: "0 \<le> sint r32 \<and> sint r32 < 2 ^ inBits"
+          using ok i32 result32 r32
+          by (metis size32 word_size take_bit_smaller_range) 
+        then show ?thesis
+          unfolding u using ok i32 result32 r32 lt32  
+(* The problem here is we cannot know the range / meaning of (IntVal32 0xFF).
+   Is this a 32-bit value with value 255, or 8-bit with value -128?
+   The unrestricted_stamp assumes signed ranges, but do not have enough context.
+*)
+      qed
+      then have lohi: "-(2 ^ (inBits - 1)) \<le> sint r32 \<and> sint r32 < 2 ^ (inBits - 1)"
+        using zero_extend_helper_output_range32
+        by (smt (verit, ccfv_threshold) False Value.inject(1) assms(3) diff_le_self i32 linorder_not_le power_less_imp_less_exp zero_extend_helper.simps signed_take_bit_int_less_exp_word sint_lt) 
+      then have bnds: "fst (bit_bounds inBits) \<le> sint r32 \<and> sint r32 \<le> snd (bit_bounds inBits)"
+        unfolding bit_bounds.simps fst_def
+        using ok lower_bounds_equiv upper_bounds_equiv by simp
+      then have v: "valid_value result (unrestricted_stamp (IntegerStamp inBits lo hi))"
+        using ok r32 by force 
+      then have "outBits=1 \<or> outBits=8 \<or> outBits=16 \<or> outBits=32"
+        using ok False by fastforce
+      then show ?thesis
+        unfolding u using ok v r32 larger_stamp32_always_valid by presburger 
+    qed
+  qed
+qed
+
+
+
 subsubsection \<open>Validity of all Unary Operators\<close>
 
 lemma unary_eval_implies_valid_value:
@@ -855,7 +998,7 @@ next
   then show ?thesis using assms unary_sign_extend_implies_valid_value by presburger
 next
   case (UnaryZeroExtend x71 x72)
-  then show ?thesis sorry
+  then show ?thesis using assms unary_zero_extend_implies_valid_value by presburger
 qed
 
 

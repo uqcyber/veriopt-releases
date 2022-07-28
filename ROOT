@@ -102,8 +102,8 @@ session Tests in Tests = Semantics +
   description
     "Miscellaneous project testing"
   theories
-    AssertTesting
-    ExecExamples
+    (*AssertTesting*)
+    (*ExecExamples*)
     UnitTesting
     (*Test: ArithmeticTesting*)
     (*ConditionalEliminationTests*)

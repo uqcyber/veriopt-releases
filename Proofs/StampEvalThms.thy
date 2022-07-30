@@ -4,7 +4,7 @@ theory StampEvalThms
   imports Semantics.IRTreeEvalThms
 begin
 
-subsubsection \<open>Support Lemmas for Stamps and Upper/Lower Bounds\<close>
+subsubsection \<open>Support Lemmas for Upper/Lower Bounds\<close>
 
 (* these two were weirdly hard to prove given it should be by definition *)
 lemma size32: "size v = 32" for v :: "32 word"
@@ -16,8 +16,6 @@ lemma size64: "size v = 64" for v :: "64 word"
   using size_word.rep_eq
   using One_nat_def add.right_neutral add_Suc_right len_of_numeral_defs(2) len_of_numeral_defs(3) mult.right_neutral mult_Suc_right numeral_2_eq_2 numeral_Bit0
   by (smt (verit, del_insts) mult.commute)
-
-declare [[show_types=true]]
 
 (* Nb. sint_ge and sint_lt subsume these lemmas? *)
 lemma signed_int_bottom32: "-(((2::int) ^ 31)) \<le> sint (v::int32)"
@@ -185,62 +183,55 @@ lemma signed_take_bit_int_greater_eq_minus_exp_word:
      signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp)
 
 
-text \<open>Some important lemmas showing that sign\_extend\_helper produces integer results
-   whose range is determined by the inBits parameter.\<close>
 
-(* TODO: delete these now sign_extend_helper is gone?
-lemma sign_extend_helper_output_range64:
-  assumes "result = sign_extend_helper inBits outBits val"
-  assumes "result = IntVal64 ival"
-  shows "outBits = 64 \<and> -(2 ^ (inBits - 1)) \<le> sint ival \<and> sint ival \<le> 2 ^ (inBits - 1)"
-proof -
-  have ival: "ival = (scast (signed_take_bit (inBits - 1) val))"
-    using assms sign_extend_helper.simps
-    by (smt (verit, ccfv_SIG) Value.distinct(3) Value.inject(2) Value.simps(14))
-  then have lo: "-(2 ^ (inBits - 1)) \<le> sint (signed_take_bit (inBits - 1) val)"
-    using signed_take_bit_int_greater_eq_minus_exp_word
-    by (smt (verit, best) diff_le_self not_less power_increasing_iff sint_below_size wsst_TYs(3))
-  then have lo2: "-(2 ^ (inBits - 1)) \<le> sint (scast (signed_take_bit (inBits - 1) val))"
-    by (smt (verit, best) diff_less len_gt_0 less_Suc_eq power_strict_increasing_iff signed_scast_eq signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp_word sint_range_size wsst_TYs(3))
-  have hi: "sint (signed_take_bit (inBits - 1) val) < 2 ^ (inBits - 1)"
-    using signed_take_bit_int_less_exp_word
-    by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral power_increasing sint_above_size wsst_TYs(3))
-  then have hi2: "sint (scast (signed_take_bit (inBits - 1) val)) < 2 ^ (inBits - 1)"
-    by (smt (verit) One_nat_def lo signed_scast_eq signed_take_bit_int_less_eq_self_iff sint_lt)
-  show ?thesis 
-    unfolding bit_bounds.simps fst_def ival
-    using assms lo2 hi2 order_le_less
-    by (smt (verit, best) Value.simps(14) Value.simps(8) sign_extend_helper.simps)
-qed
+subsubsection \<open>Support Lemmas for Integer Stamps and Associated IntVal values\<close>
 
-lemma sign_extend_helper_output_range32:
-  assumes "result = sign_extend_helper inBits outBits val"
-  assumes "result = IntVal32 ival"
-  shows "outBits \<le> 32 \<and> -(2 ^ (inBits - 1)) \<le> sint ival \<and> sint ival \<le> 2 ^ (inBits - 1)"
-proof -
-  have ival: "ival = (signed_take_bit (inBits - 1) val)"
-    using assms sign_extend_helper.simps
-    by (smt (verit, ccfv_SIG) Value.distinct(1) Value.inject(1) Value.simps(14) scast_id)
-  have def: "result \<noteq> UndefVal"
-    using assms
-    by blast 
-  then have ok: "0 < inBits \<and> inBits \<le> 32 \<and>
-        inBits \<le> outBits \<and> 
-        outBits \<in> valid_int_widths \<and>
-        inBits \<in> valid_int_widths"
-    using assms sign_extend_helper_ok by blast
-  then have lo: "-(2 ^ (inBits - 1)) \<le> sint (signed_take_bit (inBits - 1) val)"
-    using signed_take_bit_int_greater_eq_minus_exp_word
-    by (smt (verit, best) diff_le_self not_less power_increasing_iff sint_below_size wsst_TYs(3))
-  have hi: "sint (signed_take_bit (inBits - 1) val) < 2 ^ (inBits - 1)"
-    using signed_take_bit_int_less_exp_word
-    by (metis diff_le_mono less_imp_diff_less linorder_not_le one_le_numeral power_increasing sint_above_size wsst_TYs(3))
-  show ?thesis 
-    unfolding bit_bounds.simps fst_def ival
-    using assms ival ok lo hi order_le_less
-    by force
-qed
-*)
+text \<open>A valid int must have the expected number of bits.\<close>
+lemma valid_int_same_bits:
+  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
+  shows "b = bits"
+  by (meson assms valid_value.simps(1))
+
+text \<open>A valid int means a valid non-empty stamp.\<close>
+lemma valid_int_not_empty:
+  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
+  shows "lo \<le> hi"
+  by (metis assms order.trans valid_value.simps(1))
+
+text \<open>A valid int fits into the given number of bits (and other bits are zero).\<close>
+lemma valid_int_fits:
+  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
+  shows "take_bit bits val = val"
+  by (metis assms valid_value.simps(1))
+
+lemma valid_int_is_zero_masked:
+  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
+  shows "and val (not (mask bits)) = 0"
+  by (metis (no_types, lifting) assms bit.conj_cancel_right take_bit_eq_mask valid_int_fits 
+             word_bw_assocs(1) word_log_esimps(1))
+
+text \<open>Unsigned ints have bounds $0$ up to $2^bits$.\<close>
+lemma valid_int_unsigned_bounds:
+  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
+  (* Not actually needed: assumes "0 \<le> lo" *)
+  shows "uint val < 2 ^ bits"
+  by (metis assms(1) mask_eq_iff take_bit_eq_mask valid_value.simps(1))
+
+text \<open>Signed ints have the usual two-complement bounds.\<close>
+lemma valid_int_signed_upper_bound:
+  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
+  assumes "lo < 0"
+  shows "int_signed_value bits val < 2 ^ (bits - 1)"
+  by (metis (mono_tags, opaque_lifting) diff_le_mono int_signed_value.simps less_imp_diff_less 
+       linorder_not_le one_le_numeral order_less_le_trans power_increasing signed_take_bit_int_less_exp_word sint_lt)
+
+lemma valid_int_signed_lower_bound:
+  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
+  assumes "lo < 0"
+  shows "-(2 ^ (bits - 1)) \<le> int_signed_value bits val"
+  by (smt (verit) diff_le_self int_signed_value.simps linorder_not_less power_increasing_iff signed_take_bit_int_greater_eq_minus_exp_word sint_greater_eq)
+
+
 
 
 

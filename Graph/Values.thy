@@ -104,7 +104,7 @@ fun int_signed_value :: "iwidth \<Rightarrow> int64 \<Rightarrow> int" where
   "int_signed_value b v = sint (signed_take_bit (b - 1) v)"
 
 fun int_unsigned_value :: "iwidth \<Rightarrow> int64 \<Rightarrow> int" where
-  "int_unsigned_value b v = uint (take_bit b v)"
+  "int_unsigned_value b v = uint (take_bit b v)"  (* NB. we could drop take_bit? *)
 
 
 text \<open>Converts an integer word into a Java value.\<close>

@@ -28,6 +28,35 @@ datatype Stamp =
 fun bit_bounds :: "nat \<Rightarrow> (int \<times> int)" where
   "bit_bounds bits = (((2 ^ bits) div 2) * -1, ((2 ^ bits) div 2) - 1)"
 
+fun is_stamp_empty :: "Stamp \<Rightarrow> bool" where
+  "is_stamp_empty (IntegerStamp b lower upper) = (upper < lower)" |
+  (* "is_stamp_empty (FloatStamp b lower upper) = (upper < lower)" | *)
+  "is_stamp_empty x = False"
+
+
+text \<open>Just like the IntegerStamp class, we need to know that our lo/hi bounds
+  fit into the given number of bits (either signed or unsigned).
+  Our integer stamps have infinite lo/hi bounds, so if the lower
+  bound is non-negative, we can assume that all values are positive,
+  and the integer bits of a related value can be interpreted as unsigned.
+  This is similar (but slightly more general) to what IntegerStamp.java
+  does with its test: if (sameSignBounds()) in the unsignedUpperBound() method.
+
+  Note that this is a bit different and more accurate than what
+  StampFactory.forUnsignedInteger does (it widens large unsigned ranges to the
+  max signed range to allow all bit patterns) because its lo/hi values are only 64-bit.
+\<close>
+(* TODO: should we have tight bounds for empty stamp, or just hi<lo?
+   We could have: (lo = snd (bit_bounds bits) \<and> hi = fst (bit_bounds bits) 
+ *)
+fun valid_stamp :: "Stamp \<Rightarrow> bool" where
+  "valid_stamp (IntegerStamp bits lo hi) = 
+     (is_stamp_empty (IntegerStamp bits lo hi)
+     \<or> lo < 0 \<and> fst (bit_bounds bits) \<le> lo \<and> lo \<le> hi \<and> hi \<le> snd (bit_bounds bits)
+     \<or> 0 \<le> lo \<and> lo \<le> hi \<and> hi < 2 ^ bits)" |
+  "valid_stamp s = True"
+
+
 
 experiment begin
 corollary "bit_bounds 1 = (-1, 0)" by simp  (* this matches the compiler stamps. *)
@@ -69,10 +98,6 @@ fun empty_stamp :: "Stamp \<Rightarrow> Stamp" where
   "empty_stamp (ObjectStamp type exactType nonNull alwaysNull) = (ObjectStamp '''' True True False)" |
   "empty_stamp stamp = IllegalStamp"
 
-fun is_stamp_empty :: "Stamp \<Rightarrow> bool" where
-  "is_stamp_empty (IntegerStamp b lower upper) = (upper < lower)" |
-  (* "is_stamp_empty (FloatStamp b lower upper) = (upper < lower)" | *)
-  "is_stamp_empty x = False"
 
 \<comment> \<open>Calculate the meet stamp of two stamps\<close>
 fun meet :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
@@ -146,13 +171,16 @@ fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
   (* TODO: float *)
   "constantAsStamp _ = IllegalStamp"
 
-\<comment> \<open>Define when a runtime value is valid for a stamp\<close>
+\<comment> \<open>Define when a runtime value is valid for a stamp.
+    The stamp bounds must be valid, and val must be zero-extended.\<close>
 fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
-  "valid_value (IntVal b1 v1) (IntegerStamp b l h) =
+  "valid_value (IntVal b1 val) (IntegerStamp b l h) =
      (if b1 = b then
-       (if l < 0 
-        then (l \<le> int_signed_value b1 v1 \<and> int_signed_value b1 v1 \<le> h)
-        else (l \<le> int_unsigned_value b1 v1 \<and> int_unsigned_value b1 v1 \<le> h))
+       valid_stamp (IntegerStamp b l h) \<and>
+       take_bit b val = val \<and>
+       (if l < 0
+        then (l \<le> int_signed_value b val \<and> int_signed_value b val \<le> h)
+        else (l \<le> int_unsigned_value b val \<and> int_unsigned_value b val \<le> h))
       else False)" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
   "valid_value (ObjRef ref) (ObjectStamp klass exact nonNull alwaysNull) = 
@@ -188,6 +216,5 @@ integer stamp with an unrestricted range. We use @{text default_stamp} as it is 
 definition default_stamp :: "Stamp" where
   "default_stamp = (unrestricted_stamp (IntegerStamp 32 0 0))"
 
-(* TODO: should we check that the upper bits are zero? *)
-value "valid_value (IntVal 32 (-2)) default_stamp"
+value "valid_value (IntVal 8 (255)) (IntegerStamp 8 (-128) 127)"
 end

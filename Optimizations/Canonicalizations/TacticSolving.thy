@@ -116,6 +116,29 @@ lemma exp_xor_self_is_false:
   using val_xor_self_is_false evaltree_not_undef
   by (metis BinaryExprE Value.disc(2) bin_eval.simps(6) evalDet unfold_const32 valid_int32 well_formed_equal_defn)
 
+lemma OrInverseVal:
+  assumes "is_IntVal32 n"
+  shows "val[n | ~n] \<approx> IntVal32 (-1)"
+  apply simp using assms using word_or_not by (cases n; auto)
+
+optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (IntVal32 (not 0)))
+                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
+  unfolding size.simps apply (simp add: Suc_lessI)
+  apply auto using OrInverseVal
+  by (metis evalDet is_IntVal32_def unfold_const32 valid_int32 well_formed_equal_defn wf_stamp_def)
+
+lemma XorInverseVal:
+  assumes "is_IntVal32 n"
+  shows "val[n \<oplus> ~n] \<approx> IntVal32 (-1)"
+  apply simp using assms using word_or_not by (cases n; auto)
+
+optimization XorInverse: "exp[n \<oplus> ~n] \<longmapsto> (const (IntVal32 (not 0)))
+                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
+  unfolding size.simps apply (simp add: Suc_lessI)
+  apply auto using XorInverseVal
+  by (metis Value.disc(2) evalDet unfold_const32 valid_int32 well_formed_equal_defn wf_stamp_def)
+
+
 end
 
 end

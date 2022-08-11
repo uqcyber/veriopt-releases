@@ -33,14 +33,14 @@ lemma val_and_nots:
 
 lemma val_and_neutral_32:
   assumes "is_IntVal32 x"
-  shows "val[x & intval_not (IntVal32 0)] = x"
+  shows "intval_and val[x] (IntVal32 (-1)) = x"
     apply (cases x; auto) using assms 
     apply auto 
   done
  
 lemma val_and_neutral_64:
   assumes "is_IntVal64 x"
-  shows "val[x & intval_not (IntVal64 0)] = x"
+  shows "intval_and val[x] (IntVal64 (-1)) = x"
     apply (cases x; auto) using assms 
     apply auto 
   done
@@ -83,27 +83,29 @@ lemma exp_and_nots:
   done
 
 lemma exp_and_neutral_64: 
-  "BinaryExpr BinAnd (x) (UnaryExpr UnaryNot (ConstantExpr (IntVal64 0))) \<ge> x"
-  apply simp_all apply (cases x; simp) using val_and_neutral_64 bin_eval.simps(4) 
+  "BinaryExpr BinAnd (x) (ConstantExpr (IntVal64 (-1))) \<ge> x"
+  apply simp_all apply (cases x; simp) using val_and_neutral_64 bin_eval.simps(4)  
+(*
   apply (smt (verit) BinaryExprE Value.collapse(1) intval_and.simps(12) intval_not.simps(2) 
          is_IntVal_def unary_eval.simps(3) unary_eval_int unfold_const64 unfold_unary) 
          using val_and_neutral_64 bin_eval.simps(4) 
   apply (metis (no_types, lifting) BinaryExprE UnaryExprE Value.collapse(1) bin_eval_int 
          intval_and.simps(12) intval_not.simps(2) is_IntVal_def unary_eval.simps(3) unfold_const64)
-         using val_and_neutral_64 bin_eval.simps(4) unary_eval.simps(3) bin_and_neutral 
+         using val_and_neutral_64 bin_eval.simps(4) unary_eval.simps(3) bin_and_neutral *)
          sorry
   
 
 lemma exp_and_neutral_32: 
-  "BinaryExpr BinAnd (x) (UnaryExpr UnaryNot (ConstantExpr (IntVal32 0))) \<ge> x"
+  "BinaryExpr BinAnd (x) (ConstantExpr (IntVal32 (-1))) \<ge> x"
   apply simp_all apply (cases x; simp) using val_and_neutral_32 bin_eval.simps(4) 
+(*
   apply (metis (no_types, lifting) UnaryExprE Value.collapse(2) intval_and.simps(5) 
          intval_not.simps(1) is_IntVal_def unary_eval.simps(3) unary_eval_int unfold_binary 
          unfold_const32)
          using val_and_neutral_32 bin_eval.simps(4) 
   apply (smt (verit) UnaryExprE Value.collapse(2) bin_eval_int intval_and.simps(5) 
          intval_not.simps(1) is_IntVal_def unary_eval.simps(3) unfold_binary unfold_const32) 
-         using val_and_neutral_32 bin_eval.simps(4) unary_eval.simps(3) bin_and_neutral
+         using val_and_neutral_32 bin_eval.simps(4) unary_eval.simps(3) bin_and_neutral*)
   sorry
 
 
@@ -121,30 +123,25 @@ optimization opt_AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (cons
 
 optimization opt_and_right_fall_through: "(x & y) \<longmapsto> y
                                 when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
-   apply unfold_optimization 
    apply (simp add: IRExpr_down_def IRExpr_up_def)
-   apply simp_all
   done
 
 optimization opt_and_left_fall_through: "(x & y) \<longmapsto> x
                                 when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
-   apply unfold_optimization 
    apply (simp add: IRExpr_down_def IRExpr_up_def) 
-   apply simp_all
   done
 
-(* Broke on new Size function 15/07 *)
+
 optimization opt_and_nots: "(UnaryExpr UnaryNot x) & (UnaryExpr UnaryNot y)
                                                    \<longmapsto> UnaryExpr UnaryNot (x | y)"
-   apply unfold_optimization apply simp_all using exp_and_nots 
+   apply simp_all using exp_and_nots 
    apply auto 
-  sorry (*done*)
+  done
 
 optimization opt_and_sign_extend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
                                                      (ConstantExpr (IntVal32 e))
                                    \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) x)
                                                    when (e = (1 << In) - 1)"
-   apply unfold_optimization 
    apply simp_all 
    apply auto
   sorry 
@@ -154,11 +151,10 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
 
-optimization opt_and_neutral_32: "(x & UnaryExpr UnaryNot (ConstantExpr (IntVal32 0))) \<longmapsto> x 
-   when (wf_stamp x \<and> stamp_expr x = default_stamp)"
-   apply unfold_optimization apply simp_all apply auto apply (cases x; simp)
-  using unary_eval.simps unfold_const32
-  
+optimization opt_and_neutral_32: "(x & UnaryExpr UnaryNot (ConstantExpr (IntVal32 (0)))) \<longmapsto> x" 
+   (*when (wf_stamp x \<and> stamp_expr x = default_stamp)"*)
+   apply simp_all apply auto apply (cases x; simp)
+  using unary_eval.simps unfold_const32 val_and_neutral_32 
   sorry
 
 (* Extra ones which were missing *)

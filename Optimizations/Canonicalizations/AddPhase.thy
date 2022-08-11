@@ -316,17 +316,17 @@ lemma exp_add_left_negate_to_sub:
 
 (* Optimizations *)
 optimization opt_redundant_sub_add: "(b + a) - b \<longmapsto> a"
-   apply unfold_optimization apply simp_all apply auto using val_redundant_add_sub 
+   apply simp_all apply auto using val_redundant_add_sub 
    apply (metis evalDet intval_add.simps(10) intval_sub.simps(10))
   done
 
 optimization opt_add_right_negate_to_sub: "(x + (-e)) \<longmapsto> x - e"
-   apply unfold_optimization apply simp_all apply auto using AddToSubHelperLowLevel intval_add_sym 
+   apply simp_all apply auto using AddToSubHelperLowLevel intval_add_sym 
    apply auto
   done
 
 optimization opt_add_left_negate_to_sub: "-x + y \<longmapsto> y - x"
-  using exp_add_left_negate_to_sub rewrite_preservation.simps(1) apply blast apply simp_all
+  using exp_add_left_negate_to_sub rewrite_preservation.simps(1) apply blast
   done
   
 

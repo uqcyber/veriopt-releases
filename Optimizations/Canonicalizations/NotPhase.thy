@@ -29,7 +29,6 @@ lemma exp_not_cancel:
 
 (* Optimisations *)
 optimization not_cancel: "UnaryExpr UnaryNot (UnaryExpr UnaryNot a) \<longmapsto> a"
-   apply unfold_optimization
    apply simp_all
    apply auto
  by (metis intval_not.simps(3) val_not_cancel)

@@ -72,6 +72,23 @@ lemma val_multiply_negative_64:
   using assms is_IntVal64_def times_Value_def by fastforce
 
 
+(* Borrowed from ShiftPhase *)
+fun intval_log2 :: "Value \<Rightarrow> Value" where
+  "intval_log2 (IntVal32 v) = IntVal32 (word_of_int (SOME e. v=2^e))" |
+  "intval_log2 (IntVal64 v) = IntVal64 (word_of_int (SOME e. v=2^e))" |
+  "intval_log2 _ = UndefVal"
+
+lemma val_multiply_power_2_2:
+  assumes "intval_log2 y \<noteq> UndefVal \<and> is_IntVal32 y \<and> 
+
+           (val_to_bool (intval_less_than (IntVal32 0) (intval_log2 y)) \<or> 
+            val_to_bool (intval_equals (IntVal32 0) (intval_log2 y)))"
+
+  shows "x * y = intval_left_shift x (intval_log2 y)"
+  using assms apply (cases x; cases y;  auto) 
+  apply (simp add: times_Value_def)+ 
+  sorry
+
 lemma val_multiply_power_2:
   fixes j :: "32 word"
   assumes "is_IntVal32 x \<and> j \<ge> 0 \<and> j_AsNat = (nat (Values.intval (IntVal32 j)))"
@@ -103,52 +120,44 @@ lemma exp_multiply_zero_64:
 
 (* Optimizations *)
 optimization opt_EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
-   apply unfold_optimization unfolding le_expr_def
-   apply simp_all
+   unfolding le_expr_def
    apply auto using val_eliminate_redundant_negative bin_eval.simps(2)
   by (metis BinaryExpr intval_negate.simps(3) times_Value_def)
 
 
 optimization opt_MultiplyNeutral32: "x * ConstantExpr (IntVal32 1) \<longmapsto> x"
-   apply unfold_optimization unfolding le_expr_def
-   apply simp_all
-   apply auto using val_multiply_neutral_32 bin_eval.simps(2) 
+    unfolding le_expr_def
+    apply auto using val_multiply_neutral_32 bin_eval.simps(2) 
   by (smt (z3) Value.discI(1) Value.distinct(9) intval_mul.elims times_Value_def)
 
 
 optimization opt_MultiplyNeutral64: "x * ConstantExpr (IntVal64 1) \<longmapsto> x"
-   apply unfold_optimization unfolding le_expr_def
-   apply simp_all
+   unfolding le_expr_def
    apply auto using val_multiply_neutral_64 
   by (metis Value.exhaust evaltree_not_undef intval_mul.simps(12) intval_mul.simps(13) 
       intval_mul.simps(14) is_IntVal64_def times_Value_def) 
 
 optimization opt_MultiplyZero32: "x * ConstantExpr (IntVal32 0) \<longmapsto> ConstantExpr (IntVal32 0)"
-   apply unfold_optimization unfolding le_expr_def
-   apply simp_all
-   apply auto using val_multiply_zero_32 bin_eval.simps(2) intval_mul.simps(1)
+    unfolding le_expr_def
+    apply auto using val_multiply_zero_32 bin_eval.simps(2) intval_mul.simps(1)
   by (metis Value.disc(2) Value.exhaust intval_mul.simps(3) intval_mul.simps(5) intval_mul.simps(8) 
       intval_mul.simps(9) times_Value_def unfold_const32)
 
 (* Need to prove exp_multiply_zero_64 *)
 optimization opt_MultiplyZero64: "x * ConstantExpr (IntVal64 0) \<longmapsto> ConstantExpr (IntVal64 0)"
-   apply unfold_optimization unfolding le_expr_def using exp_multiply_zero_64 
+    unfolding le_expr_def using exp_multiply_zero_64 
    apply simp+ 
   done
 
 (* Size issue *)
 optimization opt_MultiplyNegative32: "x * - (ConstantExpr (IntVal32 1)) \<longmapsto> UnaryExpr UnaryNeg x"
-   apply unfold_optimization unfolding le_expr_def
-   apply simp_all 
-   apply auto using val_multiply_negative_32
+    apply auto using val_multiply_negative_32 intval_negate.simps(1) unfold_unary (*
    apply (smt (z3) Value.discI(1) Value.distinct(9) intval_mul.elims intval_negate.simps(1) 
-      times_Value_def unary_eval.simps(2) unfold_unary)
+      times_Value_def unary_eval.simps(2) unfold_unary)*)
   sorry 
 
 optimization opt_MultiplyNegative64: "x * - (ConstantExpr (IntVal64 1)) \<longmapsto> UnaryExpr UnaryNeg x"
-   apply unfold_optimization unfolding le_expr_def
-   apply simp_all 
-   apply auto 
+    unfolding le_expr_def apply auto using val_multiply_negative_64 intval_negate.simps(1) unfold_unary 
   sorry
 
 

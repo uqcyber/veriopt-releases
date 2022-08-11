@@ -64,19 +64,16 @@ lemma exp_elim_redundant_false:
   
 (* Optimizations *)
 optimization or_equal: "x | x \<longmapsto> x"
-   apply unfold_optimization
    apply simp_all
   by (meson exp_or_equal le_expr_def)
 
 
 optimization OrShiftConstantRight: "((const x) | y) \<longmapsto> y | (const x) when \<not>(is_ConstantExpr y)"
-   apply unfold_optimization unfolding le_expr_def using val_shift_const_right_helper 
-   apply auto[1] using size_non_const
-   apply simp
-  done
+   unfolding le_expr_def using val_shift_const_right_helper size_non_const
+   apply simp apply auto 
+  sorry
 
 optimization elim_redundant_false: "x | false \<longmapsto> x"
-   apply unfold_optimization
    apply simp_all
   by (meson exp_elim_redundant_false le_expr_def)
 
@@ -84,16 +81,14 @@ optimization elim_redundant_false: "x | false \<longmapsto> x"
 (* Broke after changes to size function. 15/07 *)
 optimization or_not_operands: "(UnaryExpr UnaryNot x | UnaryExpr UnaryNot y) \<longmapsto> 
                                 UnaryExpr UnaryNot (x & y)"
-   apply unfold_optimization
    apply simp_all
    apply auto using val_or_not_operands
    apply (metis bin_eval.simps(4) intval_not.simps(3) unary_eval.simps(3) unfold_binary 
-          unfold_unary)
-  sorry
+          unfold_unary) 
+  done
 
 optimization or_left_fall_through: "(x | y) \<longmapsto> x
                                 when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
-   apply unfold_optimization 
    apply simp_all 
    apply auto
    apply (simp add: IRExpr_down_def IRExpr_up_def) 
@@ -101,9 +96,7 @@ optimization or_left_fall_through: "(x | y) \<longmapsto> x
 
 optimization or_right_fall_through: "(x | y) \<longmapsto> y
                                 when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
-   apply unfold_optimization
    apply (meson exp_or_commute or_left_fall_through(1) order.trans rewrite_preservation.simps(2))
-   apply simp_all
   done
 
 end (* End of OrPhase *)

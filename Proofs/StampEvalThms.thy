@@ -1,7 +1,7 @@
 subsection \<open>Evaluation Stamp Theorems\<close>
 
 theory StampEvalThms
-  imports ValueThms
+  imports Graph.ValueThms
           Semantics.IRTreeEvalThms
 begin
 
@@ -49,11 +49,27 @@ lemma larger_stamp32_always_valid [simp]:
 subsubsection \<open>Support Lemmas for Integer Stamps and Associated IntVal values\<close>
 (* TODO: these do not use eval so could go up into a StampThms.thy? *)
 
+text \<open>Valid int implies some useful facts.\<close>
+lemma valid_int_gives:
+  assumes "valid_value (IntVal b val) stamp"
+  obtains lo hi where "stamp = IntegerStamp b lo hi \<and>
+       valid_stamp (IntegerStamp b lo hi) \<and>
+       take_bit b val = val \<and>
+       lo \<le> int_signed_value b val \<and> int_signed_value b val \<le> hi"
+  by (smt (z3) Value.distinct(7) Value.inject(1) assms valid_value.elims(2))
+
+
 text \<open>A valid int must have the expected number of bits.\<close>
 lemma valid_int_same_bits:
   assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
   shows "b = bits"
   by (meson assms valid_value.simps(1))
+
+text \<open>A valid value means a valid stamp.\<close>
+lemma valid_int_valid_stamp:
+  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
+  shows "valid_stamp (IntegerStamp bits lo hi)"
+  by (metis assms valid_value.simps(1))
 
 text \<open>A valid int means a valid non-empty stamp.\<close>
 lemma valid_int_not_empty:
@@ -129,6 +145,7 @@ text \<open>A set of lemmas for each evaltree step.
       Maybe.  It seems to be the shortest/simplest trigger?
 \<close>
 
+(* Not used? *)
 lemma unary_abs_result:
   assumes "[m,p] \<turnstile> (UnaryExpr UnaryAbs e) \<mapsto> IntVal b v"
   obtains ve where "([m, p] \<turnstile> e \<mapsto> ve) \<and>
@@ -149,17 +166,18 @@ proof -
   then obtain lo1 hi1 where s1: "stamp_expr e1 = IntegerStamp b1 lo1 hi1"
     by (smt (z3) "2" "3" "4" intval_bits.simps unary_obj valid_value.elims(2))
   then obtain v2 where r2: "result = IntVal b1 v2"
-    using assms by (metis intval_abs.simps(1) new_int.simps r1 unary_eval.simps(1)) 
-  then have "(stamp_expr (UnaryExpr UnaryAbs e1)) = unrestricted_stamp (IntegerStamp b1 lo1 hi1)"
+    using assms by (metis intval_abs.simps(1) new_int.simps r1 unary_eval.simps(1))
+  then have r: "result = intval_abs (IntVal b1 v1)"
+    using "2" r1 unary_eval.simps(1) by presburger
+  then have b1: "0 < b1 \<and> b1 \<le> 64"
+    by (metis "4" r1 s1 valid_stamp.simps(1) valid_value.simps(1))
+  then have bnds1: "fst (bit_bounds b1) \<le> int_signed_value b1 v2 \<and> int_signed_value b1 v2 \<le> snd (bit_bounds b1)"
+    using int_signed_value_bounds by blast 
+  then have s: "(stamp_expr (UnaryExpr UnaryAbs e1)) = unrestricted_stamp (IntegerStamp b1 lo1 hi1)"
     by (simp add: s1)
-  then obtain sb lo2 hi2 where s2: "(stamp_expr (UnaryExpr UnaryAbs e1)) = IntegerStamp sb lo2 hi2"
-    by (metis unrestricted_stamp.simps(2))
-  then have b2: "sb = b1"
-    by (metis Stamp.inject(1) insert_iff s1 stamp_expr.simps(1) stamp_unary.simps(1) unrestricted_stamp.simps(2))
   then show ?thesis
-    unfolding r2 s2 valid_value.simps b2
-    using 4 r1 s1
-    sorry
+    unfolding s unrestricted_stamp.simps r2 valid_value.simps
+    using "4" bnds1 r r1 r2 s1 by auto
 qed
 
 (* TODO: intval_abs needs to expand up to 32 bits too? 
@@ -167,19 +185,40 @@ qed
 *)
 
 
-subsubsection \<open>Validity of UnaryNeg\<close>
-
-
 
 subsubsection \<open>Validity of all Unary Operators\<close>
 
-lemma unary_eval_implies_valid_value:
+lemma eval_normal_unary_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
+  assumes op: "op \<in> normal_unary"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
-  sorry
+proof -
+  obtain b1 v1 where v1: "val = IntVal b1 v1"
+    by (metis Value.exhaust assms(1) assms(2) assms(4) assms(5) evaltree_not_undef unary_obj valid_value.simps(11))
+  then obtain b2 v2 where v2: "result = IntVal b2 v2"
+    using assms(2) assms(4) is_IntVal_def unary_eval_int by presburger
+  then have "result = unary_eval op (IntVal b1 v1)"
+    using assms(2) v1 by blast
+  then obtain vtmp where vtmp: "result = new_int b2 vtmp"
+    using assms(3) v2 by auto
+  then obtain lo2 hi2 where s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp b2 lo2 hi2)"
+    unfolding stamp_expr.simps stamp_unary.simps
+    by (smt (z3) Value.distinct(7) assms(2) assms(3) assms(5) eval_thms(9) insertE intval_abs.simps(1) intval_bits.simps intval_logic_negation.simps(1) intval_negate.simps(1) new_int.simps singletonD stamp_unary.simps(1) unary_eval.simps(1) unary_eval.simps(2) unary_eval.simps(3) unary_eval.simps(4) v1 valid_value.elims(2)) 
+  then have "0 < b1 \<and> b1 \<le> 64"
+    using valid_int_gives
+    by (metis assms(5) v1 valid_stamp.simps(1)) 
+  then have "fst (bit_bounds b2) \<le> int_signed_value b2 v2 \<and>
+             int_signed_value b2 v2 \<le> snd (bit_bounds b2)"
+    by (smt (verit, del_insts) Stamp.inject(1) assms(3) assms(5) int_signed_value_bounds s stamp_expr.simps(1) stamp_unary.simps(1) unrestricted_stamp.simps(2) v1 valid_int_gives)
+  then show ?thesis
+    unfolding s v2 unrestricted_stamp.simps valid_value.simps
+    by (smt (z3) assms(3) assms(5) is_stamp_empty.simps(1) new_int_take_bits s stamp_expr.simps(1) stamp_unary.simps(1) unrestricted_stamp.simps(2) v1 v2 valid_int_gives valid_stamp.simps(1) vtmp)
+qed
+
+
 
 
 
@@ -260,7 +299,7 @@ lemma stamp_implies_valid_value:
   shows "valid_value val (stamp_expr expr)"
   using assms proof (induction expr val)
   case (UnaryExpr expr val result op)
-    then show ?case using unary_eval_implies_valid_value by simp
+    then show ?case using eval_normal_unary_implies_valid_value by simp
   next
     case (BinaryExpr expr1 val1 expr2 val2 result op)
     then show ?case using binary_eval_implies_valid_value by simp

@@ -101,7 +101,8 @@ typedef GroundExpr = "{ e :: IRExpr . is_ground e }"
 
 subsection \<open>Functions for re-calculating stamps\<close> 
 
-text \<open>Note: all integer calculations are done as 32 or 64 bit calculations.
+text \<open>Note: in Java all integer calculations are done as 32 or 64 bit calculations.
+  However, here we generalise the operators to allow any size calculations.
   Most operators have the same output bits as their inputs.
   But the following $fixed_32$ binary operators always output 32 bits.
   And the unary operators that are not $normal_unary$ are narrowing 
@@ -115,7 +116,7 @@ abbreviation normal_unary :: "IRUnaryOp set" where
   "normal_unary \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation}"
 
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
-(*
+(* WAS:
   "stamp_unary op (IntegerStamp b lo hi) =
     (let bits = (if op \<in> normal_unary 
                  then (if b=64 then 64 else 32)
@@ -124,7 +125,7 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 *)
   "stamp_unary op (IntegerStamp b lo hi) =
     (if op \<in> normal_unary 
-     then unrestricted_stamp (IntegerStamp (if b=64 then 64 else 32) lo hi) 
+     then unrestricted_stamp (IntegerStamp b lo hi) 
      else unrestricted_stamp (IntegerStamp (ir_resultBits op) lo hi))" |
   (* for now... *)
   "stamp_unary op _ = IllegalStamp"
@@ -132,9 +133,9 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_binary op (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
     (if (b1 \<noteq> b2) then IllegalStamp else
-      (if op \<notin> fixed_32 \<and> b1=64
-       then unrestricted_stamp (IntegerStamp 64 lo1 hi1)
-       else unrestricted_stamp (IntegerStamp 32 lo1 hi1)))" |
+      (if op \<in> fixed_32
+       then unrestricted_stamp (IntegerStamp 32 lo1 hi1)
+       else unrestricted_stamp (IntegerStamp b1 lo1 hi1)))" |
   (* for now... *)
   "stamp_binary op _ _ = IllegalStamp"
 

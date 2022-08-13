@@ -124,9 +124,7 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
     unrestricted_stamp (IntegerStamp bits lo hi))" |
 *)
   "stamp_unary op (IntegerStamp b lo hi) =
-    (if op \<in> normal_unary 
-     then unrestricted_stamp (IntegerStamp b lo hi) 
-     else unrestricted_stamp (IntegerStamp (ir_resultBits op) lo hi))" |
+     unrestricted_stamp (IntegerStamp (if op \<in> normal_unary then b else (ir_resultBits op)) lo hi)" |
   (* for now... *)
   "stamp_unary op _ = IllegalStamp"
 

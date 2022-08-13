@@ -155,6 +155,7 @@ lemma valid_value_signed_int_range [simp]:
   using assms valid_int
   by (metis valid_value.simps(1)) 
 
+(* If we want to support unsigned values:
 lemma valid_value_unsigned_int_range [simp]:
   assumes "valid_value val (IntegerStamp b lo hi)"
   assumes "0 \<le> lo"
@@ -163,6 +164,7 @@ lemma valid_value_unsigned_int_range [simp]:
              int_unsigned_value b v \<le> hi)"
   using assms valid_int
   by fastforce
+*)
 
 
 subsubsection \<open>Example Data-flow Optimisations\<close>

@@ -97,6 +97,9 @@ datatype (discs_sels) Value  =
 fun intval_bits :: "Value \<Rightarrow> nat" where
   "intval_bits (IntVal b v) = b"
 
+fun bit_bounds :: "nat \<Rightarrow> (int \<times> int)" where
+  "bit_bounds bits = (((2 ^ bits) div 2) * -1, ((2 ^ bits) div 2) - 1)"
+
 definition logic_negate :: "('a::len) word \<Rightarrow> 'a word" where
   "logic_negate x = (if x = 0 then 1 else 0)"
 
@@ -104,7 +107,7 @@ fun int_signed_value :: "iwidth \<Rightarrow> int64 \<Rightarrow> int" where
   "int_signed_value b v = sint (signed_take_bit (b - 1) v)"
 
 fun int_unsigned_value :: "iwidth \<Rightarrow> int64 \<Rightarrow> int" where
-  "int_unsigned_value b v = uint (take_bit b v)"  (* NB. we could drop take_bit? *)
+  "int_unsigned_value b v = uint v"  (* NB. we could drop take_bit? *)
 
 
 text \<open>Converts an integer word into a Java value.\<close>

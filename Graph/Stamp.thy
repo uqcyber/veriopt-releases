@@ -25,8 +25,6 @@ datatype Stamp =
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
   | IllegalStamp
 
-fun bit_bounds :: "nat \<Rightarrow> (int \<times> int)" where
-  "bit_bounds bits = (((2 ^ bits) div 2) * -1, ((2 ^ bits) div 2) - 1)"
 
 fun is_stamp_empty :: "Stamp \<Rightarrow> bool" where
   "is_stamp_empty (IntegerStamp b lower upper) = (upper < lower)" |
@@ -51,12 +49,16 @@ text \<open>Just like the IntegerStamp class, we need to know that our lo/hi bou
  *)
 fun valid_stamp :: "Stamp \<Rightarrow> bool" where
   "valid_stamp (IntegerStamp bits lo hi) = 
+     (0 < bits \<and>
      (is_stamp_empty (IntegerStamp bits lo hi)
-     \<or> lo < 0 \<and> fst (bit_bounds bits) \<le> lo \<and> lo \<le> hi \<and> hi \<le> snd (bit_bounds bits)
-     \<or> 0 \<le> lo \<and> lo \<le> hi \<and> hi < 2 ^ bits)" |
+     \<or> fst (bit_bounds bits) \<le> lo \<and> lo \<le> hi \<and> hi \<le> snd (bit_bounds bits)))" |
   "valid_stamp s = True"
 
-
+(* Note: we could support 32/64-bit unsigned values by relaxing this definition to:
+     (is_stamp_empty (IntegerStamp bits lo hi)
+     \<or> lo < 0 \<and> fst (bit_bounds bits) \<le> lo \<and> lo \<le> hi \<and> hi \<le> snd (bit_bounds bits)
+     \<or> 0 \<le> lo \<and> lo \<le> hi \<and> hi < 2 ^ bits))"
+*)
 
 experiment begin
 corollary "bit_bounds 1 = (-1, 0)" by simp  (* this matches the compiler stamps. *)
@@ -178,14 +180,20 @@ fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
      (if b1 = b then
        valid_stamp (IntegerStamp b l h) \<and>
        take_bit b val = val \<and>
-       (if l < 0
-        then (l \<le> int_signed_value b val \<and> int_signed_value b val \<le> h)
-        else (l \<le> int_unsigned_value b val \<and> int_unsigned_value b val \<le> h))
+       l \<le> int_signed_value b val \<and> int_signed_value b val \<le> h
       else False)" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
   "valid_value (ObjRef ref) (ObjectStamp klass exact nonNull alwaysNull) = 
      ((alwaysNull \<longrightarrow> ref = None) \<and> (ref=None \<longrightarrow> \<not> nonNull))" |
   "valid_value stamp val = False"
+(* NOTE: we could allow for unsigned interpretations too, like this:
+       (if l < 0
+        then (l \<le> int_signed_value b val \<and> int_signed_value b val \<le> h)
+        else (l \<le> int_unsigned_value b val \<and> int_unsigned_value b val \<le> h))
+   but that is only necessary for handling unsigned long, so we take the
+   simpler always-signed approach here.  In Java, the only unsigned stamps
+   we see are for char, but they are 32-bit: IntegerStamp 32 0 65535.
+*)
 (* TODO: add the other stamps:
   | KlassPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
   | MethodCountersPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)

@@ -311,7 +311,7 @@ fun intval_conditional :: "Value \<Rightarrow> Value \<Rightarrow> Value \<Right
 
 text \<open>TODO: clarify which widths this should work on: just 1-bit or all?\<close>
 fun intval_logic_negation :: "Value \<Rightarrow> Value" where
-  "intval_logic_negation (IntVal b v) = (IntVal b (logic_negate v))" |
+  "intval_logic_negation (IntVal b v) = new_int b (logic_negate v)" |
   "intval_logic_negation _ = UndefVal"
 
 

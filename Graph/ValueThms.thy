@@ -88,6 +88,35 @@ lemma signed_take_bit_range:
   using signed_take_bit_int_greater_eq_minus_exp_word signed_take_bit_int_less_exp_word
   using assms by blast
 
+text \<open>A $bit_bounds$ version of the above lemma.\<close>
+
+lemma signed_take_bit_bounds:
+  fixes ival :: "'a :: len word"
+  assumes "n \<le> LENGTH('a)"
+  assumes "0 < n"
+  assumes "val = sint(signed_take_bit (n - 1) ival)"
+  shows "fst (bit_bounds n) \<le> val \<and> val \<le> snd (bit_bounds n)"
+  using assms signed_take_bit_range lower_bounds_equiv upper_bounds_equiv
+  by (metis bit_bounds.simps fst_conv less_imp_diff_less nat_less_le sint_ge sint_lt snd_conv zle_diff1_eq)
+
+(* It is helpful to have the 64-bit instance of the above, to avoid uninstantiated types
+   when apply it backwards. *)
+lemma signed_take_bit_bounds64:
+  fixes ival :: "int64"
+  assumes "n \<le> 64"
+  assumes "0 < n"
+  assumes "val = sint(signed_take_bit (n - 1) ival)"
+  shows "fst (bit_bounds n) \<le> val \<and> val \<le> snd (bit_bounds n)"
+  using assms signed_take_bit_bounds
+  by (metis size64 word_size)
+
+lemma int_signed_value_bounds:
+  assumes "b1 \<le> 64"
+  assumes "0 < b1"
+  shows "fst (bit_bounds b1) \<le> int_signed_value b1 v2 \<and>
+         int_signed_value b1 v2 \<le> snd (bit_bounds b1)"
+  using assms int_signed_value.simps signed_take_bit_bounds64 by blast
+
 lemma int_signed_value_range:
   fixes ival :: "int64"
   assumes "val = int_signed_value n ival"
@@ -192,5 +221,13 @@ lemma scast_bigger_bit_bounds:
   using assms scast_bigger_min_bound scast_bigger_max_bound
   by auto
 
+
+text \<open>Results about $new_int$.\<close>
+
+(* may be too trivial? *)
+lemma new_int_take_bits:
+  assumes "IntVal b val = new_int b ival"
+  shows "take_bit b val = val"
+  using assms by force
 
 end

@@ -50,8 +50,8 @@ text \<open>Just like the IntegerStamp class, we need to know that our lo/hi bou
 fun valid_stamp :: "Stamp \<Rightarrow> bool" where
   "valid_stamp (IntegerStamp bits lo hi) = 
      (0 < bits \<and> bits \<le> 64 \<and>
-     (is_stamp_empty (IntegerStamp bits lo hi)
-     \<or> fst (bit_bounds bits) \<le> lo \<and> lo \<le> hi \<and> hi \<le> snd (bit_bounds bits)))" |
+     fst (bit_bounds bits) \<le> lo \<and> lo \<le> snd (bit_bounds bits) \<and>
+     fst (bit_bounds bits) \<le> hi \<and> hi \<le> snd (bit_bounds bits))" |
   "valid_stamp s = True"
 
 (* Note: we could support 32/64-bit unsigned values by relaxing this definition to:

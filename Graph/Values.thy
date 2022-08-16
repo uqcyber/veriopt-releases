@@ -335,7 +335,7 @@ value "sint(signed_take_bit 0 (1 :: int32))" (* gives -1, which matches compiler
 
 fun intval_narrow :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_narrow inBits outBits (IntVal b v) =
-     (if inBits = b \<and> outBits \<le> inBits  
+     (if inBits = b \<and> 0 < outBits \<and> outBits \<le> inBits \<and> inBits \<le> 64
       then new_int outBits v
       else UndefVal)" |
   "intval_narrow _ _ _ = UndefVal"
@@ -364,27 +364,14 @@ fun sign_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarro
 
 fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_sign_extend inBits outBits (IntVal b v) =
-     (if inBits = b \<and> outBits \<ge> inBits  
+     (if inBits = b \<and> 0 < inBits \<and> inBits \<le> outBits \<and> outBits \<le> 64
       then new_int outBits (signed_take_bit (inBits - 1) v)
       else UndefVal)" |
   "intval_sign_extend _ _ _ = UndefVal"
 
-(* Not needed now:
-fun zero_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
-  "zero_extend_helper inBits outBits val =
-    (if inBits \<le> outBits \<and> inBits \<le> 32 \<and>
-        outBits \<in> valid_int_widths \<and>
-        inBits \<in> valid_int_widths
-     then
-       (if outBits = 64
-        then IntVal64 (ucast (take_bit inBits val))
-        else IntVal32 (take_bit inBits val))
-     else UndefVal)"
-*)
-
 fun intval_zero_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_zero_extend inBits outBits (IntVal b v) =
-     (if inBits = b \<and> outBits \<ge> inBits  
+     (if inBits = b \<and> 0 < inBits \<and> inBits \<le> outBits \<and> outBits \<le> 64
       then new_int outBits (take_bit inBits v)
       else UndefVal)" |
   "intval_zero_extend _ _ _ = UndefVal"
@@ -394,63 +381,29 @@ text \<open>Some well-formedness results to help reasoning about narrowing and w
 
 lemma intval_narrow_ok:
   assumes "intval_narrow inBits outBits val \<noteq> UndefVal"
-  shows "0 \<le> outBits \<and>
-        outBits \<le> inBits \<and> 
+  shows "0 < outBits \<and> outBits \<le> inBits \<and> inBits \<le> 64 \<and> outBits \<le> 64 \<and>
         is_IntVal val \<and>
         intval_bits val = inBits"
   using assms intval_narrow.simps neq0_conv intval_bits.simps
-  by (metis intval_narrow.elims is_IntVal_def less_eq_nat.simps(1))
-
-(* Not needed now:
-lemma narrow_takes_64:
-  assumes "result = intval_narrow inBits outBits value"
-  assumes "result \<noteq> UndefVal"
-  shows "is_IntVal64 value = (inBits = 64)"
-  using assms by (cases "value"; simp; presburger)
-
-lemma narrow_gives_64:
-  assumes "result = intval_narrow inBits outBits value"
-  assumes "result \<noteq> UndefVal"
-  shows "is_IntVal64 result = (outBits = 64)"
-  using assms
-  by (smt (verit, best) Value.case_eq_if Value.discI(1) Value.discI(2) Value.disc_eq_case(3) add_diff_cancel_left' diff_is_0_eq intval_narrow.elims narrow_helper.simps numeral_Bit0 zero_neq_numeral) 
-
-lemma sign_extend_helper_ok:
-  assumes "sign_extend_helper inBits outBits val \<noteq> UndefVal"
-  shows "0 < inBits \<and> inBits \<le> 32 \<and>
-        inBits \<le> outBits \<and> 
-        outBits \<in> valid_int_widths \<and>
-        inBits \<in> valid_int_widths"
-  using assms sign_extend_helper.simps neq0_conv by fastforce
-*)
+  by (metis Value.disc(2) intval_narrow.elims le_trans)
 
 lemma intval_sign_extend_ok:
   assumes "intval_sign_extend inBits outBits val \<noteq> UndefVal"
-  shows "0 \<le> inBits \<and>
-        inBits \<le> outBits \<and> 
+  shows "0 < inBits \<and>
+        inBits \<le> outBits \<and> outBits \<le> 64 \<and>
         is_IntVal val \<and>
         intval_bits val = inBits"
   using assms intval_sign_extend.simps neq0_conv
-  by (metis intval_bits.simps intval_sign_extend.elims is_IntVal_def less_eq_nat.simps(1))
-
-(*
-lemma zero_extend_helper_ok:
-  assumes "zero_extend_helper inBits outBits val \<noteq> UndefVal"
-  shows "0 < inBits \<and> inBits \<le> 32 \<and>
-        inBits \<le> outBits \<and> 
-        outBits \<in> valid_int_widths \<and>
-        inBits \<in> valid_int_widths"
-  using assms zero_extend_helper.simps neq0_conv by fastforce
-*)
+  by (metis intval_bits.simps intval_sign_extend.elims is_IntVal_def)
 
 lemma intval_zero_extend_ok:
   assumes "intval_zero_extend inBits outBits val \<noteq> UndefVal"
-  shows "0 \<le> inBits \<and>
-        inBits \<le> outBits \<and> 
+  shows "0 < inBits \<and>
+        inBits \<le> outBits \<and> outBits \<le> 64 \<and>
         is_IntVal val \<and>
         intval_bits val = inBits"
   using assms intval_sign_extend.simps neq0_conv
-  by (metis intval_bits.simps intval_zero_extend.elims is_IntVal_def less_eq_nat.simps(1))
+  by (metis intval_bits.simps intval_zero_extend.elims is_IntVal_def)
 
 
 subsection \<open>Bit-Shifting Operators\<close>

@@ -145,13 +145,6 @@ text \<open>A set of lemmas for each evaltree step.
       Maybe.  It seems to be the shortest/simplest trigger?
 \<close>
 
-(* Not used? *)
-lemma unary_abs_result:
-  assumes "[m,p] \<turnstile> (UnaryExpr UnaryAbs e) \<mapsto> IntVal b v"
-  obtains ve where "([m, p] \<turnstile> e \<mapsto> ve) \<and>
-           IntVal b v = intval_abs ve"
-  using assms by force
-
 lemma unary_abs_implies_valid_value:
   assumes 1:"[m,p] \<turnstile> e1 \<mapsto> r1"
   assumes 2:"result = unary_eval UnaryAbs r1"
@@ -179,10 +172,6 @@ proof -
     unfolding s unrestricted_stamp.simps r2 valid_value.simps
     using "4" bnds1 r r1 r2 s1 by auto
 qed
-
-(* TODO: intval_abs needs to expand up to 32 bits too? 
-   Or stamp could leave size unchanged? 
-*)
 
 
 
@@ -218,8 +207,73 @@ proof -
     by (smt (z3) assms(3) assms(5) is_stamp_empty.simps(1) new_int_take_bits s stamp_expr.simps(1) stamp_unary.simps(1) unrestricted_stamp.simps(2) v1 v2 valid_int_gives valid_stamp.simps(1) vtmp)
 qed
 
+lemma narrow_widen_output_bits:
+  assumes "unary_eval op val \<noteq> UndefVal"
+  assumes "op \<notin> normal_unary"
+  shows "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
+proof -
+  consider ib ob where "op = UnaryNarrow ib ob"
+         | ib ob where "op = UnarySignExtend ib ob"
+         | ib ob where "op = UnaryZeroExtend ib ob"
+    using IRUnaryOp.exhaust_sel assms(2) by blast
+  then show ?thesis
+  proof (cases)
+    case 1
+    then show ?thesis using assms intval_narrow_ok by force
+  next
+    case 2
+    then show ?thesis using assms intval_sign_extend_ok by force
+  next
+    case 3
+    then show ?thesis using assms intval_zero_extend_ok by force
+  qed
+qed
 
 
+lemma eval_widen_narrow_unary_implies_valid_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "result = unary_eval op val"
+  assumes op: "op \<notin> normal_unary"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr op expr))"
+proof -
+  obtain b1 v1 where v1: "val = IntVal b1 v1"
+    by (metis Value.exhaust assms(1) assms(2) assms(4) assms(5) evaltree_not_undef unary_obj valid_value.simps(11))
+  then have "result = unary_eval op (IntVal b1 v1)"
+    using assms(2) v1 by blast
+  then obtain v2 where v2: "result = new_int (ir_resultBits op) v2"
+    using assms by (cases op; simp; (meson new_int.simps)+)
+  then obtain v3 where v3: "result = IntVal (ir_resultBits op) v3"
+    using assms by (cases op; simp; (meson new_int.simps)+)
+  then obtain lo2 hi2 where s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
+    unfolding stamp_expr.simps stamp_unary.simps
+    using assms(3) assms(5) v1 valid_int_gives by fastforce 
+  then have outBits: "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
+    using assms narrow_widen_output_bits
+    by blast 
+  then have "fst (bit_bounds (ir_resultBits op)) \<le> int_signed_value (ir_resultBits op) v3 \<and>
+             int_signed_value (ir_resultBits op) v3 \<le> snd (bit_bounds (ir_resultBits op))"
+    using int_signed_value_bounds 
+    by (smt (verit, del_insts) Stamp.inject(1) assms(3) assms(5) int_signed_value_bounds s stamp_expr.simps(1) stamp_unary.simps(1) unrestricted_stamp.simps(2) v1 valid_int_gives)
+  then show ?thesis
+    unfolding s v3 unrestricted_stamp.simps valid_value.simps
+    using outBits v2 v3 by auto
+qed
+
+lemma eval_unary_implies_valid_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "result = unary_eval op val"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr op expr))"
+  proof (cases "op \<in> normal_unary")
+    case True
+    then show ?thesis by (metis assms eval_normal_unary_implies_valid_value)
+  next
+    case False
+    then show ?thesis by (metis assms eval_widen_narrow_unary_implies_valid_value)
+  qed
 
 
 subsubsection \<open>Support Lemmas for Binary Operators\<close>
@@ -265,12 +319,66 @@ lemma binary_eval_implies_valid_value:
 
 subsubsection \<open>Validity of Stamp Meet and Join Operators\<close>
 
-lemma stamp_meet_is_valid:
-  assumes "valid_value val stamp1 \<or> valid_value val stamp2"
+lemma stamp_meet_integer_is_valid_stamp:
+  assumes "valid_stamp stamp1"
+  assumes "valid_stamp stamp2"
+  assumes "is_IntegerStamp stamp1"
+  assumes "is_IntegerStamp stamp2"
+  shows "valid_stamp (meet stamp1 stamp2)"
+  using assms unfolding is_IntegerStamp_def valid_stamp.simps meet.simps
+  by (smt (verit, del_insts) meet.simps(2) valid_stamp.simps(1) valid_stamp.simps(8))
+
+lemma stamp_meet_is_valid_stamp:
+  assumes 1: "valid_stamp stamp1"
+  assumes 2: "valid_stamp stamp2"
+  shows "valid_stamp (meet stamp1 stamp2)"
+  by (cases stamp1; cases stamp2; insert stamp_meet_integer_is_valid_stamp[OF 1 2]; auto)
+
+
+lemma stamp_meet_commutes: "meet stamp1 stamp2 = meet stamp2 stamp1"
+  by (cases stamp1; cases stamp2; auto)
+
+lemma stamp_meet_is_valid_value1:
+  assumes "valid_value val stamp1"  (*  \<or> valid_value val stamp2" *)
+  assumes "valid_stamp stamp2"
+  assumes "stamp1 = IntegerStamp b1 lo1 hi1"
+  assumes "stamp2 = IntegerStamp b2 lo2 hi2"
   assumes "meet stamp1 stamp2 \<noteq> IllegalStamp"
   shows "valid_value val (meet stamp1 stamp2)"
-  using assms 
-  sorry
+proof -
+  have m: "meet stamp1 stamp2 = IntegerStamp b1 (min lo1 lo2) (max hi1 hi2)"
+    using assms by (metis meet.simps(2)) 
+  obtain ival where val: "val = IntVal b1 ival"
+    using assms valid_int by blast 
+  then have v: "valid_stamp (IntegerStamp b1 lo1 hi1) \<and>
+       take_bit b1 ival = ival \<and>
+       lo1 \<le> int_signed_value b1 ival \<and> int_signed_value b1 ival \<le> hi1"
+    using assms by (metis valid_value.simps(1)) 
+  then have mm: "min lo1 lo2 \<le> int_signed_value b1 ival \<and> int_signed_value b1 ival \<le> max hi1 hi2"
+    by linarith
+  then have "valid_stamp (IntegerStamp b1 (min lo1 lo2) (max hi1 hi2))"
+    using assms v stamp_meet_is_valid_stamp
+    by (metis meet.simps(2)) 
+  then show ?thesis 
+    unfolding m val valid_value.simps
+    using mm v by presburger 
+qed
+
+text \<open>and the symmetric lemma follows by the commutativity of meet.\<close>
+
+lemma stamp_meet_is_valid_value2:
+  assumes "valid_value val stamp2"
+  assumes "valid_stamp stamp1"
+  assumes "stamp1 = IntegerStamp b1 lo1 hi1"
+  assumes "stamp2 = IntegerStamp b2 lo2 hi2"
+  assumes "meet stamp1 stamp2 \<noteq> IllegalStamp"
+  shows "valid_value val (meet stamp1 stamp2)"
+  using assms stamp_meet_commutes stamp_meet_is_valid_value1
+  by metis 
+
+
+
+subsubsection \<open>Validity of conditional expressions\<close>
 
 lemma conditional_eval_implies_valid_value:
   assumes "[m,p] \<turnstile> cond \<mapsto> condv"
@@ -299,7 +407,7 @@ lemma stamp_implies_valid_value:
   shows "valid_value val (stamp_expr expr)"
   using assms proof (induction expr val)
   case (UnaryExpr expr val result op)
-    then show ?case using eval_normal_unary_implies_valid_value by simp
+    then show ?case using eval_unary_implies_valid_value by simp
   next
     case (BinaryExpr expr1 val1 expr2 val2 result op)
     then show ?case using binary_eval_implies_valid_value by simp

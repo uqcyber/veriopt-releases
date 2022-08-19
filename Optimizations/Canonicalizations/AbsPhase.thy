@@ -1,10 +1,10 @@
 theory AbsPhase
   imports
     Common
-
+(*
     Optimizations.CanonicalizationTreeProofs
     Optimizations.CanonicalizationTree
-    Semantics.IRTreeEvalThms
+    Semantics.IRTreeEvalThms*)
 begin
 
 section \<open>Optimizations for Abs Nodes\<close>
@@ -69,8 +69,9 @@ qed
 
 (* end *)
 
-lemma absolute_def: "(is_IntVal32 x \<or> is_IntVal64 x) \<and> x \<noteq> UndefVal \<Longrightarrow> intval_abs x \<noteq> UndefVal"
-  by (metis Value.disc(1) Value.disc(6) intval_abs.simps(1) intval_abs.simps(2) is_IntVal32_def is_IntVal64_def)
+lemma wf_abs: "(is_IntVal32 x \<or> is_IntVal64 x) \<Longrightarrow> intval_abs x \<noteq> UndefVal"
+  by (metis Value.disc(1) Value.disc(6) intval_abs.simps(1) intval_abs.simps(2) is_IntVal32_def 
+      is_IntVal64_def)
 
 fun bin_abs :: "'a ::len word \<Rightarrow> 'a ::len word" where
   "bin_abs v = (if (v <s 0) then (- v) else v)"
@@ -83,42 +84,44 @@ lemma val_abs_zero_32:
   by simp
 
 lemma val_abs_pos_32:
-  assumes "is_IntVal32 x \<and> val_to_bool(intval_less_than (IntVal32 0) x) \<and> intval_abs x \<noteq> UndefVal"
+  assumes "is_IntVal32 x \<and> val_to_bool(val[(IntVal32 0) < x])"
   shows "intval_abs x = x" 
   using assms apply (cases x; auto)
   by (metis bool_to_val.elims signed.less_asym val_to_bool.simps(1))
 
 lemma val_abs_neg_32:
-  assumes "is_IntVal32 x \<and> val_to_bool(intval_less_than x (IntVal32 0))"
+  assumes "is_IntVal32 x \<and> val_to_bool(val[x < (IntVal32 0)])"
   shows "intval_abs x = intval_negate x" 
-  using assms apply (cases x; auto)
-  done
+   using assms 
+  by (cases x; auto)
+  
 
 (* 64 *)
 lemma abs_zero_64:
-"intval_abs (IntVal64 0) = IntVal64 0"
+  "intval_abs (IntVal64 0) = IntVal64 0"
   by simp
 
 lemma val_abs_pos_64:
-  assumes "is_IntVal64 x \<and> val_to_bool(intval_less_than (IntVal64 0) x) \<and> intval_abs x \<noteq> UndefVal"
+  assumes "is_IntVal64 x \<and> val_to_bool(val[(IntVal64 0) < x])"
   shows "intval_abs x = x" 
   using assms apply (cases x; auto)
   by (metis bool_to_val.elims signed.less_asym val_to_bool.simps(1))
 
 lemma val_abs_neg_64:
-  assumes "is_IntVal64 x \<and> val_to_bool(intval_less_than x (IntVal64 0))"
+  assumes "is_IntVal64 x \<and> val_to_bool(val[x < (IntVal64 0)])"
   shows "intval_abs x = intval_negate x" 
-  using assms apply (cases x; auto)
-  done
+   using assms 
+  by (cases x; auto)
 
 
 (* Value level proofs *)
 lemma val_abs_idem:
   assumes "x \<noteq> UndefVal \<and> intval_abs x \<noteq> UndefVal \<and> intval_abs(intval_abs(x)) \<noteq> UndefVal"
   shows "intval_abs(intval_abs(x)) = intval_abs x"
-  using assms apply (cases x; auto)
-  using final_abs using abs_max_neg apply fastforce+
-  done
+   using assms apply (cases x; auto)
+   using final_abs using abs_max_neg 
+  by fastforce+
+  
 
 lemma val_abs_negate:
   assumes "x \<noteq> UndefVal \<and> intval_negate x \<noteq> UndefVal \<and> intval_abs(intval_negate x) \<noteq> UndefVal"
@@ -126,19 +129,18 @@ lemma val_abs_negate:
   using assms apply (cases x; auto) 
   using final_abs abs_max_neg apply fastforce defer 
   using final_abs abs_max_neg apply fastforce
-  using final_abs abs_max_neg abs_pos abs_neg val_abs_neg_64 val_abs_neg_32 absolute_def 
+  using final_abs abs_max_neg abs_pos abs_neg val_abs_neg_64 val_abs_neg_32 wf_abs
   sorry
 
 
 (* Optimisations *)
 optimization abs_idempotence: "abs(abs(x)) \<longmapsto>  abs(x)"
-   apply unfold_optimization unfolding le_expr_def
-   apply simp_all apply auto  
+   apply auto 
   by (metis UnaryExpr intval_abs.simps(3) unary_eval.simps(1) val_abs_idem)
 
 (* Need to prove val_abs_negate *)
 optimization abs_negate: "(abs(-x)) \<longmapsto>  abs(x)"
-   apply unfold_optimization apply simp_all apply auto
+    apply auto
   by (metis UnaryExpr intval_negate.simps(3) unary_eval.simps(1) val_abs_negate)
 
 end (* End of AbsPhase *)

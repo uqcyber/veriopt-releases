@@ -23,7 +23,7 @@ lemma bin_negative_shift32:
 
 (* Value level proofs *)
 lemma val_negative_cancel:
-  assumes "e \<noteq> UndefVal \<and> intval_negate e \<noteq> UndefVal"
+  assumes "intval_negate e \<noteq> UndefVal"
   shows "val[-(-(e))] = val[e]"
   by (metis (no_types, lifting) assms intval_negate.elims intval_negate.simps(1) 
       intval_negate.simps(2) verit_minus_simplify(4))
@@ -31,8 +31,7 @@ lemma val_negative_cancel:
 lemma val_distribute_sub:
   assumes "x \<noteq> UndefVal \<and> y \<noteq> UndefVal"
   shows "val[-(x-y)] = val[y-x]"
-  using assms apply (cases x; cases y; auto)
-  done
+  using assms by (cases x; cases y; auto)
 
 (* Exp level proofs *)
 lemma exp_distribute_sub:
@@ -98,22 +97,22 @@ lemma exp_distribute_sub:
 (* Optimisations *)
 optimization negate_cancel: "-(-(e)) \<longmapsto> e"
    apply simp_all
-  by (metis intval_negate.simps(3) unary_eval.simps(2) unfold_unary val_negative_cancel)
+  by (metis  unary_eval.simps(2) unfold_unary val_negative_cancel)
 
 
 (* FloatStamp condition is omitted. Not 100% sure. *)
 optimization distribute_sub: "-(x - y) \<longmapsto> (y - x)" 
    apply simp_all 
    apply auto
-   apply (simp add: BinaryExpr evaltree_not_undef val_distribute_sub)
-  done
+  by (simp add: BinaryExpr evaltree_not_undef val_distribute_sub)
 
 
 (* Bits: 64, 32, 16, 8, 1 *)
 (* 32-bit proof *)
 optimization negative_shift_32: "-(BinaryExpr BinRightShift x (const (IntVal32 31))) \<longmapsto> 
-                                   BinaryExpr BinURightShift x (const (IntVal32 31))"
-   apply simp_all
+                                   BinaryExpr BinURightShift x (const (IntVal32 31))
+                                   when (stamp_expr x = default_stamp)"
+   apply simp_all apply auto 
   sorry
 
 

@@ -292,6 +292,10 @@ print_phases
  - AddRightNegateToSub
  - AddLeftNegateToSub 
 
+ -- Left to go --
+ - mergeSignExtendAdd
+ - mergeZeroExtendAdd
+
 *)
 
 (* Value level proofs *)

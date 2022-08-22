@@ -71,44 +71,58 @@ lemma val_multiply_negative_64:
 fun intval_log2 :: "Value \<Rightarrow> Value" where
   "intval_log2 (IntVal32 v) = IntVal32 (word_of_int (SOME e. v=2^e))" |
   "intval_log2 (IntVal64 v) = IntVal64 (word_of_int (SOME e. v=2^e))" |
-  "intval_log2 _ = UndefVal"
+  "intval_log2 _ = UndefVal" 
+
+(*
+fun intval_log2_2 :: "Value \<Rightarrow> Value" where
+  "intval_log2_2 (IntVal32 v) = (if v=2^e then IntVal32 (word_of_int(e)) else UndefVal)" |
+  "intval_log2_2 (IntVal64 v) = (if v=2^e then IntVal32 (word_of_int(e)) else UndefVal)" |
+  "intval_log2_2 _ = UndefVal" 
+*)
+
+lemma largest_32:
+  assumes "y = IntVal32 (4294967296) \<and> i = intval_log2 y"
+  shows "val_to_bool(val[i < IntVal32 (32)])"
+  using assms apply (cases y; auto)
+  sorry
 
 (* Proving that (log2 (2^i)) < 32 when 2^i \<in> IntVal32 *)
 lemma log2_range:
   assumes "is_IntVal32 y \<and> intval_log2 y = i"
   shows "val_to_bool (val[i < IntVal32 (32)])"
-  using assms apply (cases y; simp) 
+  using assms apply (cases y; cases i; auto)
   sorry
 
-lemma val_multiply_power_2_test:
-  shows "IntVal32 2 * IntVal32 4 = val[IntVal32 2 << IntVal32 2]"
-  using bin_multiply_power_2 bin_eval.simps intval_left_shift.simps(1) sorry
-
-
 lemma val_multiply_power_2_last_subgoal:
-  shows "IntVal32 x2 * IntVal32 x2a = IntVal32 (x2 << unat (and (word_of_nat (SOME e. x2a = 2^e)) 31))"
-   using intval_left_shift.simps(1) 
+  assumes "y = IntVal32 yy"
+  and     "x = IntVal32 xx" 
+  and     "val_to_bool (val[IntVal32 0 < x])"
+  and     "val_to_bool (val[IntVal32 0 < y])" 
+
+  shows "x * y = IntVal32 (xx << unat (and (word_of_nat (SOME e. yy = 2^e)) 31))"
+  using intval_left_shift.simps(1) assms apply (cases x; cases y; auto) 
   sorry
 
 value "IntVal32 x2 * IntVal32 x2a"
 value "IntVal32 (x2 << unat (and (word_of_nat (SOME e. x2a = 2^e)) 31))"
 
+value "val[(IntVal32 2) * (IntVal32 4)]"
+value "val[(IntVal32 2) << (IntVal32 2)]"
+value "IntVal32 (2 << unat (and (2::32 word) (31::32 word)))"
 
 (* Need to prove lemma above *)
 lemma val_multiply_power_2_2:
   assumes "is_IntVal32 y"
-  and     "intval_log2 y = i"                          (*  y = 2^i     *)
-  and     "val_to_bool (val[IntVal32 0 < i])"          (*  i > 0       *)
-  and     "val_to_bool (val[IntVal32 0 < x * y])"      (*  x * y > 0   *)
-  and     "val_to_bool (val[IntVal32 0 < (x << i)])"   (* (x << i) > 0 *)
-  and     "val_to_bool (val[IntVal32 0 < x])"          (* x > 0*)
+  and     "intval_log2 y = i"                          (*  y = 2^i  *)
+  and     "val_to_bool (val[IntVal32 0 < i])"          (*  i > 0    *)
+  and     "val_to_bool (val[i < IntVal32 32])"         (*  32 > i   *)
+  and     "val_to_bool (val[IntVal32 0 < x])"          (*  x > 0    *)
+  and     "val_to_bool (val[IntVal32 0 < y])"          (*  y > 0    *)
 
-  shows "x * y = val[x << i]"
+shows "x * y = val[x << i]"
   using assms apply (cases x; cases y; auto) 
-  apply (simp add: times_Value_def)
-  using val_multiply_power_2_last_subgoal times_Value_def by auto
-
-
+  apply (simp add: times_Value_def) 
+  using val_multiply_power_2_last_subgoal times_Value_def assms by auto
 
 lemma val_multiply_power_2:
   fixes j :: "32 word"

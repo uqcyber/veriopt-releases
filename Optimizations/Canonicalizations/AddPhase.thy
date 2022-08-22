@@ -300,40 +300,31 @@ print_phases
 
 (* Value level proofs *)
 lemma val_redundant_add_sub:
-  assumes "b \<noteq> UndefVal \<and> a \<noteq> UndefVal \<and> intval_add b a \<noteq> UndefVal"
-  shows "val[(b + a) - b] = val[a]"
-  using assms apply (cases a; cases b; auto)
-  done
+  assumes "val[b + a] \<noteq> UndefVal"
+  shows "val[(b + a) - b] = a"
+  using assms by (cases a; cases b; auto)
 
 lemma val_add_right_negate_to_sub:
-  assumes "x \<noteq> UndefVal \<and> e \<noteq> UndefVal \<and> intval_add x e \<noteq> UndefVal"
+  assumes "val[x + e]\<noteq> UndefVal"
   shows "val[x + (-e)] = val[x - e]"
-  using assms apply (cases x; cases e; auto)
-  done
+  using assms by (cases x; cases e; auto)
 
 (* Exp level proofs *)
 lemma exp_add_left_negate_to_sub:
  "exp[-e + y] \<ge> exp[y - e]"
   apply (cases e; cases y; auto)
-  using AddToSubHelperLowLevel apply auto+
-  done
+  using AddToSubHelperLowLevel by auto+
 
 (* Optimizations *)
 optimization opt_redundant_sub_add: "(b + a) - b \<longmapsto> a"
-   apply simp_all apply auto using val_redundant_add_sub 
-   apply (metis evalDet intval_add.simps(10) intval_sub.simps(10))
-  done
+   apply auto using val_redundant_add_sub 
+  by (metis evalDet)
 
 optimization opt_add_right_negate_to_sub: "(x + (-e)) \<longmapsto> x - e"
-   apply simp_all apply auto using AddToSubHelperLowLevel intval_add_sym 
-   apply auto
-  done
+   using AddToSubHelperLowLevel intval_add_sym by auto 
 
 optimization opt_add_left_negate_to_sub: "-x + y \<longmapsto> y - x"
-  using exp_add_left_negate_to_sub rewrite_preservation.simps(1) apply blast
-  done
-  
-
+  using exp_add_left_negate_to_sub by blast
 
 (* ----- Ends here ----- *)
 

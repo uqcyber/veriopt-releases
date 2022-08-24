@@ -77,7 +77,8 @@ lemma valid_int_gives:
        valid_stamp (IntegerStamp b lo hi) \<and>
        take_bit b val = val \<and>
        lo \<le> int_signed_value b val \<and> int_signed_value b val \<le> hi"
-  by (smt (z3) Value.distinct(7) Value.inject(1) assms valid_value.elims(2))
+  using assms
+  by (smt (z3) Value.distinct(7) Value.inject(1) valid_value.elims(1))
 
 text \<open>And the corresponding lemma where we know the stamp rather than the value.\<close>
 lemma valid_int_stamp_gives:
@@ -187,7 +188,7 @@ proof -
   then obtain b1 v1 where r1: "IntVal b1 v1 = r1"
     using assms by (metis intval_abs.elims unary_eval.simps(1))
   then obtain lo1 hi1 where s1: "stamp_expr e1 = IntegerStamp b1 lo1 hi1"
-    by (smt (z3) "2" "3" "4" intval_bits.simps unary_obj valid_value.elims(2))
+    by (metis "4" valid_int_gives)
   then obtain v2 where r2: "result = IntVal b1 v2"
     using assms by (metis intval_abs.simps(1) new_int.simps r1 unary_eval.simps(1))
   then have r: "result = intval_abs (IntVal b1 v1)"
@@ -223,9 +224,16 @@ proof -
     using assms(2) v1 by blast
   then obtain vtmp where vtmp: "result = new_int b2 vtmp"
     using assms(3) v2 by auto
+  obtain b' lo' hi' where "stamp_expr expr = IntegerStamp b' lo' hi'"
+    by (metis assms(5) v1 valid_int_gives)
+  then have "stamp_unary op (stamp_expr expr) =
+    unrestricted_stamp
+     (IntegerStamp (if op \<in> normal_unary then b' else ir_resultBits op) lo' hi')"
+    using stamp_unary.simps(1) by presburger
   then obtain lo2 hi2 where s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp b2 lo2 hi2)"
-    unfolding stamp_expr.simps stamp_unary.simps
-    by (smt (z3) Value.distinct(7) assms(2) assms(3) assms(5) eval_thms(9) insertE intval_abs.simps(1) intval_bits.simps intval_logic_negation.simps(1) intval_negate.simps(1) new_int.simps singletonD stamp_unary.simps(1) unary_eval.simps(1) unary_eval.simps(2) unary_eval.simps(3) unary_eval.simps(4) v1 valid_value.elims(2)) 
+    unfolding stamp_expr.simps 
+    using vtmp op
+    by (smt (verit, best) Value.inject(1) \<open>(result::Value) = unary_eval (op::IRUnaryOp) (IntVal (b1::nat) (v1::64 word))\<close> \<open>stamp_expr (expr::IRExpr) = IntegerStamp (b'::nat) (lo'::int) (hi'::int)\<close> assms(5) insertE intval_abs.simps(1) intval_logic_negation.simps(1) intval_negate.simps(1) intval_not.simps(1) new_int.elims singleton_iff unary_eval.simps(1) unary_eval.simps(2) unary_eval.simps(3) unary_eval.simps(4) v1 valid_int_same_bits)
   then have "0 < b1 \<and> b1 \<le> 64"
     using valid_int_gives
     by (metis assms(5) v1 valid_stamp.simps(1)) 

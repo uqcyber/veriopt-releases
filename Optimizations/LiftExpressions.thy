@@ -239,16 +239,33 @@ fun gen_opt :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> (Pattern \<times> Tran
 
 type_synonym Morphism = "(nat, nat) fmap"
 
-fun match :: "IRGraph \<Rightarrow> Pattern \<Rightarrow> Morphism" where
-  "match g p = fmempty"
+fun match_subtree :: "IRGraph \<Rightarrow> Pattern \<Rightarrow> ID \<Rightarrow> Morphism option" where
+  "match_subtree g p n = None"
+
+fun of_list :: "'a option list \<Rightarrow> 'a option" where
+  "of_list (x # xs) = x" |
+  "of_list [] = None"
+
+definition filter_none :: "'a option list \<Rightarrow> 'a option list" where
+  "filter_none = filter (\<lambda> v \<Rightarrow> v \<noteq> None)"
+
+fun match :: "IRGraph \<Rightarrow> Pattern \<Rightarrow> Morphism option" where
+  "match g p =
+    of_list
+     (filter_none
+      (map (match_subtree g p) (sorted_list_of_set (ids g))))"
 
 fun is_match :: "IRGraph \<Rightarrow> Pattern \<Rightarrow> bool" where
-  "is_match g p = (fmdom p = fmdom (match g p))"
+  "is_match g p = (match g p \<noteq> None)"
+
+lemma match_none:
+  "match g p = None"
+  unfolding match.simps filter_none_def match_subtree.simps
+  by simp
 
 lemma match_false:
   "fcard (fmdom p) > 0 \<longrightarrow> is_match g p = False"
-  unfolding is_match.simps match.simps
-  by (metis fcard_fempty fmdom_empty less_numeral_extra(3))
+  unfolding is_match.simps using match_none by simp
 
 fun replace :: "(Pattern \<times> Transformation) \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "replace (p, t) g = 
@@ -262,6 +279,19 @@ fun apply_opt :: "(Pattern \<times> Transformation) \<Rightarrow> IRGraph \<Righ
       (if (is_match g p) then replace (p, t) g else g)
     )"
 
+experiment begin
+lemma
+  assumes "([g\<^sub>1, m, p] \<turnstile> n\<^sub>1 \<mapsto> v) \<longrightarrow> ([g\<^sub>1, m, p] \<turnstile> n\<^sub>2 \<mapsto> v)"
+  assumes "g\<^sub>2 = replace_node n\<^sub>1 (kind g\<^sub>1 n\<^sub>2, stamp g\<^sub>1 n\<^sub>1) g\<^sub>1"
+  shows "([g\<^sub>2, m, p] \<turnstile> n\<^sub>1 \<mapsto> v)"
+  using assms sorry
+
+lemma
+  assumes "([g\<^sub>1, m, p] \<turnstile> n\<^sub>1 \<mapsto> v) \<longrightarrow> ([g\<^sub>1, m, p] \<turnstile> n\<^sub>2 \<mapsto> v)"
+  assumes "g\<^sub>2 = replace_node n\<^sub>1 (kind g\<^sub>1 n\<^sub>2, stamp g\<^sub>1 n\<^sub>1) g\<^sub>1"
+  shows "graph_refinement g\<^sub>1 g\<^sub>2"
+  using assms sorry
+end
 
 theorem
   assumes "e\<^sub>1 \<ge> e\<^sub>2"
@@ -271,7 +301,8 @@ theorem
   using assms
 proof (cases "is_match g\<^sub>1 (fst (gen_opt e\<^sub>1 e\<^sub>2))")
   case True
-  then show ?thesis using assms using apply_opt.simps using match_false sorry
+  then show ?thesis using assms using apply_opt.simps using match_false
+    by (metis is_match.elims(1) match_none)
 next
   case False
   then show ?thesis using assms using apply_opt.simps

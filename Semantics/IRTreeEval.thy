@@ -109,7 +109,7 @@ text \<open>Note: all integer calculations are done as 32 or 64 bit calculations
 \<close>
 
 abbreviation fixed_32 :: "IRBinaryOp set" where
-  "fixed_32 \<equiv> {BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
+  "fixed_32 \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
 
 abbreviation normal_unary :: "IRUnaryOp set" where
   "normal_unary \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation}"

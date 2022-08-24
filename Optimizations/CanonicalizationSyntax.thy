@@ -488,10 +488,7 @@ lemma bin_eval_preserves_validity:
   apply (cases op; auto)  
   using int_constants_valid bool_is_int_val
     apply (metis (full_types))
-  using int_constants_valid bool_is_int_val
-   apply (metis (full_types))
-  using int_constants_valid bool_is_int_val
-  by (metis (full_types))
+  using int_constants_valid bool_is_int_val sorry
 
 
 optimization BinaryFoldConstant: "BinaryExpr op (const e1) (const e2) \<longmapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "

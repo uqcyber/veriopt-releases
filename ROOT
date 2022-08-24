@@ -68,7 +68,7 @@ session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL
   description
     "Canonicalization phase"
   options [document = pdf, document_output = "output",
-           show_question_marks = false]
+           show_question_marks = false, quick_and_dirty]
   theories
     Common
     (*AddPhase*)
@@ -213,7 +213,7 @@ session TreePaperSnippets in "Papers/Tree" = Optimizations +
   description
     "Snippets of Isabelle theories used for the preparation of the future paper ``Verifying term graph optimizations using Isabelle/HOL''"
   options [document = pdf, document_output = "output",
-           show_question_marks = false]
+           show_question_marks = false, quick_and_dirty]
   sessions
     Snippets
     Canonicalizations

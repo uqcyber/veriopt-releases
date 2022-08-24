@@ -224,7 +224,9 @@ fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_xor _ _ = UndefVal"
 
 fun intval_short_circuit_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_short_circuit_or v1 v2 = (bool_to_val ((val_to_bool v1) \<or> (val_to_bool v2)))"
+  "intval_short_circuit_or (IntVal32 v1) (IntVal32 v2) = bool_to_val ((v1 \<noteq> 0) \<or> (v2 \<noteq> 0))" |
+  "intval_short_circuit_or (IntVal64 v1) (IntVal64 v2) = bool_to_val ((v1 \<noteq> 0) \<or> (v2 \<noteq> 0))" |
+  "intval_short_circuit_or _ _ = UndefVal"
 
 fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_equals (IntVal32 v1) (IntVal32 v2) = bool_to_val (v1 = v2)" |

@@ -31,43 +31,33 @@ fun is_self_inverse :: "IRUnaryOp \<Rightarrow> bool" where
 (* is_neutral (\<oplus>, n) \<Longrightarrow> \<forall> x. x \<oplus> n = x *)
 fun is_neutral :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
 (* x + 0 = x*)
-"is_neutral BinAdd (IntVal32 x) = (x = 0)" |
-"is_neutral BinAdd (IntVal64 x) = (x = 0)" |
+"is_neutral BinAdd (IntVal b x) = (x = 0)" |
 (* x - 0 = x *)
-"is_neutral BinSub (IntVal32 x) = (x = 0)" |
-"is_neutral BinSub (IntVal64 x) = (x = 0)" |
+"is_neutral BinSub (IntVal b x) = (x = 0)" |
 (* x * 1 = x*)
-"is_neutral BinMul (IntVal32 x) = (x = 1)" |
-"is_neutral BinMul (IntVal64 x) = (x = 1)" |
+"is_neutral BinMul (IntVal b x) = (x = 1)" |
 (* x & 1 = x *)(* TODO In Graal? *)
-"is_neutral BinAnd (IntVal32 x) = (x = 1)" |
-"is_neutral BinAnd (IntVal64 x) = (x = 1)" |
+"is_neutral BinAnd (IntVal b x) = (x = 1)" |
 (* x | 0 = x *)(* TODO In Graal? *)
-"is_neutral BinOr (IntVal32 x) = (x = 0)" |
-"is_neutral BinOr (IntVal64 x) = (x = 0)" |
+"is_neutral BinOr (IntVal b x) = (x = 0)" |
 (* x ^ 0 = x *)(* TODO In Graal? *)
-"is_neutral BinXor (IntVal32 x) = (x = 0)" |
-"is_neutral BinXor (IntVal64 x) = (x = 0)" |
+"is_neutral BinXor (IntVal b x) = (x = 0)" |
 
 "is_neutral _ _ = False"
 
 (* is_annihilator (\<oplus>, z) \<Longrightarrow> \<forall> x. x \<oplus> z = z (was know as is_zero)*)
 fun is_annihilator :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> bool" where
 (* x * 0 = 0 *)
-"is_annihilator BinMul (IntVal32 x) = (x = 0)" |
-"is_annihilator BinMul (IntVal64 x) = (x = 0)" |
+"is_annihilator BinMul (IntVal b x) = (x = 0)" |
 (* x & 0 = 0 *)(* TODO In Graal? *)
-"is_annihilator BinAnd (IntVal32 x) = (x = 0)" |
-"is_annihilator BinAnd (IntVal64 x) = (x = 0)" |
+"is_annihilator BinAnd (IntVal b x) = (x = 0)" |
 (* x | 1 = 1 *)(* TODO In Graal? *)
-"is_annihilator BinOr  (IntVal32 x) = (x = 1)" |
-"is_annihilator BinOr  (IntVal64 x) = (x = 1)" |
+"is_annihilator BinOr  (IntVal b x) = (x = 1)" |
 
 "is_annihilator _ _ = False"
 
 fun int_to_value :: "Value \<Rightarrow> int \<Rightarrow> Value" where
-"int_to_value (IntVal32 _) y = (IntVal32 (word_of_int y))" |
-"int_to_value (IntVal64 _) y = (IntVal64 (word_of_int y))" |
+"int_to_value (IntVal b _) y = (IntVal b (word_of_int y))" |
 "int_to_value _ _ = UndefVal"
 
 (* TODO: we should only handle y values being constant and let a higher
@@ -122,13 +112,9 @@ inductive CanonicalizeUnaryOp :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool
 
 inductive CanonicalizeMul :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   (* y * (-1) = -y *)
-  mul_negate32:
- "\<lbrakk>y = ConstantExpr (IntVal32 (-1));
-   stamp_expr x = IntegerStamp 32 lo hi\<rbrakk>
-   \<Longrightarrow> CanonicalizeMul (BinaryExpr BinMul x y) (UnaryExpr UnaryNeg x)" |
   mul_negate64:
- "\<lbrakk>y = ConstantExpr (IntVal64 (-1));
-   stamp_expr x = IntegerStamp 64 lo hi\<rbrakk>
+ "\<lbrakk>y = ConstantExpr (new_int b (-1));
+   stamp_expr x = IntegerStamp b lo hi\<rbrakk>
    \<Longrightarrow> CanonicalizeMul (BinaryExpr BinMul x y) (UnaryExpr UnaryNeg x)"
   (* NOTE: Skipping bit shift optimisations at MulNode.canonical(130) for now *)
 
@@ -181,16 +167,11 @@ inductive CanonicalizeSub :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" wh
     zero = (if b = 32 then (IntVal32 0) else (IntVal64 0))\<rbrakk>
     \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x x) (ConstantExpr zero)" |
   *)
-  sub_same32: (* SubNode.canonical(76) *)
-  (* (x - x) = 0 *)
-  "\<lbrakk>stampx = stamp_expr x;
-    stampx = IntegerStamp 32 lo hi\<rbrakk>
-    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x x) (ConstantExpr (IntVal32 0))" |
   sub_same64: (* SubNode.canonical(76) *)
   (* (x - x) = 0 *)
   "\<lbrakk>stampx = stamp_expr x;
-    stampx = IntegerStamp 64 lo hi\<rbrakk>
-    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x x) (ConstantExpr (IntVal64 0))" |
+    stampx = IntegerStamp b lo hi\<rbrakk>
+    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub x x) (ConstantExpr (IntVal b 0))" |
 
   sub_left_add1: (* SubNode.canonical(86) *)
   (* (a + b) - b \<Rightarrow> a *)
@@ -248,14 +229,10 @@ inductive CanonicalizeSub :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" wh
 
   (* SubNode.canonical(146) *)
   (* 0 - x \<Rightarrow> (-x) *)
-  sub_xzero32:
-  "\<lbrakk>stampx = stamp_expr x;
-    stampx = IntegerStamp 32 lo hi\<rbrakk>
-    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub (ConstantExpr (IntVal32 0)) x) (UnaryExpr UnaryNeg x)" |
   sub_xzero64:
   "\<lbrakk>stampx = stamp_expr x;
-    stampx = IntegerStamp 64 lo hi\<rbrakk>
-    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub (ConstantExpr (IntVal64 0)) x) (UnaryExpr UnaryNeg x)" |
+    stampx = IntegerStamp b lo hi\<rbrakk>
+    \<Longrightarrow> CanonicalizeSub (BinaryExpr BinSub (ConstantExpr (IntVal b 0)) x) (UnaryExpr UnaryNeg x)" |
 
   sub_y_negate: (* SubNode.canonical(152) *)
   (* a - (-b) \<Rightarrow> a + b *)
@@ -350,11 +327,11 @@ inductive CanonicalizeIntegerEquals :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow
   int_equals_same: (* IntegerEqualsNode.canonical(139) *)
   (* (x == x) \<Rightarrow> T *)
   "\<lbrakk>x = y\<rbrakk>
-    \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals x y) (ConstantExpr (IntVal32 1))" |
+    \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals x y) (ConstantExpr (IntVal 32 1))" |
 
   int_equals_distinct: (* IntegerEqualsNode.canonical(143) *)
   "\<lbrakk>alwaysDistinct (stamp_expr x) (stamp_expr y)\<rbrakk>
-    \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals x y) (ConstantExpr (IntVal32 0))" |
+    \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals x y) (ConstantExpr (IntVal 32 0))" |
 
   int_equals_add_first_both_same: (* IntegerEqualsNode.canonical(152) *)
   (* (x+y) == (x+z) \<Rightarrow> (y == z) *)
@@ -397,37 +374,37 @@ inductive CanonicalizeIntegerEquals :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow
   int_equals_left_contains_right1: (* IntegerEquals.canonical(197) *)
   (* (x+y) == x \<Rightarrow> (y == 0) *)
   "\<lbrakk>left = (BinaryExpr BinAdd x y);
-    zero = (ConstantExpr (IntVal32 0))\<rbrakk>
+    zero = (ConstantExpr (IntVal 64 0))\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals left x) (BinaryExpr BinIntegerEquals y zero)" |
 
   int_equals_left_contains_right2: (* IntegerEqualsNode.canonical(200) *)
   (* (x+y) == y \<Rightarrow> (x == 0) *)
   "\<lbrakk>left = (BinaryExpr BinAdd x y);
-    zero = (ConstantExpr (IntVal32 0))\<rbrakk>
+    zero = (ConstantExpr (IntVal 64 0))\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals left y) (BinaryExpr BinIntegerEquals x zero)" |
 
   int_equals_right_contains_left1: (* IntegerEquals.canonical(208) *)
   (* x == (x+y) \<Rightarrow> (y == 0) *)
   "\<lbrakk>right = (BinaryExpr BinAdd x y);
-    zero = (ConstantExpr (IntVal32 0))\<rbrakk>
+    zero = (ConstantExpr (IntVal 64 0))\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals x right) (BinaryExpr BinIntegerEquals y zero)" |
 
   int_equals_right_contains_left2: (* IntegerEquals.canonical(211) *)
   (* y == (x+y) \<Rightarrow> (x == 0) *)
   "\<lbrakk>right = (BinaryExpr BinAdd x y);
-    zero = (ConstantExpr (IntVal32 0))\<rbrakk>
+    zero = (ConstantExpr (IntVal 64 0))\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals y right) (BinaryExpr BinIntegerEquals x zero)" |
 
   int_equals_left_contains_right3: (* IntegerEquals.canonical(219) *)
   (* (x - y) == x \<Rightarrow> (y == 0) *)
   "\<lbrakk>left = (BinaryExpr BinSub x y);
-    zero = (ConstantExpr (IntVal32 0))\<rbrakk>
+    zero = (ConstantExpr (IntVal 64 0))\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals left x) (BinaryExpr BinIntegerEquals y zero)" |
 
   int_equals_right_contains_left3: (* IntegerEquals.canonical(227) *)
   (* x == (x - y) \<Rightarrow> (y == 0) *)
   "\<lbrakk>right = (BinaryExpr BinSub x y);
-    zero = (ConstantExpr (IntVal32 0))\<rbrakk>
+    zero = (ConstantExpr (IntVal 64 0))\<rbrakk>
     \<Longrightarrow> CanonicalizeIntegerEquals (BinaryExpr BinIntegerEquals x right) (BinaryExpr BinIntegerEquals y zero)"
 
   (* NOTE: missing IntegerEqualsNode.canonicalizeSymmetricConstant rules *)
@@ -511,32 +488,36 @@ inductive CanonicalizationStep :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> boo
   "\<lbrakk>CanonicalizeUnaryOp expr expr'\<rbrakk>
    \<Longrightarrow> CanonicalizationStep expr expr'" |
 
-  NegateNode:
-  "\<lbrakk>CanonicalizeNegate expr expr'\<rbrakk>
-   \<Longrightarrow> CanonicalizationStep expr expr'" |
-
-  NotNode:
-  "\<lbrakk>CanonicalizeNegate expr expr'\<rbrakk>
+  MulNode:
+  "\<lbrakk>CanonicalizeMul expr expr'\<rbrakk>
    \<Longrightarrow> CanonicalizationStep expr expr'" |
 
   AddNode:
   "\<lbrakk>CanonicalizeAdd expr expr'\<rbrakk>
    \<Longrightarrow> CanonicalizationStep expr expr'" |
 
-  MulNode:
-  "\<lbrakk>CanonicalizeMul expr expr'\<rbrakk>
-   \<Longrightarrow> CanonicalizationStep expr expr'" |
-
   SubNode:
   "\<lbrakk>CanonicalizeSub expr expr'\<rbrakk>
    \<Longrightarrow> CanonicalizationStep expr expr'" |
 
+  NegateNode:
+  "\<lbrakk>CanonicalizeNegate expr expr'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep expr expr'" |
+
+  AbsNode:
+  "\<lbrakk>CanonicalizeAbs expr expr'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep expr expr'" |
+
+  NotNode:
+  "\<lbrakk>CanonicalizeNot expr expr'\<rbrakk>
+   \<Longrightarrow> CanonicalizationStep expr expr'" |
+
   AndNode:
-  "\<lbrakk>CanonicalizeSub expr expr'\<rbrakk>
+  "\<lbrakk>CanonicalizeAnd expr expr'\<rbrakk>
    \<Longrightarrow> CanonicalizationStep expr expr'" |
 
   OrNode:
-  "\<lbrakk>CanonicalizeSub expr expr'\<rbrakk>
+  "\<lbrakk>CanonicalizeOr expr expr'\<rbrakk>
    \<Longrightarrow> CanonicalizationStep expr expr'" |
 
   IntegerEqualsNode:

@@ -230,4 +230,53 @@ lemma new_int_take_bits:
   shows "take_bit b val = val"
   using assms by force
 
+
+subsubsection \<open>Support lemmas for take bit and signed take bit.\<close>
+
+text \<open>Lemmas for removing redundant take\_bit wrappers.\<close>
+
+lemma take_bit_dist_addL[simp]: 
+  fixes x :: "'a :: len word"
+  shows "take_bit b (take_bit b x + y) = take_bit b (x + y)"
+proof (induction b)
+  case 0
+  then show ?case
+    by simp 
+next
+  case (Suc b)
+  then show ?case
+    by (simp add: add.commute mask_eqs(2) take_bit_eq_mask) 
+qed
+
+lemma take_bit_dist_addR[simp]: 
+  fixes x :: "'a :: len word"
+  shows "take_bit b (x + take_bit b y) = take_bit b (x + y)"
+  using take_bit_dist_addL by (metis add.commute)
+
+
+lemma take_bit_dist_subL[simp]: 
+  fixes x :: "'a :: len word"
+  shows "take_bit b (take_bit b x - y) = take_bit b (x - y)"
+  by (metis take_bit_dist_addR uminus_add_conv_diff)
+
+lemma take_bit_dist_subR[simp]: 
+  fixes x :: "'a :: len word"
+  shows "take_bit b (x - take_bit b y) = take_bit b (x - y)"
+  using take_bit_dist_subL
+  by (metis (no_types, opaque_lifting) diff_add_cancel diff_right_commute diff_self) 
+
+
+lemma take_bit_dist_neg[simp]:
+  fixes ix :: "'a :: len word"
+  shows "take_bit b (- take_bit b (ix)) = take_bit b (- ix)"
+  by (metis diff_0 take_bit_dist_subR)
+
+
+lemma signed_take_take_bit[simp]: 
+  fixes x :: "'a :: len word"
+  assumes "0 < b"
+  shows "signed_take_bit (b - 1) (take_bit b x) = signed_take_bit (b - 1) x"
+  by (smt (verit, best) Suc_diff_1 assms lessI linorder_not_less signed_take_bit_take_bit)
+
+
 end

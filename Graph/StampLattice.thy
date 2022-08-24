@@ -514,7 +514,7 @@ fun is_empty :: "stamp \<Rightarrow> bool" where
 
 fun as_constant :: "stamp \<Rightarrow> Value option" where
   "as_constant (intstamp l u) = (if (card {l..u}) = 1
-    then Some (IntVal64 (SOME x. x \<in> {l..u}))
+    then Some (IntVal 64 (SOME x. x \<in> {l..u}))
     else None)"
 
 definition always_distinct :: "stamp \<Rightarrow> stamp \<Rightarrow> bool" where
@@ -527,7 +527,7 @@ definition never_distinct :: "stamp \<Rightarrow> stamp \<Rightarrow> bool" wher
 
 subsection \<open>Mapping to Values\<close>
 fun valid_value :: "stamp => Value => bool" where
-  "valid_value (intstamp l u) (IntVal64 v) = (v \<in> {l..u})" |
+  "valid_value (intstamp l u) (IntVal b v) = (v \<in> {l..u})" |
   "valid_value (intstamp l u) _ = False"
 
 text \<open>
@@ -550,25 +550,27 @@ proof (cases x)
   case UndefVal
   then show ?thesis
     using valid_value.elims(2) by blast
+(* WAS:
 next
   case (IntVal32 x2)
   then show ?thesis
     using valid_value.elims(2) by blast
+*)
 next
-  case (IntVal64 x3)
+  case (IntVal b x3)
   obtain lx ux where xdef: "x_stamp = intstamp lx ux"
     using stamp.exhaust by blast
   obtain ly uy where ydef: "y_stamp = intstamp ly uy"
     using stamp.exhaust by blast
-  obtain v where "x = IntVal64 v"
-    using IntVal64 by blast
+  obtain v where "x = IntVal b v"
+    using IntVal by blast
   have "joined = intstamp (max lx ly) (min ux uy)"
     (is "joined = intstamp ?lj ?uj")
     by (simp add: xdef ydef assms)
-  then have "valid_value joined (IntVal64 v) = (v \<in> {?lj..?uj})"
+  then have "valid_value joined (IntVal b v) = (v \<in> {?lj..?uj})"
     by simp
   then show ?thesis
-    using \<open>x = IntVal64 v\<close> xdef ydef by force
+    using \<open>x = IntVal b v\<close> xdef ydef by force
 next
   case (ObjRef x5)
   then show ?thesis

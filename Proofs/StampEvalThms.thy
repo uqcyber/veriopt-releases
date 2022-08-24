@@ -27,6 +27,27 @@ lemma unary_obj: "val = ObjRef x \<Longrightarrow> unary_eval op val = UndefVal"
   by (cases op; auto)
 
 
+lemma unrestricted_stamp_valid:
+  assumes "s = unrestricted_stamp (IntegerStamp b lo hi)"
+  assumes "0 < b \<and> b \<le> 64"
+  shows "valid_stamp s"
+  using assms
+  by (smt (z3) Stamp.inject(1) bit_bounds.simps not_exp_less_eq_0_int prod.sel(1) prod.sel(2) unrestricted_stamp.simps(2) upper_bounds_equiv valid_stamp.elims(1)) 
+
+lemma unrestricted_stamp_valid_value [simp]:
+  assumes 1: "result = IntVal b ival"
+  assumes "take_bit b ival = ival"
+  assumes "0 < b \<and> b \<le> 64"
+  shows "valid_value result (unrestricted_stamp (IntegerStamp b lo hi))"
+proof -
+  have "valid_stamp (unrestricted_stamp (IntegerStamp b lo hi))"
+    using assms unrestricted_stamp_valid by blast 
+  then show ?thesis
+    unfolding 1 unrestricted_stamp.simps valid_value.simps
+    using assms int_signed_value_bounds by presburger
+qed
+
+
 (* TODO: update to allow any bit size? 
 lemma unrestricted_stamp32_always_valid [simp]:
   assumes "fst (bit_bounds bits) \<le> sint ival \<and> sint ival \<le> snd (bit_bounds bits)"
@@ -57,6 +78,15 @@ lemma valid_int_gives:
        take_bit b val = val \<and>
        lo \<le> int_signed_value b val \<and> int_signed_value b val \<le> hi"
   by (smt (z3) Value.distinct(7) Value.inject(1) assms valid_value.elims(2))
+
+text \<open>And the corresponding lemma where we know the stamp rather than the value.\<close>
+lemma valid_int_stamp_gives:
+  assumes "valid_value val (IntegerStamp b lo hi)"
+  obtains ival where "val = IntVal b ival \<and>
+       valid_stamp (IntegerStamp b lo hi) \<and>
+       take_bit b ival = ival \<and>
+       lo \<le> int_signed_value b ival \<and> int_signed_value b ival \<le> hi"
+  by (metis assms valid_int valid_value.simps(1))
 
 
 text \<open>A valid int must have the expected number of bits.\<close>
@@ -366,7 +396,7 @@ qed
 
 text \<open>and the symmetric lemma follows by the commutativity of meet.\<close>
 
-lemma stamp_meet_is_valid_value2:
+lemma stamp_meet_is_valid_value:
   assumes "valid_value val stamp2"
   assumes "valid_stamp stamp1"
   assumes "stamp1 = IntegerStamp b1 lo1 hi1"
@@ -390,16 +420,24 @@ lemma conditional_eval_implies_valid_value:
   assumes "compatible (stamp_expr expr1) (stamp_expr expr2)"
   shows "valid_value val (stamp_expr (ConditionalExpr cond expr1 expr2))"
 proof -
-  have "meet (stamp_expr expr1) (stamp_expr expr2) \<noteq> IllegalStamp"
+  have def: "meet (stamp_expr expr1) (stamp_expr expr2) \<noteq> IllegalStamp"
     using assms
     by (metis Stamp.distinct(13) Stamp.distinct(25) compatible.elims(2) meet.simps(1) meet.simps(2))
-  then show ?thesis using stamp_meet_is_valid using stamp_expr.simps(6)
-    using assms(2) assms(6) by presburger
+  then have "valid_stamp (meet (stamp_expr expr1) (stamp_expr expr2))"
+    using assms
+    by (smt (verit, best) compatible.elims(2) stamp_meet_is_valid_stamp valid_stamp.simps(2)) 
+  then show ?thesis using stamp_meet_is_valid_value 
+    using assms def
+    by (smt (verit, best) compatible.elims(2) never_void stamp_expr.simps(6) stamp_meet_commutes) 
 qed
 
 
 
 subsubsection \<open>Validity of Whole Expression Tree Evaluation\<close>
+
+text \<open> TODO: find a way to encode that conditional expressions must have
+  compatible (and valid) stamps?  One approach would be for all the 
+  stamp\_expr operators to require that all input stamps are valid.\<close>
 
 experiment begin
 lemma stamp_implies_valid_value:
@@ -407,13 +445,17 @@ lemma stamp_implies_valid_value:
   shows "valid_value val (stamp_expr expr)"
   using assms proof (induction expr val)
   case (UnaryExpr expr val result op)
-    then show ?case using eval_unary_implies_valid_value by simp
+  then show ?case using eval_unary_implies_valid_value by simp
   next
     case (BinaryExpr expr1 val1 expr2 val2 result op)
     then show ?case using binary_eval_implies_valid_value by simp
   next
     case (ConditionalExpr cond condv expr expr1 expr2 val)
-    then show ?case using conditional_eval_implies_valid_value sorry
+    have "compatible (stamp_expr expr1) (stamp_expr expr2)"
+      using assms sorry
+    then show ?case 
+      using assms conditional_eval_implies_valid_value
+      using ConditionalExpr.IH(1) ConditionalExpr.IH(2) ConditionalExpr.hyps(1) ConditionalExpr.hyps(2) ConditionalExpr.hyps(3) ConditionalExpr.hyps(4) by blast
   next
     case (ParameterExpr x1 x2)
     then show ?case by auto

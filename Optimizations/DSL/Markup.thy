@@ -69,9 +69,9 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.RightShift = @{term intval_right_shift}
   | markup DSL_Tokens.UnsignedRightShift = @{term intval_uright_shift}
   | markup DSL_Tokens.Conditional = @{term intval_conditional}
-  | markup DSL_Tokens.Constant = @{term IntVal32}
-  | markup DSL_Tokens.TrueConstant = @{term "IntVal32 1"}
-  | markup DSL_Tokens.FalseConstant = @{term "IntVal32 0"}
+  | markup DSL_Tokens.Constant = @{term "IntVal 32"}
+  | markup DSL_Tokens.TrueConstant = @{term "IntVal 32 1"}
+  | markup DSL_Tokens.FalseConstant = @{term "IntVal 32 0"}
 end
 
 structure WordTranslator : DSL_TRANSLATION =

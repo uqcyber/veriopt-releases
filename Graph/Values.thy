@@ -97,6 +97,9 @@ datatype (discs_sels) Value  =
 fun intval_bits :: "Value \<Rightarrow> nat" where
   "intval_bits (IntVal b v) = b"
 
+fun intval_word :: "Value \<Rightarrow> int64" where
+  "intval_word (IntVal b v) = v"
+
 fun bit_bounds :: "nat \<Rightarrow> (int \<times> int)" where
   "bit_bounds bits = (((2 ^ bits) div 2) * -1, ((2 ^ bits) div 2) - 1)"
 
@@ -128,8 +131,8 @@ fun val_to_bool :: "Value \<Rightarrow> bool" where
   "val_to_bool val = False"
 
 fun bool_to_val :: "bool \<Rightarrow> Value" where
-  "bool_to_val True = (IntVal 1 1)" |
-  "bool_to_val False = (IntVal 1 0)"
+  "bool_to_val True = (IntVal 32 1)" |
+  "bool_to_val False = (IntVal 32 0)"
 
 
 text \<open>Converts an Isabelle bool into a Java value, iff the two types are equal.\<close>
@@ -141,6 +144,18 @@ fun bool_to_val_bin :: "iwidth \<Rightarrow> iwidth \<Rightarrow> bool \<Rightar
 fun is_int_val :: "Value \<Rightarrow> bool" where
   "is_int_val v = is_IntVal v"
 
+
+text \<open>A convenience function for directly constructing -1 values of a given bit size.\<close>
+fun neg_one :: "iwidth \<Rightarrow> int64" where
+  "neg_one b = mask b"
+
+lemma neg_one_value[simp]: "new_int b (neg_one b) = IntVal b (mask b)"
+  by simp
+
+lemma neg_one_signed[simp]: 
+  assumes "0 < b"
+  shows "int_signed_value b (neg_one b) = -1"
+  by (smt (verit, best) assms diff_le_self diff_less int_signed_value.simps less_one mask_eq_take_bit_minus_one neg_one.simps nle_le signed_minus_1 signed_take_bit_of_minus_1 signed_take_bit_take_bit verit_comp_simplify1(1))
 
 
 subsection \<open>Arithmetic Operators\<close>

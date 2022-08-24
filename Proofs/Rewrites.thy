@@ -64,7 +64,7 @@ proof -
   then have if': "kind g' ifcond = IfNode (nextNid g) t f"
     using assms(1) assms(2) constantCondition.simps(1) replace_node_lookup
     by presburger
-  have truedef: "bool_to_val True = (IntVal32 1)"
+  have truedef: "bool_to_val True = (IntVal 32 1)"
     by auto
   from ifn have "ifcond \<noteq> (nextNid g)"
     by (metis assms(1) emptyE ids_some nextNidNotIn)
@@ -72,16 +72,16 @@ proof -
   ultimately have "kind g' (nextNid g) = ConstantNode (bool_to_val True)"
     using add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD
     by (smt (z3) DiffI add_node_lookup replace_node_unchanged)
-  then have c': "kind g' (nextNid g) = ConstantNode (IntVal32 1)"
+  then have c': "kind g' (nextNid g) = ConstantNode (IntVal 32 1)"
     using truedef by simp
-  have "valid_value (IntVal32 1) (constantAsStamp (IntVal32 1))"
+  have "valid_value (IntVal 32 1) (constantAsStamp (IntVal 32 1))"
     unfolding constantAsStamp.simps valid_value.simps
-    using nat_numeral by blast
-  then have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal32 1"
+    using nat_numeral by force 
+  then have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal 32 1"
     using ConstantExpr ConstantNode Value.distinct(1) \<open>kind g' (nextNid g) = ConstantNode (bool_to_val True)\<close> encodeeval_def truedef
     by metis
   from if' c' show ?thesis using IfNode
-    by (metis (no_types, opaque_lifting) val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nextNid g \<mapsto> IntVal32 1\<close> encodeeval_def zero_neq_one)
+    by (metis (no_types, opaque_lifting) val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nextNid g \<mapsto> IntVal 32 1\<close> encodeeval_def zero_neq_one)
 qed
 
 lemma constantConditionFalse:
@@ -93,22 +93,22 @@ proof -
     by simp
   then have if': "kind g' ifcond = IfNode (nextNid g) t f"
     by (metis assms(1) assms(2) constantCondition.simps(1) replace_node_lookup)
-  have falsedef: "bool_to_val False = (IntVal32 0)"
+  have falsedef: "bool_to_val False = (IntVal 32 0)"
     by auto
   from ifn have "ifcond \<noteq> (nextNid g)"
     by (metis assms(1) equals0D ids_some nextNidNotIn)
   moreover have "\<And> c. ConstantNode c \<noteq> NoNode" by simp
   ultimately have "kind g' (nextNid g) = ConstantNode (bool_to_val False)"
     by (smt (z3) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD)
-  then have c': "kind g' (nextNid g) = ConstantNode (IntVal32 0)"
+  then have c': "kind g' (nextNid g) = ConstantNode (IntVal 32 0)"
     using falsedef by simp
-  have "valid_value (IntVal32 0) (constantAsStamp (IntVal32 0))"
+  have "valid_value (IntVal 32 0) (constantAsStamp (IntVal 32 0))"
     unfolding constantAsStamp.simps valid_value.simps
-    using nat_numeral by blast
-  then have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal32 0"
+    using nat_numeral by force
+  then have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal 32 0"
     by (metis ConstantExpr ConstantNode \<open>kind g' (nextNid g) = ConstantNode (bool_to_val False)\<close> encodeeval_def falsedef)
   from if' c' show ?thesis using IfNode
-    by (metis (no_types, opaque_lifting) val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nextNid g \<mapsto> IntVal32 0\<close> encodeeval_def)
+    by (metis (no_types, opaque_lifting) val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nextNid g \<mapsto> IntVal 32 0\<close> encodeeval_def)
 qed
 
 lemma diff_forall:

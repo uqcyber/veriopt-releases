@@ -2663,7 +2663,7 @@ lemma unrep_preserves_closure:
 inductive_cases ConstUnrepE: "g \<oplus> (ConstantExpr x) \<leadsto> (g', n)"
 
 definition constant_value where
-  "constant_value = (IntVal32 0)"
+  "constant_value = (IntVal 32 0)"
 definition bad_graph where
   "bad_graph = irgraph [
     (0, AbsNode 1, constantAsStamp constant_value),

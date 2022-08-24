@@ -2,6 +2,7 @@ subsection \<open>Data-flow Tree Theorems\<close>
 
 theory IRTreeEvalThms
   imports
+    Graph.ValueThms
     IRTreeEval
 begin
 
@@ -78,19 +79,56 @@ lemma int_stamp:
   assumes i: "is_IntVal v"
   shows "is_IntegerStamp (constantAsStamp v)"
   using i unfolding is_IntegerStamp_def is_IntVal_def by auto
+*)
+
+
+lemma validStampIntConst:
+  assumes "v = IntVal b ival"
+  assumes "0 < b \<and> b \<le> 64"
+  shows "valid_stamp (constantAsStamp v)"
+proof -
+  have bnds: "fst (bit_bounds b) \<le> int_signed_value b ival \<and> int_signed_value b ival \<le> snd (bit_bounds b)"
+    using assms int_signed_value_bounds
+    by presburger 
+  have s: "constantAsStamp v = IntegerStamp b (int_signed_value b ival) (int_signed_value b ival)"
+    using assms(1) constantAsStamp.simps(1) by blast
+  then show ?thesis
+    unfolding s valid_stamp.simps
+    using assms(2) assms bnds by linarith 
+qed
 
 lemma validDefIntConst:
-  assumes "v \<noteq> UndefVal"
-  assumes "is_IntegerStamp (constantAsStamp v)"
+  assumes v: "v = IntVal b ival"
+  assumes "0 < b \<and> b \<le> 64"
+  assumes "take_bit b ival = ival"
   shows "valid_value v (constantAsStamp v)"
-  using assms apply (cases v; auto)
+proof -
+  have bnds: "fst (bit_bounds b) \<le> int_signed_value b ival \<and> int_signed_value b ival \<le> snd (bit_bounds b)"
+    using assms int_signed_value_bounds
+    by presburger 
+  have s: "constantAsStamp v = IntegerStamp b (int_signed_value b ival) (int_signed_value b ival)"
+    using assms(1) constantAsStamp.simps(1) by blast
+  then show ?thesis
+    unfolding s unfolding v unfolding valid_value.simps
+    using assms validStampIntConst
+    by simp 
+qed
 
-
+(* is it useful to have a new_int version of the above? 
 lemma validIntConst:
-  assumes i: "is_IntVal v"
+  assumes i: "v = new_int b ival"
+  assumes "0 < b \<and> b \<le> 64"
   shows "valid_value v (constantAsStamp v)"
-  using i int_stamp_both is_IntVal_def validDefIntConst by auto 
+proof -
+  have bnds: "fst (bit_bounds b) \<le> int_signed_value b ival \<and> int_signed_value b ival \<le> snd (bit_bounds b)"
+    using assms int_signed_value_bounds
+    by presburger 
+  have s: "constantAsStamp v = IntegerStamp b (int_signed_value b ival) (int_signed_value b ival)"
+    using assms new_int.simps constantAsStamp.simps 
+  then show ?thesis
+  using i new_int.simps validDefIntConst 
 *)
+
 
 
 subsubsection \<open>Evaluation Results are Valid\<close>
@@ -268,7 +306,7 @@ lemma stamprange:
 
 lemma compatible_trans:
   "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"
-  by (smt (verit, best) compatible.elims(2) compatible.simps(1))
+  by (smt (z3) compatible.elims(2) compatible.simps(1))
 
 lemma compatible_refl:
   "compatible x y \<Longrightarrow> compatible y x"

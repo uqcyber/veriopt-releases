@@ -210,7 +210,8 @@ lemma constants_valid:
 *)
 
 fun compatible :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
-  "compatible (IntegerStamp b1 _ _) (IntegerStamp b2 _ _) = (b1 = b2)" |
+  "compatible (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
+     (b1 = b2 \<and> valid_stamp (IntegerStamp b1 lo1 hi1) \<and> valid_stamp (IntegerStamp b2 lo2 hi2))" |
   "compatible (VoidStamp) (VoidStamp) = True" |
   "compatible _ _ = False"
 

@@ -98,7 +98,7 @@ session Optimizations in Optimizations = OptimizationDSL +
     CanonicalizationTreeProofs
     CanonicalizationSyntax
 
-session Tests in Tests = Semantics +
+(*session Tests in Tests = Semantics +
   description
     "Miscellaneous project testing"
   theories
@@ -106,7 +106,7 @@ session Tests in Tests = Semantics +
     ExecExamples
     UnitTesting
     (*Test: ArithmeticTesting*)
-    (*ConditionalEliminationTests*)
+    (*ConditionalEliminationTests*)*)
 
 \<comment>\<open>Documentation sessions\<close>
 
@@ -120,6 +120,45 @@ session Snippets = "HOL-Library" +
   document_files (in "./latex")
     "root.tex"
     "mathpartir.sty"
+
+session NewOptimizations in "Papers/NewOptimizations" = Canonicalizations +
+  description
+    "A collection of the new optimization proofs"
+  options [quick_and_dirty, document = pdf, document_output = "output"]
+  sessions
+    Optimizations
+    Canonicalizations
+  theories
+    Canonicalizations.AbsPhase
+    Canonicalizations.AddPhase
+    Canonicalizations.AndPhase
+    Canonicalizations.ConditionalPhase
+    Canonicalizations.MulPhase
+    Canonicalizations.NegatePhase
+    Canonicalizations.NotPhase
+    Canonicalizations.OrPhase
+    Canonicalizations.SignedDivPhase
+    Canonicalizations.SubPhase
+    Canonicalizations.XorPhase
+  document_theories
+    Canonicalizations.AbsPhase
+    Canonicalizations.AddPhase
+    Canonicalizations.AndPhase
+    Canonicalizations.ConditionalPhase
+    Canonicalizations.MulPhase
+    Canonicalizations.NegatePhase
+    Canonicalizations.NotPhase
+    Canonicalizations.OrPhase
+    Canonicalizations.SignedDivPhase
+    Canonicalizations.SubPhase
+    Canonicalizations.XorPhase
+  document_files (in ".")
+    "root.tex"
+  document_files (in "../Stamps")
+    "lattice.tex"
+  document_files (in "../../latex")
+    "mathpartir.sty"
+
 
 
 session Document in "Papers/Main" = Canonicalizations +
@@ -225,7 +264,7 @@ session TreePaperSnippets in "Papers/Tree" = Optimizations +
     "root.tex"
     "mathpartir.sty"
 
-
+(*
 session ValidationPaperSnippets in "Papers/Validation" = Tests +
   description
     "Snippets of Isabelle theories used for the preparation of the future paper ``Validating Faithful Formalization of an Existing Compiler''"
@@ -238,4 +277,4 @@ session ValidationPaperSnippets in "Papers/Validation" = Tests +
     ValidationSnippets
   document_files (in "../../latex")
     "root.tex"
-    "mathpartir.sty"
+    "mathpartir.sty"*)

@@ -46,8 +46,8 @@ fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.UnsignedRightShift = @{term BinaryExpr} $ @{term BinURightShift}
   | markup DSL_Tokens.Conditional = @{term ConditionalExpr}
   | markup DSL_Tokens.Constant = @{term ConstantExpr}
-  | markup DSL_Tokens.TrueConstant = @{term "ConstantExpr (IntVal32 1)"}
-  | markup DSL_Tokens.FalseConstant = @{term "ConstantExpr (IntVal32 0)"}
+  | markup DSL_Tokens.TrueConstant = @{term "ConstantExpr (IntVal 32 1)"}
+  | markup DSL_Tokens.FalseConstant = @{term "ConstantExpr (IntVal 32 0)"}
 end
 
 structure IntValTranslator : DSL_TRANSLATION =

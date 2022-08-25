@@ -41,10 +41,8 @@ notation (latex)
 translations
   "n" <= "CONST Rep_intexp n"
   "n" <= "CONST Rep_i32exp n"
-  "n" <= "CONST Rep_i64exp n"
 
-
-lemma vminusv: "\<forall>vv v . vv = IntVal32 v \<longrightarrow> v - v = 0"
+lemma vminusv: "\<forall>vv v . vv = IntVal 32 v \<longrightarrow> v - v = 0"
   by simp
 thm_oracles vminusv
 
@@ -52,7 +50,7 @@ lemma vminusv2: "\<forall> v::int32 . v - v = 0"
   by simp
 
 lemma redundant_sub:
-  "\<forall>vv\<^sub>1 vv\<^sub>2 v\<^sub>1 v\<^sub>2 . vv\<^sub>1 = IntVal32 v\<^sub>1 \<and> vv\<^sub>2 = IntVal32 v\<^sub>2 \<longrightarrow> v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
+  "\<forall>vv\<^sub>1 vv\<^sub>2 v\<^sub>1 v\<^sub>2 . vv\<^sub>1 = IntVal 32 v\<^sub>1 \<and> vv\<^sub>2 = IntVal 32 v\<^sub>2 \<longrightarrow> v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
   by simp
 thm_oracles redundant_sub
 
@@ -65,38 +63,43 @@ text "@{thm vminusv}"
 text "@{thm redundant_sub}"
 snipend -
 
-lemma sub_same_32_val:
-  assumes "val[e - e] \<noteq> UndefVal"
-  assumes "is_IntVal32 e"
-  shows "val[e - e] = val[const 0]"
+lemma sub_same_val:
+  assumes "val[e - e] = IntVal b v"
+  shows "val[e - e] = val[IntVal b 0]"
   using assms by (cases e; auto)
+
+
+definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
+  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
+
+lemma wf_stamp_eval:
+  assumes "wf_stamp e"
+  assumes "stamp_expr e = IntegerStamp b lo hi"
+  shows "\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> (\<exists>vv. v = IntVal b vv)"
+  using assms unfolding wf_stamp_def
+  using valid_int_same_bits valid_int
+  by metis
 
 phase tmp
   terminating size
 begin
 snipbegin \<open>sub-same-32\<close>
-optimization sub_same_32: "(e::i32exp) - e \<longmapsto> const (IntVal32 0)"
+optimization sub_same_32: "((e::i32exp) - e) \<longmapsto> const (IntVal b 0)
+     when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
   snipend -
-  defer apply simp using sub_same_32_val
-  apply (metis Value.disc(2) bin_eval.simps(3) evalDet i32e_eval unfold_binary unfold_const32)
-  unfolding size.simps
-  by (metis add_strict_increasing gr_implies_not0 less_one linorder_not_le size_gt_0)
-
-lemma sub_same_64_val:
-  assumes "val[e - e] \<noteq> UndefVal"
-  assumes "is_IntVal64 e"
-  shows "val[e - e] = val[IntVal64 0]"
-  using assms by (cases e; auto)
-
-snipbegin \<open>sub-same-64\<close>
-optimization sub_same_64: "(e::i64exp) - e \<longmapsto> const (IntVal64 0)"
-  snipend -
-  defer apply simp using sub_same_64_val
-  apply (metis Value.discI(2) bin_eval.simps(3) evalDet i64e_eval unfold_binary unfold_const64)
-  by (simp add: Suc_le_eq add_strict_increasing size_gt_0)
-end
-
+  apply simp
+   apply (metis Suc_lessI add_is_1 add_pos_pos size_gt_0)
+  apply (rule impI) apply simp
+proof -
+  assume assms: "stamp_binary BinSub (stamp_expr e) (stamp_expr e) = IntegerStamp b lo hi \<and> wf_stamp exp[e - e]"
+  have "\<forall>m p v . ([m, p] \<turnstile> exp[e - e] \<mapsto> v) \<longrightarrow> (\<exists>vv. v = IntVal b vv)"
+    using assms wf_stamp_eval
+    by (metis stamp_expr.simps(2))
+  then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinSub e e \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> ConstantExpr (IntVal b 0) \<mapsto> v)"
+    by (smt (verit, best) BinaryExprE TreeSnippets.wf_stamp_def assms bin_eval.simps(3) constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val unfold_const valid_stamp.simps(1) valid_value.simps(1))
+qed
 thm_oracles sub_same_32
+end
 
 
 snipbegin \<open>ast-example\<close>
@@ -195,7 +198,6 @@ snipend -
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-
   using BinaryFoldConstant by auto
 
 snipbegin \<open>AddCommuteConstantRight\<close>
@@ -211,7 +213,7 @@ snipend -
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
-optimization AddNeutral: "((e::i32exp) + (const (IntVal32 0))) \<longmapsto> e"
+optimization AddNeutral: "((e::i32exp) + (const (IntVal 32 0))) \<longmapsto> e"
 snipend -
 
   unfolding rewrite_preservation.simps rewrite_termination.simps

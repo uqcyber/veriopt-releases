@@ -98,7 +98,7 @@ session Optimizations in Optimizations = OptimizationDSL +
     CanonicalizationTreeProofs
     CanonicalizationSyntax
 
-session Tests in Tests = Semantics +
+(*session Tests in Tests = Semantics +
   description
     "Miscellaneous project testing"
   theories
@@ -106,7 +106,7 @@ session Tests in Tests = Semantics +
     (*ExecExamples*)
     UnitTesting
     (*Test: ArithmeticTesting*)
-    (*ConditionalEliminationTests*)
+    (*ConditionalEliminationTests*)*)
 
 \<comment>\<open>Documentation sessions\<close>
 
@@ -225,7 +225,7 @@ session TreePaperSnippets in "Papers/Tree" = Optimizations +
     "root.tex"
     "mathpartir.sty"
 
-
+(*
 session ValidationPaperSnippets in "Papers/Validation" = Tests +
   description
     "Snippets of Isabelle theories used for the preparation of the future paper ``Validating Faithful Formalization of an Existing Compiler''"
@@ -238,4 +238,4 @@ session ValidationPaperSnippets in "Papers/Validation" = Tests +
     ValidationSnippets
   document_files (in "../../latex")
     "root.tex"
-    "mathpartir.sty"
+    "mathpartir.sty"*)

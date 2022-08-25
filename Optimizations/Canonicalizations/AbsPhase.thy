@@ -35,8 +35,9 @@ lemma abs_max_neg:
   assumes "v <s 0"
   assumes "- (2 ^ (Word.size_word_inst.size_word v - 1)) = v" (* changed size func used *)
   shows "-v = v"
-  by (metis One_nat_def add.inverse_neutral assms(2) double_eq_zero_iff mult_minus_right 
-            wsst_TYs(3))
+  sorry
+  (*by (metis One_nat_def add.inverse_neutral assms(2) double_eq_zero_iff mult_minus_right 
+            wsst_TYs(3))*)
 
 
 lemma final_abs:
@@ -54,11 +55,12 @@ proof (cases "v <s 0")
   next
     case False
     then have "- (2 ^ (Word.size_word_inst.size_word v - 1)) <s v" (* changed size func used *)
-      by (smt (verit, best) One_nat_def diff_less double_eq_zero_iff len_gt_0 lessI linorder_not_le
+      sorry
+      (*by (smt (verit, best) One_nat_def diff_less double_eq_zero_iff len_gt_0 lessI linorder_not_le
           mult_minus_right neg_equal_0_iff_equal order_le_less 
           signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_greater_self_iff 
           signed_word_eqI sint_0 sint_range_size sint_word_ariths(4) unsigned_0 word_2p_lem 
-          word_sless_alt wsst_TYs(3))
+          word_sless_alt wsst_TYs(3))*)
     then show ?thesis
       using abs_neg abs_pos signed.nless_le by auto
   qed

@@ -150,10 +150,11 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
 optimization opt_and_neutral_32: "(x & ~(const (IntVal32 0))) \<longmapsto> x 
    when (wf_stamp x \<and> stamp_expr x = default_stamp)"
    apply auto 
-   apply (cases x; simp) using unary_eval.simps unfold_const32 val_and_neutral_32 
+  apply (cases x; simp) using unary_eval.simps unfold_const32 val_and_neutral_32 
+  sorry (*
    apply (metis UnaryExprE intval_and.simps(5) is_IntVal64_def is_IntVal_def unary_eval_int)
     using unary_eval.simps(2) unfold_const32 val_and_neutral_32 val_and_neutral_64 
-  sorry
+  sorry*)
 
 (* Extra ones which were missing *)
 (*

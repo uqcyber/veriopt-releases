@@ -11,9 +11,10 @@ begin
 
 (* Value level proofs *)
 lemma val_division_by_one_is_self_32:
-  assumes "is_IntVal32 x"
-  shows "intval_div x (IntVal32 1) = x"
-  using assms by (cases x; auto)
+  assumes "x = new_int 32 v"
+  shows "intval_div x (IntVal 32 1) = x"
+  using assms apply (cases x; auto)
+  by (simp add: take_bit_signed_take_bit)
 
 (* Optimizations*)
 (*

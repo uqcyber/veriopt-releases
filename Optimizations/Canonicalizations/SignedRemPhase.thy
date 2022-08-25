@@ -15,7 +15,7 @@ lemma val_remainder_one:
   shows "intval_mod x (IntVal32 1) = IntVal32 0"
   using assms apply (cases x; auto) sorry
   
-  value "word_of_int (sint (x2::32 word) smod 1)"
+value "word_of_int (sint (x2::32 word) smod 1)"
 
 end (* End of SignedRedPhase *)
 

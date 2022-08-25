@@ -16,8 +16,8 @@ lemma exp_distribute_and_over_or:
   "exp[z & (x | y)] \<ge> exp[(z & x) | (z & y)]"
   apply simp using intval_distribute_and_over_or
   using BinaryExpr bin_eval.simps(4,5)
-  using intval_or.simps(10) intval_or.simps(3)
-  by fastforce
+  using intval_or.simps(1) unfolding new_int_bin.simps new_int.simps apply auto
+  by (metis bin_eval.simps(4) bin_eval.simps(5) intval_or.simps(2) intval_or.simps(5))
 
 
 lemma intval_and_commute:
@@ -51,16 +51,10 @@ lemma bin_eliminate_y:
   using assms
   by (simp add: and.commute bin_distribute_and_over_or)
 
-lemma intval_eliminate_y_64:
-  assumes "val[y & z] = IntVal64 0"
+lemma intval_eliminate_y:
+  assumes "val[y & z] = IntVal b 0"
   shows "val[(x | y) & z] = val[x & z]"
   using assms bin_eliminate_y by (cases x; cases y; cases z; auto)
-
-lemma intval_eliminate_y_32:
-  assumes "val[y & z] = IntVal32 0"
-  shows "val[(x | y) & z] = val[x & z]"
-  using assms bin_eliminate_y by (cases x; cases y; cases z; auto)
-
 
 lemma intval_and_associative:
   "val[(x & y) & z] = val[x & (y & z)]"
@@ -91,24 +85,28 @@ lemma exp_xor_associative:
 
 
 lemma intval_and_absorb_or:
+  assumes "\<exists>b v . x = new_int b v" (* TODO: required? *)
   assumes "val[x & (x | y)] \<noteq> UndefVal"
   shows "val[x & (x | y)] = val[x]"
-  using assms by (cases x; cases y; auto)
+  using assms apply (cases x; cases y; auto)
+  by (metis (mono_tags, lifting) intval_and.simps(5))
 
 lemma intval_or_absorb_and:
+  assumes "\<exists>b v . x = new_int b v" (* TODO: required? *)
   assumes "val[x | (x & y)] \<noteq> UndefVal"
   shows "val[x | (x & y)] = val[x]"
-  using assms by (cases x; cases y; auto)
+  using assms apply (cases x; cases y; auto)
+  by (metis (mono_tags, lifting) intval_or.simps(5))
 
 lemma exp_and_absorb_or:
   "exp[x & (x | y)] \<ge> exp[x]"
-  apply simp using intval_and_absorb_or
-  by (smt (verit, best) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet)
+  apply simp using intval_and_absorb_or sorry (*
+  by (smt (verit, best) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet)*)
 
 lemma exp_or_absorb_and:
   "exp[x | (x & y)] \<ge> exp[x]"
-  apply simp using intval_or_absorb_and
-  by (smt (verit) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet)
+  apply simp using intval_or_absorb_and sorry (*
+  by (smt (verit) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet)*)
 
 context
   includes bit_operations_syntax
@@ -127,10 +125,8 @@ lemma negative_all_set_32:
 locale stamp_mask =
   fixes up :: "IRExpr \<Rightarrow> int64" ("\<up>")
   fixes down :: "IRExpr \<Rightarrow> int64" ("\<down>")
-  assumes up_spec32: "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> (and v (not ((ucast (\<up>e))))) = 0"
-      and up_spec64: "[m, p] \<turnstile> e \<mapsto> IntVal64 v' \<Longrightarrow> (and v' (not (\<up>e))) = 0"
-      and down_spec32: "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> (and (not v) (ucast (\<down>e))) = 0"
-      and down_spec64: "[m, p] \<turnstile> e \<mapsto> IntVal64 v' \<Longrightarrow> (and (not v') (\<down>e)) = 0"
+  assumes up_spec: "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> (and v (not ((ucast (\<up>e))))) = 0"
+      and down_spec: "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> (and (not v) (ucast (\<down>e))) = 0"
 begin
 
 (*
@@ -138,76 +134,51 @@ lemma bitsets:
   "\<down>x \<subseteq> x \<and> x \<subseteq> \<up>x"
 *)
 
-lemma may_implies_either_32:
-  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> bit (\<up>e) n \<Longrightarrow> bit v n = False \<or> bit v n = True"
-  by simp
-lemma may_implies_either_64:
-  "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> bit (\<up>e) n \<Longrightarrow> bit v n = False \<or> bit v n = True"
+lemma may_implies_either:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<up>e) n \<Longrightarrow> bit v n = False \<or> bit v n = True"
   by simp
 
-lemma not_may_implies_false_32:
-  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> \<not>(bit (\<up>e) n) \<Longrightarrow> bit v n = False"
-  using up_spec32 
-  using bit_and_iff bit_eq_iff bit_not_iff bit_unsigned_iff down_spec32
-  by (smt (verit, best) bit.double_compl)
-lemma not_may_implies_false_64:
-  "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> \<not>(bit (\<up>e) n) \<Longrightarrow> bit v n = False"
-  using up_spec64
-  using bit_and_iff bit_eq_iff bit_not_iff bit_unsigned_iff down_spec64
+lemma not_may_implies_false:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<up>e) n) \<Longrightarrow> bit v n = False"
+  using up_spec
+  using bit_and_iff bit_eq_iff bit_not_iff bit_unsigned_iff down_spec
   by (smt (verit, best) bit.double_compl)
 
-lemma must_implies_true_32:
-  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> n < 32 \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
-  using down_spec32
-  by (metis bit.compl_zero bit_and_iff bit_not_iff bit_unsigned_iff negative_all_set_32)
-lemma must_implies_true_64:
-  "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
-  using down_spec64
-  by (metis bit.compl_zero bit_and_iff bit_minus_1_iff bit_not_iff_eq impossible_bit)
+lemma must_implies_true:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
+  using down_spec
+  by (metis bit.compl_one bit_and_iff bit_minus_1_iff bit_not_iff impossible_bit ucast_id)
 
-lemma not_must_implies_either_32:
-  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> \<not>(bit (\<down>e) n) \<Longrightarrow> bit v n = False \<or> bit v n = True"
-  by simp
-lemma not_must_implies_either_64:
-  "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> \<not>(bit (\<down>e) n) \<Longrightarrow> bit v n = False \<or> bit v n = True"
+lemma not_must_implies_either:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<down>e) n) \<Longrightarrow> bit v n = False \<or> bit v n = True"
   by simp
 
-lemma must_implies_may_32:
-  "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> n < 32 \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
-  by (meson must_implies_true_32 not_may_implies_false_32)
-lemma must_implies_may_64:
-  "[m, p] \<turnstile> e \<mapsto> IntVal64 v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
-  by (meson must_implies_true_64 not_may_implies_false_64)
+lemma must_implies_may:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> n < 32 \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
+  by (meson must_implies_true not_may_implies_false)
 end
 
 context stamp_mask
 begin
 
-lemma bin_up_and_zero_implies_zero_32:
+lemma bin_up_and_zero_implies_zero:
   assumes "and (\<up>x) (\<up>y) = 0"
-  assumes "[m, p] \<turnstile> x \<mapsto> IntVal32 xv"
-  assumes "[m, p] \<turnstile> y \<mapsto> IntVal32 yv"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
   shows "and xv yv = 0"
   using assms
-  by (smt (verit) and.commute bit.compl_one bit.compl_zero bit.conj_disj_distrib bit.de_Morgan_disj or_eq_not_not_and stamp_mask.up_spec32 stamp_mask_axioms ucast_0 unsigned_and_eq word_log_esimps(3) word_not_dist(2))
-
-lemma bin_up_and_zero_implies_zero_64:
-  assumes "and (\<up>x) (\<up>y) = 0"
-  assumes "[m, p] \<turnstile> x \<mapsto> IntVal64 xv"
-  assumes "[m, p] \<turnstile> y \<mapsto> IntVal64 yv"
-  shows "and xv yv = 0"
-  using assms
-  by (smt (verit) and_eq_not_not_or bit.conj_disj_distrib bit.conj_disj_distrib2 stamp_mask.up_spec64 stamp_mask_axioms word_ao_absorbs(2) word_ao_absorbs(8) word_log_esimps(3) word_not_dist(2))
+  by (smt (z3) and.commute and.right_neutral and_zero_eq bit.compl_zero bit.conj_cancel_right bit.conj_disj_distribs(1) ucast_id up_spec word_bw_assocs(1) word_not_dist(2))
 
 lemma intval_up_and_zero_implies_zero:
   assumes "and (\<up>x) (\<up>y) = 0"
   assumes "[m, p] \<turnstile> x \<mapsto> xv"
   assumes "[m, p] \<turnstile> y \<mapsto> yv"
   assumes "val[xv & yv] \<noteq> UndefVal"
-  shows "val[xv & yv] = IntVal32 0 \<or> val[xv & yv] = IntVal64 0"
+  shows "\<exists> b . val[xv & yv] = new_int b 0"
   using assms apply (cases xv; cases yv; auto)
-  using bin_up_and_zero_implies_zero_32 apply presburger
-  using bin_up_and_zero_implies_zero_64 by blast
+  using bin_up_and_zero_implies_zero
+  apply (smt (verit, best) take_bit_and take_bit_of_0)
+  by presburger
 
 lemma exp_eliminate_y:
   "and (\<up>y) (\<up>z) = 0 \<longrightarrow> BinaryExpr BinAnd (BinaryExpr BinOr x y) z \<ge> BinaryExpr BinAnd x z"
@@ -225,11 +196,11 @@ lemma exp_eliminate_y:
       by (smt (verit, best) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) e evalDet)
     then have "v = val[(xv & zv) | (yv & zv)]"
       by (simp add: intval_and_commute intval_distribute_and_over_or)
-    also have "val[yv & zv] = IntVal32 0 \<or> val[yv & zv] = IntVal64 0"
+    also have "\<exists>b. val[yv & zv] = new_int b 0"
       using intval_up_and_zero_implies_zero
-      by (metis calculation e evaltree_not_undef intval_or.simps(10) p yv zv)
+      by (metis calculation e intval_or.simps(5) new_int.simps p take_bit_of_0 unfold_binary yv zv)
     ultimately have rhs: "v = val[xv & zv]"
-      using intval_eliminate_y_32 intval_eliminate_y_64 lhs by presburger
+      using intval_eliminate_y lhs by force
     from lhs rhs show ?thesis
       by (metis BinaryExpr BinaryExprE bin_eval.simps(4) e xv zv)
   qed

@@ -30,14 +30,14 @@ lemma val_xor_self_is_false:
   using assms by (cases x; auto)
 
 lemma val_xor_self_is_false_2:
-  assumes "(val[x \<oplus> x]) \<noteq> UndefVal \<and> is_IntVal32 x" 
+  assumes "(val[x \<oplus> x]) \<noteq> UndefVal \<and> x = IntVal 32 v" 
   shows "val[x \<oplus> x] = bool_to_val False"
   using assms by (cases x; auto)
 
 (* Not sure if I need this; Optimization uses ConstantExpr False which is IntVal32 0 *)
 lemma val_xor_self_is_false_3:
-  assumes "val[x \<oplus> x] \<noteq> UndefVal \<and> is_IntVal64 x" 
-  shows "val[x \<oplus> x] = IntVal64 0"
+  assumes "val[x \<oplus> x] \<noteq> UndefVal \<and> x = IntVal 64 v" 
+  shows "val[x \<oplus> x] = IntVal 64 0"
   using assms by (cases x; auto)
 
 lemma val_xor_commute:
@@ -46,9 +46,11 @@ lemma val_xor_commute:
   by (simp add: xor.commute)+
 
 lemma val_eliminate_redundant_false:
+  assumes "x = new_int b v"
   assumes "val[x \<oplus> (bool_to_val False)] \<noteq> UndefVal"
   shows "val[x \<oplus> (bool_to_val False)] = x"
-  using assms by (cases x; auto)
+  using assms apply (cases x; auto)
+  by meson
 
 
 (* Borrowed from ConditionalPhase *)
@@ -62,14 +64,8 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
 lemma exp_xor_self_is_false:
  assumes "wf_stamp x \<and> stamp_expr x = default_stamp" 
  shows "exp[x \<oplus> x] \<ge> exp[false]" 
-  using assms val_xor_self_is_false_2 wf_stamp_def apply (cases x; auto) 
-  using bin_xor_self_is_false
-  apply (smt (verit, ccfv_threshold) evalDet intval_xor.simps(1) unfold_const32 unfold_unary 
-         valid_int32)
-  apply (smt (verit, best) BinaryExpr evalDet is_IntVal32_def unfold_const32 valid_int32)
-  apply (smt (verit, best) ConditionalExpr evalDet is_IntVal32_def unfold_const32 valid_int32)
-  apply (metis Value.disc(2) unfold_const32 valid_int32)
- by (metis  is_IntVal32_def unfold_const32 valid_int32)+
+  using assms apply auto unfolding wf_stamp_def
+  by (smt (verit) IntVal0 Value.inject(1) bool_to_val.simps(2) constantAsStamp.simps(1) evalDet int_signed_value_bounds new_int.simps unfold_const val_xor_self_is_false_2 valid_int valid_stamp.simps(1) valid_value.simps(1))
 
 
 (* Optimisations *)
@@ -86,8 +82,8 @@ optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<op
   sorry
 
 optimization EliminateRedundantFalse: "(x \<oplus> false) \<longmapsto> x"
-    using val_eliminate_redundant_false apply auto 
-   by (metis)
+    using val_eliminate_redundant_false apply auto sorry (*
+   by (metis)*)
 
 
 optimization opt_mask_out_rhs: "(x \<oplus> const y) \<longmapsto> UnaryExpr UnaryNot x

@@ -66,20 +66,57 @@ lemma unary_eval_int:
   apply (cases "unary_eval op x"; auto)
   using unary_eval_not_obj_ref unary_eval_not_obj_str by simp+
 
-(* TODO:
 lemma bin_eval_int:
   assumes def: "bin_eval op x y \<noteq> UndefVal"
   shows "is_IntVal (bin_eval op x y)"
   apply (cases op; cases x; cases y)  (* 192 cases! *)
   unfolding is_IntVal_def using def apply auto (* leaves 14 cases*)
-  apply presburger+ (* prove 6 more easy cases *)
-  by (metis (full_types) bool_to_val.simps)+
+                 apply presburger+ (* prove 6 more easy cases *)
+           apply (meson bool_to_val.elims)
+          apply (meson bool_to_val.elims)
+         apply (smt (verit) new_int.simps)+
+  by (meson bool_to_val.elims)+
+
+lemma IntVal0:
+  "(IntVal 32 0) = (new_int 32 0)"
+  unfolding new_int.simps
+  by auto
+
+lemma IntVal1:
+  "(IntVal 32 1) = (new_int 32 1)"
+  unfolding new_int.simps
+  by auto
+
+(* ICK, a collection of relevant take_bit_x lemmas would help *)
+lemma bin_eval_new_int:
+  assumes def: "bin_eval op x y \<noteq> UndefVal"
+  shows "\<exists>b v. (bin_eval op x y) = new_int b v"
+  apply (cases op; cases x; cases y)
+  unfolding is_IntVal_def using def apply auto
+  apply presburger+
+  apply (metis take_bit_and)
+  apply presburger
+  apply (metis take_bit_or)
+  apply presburger
+  apply (metis take_bit_xor)
+  apply presburger
+  using IntVal0 IntVal1
+  apply (metis bool_to_val.elims new_int.simps)
+  apply presburger
+  apply (smt (verit) new_int.elims)
+  apply (smt (verit, best) new_int.elims)
+  apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.simps)
+  apply presburger
+  apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.simps)
+  apply presburger
+  apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.simps)
+  by meson
 
 lemma int_stamp:
   assumes i: "is_IntVal v"
   shows "is_IntegerStamp (constantAsStamp v)"
   using i unfolding is_IntegerStamp_def is_IntVal_def by auto
-*)
+
 
 
 lemma validStampIntConst:

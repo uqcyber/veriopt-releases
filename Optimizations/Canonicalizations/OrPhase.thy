@@ -25,16 +25,17 @@ lemma bin_or_not_operands:
 
 (* Value level proofs *)
 lemma val_or_equal:
+  assumes "x = new_int b v"
   assumes "x \<noteq> UndefVal \<and> ((intval_or x x) \<noteq> UndefVal)"
   shows "val[x | x] = val[x]"
    apply (cases x; auto) using bin_or_equal assms 
   by auto+ 
 
 lemma val_elim_redundant_false:
+  assumes "x = new_int b v"
   assumes "x \<noteq> UndefVal \<and> (intval_or x (bool_to_val False)) \<noteq> UndefVal"
   shows "val[x | false] = val[x]"
-   using assms apply (cases x) 
-  by simp+
+   using assms apply (cases x; auto) by presburger
 
 lemma val_shift_const_right_helper:
    "val[x | y] = val[y | x]"
@@ -43,19 +44,20 @@ lemma val_shift_const_right_helper:
 
 lemma val_or_not_operands:
  "val[~x | ~y] = val[~(x & y)]"
-  by (cases x; cases y; auto)
+  apply (cases x; cases y; auto)
+  by (simp add: take_bit_not_take_bit)
 
 (* Expr level proofs *)
 lemma exp_or_equal:
   "exp[x | x] \<ge> exp[x]"
-   apply simp using val_or_equal
-  by (metis bin_eval.simps(5) evalDet evaltree_not_undef unfold_binary)
+   apply simp using val_or_equal sorry (*
+  by (metis bin_eval.simps(5) evalDet evaltree_not_undef unfold_binary)*)
 
 lemma exp_elim_redundant_false:
  "exp[x | false] \<ge> exp[x]"
    apply simp using val_elim_redundant_false 
-   apply (cases x)
-  by (metis BinaryExprE bin_eval.simps(5) bool_to_val.simps(2) evaltree_not_undef unfold_const32)+
+   apply (cases x) sorry (*
+  by (metis BinaryExprE bin_eval.simps(5) bool_to_val.simps(2) evaltree_not_undef)+*)
   
 (* Optimizations *)
 optimization or_equal: "x | x \<longmapsto> x"
@@ -73,8 +75,7 @@ optimization elim_redundant_false: "x | false \<longmapsto> x"
 
 optimization or_not_operands: "(~x | ~y) \<longmapsto> ~ (x & y)"
    apply auto using val_or_not_operands
-  by (metis bin_eval.simps(4) intval_not.simps(3) unary_eval.simps(3) unfold_binary 
-          unfold_unary) 
+  by (metis BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3))
 
 optimization or_left_fall_through: "(x | y) \<longmapsto> x
                                 when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"

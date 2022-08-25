@@ -124,42 +124,41 @@ optimization val_conditional_eliminate_known_less: "((x < y) ? x : y) \<longmaps
 
 (* Optimisations *)
 optimization opt_conditional_eq_is_RHS: "((BinaryExpr BinIntegerEquals x y) ? x : y) \<longmapsto> y"
-   apply simp_all apply auto using b 
-   apply (metis (mono_tags, lifting) Canonicalization.intval.simps(1) evalDet 
-          intval_conditional.simps intval_equals.simps(10))
+   apply simp_all apply auto using b Canonicalization.intval.simps(1) evalDet 
+          intval_conditional.simps
+  by (metis (mono_tags, lifting) evaltree_not_undef)
+
+(* todo not sure if this is done properly *)
+optimization opt_normalize_x: "((x eq const (IntVal 32 0)) ? 
+                                (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> x
+                                when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" 
   done
 
 (* todo not sure if this is done properly *)
-optimization opt_normalize_x: "((x eq const (IntVal32 0)) ? 
-                                (const (IntVal32 0)) : (const (IntVal32 1))) \<longmapsto> x
-                                when (x = ConstantExpr (IntVal32 0) | (x = ConstantExpr (IntVal32 1)))" 
+optimization opt_normalize_x2: "((x eq (const (IntVal 32 1))) ? 
+                                 (const (IntVal 32 1)) : (const (IntVal 32 0))) \<longmapsto> x
+                                 when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
 (* todo not sure if this is done properly *)
-optimization opt_normalize_x2: "((x eq (const (IntVal32 1))) ? 
-                                 (const (IntVal32 1)) : (const (IntVal32 0))) \<longmapsto> x
-                                 when (x = ConstantExpr (IntVal32 0) | (x = ConstantExpr (IntVal32 1)))"
+optimization opt_flip_x: "((x eq (const (IntVal 32 0))) ? 
+                           (const (IntVal 32 1)) : (const (IntVal 32 0))) \<longmapsto> 
+                            x \<oplus> (const (IntVal 32 1))
+                            when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
 (* todo not sure if this is done properly *)
-optimization opt_flip_x: "((x eq (const (IntVal32 0))) ? 
-                           (const (IntVal32 1)) : (const (IntVal32 0))) \<longmapsto> 
-                            x \<oplus> (const (IntVal32 1))
-                            when (x = ConstantExpr (IntVal32 0) | (x = ConstantExpr (IntVal32 1)))"
-  done
-
-(* todo not sure if this is done properly *)
-optimization opt_flip_x2: "((x eq (const (IntVal32 1))) ? 
-                            (const (IntVal32 0)) : (const (IntVal32 1))) \<longmapsto> 
-                            x \<oplus> (const (IntVal32 1))
-                            when (x = ConstantExpr (IntVal32 0) | (x = ConstantExpr (IntVal32 1)))"
+optimization opt_flip_x2: "((x eq (const (IntVal 32 1))) ? 
+                            (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> 
+                            x \<oplus> (const (IntVal 32 1))
+                            when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
 
 optimization opt_optimise_integer_test: 
-     "(((x & (const (IntVal32 1))) eq (const (IntVal32 0))) ? 
-      (const (IntVal32 0)) : (const (IntVal32 1))) \<longmapsto> 
-       x & (const (IntVal32 1))
+     "(((x & (const (IntVal 32 1))) eq (const (IntVal 32 0))) ? 
+      (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> 
+       x & (const (IntVal 32 1))
        when (stamp_expr x = default_stamp)"
    apply simp_all 
    apply auto
@@ -167,10 +166,10 @@ optimization opt_optimise_integer_test:
 
 (* todo not sure if this is done properly *)
 optimization opt_optimise_integer_test_2: 
-     "(((x & (const (IntVal32 1))) eq (const (IntVal32 0))) ? 
-                   (const (IntVal32 0)) : (const (IntVal32 1))) \<longmapsto> 
+     "(((x & (const (IntVal 32 1))) eq (const (IntVal 32 0))) ? 
+                   (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> 
                    x
-                   when (x = ConstantExpr (IntVal32 0) | (x = ConstantExpr (IntVal32 1)))"
+                   when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
 optimization opt_conditional_eliminate_known_less: "((x < y) ? x : y) \<longmapsto> x 

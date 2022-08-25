@@ -16,16 +16,16 @@ lemma bin_not_cancel:
 
 (* Value level proofs *)
 lemma val_not_cancel:
-  assumes "val[~e] \<noteq> UndefVal"
-  shows "val[~(~e)] = e"
-   using bin_not_cancel 
-  by (metis (no_types, lifting) assms intval_not.elims intval_not.simps(1) intval_not.simps(2))
+  assumes "val[~(new_int b v)] \<noteq> UndefVal"
+  shows "val[~(~(new_int b v))] = (new_int b v)"
+   using bin_not_cancel
+   by (simp add: take_bit_not_take_bit)
 
 (* Expr level proofs *)
 lemma exp_not_cancel:
   shows "exp[~(~a)] \<ge> exp[a]"
-   apply simp using val_not_cancel
-  by (metis UnaryExprE unary_eval.simps(3))
+   apply simp using val_not_cancel sorry (*
+  by (metis UnaryExprE unary_eval.simps(3))*)
 
 (* Optimisations *)
 optimization not_cancel: "exp[~(~a)] \<longmapsto> a"

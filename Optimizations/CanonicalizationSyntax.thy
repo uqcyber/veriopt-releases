@@ -500,6 +500,7 @@ lemma bin_eval_defined:
   assumes "val = bin_eval op c1 c2"
   shows "val \<noteq> UndefVal \<and> is_IntVal val"
   using assms apply (cases c1; cases c2; cases op; simp)
+  using bool_is_int_val apply blast
   apply (smt (verit) Value.disc(2) Value.distinct(1) new_int.simps)
     using bool_is_int_val by blast+
 

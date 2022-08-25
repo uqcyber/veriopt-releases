@@ -21,6 +21,7 @@ lemma bin_and_neutral:
 
 (* Value level proofs *)
 lemma val_and_equal:
+  assumes "x = new_int b v"
   assumes "val[x & x] \<noteq> UndefVal"
   shows "val[x & x] = x"
    using assms 
@@ -28,61 +29,52 @@ lemma val_and_equal:
 
 lemma val_and_nots:
   "val[~x & ~y] = val[~(x | y)]"
-  by (cases x; cases y; auto)
+  apply (cases x; cases y; auto)
+  by (simp add: take_bit_not_take_bit)
 
-lemma val_and_neutral_32:
-  assumes "is_IntVal32 x"
-  shows "val[x & ~(IntVal32 0)] = x"
+lemma val_and_neutral:
+  assumes "x = new_int b v"
+  shows "val[x & ~(new_int b 0)] = x"
    using assms 
-  by (cases x; auto)
- 
-lemma val_and_neutral_64:
-  assumes "is_IntVal64 x"
-  shows "val[x & ~(IntVal64 0)] = x"
-   using assms 
-  by (cases x; auto) 
+   apply (cases x; auto)
+   by (simp add: take_bit_eq_mask) 
 
 (* Not sure if this one is written correctly *)
 (* Rewrite is AndNode line 129 *)
 lemma val_and_sign_extend:
   assumes "e = (1 << In)-1"
-  shows "val[(intval_sign_extend In Out x) & (IntVal32 e)] = intval_zero_extend In Out x"
+  shows "val[(intval_sign_extend In Out x) & (IntVal 32 e)] = intval_zero_extend In Out x"
   using assms apply (cases x; auto) 
   sorry
 
 lemma val_and_sign_extend_2:
   assumes "e = (1 << In)-1 \<and> intval_and (intval_sign_extend In Out x) (IntVal32 e) \<noteq> UndefVal"
-  shows "val[(intval_sign_extend In Out x) &  (IntVal32 e)] = intval_zero_extend In Out x"
+  shows "val[(intval_sign_extend In Out x) &  (IntVal 32 e)] = intval_zero_extend In Out x"
   using assms apply (cases x;  auto) 
   sorry
 
 (* Extras which were missing *)
-lemma val_and_zero_32:
-  assumes "is_IntVal32 x"
-  shows "val[x & (IntVal32 0)] = IntVal32 0"
-   using assms 
-  by (cases x; auto) 
-
-lemma val_and_zero_64:
-  assumes "is_IntVal64 x"
-  shows "val[x & (IntVal64 0)] = IntVal64 0"
+lemma val_and_zero:
+  assumes "x = new_int b v"
+  shows "val[x & (IntVal b 0)] = IntVal b 0"
    using assms 
   by (cases x; auto) 
 
 (* Exp level proofs *)
 lemma exp_and_equal:
   "exp[x & x] \<ge> exp[x]"
-   apply simp using val_and_equal 
-  by (metis bin_eval.simps(4) evalDet evaltree_not_undef unfold_binary)
+   apply simp using val_and_equal sorry (* 
+  by (metis bin_eval.simps(4) evalDet evaltree_not_undef unfold_binary)*)
 
 lemma exp_and_nots:
   "exp[~x & ~y] \<ge> exp[~(x | y)]"
    apply (cases x; cases y; auto) using val_and_nots 
   by fastforce+ 
 
-lemma exp_and_neutral_64: 
-  "exp[x & ~(const (IntVal64 0))] \<ge> x"
-  apply (cases x; simp) using val_and_neutral_64 bin_eval.simps(4)  
+lemma exp_and_neutral: 
+  "exp[x & ~(const (new_int b 0))] \<ge> x"
+  apply auto using val_and_neutral sorry (*
+  apply (cases x; simp) using val_and_neutral bin_eval.simps(4)  
   apply (smt (verit) BinaryExprE Value.collapse(1) intval_and.simps(12) intval_not.simps(2) 
          is_IntVal_def unary_eval.simps(3) unary_eval_int unfold_const64 unfold_unary) 
          using val_and_neutral_64 bin_eval.simps(4) 
@@ -93,24 +85,7 @@ lemma exp_and_neutral_64:
          intval_not.simps(2) unfold_const64) 
          using val_and_neutral_64 bin_eval.simps(4) unary_eval.simps(3) bin_and_neutral 
                unfold_const64 intval_and.elims intval_not.simps(2) 
-         sorry
-  
-
-lemma exp_and_neutral_32: 
-  "exp[x & ~(const (IntVal32 0))] \<ge> x"
-  apply simp_all apply (cases x; simp) using val_and_neutral_32 bin_eval.simps(4) 
-  apply (metis (no_types, lifting) UnaryExprE Value.collapse(2) intval_and.simps(5) 
-         intval_not.simps(1) is_IntVal_def unary_eval.simps(3) unary_eval_int unfold_binary 
-         unfold_const32)
-         using val_and_neutral_32 bin_eval.simps(4) 
-  apply (smt (verit) UnaryExprE Value.collapse(2) bin_eval_int intval_and.simps(5) 
-         intval_not.simps(1) is_IntVal_def unary_eval.simps(3) unfold_binary unfold_const32) 
-         using val_and_neutral_32 bin_eval.simps(4) unary_eval.simps(3)
-               unfold_const32 intval_and.elims 
-  apply (smt (z3) BinaryExprE UnaryExprE Value.discI(1) Value.distinct(1) intval_and.simps(12))
-         using val_and_neutral_32 bin_eval.simps(4) unary_eval.simps(3) bin_and_neutral 
-               unfold_const32 intval_and.elims intval_not.simps(2) 
-  sorry
+         sorry*)
 
 
 (* Optimisations *)
@@ -135,7 +110,7 @@ optimization opt_and_nots: "(~x) & (~y) \<longmapsto> ~(x | y)"
    by auto 
 
 optimization opt_and_sign_extend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
-                                                     (ConstantExpr (IntVal32 e))
+                                                     (ConstantExpr (IntVal 32 e))
                                    \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) x)
                                                    when (e = (1 << In) - 1)"
    apply simp_all 
@@ -147,10 +122,10 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
 
-optimization opt_and_neutral_32: "(x & ~(const (IntVal32 0))) \<longmapsto> x 
+optimization opt_and_neutral_32: "(x & ~(const (IntVal 32 0))) \<longmapsto> x 
    when (wf_stamp x \<and> stamp_expr x = default_stamp)"
    apply auto 
-  apply (cases x; simp) using unary_eval.simps unfold_const32 val_and_neutral_32 
+  apply (cases x; simp) using unary_eval.simps unfold_const val_and_neutral 
   sorry (*
    apply (metis UnaryExprE intval_and.simps(5) is_IntVal64_def is_IntVal_def unary_eval_int)
     using unary_eval.simps(2) unfold_const32 val_and_neutral_32 val_and_neutral_64 

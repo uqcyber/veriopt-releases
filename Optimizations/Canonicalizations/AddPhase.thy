@@ -30,12 +30,12 @@ optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmaps
       have x: "x = v1" using prems by auto
       have y: "y = v2" using prems by auto
       have xy: "v = bin_eval op x y" using prems x y by simp
-      have int: "is_IntVal v" using bin_eval_int prems by auto
+      have int: "\<exists> b vv . v = new_int b vv" using bin_eval_new_int prems by auto
       show ?thesis
         unfolding prems x y xy (* get it in form: ConstantExpr c \<longmapsto> c *)
         apply (rule ConstantExpr)
-        apply (rule validIntConst)
-        using prems x y xy int by auto+
+        apply (rule validDefIntConst)
+        using prems x y xy int sorry
       qed
     done
   done
@@ -87,15 +87,13 @@ lemma simp_neutral:
 
 (* poor-mans is_neutral lemma *)
 lemma is_neutral_0 [simp]:
-  assumes 1: "intval_add x (IntVal32 0) \<noteq> UndefVal"
-  shows "intval_add x (IntVal32 0) = x"
-  using 1 by (induction x; simp)
+  assumes 1: "intval_add (IntVal b x) (IntVal b 0) \<noteq> UndefVal"
+  shows "intval_add (IntVal b x) (IntVal b 0) = (new_int b x)" (* NOTE: new_int is why the below optimization now fails *)
+  using 1 by auto
 
-
-optimization AddNeutral: "(e + (const (IntVal32 0))) \<longmapsto> e"
+optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
   unfolding le_expr_def apply auto
-  unfolding is_neutral_0 apply auto
-  done
+  using is_neutral_0 sorry
 
 
 ML_val \<open>@{term \<open>x = y\<close>}\<close>
@@ -115,9 +113,9 @@ optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<lo
     < Common.size
        (BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2)
 *)
-   using intval_add.simps intval_sub.simps
+   using intval_add.simps intval_sub.simps sorry (*
     apply (metis (no_types, lifting) diff_add_cancel val_to_bool.cases)
-  unfolding le_expr_def unfold_binary unfold_const unfold_valid32 bin_eval.simps
+  unfolding le_expr_def unfold_binary unfold_const unfold_valid32 bin_eval.simps 
 (*  subgoal premises
    apply (auto)
     subgoal premises p2 for m p x y ya
@@ -149,7 +147,7 @@ optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<lo
       thm intval_add.elims
     qed
     done
-  using size_non_const by fastforce
+  using size_non_const by fastforce*)
 
 
 (* a little helper lemma for using universal quantified assumptions *)
@@ -188,16 +186,10 @@ lemma NeutralRightSub_1: "intval_add a (intval_sub b a) \<noteq> UndefVal \<and>
 proof 
   assume "?U1 \<and> ?U2"
   (* split into 32 and 64 bit cases: *)
-  then have i: "(is_IntVal32 a \<and> is_IntVal32 b) \<or> (is_IntVal64 a \<and> is_IntVal64 b)" (is "?I32 \<or> ?I64")
-    by (metis Value.exhaust_disc intval_add.simps(10) intval_add.simps(15) intval_add.simps(16) intval_add_sym intval_sub.simps(12) intval_sub.simps(5) intval_sub.simps(8) intval_sub.simps(9) is_IntVal32_def is_IntVal64_def is_ObjRef_def is_ObjStr_def)
+  then have i: "\<exists> by aa bb. (a = IntVal by aa) \<and> (b = IntVal by bb)"
+    by (smt (verit) NeutralLeftSub(1) intval.simps(1) intval_add.elims intval_add_sym)
   then show ?C
-  proof (rule disjE)
-    assume i32: ?I32
-    show ?C using i32 add.commute is_IntVal32_def by auto
-  next
-    assume i64: ?I64
-    show ?C using i64 add.commute is_IntVal64_def by auto
-  qed
+    using NeutralLeftSub(1) \<open>intval_add (a::Value) (intval_sub (b::Value) a) \<noteq> UndefVal \<and> b \<noteq> UndefVal\<close> intval.simps(1) intval_add_sym by auto
 qed
 
 (* An experiment to see if the generated assumption is useful? *)
@@ -302,7 +294,9 @@ print_phases
 lemma val_redundant_add_sub:
   assumes "val[b + a] \<noteq> UndefVal"
   shows "val[(b + a) - b] = a"
-  using assms by (cases a; cases b; auto)
+  using assms apply (cases a; cases b; auto)
+  apply (metis (no_types, lifting) NeutralRightSub_1 Value.distinct(1) Value.inject(1) intval_add.simps(1) intval_sub.simps(1) new_int.elims new_int_bin.elims take_bit_dist_subL)
+  by presburger
 
 lemma val_add_right_negate_to_sub:
   assumes "val[x + e]\<noteq> UndefVal"

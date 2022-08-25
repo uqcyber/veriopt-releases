@@ -121,6 +121,45 @@ session Snippets = "HOL-Library" +
     "root.tex"
     "mathpartir.sty"
 
+session NewOptimizations in "Papers/NewOptimizations" = Canonicalizations +
+  description
+    "A collection of the new optimization proofs"
+  options [quick_and_dirty, document = pdf, document_output = "output"]
+  sessions
+    Optimizations
+    Canonicalizations
+  theories
+    Canonicalizations.AbsPhase
+    Canonicalizations.AddPhase
+    Canonicalizations.AndPhase
+    Canonicalizations.ConditionalPhase
+    Canonicalizations.MulPhase
+    Canonicalizations.NegatePhase
+    Canonicalizations.NotPhase
+    Canonicalizations.OrPhase
+    Canonicalizations.SignedDivPhase
+    Canonicalizations.SubPhase
+    Canonicalizations.XorPhase
+  document_theories
+    Canonicalizations.AbsPhase
+    Canonicalizations.AddPhase
+    Canonicalizations.AndPhase
+    Canonicalizations.ConditionalPhase
+    Canonicalizations.MulPhase
+    Canonicalizations.NegatePhase
+    Canonicalizations.NotPhase
+    Canonicalizations.OrPhase
+    Canonicalizations.SignedDivPhase
+    Canonicalizations.SubPhase
+    Canonicalizations.XorPhase
+  document_files (in ".")
+    "root.tex"
+  document_files (in "../Stamps")
+    "lattice.tex"
+  document_files (in "../../latex")
+    "mathpartir.sty"
+
+
 
 session Document in "Papers/Main" = Canonicalizations +
   description

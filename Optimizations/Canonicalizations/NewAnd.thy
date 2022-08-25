@@ -133,6 +133,11 @@ locale stamp_mask =
       and down_spec64: "[m, p] \<turnstile> e \<mapsto> IntVal64 v' \<Longrightarrow> (and (not v') (\<down>e)) = 0"
 begin
 
+(*
+lemma bitsets:
+  "\<down>x \<subseteq> x \<and> x \<subseteq> \<up>x"
+*)
+
 lemma may_implies_either_32:
   "[m, p] \<turnstile> e \<mapsto> IntVal32 v \<Longrightarrow> bit (\<up>e) n \<Longrightarrow> bit v n = False \<or> bit v n = True"
   by simp

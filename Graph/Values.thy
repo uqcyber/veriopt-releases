@@ -291,9 +291,8 @@ fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_xor (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (v1 XOR v2)" |
   "intval_xor _ _ = UndefVal"
 
-(* TODO: temp guess at semantics *)
 fun intval_short_circuit_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_short_circuit_or (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (v1 OR v2)" |
+  "intval_short_circuit_or (IntVal b1 v1) (IntVal b2 v2) = bool_to_val_bin b1 b2 (((v1 \<noteq> 0) \<or> (v2 \<noteq> 0)))" |
   "intval_short_circuit_or _ _ = UndefVal"
 
 fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where

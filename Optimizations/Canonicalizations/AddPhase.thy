@@ -269,11 +269,66 @@ lemma AddToSubHelperLowLevel:
 
 optimization AddToSub: "-e + y \<longmapsto> y - e"
   using AddToSubHelperLowLevel by auto
-  end
+  
 
 print_phases
 
 
+(* -----  Starts here -----  *)
+
+(* 
+ AddNode has 8 optimisations total
+ Currently *6* optimisations are verified.
+
+ -- Already verified above --
+
+ - AddShiftRightConst
+ - RedundantSubAdd
+ - AddNeutral (32-bit only)
+
+ -- Verified below --
+ 
+ - RedundantAddSub
+ - AddRightNegateToSub
+ - AddLeftNegateToSub 
+
+ -- Left to go --
+ - mergeSignExtendAdd
+ - mergeZeroExtendAdd
+
+*)
+
+(* Value level proofs *)
+lemma val_redundant_add_sub:
+  assumes "val[b + a] \<noteq> UndefVal"
+  shows "val[(b + a) - b] = a"
+  using assms by (cases a; cases b; auto)
+
+lemma val_add_right_negate_to_sub:
+  assumes "val[x + e]\<noteq> UndefVal"
+  shows "val[x + (-e)] = val[x - e]"
+  using assms by (cases x; cases e; auto)
+
+(* Exp level proofs *)
+lemma exp_add_left_negate_to_sub:
+ "exp[-e + y] \<ge> exp[y - e]"
+  apply (cases e; cases y; auto)
+  using AddToSubHelperLowLevel by auto+
+
+(* Optimizations *)
+optimization opt_redundant_sub_add: "(b + a) - b \<longmapsto> a"
+   apply auto using val_redundant_add_sub 
+  by (metis evalDet)
+
+optimization opt_add_right_negate_to_sub: "(x + (-e)) \<longmapsto> x - e"
+   using AddToSubHelperLowLevel intval_add_sym by auto 
+
+optimization opt_add_left_negate_to_sub: "-x + y \<longmapsto> y - x"
+  using exp_add_left_negate_to_sub by blast
+
+(* ----- Ends here ----- *)
+
+end
 
 
 

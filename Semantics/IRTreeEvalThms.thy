@@ -561,5 +561,43 @@ lemma bin_eval_unused_bits_zero:
   using assms bin_eval_new_int
   by (metis Value.distinct(1) Value.inject(1) new_int.elims new_int_take_bits) 
 
+lemma eval_unused_bits_zero:
+  "[m,p] \<turnstile> xe \<mapsto> (IntVal b ix) \<Longrightarrow> take_bit b ix = ix"
+proof (induction xe)
+  case (UnaryExpr x1 xe)
+  then show ?case 
+    using unary_eval_unused_bits_zero by force
+next
+  case (BinaryExpr x1 xe1 xe2)
+  then show ?case
+    using bin_eval_unused_bits_zero by force
+next
+  case (ConditionalExpr xe1 xe2 xe3)
+  then show ?case
+    by (metis EvalTreeE(3))
+next
+  case (ParameterExpr i s)
+  then have "valid_value (p!i) s"
+    by fastforce
+  then show ?case
+    by (metis ParameterExprE Value.distinct(7) intval_bits.simps intval_word.simps local.ParameterExpr valid_value.elims(2)) 
+next
+  case (LeafExpr x1 x2)
+  then show ?case
+    by (smt (z3) EvalTreeE(6) Value.simps(11) valid_value.elims(1) valid_value.simps(1)) 
+next
+  case (ConstantExpr x)
+  then show ?case
+    by (metis EvalTreeE(1) constantAsStamp.simps(1) valid_value.simps(1))
+next
+  case (ConstantVar x)
+  then show ?case
+    by fastforce
+next
+  case (VariableExpr x1 x2)
+  then show ?case
+    by fastforce
+qed
+
 end
 

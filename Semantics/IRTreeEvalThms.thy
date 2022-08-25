@@ -508,4 +508,58 @@ lemmas unfold_evaltree =
   but we want the more specific unfold_const32/64 rules to have priority.
   This does not seem possible with 'lemmas' - order is ignored.
 *)
+
+
+subsection \<open>Lemmas about $new\_int$ and integer eval results.\<close>
+
+lemma unary_eval_new_int:
+  assumes def: "unary_eval op x \<noteq> UndefVal"
+  shows "\<exists>b v. unary_eval op x = new_int b v"
+proof (cases "op \<in> normal_unary")
+  case True
+  then show ?thesis
+    by (metis def empty_iff insertE intval_abs.elims intval_logic_negation.simps(1) intval_logic_negation.simps(2) intval_logic_negation.simps(3) intval_logic_negation.simps(4) intval_negate.elims intval_not.simps(1) intval_not.simps(2) intval_not.simps(3) intval_not.simps(4) unary_eval.simps(1) unary_eval.simps(2) unary_eval.simps(3) unary_eval.simps(4)) 
+next
+  case False
+  consider ib ob where "op = UnaryNarrow ib ob" |
+           ib ob where "op = UnaryZeroExtend ib ob" |
+           ib ob where "op = UnarySignExtend ib ob"
+    by (metis False IRUnaryOp.exhaust insert_iff)
+  then show ?thesis
+  proof (cases)
+    case 1
+    then show ?thesis
+      unfolding 1
+      by (metis "1" def intval_narrow.elims unary_eval.simps(5))
+  next
+    case 2
+    then show ?thesis 
+      unfolding 2
+      by (metis "2" def intval_zero_extend.simps(1) intval_zero_extend_ok is_IntVal_def unary_eval.simps(7))
+  next
+    case 3
+    then show ?thesis
+      unfolding 3
+      by (metis "3" def intval_sign_extend.elims unary_eval.simps(6))
+  qed
+qed
+
+lemma new_int_unused_bits_zero:
+  assumes "IntVal b ival = new_int b ival0"
+  shows "take_bit b ival = ival"
+  using assms(1) new_int_take_bits by blast
+
+lemma unary_eval_unused_bits_zero:
+  assumes "unary_eval op x = IntVal b ival"
+  shows "take_bit b ival = ival"
+  using assms unary_eval_new_int
+  by (metis Value.inject(1) Value.simps(5) new_int.elims new_int_unused_bits_zero)
+
+lemma bin_eval_unused_bits_zero:
+  assumes "bin_eval op x y = (IntVal b ival)"
+  shows "take_bit b ival = ival"
+  using assms bin_eval_new_int
+  by (metis Value.distinct(1) Value.inject(1) new_int.elims new_int_take_bits) 
+
 end
+

@@ -25,7 +25,7 @@ lemma abs_pos:
 lemma abs_neg:
   fixes v :: "('a :: len word)"
   assumes "v <s 0"
-  assumes "-(2 ^ (Word.size_word_inst.size_word v - 1)) <s v" (* changed size func used*)
+  assumes "-(2 ^ (Nat.size v - 1)) <s v" (* changed size func used*)
   shows "(if v <s 0 then - v else v) = - v \<and> 0 <s -v"
   by (smt (verit, ccfv_SIG) assms(1) assms(2) signed_take_bit_int_greater_eq_minus_exp 
      signed_take_bit_int_greater_eq_self_iff sint_0 sint_word_ariths(4) word_sless_alt)
@@ -33,34 +33,29 @@ lemma abs_neg:
 lemma abs_max_neg:
   fixes v :: "('a :: len word)"
   assumes "v <s 0"
-  assumes "- (2 ^ (Word.size_word_inst.size_word v - 1)) = v" (* changed size func used *)
+  assumes "- (2 ^ (Nat.size v - 1)) = v" (* changed size func used *)
   shows "-v = v"
-  sorry
-  (*by (metis One_nat_def add.inverse_neutral assms(2) double_eq_zero_iff mult_minus_right 
-            wsst_TYs(3))*)
-
+  using assms
+  by (metis One_nat_def add.inverse_neutral double_eq_zero_iff mult_minus_right size_word.rep_eq)
 
 lemma final_abs:
   fixes v :: "('a :: len word)"
-  assumes "- (2 ^ (Word.size_word_inst.size_word v - 1)) \<noteq> v" (* changed size func used *)
+  assumes "take_bit (Nat.size v) v = v"
+  assumes "- (2 ^ (Nat.size v - 1)) \<noteq> v" (* changed size func used *)
   shows "0 \<le>s (if v <s 0 then -v else v)"
  
 proof (cases "v <s 0")
   case True
   then show ?thesis
-  proof (cases "v = - (2 ^ (Word.size_word_inst.size_word v - 1))") (* changed size func used *)
+  proof (cases "v = - (2 ^ (Nat.size v - 1))") (* changed size func used *)
     case True
     then show ?thesis using abs_max_neg
       using assms by presburger
   next
     case False
-    then have "- (2 ^ (Word.size_word_inst.size_word v - 1)) <s v" (* changed size func used *)
-      sorry
-      (*by (smt (verit, best) One_nat_def diff_less double_eq_zero_iff len_gt_0 lessI linorder_not_le
-          mult_minus_right neg_equal_0_iff_equal order_le_less 
-          signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_greater_self_iff 
-          signed_word_eqI sint_0 sint_range_size sint_word_ariths(4) unsigned_0 word_2p_lem 
-          word_sless_alt wsst_TYs(3))*)
+    then have "- (2 ^ (Nat.size v - 1)) <s v" (* changed size func used *)
+      unfolding word_sless_def using signed_take_bit_int_greater_self_iff
+      by (smt (verit, best) One_nat_def diff_less double_eq_zero_iff len_gt_0 lessI less_irrefl mult_minus_right neg_equal_0_iff_equal signed.rep_eq signed_of_int signed_take_bit_int_greater_eq_self_iff signed_word_eqI sint_0 sint_range_size sint_sbintrunc' sint_word_ariths(4) size_word.rep_eq unsigned_0 word_2p_lem word_sless.rep_eq word_sless_def)
     then show ?thesis
       using abs_neg abs_pos signed.nless_le by auto
   qed
@@ -107,12 +102,26 @@ lemma val_bool_unwrap:
   "val_to_bool (bool_to_val v) = v"
   by (metis bool_to_val.elims one_neq_zero val_to_bool.simps(1))
 
-lemma less_eq_def:
+lemma take_bit_unwrap:
+  "b = 64 \<Longrightarrow> take_bit b (v1::64 word) = v1"
+  by (metis size64 size_word.rep_eq take_bit_length_eq)
+
+lemma bit_less_eq_def:
+  fixes v1 v2 :: "64 word"
   assumes "b \<le> 64"
+  shows "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b v1))
+    < sint (signed_take_bit (b - Suc (0::nat)) (take_bit b v2)) \<longleftrightarrow>
+    signed_take_bit (63::nat) (Word.rep v1) < signed_take_bit (63::nat) (Word.rep v2)"
+  using assms sorry
+  (* likely untrue but is a very useful simplification temporarily during merging *)
+lemma less_eq_def:
+  (*assumes "0 < b \<and> b \<le> 64"*)
   shows "val_to_bool(val[(new_int b v1) < (new_int b v2)]) \<longleftrightarrow> v1 <s v2"
   unfolding new_int.simps intval_less_than.simps bool_to_val_bin.simps bool_to_val.simps int_signed_value.simps apply (simp add: val_bool_unwrap)
-  apply auto unfolding word_sless_def apply auto using assms
-  sorry (* likely untrue but is a very useful simplification temporarily during merging *)
+  apply auto unfolding word_sless_def apply auto
+  unfolding signed_def apply auto using bit_less_eq_def
+  apply (metis bot_nat_0.extremum take_bit_0)
+  by (metis bit_less_eq_def bot_nat_0.extremum take_bit_0)
 
 lemma val_abs_always_pos:
   assumes "intval_abs (new_int b v) = (new_int b v')"
@@ -121,8 +130,8 @@ lemma val_abs_always_pos:
 proof (cases "v = 0")
   case True
   then have "v' = 0"
-    using val_abs_zero assms unfolding new_int.simps
-    by (metis less_eq_def new_int.simps numeral_eq_Suc order_less_imp_le signed.not_less_iff_gr_or_eq take_bit_0 zero_less_Suc)
+    using val_abs_zero assms
+    by (smt (verit, ccfv_threshold) Suc_diff_1 bit_less_eq_def bot_nat_0.extremum diff_is_0_eq len_gt_0 len_of_numeral_defs(2) order_le_less signed_eq_0_iff take_bit_0 take_bit_signed_take_bit take_bit_unwrap)
   then show ?thesis by simp
 next
   case neq0: False
@@ -131,7 +140,7 @@ next
     case True
     then show ?thesis using less_eq_def
       using assms val_abs_pos
-      using new_int.simps signed.less_irrefl signed.not_less take_bit_0 zero_le by fastforce
+      by (smt (verit, ccfv_SIG) One_nat_def Suc_leI bit.compl_one bit_less_eq_def cancel_comm_monoid_add_class.diff_cancel diff_zero len_gt_0 len_of_numeral_defs(2) mask_0 mask_1 one_le_numeral one_neq_zero signed_word_eqI take_bit_dist_subL take_bit_minus_one_eq_mask take_bit_not_eq_mask_diff take_bit_signed_take_bit zero_le_numeral)
   next
     case False
     then have "val_to_bool(val[(new_int b v) < (new_int b 0)])"
@@ -181,7 +190,7 @@ proof -
       by (smt (verit, best) intval_abs.simps(1) less_eq_def less_eq_zero less_numeral_extra(1) mask_1 mask_eq_take_bit_minus_one neg_one.elims neg_one_signed new_int.simps one_le_numeral one_neq_zero signed.neqE signed.not_less take_bit_of_0 val_abs_always_pos)
     then show ?thesis using val_abs_always_pos
       using True in_def less_eq_def signed.leD
-      using signed.nless_le by fastforce
+      using signed.nless_le by blast
   next
     case False
     then show ?thesis

@@ -88,67 +88,27 @@ lemma simp_neutral:
 (* poor-mans is_neutral lemma *)
 lemma is_neutral_0 [simp]:
   assumes 1: "intval_add (IntVal b x) (IntVal b 0) \<noteq> UndefVal"
-  shows "intval_add (IntVal b x) (IntVal b 0) = (new_int b x)" (* NOTE: new_int is why the below optimization now fails *)
+  shows "intval_add (IntVal b x) (IntVal b 0) = (new_int b x)"
   using 1 by auto
 
 optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
   unfolding le_expr_def apply auto
-  using is_neutral_0 sorry
+  using is_neutral_0 eval_unused_bits_zero
+  by (smt (verit) add_cancel_left_right intval_add.elims val_to_bool.simps(1))
 
 
 ML_val \<open>@{term \<open>x = y\<close>}\<close>
 
-optimization NeutralLeftSub[intval]: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
-   prefer 3 unfolding intval.simps
-(* NOTE: this unfolds to three goals, but the first one is not easy to instantiate.
-         Maybe it needs to be universally quantified like 'just_goal2' below.
- 1. intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' \<noteq> UndefVal \<and>
-    e\<^sub>1' \<noteq> UndefVal \<longrightarrow>
-    intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' = e\<^sub>1'
- 2. intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' \<noteq> UndefVal \<and>
-    e\<^sub>1' \<noteq> UndefVal \<longrightarrow>
-    intval_add (intval_sub e\<^sub>1' e\<^sub>2') e\<^sub>2' = e\<^sub>1' \<Longrightarrow>
-    BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2 \<sqsupseteq> e\<^sub>1
- 3. Common.size e\<^sub>1
-    < Common.size
-       (BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2)
-*)
-   using intval_add.simps intval_sub.simps sorry (*
-    apply (metis (no_types, lifting) diff_add_cancel val_to_bool.cases)
-  unfolding le_expr_def unfold_binary unfold_const unfold_valid32 bin_eval.simps 
-(*  subgoal premises
-   apply (auto)
-    subgoal premises p2 for m p x y ya
-    print_facts
-    thm evalDet[of m p e\<^sub>2 ya y]
-    (* use evalDet to deduce ya=y and rewrite ya to y *)
-    using p2 apply (simp add: evalDet[of m p e\<^sub>2 ya y])
-    apply (subgoal_tac "intval_add (intval_sub x y) y = x")
-    apply simp
-*)
+lemma NeutralLeftSubVal:
+  assumes "e1 = new_int b ival"
+  shows "val[(e1 - e2) + e2] \<approx> e1"
+  apply simp using assms by (cases e1; cases e2; auto)
+  
 
-  subgoal premises p1
-    apply ((rule allI)+; rule impI)
-    subgoal premises p2 for m p v
-      print_facts
-    proof -
-      obtain x y xa where xa: "[m,p] \<turnstile> e\<^sub>1 \<mapsto> xa" and "xa \<noteq> UndefVal"
-        and y: "[m,p] \<turnstile> e\<^sub>2 \<mapsto> y"      and "y \<noteq> UndefVal"
-        and x: "x = intval_sub xa y" and "x \<noteq> UndefVal"
-        and v: "v = intval_add x y"  and "v \<noteq> UndefVal"
-        by (metis evalDet p2 evaltree_not_undef)
-      then have "v = intval_add (intval_sub xa y) y" by auto
-      then have "v = xa"
-        print_facts
-        using p1 p2 apply simp
-        by (smt (z3) Value.distinct(9) Value.inject(1) Value.inject(2) \<open>v \<noteq> UndefVal\<close> x \<open>x \<noteq> UndefVal\<close> diff_add_cancel intval_add.elims intval_sub.elims) 
-      then show "[m,p] \<turnstile> e\<^sub>1 \<mapsto> v"
-        by (simp add: xa)
-      thm intval_add.elims
-    qed
-    done
-  using size_non_const by fastforce*)
-
+optimization NeutralLeftSub: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
+  apply auto using eval_unused_bits_zero NeutralLeftSubVal
+  unfolding well_formed_equal_defn
+  by (smt (verit) evalDet intval_sub.elims new_int.elims)
 
 (* a little helper lemma for using universal quantified assumptions *)
 lemma allE2: "(\<forall>x y. P x y) \<Longrightarrow> (P a b \<Longrightarrow> R) \<Longrightarrow> R"
@@ -158,64 +118,12 @@ lemma just_goal2:
   assumes 1: "(\<forall> a b. (intval_add (intval_sub a b) b \<noteq> UndefVal \<and> a \<noteq> UndefVal \<longrightarrow>
     intval_add (intval_sub a b) b = a))"
   shows "(BinaryExpr BinAdd (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) e\<^sub>2) \<ge> e\<^sub>1"
-(* without unfold_binary: but can this be done better?  
-  unfolding le_expr_def 
-  apply (auto)
-  subgoal premises 2 for m p y xa ya
-  print_facts
-  thm evalDet[of m p e2 y ya]
-  apply (simp add:evalDet[OF 2(1) 2(4)])
-  thm allE2[of _ xa ya]
-  using 1 apply (rule allE2[of _ xa ya])
-  using 2 by (metis evalDet evaltree_not_undef) 
-  done
-*)
-(*  using unfold_binary: *)
   unfolding le_expr_def unfold_binary bin_eval.simps
   by (metis 1 evalDet evaltree_not_undef)
 
 
-optimization NeutralRightSub[intval]: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
-  using NeutralLeftSub(1) intval_add_sym apply auto[1]
-  oops
-
-(* these are the three proof obligations it should generate? *)
-lemma NeutralRightSub_1: "intval_add a (intval_sub b a) \<noteq> UndefVal \<and>
-    b \<noteq> UndefVal \<longrightarrow>
-    intval_add a (intval_sub b a) = b" (is "?U1 \<and> ?U2 \<longrightarrow> ?C")
-proof 
-  assume "?U1 \<and> ?U2"
-  (* split into 32 and 64 bit cases: *)
-  then have i: "\<exists> by aa bb. (a = IntVal by aa) \<and> (b = IntVal by bb)"
-    by (smt (verit) NeutralLeftSub(1) intval.simps(1) intval_add.elims intval_add_sym)
-  then show ?C
-    using NeutralLeftSub(1) \<open>intval_add (a::Value) (intval_sub (b::Value) a) \<noteq> UndefVal \<and> b \<noteq> UndefVal\<close> intval.simps(1) intval_add_sym by auto
-qed
-
-(* An experiment to see if the generated assumption is useful? *)
-lemma NeutralRightSub_2:
-  (* does not use the assms because uses NeutralRightSub_1 instead *)
-  "(( intval_add a (intval_sub b a) \<noteq> UndefVal \<and> b \<noteq> UndefVal
-      \<longrightarrow> intval_add a (intval_sub b a) = b)
-    \<Longrightarrow> BinaryExpr BinAdd e\<^sub>2 (BinaryExpr BinSub e\<^sub>1 e\<^sub>2) \<ge> e\<^sub>1)"
-  unfolding le_expr_def unfold_binary
-  subgoal premises 1
-    apply (rule allI)+
-    subgoal for m p v
-      apply auto
-      subgoal premises 2 for a b c
-        thm evalDet[OF 2(1) 2(5)] (* show that a and c are the same *)
-        unfolding evalDet[OF 2(1) 2(5)]
-        using "2"(2) "2"(4) NeutralRightSub_1 \<open>a = c\<close> by fastforce 
-      done
-    done
-  done
-
-lemma NeutralRightSub_3:
-  "(size e\<^sub>1 < size (BinaryExpr BinAdd e\<^sub>2 (BinaryExpr BinSub e\<^sub>1 e\<^sub>2)))"
-  using size_non_const by fastforce
-
-
+optimization NeutralRightSub: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
+  by (smt (verit, del_insts) BinaryExpr BinaryExprE NeutralLeftSub(1) binadd_commute le_expr_def rewrite_preservation.simps(1))
 
 (* Demonstration of our FOUR levels of expression rewrites:
    =======================================================
@@ -292,10 +200,10 @@ print_phases
 
 (* Value level proofs *)
 lemma val_redundant_add_sub:
+  assumes "a = new_int bb ival"
   assumes "val[b + a] \<noteq> UndefVal"
   shows "val[(b + a) - b] = a"
   using assms apply (cases a; cases b; auto)
-  apply (metis (no_types, lifting) NeutralRightSub_1 Value.distinct(1) Value.inject(1) intval_add.simps(1) intval_sub.simps(1) new_int.elims new_int_bin.elims take_bit_dist_subL)
   by presburger
 
 lemma val_add_right_negate_to_sub:
@@ -311,8 +219,8 @@ lemma exp_add_left_negate_to_sub:
 
 (* Optimizations *)
 optimization opt_redundant_sub_add: "(b + a) - b \<longmapsto> a"
-   apply auto using val_redundant_add_sub 
-  by (metis evalDet)
+   apply auto using val_redundant_add_sub eval_unused_bits_zero
+  by (smt (verit) evalDet intval_add.elims new_int.elims)
 
 optimization opt_add_right_negate_to_sub: "(x + (-e)) \<longmapsto> x - e"
    using AddToSubHelperLowLevel intval_add_sym by auto 

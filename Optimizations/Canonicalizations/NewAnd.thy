@@ -100,13 +100,13 @@ lemma intval_or_absorb_and:
 
 lemma exp_and_absorb_or:
   "exp[x & (x | y)] \<ge> exp[x]"
-  apply simp using intval_and_absorb_or sorry (*
-  by (smt (verit, best) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet)*)
+  apply auto using intval_and_absorb_or eval_unused_bits_zero
+  by (smt (verit) evalDet intval_or.elims new_int.elims)
 
 lemma exp_or_absorb_and:
   "exp[x | (x & y)] \<ge> exp[x]"
-  apply simp using intval_or_absorb_and sorry (*
-  by (smt (verit) BinaryExprE bin_eval.simps(4) bin_eval.simps(5) evalDet)*)
+  apply auto using intval_or_absorb_and eval_unused_bits_zero
+  by (smt (verit) evalDet intval_or.elims new_int.elims)
 
 context
   includes bit_operations_syntax

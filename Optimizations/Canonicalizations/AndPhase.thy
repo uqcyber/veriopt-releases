@@ -34,10 +34,12 @@ lemma val_and_nots:
 
 lemma val_and_neutral:
   assumes "x = new_int b v"
-  shows "val[x & ~(new_int b 0)] = x"
+  assumes "val[x & ~(new_int b' 0)] \<noteq> UndefVal"
+  shows "val[x & ~(new_int b' 0)] = x"
    using assms 
    apply (cases x; auto)
-   by (simp add: take_bit_eq_mask) 
+   apply (simp add: take_bit_eq_mask) 
+   by presburger
 
 (* Not sure if this one is written correctly *)
 (* Rewrite is AndNode line 129 *)
@@ -63,8 +65,8 @@ lemma val_and_zero:
 (* Exp level proofs *)
 lemma exp_and_equal:
   "exp[x & x] \<ge> exp[x]"
-   apply simp using val_and_equal sorry (* 
-  by (metis bin_eval.simps(4) evalDet evaltree_not_undef unfold_binary)*)
+   apply auto using val_and_equal eval_unused_bits_zero
+  by (smt (verit) evalDet intval_and.elims new_int.elims)
 
 lemma exp_and_nots:
   "exp[~x & ~y] \<ge> exp[~(x | y)]"
@@ -73,7 +75,7 @@ lemma exp_and_nots:
 
 lemma exp_and_neutral: 
   "exp[x & ~(const (new_int b 0))] \<ge> x"
-  apply auto using val_and_neutral sorry (*
+  apply auto using val_and_neutral eval_unused_bits_zero sorry (*
   apply (cases x; simp) using val_and_neutral bin_eval.simps(4)  
   apply (smt (verit) BinaryExprE Value.collapse(1) intval_and.simps(12) intval_not.simps(2) 
          is_IntVal_def unary_eval.simps(3) unary_eval_int unfold_const64 unfold_unary) 

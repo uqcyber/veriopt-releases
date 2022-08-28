@@ -84,6 +84,15 @@ lemma exp_xor_associative:
   apply simp using intval_xor_associative by fastforce
 
 
+lemma
+  fixes x y z :: "('a::len) word"
+  assumes "and y z = 0"
+  assumes "z \<noteq> 0"
+  shows "and ((take_bit (Nat.size x) (x + y))) z = x"
+  using assms sorry
+
+value "and ((2::64 word) + 0) 1"
+
 lemma intval_and_absorb_or:
   assumes "\<exists>b v . x = new_int b v" (* TODO: required? *)
   assumes "val[x & (x | y)] \<noteq> UndefVal"
@@ -121,6 +130,50 @@ end
 lemma negative_all_set_32:
   "n < 32 \<Longrightarrow> bit (-1::int32) n"
   apply transfer by auto
+
+definition MaxOrZero :: "nat set \<Rightarrow> nat" where
+  "MaxOrZero s = (if s = {} then 0 else Max s)"
+
+definition highestOneBit :: "('a::len) word \<Rightarrow> nat" where
+  "highestOneBit v = MaxOrZero {n . bit v n}"
+
+lemma max_bit: "bit (v::('a::len) word) n \<Longrightarrow> n < Nat.size v"
+  by (simp add: bit_imp_le_length size_word.rep_eq)
+
+lemma max_set_bit: "MaxOrZero {n . bit (v::('a::len) word) n} \<le> Nat.size v"
+  using max_bit unfolding MaxOrZero_def
+  by force
+
+definition numberOfLeadingZeros :: "('a::len) word \<Rightarrow> nat" where
+  "numberOfLeadingZeros v = Nat.size v - highestOneBit v"
+
+lemma MaxOrZero_zero: "MaxOrZero {} = 0"
+  by (simp add: MaxOrZero_def)
+
+lemma MaxOrZero_max: "s \<noteq> {} \<Longrightarrow> MaxOrZero s = Max s"
+  by (simp add: MaxOrZero_def)
+
+lemma zero_no_bits:
+  "{n . bit 0 n} = {}"
+  by simp
+
+lemma "highestOneBit (0::64 word) = 0"
+  by (simp add: MaxOrZero_zero highestOneBit_def)
+
+lemma "numberOfLeadingZeros (0::64 word) = 64"
+  unfolding numberOfLeadingZeros_def
+  by (simp add: MaxOrZero_zero highestOneBit_def size64)
+
+lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} \<le> 64"
+  unfolding highestOneBit_def
+  by (metis Max_singleton max_set_bit size64)
+
+lemma numberOfLeadingZeros_top: "Max {numberOfLeadingZeros (v::64 word)} \<le> 64"
+  unfolding numberOfLeadingZeros_def
+  by (simp add: size64)
+
+lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v"
+  by (simp add: highestOneBit_def max_set_bit numberOfLeadingZeros_def)
 
 locale stamp_mask =
   fixes up :: "IRExpr \<Rightarrow> int64" ("\<up>")
@@ -202,6 +255,44 @@ lemma exp_eliminate_y:
     ultimately have rhs: "v = val[xv & zv]"
       using intval_eliminate_y lhs by force
     from lhs rhs show ?thesis
+      by (metis BinaryExpr BinaryExprE bin_eval.simps(4) e xv zv)
+  qed
+  done
+  done
+
+lemma wrong:
+  assumes "numberOfLeadingZeros (\<down>z) + highestOneBit (\<down>z) = 64"
+  assumes "\<down>z \<noteq> 0"
+  assumes "and (\<up>y) (\<down>z) = 0"
+  shows "exp[(x + y) & z] \<ge> x"
+  using assms apply auto sorry
+
+lemma right:
+  (* assumes "numberOfLeadingZeros (\<up>z) + highestOneBit (\<up>z) = 64" see: leadingZerosAddHighestOne *)
+  assumes "\<up>z \<noteq> 0"
+  assumes "and (\<up>y) (\<up>z) = 0"
+  shows "exp[(x + y) & z] \<ge> x"
+  using assms apply simp apply (rule allI)+
+  subgoal premises p for m p v apply (rule impI) subgoal premises e
+    print_facts
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using e by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using e by auto
+    obtain zv where zv: "[m,p] \<turnstile> z \<mapsto> zv"
+      using e by auto
+    have lhs: "v = val[(xv + yv) & zv]"
+      using xv yv zv
+      by (smt (verit, best) BinaryExprE bin_eval.simps(1) bin_eval.simps(4) e evalDet)
+    have "val[yv & zv] \<noteq> UndefVal"
+      sorry
+    also have "\<exists>b. val[yv & zv] = new_int b 0"
+      using intval_up_and_zero_implies_zero yv zv p(2)
+      using calculation by presburger
+    ultimately have rhs: "v = val[xv & zv]"
+      using intval_eliminate_y lhs by force
+    from lhs rhs show ?thesis sorry
       by (metis BinaryExpr BinaryExprE bin_eval.simps(4) e xv zv)
   qed
   done

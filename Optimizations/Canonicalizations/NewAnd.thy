@@ -84,15 +84,6 @@ lemma exp_xor_associative:
   apply simp using intval_xor_associative by fastforce
 
 
-lemma
-  fixes x y z :: "('a::len) word"
-  assumes "and y z = 0"
-  assumes "z \<noteq> 0"
-  shows "and ((take_bit (Nat.size x) (x + y))) z = x"
-  using assms sorry
-
-value "and ((2::64 word) + 0) 1"
-
 lemma intval_and_absorb_or:
   assumes "\<exists>b v . x = new_int b v" (* TODO: required? *)
   assumes "val[x & (x | y)] \<noteq> UndefVal"
@@ -174,6 +165,170 @@ lemma numberOfLeadingZeros_top: "Max {numberOfLeadingZeros (v::64 word)} \<le> 6
 
 lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v"
   by (simp add: highestOneBit_def max_set_bit numberOfLeadingZeros_def)
+
+definition bitCount :: "('a::len) word \<Rightarrow> nat" where
+  "bitCount v = card {n . bit v n}"
+
+lemma "bitCount 0 = 0"
+  unfolding bitCount_def
+  by (metis card.empty zero_no_bits)
+
+lemma negone_set:
+  "bit (-1::('a::len) word) n \<longleftrightarrow> n < LENGTH('a)"
+  by simp
+
+lemma negone_all_bits:
+  "{n . bit (-1::('a::len) word) n} = {n . 0 \<le> n \<and> n < LENGTH('a)}"
+  using negone_set
+  by auto
+
+lemma bitCount_finite:
+  "finite {n . bit (v::('a::len) word) n}"
+  by simp
+
+lemma card_of_range:
+  "x = card {n . 0 \<le> n \<and> n < x}"
+  by simp
+
+lemma range_of_nat:
+  "{(n::nat) . 0 \<le> n \<and> n < x} = {n . n < x}"
+  by simp
+
+lemma finite_range:
+  "finite {n::nat . n < x}"
+  by simp
+
+lemma card_of_range_bound:
+  fixes x y :: nat
+  assumes "x > y"
+  shows "x - y = card {n . y < n \<and> n \<le> x}"
+proof -
+  have finite: "finite {n . y \<le> n \<and> n < x}"
+    by auto
+  have "x - y \<ge> 1"
+    using assms
+    by simp
+  show ?thesis
+    apply (cases "{n . y \<le> n \<and> n < x} = {}")
+    using assms apply blast
+    using assms finite apply auto sorry
+qed
+
+lemma "bitCount (-1::('a::len) word) = LENGTH('a)"
+  unfolding bitCount_def using card_of_range
+  by (metis (no_types, lifting) Collect_cong negone_all_bits)
+
+lemma bitCount_range:
+  fixes n :: "('a::len) word"
+  shows "0 \<le> bitCount n \<and> bitCount n \<le> Nat.size n"
+  unfolding bitCount_def
+  by (metis atLeastLessThan_iff bot_nat_0.extremum max_bit mem_Collect_eq subsetI subset_eq_atLeast0_lessThan_card)
+
+lemma zerosAboveHighestOne:
+  "n > highestOneBit a \<Longrightarrow> \<not>(bit a n)"
+  unfolding highestOneBit_def MaxOrZero_def
+  by (metis (mono_tags, lifting) Collect_empty_eq Max_ge bitCount_finite linorder_not_le mem_Collect_eq)
+
+lemma union_bit_sets:
+  fixes a :: "('a::len) word"
+  shows "{n . n < Nat.size a \<and> bit a n} \<union> {n . n < Nat.size a \<and> \<not>(bit a n)} = {n . n < Nat.size a}"
+  by fastforce
+
+lemma disjoint_bit_sets:
+  fixes a :: "('a::len) word"
+  shows "{n . n < Nat.size a \<and> bit a n} \<inter> {n . n < Nat.size a \<and> \<not>(bit a n)} = {}"
+  by blast
+
+lemma qualified_bitCount:
+  "bitCount v = card {n . n < Nat.size v \<and> bit v n}"
+  by (metis (no_types, lifting) Collect_cong bitCount_def max_bit)
+
+lemma card_eq:
+  assumes "finite x \<and> finite y \<and> finite z"
+  assumes "x \<union> y = z"
+  assumes "y \<inter> x = {}"
+  shows "card z - card y = card x"
+  using assms add_diff_cancel_right' card_Un_disjoint
+  by (metis inf.commute)
+
+lemma card_add:
+  assumes "finite x \<and> finite y \<and> finite z"
+  assumes "x \<union> y = z"
+  assumes "y \<inter> x = {}"
+  shows "card x + card y = card z"
+  using assms card_Un_disjoint
+  by (metis inf.commute)
+
+lemma intersect_bitCount_helper:
+  "card {n . n < Nat.size a} - bitCount a = card {n . n < Nat.size a \<and> \<not>(bit a n)}"
+proof -
+  have size_def: "Nat.size a = card {n . n < Nat.size a}"
+    using card_of_range by simp
+  have bitCount_def: "bitCount a = card {n . n < Nat.size a \<and> bit a n}"
+    using qualified_bitCount by auto
+  have disjoint: "{n . n < Nat.size a \<and> bit a n} \<inter> {n . n < Nat.size a \<and> \<not>(bit a n)} = {}"
+    using disjoint_bit_sets by auto
+  have union: "{n . n < Nat.size a \<and> bit a n} \<union> {n . n < Nat.size a \<and> \<not>(bit a n)} = {n . n < Nat.size a}"
+    using union_bit_sets by auto
+  show ?thesis
+    unfolding bitCount_def
+    apply (rule card_eq)
+    using finite_range apply simp
+    using union apply blast
+    using disjoint by simp
+qed
+
+lemma intersect_bitCount:
+  "Nat.size a - bitCount a = card {n . n < Nat.size a \<and> \<not>(bit a n)}"
+  using card_of_range intersect_bitCount_helper by auto
+
+hide_fact intersect_bitCount_helper
+
+lemma packed_bits:
+  fixes a :: "64 word"
+  assumes "numberOfLeadingZeros a + bitCount a = 64"
+  shows "n \<le> highestOneBit a \<longrightarrow> bit a n"
+proof -
+  obtain j where j: "j = highestOneBit a"
+    by simp
+  then have "\<forall>i. i < Nat.size a \<and> i > j \<longrightarrow> \<not>(bit a i)"
+    unfolding highestOneBit_def
+    by (simp add: j zerosAboveHighestOne)
+  have "Nat.size a > highestOneBit a"
+    unfolding highestOneBit_def MaxOrZero_def
+    by (simp add: max_bit)
+  then have jcard: "card {i. j < i \<and> i \<le> Nat.size a} = numberOfLeadingZeros a"
+    unfolding numberOfLeadingZeros_def using j card_of_range_bound
+    by presburger
+  obtain k where k: "k = Nat.size a - numberOfLeadingZeros a"
+    by presburger
+  then have "k = bitCount a"
+    using assms
+    using size64 by auto
+  have union: "{i. j < i \<and> i < Nat.size a} \<union> {i. i \<le> j} = {i. i < Nat.size a}"
+    sorry
+  have intersect: "{i. j < i \<and> i < Nat.size a} \<inter> {i. i \<le> j} = {}"
+    by force
+  have "card {i. j < i \<and> i < Nat.size a} + card {i. i \<le> j} = card {i. i < Nat.size a}"
+    using card_add intersect union
+    by (metis (no_types, lifting) Int_commute bounded_nat_set_is_finite finite_Un mem_Collect_eq)
+  then have "numberOfLeadingZeros a + card {i. i \<le> j} = Nat.size a"
+    unfolding jcard card_of_range sorry
+  then have "k = card {i. i \<le> j}"
+    using assms k
+    by linarith
+  have "{i. j < i \<and> i < Nat.size a} \<inter> {i. i \<le> j} = {}"
+    using intersect by blast
+  have "\<forall>i . i \<in> {i. j < i \<and> i < Nat.size a} \<longrightarrow> \<not>(bit a i)"
+    using \<open>\<forall>i::nat. i < size_class.size (a::64 word) \<and> (j::nat) < i \<longrightarrow> \<not> bit a i\<close> by blast
+  then have "\<forall>i . i \<in> {i. i \<le> j} \<longrightarrow> bit a i"
+    sorry
+  then have "\<forall>i. i \<le> j \<longrightarrow> bit a i"
+    by blast
+  then show ?thesis
+    using j by blast
+qed
+
 
 locale stamp_mask =
   fixes up :: "IRExpr \<Rightarrow> int64" ("\<up>")
@@ -260,6 +415,7 @@ lemma exp_eliminate_y:
   done
   done
 
+(*
 lemma wrong:
   assumes "numberOfLeadingZeros (\<down>z) + highestOneBit (\<down>z) = 64"
   assumes "\<down>z \<noteq> 0"
@@ -267,7 +423,7 @@ lemma wrong:
   shows "exp[(x + y) & z] \<ge> x"
   using assms apply auto sorry
 
-lemma right:
+lemma wrong2:
   (* assumes "numberOfLeadingZeros (\<up>z) + highestOneBit (\<up>z) = 64" see: leadingZerosAddHighestOne *)
   assumes "\<up>z \<noteq> 0"
   assumes "and (\<up>y) (\<up>z) = 0"
@@ -291,10 +447,34 @@ lemma right:
       using intval_up_and_zero_implies_zero yv zv p(2)
       using calculation by presburger
     ultimately have rhs: "v = val[xv & zv]"
-      using intval_eliminate_y lhs by force
+      using intval_eliminate_y lhs sorry
     from lhs rhs show ?thesis sorry
-      by (metis BinaryExpr BinaryExprE bin_eval.simps(4) e xv zv)
   qed
+  done
+  done*)
+
+lemma right:
+  assumes "numberOfLeadingZeros (\<up>z) + bitCount (\<up>z) = 64"
+  assumes "\<up>z \<noteq> 0"
+  assumes "and (\<up>y) (\<up>z) = 0"
+  shows "exp[(x + y) & z] \<ge> x"
+apply simp apply (rule allI)+ 
+  subgoal premises p for m p v apply (rule impI) subgoal premises e
+proof -
+  have lowerupset: "\<forall>n. n \<le> highestOneBit (\<up>z) \<longrightarrow> bit (\<up>z) n"
+    using assms(1) packed_bits
+    by simp
+  obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+    using e by auto
+  obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+    using e by auto
+  obtain zv b where zv: "[m,p] \<turnstile> z \<mapsto> IntVal b zv"
+    using e
+    by (metis EvalTreeE(5) bin_eval_inputs_are_ints bin_eval_new_int new_int.simps)
+  then have "\<forall>n. n \<le> highestOneBit (zv) \<longrightarrow> bit (zv) n"
+    using lowerupset sorry
+  then show ?thesis sorry
+qed
   done
   done
 

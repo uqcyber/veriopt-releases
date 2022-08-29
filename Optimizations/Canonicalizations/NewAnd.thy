@@ -285,9 +285,99 @@ lemma intersect_bitCount:
 
 hide_fact intersect_bitCount_helper
 
+lemma
+  assumes "y = 0"
+  shows "x + y = or x y"
+  using assms
+  by simp
+
+(*
+lemma
+  fixes x y :: "64 word"
+  assumes "\<exists>e. n = 2^e"
+  assumes "and y n = 0"
+  shows "x + y = (or (and x n) (and y n)) + ((x >> n) + (y >> n) << n)"
+*)
+
+lemma no_overlap_or:
+  assumes "and x y = 0"
+  shows "x + y = or x y"
+  using assms
+  by (metis bit_and_iff bit_xor_iff disjunctive_add xor_self_eq)
+
+(*lemma no_carry_zero_bit:
+  assumes "\<not>(bit y j)"
+  assumes "\<not>(bit y (Suc j))"
+  shows "bit (x + y) (Suc j) = bit x (Suc j)"
+  using assms sorry*)
+
+lemma
+  fixes x y :: "'a :: len word"
+  assumes "(and y (mask (Suc j))) = 0"
+  shows "bit (x + y) j = bit (or x y) j"
+  using assms proof (induction j)
+  case 0
+  then show ?case
+    by (metis Word.mask_Suc_0 bit_0 bit_1_iff bit_and_iff bit_mask_iff even_add even_or_iff less_numeral_extra(3) mask_0)
+next
+  case (Suc j)
+  then show ?case sorry
+qed
+
+lemma packed_bottom_zeros_elim_add:
+  fixes x y :: "'a :: len word"
+  assumes "\<And>n. n \<le> j \<Longrightarrow> \<not>(bit y n)"
+  shows "bit (x + y) j = bit x j"
+  using assms 
+proof -
+  have "(and y (mask j)) = 0"
+    using assms
+    by (metis (no_types, opaque_lifting) bit_and_iff bit_eq_iff bit_mask_iff order_le_less zero_and_eq)
+  have "bit (x + y) j = bit (or x y) j"
+    using assms
+    proof (induction j)
+      case 0
+      then show ?case
+        by (simp add: even_or_iff)
+    next
+      case (Suc j)
+      then show ?case sorry
+    qed
+  then show ?thesis
+    by (simp add: assms bit_or_iff)
+qed(*
+proof (induction j)
+  case 0
+  then show ?case
+    by auto
+next
+  case (Suc j)
+  have "(and y (2^(Suc j))) = 0"
+    using Suc.prems and_exp_eq_0_iff_not_bit by blast
+  
+  then show ?case sorry
+qed 
+  
+  using assms bit_and_iff bit_xor_iff disjunctive_add xor_self_eq sorry*)
+ (*
+using assms proof (induction j)
+  case 0
+  then show ?case
+    by (metis assms bit_0 bot_nat_0.extremum even_add)
+next
+  case (Suc j)
+  have j0: "\<not>(bit y j)"
+    by (simp add: Suc.prems)
+  have sj0: "\<not>(bit y (Suc j))"
+    by (simp add: Suc.prems)
+  show ?case using j0 sj0 no_overlap_or
+    by blast
+qed *)
+
 lemma packed_bits:
   fixes a :: "64 word"
   assumes "numberOfLeadingZeros a + bitCount a = 64"
+  assumes "a \<noteq> 0"
   shows "n \<le> highestOneBit a \<longrightarrow> bit a n"
 proof -
   obtain j where j: "j = highestOneBit a"
@@ -298,7 +388,7 @@ proof -
   have "Nat.size a > highestOneBit a"
     unfolding highestOneBit_def MaxOrZero_def
     by (simp add: max_bit)
-  then have jcard: "card {i. j < i \<and> i \<le> Nat.size a} = numberOfLeadingZeros a"
+  then have jcard: "numberOfLeadingZeros a = card {i. j < i \<and> i \<le> Nat.size a}"
     unfolding numberOfLeadingZeros_def using j card_of_range_bound
     by presburger
   obtain k where k: "k = Nat.size a - numberOfLeadingZeros a"
@@ -307,27 +397,33 @@ proof -
     using assms
     using size64 by auto
   have union: "{i. j < i \<and> i < Nat.size a} \<union> {i. i \<le> j} = {i. i < Nat.size a}"
-    sorry
+    apply auto
+    by (simp add: \<open>highestOneBit (a::64 word) < size_class.size a\<close> j order_le_less_trans)
   have intersect: "{i. j < i \<and> i < Nat.size a} \<inter> {i. i \<le> j} = {}"
     by force
   have "card {i. j < i \<and> i < Nat.size a} + card {i. i \<le> j} = card {i. i < Nat.size a}"
     using card_add intersect union
     by (metis (no_types, lifting) Int_commute bounded_nat_set_is_finite finite_Un mem_Collect_eq)
-  then have "numberOfLeadingZeros a + card {i. i \<le> j} = Nat.size a"
-    unfolding jcard card_of_range sorry
-  then have "k = card {i. i \<le> j}"
+  then have "numberOfLeadingZeros a + card {i. i \<le> j} = Nat.size a + 1"
+    unfolding jcard card_of_range apply auto
+    by (metis j jcard leadingZerosAddHighestOne)
+  then have "k = card {i. i < j}"
     using assms k
-    by linarith
+    by (simp add: add.commute)
   have "{i. j < i \<and> i < Nat.size a} \<inter> {i. i \<le> j} = {}"
     using intersect by blast
   have "\<forall>i . i \<in> {i. j < i \<and> i < Nat.size a} \<longrightarrow> \<not>(bit a i)"
     using \<open>\<forall>i::nat. i < size_class.size (a::64 word) \<and> (j::nat) < i \<longrightarrow> \<not> bit a i\<close> by blast
-  then have "\<forall>i . i \<in> {i. i \<le> j} \<longrightarrow> bit a i"
+  then have "\<forall>i . i \<in> {i. i < j} \<longrightarrow> bit a i"
     sorry
-  then have "\<forall>i. i \<le> j \<longrightarrow> bit a i"
+  then have less: "\<forall>i. i < j \<longrightarrow> bit a i"
     by blast
+  have eq: "bit a j"
+    using j unfolding highestOneBit_def MaxOrZero_def
+    by (metis Max_in assms(2) disjunctive_diff eq_iff_diff_eq_0 equals0D finite_bit_word mem_Collect_eq zero_and_eq)
   then show ?thesis
-    using j by blast
+    using j
+    by (simp add: less order_le_less)
 qed
 
 
@@ -486,28 +582,38 @@ proof -
     by (smt (verit) EvalTreeE(5) Value.sel(1) Value.sel(2) bin_eval.simps(4) e evalDet intval_and.elims new_int.simps new_int_bin.simps xyv)
   then have veval: "v = IntVal b (and (xv + yv) zv)"
     by (metis (no_types, lifting) eval_unused_bits_zero take_bit_eq_mask word_bw_comms(1) word_bw_lcs(1) zv)
-  obtain n :: nat where "n \<le> 64"
-    by auto
+  have obligation: "(and (xv + yv) zv) = (and xv zv) \<Longrightarrow> [m,p] \<turnstile> BinaryExpr BinAnd x z \<mapsto> v"
+    by (smt (verit) EvalTreeE(5) Value.inject(1) \<open>(v::Value) = IntVal (b::nat) (take_bit b (and (take_bit b ((xv::64 word) + (yv::64 word))) (zv::64 word)))\<close> \<open>(xyv::64 word) = take_bit (b::nat) ((xv::64 word) + (yv::64 word))\<close> bin_eval.simps(4) e evalDet eval_unused_bits_zero evaltree.simps intval_and.simps(1) take_bit_and xv xyv zv)
+  have per_bit: "\<forall>n . bit (and (xv + yv) zv) n = bit (and xv zv) n \<Longrightarrow> (and (xv + yv) zv) = (and xv zv)"
+    by (simp add: bit_eq_iff)
   show ?thesis
+    apply (rule obligation)
+    apply (rule per_bit)
+    apply (rule allI)
+    subgoal for n
   proof (cases "n \<le> j")
     case True
     then have "\<not>(bit yv n)"
-      by (metis (no_types, lifting) assms(1) assms(3) bit_and_iff bit_not_iff_eq down_spec j not_may_implies_false packed_bits yv)
+      by (metis (no_types, opaque_lifting) assms(1) assms(2) assms(3) bit_and_iff bit_not_iff impossible_bit j packed_bits ucast_id up_spec yv)
+    have "\<forall>n' . n' \<le> n \<longrightarrow> \<not>(bit yv n')"
+      by (metis (no_types, lifting) True assms(1) assms(2) assms(3) bit_and_iff bit_not_iff down_spec dual_order.trans j not_may_implies_false packed_bits yv)
     then have "bit (xv + yv) n = bit xv n"
-      sorry (* this is the hard one - it comes from the lack of carry and that yv is zero *)
-    then have "bit (and (xv + yv) zv) n = bit (and xv zv) n"
+      using packed_bottom_zeros_elim_add
+      by blast
+    then show ?thesis
       by (simp add: bit_and_iff)
-    then show ?thesis using veval sorry
   next
     case False
     then have "\<not>(bit zv n)"
       by (metis j linorder_not_less not_may_implies_false zerosAboveHighestOne zv)
-    then have "\<not>(bit (and (xv + yv) zv) n)"
+    then have v: "\<not>(bit (and (xv + yv) zv) n)"
       by (simp add: bit_and_iff)
-    then have "\<not>(bit (and xv zv) n)"
+    then have v': "\<not>(bit (and xv zv) n)"
       by (simp add: \<open>\<not> bit (zv::64 word) (n::nat)\<close> bit_and_iff)
-    then show ?thesis sorry
+    from v v' show ?thesis
+      by simp
   qed
+  done
 qed
   done
   done

@@ -148,4 +148,44 @@ optimization opt_MultiplyNegative: "x * -(const (IntVal b 1)) \<longmapsto> -x"
 
 end (* End of MulPhase *)
 
+lemma take_bit64[simp]: 
+  fixes w :: "int64"
+  shows "take_bit 64 w = w"
+proof -
+  have "Nat.size w = 64"
+    by (simp add: size64)
+  then show ?thesis
+    by (metis lt2p_lem mask_eq_iff take_bit_eq_mask verit_comp_simplify1(2) wsst_TYs(3))
+qed
+
+
+lemma jazmin:
+  fixes i :: "64 word"
+  assumes "y = IntVal 64 (2 ^ unat(i))"
+  and "0 < i"
+  and "i < 64"
+  and "(63 :: int64) = mask 6"
+  and "val_to_bool(val[IntVal 64 0 < x])"
+  and "val_to_bool(val[IntVal 64 0 < y])"
+  shows "x*y = val[x << IntVal 64 i]"
+  using assms apply (cases x; cases y; auto)
+    apply (simp add: times_Value_def)
+    subgoal premises p for x2
+    proof -
+      have 63: "(63 :: int64) = mask 6"
+        using assms(4) by blast
+      then have "(2::int) ^ 6 = 64"
+        by eval
+      then have "uint i < (2::int) ^ 6"
+        by (smt (verit, ccfv_SIG) numeral_Bit0 of_int_numeral one_eq_numeral_iff p(6) uint_2p word_less_def word_not_simps(1) word_of_int_2p)
+      then have "and i (mask 6) = i"
+        using mask_eq_iff by blast
+      then show "x2 << unat i = x2 << unat (and i (63::64 word))"
+        unfolding 63
+        by force
+    qed
+  done
+
+
+
 end (* End of file *)

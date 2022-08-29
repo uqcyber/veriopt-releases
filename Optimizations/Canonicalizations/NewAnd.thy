@@ -125,6 +125,7 @@ lemma negative_all_set_32:
 definition MaxOrZero :: "nat set \<Rightarrow> nat" where
   "MaxOrZero s = (if s = {} then 0 else Max s)"
 
+(* This is a different definition to Long.highestOneBit *)
 definition highestOneBit :: "('a::len) word \<Rightarrow> nat" where
   "highestOneBit v = MaxOrZero {n . bit v n}"
 
@@ -457,23 +458,56 @@ lemma right:
   assumes "numberOfLeadingZeros (\<up>z) + bitCount (\<up>z) = 64"
   assumes "\<up>z \<noteq> 0"
   assumes "and (\<up>y) (\<up>z) = 0"
-  shows "exp[(x + y) & z] \<ge> x"
+  shows "exp[(x + y) & z] \<ge> exp[x & z]"
 apply simp apply (rule allI)+ 
   subgoal premises p for m p v apply (rule impI) subgoal premises e
 proof -
-  have lowerupset: "\<forall>n. n \<le> highestOneBit (\<up>z) \<longrightarrow> bit (\<up>z) n"
-    using assms(1) packed_bits
+  obtain j where j: "j = highestOneBit (\<up>z)"
     by simp
-  obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
-    using e by auto
-  obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
-    using e by auto
-  obtain zv b where zv: "[m,p] \<turnstile> z \<mapsto> IntVal b zv"
+  obtain xv b where xv: "[m,p] \<turnstile> x \<mapsto> IntVal b xv"
     using e
     by (metis EvalTreeE(5) bin_eval_inputs_are_ints bin_eval_new_int new_int.simps)
-  then have "\<forall>n. n \<le> highestOneBit (zv) \<longrightarrow> bit (zv) n"
-    using lowerupset sorry
-  then show ?thesis sorry
+  obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> IntVal b yv"
+    using e EvalTreeE(5) bin_eval_inputs_are_ints bin_eval_new_int new_int.simps
+    by (smt (verit) Value.sel(1) bin_eval.simps(1) evalDet intval_add.elims xv)
+  obtain xyv where xyv: "[m, p] \<turnstile> exp[x + y] \<mapsto> IntVal b xyv"
+    using e EvalTreeE(5) bin_eval_inputs_are_ints bin_eval_new_int new_int.simps
+    xv yv
+    by (metis BinaryExpr Value.distinct(1) bin_eval.simps(1) intval_add.simps(1))
+  then obtain zv where zv: "[m,p] \<turnstile> z \<mapsto> IntVal b zv"
+    using e EvalTreeE(5) bin_eval_inputs_are_ints bin_eval_new_int new_int.simps
+    Value.sel(1) bin_eval.simps(4) evalDet intval_and.elims
+    by (smt (verit) new_int_bin.simps)
+  have "xyv = take_bit b (xv + yv)"
+    using xv yv xyv
+    by (metis BinaryExprE Value.sel(2) bin_eval.simps(1) evalDet intval_add.simps(1))
+  then have "v = IntVal b (take_bit b (and (take_bit b (xv + yv)) zv))"
+    using zv
+    by (smt (verit) EvalTreeE(5) Value.sel(1) Value.sel(2) bin_eval.simps(4) e evalDet intval_and.elims new_int.simps new_int_bin.simps xyv)
+  then have veval: "v = IntVal b (and (xv + yv) zv)"
+    by (metis (no_types, lifting) eval_unused_bits_zero take_bit_eq_mask word_bw_comms(1) word_bw_lcs(1) zv)
+  obtain n :: nat where "n \<le> 64"
+    by auto
+  show ?thesis
+  proof (cases "n \<le> j")
+    case True
+    then have "\<not>(bit yv n)"
+      by (metis (no_types, lifting) assms(1) assms(3) bit_and_iff bit_not_iff_eq down_spec j not_may_implies_false packed_bits yv)
+    then have "bit (xv + yv) n = bit xv n"
+      sorry (* this is the hard one - it comes from the lack of carry and that yv is zero *)
+    then have "bit (and (xv + yv) zv) n = bit (and xv zv) n"
+      by (simp add: bit_and_iff)
+    then show ?thesis using veval sorry
+  next
+    case False
+    then have "\<not>(bit zv n)"
+      by (metis j linorder_not_less not_may_implies_false zerosAboveHighestOne zv)
+    then have "\<not>(bit (and (xv + yv) zv) n)"
+      by (simp add: bit_and_iff)
+    then have "\<not>(bit (and xv zv) n)"
+      by (simp add: \<open>\<not> bit (zv::64 word) (n::nat)\<close> bit_and_iff)
+    then show ?thesis sorry
+  qed
 qed
   done
   done

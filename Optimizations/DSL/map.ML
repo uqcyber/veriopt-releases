@@ -12,6 +12,7 @@ val insert: (''k, 'v) map -> (''k * 'v) -> (''k, 'v) map
 val lookup: (''k, 'v) map -> ''k -> 'v option
 val values: (''k, 'v) map -> 'v list
 val empty: (''k, 'v) map
+val merge: (''k, 'v) map -> (''k, 'v) map -> (''k, 'v) map
 
 end
 
@@ -35,5 +36,8 @@ fun values (keys, lookup) =
   only_some (map lookup keys)
 
 val empty = ([], fn _ => NONE)
+
+fun merge (lhs_keys, lhs) (rhs_keys, rhs) =
+  ((rhs_keys @ lhs_keys), (fn x => (if member (op =) lhs_keys x then lhs x else rhs x)))
 
 end

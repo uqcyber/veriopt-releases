@@ -68,7 +68,7 @@ structure PhaseData = Theory_Data
   val empty = empty;
   fun merge (lhs, rhs) = 
     {status=merge_statuses (#status lhs, #status rhs),
-     store= #store lhs}
+     store= Map.merge (#store lhs) (#store rhs)}
 );
 
 val state = PhaseData.get;

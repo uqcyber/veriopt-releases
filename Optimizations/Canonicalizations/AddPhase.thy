@@ -30,7 +30,7 @@ optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmaps
       have x: "x = v1" using prems by auto
       have y: "y = v2" using prems by auto
       have xy: "v = bin_eval op x y" using prems x y by simp
-      have int: "\<exists> b vv . v = new_int b vv" using bin_eval_new_int prems by auto
+      have int: "\<exists> b vv . v = new_int b vv" using bin_eval_new_int prems by fast
       show ?thesis
         unfolding prems x y xy (* get it in form: ConstantExpr c \<longmapsto> c *)
         apply (rule ConstantExpr)

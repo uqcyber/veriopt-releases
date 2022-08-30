@@ -145,7 +145,7 @@ val exit = Local_Theory.background_theory exit'
 
 fun pretty_phase (phase:phase) ctxt =
   Pretty.block 
-    [Pretty.str "phase: ", Binding.pretty (#name phase), Pretty.fbrk,
+    [Pretty.str "phase: ", Proof_Context.pretty_name ctxt (Binding.name_of (#name phase)), Pretty.fbrk,
      Pretty.str "trm: ", Syntax.pretty_term ctxt (#trm phase), Pretty.fbrk,
      Pretty.big_list "rules:" (map (Rule.pretty ctxt) (Map.values (#rules phase)))]
 

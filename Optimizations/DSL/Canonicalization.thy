@@ -19,7 +19,7 @@ datatype 'a Rewrite =
   Sequential of 'a Rewrite * 'a Rewrite |
   Transitive of 'a Rewrite
 
-type rewrite = {name: string, rewrite: term Rewrite}
+type rewrite = {name: binding, rewrite: term Rewrite, proofs: thm list}
 
 structure RewriteRule : Rule =
 struct
@@ -41,11 +41,23 @@ fun pretty_rewrite ctxt (Transform (from, to)) =
       ]
   | pretty_rewrite _ _ = Pretty.str "not implemented"
 
-fun pretty ctxt t =
+fun pretty_thm ctxt thm =
   Pretty.block [
-    Pretty.str ((#name t) ^ ": "),
-    pretty_rewrite ctxt (#rewrite t)
+    (Proof_Context.pretty_fact ctxt ("", [thm])), Pretty.fbrk
   ]
+
+fun pretty ctxt t =
+  let
+    val is_skipped = Thm_Deps.has_skip_proof (#proofs t);
+    val warning = (if is_skipped then [Pretty.str "WARNING: proof skipped"] else []);
+  in
+  Pretty.block ([
+    Binding.pretty (#name t), Pretty.fbrk,
+    pretty_rewrite ctxt (#rewrite t), Pretty.fbrk
+    (*Pretty.str "proofs", Pretty.fbrk,
+    Pretty.block (map (pretty_thm ctxt) (#proofs t))*)
+  ] @ warning)
+  end
 end
 
 structure RewritePhase = DSL_Phase(RewriteRule);

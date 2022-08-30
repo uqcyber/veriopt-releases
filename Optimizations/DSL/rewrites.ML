@@ -13,7 +13,7 @@ end
 
 signature DSL_REWRITES =
 sig
-val of_term: string -> term -> rewrite;
+val of_term: binding -> term -> rewrite;
 
 val preservation_of: Proof.context -> rewrite -> term;
 val termination_of: Proof.context -> rewrite -> term;
@@ -28,9 +28,9 @@ struct
 fun of_term name term =
   case term of
     (((Const ("Markup.Rewrite.Transform", _)) $ lhs) $ rhs) => 
-      {name=name, rewrite=Transform (lhs, rhs)}
+      {name=name, rewrite=Transform (lhs, rhs), proofs=[]}
     | ((((Const ("Markup.Rewrite.Conditional", _)) $ lhs) $ rhs) $ cond) => 
-      {name=name, rewrite=Conditional (lhs, rhs, cond)}
+      {name=name, rewrite=Conditional (lhs, rhs, cond), proofs=[]}
     | _ => raise TERM ("optimization is not a rewrite", [term])
 
 fun to_term rewrite = 
@@ -71,7 +71,7 @@ fun intval_of ctxt term =
 
 fun value_def ctxt name rewrite =
   ((Const ("Pure.eq", @{typ "bool \<Rightarrow> bool \<Rightarrow> prop"})
-  $ (Free ("val_" ^ name, @{typ "bool"}))
+  $ (Free ("val_" ^ (Binding.name_of name), @{typ "bool"}))
   $ (
       (((Const ("HOL.eq", @{typ "Value \<Rightarrow> Value \<Rightarrow> bool"}))
       $ (IntValMarkup.markup_expr [] ctxt [lhs rewrite])
@@ -81,7 +81,7 @@ fun value_def ctxt name rewrite =
 fun val_def_const ctxt name rewrite =
   @{const Trueprop}
   $ ((Const ("HOL.eq", @{typ "bool \<Rightarrow> bool \<Rightarrow> bool"})
-  $ (Free ("val_" ^ name, @{typ "bool"}))
+  $ (Free ("val_" ^ (Binding.name_of name), @{typ "bool"}))
   $ (
       ((Const ("HOL.eq", @{typ "int \<Rightarrow> int \<Rightarrow> bool"}))
       (*$ Var (("x", 0), @{typ int})*)
@@ -113,9 +113,12 @@ fun termination_of ctxt rewrite =
 fun code_of _ rewrite =
   @{const Trueprop} 
   $ ((Const ("HOL.eq", @{typ "(IRExpr \<Rightarrow> IRExpr option) \<Rightarrow> (IRExpr \<Rightarrow> IRExpr option) \<Rightarrow> bool"})
-  $ (Free ((#name rewrite) ^ "_code", @{typ "IRExpr \<Rightarrow> IRExpr option"}))
+  $ (Free ((Binding.name_of (#name rewrite)) ^ "_code", @{typ "IRExpr \<Rightarrow> IRExpr option"}))
   $ @{term \<open>\<lambda> (x::IRExpr) \<Rightarrow> (None::IRExpr option)\<close>}))
 
+
+fun add_proofs (rewrite: rewrite) proofs =
+  {name= #name rewrite, rewrite= #rewrite rewrite, proofs= proofs}
 
 fun rewrite_cmd ((bind, options), opt) ctxt = 
   let
@@ -126,7 +129,7 @@ fun rewrite_cmd ((bind, options), opt) ctxt =
     val raw_term = (Syntax.parse_term ctxt opt);
 
     val term = IRExprMarkup.markup_expr [] ctxt [raw_term];
-    val rewrite = of_term name term;
+    val rewrite = of_term bind term;
 
     val ctxt = (if subgoals then
       (Specification.abbreviation (Syntax.mode_default)
@@ -161,11 +164,11 @@ fun rewrite_cmd ((bind, options), opt) ctxt =
     val termination = termination_of ctxt rewrite;
     val code = code_of ctxt rewrite;
 
-    val register = RewritePhase.register (bind, rewrite);
+    val register = fn proofs => RewritePhase.register (bind, (add_proofs rewrite proofs));
 
     fun after_qed thms lthy =
       let
-        val lthy' = Local_Theory.background_theory register lthy;
+        val lthy' = Local_Theory.background_theory (register (hd thms)) lthy;
 
         val (_, lthy'') = Specification.definition
             NONE [] []

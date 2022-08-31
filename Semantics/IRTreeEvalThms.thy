@@ -699,7 +699,8 @@ next
 next
   case (ParameterExpr x1 x2)
   then show ?case
-    by (smt (z3) ParameterExprE intval_bits.simps valid_stamp.simps(1) valid_value.elims(2) valid_value.simps(17)) 
+    using ParameterExprE intval_bits.simps valid_stamp.simps(1) valid_value.elims(2) valid_value.simps(17)
+    by (metis (no_types, lifting))
 next
   case (LeafExpr x1 x2)
   then show ?case

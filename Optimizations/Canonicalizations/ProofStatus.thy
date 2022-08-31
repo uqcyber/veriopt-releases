@@ -2,7 +2,7 @@ theory ProofStatus
   imports
     AbsPhase
     AddPhase
-    (*AndPhase
+    AndPhase
     ConditionalPhase
     MulPhase
     (*NarrowPhase*)
@@ -15,7 +15,7 @@ theory ProofStatus
     SignedRemPhase
     SubPhase
     TacticSolving
-    XorPhase*)
+    XorPhase
 begin
 
 declare [[show_types=false]]

@@ -140,6 +140,7 @@ session NewOptimizations in "Papers/NewOptimizations" = Canonicalizations +
     Canonicalizations.SignedDivPhase
     Canonicalizations.SubPhase
     Canonicalizations.XorPhase
+    Canonicalizations.ProofStatus
   document_theories
     Canonicalizations.AbsPhase
     Canonicalizations.AddPhase

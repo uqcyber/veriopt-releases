@@ -2,7 +2,7 @@ theory ProofStatus
   imports
     AbsPhase
     AddPhase
-    AndPhase
+    (*AndPhase
     ConditionalPhase
     MulPhase
     (*NarrowPhase*)
@@ -15,7 +15,7 @@ theory ProofStatus
     SignedRemPhase
     SubPhase
     TacticSolving
-    XorPhase
+    XorPhase*)
 begin
 
 declare [[show_types=false]]
@@ -28,6 +28,8 @@ print_theorems
 
 thm opt_add_left_negate_to_sub
 thm_oracles abs_negate
+
+export_phases \<open>Full\<close>
 
 
 end

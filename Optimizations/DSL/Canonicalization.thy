@@ -9,6 +9,7 @@ theory Canonicalization
     "phase" :: thy_decl and 
     "terminating" :: quasi_command and
     "print_phases" :: diag and
+    "export_phases" :: thy_decl and
     "optimization" :: thy_goal_defn
 begin
 
@@ -104,10 +105,47 @@ val _ =
     "print debug information for optimizations"
     (Parse.opt_bang >>
       (fn b => Toplevel.keep ((print_optimizations b) o Toplevel.context_of)));
+
+fun export_phases thy name =
+  let
+    val state = Toplevel.theory_toplevel thy;
+    val ctxt = Toplevel.context_of state;
+    val content = Pretty.string_of (Pretty.chunks (print_phases false ctxt));
+    val cleaned = YXML.content_of content;    
+
+
+    val filename = Path.explode (name^".rules");
+    val directory = Path.explode "optimizations";
+    val path = Path.binding (
+                Path.append directory filename,
+                Position.none);
+    val thy' = thy |> Generated_Files.add_files (path, content);
+
+    val _ = Export.export thy' path [YXML.parse cleaned];
+
+    val _ = writeln (Export.message thy' (Path.basic "optimizations"));
+  in
+    thy'
+  end
+
+val _ =
+  Outer_Syntax.command \<^command_keyword>\<open>export_phases\<close>
+    "export information about encoded optimizations"
+    (Parse.text >>
+      (fn name => Toplevel.theory (fn state => export_phases state name)))
 \<close>
 
 ML_file "rewrites.ML"
-           
+
+phase Opt
+  terminating size
+begin
+
+end
+
+print_phases
+export_phases \<open>MyPhases\<close>
+
 fun rewrite_preservation :: "IRExpr Rewrite \<Rightarrow> bool" where
   "rewrite_preservation (Transform x y) = (y \<le> x)" |
   "rewrite_preservation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |

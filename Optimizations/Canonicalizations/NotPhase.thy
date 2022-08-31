@@ -5,7 +5,7 @@ begin
 
 section \<open>Optimizations for Not Nodes\<close>
 
-phase NotPhase
+phase NotNode
   terminating size
 begin
 

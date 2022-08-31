@@ -5,7 +5,7 @@ begin
 
 section \<open>Optimizations for Xor Nodes\<close>
 
-phase XorPhase
+phase XorNode
   terminating size
 begin
 
@@ -65,8 +65,8 @@ lemma exp_xor_self_is_false:
  assumes "wf_stamp x \<and> stamp_expr x = default_stamp" 
  shows "exp[x \<oplus> x] \<ge> exp[false]" 
   using assms apply auto unfolding wf_stamp_def
-  by (smt (verit) IntVal0 Value.inject(1) bool_to_val.simps(2) constantAsStamp.simps(1) evalDet int_signed_value_bounds new_int.simps unfold_const val_xor_self_is_false_2 valid_int valid_stamp.simps(1) valid_value.simps(1))
-
+  using IntVal0 Value.inject(1) bool_to_val.simps(2) constantAsStamp.simps(1) evalDet int_signed_value_bounds new_int.simps unfold_const val_xor_self_is_false_2 valid_int valid_stamp.simps(1) valid_value.simps(1)
+  by (smt (z3) validDefIntConst)
 
 (* Optimisations *)
 (* Not sure about the conditions on this one. *)

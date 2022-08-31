@@ -5,7 +5,7 @@ begin
 
 section \<open>Optimizations for SignedDiv Nodes\<close>
 
-phase SignedDivPhase
+phase SignedDivNode
   terminating size
 begin
 

@@ -5,7 +5,7 @@ begin
 
 section \<open>Optimizations for Sub Nodes\<close>
 
-phase SubPhase
+phase SubNode
   terminating size
 begin
 

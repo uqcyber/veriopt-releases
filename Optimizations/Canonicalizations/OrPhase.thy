@@ -6,7 +6,7 @@ begin
 
 section \<open>Optimizations for Or Nodes\<close>
 
-phase OrPhase
+phase OrNode
   terminating size
 begin
 

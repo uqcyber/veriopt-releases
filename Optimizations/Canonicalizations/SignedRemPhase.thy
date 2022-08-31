@@ -5,7 +5,7 @@ begin
 
 section \<open>Optimizations for SignedRem Nodes\<close>
 
-phase SignedRemPhase
+phase SignedRemNode
   terminating size
 begin
 

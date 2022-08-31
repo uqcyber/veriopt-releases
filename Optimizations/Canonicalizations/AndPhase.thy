@@ -5,7 +5,7 @@ begin
 
 section \<open>Optimizations for And Nodes\<close>
 
-phase AndPhase
+phase AndNode
   terminating size
 begin
 

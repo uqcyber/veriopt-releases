@@ -9,7 +9,7 @@ begin
 
 section \<open>Optimizations for Abs Nodes\<close>
 
-phase AbsPhase
+phase AbsNode
   terminating size
 begin
 

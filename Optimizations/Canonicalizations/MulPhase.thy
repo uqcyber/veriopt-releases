@@ -5,7 +5,7 @@ begin
 
 section \<open>Optimizations for Mul Nodes\<close>
 
-phase MulPhase
+phase MulNode
   terminating size
 begin
 

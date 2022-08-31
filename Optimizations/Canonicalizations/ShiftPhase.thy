@@ -3,7 +3,7 @@ theory ShiftPhase
     Common
 begin
 
-phase Shift
+phase ShiftNode
   terminating size
 begin
 

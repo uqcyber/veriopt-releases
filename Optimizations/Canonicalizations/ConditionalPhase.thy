@@ -5,7 +5,7 @@ theory ConditionalPhase
     Common
 begin
 
-phase Conditional
+phase ConditionalNode
   terminating size
 begin
 

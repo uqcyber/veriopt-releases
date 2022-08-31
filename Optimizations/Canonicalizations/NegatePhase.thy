@@ -5,7 +5,7 @@ begin
 
 section \<open>Optimizations for Negate Nodes\<close>
 
-phase NegatePhase
+phase NegateNode
   terminating size
 begin
 

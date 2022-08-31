@@ -13,7 +13,7 @@ end
 
 signature DSL_REWRITES =
 sig
-val of_term: binding -> term -> rewrite;
+val of_term: binding -> term -> term -> rewrite;
 
 val preservation_of: Proof.context -> rewrite -> term;
 val termination_of: Proof.context -> rewrite -> term;
@@ -25,12 +25,12 @@ end
 
 functor DSL_Rewrites(System: RewriteSystem): DSL_REWRITES =
 struct
-fun of_term name term =
+fun of_term name term source =
   case term of
     (((Const ("Markup.Rewrite.Transform", _)) $ lhs) $ rhs) => 
-      {name=name, rewrite=Transform (lhs, rhs), proofs=[]}
+      {name=name, rewrite=Transform (lhs, rhs), proofs=[], code=[], source=source}
     | ((((Const ("Markup.Rewrite.Conditional", _)) $ lhs) $ rhs) $ cond) => 
-      {name=name, rewrite=Conditional (lhs, rhs, cond), proofs=[]}
+      {name=name, rewrite=Conditional (lhs, rhs, cond), proofs=[], code=[], source=source}
     | _ => raise TERM ("optimization is not a rewrite", [term])
 
 fun to_term rewrite = 
@@ -118,18 +118,23 @@ fun code_of _ rewrite =
 
 
 fun add_proofs (rewrite: rewrite) proofs =
-  {name= #name rewrite, rewrite= #rewrite rewrite, proofs= proofs}
+  {
+    name= #name rewrite,
+    rewrite= #rewrite rewrite,
+    proofs= proofs,
+    code= #code rewrite,
+    source= #source rewrite
+  }
 
 fun rewrite_cmd ((bind, options), opt) ctxt = 
   let
     val intval = case options of [[token]] => Token.content_of token = "intval" | _ => false;
-    val name = Binding.name_of bind;
 
     val subgoals = case options of [[token]] => Token.content_of token = "subgoals" | _ => false;
     val raw_term = (Syntax.parse_term ctxt opt);
 
     val term = IRExprMarkup.markup_expr [] ctxt [raw_term];
-    val rewrite = of_term bind term;
+    val rewrite = of_term bind term raw_term;
 
     val ctxt = (if subgoals then
       (Specification.abbreviation (Syntax.mode_default)

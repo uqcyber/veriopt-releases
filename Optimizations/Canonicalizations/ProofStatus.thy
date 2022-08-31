@@ -20,7 +20,13 @@ begin
 
 declare [[show_types=false]]
 print_phases
+print_phases!
 
+print_methods
+
+print_theorems
+
+thm opt_add_left_negate_to_sub
 thm_oracles abs_negate
 
 

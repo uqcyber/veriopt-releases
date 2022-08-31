@@ -7,7 +7,7 @@ Organisation of rules into phases.
 signature Rule =
 sig
   type T
-  val pretty: Proof.context -> T -> Pretty.T
+  val pretty: Proof.context -> bool -> T -> Pretty.T
 end
 
 signature DSL_PHASE =
@@ -29,7 +29,7 @@ val enter: config -> theory -> Proof.context
 val exit: local_theory -> local_theory
 val setup: config -> theory -> local_theory
 
-val pretty: phase -> Proof.context -> Pretty.T
+val pretty: bool -> phase -> Proof.context -> Pretty.T
 
 end;
 
@@ -143,14 +143,19 @@ fun exit' thy = PhaseData.map (fn state =>
 
 val exit = Local_Theory.background_theory exit'
 
-fun pretty_phase (phase:phase) ctxt =
-  Pretty.block 
-    [Pretty.str "phase: ", Proof_Context.pretty_name ctxt (Binding.name_of (#name phase)), Pretty.fbrk,
-     Pretty.str "trm: ", Syntax.pretty_term ctxt (#trm phase), Pretty.fbrk,
-     Pretty.big_list "rules:" (map (Rule.pretty ctxt) (Map.values (#rules phase)))]
+fun pretty_bind binding =
+  Pretty.markup 
+    (Position.markup (Binding.pos_of binding) Markup.position)
+    [Pretty.str (Binding.name_of binding)];
 
-fun pretty phase ctxt =
-  pretty_phase phase ctxt
+fun pretty_phase obligation (phase:phase) ctxt =
+  Pretty.block 
+    [Pretty.str "phase: ", pretty_bind (#name phase), Pretty.fbrk,
+     Pretty.str "trm: ", Syntax.pretty_term ctxt (#trm phase), Pretty.fbrk,
+     Pretty.big_list "rules:" (map (Rule.pretty ctxt obligation) (Map.values (#rules phase)))]
+
+fun pretty obligation phase ctxt =
+  pretty_phase obligation phase ctxt
 
 fun pretty' state ctxt =
   case (#status state) of
@@ -158,7 +163,7 @@ fun pretty' state ctxt =
     InPhase name => 
       (case Map.lookup (#store state) name of
         NONE => raise ERROR "Bug" |
-        SOME phase => pretty_phase phase ctxt
+        SOME phase => pretty_phase false phase ctxt
       )
 
 fun pretty'' ctxt =

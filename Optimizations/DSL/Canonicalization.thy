@@ -12,6 +12,8 @@ theory Canonicalization
     "optimization" :: thy_goal_defn
 begin
 
+print_methods
+
 ML \<open>
 datatype 'a Rewrite =
   Transform of 'a * 'a |
@@ -19,12 +21,19 @@ datatype 'a Rewrite =
   Sequential of 'a Rewrite * 'a Rewrite |
   Transitive of 'a Rewrite
 
-type rewrite = {name: binding, rewrite: term Rewrite, proofs: thm list}
+type rewrite = {
+  name: binding,
+  rewrite: term Rewrite,
+  proofs: thm list,
+  code: thm list,
+  source: term
+}
 
 structure RewriteRule : Rule =
 struct
 type T = rewrite;
 
+(*
 fun pretty_rewrite ctxt (Transform (from, to)) = 
       Pretty.block [
         Syntax.pretty_term ctxt from,
@@ -39,24 +48,36 @@ fun pretty_rewrite ctxt (Transform (from, to)) =
         Pretty.str " when ",
         Syntax.pretty_term ctxt cond
       ]
-  | pretty_rewrite _ _ = Pretty.str "not implemented"
+  | pretty_rewrite _ _ = Pretty.str "not implemented"*)
 
 fun pretty_thm ctxt thm =
-  Pretty.block [
-    (Proof_Context.pretty_fact ctxt ("", [thm])), Pretty.fbrk
-  ]
+  (Proof_Context.pretty_fact ctxt ("", [thm]))
 
-fun pretty ctxt t =
+fun pretty ctxt obligations t =
   let
     val is_skipped = Thm_Deps.has_skip_proof (#proofs t);
-    val warning = (if is_skipped then [Pretty.str "WARNING: proof skipped"] else []);
+
+    val warning = (if is_skipped 
+      then [Pretty.str "(proof skipped)", Pretty.brk 0]
+      else []);
+
+    val obligations = (if obligations
+      then [Pretty.big_list 
+              "obligations:"
+              (map (pretty_thm ctxt) (#proofs t)),
+            Pretty.brk 0]
+      else []);      
+
+    fun pretty_bind binding =
+      Pretty.markup 
+        (Position.markup (Binding.pos_of binding) Markup.position)
+        [Pretty.str (Binding.name_of binding)];
+
   in
   Pretty.block ([
-    Binding.pretty (#name t), Pretty.fbrk,
-    pretty_rewrite ctxt (#rewrite t), Pretty.fbrk
-    (*Pretty.str "proofs", Pretty.fbrk,
-    Pretty.block (map (pretty_thm ctxt) (#proofs t))*)
-  ] @ warning)
+    pretty_bind (#name t), Pretty.str ": ",
+    Syntax.pretty_term ctxt (#source t), Pretty.fbrk
+  ] @ obligations @ warning)
   end
 end
 
@@ -67,26 +88,26 @@ val _ =
    (Parse.binding --| Parse.$$$ "terminating" -- Parse.const --| Parse.begin
      >> (Toplevel.begin_main_target true o RewritePhase.setup));
 
-fun print_phases ctxt =
+fun print_phases print_obligations ctxt =
   let
     val thy = Proof_Context.theory_of ctxt;
-    fun print phase = RewritePhase.pretty phase ctxt
+    fun print phase = RewritePhase.pretty print_obligations phase ctxt
   in 
     map print (RewritePhase.phases thy)
   end
 
-fun print_optimizations thy =
-  print_phases thy |> Pretty.writeln_chunks
+fun print_optimizations print_obligations thy =
+  print_phases print_obligations thy |> Pretty.writeln_chunks
 
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>print_phases\<close>
     "print debug information for optimizations"
-    (Scan.succeed
-      (Toplevel.keep (print_optimizations o Toplevel.context_of)));
+    (Parse.opt_bang >>
+      (fn b => Toplevel.keep ((print_optimizations b) o Toplevel.context_of)));
 \<close>
 
 ML_file "rewrites.ML"
-
+           
 fun rewrite_preservation :: "IRExpr Rewrite \<Rightarrow> bool" where
   "rewrite_preservation (Transform x y) = (y \<le> x)" |
   "rewrite_preservation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |

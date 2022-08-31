@@ -21,7 +21,7 @@ Organisation of rules into phases.
 <span class="keyword1"><span class="keyword">signature</span></span> <span class="entity">Rule</span> <span class="main">=</span>
 <span class="keyword2"><span class="keyword">sig</span></span>
   <span class="keyword1"><span class="keyword">type</span></span> <span class="entity">T</span>
-  <span class="keyword1"><span class="keyword">val</span></span> pretty<span class="main">:</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> <span class="entity">T</span> <span class="main">-&gt;</span> Pretty.T
+  <span class="keyword1"><span class="keyword">val</span></span> pretty<span class="main">:</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> bool <span class="main">-&gt;</span> <span class="entity">T</span> <span class="main">-&gt;</span> Pretty.T
 <span class="keyword2"><span class="keyword">end</span></span>
 
 <span class="keyword1"><span class="keyword">signature</span></span> <span class="entity">DSL_PHASE</span> <span class="main">=</span>
@@ -43,7 +43,7 @@ Organisation of rules into phases.
 <span class="keyword1"><span class="keyword">val</span></span> exit<span class="main">:</span> local_theory <span class="main">-&gt;</span> local_theory
 <span class="keyword1"><span class="keyword">val</span></span> setup<span class="main">:</span> <span class="entity">config</span> <span class="main">-&gt;</span> theory <span class="main">-&gt;</span> local_theory
 
-<span class="keyword1"><span class="keyword">val</span></span> pretty<span class="main">:</span> <span class="entity">phase</span> <span class="main">-&gt;</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> Pretty.T
+<span class="keyword1"><span class="keyword">val</span></span> pretty<span class="main">:</span> bool <span class="main">-&gt;</span> <span class="entity">phase</span> <span class="main">-&gt;</span> <span class="entity">Proof.context</span> <span class="main">-&gt;</span> Pretty.T
 
 <span class="keyword2"><span class="keyword">end</span></span><span class="main">;</span>
 
@@ -82,7 +82,7 @@ Organisation of rules into phases.
   <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">empty</span> <span class="main">=</span> <span class="entity">empty</span><span class="main">;</span>
   <span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">merge</span> <span class="main">(</span><span class="entity">lhs</span><span class="main">,</span> <span class="entity">rhs</span><span class="main">)</span> <span class="main">=</span> 
     <span class="main">{</span>status<span class="main">=</span><span class="entity">merge_statuses</span> <span class="main">(</span><span class="main">#</span>status <span class="entity">lhs</span><span class="main">,</span> <span class="main">#</span>status <span class="entity">rhs</span><span class="main">)</span><span class="main">,</span>
-     store<span class="main">=</span> <span class="main">#</span>store <span class="entity">lhs</span><span class="main">}</span>
+     store<span class="main">=</span> <span class="entity">Map.merge</span> <span class="main">(</span><span class="main">#</span>store <span class="entity">lhs</span><span class="main">)</span> <span class="main">(</span><span class="main">#</span>store <span class="entity">rhs</span><span class="main">)</span><span class="main">}</span>
 <span class="main">)</span><span class="main">;</span>
 
 <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">state</span> <span class="main">=</span> PhaseData.get<span class="main">;</span>
@@ -157,14 +157,19 @@ Organisation of rules into phases.
 
 <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">exit</span> <span class="main">=</span> Local_Theory.background_theory <span class="entity">exit'</span>
 
-<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty_phase</span> <span class="main">(</span><span class="entity">phase</span><span class="main">:</span><span class="entity">phase</span><span class="main">)</span> <span class="entity">ctxt</span> <span class="main">=</span>
-  Pretty.block 
-    <span class="main">[</span>Pretty.str <span class="inner_quoted">"phase: "</span><span class="main">,</span> Binding.pretty <span class="main">(</span><span class="main">#</span>name <span class="entity">phase</span><span class="main">)</span><span class="main">,</span> Pretty.fbrk<span class="main">,</span>
-     Pretty.str <span class="inner_quoted">"trm: "</span><span class="main">,</span> Syntax.pretty_term <span class="entity">ctxt</span> <span class="main">(</span><span class="main">#</span>trm <span class="entity">phase</span><span class="main">)</span><span class="main">,</span> Pretty.fbrk<span class="main">,</span>
-     Pretty.big_list <span class="inner_quoted">"rules:"</span> <span class="main">(</span>map <span class="main">(</span><span class="entity">Rule.pretty</span> <span class="entity">ctxt</span><span class="main">)</span> <span class="main">(</span><span class="entity">Map.values</span> <span class="main">(</span><span class="main">#</span>rules <span class="entity">phase</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">]</span>
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty_bind</span> <span class="entity">binding</span> <span class="main">=</span>
+  Pretty.markup 
+    <span class="main">(</span>Position.markup <span class="main">(</span>Binding.pos_of <span class="entity">binding</span><span class="main">)</span> Markup.position<span class="main">)</span>
+    <span class="main">[</span>Pretty.str <span class="main">(</span>Binding.name_of <span class="entity">binding</span><span class="main">)</span><span class="main">]</span><span class="main">;</span>
 
-<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty</span> <span class="entity">phase</span> <span class="entity">ctxt</span> <span class="main">=</span>
-  <span class="entity">pretty_phase</span> <span class="entity">phase</span> <span class="entity">ctxt</span>
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty_phase</span> <span class="entity">obligation</span> <span class="main">(</span><span class="entity">phase</span><span class="main">:</span><span class="entity">phase</span><span class="main">)</span> <span class="entity">ctxt</span> <span class="main">=</span>
+  Pretty.block 
+    <span class="main">[</span>Pretty.str <span class="inner_quoted">"phase: "</span><span class="main">,</span> <span class="entity">pretty_bind</span> <span class="main">(</span><span class="main">#</span>name <span class="entity">phase</span><span class="main">)</span><span class="main">,</span> Pretty.fbrk<span class="main">,</span>
+     Pretty.str <span class="inner_quoted">"trm: "</span><span class="main">,</span> Syntax.pretty_term <span class="entity">ctxt</span> <span class="main">(</span><span class="main">#</span>trm <span class="entity">phase</span><span class="main">)</span><span class="main">,</span> Pretty.fbrk<span class="main">,</span>
+     Pretty.big_list <span class="inner_quoted">"rules:"</span> <span class="main">(</span>map <span class="main">(</span><span class="entity">Rule.pretty</span> <span class="entity">ctxt</span> <span class="entity">obligation</span><span class="main">)</span> <span class="main">(</span><span class="entity">Map.values</span> <span class="main">(</span><span class="main">#</span>rules <span class="entity">phase</span><span class="main">)</span><span class="main">)</span><span class="main">)</span><span class="main">]</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty</span> <span class="entity">obligation</span> <span class="entity">phase</span> <span class="entity">ctxt</span> <span class="main">=</span>
+  <span class="entity">pretty_phase</span> <span class="entity">obligation</span> <span class="entity">phase</span> <span class="entity">ctxt</span>
 
 <span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty'</span> <span class="entity">state</span> <span class="entity">ctxt</span> <span class="main">=</span>
   <span class="keyword2"><span class="keyword">case</span></span> <span class="main">(</span><span class="main">#</span>status <span class="entity">state</span><span class="main">)</span> <span class="keyword2"><span class="keyword">of</span></span>
@@ -172,7 +177,7 @@ Organisation of rules into phases.
     <span class="entity">InPhase</span> <span class="entity">name</span> <span class="main">=&gt;</span> 
       <span class="main">(</span><span class="keyword2"><span class="keyword">case</span></span> <span class="entity">Map.lookup</span> <span class="main">(</span><span class="main">#</span>store <span class="entity">state</span><span class="main">)</span> <span class="entity">name</span> <span class="keyword2"><span class="keyword">of</span></span>
         NONE <span class="main">=&gt;</span> <span class="keyword3"><span class="keyword">raise</span></span> ERROR <span class="inner_quoted">"Bug"</span> <span class="main">|</span>
-        SOME <span class="entity">phase</span> <span class="main">=&gt;</span> <span class="entity">pretty_phase</span> <span class="entity">phase</span> <span class="entity">ctxt</span>
+        SOME <span class="entity">phase</span> <span class="main">=&gt;</span> <span class="entity">pretty_phase</span> false <span class="entity">phase</span> <span class="entity">ctxt</span>
       <span class="main">)</span>
 
 <span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">pretty''</span> <span class="entity">ctxt</span> <span class="main">=</span>

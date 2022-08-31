@@ -26,6 +26,7 @@ Simple inefficient map data stucture.
 <span class="keyword1"><span class="keyword">val</span></span> lookup<span class="main">:</span> <span class="main">(</span>''k<span class="main">,</span> 'v<span class="main">)</span> <span class="entity">map</span> <span class="main">-&gt;</span> ''k <span class="main">-&gt;</span> 'v option
 <span class="keyword1"><span class="keyword">val</span></span> values<span class="main">:</span> <span class="main">(</span>''k<span class="main">,</span> 'v<span class="main">)</span> <span class="entity">map</span> <span class="main">-&gt;</span> 'v list
 <span class="keyword1"><span class="keyword">val</span></span> empty<span class="main">:</span> <span class="main">(</span>''k<span class="main">,</span> 'v<span class="main">)</span> <span class="entity">map</span>
+<span class="keyword1"><span class="keyword">val</span></span> merge<span class="main">:</span> <span class="main">(</span>''k<span class="main">,</span> 'v<span class="main">)</span> <span class="entity">map</span> <span class="main">-&gt;</span> <span class="main">(</span>''k<span class="main">,</span> 'v<span class="main">)</span> <span class="entity">map</span> <span class="main">-&gt;</span> <span class="main">(</span>''k<span class="main">,</span> 'v<span class="main">)</span> <span class="entity">map</span>
 
 <span class="keyword2"><span class="keyword">end</span></span>
 
@@ -49,6 +50,9 @@ Simple inefficient map data stucture.
   <span class="entity">only_some</span> <span class="main">(</span>map <span class="entity">lookup</span> <span class="entity">keys</span><span class="main">)</span>
 
 <span class="keyword1"><span class="keyword">val</span></span> <span class="entity">empty</span> <span class="main">=</span> <span class="main">(</span><span class="main">[</span><span class="main">]</span><span class="main">,</span> <span class="keyword1"><span class="keyword">fn</span></span> <span class="main">_</span> <span class="main">=&gt;</span> NONE<span class="main">)</span>
+
+<span class="keyword1"><span class="keyword">fun</span></span> <span class="entity">merge</span> <span class="main">(</span><span class="entity">lhs_keys</span><span class="main">,</span> <span class="entity">lhs</span><span class="main">)</span> <span class="main">(</span><span class="entity">rhs_keys</span><span class="main">,</span> <span class="entity">rhs</span><span class="main">)</span> <span class="main">=</span>
+  <span class="main">(</span><span class="main">(</span><span class="entity">rhs_keys</span> @ <span class="entity">lhs_keys</span><span class="main">)</span><span class="main">,</span> <span class="main">(</span><span class="keyword1"><span class="keyword">fn</span></span> <span class="entity">x</span> <span class="main">=&gt;</span> <span class="main">(</span><span class="keyword2"><span class="keyword">if</span></span> member <span class="main">(</span><span class="keyword1"><span class="keyword">op</span></span> <span class="main">=</span><span class="main">)</span> <span class="entity">lhs_keys</span> <span class="entity">x</span> <span class="keyword2"><span class="keyword">then</span></span> <span class="entity">lhs</span> <span class="entity">x</span> <span class="keyword2"><span class="keyword">else</span></span> <span class="entity">rhs</span> <span class="entity">x</span><span class="main">)</span><span class="main">)</span><span class="main">)</span>
 
 <span class="keyword2"><span class="keyword">end</span></span></pre>
 </body>

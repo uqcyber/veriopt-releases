@@ -1,7 +1,6 @@
 theory AndPhase
   imports
     Common
-    NewAnd (* Allows access to mask operations *)
 begin
 
 section \<open>Optimizations for And Nodes\<close>
@@ -96,17 +95,10 @@ optimization opt_and_equal: "x & x \<longmapsto> x"
 
 optimization opt_AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
                                          when \<not>(is_ConstantExpr y)"
-     using intval_and_commute bin_eval.simps(4) apply auto  
+  using bin_eval.simps(4) apply auto  
   sorry
 
-optimization opt_and_right_fall_through: "(x & y) \<longmapsto> y
-                                when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
-  by (simp add: IRExpr_down_def IRExpr_up_def)
 
-optimization opt_and_left_fall_through: "(x & y) \<longmapsto> x
-                                when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
-   by (simp add: IRExpr_down_def IRExpr_up_def) 
- 
 optimization opt_and_nots: "(~x) & (~y) \<longmapsto> ~(x | y)"
     using exp_and_nots 
    by auto 
@@ -161,6 +153,59 @@ optimization opt_and_neutral_64: "(x & (UnaryExpr UnaryNot (ConstantExpr (IntVal
   using exp_and_neutral_64
   apply (meson le_expr_def)
   done
+*)
+
+end
+
+context stamp_mask
+begin
+
+lemma and_right_fall_through: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[y]"
+  apply simp apply (rule impI; (rule allI)+)
+  apply (rule impI)
+  subgoal premises p for m p v
+  proof -
+    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+      using p(2) by blast
+    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
+      using p(2) by blast
+    have "v = val[xv & yv]"
+      using p(2) xv yv
+      by (metis BinaryExprE bin_eval.simps(4) evalDet)
+    then have "v = yv"
+      using p(1) not_down_up_mask_and_zero_implies_zero
+      by (smt (verit) eval_unused_bits_zero intval_and.elims new_int.elims new_int_bin.elims p(2) unfold_binary xv yv)
+    then show ?thesis using yv by simp
+  qed
+  done
+
+lemma opt_and_left_fall_through: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[x]"
+  apply simp apply (rule impI; (rule allI)+)
+  apply (rule impI)
+  subgoal premises p for m p v
+  proof -
+    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+      using p(2) by blast
+    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
+      using p(2) by blast
+    have "v = val[xv & yv]"
+      using p(2) xv yv
+      by (metis BinaryExprE bin_eval.simps(4) evalDet)
+    then have "v = xv"
+      using p(1) not_down_up_mask_and_zero_implies_zero
+      by (smt (verit) and.commute eval_unused_bits_zero intval_and.elims new_int.simps new_int_bin.simps p(2) unfold_binary xv yv)
+    then show ?thesis using xv by simp
+  qed
+  done
+
+(*
+optimization opt_and_right_fall_through: "(x & y) \<longmapsto> y
+                                when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
+  by (simp add: IRExpr_down_def IRExpr_up_def)
+
+optimization opt_and_left_fall_through: "(x & y) \<longmapsto> x
+                                when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
+   by (simp add: IRExpr_down_def IRExpr_up_def) 
 *)
 
 end (* End of AndPhase *)

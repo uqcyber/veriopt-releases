@@ -7,12 +7,14 @@ session Graph in Graph = "HOL-Library" +
            show_question_marks = false]
   theories
     Values
+    ValueThms
     IRNodes
     IRNodeHierarchy
     Stamp
     IRGraph
     Traversal
     Comparison
+    Long
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"

@@ -1,6 +1,7 @@
 theory NewAnd
   imports
     Common
+    Graph.Long
 begin
 
 lemma bin_distribute_and_over_or:
@@ -108,182 +109,11 @@ lemma exp_or_absorb_and:
   apply auto using intval_or_absorb_and eval_unused_bits_zero
   by (smt (verit) evalDet intval_or.elims new_int.elims)
 
-context
-  includes bit_operations_syntax
-begin
 definition IRExpr_up :: "IRExpr \<Rightarrow> int64" where
-  "IRExpr_up e = NOT 0"
+  "IRExpr_up e = not 0"
 
 definition IRExpr_down :: "IRExpr \<Rightarrow> int64" where
   "IRExpr_down e = 0"
-end
-
-lemma negative_all_set_32:
-  "n < 32 \<Longrightarrow> bit (-1::int32) n"
-  apply transfer by auto
-
-definition MaxOrZero :: "nat set \<Rightarrow> nat" where
-  "MaxOrZero s = (if s = {} then 0 else Max s)"
-
-(* This is a different definition to Long.highestOneBit *)
-definition highestOneBit :: "('a::len) word \<Rightarrow> nat" where
-  "highestOneBit v = MaxOrZero {n . bit v n}"
-
-lemma max_bit: "bit (v::('a::len) word) n \<Longrightarrow> n < Nat.size v"
-  by (simp add: bit_imp_le_length size_word.rep_eq)
-
-lemma max_set_bit: "MaxOrZero {n . bit (v::('a::len) word) n} \<le> Nat.size v"
-  using max_bit unfolding MaxOrZero_def
-  by force
-
-definition numberOfLeadingZeros :: "('a::len) word \<Rightarrow> nat" where
-  "numberOfLeadingZeros v = Nat.size v - highestOneBit v"
-
-lemma MaxOrZero_zero: "MaxOrZero {} = 0"
-  by (simp add: MaxOrZero_def)
-
-lemma MaxOrZero_max: "s \<noteq> {} \<Longrightarrow> MaxOrZero s = Max s"
-  by (simp add: MaxOrZero_def)
-
-lemma zero_no_bits:
-  "{n . bit 0 n} = {}"
-  by simp
-
-lemma "highestOneBit (0::64 word) = 0"
-  by (simp add: MaxOrZero_zero highestOneBit_def)
-
-lemma "numberOfLeadingZeros (0::64 word) = 64"
-  unfolding numberOfLeadingZeros_def
-  by (simp add: MaxOrZero_zero highestOneBit_def size64)
-
-lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} \<le> 64"
-  unfolding highestOneBit_def
-  by (metis Max_singleton max_set_bit size64)
-
-lemma numberOfLeadingZeros_top: "Max {numberOfLeadingZeros (v::64 word)} \<le> 64"
-  unfolding numberOfLeadingZeros_def
-  by (simp add: size64)
-
-lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v"
-  by (simp add: highestOneBit_def max_set_bit numberOfLeadingZeros_def)
-
-definition bitCount :: "('a::len) word \<Rightarrow> nat" where
-  "bitCount v = card {n . bit v n}"
-
-lemma "bitCount 0 = 0"
-  unfolding bitCount_def
-  by (metis card.empty zero_no_bits)
-
-lemma negone_set:
-  "bit (-1::('a::len) word) n \<longleftrightarrow> n < LENGTH('a)"
-  by simp
-
-lemma negone_all_bits:
-  "{n . bit (-1::('a::len) word) n} = {n . 0 \<le> n \<and> n < LENGTH('a)}"
-  using negone_set
-  by auto
-
-lemma bitCount_finite:
-  "finite {n . bit (v::('a::len) word) n}"
-  by simp
-
-lemma card_of_range:
-  "x = card {n . 0 \<le> n \<and> n < x}"
-  by simp
-
-lemma range_of_nat:
-  "{(n::nat) . 0 \<le> n \<and> n < x} = {n . n < x}"
-  by simp
-
-lemma finite_range:
-  "finite {n::nat . n < x}"
-  by simp
-
-lemma card_of_range_bound:
-  fixes x y :: nat
-  assumes "x > y"
-  shows "x - y = card {n . y < n \<and> n \<le> x}"
-proof -
-  have finite: "finite {n . y \<le> n \<and> n < x}"
-    by auto
-  have "x - y \<ge> 1"
-    using assms
-    by simp
-  show ?thesis
-    apply (cases "{n . y \<le> n \<and> n < x} = {}")
-    using assms apply blast
-    using assms finite apply auto sorry
-qed
-
-lemma "bitCount (-1::('a::len) word) = LENGTH('a)"
-  unfolding bitCount_def using card_of_range
-  by (metis (no_types, lifting) Collect_cong negone_all_bits)
-
-lemma bitCount_range:
-  fixes n :: "('a::len) word"
-  shows "0 \<le> bitCount n \<and> bitCount n \<le> Nat.size n"
-  unfolding bitCount_def
-  by (metis atLeastLessThan_iff bot_nat_0.extremum max_bit mem_Collect_eq subsetI subset_eq_atLeast0_lessThan_card)
-
-lemma zerosAboveHighestOne:
-  "n > highestOneBit a \<Longrightarrow> \<not>(bit a n)"
-  unfolding highestOneBit_def MaxOrZero_def
-  by (metis (mono_tags, lifting) Collect_empty_eq Max_ge bitCount_finite linorder_not_le mem_Collect_eq)
-
-lemma union_bit_sets:
-  fixes a :: "('a::len) word"
-  shows "{n . n < Nat.size a \<and> bit a n} \<union> {n . n < Nat.size a \<and> \<not>(bit a n)} = {n . n < Nat.size a}"
-  by fastforce
-
-lemma disjoint_bit_sets:
-  fixes a :: "('a::len) word"
-  shows "{n . n < Nat.size a \<and> bit a n} \<inter> {n . n < Nat.size a \<and> \<not>(bit a n)} = {}"
-  by blast
-
-lemma qualified_bitCount:
-  "bitCount v = card {n . n < Nat.size v \<and> bit v n}"
-  by (metis (no_types, lifting) Collect_cong bitCount_def max_bit)
-
-lemma card_eq:
-  assumes "finite x \<and> finite y \<and> finite z"
-  assumes "x \<union> y = z"
-  assumes "y \<inter> x = {}"
-  shows "card z - card y = card x"
-  using assms add_diff_cancel_right' card_Un_disjoint
-  by (metis inf.commute)
-
-lemma card_add:
-  assumes "finite x \<and> finite y \<and> finite z"
-  assumes "x \<union> y = z"
-  assumes "y \<inter> x = {}"
-  shows "card x + card y = card z"
-  using assms card_Un_disjoint
-  by (metis inf.commute)
-
-lemma intersect_bitCount_helper:
-  "card {n . n < Nat.size a} - bitCount a = card {n . n < Nat.size a \<and> \<not>(bit a n)}"
-proof -
-  have size_def: "Nat.size a = card {n . n < Nat.size a}"
-    using card_of_range by simp
-  have bitCount_def: "bitCount a = card {n . n < Nat.size a \<and> bit a n}"
-    using qualified_bitCount by auto
-  have disjoint: "{n . n < Nat.size a \<and> bit a n} \<inter> {n . n < Nat.size a \<and> \<not>(bit a n)} = {}"
-    using disjoint_bit_sets by auto
-  have union: "{n . n < Nat.size a \<and> bit a n} \<union> {n . n < Nat.size a \<and> \<not>(bit a n)} = {n . n < Nat.size a}"
-    using union_bit_sets by auto
-  show ?thesis
-    unfolding bitCount_def
-    apply (rule card_eq)
-    using finite_range apply simp
-    using union apply blast
-    using disjoint by simp
-qed
-
-lemma intersect_bitCount:
-  "Nat.size a - bitCount a = card {n . n < Nat.size a \<and> \<not>(bit a n)}"
-  using card_of_range intersect_bitCount_helper by auto
-
-hide_fact intersect_bitCount_helper
 
 lemma
   assumes "y = 0"
@@ -426,53 +256,8 @@ proof -
     by (simp add: less order_le_less)
 qed
 
-
-locale stamp_mask =
-  fixes up :: "IRExpr \<Rightarrow> int64" ("\<up>")
-  fixes down :: "IRExpr \<Rightarrow> int64" ("\<down>")
-  assumes up_spec: "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> (and v (not ((ucast (\<up>e))))) = 0"
-      and down_spec: "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> (and (not v) (ucast (\<down>e))) = 0"
-begin
-
-(*
-lemma bitsets:
-  "\<down>x \<subseteq> x \<and> x \<subseteq> \<up>x"
-*)
-
-lemma may_implies_either:
-  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<up>e) n \<Longrightarrow> bit v n = False \<or> bit v n = True"
-  by simp
-
-lemma not_may_implies_false:
-  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<up>e) n) \<Longrightarrow> bit v n = False"
-  using up_spec
-  using bit_and_iff bit_eq_iff bit_not_iff bit_unsigned_iff down_spec
-  by (smt (verit, best) bit.double_compl)
-
-lemma must_implies_true:
-  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
-  using down_spec
-  by (metis bit.compl_one bit_and_iff bit_minus_1_iff bit_not_iff impossible_bit ucast_id)
-
-lemma not_must_implies_either:
-  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<down>e) n) \<Longrightarrow> bit v n = False \<or> bit v n = True"
-  by simp
-
-lemma must_implies_may:
-  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> n < 32 \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
-  by (meson must_implies_true not_may_implies_false)
-end
-
 context stamp_mask
 begin
-
-lemma bin_up_and_zero_implies_zero:
-  assumes "and (\<up>x) (\<up>y) = 0"
-  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
-  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
-  shows "and xv yv = 0"
-  using assms
-  by (smt (z3) and.commute and.right_neutral and_zero_eq bit.compl_zero bit.conj_cancel_right bit.conj_disj_distribs(1) ucast_id up_spec word_bw_assocs(1) word_not_dist(2))
 
 lemma intval_up_and_zero_implies_zero:
   assumes "and (\<up>x) (\<up>y) = 0"
@@ -481,7 +266,7 @@ lemma intval_up_and_zero_implies_zero:
   assumes "val[xv & yv] \<noteq> UndefVal"
   shows "\<exists> b . val[xv & yv] = new_int b 0"
   using assms apply (cases xv; cases yv; auto)
-  using bin_up_and_zero_implies_zero
+  using up_mask_and_zero_implies_zero
   apply (smt (verit, best) take_bit_and take_bit_of_0)
   by presburger
 
@@ -503,7 +288,7 @@ lemma exp_eliminate_y:
       by (simp add: intval_and_commute intval_distribute_and_over_or)
     also have "\<exists>b. val[yv & zv] = new_int b 0"
       using intval_up_and_zero_implies_zero
-      by (metis calculation e intval_or.simps(5) new_int.simps p take_bit_of_0 unfold_binary yv zv)
+      by (metis calculation e intval_or.simps(5) p unfold_binary yv zv)
     ultimately have rhs: "v = val[xv & zv]"
       using intval_eliminate_y lhs by force
     from lhs rhs show ?thesis

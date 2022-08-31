@@ -341,4 +341,74 @@ end
 abbreviation (output) Refines :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" (infix "\<sqsupseteq>" 64)
   where "e\<^sub>1 \<sqsupseteq> e\<^sub>2 \<equiv> (e\<^sub>2 \<le> e\<^sub>1)"
 
+
+subsection \<open>Stamp Masks\<close>
+
+text \<open>
+A stamp can contain additional range information in the form of masks.
+A stamp has an up mask and a down mask,
+corresponding to a the bits that may be set and the bits that must be set.
+
+Examples:
+  A stamp where no range information is known will have;
+    an up mask of -1 as all bits may be set, and
+    a down mask of 0 as no bits must be set.
+
+  A stamp known to be one should have;
+    an up mask of 1 as only the first bit may be set, no others, and
+    a down mask of 1 as the first bit must be set and no others.
+
+We currently don't carry mask information in stamps,
+and instead assume correct masks to prove optimizations.
+\<close>
+
+locale stamp_mask =
+  fixes up :: "IRExpr \<Rightarrow> int64" ("\<up>")
+  fixes down :: "IRExpr \<Rightarrow> int64" ("\<down>")
+  assumes up_spec: "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> (and v (not ((ucast (\<up>e))))) = 0"
+      and down_spec: "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> (and (not v) (ucast (\<down>e))) = 0"
+begin
+
+lemma may_implies_either:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<up>e) n \<Longrightarrow> bit v n = False \<or> bit v n = True"
+  by simp
+
+lemma not_may_implies_false:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<up>e) n) \<Longrightarrow> bit v n = False"
+  using up_spec
+  using bit_and_iff bit_eq_iff bit_not_iff bit_unsigned_iff down_spec
+  by (smt (verit, best) bit.double_compl)
+
+lemma must_implies_true:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
+  using down_spec
+  by (metis bit.compl_one bit_and_iff bit_minus_1_iff bit_not_iff impossible_bit ucast_id)
+
+lemma not_must_implies_either:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<down>e) n) \<Longrightarrow> bit v n = False \<or> bit v n = True"
+  by simp
+
+lemma must_implies_may:
+  "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> n < 32 \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
+  by (meson must_implies_true not_may_implies_false)
+
+
+lemma up_mask_and_zero_implies_zero:
+  assumes "and (\<up>x) (\<up>y) = 0"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+  shows "and xv yv = 0"
+  using assms
+  by (smt (z3) and.commute and.right_neutral and_zero_eq bit.compl_zero bit.conj_cancel_right bit.conj_disj_distribs(1) ucast_id up_spec word_bw_assocs(1) word_not_dist(2))
+
+lemma not_down_up_mask_and_zero_implies_zero:
+  assumes "and (not (\<down>x)) (\<up>y) = 0"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+  shows "and xv yv = yv"
+  using assms
+  by (smt (z3) and_zero_eq bit.conj_cancel_left bit.conj_disj_distribs(1) bit.conj_disj_distribs(2) bit.de_Morgan_disj down_spec or_eq_not_not_and ucast_id up_spec word_ao_absorbs(2) word_ao_absorbs(8) word_bw_lcs(1) word_not_dist(2))
+
+end
+
 end

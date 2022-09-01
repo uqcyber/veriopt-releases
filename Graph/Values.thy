@@ -457,8 +457,8 @@ definition shiftr (infix ">>>" 75) where
 value "(255 :: 8 word) >>> (2 :: nat)"
 
 
-definition signed_shiftr :: "'a :: len word \<Rightarrow> nat \<Rightarrow> 'a :: len word" (infix ">>" 75) where 
-  "signed_shiftr w n = word_of_int ((sint w) div (2 ^ n))"
+definition sshiftr :: "'a :: len word \<Rightarrow> nat \<Rightarrow> 'a :: len word" (infix ">>" 75) where 
+  "sshiftr w n = word_of_int ((sint w) div (2 ^ n))"
 
 value "(128 :: 8 word) >> 2"
 

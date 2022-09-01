@@ -99,10 +99,10 @@ fun markup_constant (str, typ) =
     | ("Groups.abs_class.abs", _) => Translator.markup DSL_Tokens.Abs
     | ("\<^const>Values.shiftl", _) => Translator.markup DSL_Tokens.LeftShift
     | ("Values.shiftl", _) => Translator.markup DSL_Tokens.LeftShift
-    | ("\<^const>Values.shiftr", _) => Translator.markup DSL_Tokens.RightShift
-    | ("Values.shiftr", _) => Translator.markup DSL_Tokens.RightShift
-    | ("\<^const>Values.sshiftr", _) => Translator.markup DSL_Tokens.UnsignedRightShift
-    | ("Values.sshiftr", _) => Translator.markup DSL_Tokens.UnsignedRightShift
+    | ("\<^const>Values.sshiftr", _) => Translator.markup DSL_Tokens.RightShift
+    | ("Values.sshiftr", _) => Translator.markup DSL_Tokens.RightShift
+    | ("\<^const>Values.shiftr", _) => Translator.markup DSL_Tokens.UnsignedRightShift
+    | ("Values.shiftr", _) => Translator.markup DSL_Tokens.UnsignedRightShift
     | _ => Const (str, typ)
 
 fun find_free (taken, goal) =

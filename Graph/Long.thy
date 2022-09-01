@@ -113,6 +113,12 @@ lemma finite_range:
   "finite {n::nat . n < x}"
   by simp
 
+
+lemma range_eq:
+  fixes x y :: nat
+  shows "card {y..<x} = card {y<..x}"
+  using card_atLeastLessThan card_greaterThanAtMost by presburger
+
 lemma card_of_range_bound:
   fixes x y :: nat
   assumes "x > y"
@@ -120,13 +126,14 @@ lemma card_of_range_bound:
 proof -
   have finite: "finite {n . y \<le> n \<and> n < x}"
     by auto
-  have "x - y \<ge> 1"
-    using assms
-    by simp
-  show ?thesis
-    apply (cases "{n . y \<le> n \<and> n < x} = {}")
-    using assms apply blast
-    using assms finite apply auto sorry
+  have nonempty: "{n . y \<le> n \<and> n < x} \<noteq> {}"
+    using assms by blast
+  have simprep: "{n . y < n \<and> n \<le> x} = {y<..x}"
+    by auto
+  have "x - y = card {y<..x}"
+    by auto
+  then show ?thesis
+    unfolding simprep by blast
 qed
 
 lemma "bitCount (-1::('a::len) word) = LENGTH('a)"

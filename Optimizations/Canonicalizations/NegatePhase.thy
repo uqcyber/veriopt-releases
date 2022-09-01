@@ -39,13 +39,13 @@ lemma exp_distribute_sub:
   using evaltree_not_undef by auto
 
 (* Optimisations *)
-optimization negate_cancel: "-(-(e)) \<longmapsto> e"
+optimization NegateCancel: "-(-(x)) \<longmapsto> x"
   using val_negative_cancel apply auto sorry (*
   by (metis  unary_eval.simps(2) unfold_unary val_negative_cancel)*)
 
 
 (* FloatStamp condition is omitted. Not 100% sure. *)
-optimization distribute_sub: "-(x - y) \<longmapsto> (y - x)" 
+optimization DistributeSubtraction: "-(x - y) \<longmapsto> (y - x)" 
    apply simp_all 
    apply auto
   by (simp add: BinaryExpr evaltree_not_undef val_distribute_sub)
@@ -53,9 +53,9 @@ optimization distribute_sub: "-(x - y) \<longmapsto> (y - x)"
 
 (* Bits: 64, 32, 16, 8, 1 *)
 (* 32-bit proof *)
-optimization negative_shift_32: "-(BinaryExpr BinRightShift x (const (IntVal 32 31))) \<longmapsto> 
-                                   BinaryExpr BinURightShift x (const (IntVal 32 31))
-                                   when (stamp_expr x = default_stamp)"
+optimization NegativeShift: "-(x >> (const (IntVal b y))) \<longmapsto> 
+                                   x >>> (const (IntVal b y))
+                                   when (stamp_expr x = IntegerStamp b' lo hi \<and> unat y = (b' - 1))"
    apply simp_all apply auto 
   sorry
 

@@ -297,6 +297,104 @@ lemma exp_eliminate_y:
   done
   done
 
+lemma L1:
+  assumes "n = 64 - numberOfLeadingZeros (\<up>z)"
+  assumes "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
+  shows "and v zv = and (v mod 2^n) zv"
+proof -
+  have "and v zv = horner_sum of_bool 2 (map (bit (and v zv)) [0..<64])"
+    using horner_sum_bit_eq_take_bit size64
+    by (metis size_word.rep_eq take_bit_length_eq)
+  also have "... = horner_sum of_bool 2 (map (\<lambda>i. bit (and v zv) i) [0..<64])"
+    by blast
+  also have "... = horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit v i)) (of_bool (bit zv i))) i)) [0..<64])" (is "_ = ?X")
+    sorry
+  also have "horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit v i)) (of_bool (bit zv i))) i)) [0..<64])
+             = horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit v i)) (of_bool (bit zv i))) i)) [0..<n])"
+  proof -
+    have "\<forall>j. j \<ge> n \<longrightarrow> \<not>(bit zv j)"
+      sorry
+    then show ?thesis sorry
+  qed
+  also have "horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit v i)) (of_bool (bit zv i))) i)) [0..<n])
+             = horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit (v mod 2^n) i)) (of_bool (bit zv i))) i)) [0..<n])"
+  proof -
+    have "\<forall>i. i < n \<longrightarrow> bit (v mod 2^n) i = bit v i"
+      sorry
+    then show ?thesis sorry
+  qed
+  also have "horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit (v mod 2^n) i)) (of_bool (bit zv i))) i)) [0..<n])
+             = horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit (v mod 2^n) i)) (of_bool (bit zv i))) i)) [0..<64])"
+  proof -
+    have "\<forall>j. j \<ge> n \<longrightarrow> \<not>(bit zv j)"
+      sorry
+    then show ?thesis sorry
+  qed
+  also have "horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit (v mod 2^n) i)) (of_bool (bit zv i))) i)) [0..<64])
+             = and (v mod 2^n) zv"
+    sorry
+  finally show ?thesis
+    using \<open>and (v::64 word) (zv::64 word) = horner_sum of_bool (2::64 word) (map (bit (and v zv)) [0::nat..<64::nat])\<close> by presburger
+qed
+
+lemma L2:
+  assumes "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 64"
+  assumes "n = 64 - numberOfLeadingZeros (\<up>z)"
+  assumes "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+  shows "yv mod 2^n = 0"
+  using assms sorry
+
+lemma
+  assumes "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 64"
+  shows "exp[(x + y) & z] \<ge> exp[x & z]"
+  apply simp apply ((rule allI)+; rule impI)
+  subgoal premises eval for m p v
+proof -
+  obtain n where n: "n = 64 - numberOfLeadingZeros (\<up>z)"
+    by simp
+  obtain xv b where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+    using eval
+    by (smt (verit) bin_eval.simps(1) intval_add.elims unfold_binary)
+  then obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+    using eval bin_eval.simps(1) intval_add.elims unfold_binary
+    by (smt (verit) Value.inject(1) evalDet)
+  from xv obtain zv where zv: "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
+    using eval bin_eval.simps(4) intval_and.elims unfold_binary yv
+    sorry
+  have addv: "[m, p] \<turnstile> exp[x + y] \<mapsto> new_int b (xv + yv)"
+    using eval
+    using bin_eval.simps(1) evaltree.intros(5) intval_add.simps(1) new_int.simps xv yv by auto
+  have val1: "[m, p] \<turnstile> exp[(x + y) & z] \<mapsto> new_int b (and (xv + yv) zv)"
+    apply (rule evaltree.BinaryExpr)
+    using addv apply simp
+    using zv apply simp
+    using addv apply auto[1]
+    by simp
+  have val2: "[m, p] \<turnstile> exp[x & z] \<mapsto> new_int b (and xv zv)"
+    apply (rule evaltree.BinaryExpr)
+    using xv apply simp
+    using zv apply simp
+     apply force
+    by simp
+  have "and (xv + yv) zv = and ((xv + yv) mod 2^n) zv"
+    using L1 n zv by blast
+  also have "... = and (((xv mod 2^n) + (yv mod 2^n)) mod 2^n) zv"
+    using mod_add_right_eq mod_add_left_eq sorry
+  also have "... = and ((xv mod 2^n) mod 2^n) zv"
+    using L2 n zv yv
+    using assms by auto
+  also have "... = and (xv mod 2^n) zv"
+    using mod_mod_trivial
+    by (smt (verit, best) and.idem take_bit_eq_mask take_bit_eq_mod word_bw_assocs(1))
+  also have "... = and xv zv"
+    using L1 n zv by metis
+  finally show ?thesis
+    using eval val1 val2
+    by (metis evalDet)
+qed
+  done
+
 (*
 lemma wrong:
   assumes "numberOfLeadingZeros (\<down>z) + highestOneBit (\<down>z) = 64"

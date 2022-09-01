@@ -72,7 +72,7 @@ lemma exp_and_nots:
    apply (cases x; cases y; auto) using val_and_nots 
   by fastforce+ 
 
-lemma exp_and_neutral: 
+(*lemma exp_and_neutral: 
   "exp[x & ~(const (new_int b 0))] \<ge> x"
   apply auto using val_and_neutral eval_unused_bits_zero sorry (*
   apply (cases x; simp) using val_and_neutral bin_eval.simps(4)  
@@ -86,24 +86,24 @@ lemma exp_and_neutral:
          intval_not.simps(2) unfold_const64) 
          using val_and_neutral_64 bin_eval.simps(4) unary_eval.simps(3) bin_and_neutral 
                unfold_const64 intval_and.elims intval_not.simps(2) 
-         sorry*)
+         sorry*)*)
 
 
 (* Optimisations *)
-optimization opt_and_equal: "x & x \<longmapsto> x"
+optimization AndEqual: "x & x \<longmapsto> x"
   using exp_and_equal by blast
 
-optimization opt_AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
+optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
                                          when \<not>(is_ConstantExpr y)"
   using bin_eval.simps(4) apply auto  
   sorry
 
 
-optimization opt_and_nots: "(~x) & (~y) \<longmapsto> ~(x | y)"
+optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
     using exp_and_nots 
    by auto 
 
-optimization opt_and_sign_extend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
+optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
                                                      (ConstantExpr (IntVal 32 e))
                                    \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) x)
                                                    when (e = (1 << In) - 1)"
@@ -116,14 +116,11 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
 
-optimization opt_and_neutral_32: "(x & ~(const (IntVal 32 0))) \<longmapsto> x 
-   when (wf_stamp x \<and> stamp_expr x = default_stamp)"
-   apply auto 
-  apply (cases x; simp) using unary_eval.simps unfold_const val_and_neutral 
-  sorry (*
-   apply (metis UnaryExprE intval_and.simps(5) is_IntVal64_def is_IntVal_def unary_eval_int)
-    using unary_eval.simps(2) unfold_const32 val_and_neutral_32 val_and_neutral_64 
-  sorry*)
+optimization AndNeutral: "(x & ~(const (IntVal b 0))) \<longmapsto> x 
+   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+   apply auto using val_and_neutral
+  by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_and.elims intval_word.simps new_int.simps new_int_bin.simps take_bit_eq_mask)
+
 
 (* Extra ones which were missing *)
 (*
@@ -160,7 +157,7 @@ end
 context stamp_mask
 begin
 
-lemma and_right_fall_through: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[y]"
+lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[y]"
   apply simp apply (rule impI; (rule allI)+)
   apply (rule impI)
   subgoal premises p for m p v
@@ -179,7 +176,7 @@ lemma and_right_fall_through: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longr
   qed
   done
 
-lemma opt_and_left_fall_through: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[x]"
+lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[x]"
   apply simp apply (rule impI; (rule allI)+)
   apply (rule impI)
   subgoal premises p for m p v

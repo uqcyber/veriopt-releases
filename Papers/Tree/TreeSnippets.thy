@@ -283,7 +283,7 @@ begin
 snipend -
 
 snipbegin \<open>phase-example-1\<close>optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x)"snipend -
-  using ConditionalPhase.negate_condition
+  using ConditionalPhase.NegateConditionFlipBranches
    by (auto simp: trm_def)
 
 snipbegin \<open>phase-example-2\<close>optimization const_true: "(true ? x : y) \<longmapsto> x"snipend -

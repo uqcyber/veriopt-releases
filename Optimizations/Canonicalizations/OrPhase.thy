@@ -60,7 +60,7 @@ lemma exp_elim_redundant_false:
   by (metis BinaryExprE bin_eval.simps(5) bool_to_val.simps(2) evaltree_not_undef)+*)
   
 (* Optimizations *)
-optimization or_equal: "x | x \<longmapsto> x"
+optimization OrEqual: "x | x \<longmapsto> x"
   by (meson exp_or_equal le_expr_def)
 
 
@@ -69,21 +69,21 @@ optimization OrShiftConstantRight: "((const x) | y) \<longmapsto> y | (const x) 
    apply simp apply auto 
   sorry
 
-optimization elim_redundant_false: "x | false \<longmapsto> x"
+optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
   by (meson exp_elim_redundant_false le_expr_def)
 
 
-optimization or_not_operands: "(~x | ~y) \<longmapsto> ~ (x & y)"
+optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~ (x & y)"
    apply auto using val_or_not_operands
   by (metis BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3))
 
-optimization or_left_fall_through: "(x | y) \<longmapsto> x
+optimization OrLeftFallthrough: "(x | y) \<longmapsto> x
                                 when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
   by (simp add: IRExpr_down_def IRExpr_up_def) 
 
-optimization or_right_fall_through: "(x | y) \<longmapsto> y
+optimization OrRightFallthrough: "(x | y) \<longmapsto> y
                                 when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
-  by (meson exp_or_commute or_left_fall_through(1) order.trans rewrite_preservation.simps(2))
+  by (meson exp_or_commute OrLeftFallthrough(1) order.trans rewrite_preservation.simps(2))
 
 end (* End of OrPhase *)
 

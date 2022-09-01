@@ -28,7 +28,7 @@ lemma exp_not_cancel:
   by (metis UnaryExprE unary_eval.simps(3))*)
 
 (* Optimisations *)
-optimization not_cancel: "exp[~(~a)] \<longmapsto> a"
+optimization NotCancel: "exp[~(~a)] \<longmapsto> a"
   by (metis exp_not_cancel)
 
 end (* End of NotPhase *)

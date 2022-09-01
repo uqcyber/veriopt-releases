@@ -70,7 +70,7 @@ lemma exp_xor_self_is_false:
 
 (* Optimisations *)
 (* Not sure about the conditions on this one. *)
-optimization xor_self_is_false: "(x \<oplus> x) \<longmapsto> false when 
+optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when 
                       (wf_stamp x \<and> stamp_expr x = default_stamp)"
    apply auto[1] 
    apply (simp add: Suc_lessI one_is_add) using exp_xor_self_is_false
@@ -86,7 +86,7 @@ optimization EliminateRedundantFalse: "(x \<oplus> false) \<longmapsto> x"
    by (metis)*)
 
 
-optimization opt_mask_out_rhs: "(x \<oplus> const y) \<longmapsto> UnaryExpr UnaryNot x
+optimization MaskOutRHS: "(x \<oplus> const y) \<longmapsto> UnaryExpr UnaryNot x
                                  when ((stamp_expr (x) = IntegerStamp bits l h))  
 "
     unfolding le_expr_def apply auto 

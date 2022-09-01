@@ -208,12 +208,12 @@ lemma val_abs_negate:
 
 
 (* Optimisations *)
-optimization abs_idempotence: "abs(abs(x)) \<longmapsto>  abs(x)"
+optimization AbsIdempotence: "abs(abs(x)) \<longmapsto>  abs(x)"
    apply auto 
   by (metis UnaryExpr unary_eval.simps(1) val_abs_idem)
 
 (* Need to prove val_abs_negate *)
-optimization abs_negate: "(abs(-x)) \<longmapsto>  abs(x)"
+optimization AbsNegate: "(abs(-x)) \<longmapsto>  abs(x)"
     apply auto using val_abs_negate
   by (metis evaltree_not_undef unary_eval.simps(1) unfold_unary)
 

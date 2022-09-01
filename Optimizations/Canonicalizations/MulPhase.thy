@@ -125,23 +125,23 @@ lemma exp_multiply_zero_64:
   by (smt (verit))
 
 (* Optimizations *)
-optimization opt_EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
+optimization EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
    apply auto using val_eliminate_redundant_negative bin_eval.simps(2)
   by (metis BinaryExpr)
 
 
-optimization opt_MultiplyNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
+optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
     apply auto using val_multiply_neutral bin_eval.simps(2)  sorry (*
   by (smt (z3) Value.discI(1) Value.distinct(9) intval_mul.elims times_Value_def)*)
 
 
-optimization opt_MultiplyZero: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (IntVal b 0)"
+optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (IntVal b 0)"
   apply auto using val_multiply_zero
   using Value.inject(1) constantAsStamp.simps(1) int_signed_value_bounds intval_mul.elims mult_zero_right new_int.simps new_int_bin.simps take_bit_of_0 unfold_const valid_stamp.simps(1) valid_value.simps(1) 
   by (smt (verit))
 
 (* Size issue *)
-optimization opt_MultiplyNegative: "x * -(const (IntVal b 1)) \<longmapsto> -x"
+optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
   apply auto using val_multiply_negative
   by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps take_bit_dist_neg times_Value_def unary_eval.simps(2) unfold_unary val_eliminate_redundant_negative)
 

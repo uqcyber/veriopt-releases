@@ -25,17 +25,15 @@ lemma negation_condition_intval:
   shows "val[(!e) ? x : y] = val[e ? y : x]"
   using assms by (cases e; auto simp: negates logic_negate_def)
 
-optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x)"
+optimization NegateConditionFlipBranches: "((!e) ? x : y) \<longmapsto> (e ? y : x)"
     apply simp using negation_condition_intval
   by (smt (verit, ccfv_SIG) ConditionalExpr ConditionalExprE Value.collapse Value.exhaust_disc evaltree_not_undef intval_logic_negation.simps(4) intval_logic_negation.simps negates unary_eval.simps(4) unfold_unary)
 
-(* TODO: why do these fail now?
-optimization const_true: "(true ? x : y) \<longmapsto> x" .
+optimization DefaultTrueBranch: "(true ? x : y) \<longmapsto> x" .
 
-optimization const_false: "(false ? x : y) \<longmapsto> y" .
+optimization DefaultFalseBranch: "(false ? x : y) \<longmapsto> y" .
 
-optimization equal_branches: "(e ? x : x) \<longmapsto> x" .
-*)
+optimization ConditionalEqualBranches: "(e ? x : x) \<longmapsto> x" .
 
 (* this will be removable after some work *)
 definition wff_stamps :: bool where
@@ -88,20 +86,6 @@ optimization b[intval]: "((x eq y) ? x : y) \<longmapsto> y"
 *)
 
 
-(* Proofs which were commented out above *)
-
-optimization b[intval]: "((x eq y) ? x : y) \<longmapsto> y"
-(*
-   apply (smt (z3) bool_to_val.simps(2) intval_equals.elims val_to_bool.simps(1) 
-          val_to_bool.simps(3)) unfolding intval.simps
-   apply (smt (z3) BinaryExprE ConditionalExprE Value.inject(1) Value.inject(2) bin_eval.simps(10) 
-          bool_to_val.simps(2) evalDet intval_equals.simps(1) intval_equals.simps(10) 
-          intval_equals.simps(12) intval_equals.simps(15) intval_equals.simps(16) 
-          intval_equals.simps(2) intval_equals.simps(5) intval_equals.simps(8) 
-          intval_equals.simps(9) le_expr_def val_to_bool.cases val_to_bool.elims(2))
-    unfolding size.simps by auto*) sorry
-
-
 (** Start of new proofs **)
 
 (* Value-level proofs *)
@@ -115,7 +99,7 @@ lemma val_optimise_integer_test:
   using bool_to_val.elims intval_equals.elims val_to_bool.simps(1) val_to_bool.simps(3)
   sorry
 
-optimization val_conditional_eliminate_known_less: "((x < y) ? x : y) \<longmapsto> x 
+optimization ConditionalEliminateKnownLess: "((x < y) ? x : y) \<longmapsto> x 
                                  when (stamp_under (stamp_expr x) (stamp_expr y)
                                       \<and> wf_stamp x \<and> wf_stamp y)"
        apply auto
@@ -123,39 +107,39 @@ optimization val_conditional_eliminate_known_less: "((x < y) ? x : y) \<longmaps
     sorry
 
 (* Optimisations *)
-optimization opt_conditional_eq_is_RHS: "((BinaryExpr BinIntegerEquals x y) ? x : y) \<longmapsto> y"
-   apply simp_all apply auto using b Canonicalization.intval.simps(1) evalDet 
-          intval_conditional.simps
-  by (metis (mono_tags, lifting) evaltree_not_undef)
+optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
+   apply simp_all apply auto using Canonicalization.intval.simps(1) evalDet 
+          intval_conditional.simps evaltree_not_undef
+  by (metis (no_types, opaque_lifting) Value.discI(2) Value.distinct(1) intval_and.simps(3) intval_equals.simps(2) val_optimise_integer_test val_to_bool.simps(2))
 
 (* todo not sure if this is done properly *)
-optimization opt_normalize_x: "((x eq const (IntVal 32 0)) ? 
+optimization normalizeX: "((x eq const (IntVal 32 0)) ? 
                                 (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> x
                                 when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" 
   done
 
 (* todo not sure if this is done properly *)
-optimization opt_normalize_x2: "((x eq (const (IntVal 32 1))) ? 
+optimization normalizeX2: "((x eq (const (IntVal 32 1))) ? 
                                  (const (IntVal 32 1)) : (const (IntVal 32 0))) \<longmapsto> x
                                  when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
 (* todo not sure if this is done properly *)
-optimization opt_flip_x: "((x eq (const (IntVal 32 0))) ? 
+optimization flipX: "((x eq (const (IntVal 32 0))) ? 
                            (const (IntVal 32 1)) : (const (IntVal 32 0))) \<longmapsto> 
                             x \<oplus> (const (IntVal 32 1))
                             when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
 (* todo not sure if this is done properly *)
-optimization opt_flip_x2: "((x eq (const (IntVal 32 1))) ? 
+optimization flipX2: "((x eq (const (IntVal 32 1))) ? 
                             (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> 
                             x \<oplus> (const (IntVal 32 1))
                             when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
 
-optimization opt_optimise_integer_test: 
+optimization OptimiseIntegerTest: 
      "(((x & (const (IntVal 32 1))) eq (const (IntVal 32 0))) ? 
       (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> 
        x & (const (IntVal 32 1))
@@ -177,7 +161,7 @@ optimization opt_conditional_eliminate_known_less: "((x < y) ? x : y) \<longmaps
                                       ((stpi_upper (stamp_expr x)) = (stpi_lower (stamp_expr y))))
                                       \<and> wf_stamp x \<and> wf_stamp y)"
    unfolding le_expr_def apply auto
-  using stamp_under.simps wf_stamp_def val_conditional_eliminate_known_less 
+  using stamp_under.simps wf_stamp_def 
   sorry
 
 

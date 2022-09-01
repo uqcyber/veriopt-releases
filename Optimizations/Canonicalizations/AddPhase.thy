@@ -72,7 +72,7 @@ lemma NeutralLeftSubVal:
   apply simp using assms by (cases e1; cases e2; auto)
   
 
-optimization NeutralLeftSub: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
+optimization RedundantSubAdd: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
   apply auto using eval_unused_bits_zero NeutralLeftSubVal
   unfolding well_formed_equal_defn
   by (smt (verit) evalDet intval_sub.elims new_int.elims)
@@ -89,8 +89,8 @@ lemma just_goal2:
   by (metis 1 evalDet evaltree_not_undef)
 
 
-optimization NeutralRightSub: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
-  by (smt (verit, del_insts) BinaryExpr BinaryExprE NeutralLeftSub(1) binadd_commute le_expr_def rewrite_preservation.simps(1))
+optimization RedundantAddSub: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
+  by (smt (verit, del_insts) BinaryExpr BinaryExprE RedundantSubAdd(1) binadd_commute le_expr_def rewrite_preservation.simps(1))
 
 (* Demonstration of our FOUR levels of expression rewrites:
    =======================================================
@@ -189,10 +189,10 @@ optimization opt_redundant_sub_add: "(b + a) - b \<longmapsto> a"
    apply auto using val_redundant_add_sub eval_unused_bits_zero
   by (smt (verit) evalDet intval_add.elims new_int.elims)
 
-optimization opt_add_right_negate_to_sub: "(x + (-e)) \<longmapsto> x - e"
+optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
    using AddToSubHelperLowLevel intval_add_sym by auto 
 
-optimization opt_add_left_negate_to_sub: "-x + y \<longmapsto> y - x"
+optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   using exp_add_left_negate_to_sub by blast
 
 (* ----- Ends here ----- *)

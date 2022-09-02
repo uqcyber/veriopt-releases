@@ -174,7 +174,7 @@ lemma val_redundant_add_sub:
   by presburger
 
 lemma val_add_right_negate_to_sub:
-  assumes "val[x + e]\<noteq> UndefVal"
+  assumes "val[x + e] \<noteq> UndefVal"
   shows "val[x + (-e)] = val[x - e]"
   using assms by (cases x; cases e; auto)
 

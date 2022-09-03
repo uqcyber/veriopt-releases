@@ -30,13 +30,33 @@ lemma bin_multiply_power_2:
  "(x:: 'a::len word) * (2^j) = x << j"
   by simp
 
+(* Helper *)
+lemma take_bit64[simp]: 
+  fixes w :: "int64"
+  shows "take_bit 64 w = w"
+proof -
+  have "Nat.size w = 64"
+    by (simp add: size64)
+  then show ?thesis
+    by (metis lt2p_lem mask_eq_iff take_bit_eq_mask verit_comp_simplify1(2) wsst_TYs(3))
+qed
+
+
+(* TODO: merge this with val_eliminate_redundant_negative *)
+lemma testt:
+  fixes a :: "nat"
+  fixes b c :: "64 word"
+  shows "take_bit a (take_bit a (b) * take_bit a (c)) = 
+         take_bit a (b * c)" 
+ by (smt (verit, ccfv_SIG) take_bit_mult take_bit_of_int unsigned_take_bit_eq word_mult_def)
+
+
 (* Value level proofs *)
 lemma val_eliminate_redundant_negative:
   assumes "val[-x * -y] \<noteq> UndefVal"
   shows "val[-x * -y] = val[x * y]"
-  using assms
-  apply (cases x; cases y; auto)
-  sorry
+  using assms apply (cases x; cases y; auto)
+  using testt by auto
 
 lemma val_multiply_neutral:
   assumes "x = new_int b v"
@@ -46,8 +66,7 @@ lemma val_multiply_neutral:
 lemma val_multiply_zero:
   assumes "x = new_int b v"
   shows "val[x] * (IntVal b 0) = IntVal b 0"
-  using assms
-  by (simp add: times_Value_def)
+  using assms by (simp add: times_Value_def)
 
 lemma val_multiply_negative:
   assumes "x = new_int b v"
@@ -59,16 +78,6 @@ lemma val_multiply_negative:
       verit_minus_simplify(4) zero_neq_one)
 
 (* x * 2^i = x << i*)
-lemma take_bit64[simp]: 
-  fixes w :: "int64"
-  shows "take_bit 64 w = w"
-proof -
-  have "Nat.size w = 64"
-    by (simp add: size64)
-  then show ?thesis
-    by (metis lt2p_lem mask_eq_iff take_bit_eq_mask verit_comp_simplify1(2) wsst_TYs(3))
-qed
-
 lemma val_MulPower2:
   fixes i :: "64 word"
   assumes "y = IntVal 64 (2 ^ unat(i))"
@@ -150,6 +159,42 @@ lemma val_MulPower2Sub1:
     qed 
   done
 
+(* Helper *)
+lemma val_distribute_multiplication:
+  assumes "x = new_int 64 xx \<and> q = new_int 64 qq \<and> a = new_int 64 aa"
+  shows "val[x * (q + a)] = val[(x * q) + (x * a)]"
+  apply (cases x; cases q; cases a; auto) using distrib_left assms by auto
+
+
+(*  x * ((2 ^ j) + (2 ^ k)) = (x << j) + (x << k)  *)
+lemma val_MulPower2AddPower2:
+  fixes i j :: "64 word"
+  assumes "y = IntVal 64 ((2 ^ unat(i)) + (2 ^ unat(j)))"
+  and     "0 < i"
+  and     "0 < j"
+  and     "i < 64"
+  and     "j < 64"
+  and     "x = new_int 64 xx"
+  shows   "x * y = val[(x << IntVal 64 i) + (x << IntVal 64 j)]"
+  using assms
+  proof -
+    have 63: "(63 :: int64) = mask 6"
+      by eval
+    then have "(2::int) ^ 6 = 64"
+      by eval
+    then have n: "IntVal 64 ((2 ^ unat(i)) + (2 ^ unat(j))) = 
+           val[(IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j)))]"
+       (* x * (2^i + 2^j)*)
+      using assms by (cases i; cases j; auto) 
+   then have "val[x * ((IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j))))] = 
+           val[(x * IntVal 64 (2 ^ unat(i))) + (x * IntVal 64 (2 ^ unat(j)))]"
+      (* (x * 2^i) + (x * 2^j)*)
+     using assms val_distribute_multiplication val_MulPower2 by simp 
+   then have "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
+     using assms val_MulPower2  sorry
+    then show "?thesis"
+       sorry
+    qed 
 
 (* Exp-level proofs *)
 lemma exp_multiply_zero_64:
@@ -160,12 +205,16 @@ lemma exp_multiply_zero_64:
         unfold_const valid_stamp.simps(1) valid_value.simps(1) zero_less_Suc
   by (smt (verit))
 
+lemma exp_multiply_neutral:
+ "exp[x * (const (IntVal b 1))] \<ge> x"
+  using val_multiply_neutral apply auto  sorry
+
 lemma exp_MulPower2:
-fixes i :: "64 word"
+  fixes i :: "64 word"
   assumes "y = ConstantExpr (IntVal 64 (2 ^ unat(i)))"
   and     "0 < i"
   and     "i < 64"
-shows "exp[x * y] \<ge> exp[x << ConstantExpr (IntVal 64 i)]"
+  shows "exp[x * y] \<ge> exp[x << ConstantExpr (IntVal 64 i)]"
   using assms val_MulPower2 
   sorry
 
@@ -175,11 +224,9 @@ optimization EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
    apply auto using val_eliminate_redundant_negative bin_eval.simps(2)
   by (metis BinaryExpr)
 
-
+(* Need to prove exp_multiply_neutral *)
 optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
-    apply auto using val_multiply_neutral bin_eval.simps(2)  sorry (*
-  by (smt (z3) Value.discI(1) Value.distinct(9) intval_mul.elims times_Value_def)*)
-
+  using exp_multiply_neutral by blast
 
 optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (IntVal b 0)"
   apply auto using val_multiply_zero

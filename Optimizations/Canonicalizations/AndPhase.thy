@@ -21,23 +21,19 @@ lemma bin_and_neutral:
 (* Value level proofs *)
 lemma val_and_equal:
   assumes "x = new_int b v"
-  assumes "val[x & x] \<noteq> UndefVal"
+  and     "val[x & x] \<noteq> UndefVal"
   shows "val[x & x] = x"
-   using assms 
-  by (cases x; auto)
+   using assms by (cases x; auto)
 
 lemma val_and_nots:
   "val[~x & ~y] = val[~(x | y)]"
-  apply (cases x; cases y; auto)
-  by (simp add: take_bit_not_take_bit)
+  apply (cases x; cases y; auto) by (simp add: take_bit_not_take_bit)
 
 lemma val_and_neutral:
   assumes "x = new_int b v"
-  assumes "val[x & ~(new_int b' 0)] \<noteq> UndefVal"
+  and     "val[x & ~(new_int b' 0)] \<noteq> UndefVal"
   shows "val[x & ~(new_int b' 0)] = x"
-   using assms 
-   apply (cases x; auto)
-   apply (simp add: take_bit_eq_mask) 
+   using assms apply (cases x; auto) apply (simp add: take_bit_eq_mask) 
    by presburger
 
 (* Not sure if this one is written correctly *)
@@ -58,8 +54,7 @@ lemma val_and_sign_extend_2:
 lemma val_and_zero:
   assumes "x = new_int b v"
   shows "val[x & (IntVal b 0)] = IntVal b 0"
-   using assms 
-  by (cases x; auto) 
+   using assms by (cases x; auto) 
 
 (* Exp level proofs *)
 lemma exp_and_equal:

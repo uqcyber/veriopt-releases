@@ -5,20 +5,12 @@ theory StampEvalThms
           Semantics.IRTreeEvalThms
 begin
 
-(* TODO: these will need constraints on v to make sure it fits into 32/64 bits
-lemma unrestricted_32bit_always_valid [simp]:
-  "valid_value (new_int 32 v) (unrestricted_stamp (IntegerStamp 32 lo hi))"
-  apply auto
-  using valid_value.simps(1) bit_bounds_min32 bit_bounds_max32 new_int.simps
-  using unrestricted_stamp.simps(2) 
-*)
+lemma unrestricted_new_int_always_valid [simp]:
+  assumes "0 < b \<and> b \<le> 64"
+  shows "valid_value (new_int b v) (unrestricted_stamp (IntegerStamp b lo hi))"
+  unfolding unrestricted_stamp.simps new_int.simps valid_value.simps
+  by (simp; metis One_nat_def assms int_power_div_base int_signed_value.simps int_signed_value_range linorder_not_le not_exp_less_eq_0_int zero_less_numeral)
 
-(* TODO:
-lemma unrestricted_64bit_always_valid [simp]:
-  "valid_value (IntVal 64 v) (unrestricted_stamp (IntegerStamp 64 lo hi))"
-  using valid_value.simps(2) bit_bounds_min64 bit_bounds_max64
-  using unrestricted_stamp.simps(2) by presburger
-*)
 
 lemma unary_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVal"
   by (cases op; auto)
@@ -168,45 +160,11 @@ lemma valid_int_signed_range:
 
 
 
-subsubsection \<open>Validity of UnaryAbs\<close>
-
-text \<open>A set of lemmas for each evaltree step.
-   Questions: 
-   1. is this top-down approach (assume the result node evaluation) best?
-      Maybe.  It seems to be the shortest/simplest trigger?
-\<close>
-
-lemma unary_abs_implies_valid_value:
-  assumes 1:"[m,p] \<turnstile> e1 \<mapsto> r1"
-  assumes 2:"result = unary_eval UnaryAbs r1"
-  assumes 3:"result \<noteq> UndefVal"
-  assumes 4:"valid_value r1 (stamp_expr e1)"
-  shows "valid_value result (stamp_expr (UnaryExpr UnaryAbs e1))"
-proof -
-  have "[m,p] \<turnstile> (UnaryExpr UnaryAbs e1) \<mapsto> result"
-    using assms by blast
-  then obtain b1 v1 where r1: "IntVal b1 v1 = r1"
-    using assms by (metis intval_abs.elims unary_eval.simps(1))
-  then obtain lo1 hi1 where s1: "stamp_expr e1 = IntegerStamp b1 lo1 hi1"
-    by (metis "4" valid_int_gives)
-  then obtain v2 where r2: "result = IntVal b1 v2"
-    using assms by (metis intval_abs.simps(1) new_int.simps r1 unary_eval.simps(1))
-  then have r: "result = intval_abs (IntVal b1 v1)"
-    using "2" r1 unary_eval.simps(1) by presburger
-  then have b1: "0 < b1 \<and> b1 \<le> 64"
-    by (metis "4" r1 s1 valid_stamp.simps(1) valid_value.simps(1))
-  then have bnds1: "fst (bit_bounds b1) \<le> int_signed_value b1 v2 \<and> int_signed_value b1 v2 \<le> snd (bit_bounds b1)"
-    using int_signed_value_bounds by blast 
-  then have s: "(stamp_expr (UnaryExpr UnaryAbs e1)) = unrestricted_stamp (IntegerStamp b1 lo1 hi1)"
-    by (simp add: s1)
-  then show ?thesis
-    unfolding s unrestricted_stamp.simps r2 valid_value.simps
-    using "4" bnds1 r r1 r2 s1 by auto
-qed
-
-
-
 subsubsection \<open>Validity of all Unary Operators\<close>
+
+text \<open>We split the validity proof for unary operators into two lemmas,
+  one for normal unary operators whose output bits equals their input bits,
+  and the other case for the widen and narrow operators.\<close>
 
 lemma eval_normal_unary_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
@@ -322,29 +280,48 @@ lemma binary_undef: "v1 = UndefVal \<or> v2 = UndefVal \<Longrightarrow> bin_eva
 lemma binary_obj: "v1 = ObjRef x \<or> v2 = ObjRef y \<Longrightarrow> bin_eval op v1 v2 = UndefVal"
   by (cases op; auto)
 
-(* Not true any more, now we have 16 and 8 bit stamps.
-lemma binary_eval_bits_equal:
-  assumes "result = bin_eval op val1 val2"
+text \<open>Some lemmas about the three different output sizes for binary operators.\<close>
+
+lemma bin_eval_bits_binary_shift_ops:
+  assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
   assumes "result \<noteq> UndefVal"
-  assumes "valid_value val1 (IntegerStamp b1 lo1 hi1)"
-  assumes "valid_value val2 (IntegerStamp b2 lo2 hi2)"
+  assumes "op \<in> binary_shift_ops"
+  shows "\<exists>v. result = new_int b1 v"
+  using assms
+  by (cases op; simp; smt (verit, best) new_int.simps)+
+
+lemma bin_eval_bits_fixed_32_ops:
+  assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
+  assumes "result \<noteq> UndefVal"
+  assumes "op \<in> binary_fixed_32_ops"
+  shows "\<exists>v. result = new_int 32 v"
+  using assms
+  apply (cases op; simp)
+  using assms bool_to_val.simps bin_eval_new_int new_int.simps bin_eval_unused_bits_zero
+  by metis+
+
+lemma bin_eval_bits_normal_ops:
+  assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
+  assumes "result \<noteq> UndefVal"
+  assumes "op \<notin> binary_shift_ops"
+  assumes "op \<notin> binary_fixed_32_ops"
+  shows "\<exists>v. result = new_int b1 v"
+  using assms apply (cases op; simp)
+  using assms apply (metis (mono_tags))+
+  using take_bit_and apply metis
+  using take_bit_or apply metis
+  using take_bit_xor by metis
+
+lemma bin_eval_input_bits_equal:
+  assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
+  assumes "result \<noteq> UndefVal"
+  assumes "op \<notin> binary_shift_ops"
   shows "b1 = b2"
-  using assms 
-  apply (cases op; cases val1; cases val2; auto) (*slow*)
-  sorry
-*)
+  using assms apply (cases op; simp)
+  by presburger+
 
-(* Not true any more, now that the bit-shift operators can take mixed 32/64 bit arguments.
-lemma binary_eval_values:
-  assumes "\<exists>x y. result = IntVal32 x \<or> result = IntVal64 y"
-  assumes "result = bin_eval op val1 val2"
-  shows" \<exists>x32 x64 y32 y64. val1 = IntVal32 x32 \<and> val2 = IntVal32 y32 \<or> val1 = IntVal64 x64 \<and> val2 = IntVal64 y64"
-  using assms apply (cases result)
-      apply simp apply (cases op; cases val1; cases val2; auto)
-    apply (cases op; cases val1; cases val2; auto) by auto+
-*)
 
-lemma binary_eval_implies_valid_value:
+lemma bin_eval_implies_valid_value:
   assumes "[m,p] \<turnstile> expr1 \<mapsto> val1"
   assumes "[m,p] \<turnstile> expr2 \<mapsto> val2"
   assumes "result = bin_eval op val1 val2"
@@ -352,7 +329,57 @@ lemma binary_eval_implies_valid_value:
   assumes "valid_value val1 (stamp_expr expr1)"
   assumes "valid_value val2 (stamp_expr expr2)"
   shows "valid_value result (stamp_expr (BinaryExpr op expr1 expr2))"
-  sorry
+proof -
+  obtain b1 v1 where v1: "val1 = IntVal b1 v1"
+    by (metis Value.collapse(1) assms(3) assms(4) bin_eval_inputs_are_ints bin_eval_int)
+  obtain b2 v2 where v2: "val2 = IntVal b2 v2"
+    by (metis Value.collapse(1) assms(3) assms(4) bin_eval_inputs_are_ints bin_eval_int)
+  then obtain lo1 hi1 where s1: "stamp_expr expr1 = IntegerStamp b1 lo1 hi1"
+    by (metis assms(5) v1 valid_int_gives)
+  then obtain lo2 hi2 where s2: "stamp_expr expr2 = IntegerStamp b2 lo2 hi2"
+    by (metis assms(6) v2 valid_int_gives)
+  then have r: "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
+    using assms(3) v1 v2 by blast
+  then obtain bres vtmp where vtmp: "result = new_int bres vtmp"
+    using assms bin_eval_bits_binary_shift_ops
+    by (meson bin_eval_new_int) 
+  then obtain vres where vres: "result = IntVal bres vres"
+    by force
+  (* now calculate the result stamp for the three classes of operators. *)
+  then have sres: "stamp_expr (BinaryExpr op expr1 expr2) =
+             unrestricted_stamp (IntegerStamp bres lo1 hi1)
+           \<and> 0 < bres \<and> bres \<le> 64"
+    proof (cases "op \<in> binary_shift_ops")
+      case True
+      then show ?thesis
+        unfolding s1 s2 stamp_binary.simps stamp_expr.simps
+        using assms bin_eval_bits_binary_shift_ops
+        by (metis Value.inject(1) eval_bits_1_64 new_int.simps r v1 vres) 
+    next
+      case False
+      then have "op \<notin> binary_shift_ops"
+        by simp
+      then have beq: "b1 = b2"
+        using v1 v2 assms bin_eval_input_bits_equal by simp 
+      then show ?thesis
+      proof (cases "op \<in> binary_fixed_32_ops")
+        case True
+        then show ?thesis
+        unfolding s1 s2 stamp_binary.simps stamp_expr.simps
+        using assms bin_eval_bits_fixed_32_ops
+        by (metis False Value.inject(1) beq bin_eval_new_int le_add_same_cancel1 new_int.simps numeral_Bit0 vres zero_le_numeral zero_less_numeral)
+      next
+        case False
+        then show ?thesis 
+        unfolding s1 s2 stamp_binary.simps stamp_expr.simps
+        using assms
+        by (metis beq bin_eval_new_int eval_bits_1_64 intval_bits.simps unrestricted_new_int_always_valid unrestricted_stamp.simps(2) v1 valid_int_same_bits vres)
+    qed
+  qed
+  then show ?thesis 
+    unfolding vres
+    using unrestricted_new_int_always_valid vres vtmp by presburger
+qed
 
 
 subsubsection \<open>Validity of Stamp Meet and Join Operators\<close>
@@ -456,7 +483,7 @@ lemma stamp_implies_valid_value:
   then show ?case using eval_unary_implies_valid_value by simp
   next
     case (BinaryExpr expr1 val1 expr2 val2 result op)
-    then show ?case using binary_eval_implies_valid_value by simp
+    then show ?case using bin_eval_implies_valid_value by simp
   next
     case (ConditionalExpr cond condv expr expr1 expr2 val)
     have "compatible (stamp_expr expr1) (stamp_expr expr2)"

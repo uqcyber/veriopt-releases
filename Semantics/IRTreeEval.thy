@@ -103,14 +103,20 @@ subsection \<open>Functions for re-calculating stamps\<close>
 
 text \<open>Note: in Java all integer calculations are done as 32 or 64 bit calculations.
   However, here we generalise the operators to allow any size calculations.
-  Most operators have the same output bits as their inputs.
-  But the following $fixed_32$ binary operators always output 32 bits.
-  And the unary operators that are not $normal_unary$ are narrowing 
+  Many operators have the same output bits as their inputs.
+  However, the unary integer operators that are not $normal\_unary$ are narrowing 
   or widening operators, so the result bits is specified by the operator.
+  The binary integer operators are divided into three groups:
+  (1) $binary\_fixed\_32$ operators always output 32 bits,
+  (2) $binary\_shift\_ops$ operators output size is determined by their left argument,
+  and (3) other operators output the same number of bits as both their inputs.
 \<close>
 
-abbreviation fixed_32 :: "IRBinaryOp set" where
-  "fixed_32 \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
+abbreviation binary_fixed_32_ops :: "IRBinaryOp set" where
+  "binary_fixed_32_ops \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
+
+abbreviation binary_shift_ops :: "IRBinaryOp set" where
+  "binary_shift_ops \<equiv> {BinLeftShift, BinRightShift, BinURightShift}"
 
 abbreviation normal_unary :: "IRUnaryOp set" where
   "normal_unary \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation}"
@@ -130,8 +136,9 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_binary op (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
-    (if (b1 \<noteq> b2) then IllegalStamp else
-      (if op \<in> fixed_32
+    (if op \<in> binary_shift_ops then unrestricted_stamp (IntegerStamp b1 lo1 hi1)
+     else if b1 \<noteq> b2 then IllegalStamp else
+      (if op \<in> binary_fixed_32_ops
        then unrestricted_stamp (IntegerStamp 32 lo1 hi1)
        else unrestricted_stamp (IntegerStamp b1 lo1 hi1)))" |
   (* for now... *)

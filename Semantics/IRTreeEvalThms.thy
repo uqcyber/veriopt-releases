@@ -688,7 +688,7 @@ next
     using unfold_binary by auto
   then have def: "bin_eval op xv yv \<noteq> UndefVal" and xv: "xv \<noteq> UndefVal" and "yv \<noteq> UndefVal"
     using evaltree_not_undef xy by (force, blast, blast)
-  then have "b = (if op \<in> fixed_32 then 32 else intval_bits xv)" 
+  then have "b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits xv)" 
     by (metis xy intval_bits.simps new_int.simps bin_eval_new_int) 
   then show ?case
     by (metis BinaryExpr.IH(1) Value.distinct(7) Value.distinct(9) xv bin_eval_inputs_are_ints intval_bits.elims le_add_same_cancel1 less_or_eq_imp_le numeral_Bit0 xy zero_less_numeral)

@@ -1,10 +1,6 @@
 theory AbsPhase
   imports
     Common
-(*
-    Optimizations.CanonicalizationTreeProofs
-    Optimizations.CanonicalizationTree
-    Semantics.IRTreeEvalThms*)
 begin
 
 section \<open>Optimizations for Abs Nodes\<close>
@@ -55,7 +51,11 @@ proof (cases "v <s 0")
     case False
     then have "- (2 ^ (Nat.size v - 1)) <s v" (* changed size func used *)
       unfolding word_sless_def using signed_take_bit_int_greater_self_iff
-      by (smt (verit, best) One_nat_def diff_less double_eq_zero_iff len_gt_0 lessI less_irrefl mult_minus_right neg_equal_0_iff_equal signed.rep_eq signed_of_int signed_take_bit_int_greater_eq_self_iff signed_word_eqI sint_0 sint_range_size sint_sbintrunc' sint_word_ariths(4) size_word.rep_eq unsigned_0 word_2p_lem word_sless.rep_eq word_sless_def)
+      by (smt (verit, best) One_nat_def diff_less double_eq_zero_iff len_gt_0 lessI less_irrefl 
+          mult_minus_right neg_equal_0_iff_equal signed.rep_eq signed_of_int 
+          signed_take_bit_int_greater_eq_self_iff signed_word_eqI sint_0 sint_range_size 
+          sint_sbintrunc' sint_word_ariths(4) size_word.rep_eq unsigned_0 word_2p_lem 
+          word_sless.rep_eq word_sless_def)
     then show ?thesis
       using abs_neg abs_pos signed.nless_le by auto
   qed
@@ -75,7 +75,6 @@ fun bin_abs :: "'a ::len word \<Rightarrow> 'a ::len word" where
 
 
 (* Helpers - Value level *)
-(* 32 *)
 lemma val_abs_zero:
   "intval_abs (new_int b 0) = new_int b 0"
   by simp
@@ -145,9 +144,9 @@ next
     case False
     then have "val_to_bool(val[(new_int b v) < (new_int b 0)])"
       using neq0 less_eq_def
-      by (metis new_int.simps signed.less_irrefl signed.neqE take_bit_0 zero_le)
+      by (metis signed.neqE)
     then show ?thesis using val_abs_neg less_eq_def unfolding new_int.simps intval_negate.simps
-      by (metis signed.nless_le signed.not_less take_bit_0 zero_le_numeral)
+      by (metis signed.nless_le take_bit_0)
   qed
   
 qed
@@ -187,7 +186,9 @@ proof -
       by simp
     then have "x = new_int b (-v)"
       using in_def True unfolding new_int.simps
-      by (smt (verit, best) intval_abs.simps(1) less_eq_def less_eq_zero less_numeral_extra(1) mask_1 mask_eq_take_bit_minus_one neg_one.elims neg_one_signed new_int.simps one_le_numeral one_neq_zero signed.neqE signed.not_less take_bit_of_0 val_abs_always_pos)
+      by (smt (verit, best) intval_abs.simps(1) less_eq_def less_eq_zero less_numeral_extra(1) 
+          mask_1 mask_eq_take_bit_minus_one neg_one.elims neg_one_signed new_int.simps 
+          one_le_numeral one_neq_zero signed.neqE signed.not_less take_bit_of_0 val_abs_always_pos)
     then show ?thesis using val_abs_always_pos
       using True in_def less_eq_def signed.leD
       using signed.nless_le by blast
@@ -198,21 +199,23 @@ proof -
   qed
 qed
   
-
 lemma val_abs_negate:
   assumes "x \<noteq> UndefVal \<and> intval_negate x \<noteq> UndefVal \<and> intval_abs(intval_negate x) \<noteq> UndefVal"
   shows "intval_abs (intval_negate x) = intval_abs x"
   using assms apply (cases x; auto)
-  apply (metis less_eq_def new_int.simps signed.dual_order.strict_iff_not signed.less_linear take_bit_0 zero_le)
-  by (smt (verit, ccfv_threshold) add.inverse_neutral intval_abs.simps(1) less_eq_def less_eq_zero less_numeral_extra(1) mask_1 mask_eq_take_bit_minus_one neg_one.elims neg_one_signed new_int.simps one_le_numeral one_neq_zero signed.order.order_iff_strict take_bit_of_0 val_abs_always_pos)
+   apply (metis less_eq_def new_int.simps signed.dual_order.strict_iff_not signed.less_linear 
+          take_bit_0)
+  by (smt (verit, ccfv_threshold) add.inverse_neutral intval_abs.simps(1) less_eq_def less_eq_zero 
+      less_numeral_extra(1) mask_1 mask_eq_take_bit_minus_one neg_one.elims neg_one_signed 
+      new_int.simps one_le_numeral one_neq_zero signed.order.order_iff_strict take_bit_of_0 
+      val_abs_always_pos)
 
 
-(* Optimisations *)
+text \<open>Optimisations\<close>
 optimization AbsIdempotence: "abs(abs(x)) \<longmapsto>  abs(x)"
    apply auto 
   by (metis UnaryExpr unary_eval.simps(1) val_abs_idem)
 
-(* Need to prove val_abs_negate *)
 optimization AbsNegate: "(abs(-x)) \<longmapsto>  abs(x)"
     apply auto using val_abs_negate
   by (metis evaltree_not_undef unary_eval.simps(1) unfold_unary)

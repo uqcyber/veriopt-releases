@@ -38,10 +38,15 @@ lemma exp_distribute_sub:
   using val_distribute_sub apply auto
   using evaltree_not_undef by auto
 
+lemma exp_negative_cancel:
+  shows "exp[-(-x)] \<ge> exp[x]"
+  using val_negative_cancel apply (cases x; simp) 
+  using unary_eval_new_int apply force 
+  sorry
+
 (* Optimisations *)
 optimization NegateCancel: "-(-(x)) \<longmapsto> x"
-  using val_negative_cancel apply auto sorry (*
-  by (metis  unary_eval.simps(2) unfold_unary val_negative_cancel)*)
+  using val_negative_cancel exp_negative_cancel  by blast 
 
 
 (* FloatStamp condition is omitted. Not 100% sure. *)

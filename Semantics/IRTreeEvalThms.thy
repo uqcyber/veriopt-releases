@@ -91,7 +91,7 @@ lemma IntVal1:
 lemma bin_eval_new_int:
   assumes def: "bin_eval op x y \<noteq> UndefVal"
   shows "\<exists>b v. (bin_eval op x y) = new_int b v \<and>
-               b = (if op \<in> fixed_32 then 32 else intval_bits x)"
+               b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits x)"
   apply (cases op; cases x; cases y)
   unfolding is_IntVal_def using def apply auto
   apply presburger+

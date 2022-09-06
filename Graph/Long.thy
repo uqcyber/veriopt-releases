@@ -13,15 +13,15 @@ lemma negative_all_set_32:
   apply transfer by auto
 
 (* TODO: better handle empty *)
-definition MaxOrZero :: "nat set \<Rightarrow> nat" where
-  "MaxOrZero s = (if s = {} then 0 else Max s)"
+definition MaxOrNeg :: "nat set \<Rightarrow> int" where
+  "MaxOrNeg s = (if s = {} then -1 else Max s)"
 
 definition MinOrHighest :: "nat set \<Rightarrow> nat \<Rightarrow> nat" where
   "MinOrHighest s m = (if s = {} then m else Min s)"
  
 (* This is a different definition to Long.highestOneBit *)
-definition highestOneBit :: "('a::len) word \<Rightarrow> nat" where
-  "highestOneBit v = MaxOrZero {n . bit v n}"
+definition highestOneBit :: "('a::len) word \<Rightarrow> int" where
+  "highestOneBit v = MaxOrNeg {n . bit v n}"
 
 definition lowestOneBit :: "('a::len) word \<Rightarrow> nat" where
   "lowestOneBit v = MinOrHighest {n . bit v n} (size v + 1)"
@@ -29,40 +29,42 @@ definition lowestOneBit :: "('a::len) word \<Rightarrow> nat" where
 lemma max_bit: "bit (v::('a::len) word) n \<Longrightarrow> n < size v"
   by (simp add: bit_imp_le_length size_word.rep_eq)
 
-lemma max_set_bit: "MaxOrZero {n . bit (v::('a::len) word) n} \<le> Nat.size v"
-  using max_bit unfolding MaxOrZero_def
+lemma max_set_bit: "MaxOrNeg {n . bit (v::('a::len) word) n} \<le> Nat.size v"
+  using max_bit unfolding MaxOrNeg_def
   by force
 
 definition numberOfLeadingZeros :: "('a::len) word \<Rightarrow> nat" where
-  "numberOfLeadingZeros v = Nat.size v - highestOneBit v"
+  "numberOfLeadingZeros v = nat (Nat.size v - highestOneBit v - 1)"
 
-lemma MaxOrZero_zero: "MaxOrZero {} = 0"
-  by (simp add: MaxOrZero_def)
+lemma MaxOrNeg_neg: "MaxOrNeg {} = -1"
+  by (simp add: MaxOrNeg_def)
 
-lemma MaxOrZero_max: "s \<noteq> {} \<Longrightarrow> MaxOrZero s = Max s"
-  by (simp add: MaxOrZero_def)
+lemma MaxOrNeg_max: "s \<noteq> {} \<Longrightarrow> MaxOrNeg s = Max s"
+  by (simp add: MaxOrNeg_def)
 
 lemma zero_no_bits:
   "{n . bit 0 n} = {}"
   by simp
 
-lemma "highestOneBit (0::64 word) = 0"
-  by (simp add: MaxOrZero_zero highestOneBit_def)
+lemma "highestOneBit (0::64 word) = -1"
+  by (simp add: MaxOrNeg_neg highestOneBit_def)
 
 lemma "numberOfLeadingZeros (0::64 word) = 64"
-  unfolding numberOfLeadingZeros_def
-  by (simp add: MaxOrZero_zero highestOneBit_def size64)
+  unfolding numberOfLeadingZeros_def using  MaxOrNeg_neg highestOneBit_def size64
+  by (smt (verit) nat_int zero_no_bits)
 
 lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} \<le> 64"
   unfolding highestOneBit_def
-  by (metis Max_singleton max_set_bit size64)
+  by (metis Max_singleton int_eq_iff_numeral max_set_bit size64)
 
 lemma numberOfLeadingZeros_top: "Max {numberOfLeadingZeros (v::64 word)} \<le> 64"
   unfolding numberOfLeadingZeros_def
-  by (simp add: size64)
+  using size64
+  by (simp add: MaxOrNeg_def highestOneBit_def nat_le_iff)
 
-lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v"
-  by (simp add: highestOneBit_def max_set_bit numberOfLeadingZeros_def)
+lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v - 1"
+  unfolding numberOfLeadingZeros_def highestOneBit_def
+  using MaxOrNeg_def int_nat_eq int_ops(6) max_bit order_less_irrefl by fastforce
 
 definition numberOfTrailingZeros :: "('a::len) word \<Rightarrow> nat" where
   "numberOfTrailingZeros v = lowestOneBit v - 1"
@@ -87,6 +89,9 @@ definition bitCount :: "('a::len) word \<Rightarrow> nat" where
 lemma "bitCount 0 = 0"
   unfolding bitCount_def
   by (metis card.empty zero_no_bits)
+
+definition zeroCount :: "('a::len) word \<Rightarrow> nat" where
+  "zeroCount v = card {n. n < Nat.size v \<and> \<not>(bit v n)}"
 
 lemma negone_set:
   "bit (-1::('a::len) word) n \<longleftrightarrow> n < LENGTH('a)"
@@ -148,8 +153,22 @@ lemma bitCount_range:
 
 lemma zerosAboveHighestOne:
   "n > highestOneBit a \<Longrightarrow> \<not>(bit a n)"
-  unfolding highestOneBit_def MaxOrZero_def
-  by (metis (mono_tags, lifting) Collect_empty_eq Max_ge bitCount_finite linorder_not_le mem_Collect_eq)
+  unfolding highestOneBit_def MaxOrNeg_def
+  by (metis (mono_tags, opaque_lifting) Collect_empty_eq Max_ge finite_bit_word less_le_not_le mem_Collect_eq of_nat_le_iff)
+
+lemma zerosBelowLowestOne:
+  assumes "n < lowestOneBit a"
+  shows "\<not>(bit a n)"
+proof (cases "{i. bit a i} = {}")
+  case True
+  then show ?thesis by simp
+next
+  case False
+  have "n < Min (Collect (bit a)) \<Longrightarrow> \<not> bit a n"
+    using False by auto
+  then show ?thesis
+    by (metis False MinOrHighest_def assms lowestOneBit_def)
+qed
 
 lemma union_bit_sets:
   fixes a :: "('a::len) word"
@@ -180,6 +199,27 @@ lemma card_add:
   shows "card x + card y = card z"
   using assms card_Un_disjoint
   by (metis inf.commute)
+
+
+lemma card_add_inverses:
+  assumes "finite {n. Q n \<and> \<not>(P n)} \<and> finite {n. Q n \<and> P n} \<and> finite {n. Q n}"
+  shows "card {n. Q n \<and> P n} + card {n. Q n \<and> \<not>(P n)} = card {n. Q n}"
+  apply (rule card_add)
+  using assms apply simp
+  apply auto[1]
+  by auto
+
+lemma ones_zero_sum_to_width:
+  "bitCount a + zeroCount a = Nat.size a"
+proof -
+  have add_cards: "card {n. (\<lambda>n. n < size a) n \<and> (bit a n)} + card {n. (\<lambda>n. n < size a) n \<and> \<not>(bit a n)} = card {n. (\<lambda>n. n < size a) n}"
+    apply (rule card_add_inverses) by simp
+  then have "... = Nat.size a"
+    by auto
+ then show ?thesis 
+    unfolding bitCount_def zeroCount_def using max_bit
+    by (metis (mono_tags, lifting) Collect_cong add_cards)
+qed
 
 lemma intersect_bitCount_helper:
   "card {n . n < Nat.size a} - bitCount a = card {n . n < Nat.size a \<and> \<not>(bit a n)}"

@@ -141,6 +141,7 @@ lemma no_overlap_or:
   shows "bit (x + y) (Suc j) = bit x (Suc j)"
   using assms sorry*)
 
+(*
 lemma
   fixes x y :: "'a :: len word"
   assumes "(and y (mask (Suc j))) = 0"
@@ -175,7 +176,7 @@ proof -
     qed
   then show ?thesis
     by (simp add: assms bit_or_iff)
-qed(*
+qed
 proof (induction j)
   case 0
   then show ?case
@@ -204,6 +205,7 @@ next
     by blast
 qed *)
 
+(*
 lemma packed_bits:
   fixes a :: "64 word"
   assumes "numberOfLeadingZeros a + bitCount a = 64"
@@ -216,10 +218,10 @@ proof -
     unfolding highestOneBit_def
     by (simp add: j zerosAboveHighestOne)
   have "Nat.size a > highestOneBit a"
-    unfolding highestOneBit_def MaxOrZero_def
+    unfolding highestOneBit_def MaxOrNeg_def
     by (simp add: max_bit)
-  then have jcard: "numberOfLeadingZeros a = card {i. j < i \<and> i \<le> Nat.size a}"
-    unfolding numberOfLeadingZeros_def using j card_of_range_bound
+  then have jcard: "numberOfLeadingZeros a = card {i. j \<le> i \<and> i \<le> Nat.size a}"
+    unfolding numberOfLeadingZeros_def using j card_of_range_bound leadingZerosAddHighestOne sorry
     by presburger
   obtain k where k: "k = Nat.size a - numberOfLeadingZeros a"
     by presburger
@@ -228,14 +230,14 @@ proof -
     using size64 by auto
   have union: "{i. j < i \<and> i < Nat.size a} \<union> {i. i \<le> j} = {i. i < Nat.size a}"
     apply auto
-    by (simp add: \<open>highestOneBit (a::64 word) < size_class.size a\<close> j order_le_less_trans)
+    using \<open>highestOneBit (a::64 word) < int (size_class.size a)\<close> j by linarith
   have intersect: "{i. j < i \<and> i < Nat.size a} \<inter> {i. i \<le> j} = {}"
     by force
   have "card {i. j < i \<and> i < Nat.size a} + card {i. i \<le> j} = card {i. i < Nat.size a}"
-    using card_add intersect union
+    using card_add intersect union sorry
     by (metis (no_types, lifting) Int_commute bounded_nat_set_is_finite finite_Un mem_Collect_eq)
   then have "numberOfLeadingZeros a + card {i. i \<le> j} = Nat.size a + 1"
-    unfolding jcard card_of_range apply auto
+    unfolding jcard card_of_range apply auto sorry
     by (metis j jcard leadingZerosAddHighestOne)
   then have "k = card {i. i < j}"
     using assms k
@@ -255,6 +257,7 @@ proof -
     using j
     by (simp add: less order_le_less)
 qed
+*)
 
 context stamp_mask
 begin
@@ -297,45 +300,127 @@ lemma exp_eliminate_y:
   done
   done
 
+lemma leadingZeroBounds:
+  fixes x :: "'a::len word"
+  assumes "n = numberOfLeadingZeros x"
+  shows "0 \<le> n \<and> n \<le> Nat.size x"
+  using assms unfolding numberOfLeadingZeros_def
+  by (simp add: MaxOrNeg_def highestOneBit_def nat_le_iff)
+
+lemma above_nth_not_set:
+  fixes x :: int64
+  assumes "n = 64 - numberOfLeadingZeros x"
+  shows "j > n \<longrightarrow> \<not>(bit x j)"
+  using assms unfolding numberOfLeadingZeros_def
+  by (smt (verit, ccfv_SIG) highestOneBit_def int_nat_eq int_ops(6) less_imp_of_nat_less max_set_bit size64 zerosAboveHighestOne)
+
+no_notation LogicNegationNotation ("!_")
+
+lemma zero_horner:
+  "horner_sum of_bool 2 (map (\<lambda>x. False) xs) = 0"
+  apply (induction xs) apply simp
+  by force
+
+lemma zero_map:
+  assumes "j \<le> n"
+  assumes "\<forall>i. j \<le> i \<longrightarrow> \<not>(f i)"
+  shows "map f [0..<n] = map f [0..<j] @ map (\<lambda>x. False) [j..<n]"
+  apply (insert assms)
+  by (smt (verit, del_insts) add_diff_inverse_nat atLeastLessThan_iff bot_nat_0.extremum leD map_append map_eq_conv set_upt upt_add_eq_append)
+
+lemma map_join_horner:
+  assumes "map f [0..<n] = map f [0..<j] @ map (\<lambda>x. False) [j..<n]"
+  shows "horner_sum of_bool (2::'a::len word) (map f [0..<n]) = horner_sum of_bool 2 (map f [0..<j])"
+proof -
+  have "horner_sum of_bool (2::'a::len word) (map f [0..<n]) = horner_sum of_bool 2 (map f [0..<j]) + 2 ^ length [0..<j] * horner_sum of_bool 2 (map f [j..<n])"
+    using horner_sum_append
+    by (smt (verit) assms diff_le_self diff_zero le_add_same_cancel2 length_append length_map length_upt map_append upt_add_eq_append)
+  also have "... = horner_sum of_bool 2 (map f [0..<j]) + 2 ^ length [0..<j] * horner_sum of_bool 2 (map (\<lambda>x. False) [j..<n])"
+    using assms
+    by (metis calculation horner_sum_append length_map)
+  also have "... = horner_sum of_bool 2 (map f [0..<j])"
+    using zero_horner
+    using mult_not_zero by auto
+  finally show ?thesis by simp
+qed
+
+lemma split_horner:
+  assumes "j \<le> n"
+  assumes "\<forall>i. j \<le> i \<longrightarrow> \<not>(f i)"
+  shows "horner_sum of_bool (2::'a::len word) (map f [0..<n]) = horner_sum of_bool 2 (map f [0..<j])"
+  apply (rule map_join_horner)
+  apply (rule zero_map)
+  using assms by auto
+
+lemma transfer_map:
+  assumes "\<forall>i. i < n \<longrightarrow> f i = f' i"
+  shows "(map f [0..<n]) = (map f' [0..<n])"
+  using assms by simp
+
+lemma transfer_horner:
+  assumes "\<forall>i. i < n \<longrightarrow> f i = f' i"
+  shows "horner_sum of_bool (2::'a::len word) (map f [0..<n]) = horner_sum of_bool 2 (map f' [0..<n])"
+  using assms using transfer_map
+  by (smt (verit, best))
+
 lemma L1:
   assumes "n = 64 - numberOfLeadingZeros (\<up>z)"
   assumes "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
   shows "and v zv = and (v mod 2^n) zv"
 proof -
-  have "and v zv = horner_sum of_bool 2 (map (bit (and v zv)) [0..<64])"
+  have nle: "n \<le> 64"
+    using assms
+    using diff_le_self by blast
+  also have "and v zv = horner_sum of_bool 2 (map (bit (and v zv)) [0..<64])"
     using horner_sum_bit_eq_take_bit size64
     by (metis size_word.rep_eq take_bit_length_eq)
   also have "... = horner_sum of_bool 2 (map (\<lambda>i. bit (and v zv) i) [0..<64])"
     by blast
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit v i)) (of_bool (bit zv i))) i)) [0..<64])" (is "_ = ?X")
-    sorry
-  also have "horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit v i)) (of_bool (bit zv i))) i)) [0..<64])
-             = horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit v i)) (of_bool (bit zv i))) i)) [0..<n])"
+  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<64])"
+    using bit_and_iff by metis
+  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<n])"
   proof -
-    have "\<forall>j. j \<ge> n \<longrightarrow> \<not>(bit zv j)"
-      sorry
-    then show ?thesis sorry
+    have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
+      using above_nth_not_set assms(1)
+      using assms(2) not_may_implies_false
+      by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc zerosAboveHighestOne)
+    then have "\<forall>i. i \<ge> n \<longrightarrow> \<not>((bit v i) \<and> (bit zv i))"
+      by auto
+    then show ?thesis using nle split_horner
+      by (metis (no_types, lifting))
   qed
-  also have "horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit v i)) (of_bool (bit zv i))) i)) [0..<n])
-             = horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit (v mod 2^n) i)) (of_bool (bit zv i))) i)) [0..<n])"
+  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<n])"
   proof -
     have "\<forall>i. i < n \<longrightarrow> bit (v mod 2^n) i = bit v i"
-      sorry
-    then show ?thesis sorry
+      by (metis bit_take_bit_iff take_bit_eq_mod)
+    then have "\<forall>i. i < n \<longrightarrow> ((bit v i) \<and> (bit zv i)) = ((bit (v mod 2^n) i) \<and> (bit zv i))"
+      by force
+    then show ?thesis
+      by (rule transfer_horner)
   qed
-  also have "horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit (v mod 2^n) i)) (of_bool (bit zv i))) i)) [0..<n])
-             = horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit (v mod 2^n) i)) (of_bool (bit zv i))) i)) [0..<64])"
+  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<64])"
   proof -
-    have "\<forall>j. j \<ge> n \<longrightarrow> \<not>(bit zv j)"
-      sorry
-    then show ?thesis sorry
+    have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
+      using above_nth_not_set assms(1)
+      using assms(2) not_may_implies_false
+      by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc zerosAboveHighestOne)
+    then show ?thesis
+      by (metis (no_types, lifting) assms(1) diff_le_self split_horner)
   qed
-  also have "horner_sum of_bool 2 (map (\<lambda>i. (bit (and (of_bool (bit (v mod 2^n) i)) (of_bool (bit zv i))) i)) [0..<64])
-             = and (v mod 2^n) zv"
-    sorry
+  also have "... = horner_sum of_bool 2 (map (bit (and (v mod 2^n) zv)) [0..<64])"
+    by (meson bit_and_iff)
+  also have "... = and (v mod 2^n) zv"
+    using horner_sum_bit_eq_take_bit size64
+    by (metis size_word.rep_eq take_bit_length_eq)
   finally show ?thesis
-    using \<open>and (v::64 word) (zv::64 word) = horner_sum of_bool (2::64 word) (map (bit (and v zv)) [0::nat..<64::nat])\<close> by presburger
+    using \<open>and (v::64 word) (zv::64 word) = horner_sum of_bool (2::64 word) (map (bit (and v zv)) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit ((v::64 word) mod (2::64 word) ^ (n::nat)) i \<and> bit (zv::64 word) i) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (bit (and (v mod (2::64 word) ^ n) zv)) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit ((v::64 word) mod (2::64 word) ^ (n::nat)) i \<and> bit (zv::64 word) i) [0::nat..<n]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v mod (2::64 word) ^ n) i \<and> bit zv i) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v::64 word) i \<and> bit (zv::64 word) i) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit v i \<and> bit zv i) [0::nat..<n::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v::64 word) i \<and> bit (zv::64 word) i) [0::nat..<n::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v mod (2::64 word) ^ n) i \<and> bit zv i) [0::nat..<n])\<close> \<open>horner_sum of_bool (2::64 word) (map (bit (and ((v::64 word) mod (2::64 word) ^ (n::nat)) (zv::64 word))) [0::nat..<64::nat]) = and (v mod (2::64 word) ^ n) zv\<close> \<open>horner_sum of_bool (2::64 word) (map (bit (and (v::64 word) (zv::64 word))) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit v i \<and> bit zv i) [0::nat..<64::nat])\<close> by presburger
 qed
+
+lemma up_mask_upper_bound:
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  shows "xv \<le> (\<up>x)"
+  using assms
+  by (metis (no_types, lifting) and.idem and.right_neutral bit.conj_cancel_left bit.conj_disj_distribs(1) bit.double_compl ucast_id up_spec word_and_le1 word_not_dist(2))
 
 lemma L2:
   assumes "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 64"
@@ -343,9 +428,92 @@ lemma L2:
   assumes "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
   shows "yv mod 2^n = 0"
-  using assms sorry
+proof -
+  have "yv mod 2^n = horner_sum of_bool 2 (map (bit yv) [0..<n])"
+    by (simp add: horner_sum_bit_eq_take_bit take_bit_eq_mod)
+  also have "... \<le> horner_sum of_bool 2 (map (bit (\<up>y)) [0..<n])"
+    using up_mask_upper_bound assms(4)
+    by (metis (no_types, opaque_lifting) and.right_neutral bit.conj_cancel_right bit.conj_disj_distribs(1) bit.double_compl horner_sum_bit_eq_take_bit take_bit_and ucast_id up_spec word_and_le1 word_not_dist(2))
+  also have "horner_sum of_bool 2 (map (bit (\<up>y)) [0..<n]) = horner_sum of_bool 2 (map (\<lambda>x. False) [0..<n])"
+  proof -
+    have "\<forall>i < n. \<not>(bit (\<up>y) i)"
+      using assms(1,2) zerosBelowLowestOne
+      by (metis add.commute add_diff_inverse_nat add_lessD1 leD le_diff_conv less_imp_diff_less numberOfTrailingZeros_def)
+    then show ?thesis
+      by (metis (full_types) transfer_map)
+  qed
+  also have "horner_sum of_bool 2 (map (\<lambda>x. False) [0..<n]) = 0"
+    using zero_horner
+    by blast
+  finally show ?thesis
+    by auto
+qed
 
-lemma
+thm_oracles L1 L2
+
+text \<open>
+(x + 1110 0000) & (0001 1111)
+\<close>
+
+lemma word_mod_add_right_eq:
+  fixes a b c :: "'a::len word"
+  shows "(a + b mod c) mod c = (a + b) mod c"
+  apply transfer using mod_add_right_eq sorry
+
+lemma word_mod_add_left_eq:
+  fixes a b c :: "'a::len word"
+  shows "(a mod c + b) mod c = (a + b) mod c"
+  apply transfer using mod_add_left_eq sorry
+
+lemma unfold_binary_width_add:
+  shows "([m,p] \<turnstile> BinaryExpr BinAdd xe ye \<mapsto> IntVal b val) = (\<exists> x y.
+          (([m,p] \<turnstile> xe \<mapsto> IntVal b x) \<and>
+           ([m,p] \<turnstile> ye \<mapsto> IntVal b y) \<and>
+           (IntVal b val = bin_eval BinAdd (IntVal b x) (IntVal b y)) \<and>
+           (IntVal b val \<noteq> UndefVal)
+        ))" (is "?L = ?R")
+proof (intro iffI)
+  assume 3: ?L
+  show ?R apply (rule evaltree.cases[OF 3])
+    apply force+ apply auto[1]
+    apply (smt (verit) intval_add.elims intval_bits.simps)
+    by blast
+next
+  assume ?R
+  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"
+        and "[m,p] \<turnstile> ye \<mapsto> IntVal b y"
+        and "new_int b val = bin_eval BinAdd (IntVal b x) (IntVal b y)"
+        and "new_int b val \<noteq> UndefVal"
+    by auto
+  then show ?L
+    using \<open>\<exists>(x::64 word) y::64 word. [m::nat \<Rightarrow> Value,p::Value list] \<turnstile> xe::IRExpr \<mapsto> IntVal (b::nat) x \<and> [m,p] \<turnstile> ye::IRExpr \<mapsto> IntVal b y \<and> IntVal b (val::64 word) = bin_eval BinAdd (IntVal b x) (IntVal b y) \<and> IntVal b val \<noteq> UndefVal\<close> by blast
+ qed
+
+lemma unfold_binary_width_and:
+  shows "([m,p] \<turnstile> BinaryExpr BinAnd xe ye \<mapsto> IntVal b val) = (\<exists> x y.
+          (([m,p] \<turnstile> xe \<mapsto> IntVal b x) \<and>
+           ([m,p] \<turnstile> ye \<mapsto> IntVal b y) \<and>
+           (IntVal b val = bin_eval BinAnd (IntVal b x) (IntVal b y)) \<and>
+           (IntVal b val \<noteq> UndefVal)
+        ))" (is "?L = ?R")
+proof (intro iffI)
+  assume 3: ?L
+  show ?R apply (rule evaltree.cases[OF 3])
+    apply force+ apply auto[1] using intval_and.elims intval_bits.simps
+    apply (smt (verit) new_int.simps new_int_bin.simps take_bit_and)
+    by blast
+next
+  assume ?R
+  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"
+        and "[m,p] \<turnstile> ye \<mapsto> IntVal b y"
+        and "new_int b val = bin_eval BinAnd (IntVal b x) (IntVal b y)"
+        and "new_int b val \<noteq> UndefVal"
+    by auto
+  then show ?L 
+    using \<open>\<exists>(x::64 word) y::64 word. [m::nat \<Rightarrow> Value,p::Value list] \<turnstile> xe::IRExpr \<mapsto> IntVal (b::nat) x \<and> [m,p] \<turnstile> ye::IRExpr \<mapsto> IntVal b y \<and> IntVal b (val::64 word) = bin_eval BinAnd (IntVal b x) (IntVal b y) \<and> IntVal b val \<noteq> UndefVal\<close> by blast
+qed
+
+lemma improved_opt:
   assumes "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 64"
   shows "exp[(x + y) & z] \<ge> exp[x & z]"
   apply simp apply ((rule allI)+; rule impI)
@@ -353,25 +521,28 @@ lemma
 proof -
   obtain n where n: "n = 64 - numberOfLeadingZeros (\<up>z)"
     by simp
-  obtain xv b where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
-    using eval
-    by (smt (verit) bin_eval.simps(1) intval_add.elims unfold_binary)
+  obtain b val where val: "[m, p] \<turnstile> exp[(x + y) & z] \<mapsto> IntVal b val"
+    by (metis BinaryExprE bin_eval_new_int eval new_int.simps)
+  then obtain xv yv where addv: "[m, p] \<turnstile> exp[x + y] \<mapsto> IntVal b (xv + yv)"
+    apply (subst (asm) unfold_binary_width_and) by (metis add.right_neutral)
   then obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
-    using eval bin_eval.simps(1) intval_add.elims unfold_binary
-    by (smt (verit) Value.inject(1) evalDet)
-  from xv obtain zv where zv: "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
-    using eval bin_eval.simps(4) intval_and.elims unfold_binary yv
-    sorry
+    apply (subst (asm) unfold_binary_width_add) by blast
+  from addv obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+    apply (subst (asm) unfold_binary_width_add) by blast
+  from val obtain zv where zv: "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
+    apply (subst (asm) unfold_binary_width_and) by blast
   have addv: "[m, p] \<turnstile> exp[x + y] \<mapsto> new_int b (xv + yv)"
-    using eval
-    using bin_eval.simps(1) evaltree.intros(5) intval_add.simps(1) new_int.simps xv yv by auto
-  have val1: "[m, p] \<turnstile> exp[(x + y) & z] \<mapsto> new_int b (and (xv + yv) zv)"
+    apply (rule evaltree.BinaryExpr)
+    using xv apply simp
+    using yv apply simp
+    by simp+
+  have lhs: "[m, p] \<turnstile> exp[(x + y) & z] \<mapsto> new_int b (and (xv + yv) zv)"
     apply (rule evaltree.BinaryExpr)
     using addv apply simp
     using zv apply simp
     using addv apply auto[1]
     by simp
-  have val2: "[m, p] \<turnstile> exp[x & z] \<mapsto> new_int b (and xv zv)"
+  have rhs: "[m, p] \<turnstile> exp[x & z] \<mapsto> new_int b (and xv zv)"
     apply (rule evaltree.BinaryExpr)
     using xv apply simp
     using zv apply simp
@@ -379,8 +550,10 @@ proof -
     by simp
   have "and (xv + yv) zv = and ((xv + yv) mod 2^n) zv"
     using L1 n zv by blast
+  also have "... = and ((xv + (yv mod 2^n)) mod 2^n) zv"
+    using word_mod_add_right_eq by metis
   also have "... = and (((xv mod 2^n) + (yv mod 2^n)) mod 2^n) zv"
-    using mod_add_right_eq mod_add_left_eq sorry
+    using word_mod_add_left_eq by metis
   also have "... = and ((xv mod 2^n) mod 2^n) zv"
     using L2 n zv yv
     using assms by auto
@@ -390,10 +563,66 @@ proof -
   also have "... = and xv zv"
     using L1 n zv by metis
   finally show ?thesis
-    using eval val1 val2
+    using eval lhs rhs
     by (metis evalDet)
 qed
   done
+
+thm_oracles improved_opt
+
+lemma falseBelowN_nBelowLowest:
+  assumes "n \<le> Nat.size a"
+  assumes "\<forall> i < n. \<not>(bit a i)"
+  shows "lowestOneBit a \<ge> n"
+proof (cases "{i. bit a i} = {}")
+  case True
+  then show ?thesis unfolding lowestOneBit_def MinOrHighest_def
+    using assms(1) trans_le_add1 by presburger
+next
+  case False
+  have "n \<le> Min (Collect (bit a))"
+    by (metis False Min_ge_iff assms(2) finite_bit_word linorder_le_less_linear mem_Collect_eq)
+  then show ?thesis unfolding lowestOneBit_def MinOrHighest_def
+    using False by presburger
+qed
+
+lemma zerosAboveOnly:
+  assumes "numberOfLeadingZeros a = zeroCount a"
+  shows "\<forall>i. \<not>(bit a i) \<longrightarrow> i \<ge> (64 - numberOfLeadingZeros a)"
+  using assms unfolding numberOfLeadingZeros_def zeroCount_def sorry
+
+lemma consumes: 
+  assumes "numberOfLeadingZeros (\<up>z) + bitCount (\<up>z) = 64"
+  and "\<up>z \<noteq> 0"
+  and "and (\<up>y) (\<up>z) = 0"
+  shows "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 63" (* NOTE: not 64 *)
+proof -
+  obtain n where "n = 64 - numberOfLeadingZeros (\<up>z)"
+    by simp
+  then have "n = bitCount (\<up>z)"
+    by (metis add_diff_cancel_left' assms(1))
+  have "numberOfLeadingZeros (\<up>z) = zeroCount (\<up>z)"
+    using assms(1) size64 ones_zero_sum_to_width
+    by (metis add.commute add_left_imp_eq)
+  then have "\<forall>i. \<not>(bit (\<up>z) i) \<longrightarrow> i \<ge> n"
+    using assms(1) zerosAboveOnly
+    using \<open>(n::nat) = (64::nat) - numberOfLeadingZeros (\<up> (z::IRExpr))\<close> by blast
+  then have "\<forall> i < n. bit (\<up>z) i"
+    using leD by blast
+  then have "\<forall> i < n. \<not>(bit (\<up>y) i)"
+    using assms(3)
+    by (metis bit.conj_cancel_right bit_and_iff bit_not_iff)
+  then have "lowestOneBit (\<up>y) \<ge> n"
+    by (simp add: \<open>(n::nat) = (64::nat) - numberOfLeadingZeros (\<up> (z::IRExpr))\<close> falseBelowN_nBelowLowest size64)
+  then have "card {i. i < n} \<le> numberOfTrailingZeros (\<up>y) + 1"
+    unfolding numberOfTrailingZeros_def
+    by simp
+  have "card {i. i < n} = bitCount (\<up>z)"
+    by (simp add: \<open>(n::nat) = bitCount (\<up> (z::IRExpr))\<close>)
+  then have "bitCount (\<up>z) \<le> numberOfTrailingZeros (\<up>y) + 1"
+    using \<open>card (_Collect (i::nat) (i < (n::nat))) \<sqsubseteq> (numberOfTrailingZeros (\<up> (y::IRExpr)) + (1::nat))\<close> by fastforce
+  then show ?thesis using assms(1) by auto
+qed
 
 (*
 lemma wrong:
@@ -476,15 +705,16 @@ proof -
     subgoal for n
   proof (cases "n \<le> j")
     case True
+    (*
     then have "\<not>(bit yv n)"
       by (metis (no_types, opaque_lifting) assms(1) assms(2) assms(3) bit_and_iff bit_not_iff impossible_bit j packed_bits ucast_id up_spec yv)
     have "\<forall>n' . n' \<le> n \<longrightarrow> \<not>(bit yv n')"
       by (metis (no_types, lifting) True assms(1) assms(2) assms(3) bit_and_iff bit_not_iff down_spec dual_order.trans j not_may_implies_false packed_bits yv)
     then have "bit (xv + yv) n = bit xv n"
-      using packed_bottom_zeros_elim_add
-      by blast
-    then show ?thesis
-      by (simp add: bit_and_iff)
+      sorry using packed_bottom_zeros_elim_add
+      by blast*)
+    then show ?thesis sorry
+      (*by (simp add: bit_and_iff)*)
   next
     case False
     then have "\<not>(bit zv n)"

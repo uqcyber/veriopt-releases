@@ -89,7 +89,7 @@ lemma just_goal2:
   by (metis 1 evalDet evaltree_not_undef)
 
 
-optimization RedundantAddSub: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
+optimization RedundantSubAdd2: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
   by (smt (verit, del_insts) BinaryExpr BinaryExprE RedundantSubAdd(1) binadd_commute le_expr_def rewrite_preservation.simps(1))
 
 (* Demonstration of our FOUR levels of expression rewrites:
@@ -184,8 +184,10 @@ lemma exp_add_left_negate_to_sub:
   apply (cases e; cases y; auto)
   using AddToSubHelperLowLevel by auto+
 
-(* Optimizations *)
-optimization opt_redundant_sub_add: "(b + a) - b \<longmapsto> a"
+
+text \<open>Optimisations\<close>
+
+optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
    apply auto using val_redundant_add_sub eval_unused_bits_zero
   by (smt (verit) evalDet intval_add.elims new_int.elims)
 

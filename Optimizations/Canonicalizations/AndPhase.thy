@@ -1,6 +1,7 @@
 theory AndPhase
   imports
     Common
+    (*NewAnd*)
 begin
 
 section \<open>Optimizations for And Nodes\<close>
@@ -37,7 +38,6 @@ lemma val_and_neutral:
    by presburger
 
 (* Not sure if this one is written correctly *)
-(* Rewrite is AndNode line 129 *)
 lemma val_and_sign_extend:
   assumes "e = (1 << In)-1"
   shows "val[(intval_sign_extend In Out x) & (IntVal 32 e)] = intval_zero_extend In Out x"
@@ -84,19 +84,29 @@ lemma exp_and_nots:
          sorry*)*)
 
 
-(* Optimisations *)
+(* Helpers *)
+(* Borrowed from ConditionalPhase *)
+definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
+  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
+
+lemma val_and_commute[simp]:
+   "val[x & y] = val[y & x]"
+   apply (cases x; cases y; auto)
+  by (simp add: word_bw_comms(1))
+
+text \<open>Optimisations\<close>
+
 optimization AndEqual: "x & x \<longmapsto> x"
   using exp_and_equal by blast
 
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
                                          when \<not>(is_ConstantExpr y)"
-  using bin_eval.simps(4) apply auto  
+  using val_and_commute apply auto 
   sorry
 
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
-    using exp_and_nots 
-   by auto 
+    using exp_and_nots by auto 
 
 optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
                                                      (ConstantExpr (IntVal 32 e))
@@ -106,45 +116,21 @@ optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Ou
    apply auto
   sorry 
 
-(* Borrowed from ConditionalPhase *)
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
-
 
 optimization AndNeutral: "(x & ~(const (IntVal b 0))) \<longmapsto> x 
    when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
    apply auto using val_and_neutral
-  by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_and.elims intval_word.simps new_int.simps new_int_bin.simps take_bit_eq_mask)
+  by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_and.elims intval_word.simps 
+      new_int.simps new_int_bin.simps take_bit_eq_mask)
 
-
-(* Extra ones which were missing *)
 (*
-optimization opt_and_zero_32: "(x & (ConstantExpr (IntVal32 0))) \<longmapsto> ConstantExpr (IntVal32 0)"
-   apply unfold_optimization apply simp_all apply auto 
-   apply (smt (verit) Value.disc(2) intval_and.simps(3) intval_and_associative intval_and_commute 
-          intval_eliminate_y_32 intval_or_absorb_and intval_or_commute unfold_const32 
-          val_and_zero_32)
-  done
+optimization AndRightFallThrough: "(x & y) \<longmapsto> y
+                                when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
+  by (simp add: IRExpr_down_def IRExpr_up_def)
 
-optimization opt_and_zero_64: "(x & (ConstantExpr (IntVal64 0))) \<longmapsto> ConstantExpr (IntVal64 0)"
-   apply unfold_optimization apply simp_all apply auto 
-   apply (smt (verit) Value.disc(8) intval_and_absorb_or intval_and_commute intval_eliminate_y_64 
-          intval_or_commute unfold_const64 val_and_zero_64)
-  done
-*)
-
-(* Need to prove exp-level proofs above
-optimization opt_and_neutral_32: "(x & (UnaryExpr UnaryNot (ConstantExpr (IntVal32 0)))) \<longmapsto> x"
-   apply unfold_optimization apply simp_all
-  apply (metis exp_and_neutral_32 le_expr_def) 
-  done
-
-optimization opt_and_neutral_64: "(x & (UnaryExpr UnaryNot (ConstantExpr (IntVal64 0)))) \<longmapsto> x"
-   apply unfold_optimization 
-   apply simp_all
-  using exp_and_neutral_64
-  apply (meson le_expr_def)
-  done
+optimization AndLeftFallThrough: "(x & y) \<longmapsto> x
+                                when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
+   by (simp add: IRExpr_down_def IRExpr_up_def) 
 *)
 
 end
@@ -190,15 +176,6 @@ lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longright
   qed
   done
 
-(*
-optimization opt_and_right_fall_through: "(x & y) \<longmapsto> y
-                                when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
-  by (simp add: IRExpr_down_def IRExpr_up_def)
-
-optimization opt_and_left_fall_through: "(x & y) \<longmapsto> x
-                                when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
-   by (simp add: IRExpr_down_def IRExpr_up_def) 
-*)
 
 end (* End of AndPhase *)
 

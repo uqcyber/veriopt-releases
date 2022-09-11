@@ -247,10 +247,10 @@ optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
 optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i) 
                               when (i > 0 \<and> 64 > i \<and>
                                     y = (ConstantExpr (IntVal 64 (2 ^ unat(i)))))"
-  
+  defer
   using exp_MulPower2
-  apply blast 
-  by (simp add: exp_MulPower2)
+   apply blast 
+  sorry (* termination issues - mul needs to be considered larger than shift *)
 
 
 end (* End of MulPhase *)

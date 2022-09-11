@@ -91,7 +91,7 @@ lemma IntVal1:
 lemma bin_eval_new_int:
   assumes def: "bin_eval op x y \<noteq> UndefVal"
   shows "\<exists>b v. (bin_eval op x y) = new_int b v \<and>
-               b = (if op \<in> fixed_32 then 32 else intval_bits x)"
+               b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits x)"
   apply (cases op; cases x; cases y)
   unfolding is_IntVal_def using def apply auto
   apply presburger+
@@ -344,7 +344,7 @@ lemma stamprange:
 
 lemma compatible_trans:
   "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"
-  by (smt (z3) compatible.elims(2) compatible.simps(1))
+  by (cases x; cases y; cases z; simp del: valid_stamp.simps)
 
 lemma compatible_refl:
   "compatible x y \<Longrightarrow> compatible y x"
@@ -688,7 +688,7 @@ next
     using unfold_binary by auto
   then have def: "bin_eval op xv yv \<noteq> UndefVal" and xv: "xv \<noteq> UndefVal" and "yv \<noteq> UndefVal"
     using evaltree_not_undef xy by (force, blast, blast)
-  then have "b = (if op \<in> fixed_32 then 32 else intval_bits xv)" 
+  then have "b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits xv)" 
     by (metis xy intval_bits.simps new_int.simps bin_eval_new_int) 
   then show ?case
     by (metis BinaryExpr.IH(1) Value.distinct(7) Value.distinct(9) xv bin_eval_inputs_are_ints intval_bits.elims le_add_same_cancel1 less_or_eq_imp_le numeral_Bit0 xy zero_less_numeral)

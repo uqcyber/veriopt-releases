@@ -56,7 +56,7 @@ lemma val_sub_after_left_sub:
   assumes "val[(x - y) - x] \<noteq> UndefVal"
   shows "val[(x - y) - x] = val[-y]"
   using assms apply (cases x; cases y; auto)
-  by (metis intval_sub.simps(2))
+  using intval_sub.elims by fastforce
 
 lemma val_sub_then_left_sub:
   assumes "y = new_int b v"
@@ -119,13 +119,25 @@ lemma exp_sub_after_right_add2:
   shows "exp[(x+y)-x] \<ge> exp[y]"
   using exp_sub_after_right_add apply auto 
   using bin_eval.simps(1) bin_eval.simps(3) intval_add_sym unfold_binary
-  by (smt (z3) Value.inject(1) diff_eq_eq evalDet eval_unused_bits_zero intval_add.elims intval_sub.elims new_int.simps new_int_bin.simps take_bit_dist_subL)
+  by (smt (z3) Value.inject(1) diff_eq_eq evalDet eval_unused_bits_zero intval_add.elims 
+      intval_sub.elims new_int.simps new_int_bin.simps take_bit_dist_subL)
 
 lemma exp_sub_negative_value:
  "exp[x - (-y)] \<ge> exp[x + y]"
   apply simp using val_sub_negative_value
   by (smt (verit) bin_eval.simps(1) bin_eval.simps(3) evaltree_not_undef minus_Value_def 
       unary_eval.simps(2) unfold_binary unfold_unary)
+
+lemma exp_sub_then_left_sub:
+  "exp[x - (x - y)] \<ge> exp[y]"
+proof -
+  have "exp[x - (-y)] \<ge> exp[x + y]"
+    using exp_sub_negative_value  by simp
+  then have "exp[x - (x - y)] \<ge> exp[x - x + y]"
+    using exp_sub_negative_value sorry
+  then show ?thesis
+    sorry
+  qed
 
 (* Optimizations *)
 optimization SubAfterAddRight: "((x + y) - y) \<longmapsto>  x"
@@ -155,17 +167,20 @@ optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
       val_sub_then_left_add)
 
 optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
-  sorry (*
+  using val_sub_then_left_sub sledgehammer sorry (*
    apply auto
   by (metis evalDet val_sub_then_left_sub)*)
+
 
 (* wf_stamp definition borrowed from ConditionalPhase *)
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
-optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x 
+                             when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   apply auto
-  by (smt (verit) add.right_neutral diff_add_cancel eval_unused_bits_zero intval_sub.elims intval_word.simps new_int.simps new_int_bin.simps)
+  by (smt (verit) add.right_neutral diff_add_cancel eval_unused_bits_zero intval_sub.elims 
+      intval_word.simps new_int.simps new_int_bin.simps)
 
 
 (* Ln 146 rewrite, 32-bit *)(*

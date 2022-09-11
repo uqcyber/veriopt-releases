@@ -1,3 +1,5 @@
+section \<open>Verifying term graph optimizations using Isabelle/HOL\<close>
+
 theory TreeSnippets
   imports 
     Canonicalizations.ConditionalPhase
@@ -7,7 +9,15 @@ theory TreeSnippets
     "HOL-Library.OptionalSugar"
 begin
 
+\<comment> \<open>First, we disable undesirable markup.\<close>
+declare [[show_types=false,show_sorts=false]]
 no_notation ConditionalExpr ("_ ? _ : _")
+translations
+  "n" <= "CONST Rep_intexp n"
+  "n" <= "CONST Rep_i32exp n"
+
+
+subsection \<open>Markup syntax for common operations\<close>
 
 notation (latex)
   kind ("_\<llangle>_\<rrangle>")
@@ -24,49 +34,60 @@ notation (latex)
 notation (latex)
   size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
 
-translations
-  "y > x" <= "x < y"
 
-notation (latex)
-  greater ("_ >/ _")
+subsection \<open>Representing canonicalization optimizations\<close>
 
-(* lengthen rewrite arrow slightly
-notation (latex)
-  Transform ("_ \<longmapsto> _")
-notation (latex)
-  Conditional ("_ \<longmapsto> _ \<^latex>\<open> when \<close> _")
-*)
+text \<open>
+We wish to provide an example of the semantics layers 
+at which optimizations can be expressed.
+\<close>
 
-(* hide type casting *)
-translations
-  "n" <= "CONST Rep_intexp n"
-  "n" <= "CONST Rep_i32exp n"
-
-lemma vminusv: "\<forall>vv v . vv = IntVal 32 v \<longrightarrow> v - v = 0"
-  by simp
-thm_oracles vminusv
-
-lemma vminusv2: "\<forall> v::int32 . v - v = 0"
-  by simp
-
-lemma redundant_sub:
-  "\<forall>vv\<^sub>1 vv\<^sub>2 v\<^sub>1 v\<^sub>2 . vv\<^sub>1 = IntVal 32 v\<^sub>1 \<and> vv\<^sub>2 = IntVal 32 v\<^sub>2 \<longrightarrow> v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
-  by simp
-thm_oracles redundant_sub
-
-lemma redundant_sub2:
-  "\<forall> (v\<^sub>1::int32) (v\<^sub>2::int32) . v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
-  by simp
-
-snipbegin \<open>val-eq\<close>
-text "@{thm vminusv}"
-text "@{thm redundant_sub}"
+\<comment> \<open>Algebraic laws\<close>
+thm diff_self
+thm diff_diff_cancel
+snipbegin \<open>algebraic-laws\<close>
+text \<open>
+@{thm diff_self[show_types=false,where a=x]}\\
+@{thm diff_diff_cancel[where n=x and i=y]}\<close>
 snipend -
 
-lemma sub_same_val:
-  assumes "val[e - e] = IntVal b v"
-  shows "val[e - e] = val[IntVal b 0]"
-  using assms by (cases e; auto)
+\<comment> \<open>Values\<close>
+lemma diff_self_value: "\<forall>v::int64. v - v = 0"
+  by simp
+lemma diff_diff_cancel_value:
+  "\<forall> (v\<^sub>1::int64) (v\<^sub>2::int64) . v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
+  by simp
+
+snipbegin \<open>algebraic-laws-values\<close>
+text \<open>
+@{thm diff_self_value[show_types]}\\
+@{thm diff_diff_cancel_value[show_types]}\<close>
+snipend -
+
+\<comment> \<open>Expression\<close>
+translations
+  "n" <= "CONST ConstantExpr (CONST IntVal b n)"
+  "x - y" <= "CONST BinaryExpr (CONST BinSub) x y"
+notation (ExprRule output)
+  Refines ("_ \<longmapsto> _")
+lemma diff_self_expr:
+  assumes "\<forall>m p v. [m,p] \<turnstile> exp[e - e] \<mapsto> IntVal b v"
+  shows "exp[e - e] \<ge> exp[const (IntVal b 0)]"
+  using assms apply simp
+  by (metis(full_types) evalDet val_to_bool.simps(1) zero_neq_one)
+
+lemma diff_diff_cancel_expr:
+  shows "exp[e\<^sub>1 - (e\<^sub>1 - e\<^sub>2)] \<ge> exp[e\<^sub>2]"
+  apply simp sorry
+
+snipbegin \<open>algebraic-laws-expressions\<close>
+text \<open>
+@{thm[mode=ExprRule] (concl) diff_self_expr}\\
+@{thm[mode=ExprRule] (concl) diff_diff_cancel_expr}\<close>
+snipend -
+no_translations
+  "n" <= "CONST ConstantExpr (CONST IntVal b n)"
+  "x - y" <= "CONST BinaryExpr (CONST BinSub) x y"
 
 
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
@@ -80,13 +101,19 @@ lemma wf_stamp_eval:
   using valid_int_same_bits valid_int
   by metis
 
-phase tmp
+phase SnipPhase
   terminating size
 begin
+lemma sub_same_val:
+  assumes "val[e - e] = IntVal b v"
+  shows "val[e - e] = val[IntVal b 0]"
+  using assms by (cases e; auto)
+
 snipbegin \<open>sub-same-32\<close>
-optimization sub_same_32: "((e::i32exp) - e) \<longmapsto> const (IntVal b 0)
+optimization sub_same_32:
+  "(e - e) \<longmapsto> const (IntVal b 0)
      when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
-  snipend -
+snipend -
   apply simp
    apply (metis Suc_lessI add_is_1 add_pos_pos size_gt_0)
   apply (rule impI) apply simp
@@ -101,10 +128,19 @@ qed
 thm_oracles sub_same_32
 end
 
+subsection \<open>Representing terms\<close>
+
+text \<open>
+We wish to show a simple example of expressions represented as terms.
+\<close>
 
 snipbegin \<open>ast-example\<close>
-text "@{value[display] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"
+text "@{value[display,margin=40] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"
 snipend -
+
+text \<open>
+Then we need to show the datatypes that compose the example expression.
+\<close>
 
 snipbegin \<open>abstract-syntax-tree\<close>
 text \<open>@{datatype[display,margin=40] IRExpr}\<close>
@@ -114,11 +150,26 @@ snipbegin \<open>value\<close>
 text \<open>@{datatype[display,margin=40] Value}\<close>
 snipend -
 
+
+subsection \<open>Term semantics\<close>
+
+text \<open>
+The core expression evaluation functions need to be introduced.
+\<close>
+
 snipbegin \<open>eval\<close>
-text \<open>@{term_type[mode=spaced_type_def] unary_eval}\<close>
-text \<open>@{term_type[mode=spaced_type_def] bin_eval}\<close>
+text \<open>@{term_type[mode=type_def] unary_eval}\<close>
+text \<open>@{term_type[mode=type_def] bin_eval}\<close>
 snipend -
 
+text \<open>
+We then provide the full semantics of IR expressions.
+\<close>
+
+no_translations
+  ("prop") "P \<and> Q \<Longrightarrow> R" <= ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R"
+translations
+  ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R" <= ("prop") "P \<and> Q \<Longrightarrow> R"
 snipbegin \<open>tree-semantics\<close>
 text \<open>
 \induct{@{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}}{semantics:unary}
@@ -129,17 +180,53 @@ text \<open>
 \induct{@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}}{semantics:leaf}
 \<close>
 snipend -
-(*\induct{@{thm[mode=Rule] evaltree.ConvertExpr [no_vars]}}{semantics:convert}*)
+no_translations
+  ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R" <= ("prop") "P \<and> Q \<Longrightarrow> R"
+translations
+  ("prop") "P \<and> Q \<Longrightarrow> R" <= ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R"
+
+
+text \<open>And show that expression evaluation is deterministic.\<close>
 
 snipbegin \<open>tree-evaluation-deterministic\<close>
 text \<open>@{thm[display] evalDet [no_vars]}\<close>
 snipend -
 
-thm_oracles evalDet
+
+text \<open>
+We then want to start demonstrating the obligations for optimizations.
+For this we define refinement over terms.
+\<close>
 
 snipbegin \<open>expression-refinement\<close>
 text \<open>@{thm le_expr_def [no_vars]} \<close>
 snipend -
+
+text \<open>
+To motivate this definition we show the obligations generated
+by optimization definitions.
+\<close>
+
+phase SnipPhase
+  terminating size
+begin
+snipbegin \<open>InverseLeftSub\<close>
+optimization InverseLeftSub:
+  "((e\<^sub>1::intexp) - (e\<^sub>2::intexp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
+snipend -
+  snipbegin \<open>InverseLeftSubObligation\<close>
+  text \<open>@{subgoals[display]}\<close>
+  snipend -
+  using neutral_left_add_sub by auto
+
+snipbegin \<open>InverseRightSub\<close>
+optimization InverseRightSub: "(e\<^sub>2::intexp) + ((e\<^sub>1::intexp) - e\<^sub>2) \<longmapsto> e\<^sub>1"
+snipend -
+  snipbegin \<open>InverseRightSubObligation\<close>
+  text \<open>@{subgoals[display]}\<close>
+  snipend -
+  using neutral_right_add_sub by auto
+end
 
 snipbegin \<open>expression-refinement-monotone\<close>
 text \<open>
@@ -151,40 +238,6 @@ text \<open>
 \<close>
 snipend -
 
-ML \<open>
-(*fun get_list (phase: phase option) =
-  case phase of
-    NONE => [] |
-    SOME p => (#rewrites p)
-
-fun get_rewrite name thy =
-  let 
-    val (phases, lookup) = (case RWList.get thy of
-      NoPhase store => store |
-      InPhase (name, store, _) => store)
-    val rewrites = (map (fn x => get_list (lookup x)) phases)
-  in
-    rewrites
-  end
-  
-fun rule_print name =
-  Document_Output.antiquotation_pretty name (Args.term)
-    (fn ctxt => fn (rule) => (*Pretty.str "hello")*)
-      Pretty.block (print_all_phases (Proof_Context.theory_of ctxt)));
-(*
-      Goal_Display.pretty_goal
-        (Config.put Goal_Display.show_main_goal main ctxt)
-        (#goal (Proof.goal (Toplevel.proof_of (Toplevel.presentation_state ctxt)))));
-*)
-
-val _ = Theory.setup
- (rule_print \<^binding>\<open>rule\<close>);*)
-\<close>
-
-
-(*snipbegin \<open>OptimizationList\<close>
-text \<open>@{rule BinaryFoldConstant}\<close>
-snipend -*)
 
 phase SnipPhase 
   terminating size
@@ -192,75 +245,36 @@ begin
 snipbegin \<open>BinaryFoldConstant\<close>
 optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2) when int_and_equal_bits v1 v2 "
 snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
   using BinaryFoldConstant by auto
 
 snipbegin \<open>AddCommuteConstantRight\<close>
-optimization AddCommuteConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+optimization AddCommuteConstantRight:
+  "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
 snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddCommuteConstantRightObligation\<close>
   text \<open>@{subgoals[display,margin=50]}\<close>
   snipend -
-
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
 optimization AddNeutral: "((e::i32exp) + (const (IntVal 32 0))) \<longmapsto> e"
 snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddNeutralObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-
+  apply (rule conjE, simp, simp del: le_expr_def)
   using neutral_zero(1) rewrite_preservation.simps(1) by blast
-
-snipbegin \<open>InverseLeftSub\<close>
-optimization InverseLeftSub: "((e\<^sub>1::intexp) - (e\<^sub>2::intexp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
-snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
-  snipbegin \<open>InverseLeftSubObligation\<close>
-  text \<open>@{subgoals[display]}\<close>
-  snipend -
-
-  using neutral_left_add_sub by auto
-
-snipbegin \<open>InverseRightSub\<close>
-optimization InverseRightSub: "(e\<^sub>2::intexp) + ((e\<^sub>1::intexp) - e\<^sub>2) \<longmapsto> e\<^sub>1"
-snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
-  snipbegin \<open>InverseRightSubObligation\<close>
-  text \<open>@{subgoals[display]}\<close>
-  snipend -
-
-  using neutral_right_add_sub by auto
 
 snipbegin \<open>AddToSub\<close>
 optimization AddToSub: "-e + y \<longmapsto> y - e"
 snipend -
-
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddToSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-
   using AddLeftNegateToSub by auto
-
 
 end
 
@@ -314,39 +328,26 @@ snipbegin \<open>termination\<close>
 text \<open>\begin{tabular}{l@ {~~@{text "="}~~}l}
 @{thm (lhs) size.simps(1)} & @{thm (rhs) size.simps(1)}\\
 @{thm (lhs) size.simps(2)} & @{thm (rhs) size.simps(2)}\\
-@{thm (lhs) size.simps(14)} & @{thm (rhs) size.simps(14)}\\
+@{thm (lhs) size.simps(7)} & @{thm (rhs) size.simps(7)}\\
 @{thm (lhs) size.simps(15)} & @{thm (rhs) size.simps(15)}\\
 @{thm (lhs) size.simps(16)} & @{thm (rhs) size.simps(16)}\\
 @{thm (lhs) size.simps(17)} & @{thm (rhs) size.simps(17)}
 \end{tabular}\<close>
 snipend -
 
-(* Experimenting with auto generated optimizations
-notation (latex)
-  Transform ("_ \<^latex>\<open>&\<close> _")
-notation (latex)
-  Conditional ("_ \<^latex>\<open>&\<close>_\<^latex>\<open>\\\\\<close>\\ \<^latex>\<open>&\<close>if _")
-
-translations
-  "t" <= "CONST rewrite_obligation t"
-
-print_optimizations
-snipbegin \<open>optimization rules\<close>
-text_raw \<open>\begin{tabular}{l@ {~~@{text "\<longmapsto>"}~~}l}\<close>
-text_raw \<open>@{thm constant_add(1) [no_vars]}\\\<close>
-text_raw \<open>@{thm AddShiftConstantRight(1) [no_vars]}\\\<close>
-text_raw \<open>@{thm AddNeutral(1) [no_vars]}\<close>
-text_raw \<open>\end{tabular}\<close>
-snipend -
-*)
-
 
 (* definition 5 (semantics-preserving) is there a distinction in Isabelle? *)
 
 snipbegin \<open>graph-representation\<close>
-text \<open>@{bold \<open>typedef\<close>} @{term[source] \<open>IRGraph = {g :: ID \<rightharpoonup> (IRNode \<times> Stamp) . finite (dom g)}\<close>}\<close>
+text \<open>@{bold \<open>typedef\<close>} IRGraph = 
+
+@{term[source] \<open>{g :: ID \<rightharpoonup> (IRNode \<times> Stamp) . finite (dom g)}\<close>}\<close>
 snipend -
 
+no_translations
+  ("prop") "P \<and> Q \<Longrightarrow> R" <= ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R"
+translations
+  ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R" <= ("prop") "P \<and> Q \<Longrightarrow> R"
 snipbegin \<open>graph2tree\<close>
 text \<open>
 \induct{@{thm[mode=Rule] rep.ConstantNode [no_vars]}}{rep:constant}
@@ -359,6 +360,11 @@ text \<open>
 \induct{@{thm[mode=Rule] rep.RefNode [no_vars]}}{rep:ref}
 \<close>
 snipend -
+no_translations
+  ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R" <= ("prop") "P \<and> Q \<Longrightarrow> R"
+translations
+  ("prop") "P \<and> Q \<Longrightarrow> R" <= ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R"
+
 
 snipbegin \<open>preeval\<close>
 text \<open>@{thm is_preevaluated.simps}\<close>

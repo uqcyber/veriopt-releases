@@ -186,14 +186,28 @@ optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) whe
   apply (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps new_int_bin.simps unary_eval.simps(2) unfold_unary)
   sorry (* very odd goal produced *)
 
+fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
+  "forPrimitive (IntegerStamp b lo hi) v = ConstantExpr (IntVal b v)" |
+  "forPrimitive _ _ = ConstantExpr UndefVal"
 
-optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when 
-                      (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-   apply simp_all 
-   apply auto
+lemma forPrimitive_size: "size (forPrimitive s v) = 1"
+  by (cases s; auto)
+
+lemma forPrimitive_eval: 
+  assumes "valid_value (IntVal b v) s"
+  assumes "s = IntegerStamp b lo hi"
+  shows "[m, p] \<turnstile> forPrimitive s v \<mapsto> (IntVal b v)"
+  using assms evaltree.ConstantExpr
+  by simp
+
+optimization SubSelfIsZero: "(x - x) \<longmapsto> forPrimitive (stamp_expr x) 0 when (wf_stamp x)"
+  unfolding forPrimitive_size
+  using IRExpr.disc(42) size_non_const apply blast
+   apply simp_all using forPrimitive_eval unfolding wf_stamp_def sorry
+(*  
   apply (meson less_add_same_cancel1 less_trans_Suc size_pos)
   by (smt (verit) Value.inject(1) eq_iff_diff_eq_0 evalDet intval_sub.elims new_int.elims new_int_bin.elims take_bit_of_0 unfold_const validDefIntConst valid_stamp.simps(1) valid_value.simps(1) wf_stamp_def)
-
+*)
 
 end (* End of SubPhase *)
 

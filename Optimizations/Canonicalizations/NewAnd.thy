@@ -438,7 +438,7 @@ proof -
   proof -
     have "\<forall>i < n. \<not>(bit (\<up>y) i)"
       using assms(1,2) zerosBelowLowestOne
-      by (metis add.commute add_diff_inverse_nat add_lessD1 leD le_diff_conv less_imp_diff_less numberOfTrailingZeros_def)
+      by (metis add.commute add_diff_inverse_nat add_lessD1 leD le_diff_conv numberOfTrailingZeros_def)
     then show ?thesis
       by (metis (full_types) transfer_map)
   qed
@@ -455,16 +455,6 @@ text \<open>
 (x + 1110 0000) & (0001 1111)
 \<close>
 
-lemma word_mod_add_right_eq:
-  fixes a b c :: "'a::len word"
-  shows "(a + b mod c) mod c = (a + b) mod c"
-  apply transfer using mod_add_right_eq sorry
-
-lemma word_mod_add_left_eq:
-  fixes a b c :: "'a::len word"
-  shows "(a mod c + b) mod c = (a + b) mod c"
-  apply transfer using mod_add_left_eq sorry
-
 lemma unfold_binary_width_add:
   shows "([m,p] \<turnstile> BinaryExpr BinAdd xe ye \<mapsto> IntVal b val) = (\<exists> x y.
           (([m,p] \<turnstile> xe \<mapsto> IntVal b x) \<and>
@@ -479,14 +469,14 @@ proof (intro iffI)
     apply (smt (verit) intval_add.elims intval_bits.simps)
     by blast
 next
-  assume ?R
+  assume R: ?R
   then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"
         and "[m,p] \<turnstile> ye \<mapsto> IntVal b y"
         and "new_int b val = bin_eval BinAdd (IntVal b x) (IntVal b y)"
         and "new_int b val \<noteq> UndefVal"
     by auto
   then show ?L
-    using \<open>\<exists>(x::64 word) y::64 word. [m::nat \<Rightarrow> Value,p::Value list] \<turnstile> xe::IRExpr \<mapsto> IntVal (b::nat) x \<and> [m,p] \<turnstile> ye::IRExpr \<mapsto> IntVal b y \<and> IntVal b (val::64 word) = bin_eval BinAdd (IntVal b x) (IntVal b y) \<and> IntVal b val \<noteq> UndefVal\<close> by blast
+    using R by blast
  qed
 
 lemma unfold_binary_width_and:
@@ -503,15 +493,29 @@ proof (intro iffI)
     apply (smt (verit) new_int.simps new_int_bin.simps take_bit_and)
     by blast
 next
-  assume ?R
+  assume R: ?R
   then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"
         and "[m,p] \<turnstile> ye \<mapsto> IntVal b y"
         and "new_int b val = bin_eval BinAnd (IntVal b x) (IntVal b y)"
         and "new_int b val \<noteq> UndefVal"
     by auto
   then show ?L 
-    using \<open>\<exists>(x::64 word) y::64 word. [m::nat \<Rightarrow> Value,p::Value list] \<turnstile> xe::IRExpr \<mapsto> IntVal (b::nat) x \<and> [m,p] \<turnstile> ye::IRExpr \<mapsto> IntVal b y \<and> IntVal b (val::64 word) = bin_eval BinAnd (IntVal b x) (IntVal b y) \<and> IntVal b val \<noteq> UndefVal\<close> by blast
+    using R by blast
 qed
+
+lemma mod_dist_over_add_right:
+  fixes a b c :: int64
+  fixes n :: nat
+  assumes 1: "0 < n"
+  assumes 2: "n < 64"
+  shows "(a + b mod 2^n) mod 2^n = (a + b) mod 2^n"
+  using mod_dist_over_add
+  by (simp add: "1" "2" add.commute)
+
+lemma numberOfLeadingZeros_range:
+  "0 \<le> numberOfLeadingZeros n \<and> numberOfLeadingZeros n \<le> Nat.size n"
+  unfolding numberOfLeadingZeros_def highestOneBit_def using max_set_bit
+  by (simp add: highestOneBit_def leadingZeroBounds numberOfLeadingZeros_def)
 
 lemma improved_opt:
   assumes "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 64"
@@ -548,25 +552,45 @@ proof -
     using zv apply simp
      apply force
     by simp
-  have "and (xv + yv) zv = and ((xv + yv) mod 2^n) zv"
-    using L1 n zv by blast
-  also have "... = and ((xv + (yv mod 2^n)) mod 2^n) zv"
-    using word_mod_add_right_eq by metis
-  also have "... = and (((xv mod 2^n) + (yv mod 2^n)) mod 2^n) zv"
-    using word_mod_add_left_eq by metis
-  also have "... = and ((xv mod 2^n) mod 2^n) zv"
-    using L2 n zv yv
-    using assms by auto
-  also have "... = and (xv mod 2^n) zv"
-    using mod_mod_trivial
-    by (smt (verit, best) and.idem take_bit_eq_mask take_bit_eq_mod word_bw_assocs(1))
-  also have "... = and xv zv"
-    using L1 n zv by metis
-  finally show ?thesis
-    using eval lhs rhs
-    by (metis evalDet)
+  then show ?thesis
+  proof (cases "numberOfLeadingZeros (\<up>z) > 0")
+    case True
+    have n_bounds: "0 \<le> n \<and> n < 64"
+      using diff_le_self n numberOfLeadingZeros_range
+      by (simp add: True)
+    have "and (xv + yv) zv = and ((xv + yv) mod 2^n) zv"
+      using L1 n zv by blast
+    also have "... = and ((xv + (yv mod 2^n)) mod 2^n) zv"
+      using mod_dist_over_add_right n_bounds
+      by (metis take_bit_0 take_bit_eq_mod zero_less_iff_neq_zero)
+    also have "... = and (((xv mod 2^n) + (yv mod 2^n)) mod 2^n) zv"
+      by (metis bits_mod_by_1 mod_dist_over_add n_bounds order_le_imp_less_or_eq power_0)
+    also have "... = and ((xv mod 2^n) mod 2^n) zv"
+      using L2 n zv yv
+      using assms by auto
+    also have "... = and (xv mod 2^n) zv"
+      using mod_mod_trivial
+      by (smt (verit, best) and.idem take_bit_eq_mask take_bit_eq_mod word_bw_assocs(1))
+    also have "... = and xv zv"
+      using L1 n zv by metis
+    finally show ?thesis
+      using eval lhs rhs
+      by (metis evalDet)
+  next
+    case False
+    then have "numberOfLeadingZeros (\<up>z) = 0"
+      by simp
+    then have "numberOfTrailingZeros (\<up>y) \<ge> 64"
+      using assms(1)
+      by fastforce 
+    then have "yv = 0"
+      using yv
+      by (metis (no_types, lifting) L1 L2 add_diff_cancel_left' and.comm_neutral and.idem bit.compl_zero bit.conj_cancel_right bit.conj_disj_distribs(1) bit.double_compl less_imp_diff_less linorder_not_le word_not_dist(2))
+    then show ?thesis
+      by (metis add.right_neutral eval evalDet lhs rhs)
+  qed
 qed
-  done
+done
 
 thm_oracles improved_opt
 
@@ -586,16 +610,60 @@ next
     using False by presburger
 qed
 
+lemma noZeros:
+  fixes a :: "64 word"
+  assumes "zeroCount a = 0"
+  shows "i < Nat.size a \<longrightarrow> bit a i"
+  using assms unfolding zeroCount_def size64
+  using zeroCount_finite by auto
+
 lemma zerosAboveOnly:
+  fixes a :: "64 word"
   assumes "numberOfLeadingZeros a = zeroCount a"
-  shows "\<forall>i. \<not>(bit a i) \<longrightarrow> i \<ge> (64 - numberOfLeadingZeros a)"
-  using assms unfolding numberOfLeadingZeros_def zeroCount_def sorry
+  shows "\<not>(bit a i) \<longrightarrow> i \<ge> (64 - numberOfLeadingZeros a)"
+  sorry
+(*proof -
+  have "a = 2^(64 - numberOfLeadingZeros a)"
+    using assms 
+    unfolding numberOfLeadingZeros_def zeroCount_def highestOneBit_def MaxOrNeg_def sorry
+  then show ?thesis sorry
+qed
+  apply (rule impI) subgoal premises notSet
+proof -
+  obtain z where "zeroCount a = zeroCount (z::64 word)"
+    by auto
+  have adef: "a = 2^(64- numberOfLeadingZeros a) * (1 + z)"
+    sorry
+  have "and a (2^i) = 0"
+    using notSet
+    by (simp add: and_exp_eq_0_iff_not_bit)
+  then have "a = and (2^(64- numberOfLeadingZeros a) * (1 + z)) (2^i)"
+    using adef sorry
+
+  using assms proof (induction "numberOfLeadingZeros a"; induction i)
+  case 0
+  then have "zeroCount a = 0"
+    using assms by presburger
+  then have notSet: "\<forall>i < Nat.size a. bit a i"
+    using noZeros by blast
+  have "64 - numberOfLeadingZeros a \<le> Nat.size a"
+    using numberOfLeadingZeros_range size64 by simp
+  then show ?case
+    using linorder_le_less_linear notSet size64
+    by (metis word_size_gt_0)
+next
+  case (Suc x)
+  then have "\<not>(bit a (Suc x))"
+    sorry
+  then show ?case unfolding zeroCount_def using zeroCount_finite sorry
+qed*)
+
 
 lemma consumes: 
   assumes "numberOfLeadingZeros (\<up>z) + bitCount (\<up>z) = 64"
   and "\<up>z \<noteq> 0"
   and "and (\<up>y) (\<up>z) = 0"
-  shows "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 63" (* NOTE: not 64 *)
+  shows "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 64"
 proof -
   obtain n where "n = 64 - numberOfLeadingZeros (\<up>z)"
     by simp
@@ -614,15 +682,17 @@ proof -
     by (metis bit.conj_cancel_right bit_and_iff bit_not_iff)
   then have "lowestOneBit (\<up>y) \<ge> n"
     by (simp add: \<open>(n::nat) = (64::nat) - numberOfLeadingZeros (\<up> (z::IRExpr))\<close> falseBelowN_nBelowLowest size64)
-  then have "card {i. i < n} \<le> numberOfTrailingZeros (\<up>y) + 1"
+  then have "n \<le> numberOfTrailingZeros (\<up>y)"
     unfolding numberOfTrailingZeros_def
     by simp
   have "card {i. i < n} = bitCount (\<up>z)"
     by (simp add: \<open>(n::nat) = bitCount (\<up> (z::IRExpr))\<close>)
-  then have "bitCount (\<up>z) \<le> numberOfTrailingZeros (\<up>y) + 1"
-    using \<open>card (_Collect (i::nat) (i < (n::nat))) \<sqsubseteq> (numberOfTrailingZeros (\<up> (y::IRExpr)) + (1::nat))\<close> by fastforce
+  then have "bitCount (\<up>z) \<le> numberOfTrailingZeros (\<up>y)"
+    using \<open>(n::nat) \<sqsubseteq> numberOfTrailingZeros (\<up> (y::IRExpr))\<close> by auto
   then show ?thesis using assms(1) by auto
 qed
+
+thm_oracles consumes
 
 (*
 lemma wrong:

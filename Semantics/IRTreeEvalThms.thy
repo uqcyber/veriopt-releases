@@ -344,7 +344,7 @@ lemma stamprange:
 
 lemma compatible_trans:
   "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"
-  by (smt (z3) compatible.elims(2) compatible.simps(1))
+  by (cases x; cases y; cases z; simp del: valid_stamp.simps)
 
 lemma compatible_refl:
   "compatible x y \<Longrightarrow> compatible y x"

@@ -24,12 +24,12 @@ definition highestOneBit :: "('a::len) word \<Rightarrow> int" where
   "highestOneBit v = MaxOrNeg {n . bit v n}"
 
 definition lowestOneBit :: "('a::len) word \<Rightarrow> nat" where
-  "lowestOneBit v = MinOrHighest {n . bit v n} (size v + 1)"
+  "lowestOneBit v = MinOrHighest {n . bit v n} (size v)"
 
 lemma max_bit: "bit (v::('a::len) word) n \<Longrightarrow> n < size v"
   by (simp add: bit_imp_le_length size_word.rep_eq)
 
-lemma max_set_bit: "MaxOrNeg {n . bit (v::('a::len) word) n} \<le> Nat.size v"
+lemma max_set_bit: "MaxOrNeg {n . bit (v::('a::len) word) n} < Nat.size v"
   using max_bit unfolding MaxOrNeg_def
   by force
 
@@ -53,7 +53,7 @@ lemma "numberOfLeadingZeros (0::64 word) = 64"
   unfolding numberOfLeadingZeros_def using  MaxOrNeg_neg highestOneBit_def size64
   by (smt (verit) nat_int zero_no_bits)
 
-lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} \<le> 64"
+lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} < 64"
   unfolding highestOneBit_def
   by (metis Max_singleton int_eq_iff_numeral max_set_bit size64)
 
@@ -62,14 +62,19 @@ lemma numberOfLeadingZeros_top: "Max {numberOfLeadingZeros (v::64 word)} \<le> 6
   using size64
   by (simp add: MaxOrNeg_def highestOneBit_def nat_le_iff)
 
+lemma numberOfLeadingZeros_range: "0 \<le> numberOfLeadingZeros a \<and> numberOfLeadingZeros a \<le> Nat.size a"
+  unfolding numberOfLeadingZeros_def
+  using MaxOrNeg_def highestOneBit_def nat_le_iff
+  by (smt (verit) bot_nat_0.extremum int_eq_iff)
+
 lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v - 1"
   unfolding numberOfLeadingZeros_def highestOneBit_def
   using MaxOrNeg_def int_nat_eq int_ops(6) max_bit order_less_irrefl by fastforce
 
 definition numberOfTrailingZeros :: "('a::len) word \<Rightarrow> nat" where
-  "numberOfTrailingZeros v = lowestOneBit v - 1"
+  "numberOfTrailingZeros v = lowestOneBit v"
 
-lemma lowestOneBit_bot: "lowestOneBit (0::64 word) = 65"
+lemma lowestOneBit_bot: "lowestOneBit (0::64 word) = 64"
   unfolding lowestOneBit_def MinOrHighest_def
   by (simp add: size64)
 
@@ -92,6 +97,9 @@ lemma "bitCount 0 = 0"
 
 definition zeroCount :: "('a::len) word \<Rightarrow> nat" where
   "zeroCount v = card {n. n < Nat.size v \<and> \<not>(bit v n)}"
+
+lemma zeroCount_finite: "finite {n. n < Nat.size v \<and> \<not>(bit v n)}"
+  using finite_nat_set_iff_bounded by blast
 
 lemma negone_set:
   "bit (-1::('a::len) word) n \<longleftrightarrow> n < LENGTH('a)"

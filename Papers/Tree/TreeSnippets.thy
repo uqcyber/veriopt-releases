@@ -7,6 +7,8 @@ theory TreeSnippets
     "HOL-Library.OptionalSugar"
 begin
 
+declare [[show_types=false]]
+
 no_notation ConditionalExpr ("_ ? _ : _")
 
 notation (latex)
@@ -24,11 +26,11 @@ notation (latex)
 notation (latex)
   size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
 
-translations
+(*translations
   "y > x" <= "x < y"
-
 notation (latex)
-  greater ("_ >/ _")
+  greater ("_ >/ _")*)
+
 
 (* lengthen rewrite arrow slightly
 notation (latex)
@@ -36,6 +38,22 @@ notation (latex)
 notation (latex)
   Conditional ("_ \<longmapsto> _ \<^latex>\<open> when \<close> _")
 *)
+
+(*
+notation (Optimization output)
+  Transform ("\<^latex>\<open>\\textbf{optimization} \<close>_\<^latex>\<open> $\\longmapsto$\<close>_")
+notation (Optimization output)
+  Conditional ("\<^latex>\<open>\\textbf{optimization} \<close>_\<^latex>\<open> $\\longmapsto$\<close>_\<^latex>\<open>\\textsl{when}\<close>_")
+*)
+
+syntax (Rule output)
+  "_bigimpl" :: "asms \<Rightarrow> prop \<Rightarrow> prop"
+  ("\<^latex>\<open>\\mbox{}\\inferrule{\<close>_\<^latex>\<open>}\<close>\<^latex>\<open>{\\mbox{\<close>_\<^latex>\<open>}}\<close>")
+
+  "_asms" :: "prop \<Rightarrow> asms \<Rightarrow> asms" 
+  ("\<^latex>\<open>\\mbox{\<close>_\<^latex>\<open>}\\\\\<close>/ _")
+
+  "_asm" :: "prop \<Rightarrow> asms" ("\<^latex>\<open>\\mbox{\<close>_\<^latex>\<open>}\<close>")
 
 (* hide type casting *)
 translations
@@ -84,9 +102,10 @@ phase tmp
   terminating size
 begin
 snipbegin \<open>sub-same-32\<close>
-optimization sub_same_32: "((e::i32exp) - e) \<longmapsto> const (IntVal b 0)
+optimization sub_same_32:
+  "((e::i32exp) - e) \<longmapsto> const (IntVal b 0)
      when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
-  snipend -
+snipend -
   apply simp
    apply (metis Suc_lessI add_is_1 add_pos_pos size_gt_0)
   apply (rule impI) apply simp
@@ -103,7 +122,7 @@ end
 
 
 snipbegin \<open>ast-example\<close>
-text "@{value[display] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"
+text "@{value[display,margin=40] \<open>BinaryExpr BinAdd (BinaryExpr BinMul x x) (BinaryExpr BinMul x x)\<close>}"
 snipend -
 
 snipbegin \<open>abstract-syntax-tree\<close>
@@ -115,10 +134,14 @@ text \<open>@{datatype[display,margin=40] Value}\<close>
 snipend -
 
 snipbegin \<open>eval\<close>
-text \<open>@{term_type[mode=spaced_type_def] unary_eval}\<close>
-text \<open>@{term_type[mode=spaced_type_def] bin_eval}\<close>
+text \<open>@{term_type[mode=type_def] unary_eval}\<close>
+text \<open>@{term_type[mode=type_def] bin_eval}\<close>
 snipend -
 
+no_translations
+  ("prop") "P \<and> Q \<Longrightarrow> R" <= ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R"
+translations
+  ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R" <= ("prop") "P \<and> Q \<Longrightarrow> R"
 snipbegin \<open>tree-semantics\<close>
 text \<open>
 \induct{@{thm[mode=Rule] evaltree.UnaryExpr [no_vars]}}{semantics:unary}
@@ -129,7 +152,10 @@ text \<open>
 \induct{@{thm[mode=Rule] evaltree.LeafExpr [no_vars]}}{semantics:leaf}
 \<close>
 snipend -
-(*\induct{@{thm[mode=Rule] evaltree.ConvertExpr [no_vars]}}{semantics:convert}*)
+no_translations
+  ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R" <= ("prop") "P \<and> Q \<Longrightarrow> R"
+translations
+  ("prop") "P \<and> Q \<Longrightarrow> R" <= ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R"
 
 snipbegin \<open>tree-evaluation-deterministic\<close>
 text \<open>@{thm[display] evalDet [no_vars]}\<close>
@@ -192,20 +218,15 @@ begin
 snipbegin \<open>BinaryFoldConstant\<close>
 optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2) when int_and_equal_bits v1 v2 "
 snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
   using BinaryFoldConstant by auto
 
 snipbegin \<open>AddCommuteConstantRight\<close>
-optimization AddCommuteConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+optimization AddCommuteConstantRight:
+  "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
 snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddCommuteConstantRightObligation\<close>
   text \<open>@{subgoals[display,margin=50]}\<close>
   snipend -
@@ -215,21 +236,16 @@ snipend -
 snipbegin \<open>AddNeutral\<close>
 optimization AddNeutral: "((e::i32exp) + (const (IntVal 32 0))) \<longmapsto> e"
 snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddNeutralObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-
+  apply (rule conjE, simp, simp del: le_expr_def)
   using neutral_zero(1) rewrite_preservation.simps(1) by blast
 
 snipbegin \<open>InverseLeftSub\<close>
-optimization InverseLeftSub: "((e\<^sub>1::intexp) - (e\<^sub>2::intexp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
+optimization InverseLeftSub:
+  "((e\<^sub>1::intexp) - (e\<^sub>2::intexp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
 snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>InverseLeftSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
@@ -239,9 +255,6 @@ snipend -
 snipbegin \<open>InverseRightSub\<close>
 optimization InverseRightSub: "(e\<^sub>2::intexp) + ((e\<^sub>1::intexp) - e\<^sub>2) \<longmapsto> e\<^sub>1"
 snipend -
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>InverseRightSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
@@ -251,10 +264,6 @@ snipend -
 snipbegin \<open>AddToSub\<close>
 optimization AddToSub: "-e + y \<longmapsto> y - e"
 snipend -
-
-
-  unfolding rewrite_preservation.simps rewrite_termination.simps
-   apply (rule conjE, simp, simp del: le_expr_def)
   snipbegin \<open>AddToSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
@@ -314,7 +323,7 @@ snipbegin \<open>termination\<close>
 text \<open>\begin{tabular}{l@ {~~@{text "="}~~}l}
 @{thm (lhs) size.simps(1)} & @{thm (rhs) size.simps(1)}\\
 @{thm (lhs) size.simps(2)} & @{thm (rhs) size.simps(2)}\\
-@{thm (lhs) size.simps(14)} & @{thm (rhs) size.simps(14)}\\
+@{thm (lhs) size.simps(7)} & @{thm (rhs) size.simps(7)}\\
 @{thm (lhs) size.simps(15)} & @{thm (rhs) size.simps(15)}\\
 @{thm (lhs) size.simps(16)} & @{thm (rhs) size.simps(16)}\\
 @{thm (lhs) size.simps(17)} & @{thm (rhs) size.simps(17)}
@@ -344,9 +353,15 @@ snipend -
 (* definition 5 (semantics-preserving) is there a distinction in Isabelle? *)
 
 snipbegin \<open>graph-representation\<close>
-text \<open>@{bold \<open>typedef\<close>} @{term[source] \<open>IRGraph = {g :: ID \<rightharpoonup> (IRNode \<times> Stamp) . finite (dom g)}\<close>}\<close>
+text \<open>@{bold \<open>typedef\<close>} IRGraph = 
+
+@{term[source] \<open>{g :: ID \<rightharpoonup> (IRNode \<times> Stamp) . finite (dom g)}\<close>}\<close>
 snipend -
 
+no_translations
+  ("prop") "P \<and> Q \<Longrightarrow> R" <= ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R"
+translations
+  ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R" <= ("prop") "P \<and> Q \<Longrightarrow> R"
 snipbegin \<open>graph2tree\<close>
 text \<open>
 \induct{@{thm[mode=Rule] rep.ConstantNode [no_vars]}}{rep:constant}
@@ -359,6 +374,11 @@ text \<open>
 \induct{@{thm[mode=Rule] rep.RefNode [no_vars]}}{rep:ref}
 \<close>
 snipend -
+no_translations
+  ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R" <= ("prop") "P \<and> Q \<Longrightarrow> R"
+translations
+  ("prop") "P \<and> Q \<Longrightarrow> R" <= ("prop") "P \<Longrightarrow> Q \<Longrightarrow> R"
+
 
 snipbegin \<open>preeval\<close>
 text \<open>@{thm is_preevaluated.simps}\<close>

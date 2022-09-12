@@ -279,4 +279,27 @@ lemma signed_take_take_bit[simp]:
   by (smt (verit, best) Suc_diff_1 assms lessI linorder_not_less signed_take_bit_take_bit)
 
 
+lemma mod_larger_ignore:
+  fixes a :: int
+  fixes m n :: nat
+  assumes "n < m"
+  shows "(a mod 2 ^ m) mod 2 ^ n = a mod 2 ^ n"
+  by (smt (verit, del_insts) assms exp_mod_exp linorder_not_le mod_0_imp_dvd mod_mod_cancel mod_self order_less_imp_le)
+  
+
+lemma mod_dist_over_add:
+  fixes a b c :: int64  (* "'a :: len word" *)
+  fixes n :: nat
+  assumes 1: "0 < n"
+  assumes 2: "n < 64"
+  shows "(a mod 2^n + b) mod 2^n = (a + b) mod 2^n"
+proof -
+  have 3: "(0 :: int64) < 2 ^ n"
+    using assms by (simp add: size64 word_2p_lem)
+  then show ?thesis
+    unfolding word_mod_2p_is_mask[OF 3]
+    apply transfer
+    by (metis (no_types, opaque_lifting) and.right_idem take_bit_add take_bit_eq_mask)
+qed
+
 end

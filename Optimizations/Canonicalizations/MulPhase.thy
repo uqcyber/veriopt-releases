@@ -214,8 +214,10 @@ lemma exp_MulPower2:
   assumes "y = ConstantExpr (IntVal 64 (2 ^ unat(i)))"
   and     "0 < i"
   and     "i < 64"
+  and     "exp[x > (const IntVal b 0)]"
+  and     "exp[y > (const IntVal b 0)]"
   shows "exp[x * y] \<ge> exp[x << ConstantExpr (IntVal 64 i)]"
-  using assms val_MulPower2 
+  using assms val_MulPower2 apply (cases x; cases y; auto)
   sorry
 
 
@@ -245,10 +247,11 @@ optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
 
 (* Need to prove exp_MulPower2 *)
 optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i) 
-                              when (i > 0 \<and> 64 > i \<and>
+                              when (i > 0 \<and> 
+                                    64 > i \<and>
                                     y = (ConstantExpr (IntVal 64 (2 ^ unat(i)))))"
   
-  using exp_MulPower2
+  using exp_MulPower2 
   apply blast 
   by (simp add: exp_MulPower2)
 

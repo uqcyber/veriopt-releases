@@ -3,6 +3,7 @@ section \<open>Verifying term graph optimizations using Isabelle/HOL\<close>
 theory TreeSnippets
   imports 
     Canonicalizations.ConditionalPhase
+    Canonicalizations.AddPhase
     Optimizations.CanonicalizationSyntax
     Semantics.TreeToGraphThms
     Snippets.Snipping
@@ -43,25 +44,35 @@ at which optimizations can be expressed.
 \<close>
 
 \<comment> \<open>Algebraic laws\<close>
+lemma diff_self:
+  fixes x :: int
+  shows "x - x = 0"
+  by simp
+lemma diff_diff_cancel:
+  fixes x y :: int
+  shows "x - (x - y) = y"
+  by simp
 thm diff_self
 thm diff_diff_cancel
 snipbegin \<open>algebraic-laws\<close>
-text \<open>
-@{thm diff_self[show_types=false,where a=x]}\\
-@{thm diff_diff_cancel[where n=x and i=y]}\<close>
+text \<open>\begin{align}
+@{thm diff_self[show_types=false]}\\
+@{thm diff_diff_cancel[show_types=false]}
+\end{align}\<close>
 snipend -
 
 \<comment> \<open>Values\<close>
-lemma diff_self_value: "\<forall>v::int64. v - v = 0"
+lemma diff_self_value: "\<forall>v::'a::len word. v - v = 0"
   by simp
 lemma diff_diff_cancel_value:
-  "\<forall> (v\<^sub>1::int64) (v\<^sub>2::int64) . v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
+  "\<forall> v\<^sub>1 v\<^sub>2::'a::len word . v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
   by simp
 
 snipbegin \<open>algebraic-laws-values\<close>
-text \<open>
-@{thm diff_self_value[show_types]}\\
-@{thm diff_diff_cancel_value[show_types]}\<close>
+text_raw \<open>\begin{align}
+@{thm diff_self_value[show_types]} \label{prop-v-minus-v}\\
+@{thm diff_diff_cancel_value[show_types]}
+\end{align}\<close>
 snipend -
 
 \<comment> \<open>Expression\<close>
@@ -81,9 +92,10 @@ lemma diff_diff_cancel_expr:
   apply simp sorry
 
 snipbegin \<open>algebraic-laws-expressions\<close>
-text \<open>
-@{thm[mode=ExprRule] (concl) diff_self_expr}\\
-@{thm[mode=ExprRule] (concl) diff_diff_cancel_expr}\<close>
+text_raw \<open>\begin{align}
+@{thm[mode=ExprRule] (concl) diff_self_expr} \label{prop-MinusSame} \\
+@{thm[mode=ExprRule] (concl) diff_diff_cancel_expr}
+\end{align}\<close>
 snipend -
 no_translations
   "n" <= "CONST ConstantExpr (CONST IntVal b n)"
@@ -110,8 +122,8 @@ lemma sub_same_val:
   using assms by (cases e; auto)
 
 snipbegin \<open>sub-same-32\<close>
-optimization sub_same_32:
-  "(e - e) \<longmapsto> const (IntVal b 0)
+optimization SubIdentity:
+  "(e - e) \<longmapsto> ConstantExpr (IntVal b 0)
      when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
 snipend -
   apply simp
@@ -125,7 +137,7 @@ proof -
   then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinSub e e \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> ConstantExpr (IntVal b 0) \<mapsto> v)"
     by (smt (verit, best) BinaryExprE TreeSnippets.wf_stamp_def assms bin_eval.simps(3) constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val unfold_const valid_stamp.simps(1) valid_value.simps(1))
 qed
-thm_oracles sub_same_32
+thm_oracles SubIdentity
 end
 
 subsection \<open>Representing terms\<close>
@@ -147,7 +159,7 @@ text \<open>@{datatype[display,margin=40] IRExpr}\<close>
 snipend -
 
 snipbegin \<open>value\<close>
-text \<open>@{datatype[display,margin=40] Value}\<close>
+text \<open>@{datatype[display,margin=40,show_abbrevs] Value}\<close>
 snipend -
 
 
@@ -158,8 +170,8 @@ The core expression evaluation functions need to be introduced.
 \<close>
 
 snipbegin \<open>eval\<close>
-text \<open>@{term_type[mode=type_def] unary_eval}\<close>
-text \<open>@{term_type[mode=type_def] bin_eval}\<close>
+text \<open>@{term_type[mode=type_def] unary_eval}\\
+@{term_type[mode=type_def] bin_eval}\<close>
 snipend -
 
 text \<open>
@@ -212,12 +224,13 @@ phase SnipPhase
 begin
 snipbegin \<open>InverseLeftSub\<close>
 optimization InverseLeftSub:
-  "((e\<^sub>1::intexp) - (e\<^sub>2::intexp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
+  "(e\<^sub>1 - e\<^sub>2) + e\<^sub>2 \<longmapsto> e\<^sub>1"
 snipend -
   snipbegin \<open>InverseLeftSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using neutral_left_add_sub by auto
+  apply (simp add: size_gt_0) 
+  using RedundantSubAdd by auto
 
 snipbegin \<open>InverseRightSub\<close>
 optimization InverseRightSub: "(e\<^sub>2::intexp) + ((e\<^sub>1::intexp) - e\<^sub>2) \<longmapsto> e\<^sub>1"
@@ -229,12 +242,9 @@ snipend -
 end
 
 snipbegin \<open>expression-refinement-monotone\<close>
-text \<open>
-\begin{tabular}{l@ {~~@{text "\<Longrightarrow>"}~~}l}
-@{thm (prem 1) mono_unary} & @{thm (concl) mono_unary}\\
-@{thm (prem 1) mono_binary} @{text \<and>} @{thm (prem 2) mono_binary} & @{thm (concl) mono_binary}\\
-@{thm (prem 1) mono_conditional} @{text \<and>} @{thm (prem 2) mono_conditional} @{text \<and>} @{thm (prem 3) mono_conditional} & @{thm (concl) mono_conditional}
-\end{tabular}
+text \<open>@{thm[display,margin=60] mono_unary}
+@{thm[display,margin=60] mono_binary}
+@{thm[display,margin=60] mono_conditional}
 \<close>
 snipend -
 
@@ -252,7 +262,7 @@ snipend -
 
 snipbegin \<open>AddCommuteConstantRight\<close>
 optimization AddCommuteConstantRight:
-  "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+  "((const v) + y) \<longmapsto> (y + (const v)) when \<not>(is_ConstantExpr y)"
 snipend -
   snipbegin \<open>AddCommuteConstantRightObligation\<close>
   text \<open>@{subgoals[display,margin=50]}\<close>
@@ -325,14 +335,14 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
 snipbegin \<open>termination\<close>
-text \<open>\begin{tabular}{l@ {~~@{text "="}~~}l}
-@{thm (lhs) size.simps(1)} & @{thm (rhs) size.simps(1)}\\
-@{thm (lhs) size.simps(2)} & @{thm (rhs) size.simps(2)}\\
-@{thm (lhs) size.simps(7)} & @{thm (rhs) size.simps(7)}\\
-@{thm (lhs) size.simps(15)} & @{thm (rhs) size.simps(15)}\\
-@{thm (lhs) size.simps(16)} & @{thm (rhs) size.simps(16)}\\
-@{thm (lhs) size.simps(17)} & @{thm (rhs) size.simps(17)}
-\end{tabular}\<close>
+text \<open>
+@{thm[display,margin=80] size.simps(1)}
+@{thm[display,margin=80] size.simps(2)}
+@{thm[display,margin=80] size.simps(7)}
+@{thm[display,margin=80] size.simps(15)}
+@{thm[display,margin=80] size.simps(16)}
+@{thm[display,margin=80] size.simps(17)}
+\<close>
 snipend -
 
 

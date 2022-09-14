@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><link rel="stylesheet" type="text/css" href="isabelle.css"/>
+<title>Theory NotPhase</title>
+</head>
+
+
+<body>
+<div class="head">
+<h1>Theory NotPhase</h1>
+</div>
+
+<pre class="source"><span class="keyword1"><span class="command"><span>theory</span></span></span><span> </span><span>NotPhase</span><span>
+  </span><span class="keyword2"><span class="keyword"><span>imports</span></span></span><span>
+    </span><a href="Common.html"><span>Common</span></a><span>
+</span><span class="keyword2"><span class="keyword"><span>begin</span></span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>section</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>Optimizations for Not Nodes</span><span>›</span></span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>phase</span></span></span><span> NotNode
+  </span><span class="keyword2"><span class="keyword"><span>terminating</span></span></span><span> </span><span class="quoted"><a class="entity_ref" href="../OptimizationDSL/Canonicalization.html#Canonicalization.size|const"><span>size</span></a></span><span>
+</span><span class="keyword2"><span class="keyword"><span>begin</span></span></span><span>
+
+</span><span class="comment1"><span>(</span><span>*</span><span> Word level proofs </span><span>*</span><span>)</span></span><span>
+</span><span class="keyword1"><span class="command"><span>lemma</span></span></span><span> </span><span class="entity_def" id="NotPhase.bin_not_cancel|fact"><span class="entity_def" id="NotPhase.bin_not_cancel|thm"><span class="entity_def" id="offset_154..168">bin_not_cancel</span></span></span><span class="main"><span>:</span></span><span>
+ </span><span class="quoted"><span class="quoted"><span>"</span><span class="keyword1"><span>bin[</span></span><span class="main"><span>¬</span></span><span class="main"><span>(</span></span><span class="main"><span>¬</span></span><span class="main"><span>(</span></span><span class="free"><span>e</span></span><span class="main"><span>)</span></span><span class="main"><span>)</span></span><span class="main"><span>]</span></span><span> </span><span class="main"><span>=</span></span><span> </span><span class="keyword1"><span>bin[</span></span><span class="free"><span>e</span></span><span class="main"><span>]</span></span><span>"</span></span></span><span>
+  </span><span class="keyword1"><span class="command"><span>by</span></span></span><span> </span><span class="operator"><span>auto</span></span><span>
+
+</span><span class="comment1"><span>(</span><span>*</span><span> Value level proofs </span><span>*</span><span>)</span></span><span>
+</span><span class="keyword1"><span class="command"><span>lemma</span></span></span><span> </span><span class="entity_def" id="NotPhase.val_not_cancel|fact"><span class="entity_def" id="NotPhase.val_not_cancel|thm"><span class="entity_def" id="offset_237..251">val_not_cancel</span></span></span><span class="main"><span>:</span></span><span>
+  </span><span class="keyword2"><span class="keyword"><span>assumes</span></span></span><span> </span><span class="quoted"><span class="quoted"><span>"</span><span class="keyword1"><span>val[</span></span><span class="main"><span>~</span></span><span class="main"><span>(</span></span><a class="entity_ref" href="../Graph/Values.html#Values.new_int|const"><span>new_int</span></a><span> </span><span class="free"><span>b</span></span><span> </span><span class="free"><span>v</span></span><span class="main"><span>)</span></span><span class="main"><span>]</span></span><span> </span><span class="main"><span>≠</span></span><span> </span><a class="entity_ref" href="../Graph/Values.html#Values.Value.UndefVal|const"><span>UndefVal</span></a><span>"</span></span></span><span>
+  </span><span class="keyword2"><span class="keyword"><span>shows</span></span></span><span> </span><span class="quoted"><span class="quoted"><span>"</span><span class="keyword1"><span>val[</span></span><span class="main"><span>~</span></span><span class="main"><span>(</span></span><span class="main"><span>~</span></span><span class="main"><span>(</span></span><a class="entity_ref" href="../Graph/Values.html#Values.new_int|const"><span>new_int</span></a><span> </span><span class="free"><span>b</span></span><span> </span><span class="free"><span>v</span></span><span class="main"><span>)</span></span><span class="main"><span>)</span></span><span class="main"><span>]</span></span><span> </span><span class="main"><span>=</span></span><span> </span><span class="main"><span>(</span></span><a class="entity_ref" href="../Graph/Values.html#Values.new_int|const"><span>new_int</span></a><span> </span><span class="free"><span>b</span></span><span> </span><span class="free"><span>v</span></span><span class="main"><span>)</span></span><span>"</span></span></span><span>
+   </span><span class="keyword1"><span class="command"><span>using</span></span></span><span> </span><a class="entity_ref" href="NotPhase.html#offset_154..168"><span>bin_not_cancel</span></a><span>
+   </span><span class="keyword1"><span class="command"><span>by</span></span></span><span> </span><span class="main"><span>(</span></span><span class="operator"><span>simp</span></span><span> </span><span class="quasi_keyword"><span>add</span></span><span class="main"><span class="main"><span>:</span></span></span><span> </span><span>take_bit_not_take_bit</span><span class="main"><span>)</span></span><span>
+
+</span><span class="comment1"><span>(</span><span>*</span><span> Exp level proofs </span><span>*</span><span>)</span></span><span>
+</span><span class="keyword1"><span class="command"><span>lemma</span></span></span><span> </span><span class="entity_def" id="NotPhase.exp_not_cancel|fact"><span class="entity_def" id="NotPhase.exp_not_cancel|thm"><span class="entity_def" id="offset_439..453">exp_not_cancel</span></span></span><span class="main"><span>:</span></span><span>
+  </span><span class="keyword2"><span class="keyword"><span>shows</span></span></span><span> </span><span class="quoted"><span class="quoted"><span>"</span><span class="keyword1"><span>exp[</span></span><span class="main"><span>~</span></span><span class="main"><span>(</span></span><span class="main"><span>~</span></span><span class="free"><span>a</span></span><span class="main"><span>)</span></span><span class="main"><span>]</span></span><span> </span><span class="main"><span>≥</span></span><span> </span><span class="keyword1"><span>exp[</span></span><span class="free"><span>a</span></span><span class="main"><span>]</span></span><span>"</span></span></span><span> 
+  </span><span class="keyword1"><span class="command"><span>using</span></span></span><span> </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.unary_eval.simps|fact"><span>unary_eval.simps</span></a><span class="main"><span>(</span></span><span>3</span><span class="main"><span>)</span></span><span> </span><a class="entity_ref" href="NotPhase.html#offset_237..251"><span>val_not_cancel</span></a><span> 
+   </span><span class="keyword1"><span class="command"><span class="improper"><span class="command"><span>apply</span></span></span></span></span><span> </span><span class="main"><span>(</span></span><span class="operator"><span>cases</span></span><span> </span><span class="quoted"><span class="free"><span>a</span></span></span><span class="main"><span class="keyword3"><span>;</span></span></span><span> </span><span class="operator"><span>simp</span></span><span class="main"><span>)</span></span><span>
+         </span><span class="keyword1"><span class="command"><span class="improper"><span class="command"><span>apply</span></span></span></span></span><span> </span><span class="main"><span>(</span></span><span class="operator"><span>smt</span></span><span> </span><span class="main"><span class="main"><span>(</span></span></span><span>verit</span><span class="main"><span class="main"><span>,</span></span></span><span> ccfv_SIG</span><span class="main"><span class="main"><span>)</span></span></span><span> </span><a class="entity_ref" href="../Semantics/IRTreeEval.html#IRTreeEval.unary_eval.simps|fact"><span>unary_eval.simps</span></a><span class="main"><span class="main"><span>(</span></span></span><span>3</span><span class="main"><span class="main"><span>)</span></span></span><span> </span><a class="entity_ref" href="../Semantics/IRTreeEvalThms.html#IRTreeEvalThms.unary_eval_new_int|fact"><span>unary_eval_new_int</span></a><span> </span><a class="entity_ref" href="../Semantics/IRTreeEvalThms.html#IRTreeEvalThms.unfold_unary|fact"><span>unfold_unary</span></a><span> </span><a class="entity_ref" href="NotPhase.html#offset_237..251"><span>val_not_cancel</span></a><span class="main"><span>)</span></span><span>
+  </span><span class="keyword1"><span class="command"><span>sorry</span></span></span><span>
+
+
+</span><span class="comment1"><span>(</span><span>*</span><span> Optimisations </span><span>*</span><span>)</span></span><span>
+</span><span class="keyword1"><span class="command"><span class="entity_def" id="NotPhase.NotCancel_code|const"><span>optimization</span></span></span></span><span> </span><span class="entity_def" id="NotPhase.NotCancel|fact"><span class="entity_def" id="NotPhase.NotCancel_code|fact"><span class="entity_def" id="NotPhase.NotCancel(2)|thm"><span class="entity_def" id="NotPhase.NotCancel(1)|thm"><span class="entity_def" id="NotPhase.NotCancel_code|thm"><span class="entity_def" id="NotPhase.NotCancel_code_raw|axiom"><span>NotCancel</span></span></span></span></span></span></span><span class="main"><span>:</span></span><span> </span><span class="quoted"><span class="quoted"><span>"</span><span class="keyword1"><span>exp[</span></span><span class="main"><span>~</span></span><span class="main"><span>(</span></span><span class="main"><span>~</span></span><span class="free"><span>a</span></span><span class="main"><span>)</span></span><span class="main"><span>]</span></span><span> </span><span class="main"><a class="entity_ref" href="../OptimizationDSL/Markup.html#Markup.Rewrite.Transform|const"><span>⟼</span></a></span><span> </span><span class="free"><span>a</span></span><span>"</span></span></span><span>
+  </span><span class="keyword1"><span class="command"><span>by</span></span></span><span> </span><span class="main"><span>(</span></span><span class="operator"><span>metis</span></span><span> </span><a class="entity_ref" href="NotPhase.html#offset_439..453"><span>exp_not_cancel</span></a><span class="main"><span>)</span></span><span>
+
+</span><span class="keyword2"><span class="keyword"><span>end</span></span></span><span> </span><span class="comment1"><span>(</span><span>*</span><span> End of NotPhase </span><span>*</span><span>)</span></span><span>
+
+</span><span class="keyword2"><span class="keyword"><span>end</span></span></span><span> </span><span class="comment1"><span>(</span><span>*</span><span> End of file </span><span>*</span><span>)</span></span><span>
+</span></pre>
+</body>
+
+</html>

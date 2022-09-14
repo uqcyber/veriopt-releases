@@ -86,7 +86,26 @@ lemma diff_self_expr:
 
 lemma diff_diff_cancel_expr:
   shows "exp[e\<^sub>1 - (e\<^sub>1 - e\<^sub>2)] \<ge> exp[e\<^sub>2]"
-  apply simp sorry
+  apply simp apply ((rule allI)+; rule impI)
+  subgoal premises eval for m p v
+  proof -
+    obtain v1 where v1: "[m, p] \<turnstile> e\<^sub>1 \<mapsto> v1"
+      using eval by blast
+    obtain v2 where v2: "[m, p] \<turnstile> e\<^sub>2 \<mapsto> v2"
+      using eval by blast
+    then have e: "[m, p] \<turnstile> exp[e\<^sub>1 - (e\<^sub>1 - e\<^sub>2)] \<mapsto> val[v1 - (v1 - v2)]"
+      using v1 v2 eval
+      by (smt (verit, ccfv_SIG) bin_eval.simps(3) evalDet unfold_binary)
+    then have notUn: "val[v1 - (v1 - v2)] \<noteq> UndefVal"
+      using evaltree_not_undef by auto
+    then have "val[v1 - (v1 - v2)] = v2"
+      apply (cases v1; cases v2; auto simp: notUn)
+      using eval_unused_bits_zero v2 apply blast
+      by (metis(full_types) intval_sub.simps(5))
+    then show ?thesis 
+      by (metis e eval evalDet v2)
+  qed
+  done
 
 snipbegin \<open>algebraic-laws-expressions\<close>
 text_raw \<open>\begin{align}

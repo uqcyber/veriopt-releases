@@ -147,15 +147,12 @@ optimization SubAfterAddLeft: "((x + y) - x) \<longmapsto>  y"
   using exp_sub_after_right_add2 by blast
 
 optimization SubAfterSubLeft: "((x - y) - x) \<longmapsto>  -y"
-   apply auto 
-   apply (metis One_nat_def less_add_one less_numeral_extra(3) less_one linorder_neqE_nat 
-          pos_add_strict size_pos)
+   apply auto
   by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_after_left_sub)
 
 
 optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
-   apply auto 
-   apply (simp add: Suc_lessI one_is_add) 
+   apply auto
   by (metis evalDet unary_eval.simps(2) unfold_unary 
       val_sub_then_left_add)
 
@@ -167,9 +164,8 @@ optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
       val_sub_then_left_add)
 
 optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
-  using val_sub_then_left_sub sledgehammer sorry (*
-   apply auto
-  by (metis evalDet val_sub_then_left_sub)*)
+  using val_sub_then_left_sub
+  using exp_sub_then_left_sub by presburger
 
 
 (* wf_stamp definition borrowed from ConditionalPhase *)
@@ -202,27 +198,57 @@ optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) whe
   sorry (* very odd goal produced *)
 
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
-  "forPrimitive (IntegerStamp b lo hi) v = ConstantExpr (IntVal b v)" |
+  "forPrimitive (IntegerStamp b lo hi) v = ConstantExpr (if take_bit b v = v then (IntVal b v) else UndefVal)" |
   "forPrimitive _ _ = ConstantExpr UndefVal"
 
-lemma forPrimitive_size: "size (forPrimitive s v) = 1"
+lemma unfold_forPrimitive:
+  "forPrimitive s v = ConstantExpr (if is_IntegerStamp s \<and> take_bit (stp_bits s) v = v then (IntVal (stp_bits s) v) else UndefVal)"
+  by (cases s; auto) 
+
+lemma forPrimitive_size[size_simps]: "size (forPrimitive s v) = 1"
   by (cases s; auto)
 
 lemma forPrimitive_eval: 
-  assumes "valid_value (IntVal b v) s"
+  (*assumes "valid_value (IntVal b v) s"*)
   assumes "s = IntegerStamp b lo hi"
+  assumes "take_bit b v = v"
   shows "[m, p] \<turnstile> forPrimitive s v \<mapsto> (IntVal b v)"
-  using assms evaltree.ConstantExpr
-  by simp
+  unfolding unfold_forPrimitive using assms apply auto
+  apply (rule evaltree.ConstantExpr)
+  sorry
 
-optimization SubSelfIsZero: "(x - x) \<longmapsto> forPrimitive (stamp_expr x) 0 when (wf_stamp x)"
-  unfolding forPrimitive_size
-  using IRExpr.disc(42) size_non_const apply blast
-   apply simp_all using forPrimitive_eval unfolding wf_stamp_def sorry
-(*  
-  apply (meson less_add_same_cancel1 less_trans_Suc size_pos)
-  by (smt (verit) Value.inject(1) eq_iff_diff_eq_0 evalDet intval_sub.elims new_int.elims new_int_bin.elims take_bit_of_0 unfold_const validDefIntConst valid_stamp.simps(1) valid_value.simps(1) wf_stamp_def)
-*)
+lemma evalSubStamp:
+  assumes "[m, p] \<turnstile> exp[x - y] \<mapsto> v"
+  assumes "wf_stamp exp[x - y]"
+  shows "\<exists>b lo hi. stamp_expr exp[x - y] = IntegerStamp b lo hi"
+proof -
+  have "valid_value v (stamp_expr exp[x - y])"
+    using assms unfolding wf_stamp_def by auto
+  then have "stamp_expr exp[x - y] \<noteq> IllegalStamp"
+    by force
+  then show ?thesis
+    unfolding stamp_expr.simps using stamp_binary.simps
+    by (smt (z3) stamp_binary.elims unrestricted_stamp.simps(2))
+qed
+
+
+lemma evalSubArgsStamp:
+  assumes "[m, p] \<turnstile> exp[x - y] \<mapsto> v"
+  assumes "\<exists>lo hi. stamp_expr exp[x - y] = IntegerStamp b lo hi"
+  shows "\<exists>lo hi. stamp_expr exp[x] = IntegerStamp b lo hi"
+  using assms sorry
+
+optimization SubSelfIsZero: "(x - x) \<longmapsto> forPrimitive (stamp_expr exp[x - x]) 0 when ((wf_stamp x) \<and> (wf_stamp exp[x - x]))"
+  apply simp apply (rule impI; (rule allI)+; rule impI)
+  subgoal premises eval for m p v 
+  proof -
+    obtain b where "\<exists>lo hi. stamp_expr exp[x - x] = IntegerStamp b lo hi"
+    using evalSubStamp eval
+    by meson
+  then show ?thesis sorry
+qed
+  done
+
 
 end (* End of SubPhase *)
 

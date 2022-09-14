@@ -474,6 +474,7 @@ text \<open> TODO: find a way to encode that conditional expressions must have
   compatible (and valid) stamps?  One approach would be for all the 
   stamp\_expr operators to require that all input stamps are valid.\<close>
 
+(*
 experiment begin
 lemma stamp_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
@@ -507,6 +508,7 @@ lemma value_range:
   shows "v \<in> {val . valid_value val (stamp_expr e)}"
   using assms sorry
 end
+*)
 
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"

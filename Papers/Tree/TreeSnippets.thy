@@ -1,10 +1,10 @@
 section \<open>Verifying term graph optimizations using Isabelle/HOL\<close>
 
 theory TreeSnippets
-  imports 
+  imports
+    Canonicalizations.BinaryNode
     Canonicalizations.ConditionalPhase
     Canonicalizations.AddPhase
-    Optimizations.CanonicalizationSyntax
     Semantics.TreeToGraphThms
     Snippets.Snipping
     "HOL-Library.OptionalSugar"
@@ -13,9 +13,6 @@ begin
 \<comment> \<open>First, we disable undesirable markup.\<close>
 declare [[show_types=false,show_sorts=false]]
 no_notation ConditionalExpr ("_ ? _ : _")
-translations
-  "n" <= "CONST Rep_intexp n"
-  "n" <= "CONST Rep_i32exp n"
 
 
 subsection \<open>Markup syntax for common operations\<close>
@@ -126,8 +123,6 @@ optimization SubIdentity:
   "(e - e) \<longmapsto> ConstantExpr (IntVal b 0)
      when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
 snipend -
-  apply simp
-   apply (metis Suc_lessI add_is_1 add_pos_pos size_gt_0)
   apply (rule impI) apply simp
 proof -
   assume assms: "stamp_binary BinSub (stamp_expr e) (stamp_expr e) = IntegerStamp b lo hi \<and> wf_stamp exp[e - e]"
@@ -229,16 +224,15 @@ snipend -
   snipbegin \<open>InverseLeftSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  apply (simp add: size_gt_0) 
   using RedundantSubAdd by auto
 
 snipbegin \<open>InverseRightSub\<close>
-optimization InverseRightSub: "(e\<^sub>2::intexp) + ((e\<^sub>1::intexp) - e\<^sub>2) \<longmapsto> e\<^sub>1"
+optimization InverseRightSub: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
 snipend -
   snipbegin \<open>InverseRightSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using neutral_right_add_sub by auto
+  using RedundantSubAdd2(1) rewrite_preservation.simps(1) by blast
 end
 
 snipbegin \<open>expression-refinement-monotone\<close>
@@ -253,12 +247,13 @@ phase SnipPhase
   terminating size
 begin
 snipbegin \<open>BinaryFoldConstant\<close>
-optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2) when int_and_equal_bits v1 v2 "
+optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2)"
 snipend -
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using BinaryFoldConstant by auto
+  using size_non_const apply auto[1]
+  using BinaryFoldConstant(1) by auto
 
 snipbegin \<open>AddCommuteConstantRight\<close>
 optimization AddCommuteConstantRight:
@@ -270,13 +265,12 @@ snipend -
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
-optimization AddNeutral: "((e::i32exp) + (const (IntVal 32 0))) \<longmapsto> e"
+optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
 snipend -
   snipbegin \<open>AddNeutralObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  apply (rule conjE, simp, simp del: le_expr_def)
-  using neutral_zero(1) rewrite_preservation.simps(1) by blast
+  using AddNeutral(1) rewrite_preservation.simps(1) by blast
 
 snipbegin \<open>AddToSub\<close>
 optimization AddToSub: "-e + y \<longmapsto> y - e"

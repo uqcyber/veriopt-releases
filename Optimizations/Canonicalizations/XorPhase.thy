@@ -72,9 +72,7 @@ lemma exp_xor_self_is_false:
 (* Not sure about the conditions on this one. *)
 optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when 
                       (wf_stamp x \<and> stamp_expr x = default_stamp)"
-   apply auto[1] 
-   apply (simp add: Suc_lessI one_is_add) using exp_xor_self_is_false
-  by auto 
+  using exp_xor_self_is_false by auto 
 
 optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
    unfolding le_expr_def using val_xor_commute size_non_const 

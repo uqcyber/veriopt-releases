@@ -137,15 +137,6 @@ val _ =
 
 ML_file "rewrites.ML"
 
-phase Opt
-  terminating size
-begin
-
-end
-
-print_phases
-export_phases \<open>MyPhases\<close>
-
 fun rewrite_preservation :: "IRExpr Rewrite \<Rightarrow> bool" where
   "rewrite_preservation (Transform x y) = (y \<le> x)" |
   "rewrite_preservation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |

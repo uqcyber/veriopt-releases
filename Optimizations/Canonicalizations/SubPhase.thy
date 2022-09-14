@@ -116,7 +116,7 @@ lemma exp_sub_after_right_add:
   by (smt (verit)) 
 
 lemma exp_sub_after_right_add2:
-  shows "exp[(x+y)-x] \<ge> exp[y]"
+  shows "exp[(x + y) - x] \<ge> exp[y]"
   using exp_sub_after_right_add apply auto 
   using bin_eval.simps(1) bin_eval.simps(3) intval_add_sym unfold_binary
   by (smt (z3) Value.inject(1) diff_eq_eq evalDet eval_unused_bits_zero intval_add.elims 
@@ -128,18 +128,30 @@ lemma exp_sub_negative_value:
   by (smt (verit) bin_eval.simps(1) bin_eval.simps(3) evaltree_not_undef minus_Value_def 
       unary_eval.simps(2) unfold_binary unfold_unary)
 
-lemma exp_sub_then_left_sub:
-  "exp[x - (x - y)] \<ge> exp[y]"
-proof -
-  have "exp[x - (-y)] \<ge> exp[x + y]"
-    using exp_sub_negative_value  by simp
-  then have "exp[x - (x - y)] \<ge> exp[x - x + y]"
-    using exp_sub_negative_value sorry
-  then show ?thesis
-    sorry
-  qed
 
-(* Optimizations *)
+(* wf_stamp definition borrowed from ConditionalPhase *)
+definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
+  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
+
+(* exp[x - (x - y)] = exp[x - x + y] \<Rightarrow> false *)
+lemma exp_sub_then_left_sub:
+  assumes "wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi"
+  shows "exp[x - (x - y)] \<ge> exp[y]"
+  using val_sub_then_left_sub assms
+proof -
+  have 1: "exp[x - (x - y)] = exp[x - x + y]"
+    apply simp
+    sorry
+  have "exp[x - (x - y)] \<ge> exp[(const (new_int b 0)) + y]"
+    sorry
+  have "exp[(const IntVal b 0) + y] \<ge> exp[y]"
+    sorry
+  then show ?thesis
+    using "1" by fastforce
+qed
+
+text \<open>Optimisations\<close>
+
 optimization SubAfterAddRight: "((x + y) - y) \<longmapsto>  x"
   using exp_sub_after_right_add by blast
 
@@ -163,14 +175,10 @@ optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
   by (metis evalDet intval_add_sym unary_eval.simps(2) unfold_unary 
       val_sub_then_left_add)
 
-optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
-  using val_sub_then_left_sub
-  using exp_sub_then_left_sub by presburger
-
-
-(* wf_stamp definition borrowed from ConditionalPhase *)
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
+optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y 
+                               when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+  using exp_sub_then_left_sub by blast
+ 
 
 optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x 
                              when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
@@ -178,23 +186,25 @@ optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x
   by (smt (verit) add.right_neutral diff_add_cancel eval_unused_bits_zero intval_sub.elims 
       intval_word.simps new_int.simps new_int_bin.simps)
 
+(*
+optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto> 
+                                    x + (const (IntVal b y)) 
+                                    when (y < 0)"  
+  done
+*)
 
-(* Ln 146 rewrite, 32-bit *)(*
-optimization sub_negative_const2: "(x - (const (intval_negate (IntVal32 y)))) \<longmapsto> 
-                                    x + (const (IntVal32 y)) 
-                                    when (y < 0)"
-  done 
+(* Strange final subgoal 
+   Canonicalization.size y = (0::nat)
+*)
+optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"  
+   defer using exp_sub_negative_value apply simp
+  sorry
 
-(* Ln 146 rewrite, 64-bit *)
-optimization sub_negative_const2_64: "(x - (const (intval_negate (IntVal64 y)))) \<longmapsto> 
-                                       x + (const (IntVal64 y)) 
-                                       when (y < 0)"
-   apply auto
-  done *)
-
-optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  apply auto unfolding wf_stamp_def defer
-  apply (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps new_int_bin.simps unary_eval.simps(2) unfold_unary)
+optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
+                                  when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+   apply auto unfolding wf_stamp_def defer
+   apply (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
+          new_int_bin.simps unary_eval.simps(2) unfold_unary)
   sorry (* very odd goal produced *)
 
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where

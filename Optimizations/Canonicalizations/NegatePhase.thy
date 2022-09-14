@@ -56,10 +56,7 @@ optimization DistributeSubtraction: "-(x - y) \<longmapsto> (y - x)"
   by (simp add: BinaryExpr evaltree_not_undef val_distribute_sub)
 
 
-(* Bits: 64, 32, 16, 8, 1 *)
-(* 32-bit proof *)
-optimization NegativeShift: "-(x >> (const (IntVal b y))) \<longmapsto> 
-                                   x >>> (const (IntVal b y))
+optimization NegativeShift: "-(x >> (const (IntVal b y))) \<longmapsto> x >>> (const (IntVal b y))
                                    when (stamp_expr x = IntegerStamp b' lo hi \<and> unat y = (b' - 1))"
    apply simp_all apply auto 
   sorry

@@ -21,11 +21,14 @@ lemma val_not_cancel:
    using bin_not_cancel
    by (simp add: take_bit_not_take_bit)
 
-(* Expr level proofs *)
+(* Exp level proofs *)
 lemma exp_not_cancel:
-  shows "exp[~(~a)] \<ge> exp[a]"
-   apply simp using val_not_cancel sorry (*
-  by (metis UnaryExprE unary_eval.simps(3))*)
+  shows "exp[~(~a)] \<ge> exp[a]" 
+  using unary_eval.simps(3) val_not_cancel 
+   apply (cases a; simp)
+         apply (smt (verit, ccfv_SIG) unary_eval.simps(3) unary_eval_new_int unfold_unary val_not_cancel)
+  sorry
+
 
 (* Optimisations *)
 optimization NotCancel: "exp[~(~a)] \<longmapsto> a"

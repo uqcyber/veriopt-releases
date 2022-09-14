@@ -319,18 +319,19 @@ snipbegin \<open>phase-example-3\<close>optimization const_false: "(false ? x : 
 snipbegin \<open>phase-example-4\<close>optimization equal_branches: "(e ? x : x) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
-(*
 snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x
                    when (stamp_under (stamp_expr u) (stamp_expr v) 
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -
+  apply (auto simp: trm_def)
   using ConditionalPhase.condition_bounds_x(1)
-  by (blast, auto simp: trm_def)
+  by (metis(full_types) StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def bin_eval.simps(12) stamp_under_defn)
 
 snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < y) ? x : y) \<longmapsto> y
                    when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wf_stamp x \<and> wf_stamp y)"snipend -
+  apply (auto simp: trm_def)
   using ConditionalPhase.condition_bounds_y(1)
-  by (blast, auto simp: trm_def)
-*)
+  by (metis(full_types) StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def bin_eval.simps(12) stamp_under_defn_inverse)
+
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 

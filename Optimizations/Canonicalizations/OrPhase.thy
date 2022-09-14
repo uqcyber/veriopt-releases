@@ -94,4 +94,6 @@ lemma OrRightFallthrough:
   shows "exp[x | y] \<ge> exp[y]"
   using assms sorry
 
+end
+
 end (* End of file *)

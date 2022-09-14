@@ -170,8 +170,6 @@ optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
 
 optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
    apply auto 
-   apply (metis less_1_mult less_one linorder_neqE_nat mult.commute mult_1 numeral_1_eq_Suc_0 
-          one_eq_numeral_iff one_less_numeral_iff semiring_norm(77) size_pos zero_less_iff_neq_zero)
   by (metis evalDet intval_add_sym unary_eval.simps(2) unfold_unary 
       val_sub_then_left_add)
 
@@ -202,10 +200,9 @@ optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"
 
 optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-   apply auto unfolding wf_stamp_def defer
-   apply (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
+   apply auto unfolding wf_stamp_def
+  by (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
           new_int_bin.simps unary_eval.simps(2) unfold_unary)
-  sorry (* very odd goal produced *)
 
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
   "forPrimitive (IntegerStamp b lo hi) v = ConstantExpr (if take_bit b v = v then (IntVal b v) else UndefVal)" |
@@ -249,7 +246,8 @@ lemma evalSubArgsStamp:
   using assms sorry
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> forPrimitive (stamp_expr exp[x - x]) 0 when ((wf_stamp x) \<and> (wf_stamp exp[x - x]))"
-  apply simp apply (rule impI; (rule allI)+; rule impI)
+  apply (simp add: Suc_lessI size_pos)
+   apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises eval for m p v 
   proof -
     obtain b where "\<exists>lo hi. stamp_expr exp[x - x] = IntegerStamp b lo hi"

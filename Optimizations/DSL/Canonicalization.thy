@@ -176,7 +176,9 @@ method unfold_optimization =
 
 method unfold_size =
   (unfold size.simps, simp add: size_simps del: le_expr_def)?
+  | (simp add: size_simps del: le_expr_def)?
   | (unfold size.simps)?
+  
 
 print_methods
 

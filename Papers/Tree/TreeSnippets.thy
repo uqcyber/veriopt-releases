@@ -145,7 +145,8 @@ snipbegin \<open>sub-same-32\<close>
 optimization SubIdentity:
   "(e - e) \<longmapsto> ConstantExpr (IntVal b 0)
      when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
-snipend -
+  snipend -
+  apply (metis Suc_lessI mult_eq_1_iff mult_pos_pos nat.discI nat.inject numeral_3_eq_3 size_pos zero_less_numeral)
   apply (rule impI) apply simp
 proof -
   assume assms: "stamp_binary BinSub (stamp_expr e) (stamp_expr e) = IntegerStamp b lo hi \<and> wf_stamp exp[e - e]"
@@ -275,7 +276,6 @@ snipend -
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using size_non_const apply auto[1]
   using BinaryFoldConstant(1) by auto
 
 snipbegin \<open>AddCommuteConstantRight\<close>
@@ -307,6 +307,10 @@ end
 
 definition trm where "trm = size"
 
+lemma trm_defn[size_simps]:
+  "trm x = size x"
+  by (simp add: trm_def)
+
 snipbegin \<open>phase\<close>
 phase AddCanonicalizations
   terminating trm
@@ -323,9 +327,10 @@ phase Conditional
 begin
 snipend -
 
-snipbegin \<open>phase-example-1\<close>optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x)"snipend -
-  using ConditionalPhase.NegateConditionFlipBranches
-   by (auto simp: trm_def)
+snipbegin \<open>phase-example-1\<close>optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x) when (wf_stamp e \<and> stamp_expr e = IntegerStamp b lo hi \<and> b > 0)"snipend -
+  apply (simp add: size_simps)
+  using ConditionalPhase.NegateConditionFlipBranches(1)
+  using StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def by force
 
 snipbegin \<open>phase-example-2\<close>optimization const_true: "(true ? x : y) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
@@ -352,14 +357,15 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
+thm size.simps
 snipbegin \<open>termination\<close>
 text \<open>
 @{thm[display,margin=80] size.simps(1)}
 @{thm[display,margin=80] size.simps(2)}
-@{thm[display,margin=80] size.simps(7)}
-@{thm[display,margin=80] size.simps(15)}
-@{thm[display,margin=80] size.simps(16)}
-@{thm[display,margin=80] size.simps(17)}
+@{thm[display,margin=80] size.simps(3)}
+@{thm[display,margin=80] size.simps(4)}
+@{thm[display,margin=80] size.simps(5)}
+@{thm[display,margin=80] size.simps(6)}
 \<close>
 snipend -
 

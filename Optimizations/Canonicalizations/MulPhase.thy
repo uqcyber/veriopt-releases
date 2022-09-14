@@ -1,6 +1,7 @@
 theory MulPhase
   imports
     Common
+    Proofs.StampEvalThms
 begin
 
 section \<open>Optimizations for Mul Nodes\<close>
@@ -83,21 +84,18 @@ lemma val_MulPower2:
   assumes "y = IntVal 64 (2 ^ unat(i))"
   and     "0 < i"
   and     "i < 64"
-  and     "(63 :: int64) = mask 6"
-  and     "val_to_bool(val[IntVal 64 0 < x])"
-  and     "val_to_bool(val[IntVal 64 0 < y])"
+  and     "val[x * y] \<noteq> UndefVal"
   shows   "x * y = val[x << IntVal 64 i]"
   using assms apply (cases x; cases y; auto)
     apply (simp add: times_Value_def)
     subgoal premises p for x2
     proof -
       have 63: "(63 :: int64) = mask 6"
-        using assms(4) by blast
+        by eval
       then have "(2::int) ^ 6 = 64"
         by eval
       then have "uint i < (2::int) ^ 6"
-        by (smt (verit, ccfv_SIG) numeral_Bit0 of_int_numeral one_eq_numeral_iff p(6) uint_2p 
-            word_less_def word_not_simps(1) word_of_int_2p)
+        by (metis linorder_not_less lt2p_lem of_int_numeral p(4) size64 word_2p_lem word_of_int_2p wsst_TYs(3))
       then have "and i (mask 6) = i"
         using mask_eq_iff by blast
       then show "x2 << unat i = x2 << unat (and i (63::64 word))"
@@ -217,8 +215,8 @@ lemma exp_MulPower2:
   and     "exp[x > (const IntVal b 0)]"
   and     "exp[y > (const IntVal b 0)]"
   shows "exp[x * y] \<ge> exp[x << ConstantExpr (IntVal 64 i)]"
-  using assms val_MulPower2 apply (cases x; cases y; auto)
-  sorry
+  using assms apply simp using val_MulPower2
+  by (metis ConstantExprE equiv_exprs_def unfold_binary)
 
 
 (* Optimizations *)
@@ -245,13 +243,68 @@ optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
       take_bit_dist_neg times_Value_def unary_eval.simps(2) unfold_unary 
       val_eliminate_redundant_negative)
 
+fun isNonZero :: "Stamp \<Rightarrow> bool" where
+  "isNonZero (IntegerStamp b lo hi) = (lo > 0)" |
+  "isNonZero _ = False"
+
+lemma isNonZero_defn:
+  assumes "isNonZero (stamp_expr x)"
+  assumes "wf_stamp x"
+  shows "([m, p] \<turnstile> x \<mapsto> v) \<longrightarrow> (\<exists>vv b. (v = IntVal b vv \<and> val_to_bool val[(IntVal b 0) < v]))"
+  apply (rule impI) subgoal premises eval
+proof -
+  obtain b lo hi where xstamp: "stamp_expr x = IntegerStamp b lo hi"
+    using assms
+    by (meson isNonZero.elims(2))
+  then obtain vv where vdef: "v = IntVal b vv"
+    by (metis assms(2) eval valid_int wf_stamp_def)
+  have "lo > 0"
+    using assms(1) xstamp by force
+  then have signed_above: "int_signed_value b vv > 0"
+    using assms unfolding wf_stamp_def
+    using eval vdef xstamp by fastforce
+  have "take_bit b vv = vv"
+    using eval eval_unused_bits_zero vdef by auto
+  then have "vv > 0"
+    using signed_above
+    by (metis bit_take_bit_iff int_signed_value.simps not_less_zero signed_eq_0_iff signed_take_bit_eq_if_positive take_bit_0 take_bit_of_0 verit_comp_simplify1(1) word_gt_0)
+  then show ?thesis
+    using vdef using signed_above
+    by simp
+qed
+  done
+
 (* Need to prove exp_MulPower2 *)
 optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i) 
                               when (i > 0 \<and> 
                                     64 > i \<and>
-                                    y = (ConstantExpr (IntVal 64 (2 ^ unat(i)))))"
- 
-  sorry (* termination issues - mul needs to be considered larger than shift *)
+                                    y = exp[const (IntVal 64 (2 ^ unat(i)))])"
+   defer
+   apply simp apply (rule impI; (rule allI)+; rule impI)
+  subgoal premises eval for m p v
+proof -
+  obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+    using eval(2) by blast
+  then obtain xvv where xvv: "xv = IntVal 64 xvv"
+    using eval
+    using ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims new_int_bin.simps unfold_binary 
+    by (smt (verit))
+  obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
+    using eval(1) eval(2) by blast
+  then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
+    by (metis bin_eval.simps(2) eval(1) eval(2) evalDet unfold_binary xv)
+  have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
+    by (smt (verit, ccfv_SIG) ConstantExpr constantAsStamp.simps(1) eval_bits_1_64 take_bit64 validStampIntConst valid_value.simps(1) xv xvv)
+  then have rhs: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
+    using xv xvv using evaltree.BinaryExpr
+    by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps)
+  have "val[xv * yv] = val[xv << (IntVal 64 i)]"
+    using val_MulPower2
+    by (metis ConstantExprE eval(1) evaltree_not_undef lhs times_Value_def yv)
+  then show ?thesis
+    by (metis eval(1) eval(2) evalDet lhs rhs)
+qed
+  sorry (* termination issues *)
 
 
 end (* End of MulPhase *)

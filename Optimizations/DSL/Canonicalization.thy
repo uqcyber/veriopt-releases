@@ -156,9 +156,8 @@ fun intval :: "Value Rewrite \<Rightarrow> bool" where
   "intval (Transitive x) = intval x"
 
 fun size :: "IRExpr \<Rightarrow> nat" where
-  "size (UnaryExpr op e) = (size e) + 1" |
-  "size (BinaryExpr BinAdd x y) = (size x) + ((size y) * 2)" |
-  "size (BinaryExpr op x y) = (size x) + (size y)" |
+  "size (UnaryExpr op e) = (size e) * 2" |
+  "size (BinaryExpr op x y) = (size x) + ((size y) * 2)" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr c) = 1" |
   "size (ParameterExpr ind s) = 2" |

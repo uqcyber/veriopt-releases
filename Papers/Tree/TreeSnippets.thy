@@ -84,9 +84,11 @@ lemma diff_self_expr:
   using assms apply simp
   by (metis(full_types) evalDet val_to_bool.simps(1) zero_neq_one)
 
+method open_eval = (simp; (rule impI)?; (rule allI)+; rule impI)
+
 lemma diff_diff_cancel_expr:
   shows "exp[e\<^sub>1 - (e\<^sub>1 - e\<^sub>2)] \<ge> exp[e\<^sub>2]"
-  apply simp apply ((rule allI)+; rule impI)
+  apply open_eval
   subgoal premises eval for m p v
   proof -
     obtain v1 where v1: "[m, p] \<turnstile> e\<^sub>1 \<mapsto> v1"
@@ -106,6 +108,8 @@ lemma diff_diff_cancel_expr:
       by (metis e eval evalDet v2)
   qed
   done
+
+thm_oracles diff_diff_cancel_expr
 
 snipbegin \<open>algebraic-laws-expressions\<close>
 text_raw \<open>\begin{align}

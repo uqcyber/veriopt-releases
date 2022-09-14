@@ -19,7 +19,7 @@ value "-((2 :: 32 word) >> (31 :: nat))"
 
 lemma bin_negative_shift32:
   shows "-((x :: 32 word) >> (31 :: nat)) = x >>> (31 :: nat)"
-  sorry
+  unfolding sshiftr_def shiftr_def sorry
 
 (* Value level proofs *)
 lemma val_negative_cancel:
@@ -38,11 +38,12 @@ lemma exp_distribute_sub:
   using val_distribute_sub apply auto
   using evaltree_not_undef by auto
 
+thm_oracles exp_distribute_sub
+
 lemma exp_negative_cancel:
   shows "exp[-(-x)] \<ge> exp[x]"
-  using val_negative_cancel apply (cases x; simp) 
-  using unary_eval_new_int apply force 
-  sorry
+  using val_negative_cancel apply auto
+  by (metis (no_types, opaque_lifting) eval_unused_bits_zero intval_negate.elims intval_negate.simps(1) minus_equation_iff new_int.simps take_bit_dist_neg) 
 
 (* Optimisations *)
 optimization NegateCancel: "-(-(x)) \<longmapsto> x"

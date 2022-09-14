@@ -24,10 +24,8 @@ lemma val_not_cancel:
 (* Exp level proofs *)
 lemma exp_not_cancel:
   shows "exp[~(~a)] \<ge> exp[a]" 
-  using unary_eval.simps(3) val_not_cancel 
-   apply (cases a; simp)
-         apply (smt (verit, ccfv_SIG) unary_eval.simps(3) unary_eval_new_int unfold_unary val_not_cancel)
-  sorry
+  using val_not_cancel apply auto
+  by (metis eval_unused_bits_zero intval_not.elims intval_not.simps(1) new_int.simps)
 
 
 (* Optimisations *)

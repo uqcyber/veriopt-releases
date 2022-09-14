@@ -184,15 +184,18 @@ lemma val_MulPower2AddPower2:
            val[(IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j)))]"
        (* x * (2^i + 2^j)*)
       using assms by (cases i; cases j; auto) 
-   then have "val[x * ((IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j))))] = 
+   then have 1: "val[x * ((IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j))))] = 
            val[(x * IntVal 64 (2 ^ unat(i))) + (x * IntVal 64 (2 ^ unat(j)))]"
       (* (x * 2^i) + (x * 2^j)*)
      using assms val_distribute_multiplication val_MulPower2 by simp 
-   then have "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
-     using assms val_MulPower2  sorry
+   then have 2: "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
+     using assms val_MulPower2
+     by (metis (full_types) Value.distinct(1) intval_mul.simps(1) new_int.simps new_int_bin.simps times_Value_def)
     then show "?thesis"
-       sorry
-    qed 
+       by (metis (full_types) "1" Value.distinct(1) assms(1) assms(3) assms(5) assms(6) intval_mul.simps(1) n new_int.simps new_int_bin.elims times_Value_def val_MulPower2)
+   qed 
+
+ thm_oracles val_MulPower2AddPower2
 
 (* Exp-level proofs *)
 lemma exp_multiply_zero_64:
@@ -205,7 +208,10 @@ lemma exp_multiply_zero_64:
 
 lemma exp_multiply_neutral:
  "exp[x * (const (IntVal b 1))] \<ge> x"
-  using val_multiply_neutral apply auto  sorry
+  using val_multiply_neutral apply auto
+  by (smt (verit) Value.inject(1) eval_unused_bits_zero intval_mul.elims mult.right_neutral new_int.elims new_int_bin.elims)
+
+thm_oracles exp_multiply_neutral
 
 lemma exp_MulPower2:
   fixes i :: "64 word"
@@ -237,11 +243,13 @@ optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (
 
 
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
+  defer
   apply auto using val_multiply_negative
-  by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
+  apply (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
       intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps 
       take_bit_dist_neg times_Value_def unary_eval.simps(2) unfold_unary 
       val_eliminate_redundant_negative)
+  sorry (* termination *)
 
 fun isNonZero :: "Stamp \<Rightarrow> bool" where
   "isNonZero (IntegerStamp b lo hi) = (lo > 0)" |

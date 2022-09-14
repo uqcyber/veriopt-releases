@@ -10,25 +10,19 @@ phase ConditionalNode
   terminating size
 begin
 
-lemma negates: "is_IntVal e \<Longrightarrow> val_to_bool (val[e]) \<equiv> \<not>(val_to_bool (val[!e]))"
-  using intval_logic_negation.simps unfolding logic_negate_def
-  sorry
-(* WAS:
-  by (smt (verit, best) Value.collapse(1) is_IntVal_def val_to_bool.simps(1) val_to_bool.simps(2) zero_neq_one)
-*)
+lemma negates: "\<exists>v b. e = IntVal b v \<and> b > 0 \<Longrightarrow> val_to_bool (val[e]) \<longleftrightarrow> \<not>(val_to_bool (val[!e]))"
+  unfolding intval_logic_negation.simps
+  by (metis (mono_tags, lifting) intval_logic_negation.simps(1) logic_negate_def new_int.simps of_bool_eq(2) one_neq_zero take_bit_of_0 take_bit_of_1 val_to_bool.simps(1))
 
 lemma negation_condition_intval: 
-(* WAS:
-  assumes "e \<noteq> UndefVal \<and> \<not>(is_ObjRef e) \<and> \<not>(is_ObjStr e)"
-*)
   assumes "e = IntVal b ie"
   assumes "0 < b"
   shows "val[(!e) ? x : y] = val[e ? y : x]"
   using assms by (cases e; auto simp: negates logic_negate_def)
 
-optimization NegateConditionFlipBranches: "((!e) ? x : y) \<longmapsto> (e ? y : x)"
-    apply simp using negation_condition_intval
-  by (smt (verit, ccfv_SIG) ConditionalExpr ConditionalExprE Value.collapse Value.exhaust_disc evaltree_not_undef intval_logic_negation.simps(4) intval_logic_negation.simps negates unary_eval.simps(4) unfold_unary)
+optimization NegateConditionFlipBranches: "((!e) ? x : y) \<longmapsto> (e ? y : x) when (wf_stamp e \<and> stamp_expr e = IntegerStamp b lo hi \<and> b > 0)"
+  apply simp using negation_condition_intval
+  by (smt (verit, ccfv_SIG) ConditionalExpr ConditionalExprE UnaryExprE negates unary_eval.simps(4) valid_value_elims(3) wf_stamp_def)
 
 optimization DefaultTrueBranch: "(true ? x : y) \<longmapsto> x" .
 
@@ -73,28 +67,24 @@ optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
 (* todo not sure if this is done properly *)
 optimization normalizeX: "((x eq const (IntVal 32 0)) ? 
                                 (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> x
-                                when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" 
-  done
+                                when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" .
 
 (* todo not sure if this is done properly *)
 optimization normalizeX2: "((x eq (const (IntVal 32 1))) ? 
                                  (const (IntVal 32 1)) : (const (IntVal 32 0))) \<longmapsto> x
-                                 when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
-  done
+                                 when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" .
 
 (* todo not sure if this is done properly *)
 optimization flipX: "((x eq (const (IntVal 32 0))) ? 
                            (const (IntVal 32 1)) : (const (IntVal 32 0))) \<longmapsto> 
                             x \<oplus> (const (IntVal 32 1))
-                            when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
-  done
+                            when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" .
 
 (* todo not sure if this is done properly *)
 optimization flipX2: "((x eq (const (IntVal 32 1))) ? 
                             (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> 
                             x \<oplus> (const (IntVal 32 1))
-                            when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
-  done
+                            when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" .
 
 lemma stamp_of_default:
   assumes "stamp_expr x = default_stamp"
@@ -137,8 +127,7 @@ optimization opt_optimise_integer_test_2:
      "(((x & (const (IntVal 32 1))) eq (const (IntVal 32 0))) ? 
                    (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> 
                    x
-                   when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
-  done
+                   when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" .
 
 (*
 optimization opt_conditional_eliminate_known_less: "((x < y) ? x : y) \<longmapsto> x 

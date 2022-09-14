@@ -3,6 +3,7 @@ subsection \<open>Conditional Expression\<close>
 theory ConditionalPhase
   imports
     Common
+    Proofs.StampEvalThms
 begin
 
 phase ConditionalNode
@@ -35,82 +36,39 @@ optimization DefaultFalseBranch: "(false ? x : y) \<longmapsto> y" .
 
 optimization ConditionalEqualBranches: "(e ? x : x) \<longmapsto> x" .
 
-(* this will be removable after some work *)
-definition wff_stamps :: bool where
-  "wff_stamps = (\<forall>m p expr val . ([m,p] \<turnstile> expr \<mapsto> val) \<longrightarrow> valid_value val (stamp_expr expr))"
-
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
-
-(*
-lemma stamp_under_defn:
-  assumes "stamp_under (stamp_expr x) (stamp_expr y)"
-  assumes "wf_stamp x \<and> wf_stamp y"
-  assumes "([m, p] \<turnstile> x \<mapsto> xv) \<and> ([m, p] \<turnstile> y \<mapsto> yv)"
-  shows "val_to_bool val[xv < yv]"
-proof -
-  have xval: "valid_value xv (stamp_expr x)"
-    using assms wf_stamp_def by blast
-  have yval: "valid_value yv (stamp_expr y)"
-    using assms wf_stamp_def by blast
-  show ?thesis using xval yval
-    apply (cases "stamp_expr x"; cases "stamp_expr y"; auto simp: valid_value.simps)
-    using assms(1) unfolding stamp_under.simps sorry
-qed
-    
-
 optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x 
     when (stamp_under (stamp_expr u) (stamp_expr v) \<and> wf_stamp u \<and> wf_stamp v)"
   apply simp apply (rule impI) apply (rule allI)+ apply (rule impI)
   using stamp_under_defn
   by force
-  by (metis intval_less_than.simps(15) stamp_under.elims(3) val_to_bool.simps(3))
-  apply (smt (verit, best) ConditionalExprE le_expr_def stamp_under.simps)
-  unfolding size.simps by simp
 
-optimization condition_bounds_y: "((x < y) ? x : y) \<longmapsto> y 
-    when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wf_stamp x \<and> wf_stamp y)"
-   apply unfold_optimization
-  using stamp_under_semantics_inversed
-  using wf_stamp_def
-  apply (smt (verit, best) ConditionalExprE le_expr_def stamp_under.simps)
-  unfolding size.simps by simp
-
-(*extra one*)
-optimization b[intval]: "((x eq y) ? x : y) \<longmapsto> y"
-   apply unfold_optimization
-    apply (smt (z3) bool_to_val.simps(2) intval_equals.elims val_to_bool.simps(1) val_to_bool.simps(3))
-    unfolding intval.simps
-    apply (smt (z3) BinaryExprE ConditionalExprE Value.inject(1) Value.inject(2) bin_eval.simps(10) bool_to_val.simps(2) evalDet intval_equals.simps(1) intval_equals.simps(10) intval_equals.simps(12) intval_equals.simps(15) intval_equals.simps(16) intval_equals.simps(2) intval_equals.simps(5) intval_equals.simps(8) intval_equals.simps(9) le_expr_def val_to_bool.cases val_to_bool.elims(2))
-  unfolding size.simps by auto
-*)
+optimization condition_bounds_y: "((u < v) ? x : y) \<longmapsto> y 
+    when (stamp_under (stamp_expr v) (stamp_expr u) \<and> wf_stamp u \<and> wf_stamp v)"
+  apply simp apply (rule impI) apply (rule allI)+ apply (rule impI)
+  using stamp_under_defn_inverse
+  by force
 
 
 (** Start of new proofs **)
 
 (* Value-level proofs *)
 lemma val_optimise_integer_test: 
-  assumes "is_IntVal32 x"
-  shows "intval_conditional (intval_equals val[(x & (IntVal32 1))] (IntVal32 0)) 
-         (IntVal32 0) (IntVal32 1) = 
-         val[x & IntVal32 1]"
-   apply simp_all 
-  apply auto 
-  using bool_to_val.elims intval_equals.elims val_to_bool.simps(1) val_to_bool.simps(3)
-  sorry
+  assumes "\<exists>v. x = IntVal 32 v"
+  shows "val[((x & (IntVal 32 1)) eq (IntVal 32 0)) ? (IntVal 32 0) : (IntVal 32 1)] = 
+         val[x & IntVal 32 1]"
+  using assms apply auto
+  apply (metis (full_types) bool_to_val.simps(2) val_to_bool.simps(1))
+  by (metis (mono_tags, lifting) and_one_eq bool_to_val.simps(1) even_iff_mod_2_eq_zero odd_iff_mod_2_eq_one val_to_bool.simps(1))
 
 optimization ConditionalEliminateKnownLess: "((x < y) ? x : y) \<longmapsto> x 
                                  when (stamp_under (stamp_expr x) (stamp_expr y)
                                       \<and> wf_stamp x \<and> wf_stamp y)"
-       apply auto
-    using stamp_under.simps wf_stamp_def val_to_bool.simps 
-    sorry
+    using stamp_under_defn by auto
 
 (* Optimisations *)
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
-   apply simp_all apply auto using Canonicalization.intval.simps(1) evalDet 
-          intval_conditional.simps evaltree_not_undef
-  by (metis (no_types, opaque_lifting) Value.discI(2) Value.distinct(1) intval_and.simps(3) intval_equals.simps(2) val_optimise_integer_test val_to_bool.simps(2))
+  apply auto
+  by (smt (verit) Value.inject(1) bool_to_val.simps(2) bool_to_val_bin.simps evalDet intval_equals.elims val_to_bool.elims(1))
 
 (* todo not sure if this is done properly *)
 optimization normalizeX: "((x eq const (IntVal 32 0)) ? 
@@ -138,15 +96,41 @@ optimization flipX2: "((x eq (const (IntVal 32 1))) ?
                             when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
+lemma stamp_of_default:
+  assumes "stamp_expr x = default_stamp"
+  assumes "wf_stamp x"
+  shows "([m, p] \<turnstile> x \<mapsto> v) \<longrightarrow> (\<exists>vv. v = IntVal 32 vv)"
+  using assms
+  by (metis default_stamp valid_value_elims(3) wf_stamp_def)
 
 optimization OptimiseIntegerTest: 
      "(((x & (const (IntVal 32 1))) eq (const (IntVal 32 0))) ? 
       (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> 
        x & (const (IntVal 32 1))
-       when (stamp_expr x = default_stamp)"
-   apply simp_all 
-   apply auto
-  using val_optimise_integer_test  sorry
+       when (stamp_expr x = default_stamp \<and> wf_stamp x)"
+  apply simp apply (rule impI; (rule allI)+; rule impI)
+  subgoal premises eval for m p v
+proof -
+  obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+    using eval by fast
+  then have x32: "\<exists>v. xv = IntVal 32 v"
+    using stamp_of_default eval by auto
+  obtain lhs where lhs: "[m, p] \<turnstile> exp[(((x & (const (IntVal 32 1))) eq (const (IntVal 32 0))) ? 
+      (const (IntVal 32 0)) : (const (IntVal 32 1)))] \<mapsto> lhs"
+    using eval(2) by auto
+  then have lhsV: "lhs = val[((xv & (IntVal 32 1)) eq (IntVal 32 0)) ? (IntVal 32 0) : (IntVal 32 1)]"
+    using xv evaltree.BinaryExpr evaltree.ConstantExpr evaltree.ConditionalExpr
+    by (smt (verit) ConditionalExprE ConstantExprE bin_eval.simps(11) bin_eval.simps(4) evalDet intval_conditional.simps unfold_binary)
+  obtain rhs where rhs: "[m, p] \<turnstile> exp[x & (const (IntVal 32 1))] \<mapsto> rhs"
+    using eval(2) by blast
+  then have rhsV: "rhs = val[xv & IntVal 32 1]"
+    by (metis BinaryExprE ConstantExprE bin_eval.simps(4) evalDet xv)
+  have "lhs = rhs" using val_optimise_integer_test x32
+    using lhsV rhsV by presburger
+  then show ?thesis
+    by (metis eval(2) evalDet lhs rhs)
+qed
+  done
 
 (* todo not sure if this is done properly *)
 optimization opt_optimise_integer_test_2: 
@@ -156,14 +140,14 @@ optimization opt_optimise_integer_test_2:
                    when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))"
   done
 
+(*
 optimization opt_conditional_eliminate_known_less: "((x < y) ? x : y) \<longmapsto> x 
                                  when (((stamp_under (stamp_expr x) (stamp_expr y)) |
                                       ((stpi_upper (stamp_expr x)) = (stpi_lower (stamp_expr y))))
                                       \<and> wf_stamp x \<and> wf_stamp y)"
-   unfolding le_expr_def apply auto
-  using stamp_under.simps wf_stamp_def 
-  sorry
-
+   apply auto using stamp_under_defn
+  apply simp sorry
+*)
 
 (*
 optimization opt_normalize_x_original: "((BinaryExpr BinIntegerEquals x (ConstantExpr (IntVal32 0))) ? 

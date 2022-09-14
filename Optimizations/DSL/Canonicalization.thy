@@ -175,6 +175,8 @@ fun size :: "IRExpr \<Rightarrow> nat" where
   "size (ConstantVar c) = 2" |
   "size (VariableExpr x s) = 2"
 
+named_theorems size_simps "size simplication rules"
+
 method unfold_optimization =
   (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
     unfold intval.simps,
@@ -183,7 +185,7 @@ method unfold_optimization =
     rule conjE, simp, simp del: le_expr_def, force?)
 
 method unfold_size =
-  (unfold size.simps, simp del: le_expr_def)?
+  (unfold size.simps, simp add: size_simps del: le_expr_def)?
   | (unfold size.simps)?
 
 print_methods

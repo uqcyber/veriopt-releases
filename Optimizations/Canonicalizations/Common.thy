@@ -22,16 +22,16 @@ fun size :: "IRExpr \<Rightarrow> nat" where
 *)
 
 
-lemma size_pos[simp]: "0 < size y"
+lemma size_pos[size_simps]: "0 < size y"
   apply (induction y; auto?)
   subgoal premises prems for op a b
     using prems by (induction op; auto)
   done
 
-lemma size_non_add: "op \<noteq> BinAdd \<Longrightarrow> size (BinaryExpr op a b) = size a + size b"
+lemma size_non_add[size_simps]: "op \<noteq> BinAdd \<Longrightarrow> size (BinaryExpr op a b) = size a + size b"
   by (induction op; auto)
 
-lemma size_non_const:
+lemma size_non_const[size_simps]:
   "\<not> is_ConstantExpr y \<Longrightarrow> 1 < size y"
   using size_pos apply (induction y; auto)
   subgoal premises prems for op a b
@@ -39,6 +39,8 @@ lemma size_non_const:
     using size_non_add size_pos apply auto
     by (simp add: Suc_lessI one_is_add)+
   done
+
+lemmas arith[size_simps] = Suc_leI add_strict_increasing
 
 
 definition well_formed_equal :: "Value \<Rightarrow> Value \<Rightarrow> bool" 

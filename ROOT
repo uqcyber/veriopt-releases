@@ -162,6 +162,7 @@ session Document in "Papers/Main" = Canonicalizations +
     Graph.IRGraph
     Graph.Traversal
     Graph.Comparison
+    Graph.Long
 
     Semantics.IRTreeEval
     Semantics.IRTreeEvalThms

@@ -84,15 +84,83 @@ end (* End of OrPhase *)
 context stamp_mask
 begin
 
+text \<open>
+Taking advantage of the truth table of or operations.
+
+\begin{center}
+\begin{tabular}{ c c c c }
+\# & x & y & $x | y$ \\
+1 & 0 & 0 & 0 \\ 
+2 & 0 & 1 & 1 \\  
+3 & 1 & 0 & 1 \\
+4 & 1 & 1 & 1   
+\end{tabular}
+\end{center}
+
+If row 2 never applies, that is, canBeZero x \& canBeOne y = 0,
+then $(x | y) = x$.
+
+Likewise, if row 3 never applies, canBeZero y \& canBeOne x = 0,
+then $(x | y) = y$.
+\<close>
+
 lemma OrLeftFallthrough:
   assumes "(and (not (\<down>x)) (\<up>y)) = 0"
   shows "exp[x | y] \<ge> exp[x]"
-  using assms sorry
+  using assms
+  apply simp apply ((rule allI)+; rule impI)
+  subgoal premises eval for m p v
+  proof -
+    obtain b vv where e: "[m, p] \<turnstile> exp[x | y] \<mapsto> IntVal b vv"
+      using eval
+      by (metis BinaryExprE bin_eval_new_int new_int.simps)
+    from e obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+      apply (subst (asm) unfold_binary_width)
+      by force+
+    from e obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+      apply (subst (asm) unfold_binary_width)
+      by force+
+    have vdef: "v = intval_or (IntVal b xv) (IntVal b yv)"
+      using e xv yv
+      by (metis bin_eval.simps(5) eval(2) evalDet unfold_binary)
+    have "\<forall> i. (bit xv i) | (bit yv i) = (bit xv i)"
+      by (metis assms bit_and_iff not_down_up_mask_and_zero_implies_zero xv yv)
+    then have "IntVal b xv = intval_or (IntVal b xv) (IntVal b yv)"
+      by (smt (verit, ccfv_threshold) and.idem assms bit.conj_disj_distrib eval_unused_bits_zero intval_or.simps(1) new_int.simps new_int_bin.simps not_down_up_mask_and_zero_implies_zero word_ao_absorbs(3) xv yv)
+    then show ?thesis
+      using vdef
+      using xv by presburger
+  qed
+  done
 
 lemma OrRightFallthrough: 
   assumes "(and (not (\<down>y)) (\<up>x)) = 0"
   shows "exp[x | y] \<ge> exp[y]"
-  using assms sorry
+  using assms
+  apply simp apply ((rule allI)+; rule impI)
+  subgoal premises eval for m p v
+  proof -
+    obtain b vv where e: "[m, p] \<turnstile> exp[x | y] \<mapsto> IntVal b vv"
+      using eval
+      by (metis BinaryExprE bin_eval_new_int new_int.simps)
+    from e obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+      apply (subst (asm) unfold_binary_width)
+      by force+
+    from e obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+      apply (subst (asm) unfold_binary_width)
+      by force+
+    have vdef: "v = intval_or (IntVal b xv) (IntVal b yv)"
+      using e xv yv
+      by (metis bin_eval.simps(5) eval(2) evalDet unfold_binary)
+    have "\<forall> i. (bit xv i) | (bit yv i) = (bit yv i)"
+      by (metis assms bit_and_iff not_down_up_mask_and_zero_implies_zero xv yv)
+    then have "IntVal b yv = intval_or (IntVal b xv) (IntVal b yv)"
+      by (metis (no_types, lifting) assms eval_unused_bits_zero intval_or.simps(1) new_int.elims new_int_bin.elims stamp_mask.not_down_up_mask_and_zero_implies_zero stamp_mask_axioms word_ao_absorbs(8) xv yv)
+    then show ?thesis
+      using vdef
+      using yv by presburger
+  qed
+  done
 
 end
 

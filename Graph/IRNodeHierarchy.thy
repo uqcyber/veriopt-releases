@@ -1,4 +1,4 @@
-subsection \<open>Hierarchy of Nodes\<close>
+subsection \<open>IR Graph Node Hierarchy\<close>
 
 theory IRNodeHierarchy
 imports IRNodes

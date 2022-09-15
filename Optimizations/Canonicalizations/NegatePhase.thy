@@ -1,9 +1,9 @@
+subsection \<open>NegateNode Phase\<close>
+
 theory NegatePhase
   imports
     Common
 begin
-
-section \<open>Optimizations for Negate Nodes\<close>
 
 phase NegateNode
   terminating size

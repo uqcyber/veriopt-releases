@@ -1,4 +1,6 @@
-section \<open>Optization DSLs\<close> (* first theory in list, not related to file contents *)
+section \<open>Optization DSL\<close> (* first theory in list, not related to file contents *)
+
+subsection \<open>Markup\<close>
 
 theory Markup
   imports Semantics.IRTreeEval Snippets.Snipping
@@ -25,6 +27,7 @@ definition word :: "('a::len) word \<Rightarrow> 'a word" where
 
 ML_file \<open>markup.ML\<close>
 
+subsubsection \<open>Expression Markup\<close>
 ML \<open>
 structure IRExprTranslator : DSL_TRANSLATION =
 struct
@@ -49,7 +52,21 @@ fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.TrueConstant = @{term "ConstantExpr (IntVal 32 1)"}
   | markup DSL_Tokens.FalseConstant = @{term "ConstantExpr (IntVal 32 0)"}
 end
+structure IRExprMarkup = DSL_Markup(IRExprTranslator);
+\<close>
 
+snipbegin \<open>ir expression translation\<close>
+syntax "_expandExpr" :: "term \<Rightarrow> term" ("exp[_]")
+parse_translation \<open> [( @{syntax_const "_expandExpr"} , IRExprMarkup.markup_expr [])] \<close>
+snipend -
+
+snipbegin \<open>ir expression example\<close>
+value "exp[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]"
+text \<open>@{term \<open>exp[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
+snipend -
+
+subsubsection \<open>Value Markup\<close>
+ML \<open>
 structure IntValTranslator : DSL_TRANSLATION =
 struct
 fun markup DSL_Tokens.Add = @{term intval_add}
@@ -73,7 +90,21 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.TrueConstant = @{term "IntVal 32 1"}
   | markup DSL_Tokens.FalseConstant = @{term "IntVal 32 0"}
 end
+structure IntValMarkup = DSL_Markup(IntValTranslator);
+\<close>
 
+snipbegin \<open>value expression translation\<close>
+syntax "_expandIntVal" :: "term \<Rightarrow> term" ("val[_]")
+parse_translation \<open> [( @{syntax_const "_expandIntVal"} , IntValMarkup.markup_expr [])] \<close>
+snipend -
+
+snipbegin \<open>value expression example\<close>
+value "val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]"
+text \<open>@{term \<open>val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
+snipend -
+
+subsubsection \<open>Word Markup\<close>
+ML \<open>
 structure WordTranslator : DSL_TRANSLATION =
 struct
 fun markup DSL_Tokens.Add = @{term plus}
@@ -95,40 +126,13 @@ fun markup DSL_Tokens.Add = @{term plus}
   | markup DSL_Tokens.TrueConstant = @{term 1}
   | markup DSL_Tokens.FalseConstant = @{term 0}
 end
-
-structure IRExprMarkup = DSL_Markup(IRExprTranslator);
-structure IntValMarkup = DSL_Markup(IntValTranslator);
 structure WordMarkup = DSL_Markup(WordTranslator);
 \<close>
-
-snipbegin \<open>ir expression translation\<close>
-syntax "_expandExpr" :: "term \<Rightarrow> term" ("exp[_]")
-parse_translation \<open> [( @{syntax_const "_expandExpr"} , IRExprMarkup.markup_expr [])] \<close>
-snipend -
-
-snipbegin \<open>value expression translation\<close>
-syntax "_expandIntVal" :: "term \<Rightarrow> term" ("val[_]")
-parse_translation \<open> [( @{syntax_const "_expandIntVal"} , IntValMarkup.markup_expr [])] \<close>
-snipend -
 
 snipbegin \<open>word expression translation\<close>
 syntax "_expandWord" :: "term \<Rightarrow> term" ("bin[_]")
 parse_translation \<open> [( @{syntax_const "_expandWord"} , WordMarkup.markup_expr [])] \<close>
 snipend -
-
-snipbegin \<open>ir expression example\<close>
-value "exp[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]"
-text \<open>@{term \<open>exp[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
-snipend - 
-
-snipbegin \<open>value expression example\<close>
-value "val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]"
-text \<open>@{term \<open>val[(e\<^sub>1 < e\<^sub>2) ? e\<^sub>1 : e\<^sub>2]\<close>}\<close>
-snipend -
-value "exp[((e\<^sub>1 - e\<^sub>2) + (const (IntVal 32 0)) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
-(* TODO: update this one for new IntVal values?
-value "val[((e\<^sub>1 - e\<^sub>2) + (const 0) + e\<^sub>2) \<longmapsto> e\<^sub>1 when True]"
-*)
 
 snipbegin \<open>word expression example\<close>
 value "bin[x & y | z]"

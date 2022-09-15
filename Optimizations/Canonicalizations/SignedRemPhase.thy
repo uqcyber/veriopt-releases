@@ -1,9 +1,9 @@
+subsection \<open>SignedRemNode Phase\<close>
+
 theory SignedRemPhase
   imports
     Common
 begin
-
-section \<open>Optimizations for SignedRem Nodes\<close>
 
 phase SignedRemNode
   terminating size

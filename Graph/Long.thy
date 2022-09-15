@@ -33,6 +33,8 @@ lemma max_set_bit: "MaxOrNeg {n . bit (v::('a::len) word) n} < Nat.size v"
   using max_bit unfolding MaxOrNeg_def
   by force
 
+subsection \<open>Long.numberOfLeadingZeros\<close>
+
 definition numberOfLeadingZeros :: "('a::len) word \<Rightarrow> nat" where
   "numberOfLeadingZeros v = nat (Nat.size v - highestOneBit v - 1)"
 
@@ -71,6 +73,8 @@ lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat
   unfolding numberOfLeadingZeros_def highestOneBit_def
   using MaxOrNeg_def int_nat_eq int_ops(6) max_bit order_less_irrefl by fastforce
 
+subsection \<open>Long.numberOfTrailingZeros\<close>
+
 definition numberOfTrailingZeros :: "('a::len) word \<Rightarrow> nat" where
   "numberOfTrailingZeros v = lowestOneBit v"
 
@@ -88,12 +92,16 @@ lemma "numberOfTrailingZeros (0::64 word) = 64"
   unfolding numberOfTrailingZeros_def
   using lowestOneBit_bot by simp
 
+subsection \<open>Long.bitCount\<close>
+
 definition bitCount :: "('a::len) word \<Rightarrow> nat" where
   "bitCount v = card {n . bit v n}"
 
 lemma "bitCount 0 = 0"
   unfolding bitCount_def
   by (metis card.empty zero_no_bits)
+
+subsection \<open>Long.zeroCount\<close>
 
 definition zeroCount :: "('a::len) word \<Rightarrow> nat" where
   "zeroCount v = card {n. n < Nat.size v \<and> \<not>(bit v n)}"

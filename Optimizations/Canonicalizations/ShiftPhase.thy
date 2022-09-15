@@ -1,3 +1,5 @@
+subsection \<open>ShiftNode Phase\<close>
+
 theory ShiftPhase
   imports 
     Common

@@ -1,9 +1,11 @@
+subsection \<open>BinaryNode Phase\<close>
+
 theory BinaryNode
   imports
     Common
 begin
 
-phase BinaryNde 
+phase BinaryNode 
   terminating size
 begin
 

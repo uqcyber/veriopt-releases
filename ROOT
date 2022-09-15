@@ -6,15 +6,15 @@ session Graph in Graph = "HOL-Library" +
   options [document = pdf, document_output = "output",
            show_question_marks = false]
   theories
-    Comparison
-    IRGraph
-    IRNodeHierarchy
-    IRNodes
-    Long
-    Stamp
-    Traversal
     Values
     ValueThms
+    Stamp
+    IRNodes
+    IRNodeHierarchy
+    IRGraph
+    Long
+    Comparison
+    Traversal
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
@@ -156,9 +156,12 @@ session Document in "Papers/Main" = Canonicalizations +
     ConditionalElimination.ConditionalElimination
   document_theories
     Graph.Values
+    Graph.ValueThms
+    Graph.Stamp
+
     Graph.IRNodes
     Graph.IRNodeHierarchy
-    Graph.Stamp
+    
     Graph.IRGraph
     Graph.Traversal
     Graph.Comparison

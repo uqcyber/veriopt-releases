@@ -1,9 +1,9 @@
+subsection \<open>SubNode Phase\<close>
+
 theory SubPhase
   imports
     Common
 begin
-
-section \<open>Optimizations for Sub Nodes\<close>
 
 phase SubNode
   terminating size
@@ -98,7 +98,7 @@ lemma val_sub_negative_value:
   using assms by (cases x; cases y; auto)
 
 lemma val_sub_self_is_zero:
-  assumes "x = new_int b v \<and> x - x \<noteq> UndefVal"
+  assumes "x = new_int b v \<and> val[x - x] \<noteq> UndefVal"
   shows "val[x - x] = new_int b 0"
   using assms by (cases x; auto)
 
@@ -125,7 +125,7 @@ lemma exp_sub_after_right_add2:
 lemma exp_sub_negative_value:
  "exp[x - (-y)] \<ge> exp[x + y]"
   apply simp using val_sub_negative_value
-  by (smt (verit) bin_eval.simps(1) bin_eval.simps(3) evaltree_not_undef minus_Value_def 
+  by (smt (verit) bin_eval.simps(1) bin_eval.simps(3) evaltree_not_undef 
       unary_eval.simps(2) unfold_binary unfold_unary)
 
 

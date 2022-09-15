@@ -137,11 +137,15 @@ val _ =
 
 ML_file "rewrites.ML"
 
+subsubsection \<open>Semantic Preservation Obligation\<close>
+
 fun rewrite_preservation :: "IRExpr Rewrite \<Rightarrow> bool" where
   "rewrite_preservation (Transform x y) = (y \<le> x)" |
   "rewrite_preservation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |
   "rewrite_preservation (Sequential x y) = (rewrite_preservation x \<and> rewrite_preservation y)" |
   "rewrite_preservation (Transitive x) = rewrite_preservation x"
+
+subsubsection \<open>Termination Obligation\<close>
 
 fun rewrite_termination :: "IRExpr Rewrite \<Rightarrow> (IRExpr \<Rightarrow> nat) \<Rightarrow> bool" where
   "rewrite_termination (Transform x y) trm = (trm x > trm y)" |
@@ -155,6 +159,8 @@ fun intval :: "Value Rewrite \<Rightarrow> bool" where
   "intval (Sequential x y) = (intval x \<and> intval y)" |
   "intval (Transitive x) = intval x"
 
+subsubsection \<open>Standard Termination Measure\<close>
+
 fun size :: "IRExpr \<Rightarrow> nat" where
   "size (UnaryExpr op e) = (size e) * 2" |
   "size (BinaryExpr op x y) = (size x) + ((size y) * 2)" |
@@ -164,6 +170,8 @@ fun size :: "IRExpr \<Rightarrow> nat" where
   "size (LeafExpr nid s) = 2" |
   "size (ConstantVar c) = 2" |
   "size (VariableExpr x s) = 2"
+
+subsubsection \<open>Automated Tactics\<close>
 
 named_theorems size_simps "size simplication rules"
 

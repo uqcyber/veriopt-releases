@@ -1,4 +1,4 @@
-subsection \<open>Conditional Expression\<close>
+subsection \<open>ConditionalNode Phase\<close>
 
 theory ConditionalPhase
   imports

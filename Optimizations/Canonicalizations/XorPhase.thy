@@ -1,10 +1,10 @@
+subsection \<open>XorNode Phase\<close>
+
 theory XorPhase
   imports
     Common
     Proofs.StampEvalThms
 begin
-
-section \<open>Optimizations for Xor Nodes\<close>
 
 phase XorNode
   terminating size

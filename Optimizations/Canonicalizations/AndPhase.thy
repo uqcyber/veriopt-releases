@@ -1,10 +1,10 @@
+subsection \<open>AndNode Phase\<close>
+
 theory AndPhase
   imports
     Common
     Proofs.StampEvalThms
 begin
-
-section \<open>Optimizations for And Nodes\<close>
 
 phase AndNode  
   terminating size

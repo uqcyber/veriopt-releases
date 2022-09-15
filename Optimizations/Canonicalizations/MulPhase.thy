@@ -1,10 +1,10 @@
+subsection \<open>MulNode Phase\<close>
+
 theory MulPhase
   imports
     Common
     Proofs.StampEvalThms
 begin
-
-section \<open>Optimizations for Mul Nodes\<close>
 
 phase MulNode
   terminating size
@@ -61,18 +61,18 @@ lemma val_eliminate_redundant_negative:
 
 lemma val_multiply_neutral:
   assumes "x = new_int b v"
-  shows "val[x] * (IntVal b 1) = val[x]"
-  using assms times_Value_def by force
+  shows "val[x * (IntVal b 1)] = val[x]"
+  using assms by force
 
 lemma val_multiply_zero:
   assumes "x = new_int b v"
-  shows "val[x] * (IntVal b 0) = IntVal b 0"
-  using assms by (simp add: times_Value_def)
+  shows "val[x * (IntVal b 0)] = IntVal b 0"
+  using assms by simp
 
 lemma val_multiply_negative:
   assumes "x = new_int b v"
-  shows "x * intval_negate (IntVal b 1) = intval_negate x"
-  using assms times_Value_def
+  shows "val[x * intval_negate (IntVal b 1)] = intval_negate x"
+  using assms
   by (smt (verit) Value.disc(1) Value.inject(1) add.inverse_neutral intval_negate.simps(1) 
       is_IntVal_def mask_0 mask_eq_take_bit_minus_one new_int.elims of_bool_eq(2) take_bit_dist_neg 
       take_bit_of_1 val_eliminate_redundant_negative val_multiply_neutral val_multiply_zero 
@@ -85,9 +85,8 @@ lemma val_MulPower2:
   and     "0 < i"
   and     "i < 64"
   and     "val[x * y] \<noteq> UndefVal"
-  shows   "x * y = val[x << IntVal 64 i]"
+  shows   "val[x * y] = val[x << IntVal 64 i]"
   using assms apply (cases x; cases y; auto)
-    apply (simp add: times_Value_def)
     subgoal premises p for x2
     proof -
       have 63: "(63 :: int64) = mask 6"
@@ -102,7 +101,7 @@ lemma val_MulPower2:
         unfolding 63
         by force
     qed
-    done
+    by presburger
 
 (*  x * ((2 ^ j) + 1) = (x << j) + x  *)
 lemma val_MulPower2Add1:
@@ -112,9 +111,8 @@ lemma val_MulPower2Add1:
   and     "i < 64"
   and     "val_to_bool(val[IntVal 64 0 < x])"
   and     "val_to_bool(val[IntVal 64 0 < y])"
-  shows   "x * y = val[(x << IntVal 64 i) + x]"
+  shows   "val[x * y] = val[(x << IntVal 64 i) + x]"
   using assms apply (cases x; cases y; auto)
-    apply (simp add: times_Value_def)
     subgoal premises p for x2
   proof -
     have 63: "(63 :: int64) = mask 6"
@@ -128,7 +126,7 @@ lemma val_MulPower2Add1:
     then show "x2 * ((2::64 word) ^ unat i + (1::64 word)) = x2 << unat (and i (63::64 word)) + x2"
       by (simp add: "63" \<open>and (i::64 word) (mask (6::nat)) = i\<close>)
     qed 
-  done
+    using val_to_bool.simps(2) by presburger
 
 
 (*  x * ((2 ^ j) - 1) = (x << j) - x  *)
@@ -139,9 +137,8 @@ lemma val_MulPower2Sub1:
   and     "i < 64"
   and     "val_to_bool(val[IntVal 64 0 < x])"
   and     "val_to_bool(val[IntVal 64 0 < y])"
-  shows   "x * y = val[(x << IntVal 64 i) - x]"
+  shows   "val[x * y] = val[(x << IntVal 64 i) - x]"
   using assms apply (cases x; cases y; auto)
-    apply (simp add: times_Value_def)
     subgoal premises p for x2
   proof -
     have 63: "(63 :: int64) = mask 6"
@@ -155,7 +152,7 @@ lemma val_MulPower2Sub1:
     then show "x2 * ((2::64 word) ^ unat i - (1::64 word)) = x2 << unat (and i (63::64 word)) - x2"
       by (simp add: "63" \<open>and (i::64 word) (mask (6::nat)) = i\<close>)
     qed 
-  done
+    using val_to_bool.simps(2) by presburger
 
 (* Helper *)
 lemma val_distribute_multiplication:
@@ -173,7 +170,7 @@ lemma val_MulPower2AddPower2:
   and     "i < 64"
   and     "j < 64"
   and     "x = new_int 64 xx"
-  shows   "x * y = val[(x << IntVal 64 i) + (x << IntVal 64 j)]"
+  shows   "val[x * y] = val[(x << IntVal 64 i) + (x << IntVal 64 j)]"
   using assms
   proof -
     have 63: "(63 :: int64) = mask 6"
@@ -190,12 +187,14 @@ lemma val_MulPower2AddPower2:
      using assms val_distribute_multiplication val_MulPower2 by simp 
    then have 2: "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
      using assms val_MulPower2
-     by (metis (full_types) Value.distinct(1) intval_mul.simps(1) new_int.simps new_int_bin.simps times_Value_def)
-    then show "?thesis"
-       by (metis (full_types) "1" Value.distinct(1) assms(1) assms(3) assms(5) assms(6) intval_mul.simps(1) n new_int.simps new_int_bin.elims times_Value_def val_MulPower2)
-   qed 
+     using Value.distinct(1) intval_mul.simps(1) new_int.simps new_int_bin.simps
+     by (smt (verit))
+   then show "?thesis" 
+     using "1" Value.distinct(1) assms(1) assms(3) assms(5) assms(6) intval_mul.simps(1) n new_int.simps new_int_bin.elims val_MulPower2
+     by (smt (verit, del_insts))
+   qed
 
- thm_oracles val_MulPower2AddPower2
+thm_oracles val_MulPower2AddPower2
 
 (* Exp-level proofs *)
 lemma exp_multiply_zero_64:
@@ -247,7 +246,7 @@ optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
   apply auto using val_multiply_negative
   apply (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
       intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps 
-      take_bit_dist_neg times_Value_def unary_eval.simps(2) unfold_unary 
+      take_bit_dist_neg unary_eval.simps(2) unfold_unary 
       val_eliminate_redundant_negative)
   sorry (* termination *)
 
@@ -308,7 +307,7 @@ proof -
     by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps)
   have "val[xv * yv] = val[xv << (IntVal 64 i)]"
     using val_MulPower2
-    by (metis ConstantExprE eval(1) evaltree_not_undef lhs times_Value_def yv)
+    by (metis ConstantExprE eval(1) evaltree_not_undef lhs yv)
   then show ?thesis
     by (metis eval(1) eval(2) evalDet lhs rhs)
 qed

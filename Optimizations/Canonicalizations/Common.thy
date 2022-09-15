@@ -1,26 +1,10 @@
-section \<open>Canonicalization Phase\<close>
+section \<open>Canonicalization Optimizations\<close>
 
 theory Common
   imports 
     OptimizationDSL.Canonicalization
     Semantics.IRTreeEvalThms
 begin
-
-
-(* Old size function
-fun size :: "IRExpr \<Rightarrow> nat" where
-  (* "size (UnaryExpr op e) = (size e) + 1" | *) (* Old, new below. *)
-  "size (UnaryExpr op e) = (size e) * 2" |
-  "size (BinaryExpr op x y) = (size x) + ((size y) * 2)" |
- (* "size (BinaryExpr op x y) = (size x) + (size y)" |*)
-  "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
-  "size (ConstantExpr c) = 1" |
-  "size (ParameterExpr ind s) = 2" |
-  "size (LeafExpr nid s) = 2" |
-  "size (ConstantVar c) = 2" |
-  "size (VariableExpr x s) = 2"
-*)
-
 
 lemma size_pos[size_simps]: "0 < size y"
   by (induction y; auto?)

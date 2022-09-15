@@ -1,9 +1,9 @@
+subsection \<open>OrNode Phase\<close>
+
 theory OrPhase
   imports
     Common
 begin
-
-section \<open>Optimizations for Or Nodes\<close>
 
 phase OrNode
   terminating size

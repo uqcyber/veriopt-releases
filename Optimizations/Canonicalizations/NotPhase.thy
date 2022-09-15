@@ -1,9 +1,9 @@
+subsection \<open>NotNode Phase\<close>
+
 theory NotPhase
   imports
     Common
 begin
-
-section \<open>Optimizations for Not Nodes\<close>
 
 phase NotNode
   terminating size

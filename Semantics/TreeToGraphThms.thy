@@ -2671,6 +2671,8 @@ definition bad_graph where
     (2, ConstantNode constant_value, constantAsStamp constant_value)
   ]"
 
+
+(*
 experiment begin
 lemma
   assumes "maximal_sharing g"
@@ -3345,5 +3347,6 @@ theorem unrep_maximal_sharing:
     case (AllLeafNodes g n s)
     then show ?case by blast
   qed
+*)
 
 end

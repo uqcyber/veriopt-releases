@@ -1,4 +1,4 @@
-section \<open>Extra Theorems for Fixed-Width Integer Words\<close>
+subsection \<open>Fixed-width Word Theories\<close>
 
 theory ValueThms
   imports Values
@@ -88,7 +88,7 @@ lemma signed_take_bit_range:
   using signed_take_bit_int_greater_eq_minus_exp_word signed_take_bit_int_less_exp_word
   using assms by blast
 
-text \<open>A $bit_bounds$ version of the above lemma.\<close>
+text \<open>A $bit\_bounds$ version of the above lemma.\<close>
 
 lemma signed_take_bit_bounds:
   fixes ival :: "'a :: len word"
@@ -222,7 +222,7 @@ lemma scast_bigger_bit_bounds:
   by auto
 
 
-text \<open>Results about $new_int$.\<close>
+text \<open>Results about $new\_int$.\<close>
 
 (* may be too trivial? *)
 lemma new_int_take_bits:

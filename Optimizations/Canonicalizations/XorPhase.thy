@@ -1,9 +1,10 @@
+subsection \<open>XorNode Phase\<close>
+
 theory XorPhase
   imports
     Common
+    Proofs.StampEvalThms
 begin
-
-section \<open>Optimizations for Xor Nodes\<close>
 
 phase XorNode
   terminating size
@@ -53,11 +54,6 @@ lemma val_eliminate_redundant_false:
   by meson
 
 
-(* Borrowed from ConditionalPhase *)
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
-
-
 (* Expression level proofs *)
 lemma exp_xor_self_is_false:
  assumes "wf_stamp x \<and> stamp_expr x = default_stamp" 
@@ -87,19 +83,20 @@ lemma exp_eliminate_redundant_false:
 text \<open>Optimisations\<close>
 optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when 
                       (wf_stamp x \<and> stamp_expr x = default_stamp)"
-   apply auto[1] 
-   apply (simp add: Suc_lessI one_is_add) using exp_xor_self_is_false
-  by auto 
+  apply (metis One_nat_def Suc_lessI eval_nat_numeral(3) less_Suc_eq mult.right_neutral numeral_2_eq_2 one_less_mult size_pos)
+  using exp_xor_self_is_false by auto 
 
 (* Has counterexample *)
 optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
    unfolding le_expr_def using val_xor_commute size_non_const 
    apply simp apply auto 
-  sorry
+   using val_xor_commute by auto
 
 optimization EliminateRedundantFalse: "(x \<oplus> false) \<longmapsto> x"
     using exp_eliminate_redundant_false by blast 
 
+
+(* BW: this doesn't seem right *)
 optimization MaskOutRHS: "(x \<oplus> const y) \<longmapsto> UnaryExpr UnaryNot x
                                  when ((stamp_expr (x) = IntegerStamp bits l h))"
     unfolding le_expr_def apply auto 

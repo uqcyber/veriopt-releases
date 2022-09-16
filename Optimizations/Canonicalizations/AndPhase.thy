@@ -1,12 +1,12 @@
+subsection \<open>AndNode Phase\<close>
+
 theory AndPhase
   imports
     Common
-    (*NewAnd*)
+    Proofs.StampEvalThms
 begin
 
-section \<open>Optimizations for And Nodes\<close>
-
-phase AndNode
+phase AndNode  
   terminating size
 begin
 
@@ -152,9 +152,6 @@ lemma exp_sign_extend:
 
 
 (* Helpers *)
-(* Borrowed from ConditionalPhase *)
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
 lemma val_and_commute[simp]:
    "val[x & y] = val[y & x]"
@@ -170,11 +167,11 @@ optimization AndEqual: "x & x \<longmapsto> x"
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
                                          when \<not>(is_ConstantExpr y)"
   using val_and_commute apply auto 
-  sorry
+  using size_non_const by auto
 
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
-    using exp_and_nots by auto 
+    using exp_and_nots sorry
 
 (* Need to prove exp_sign_extend*)
 optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 

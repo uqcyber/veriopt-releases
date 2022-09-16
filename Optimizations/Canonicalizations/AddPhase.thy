@@ -1,9 +1,9 @@
+subsection \<open>AddNode Phase\<close>
+
 theory AddPhase
   imports
     Common
 begin
-
-section \<open>Optimizations for Add Nodes\<close>
 
 phase AddNode 
   terminating size

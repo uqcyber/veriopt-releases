@@ -1,4 +1,4 @@
-section \<open>Graph Representation\<close>
+subsection \<open>IR Graph Type\<close>
 
 theory IRGraph
   imports 

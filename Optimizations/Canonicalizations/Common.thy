@@ -1,4 +1,4 @@
-section \<open>Canonicalization Phase\<close>
+section \<open>Canonicalization Optimizations\<close>
 
 theory Common
   imports 
@@ -6,40 +6,19 @@ theory Common
     Semantics.IRTreeEvalThms
 begin
 
+lemma size_pos[size_simps]: "0 < size y"
+  by (induction y; auto?)
 
-(* Old size function
-fun size :: "IRExpr \<Rightarrow> nat" where
-  (* "size (UnaryExpr op e) = (size e) + 1" | *) (* Old, new below. *)
-  "size (UnaryExpr op e) = (size e) * 2" |
-  "size (BinaryExpr op x y) = (size x) + ((size y) * 2)" |
- (* "size (BinaryExpr op x y) = (size x) + (size y)" |*)
-  "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
-  "size (ConstantExpr c) = 1" |
-  "size (ParameterExpr ind s) = 2" |
-  "size (LeafExpr nid s) = 2" |
-  "size (ConstantVar c) = 2" |
-  "size (VariableExpr x s) = 2"
-*)
-
-
-lemma size_pos[simp]: "0 < size y"
-  apply (induction y; auto?)
-  subgoal premises prems for op a b
-    using prems by (induction op; auto)
-  done
-
-lemma size_non_add: "op \<noteq> BinAdd \<Longrightarrow> size (BinaryExpr op a b) = size a + size b"
+lemma size_non_add[size_simps]: "size (BinaryExpr op a b) = size a + (size b) * 2"
   by (induction op; auto)
 
-lemma size_non_const:
+lemma size_non_const[size_simps]:
   "\<not> is_ConstantExpr y \<Longrightarrow> 1 < size y"
   using size_pos apply (induction y; auto)
-  subgoal premises prems for op a b
-    apply (cases "op = BinAdd")
-    using size_non_add size_pos apply auto
-    by (simp add: Suc_lessI one_is_add)+
-  done
+  apply (metis Suc_lessI mult_eq_1_iff mult_pos_pos n_not_Suc_n numeral_2_eq_2 pos2)
+  by (metis add_strict_increasing less_Suc0 linorder_not_less mult_2_right not_add_less2)
 
+lemmas arith[size_simps] = Suc_leI add_strict_increasing
 
 definition well_formed_equal :: "Value \<Rightarrow> Value \<Rightarrow> bool" 
   (infix "\<approx>" 50) where

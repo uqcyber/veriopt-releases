@@ -1,9 +1,10 @@
 section \<open>Verifying term graph optimizations using Isabelle/HOL\<close>
 
 theory TreeSnippets
-  imports 
+  imports
+    Canonicalizations.BinaryNode
     Canonicalizations.ConditionalPhase
-    Optimizations.CanonicalizationSyntax
+    Canonicalizations.AddPhase
     Semantics.TreeToGraphThms
     Snippets.Snipping
     "HOL-Library.OptionalSugar"
@@ -12,9 +13,6 @@ begin
 \<comment> \<open>First, we disable undesirable markup.\<close>
 declare [[show_types=false,show_sorts=false]]
 no_notation ConditionalExpr ("_ ? _ : _")
-translations
-  "n" <= "CONST Rep_intexp n"
-  "n" <= "CONST Rep_i32exp n"
 
 
 subsection \<open>Markup syntax for common operations\<close>
@@ -43,25 +41,35 @@ at which optimizations can be expressed.
 \<close>
 
 \<comment> \<open>Algebraic laws\<close>
+lemma diff_self:
+  fixes x :: int
+  shows "x - x = 0"
+  by simp
+lemma diff_diff_cancel:
+  fixes x y :: int
+  shows "x - (x - y) = y"
+  by simp
 thm diff_self
 thm diff_diff_cancel
 snipbegin \<open>algebraic-laws\<close>
-text \<open>
-@{thm diff_self[show_types=false,where a=x]}\\
-@{thm diff_diff_cancel[where n=x and i=y]}\<close>
+text \<open>\begin{align}
+@{thm diff_self[show_types=false]}\\
+@{thm diff_diff_cancel[show_types=false]}
+\end{align}\<close>
 snipend -
 
 \<comment> \<open>Values\<close>
-lemma diff_self_value: "\<forall>v::int64. v - v = 0"
+lemma diff_self_value: "\<forall>v::'a::len word. v - v = 0"
   by simp
 lemma diff_diff_cancel_value:
-  "\<forall> (v\<^sub>1::int64) (v\<^sub>2::int64) . v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
+  "\<forall> v\<^sub>1 v\<^sub>2::'a::len word . v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
   by simp
 
 snipbegin \<open>algebraic-laws-values\<close>
-text \<open>
-@{thm diff_self_value[show_types]}\\
-@{thm diff_diff_cancel_value[show_types]}\<close>
+text_raw \<open>\begin{align}
+@{thm diff_self_value[show_types]} \label{prop-v-minus-v}\\
+@{thm diff_diff_cancel_value[show_types]}
+\end{align}\<close>
 snipend -
 
 \<comment> \<open>Expression\<close>
@@ -76,14 +84,38 @@ lemma diff_self_expr:
   using assms apply simp
   by (metis(full_types) evalDet val_to_bool.simps(1) zero_neq_one)
 
+method open_eval = (simp; (rule impI)?; (rule allI)+; rule impI)
+
 lemma diff_diff_cancel_expr:
   shows "exp[e\<^sub>1 - (e\<^sub>1 - e\<^sub>2)] \<ge> exp[e\<^sub>2]"
-  apply simp sorry
+  apply open_eval
+  subgoal premises eval for m p v
+  proof -
+    obtain v1 where v1: "[m, p] \<turnstile> e\<^sub>1 \<mapsto> v1"
+      using eval by blast
+    obtain v2 where v2: "[m, p] \<turnstile> e\<^sub>2 \<mapsto> v2"
+      using eval by blast
+    then have e: "[m, p] \<turnstile> exp[e\<^sub>1 - (e\<^sub>1 - e\<^sub>2)] \<mapsto> val[v1 - (v1 - v2)]"
+      using v1 v2 eval
+      by (smt (verit, ccfv_SIG) bin_eval.simps(3) evalDet unfold_binary)
+    then have notUn: "val[v1 - (v1 - v2)] \<noteq> UndefVal"
+      using evaltree_not_undef by auto
+    then have "val[v1 - (v1 - v2)] = v2"
+      apply (cases v1; cases v2; auto simp: notUn)
+      using eval_unused_bits_zero v2 apply blast
+      by (metis(full_types) intval_sub.simps(5))
+    then show ?thesis 
+      by (metis e eval evalDet v2)
+  qed
+  done
+
+thm_oracles diff_diff_cancel_expr
 
 snipbegin \<open>algebraic-laws-expressions\<close>
-text \<open>
-@{thm[mode=ExprRule] (concl) diff_self_expr}\\
-@{thm[mode=ExprRule] (concl) diff_diff_cancel_expr}\<close>
+text_raw \<open>\begin{align}
+@{thm[mode=ExprRule] (concl) diff_self_expr} \label{prop-MinusSame} \\
+@{thm[mode=ExprRule] (concl) diff_diff_cancel_expr}
+\end{align}\<close>
 snipend -
 no_translations
   "n" <= "CONST ConstantExpr (CONST IntVal b n)"
@@ -110,12 +142,11 @@ lemma sub_same_val:
   using assms by (cases e; auto)
 
 snipbegin \<open>sub-same-32\<close>
-optimization sub_same_32:
-  "(e - e) \<longmapsto> const (IntVal b 0)
+optimization SubIdentity:
+  "(e - e) \<longmapsto> ConstantExpr (IntVal b 0)
      when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
-snipend -
-  apply simp
-   apply (metis Suc_lessI add_is_1 add_pos_pos size_gt_0)
+  snipend -
+  apply (metis Suc_lessI mult_eq_1_iff mult_pos_pos nat.discI nat.inject numeral_3_eq_3 size_pos zero_less_numeral)
   apply (rule impI) apply simp
 proof -
   assume assms: "stamp_binary BinSub (stamp_expr e) (stamp_expr e) = IntegerStamp b lo hi \<and> wf_stamp exp[e - e]"
@@ -125,7 +156,7 @@ proof -
   then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinSub e e \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> ConstantExpr (IntVal b 0) \<mapsto> v)"
     by (smt (verit, best) BinaryExprE TreeSnippets.wf_stamp_def assms bin_eval.simps(3) constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val unfold_const valid_stamp.simps(1) valid_value.simps(1))
 qed
-thm_oracles sub_same_32
+thm_oracles SubIdentity
 end
 
 subsection \<open>Representing terms\<close>
@@ -147,7 +178,7 @@ text \<open>@{datatype[display,margin=40] IRExpr}\<close>
 snipend -
 
 snipbegin \<open>value\<close>
-text \<open>@{datatype[display,margin=40] Value}\<close>
+text \<open>@{datatype[display,margin=40,show_abbrevs] Value}\<close>
 snipend -
 
 
@@ -158,8 +189,8 @@ The core expression evaluation functions need to be introduced.
 \<close>
 
 snipbegin \<open>eval\<close>
-text \<open>@{term_type[mode=type_def] unary_eval}\<close>
-text \<open>@{term_type[mode=type_def] bin_eval}\<close>
+text \<open>@{term_type[mode=type_def] unary_eval}\\
+@{term_type[mode=type_def] bin_eval}\<close>
 snipend -
 
 text \<open>
@@ -212,29 +243,26 @@ phase SnipPhase
 begin
 snipbegin \<open>InverseLeftSub\<close>
 optimization InverseLeftSub:
-  "((e\<^sub>1::intexp) - (e\<^sub>2::intexp)) + e\<^sub>2 \<longmapsto> e\<^sub>1"
+  "(e\<^sub>1 - e\<^sub>2) + e\<^sub>2 \<longmapsto> e\<^sub>1"
 snipend -
   snipbegin \<open>InverseLeftSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using neutral_left_add_sub by auto
+  using RedundantSubAdd by auto
 
 snipbegin \<open>InverseRightSub\<close>
-optimization InverseRightSub: "(e\<^sub>2::intexp) + ((e\<^sub>1::intexp) - e\<^sub>2) \<longmapsto> e\<^sub>1"
+optimization InverseRightSub: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
 snipend -
   snipbegin \<open>InverseRightSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using neutral_right_add_sub by auto
+  using RedundantSubAdd2(1) rewrite_preservation.simps(1) by blast
 end
 
 snipbegin \<open>expression-refinement-monotone\<close>
-text \<open>
-\begin{tabular}{l@ {~~@{text "\<Longrightarrow>"}~~}l}
-@{thm (prem 1) mono_unary} & @{thm (concl) mono_unary}\\
-@{thm (prem 1) mono_binary} @{text \<and>} @{thm (prem 2) mono_binary} & @{thm (concl) mono_binary}\\
-@{thm (prem 1) mono_conditional} @{text \<and>} @{thm (prem 2) mono_conditional} @{text \<and>} @{thm (prem 3) mono_conditional} & @{thm (concl) mono_conditional}
-\end{tabular}
+text \<open>@{thm[display,margin=60] mono_unary}
+@{thm[display,margin=60] mono_binary}
+@{thm[display,margin=60] mono_conditional}
 \<close>
 snipend -
 
@@ -243,16 +271,16 @@ phase SnipPhase
   terminating size
 begin
 snipbegin \<open>BinaryFoldConstant\<close>
-optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2) when int_and_equal_bits v1 v2 "
+optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2)"
 snipend -
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using BinaryFoldConstant by auto
+  using BinaryFoldConstant(1) by auto
 
 snipbegin \<open>AddCommuteConstantRight\<close>
 optimization AddCommuteConstantRight:
-  "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+  "((const v) + y) \<longmapsto> (y + (const v)) when \<not>(is_ConstantExpr y)"
 snipend -
   snipbegin \<open>AddCommuteConstantRightObligation\<close>
   text \<open>@{subgoals[display,margin=50]}\<close>
@@ -260,13 +288,12 @@ snipend -
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
-optimization AddNeutral: "((e::i32exp) + (const (IntVal 32 0))) \<longmapsto> e"
+optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
 snipend -
   snipbegin \<open>AddNeutralObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  apply (rule conjE, simp, simp del: le_expr_def)
-  using neutral_zero(1) rewrite_preservation.simps(1) by blast
+  using AddNeutral(1) rewrite_preservation.simps(1) by blast
 
 snipbegin \<open>AddToSub\<close>
 optimization AddToSub: "-e + y \<longmapsto> y - e"
@@ -279,6 +306,10 @@ snipend -
 end
 
 definition trm where "trm = size"
+
+lemma trm_defn[size_simps]:
+  "trm x = size x"
+  by (simp add: trm_def)
 
 snipbegin \<open>phase\<close>
 phase AddCanonicalizations
@@ -296,9 +327,10 @@ phase Conditional
 begin
 snipend -
 
-snipbegin \<open>phase-example-1\<close>optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x)"snipend -
-  using ConditionalPhase.NegateConditionFlipBranches
-   by (auto simp: trm_def)
+snipbegin \<open>phase-example-1\<close>optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x) when (wf_stamp e \<and> stamp_expr e = IntegerStamp b lo hi \<and> b > 0)"snipend -
+  apply (simp add: size_simps)
+  using ConditionalPhase.NegateConditionFlipBranches(1)
+  using StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def by force
 
 snipbegin \<open>phase-example-2\<close>optimization const_true: "(true ? x : y) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
@@ -309,30 +341,32 @@ snipbegin \<open>phase-example-3\<close>optimization const_false: "(false ? x : 
 snipbegin \<open>phase-example-4\<close>optimization equal_branches: "(e ? x : x) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
-(*
 snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x
                    when (stamp_under (stamp_expr u) (stamp_expr v) 
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -
+  apply (auto simp: trm_def)
   using ConditionalPhase.condition_bounds_x(1)
-  by (blast, auto simp: trm_def)
+  by (metis(full_types) StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def bin_eval.simps(12) stamp_under_defn)
 
 snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < y) ? x : y) \<longmapsto> y
                    when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wf_stamp x \<and> wf_stamp y)"snipend -
+  apply (auto simp: trm_def)
   using ConditionalPhase.condition_bounds_y(1)
-  by (blast, auto simp: trm_def)
-*)
+  by (metis(full_types) StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def bin_eval.simps(12) stamp_under_defn_inverse)
+
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
+thm size.simps
 snipbegin \<open>termination\<close>
-text \<open>\begin{tabular}{l@ {~~@{text "="}~~}l}
-@{thm (lhs) size.simps(1)} & @{thm (rhs) size.simps(1)}\\
-@{thm (lhs) size.simps(2)} & @{thm (rhs) size.simps(2)}\\
-@{thm (lhs) size.simps(7)} & @{thm (rhs) size.simps(7)}\\
-@{thm (lhs) size.simps(15)} & @{thm (rhs) size.simps(15)}\\
-@{thm (lhs) size.simps(16)} & @{thm (rhs) size.simps(16)}\\
-@{thm (lhs) size.simps(17)} & @{thm (rhs) size.simps(17)}
-\end{tabular}\<close>
+text \<open>
+@{thm[display,margin=80] size.simps(1)}
+@{thm[display,margin=80] size.simps(2)}
+@{thm[display,margin=80] size.simps(3)}
+@{thm[display,margin=80] size.simps(4)}
+@{thm[display,margin=80] size.simps(5)}
+@{thm[display,margin=80] size.simps(6)}
+\<close>
 snipend -
 
 

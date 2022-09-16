@@ -1,9 +1,9 @@
+subsection \<open>SignedDivNode Phase\<close>
+
 theory SignedDivPhase
   imports
     Common
 begin
-
-section \<open>Optimizations for SignedDiv Nodes\<close>
 
 phase SignedDivNode
   terminating size

@@ -216,7 +216,8 @@ fun compatible :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "compatible _ _ = False"
 
 fun stamp_under :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
-  "stamp_under x y = ((stpi_upper x) < (stpi_lower y))"
+  "stamp_under (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) = (b1 = b2 \<and> hi1 < lo2)" |
+  "stamp_under _ _ = False"
 
 \<comment> \<open>
 The most common type of stamp within the compiler (apart from the VoidStamp) is a 32 bit

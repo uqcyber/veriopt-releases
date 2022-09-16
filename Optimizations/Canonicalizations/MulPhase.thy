@@ -1,9 +1,10 @@
+subsection \<open>MulNode Phase\<close>
+
 theory MulPhase
   imports
     Common
+    Proofs.StampEvalThms
 begin
-
-section \<open>Optimizations for Mul Nodes\<close>
 
 phase MulNode
   terminating size
@@ -60,18 +61,18 @@ lemma val_eliminate_redundant_negative:
 
 lemma val_multiply_neutral:
   assumes "x = new_int b v"
-  shows "val[x] * (IntVal b 1) = val[x]"
-  using assms times_Value_def by force
+  shows "val[x * (IntVal b 1)] = val[x]"
+  using assms by force
 
 lemma val_multiply_zero:
   assumes "x = new_int b v"
-  shows "val[x] * (IntVal b 0) = IntVal b 0"
-  using assms by (simp add: times_Value_def)
+  shows "val[x * (IntVal b 0)] = IntVal b 0"
+  using assms by simp
 
 lemma val_multiply_negative:
   assumes "x = new_int b v"
-  shows "x * intval_negate (IntVal b 1) = intval_negate x"
-  using assms times_Value_def
+  shows "val[x * intval_negate (IntVal b 1)] = intval_negate x"
+  using assms
   by (smt (verit) Value.disc(1) Value.inject(1) add.inverse_neutral intval_negate.simps(1) 
       is_IntVal_def mask_0 mask_eq_take_bit_minus_one new_int.elims of_bool_eq(2) take_bit_dist_neg 
       take_bit_of_1 val_eliminate_redundant_negative val_multiply_neutral val_multiply_zero 
@@ -83,28 +84,24 @@ lemma val_MulPower2:
   assumes "y = IntVal 64 (2 ^ unat(i))"
   and     "0 < i"
   and     "i < 64"
-  and     "(63 :: int64) = mask 6"
-  and     "val_to_bool(val[IntVal 64 0 < x])"
-  and     "val_to_bool(val[IntVal 64 0 < y])"
-  shows   "x * y = val[x << IntVal 64 i]"
+  and     "val[x * y] \<noteq> UndefVal"
+  shows   "val[x * y] = val[x << IntVal 64 i]"
   using assms apply (cases x; cases y; auto)
-    apply (simp add: times_Value_def)
     subgoal premises p for x2
     proof -
       have 63: "(63 :: int64) = mask 6"
-        using assms(4) by blast
+        by eval
       then have "(2::int) ^ 6 = 64"
         by eval
       then have "uint i < (2::int) ^ 6"
-        by (smt (verit, ccfv_SIG) numeral_Bit0 of_int_numeral one_eq_numeral_iff p(6) uint_2p 
-            word_less_def word_not_simps(1) word_of_int_2p)
+        by (metis linorder_not_less lt2p_lem of_int_numeral p(4) size64 word_2p_lem word_of_int_2p wsst_TYs(3))
       then have "and i (mask 6) = i"
         using mask_eq_iff by blast
       then show "x2 << unat i = x2 << unat (and i (63::64 word))"
         unfolding 63
         by force
     qed
-    done
+    by presburger
 
 (*  x * ((2 ^ j) + 1) = (x << j) + x  *)
 lemma val_MulPower2Add1:
@@ -114,9 +111,8 @@ lemma val_MulPower2Add1:
   and     "i < 64"
   and     "val_to_bool(val[IntVal 64 0 < x])"
   and     "val_to_bool(val[IntVal 64 0 < y])"
-  shows   "x * y = val[(x << IntVal 64 i) + x]"
+  shows   "val[x * y] = val[(x << IntVal 64 i) + x]"
   using assms apply (cases x; cases y; auto)
-    apply (simp add: times_Value_def)
     subgoal premises p for x2
   proof -
     have 63: "(63 :: int64) = mask 6"
@@ -130,7 +126,7 @@ lemma val_MulPower2Add1:
     then show "x2 * ((2::64 word) ^ unat i + (1::64 word)) = x2 << unat (and i (63::64 word)) + x2"
       by (simp add: "63" \<open>and (i::64 word) (mask (6::nat)) = i\<close>)
     qed 
-  done
+    using val_to_bool.simps(2) by presburger
 
 
 (*  x * ((2 ^ j) - 1) = (x << j) - x  *)
@@ -141,9 +137,8 @@ lemma val_MulPower2Sub1:
   and     "i < 64"
   and     "val_to_bool(val[IntVal 64 0 < x])"
   and     "val_to_bool(val[IntVal 64 0 < y])"
-  shows   "x * y = val[(x << IntVal 64 i) - x]"
+  shows   "val[x * y] = val[(x << IntVal 64 i) - x]"
   using assms apply (cases x; cases y; auto)
-    apply (simp add: times_Value_def)
     subgoal premises p for x2
   proof -
     have 63: "(63 :: int64) = mask 6"
@@ -157,7 +152,7 @@ lemma val_MulPower2Sub1:
     then show "x2 * ((2::64 word) ^ unat i - (1::64 word)) = x2 << unat (and i (63::64 word)) - x2"
       by (simp add: "63" \<open>and (i::64 word) (mask (6::nat)) = i\<close>)
     qed 
-  done
+    using val_to_bool.simps(2) by presburger
 
 (* Helper *)
 lemma val_distribute_multiplication:
@@ -175,7 +170,7 @@ lemma val_MulPower2AddPower2:
   and     "i < 64"
   and     "j < 64"
   and     "x = new_int 64 xx"
-  shows   "x * y = val[(x << IntVal 64 i) + (x << IntVal 64 j)]"
+  shows   "val[x * y] = val[(x << IntVal 64 i) + (x << IntVal 64 j)]"
   using assms
   proof -
     have 63: "(63 :: int64) = mask 6"
@@ -186,15 +181,20 @@ lemma val_MulPower2AddPower2:
            val[(IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j)))]"
        (* x * (2^i + 2^j)*)
       using assms by (cases i; cases j; auto) 
-   then have "val[x * ((IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j))))] = 
+   then have 1: "val[x * ((IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j))))] = 
            val[(x * IntVal 64 (2 ^ unat(i))) + (x * IntVal 64 (2 ^ unat(j)))]"
       (* (x * 2^i) + (x * 2^j)*)
      using assms val_distribute_multiplication val_MulPower2 by simp 
-   then have "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
-     using assms val_MulPower2  sorry
-    then show "?thesis"
-       sorry
-    qed 
+   then have 2: "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
+     using assms val_MulPower2
+     using Value.distinct(1) intval_mul.simps(1) new_int.simps new_int_bin.simps
+     by (smt (verit))
+   then show "?thesis" 
+     using "1" Value.distinct(1) assms(1) assms(3) assms(5) assms(6) intval_mul.simps(1) n new_int.simps new_int_bin.elims val_MulPower2
+     by (smt (verit, del_insts))
+   qed
+
+thm_oracles val_MulPower2AddPower2
 
 (* Exp-level proofs *)
 lemma exp_multiply_zero_64:
@@ -207,7 +207,10 @@ lemma exp_multiply_zero_64:
 
 lemma exp_multiply_neutral:
  "exp[x * (const (IntVal b 1))] \<ge> x"
-  using val_multiply_neutral apply auto  sorry
+  using val_multiply_neutral apply auto
+  by (smt (verit) Value.inject(1) eval_unused_bits_zero intval_mul.elims mult.right_neutral new_int.elims new_int_bin.elims)
+
+thm_oracles exp_multiply_neutral
 
 lemma exp_MulPower2:
   fixes i :: "64 word"
@@ -217,8 +220,8 @@ lemma exp_MulPower2:
   and     "exp[x > (const IntVal b 0)]"
   and     "exp[y > (const IntVal b 0)]"
   shows "exp[x * y] \<ge> exp[x << ConstantExpr (IntVal 64 i)]"
-  using assms val_MulPower2 apply (cases x; cases y; auto)
-  sorry
+  using assms apply simp using val_MulPower2
+  by (metis ConstantExprE equiv_exprs_def unfold_binary)
 
 
 (* Optimizations *)
@@ -239,19 +242,76 @@ optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (
 
 
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
+  defer
   apply auto using val_multiply_negative
-  by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
+  apply (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
       intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps 
-      take_bit_dist_neg times_Value_def unary_eval.simps(2) unfold_unary 
+      take_bit_dist_neg unary_eval.simps(2) unfold_unary 
       val_eliminate_redundant_negative)
+  sorry (* termination *)
+
+fun isNonZero :: "Stamp \<Rightarrow> bool" where
+  "isNonZero (IntegerStamp b lo hi) = (lo > 0)" |
+  "isNonZero _ = False"
+
+lemma isNonZero_defn:
+  assumes "isNonZero (stamp_expr x)"
+  assumes "wf_stamp x"
+  shows "([m, p] \<turnstile> x \<mapsto> v) \<longrightarrow> (\<exists>vv b. (v = IntVal b vv \<and> val_to_bool val[(IntVal b 0) < v]))"
+  apply (rule impI) subgoal premises eval
+proof -
+  obtain b lo hi where xstamp: "stamp_expr x = IntegerStamp b lo hi"
+    using assms
+    by (meson isNonZero.elims(2))
+  then obtain vv where vdef: "v = IntVal b vv"
+    by (metis assms(2) eval valid_int wf_stamp_def)
+  have "lo > 0"
+    using assms(1) xstamp by force
+  then have signed_above: "int_signed_value b vv > 0"
+    using assms unfolding wf_stamp_def
+    using eval vdef xstamp by fastforce
+  have "take_bit b vv = vv"
+    using eval eval_unused_bits_zero vdef by auto
+  then have "vv > 0"
+    using signed_above
+    by (metis bit_take_bit_iff int_signed_value.simps not_less_zero signed_eq_0_iff signed_take_bit_eq_if_positive take_bit_0 take_bit_of_0 verit_comp_simplify1(1) word_gt_0)
+  then show ?thesis
+    using vdef using signed_above
+    by simp
+qed
+  done
 
 (* Need to prove exp_MulPower2 *)
 optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i) 
                               when (i > 0 \<and> 
                                     64 > i \<and>
-                                    y = (ConstantExpr (IntVal 64 (2 ^ unat(i)))))"
- 
-  sorry (* termination issues - mul needs to be considered larger than shift *)
+                                    y = exp[const (IntVal 64 (2 ^ unat(i)))])"
+   defer
+   apply simp apply (rule impI; (rule allI)+; rule impI)
+  subgoal premises eval for m p v
+proof -
+  obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+    using eval(2) by blast
+  then obtain xvv where xvv: "xv = IntVal 64 xvv"
+    using eval
+    using ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims new_int_bin.simps unfold_binary 
+    by (smt (verit))
+  obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
+    using eval(1) eval(2) by blast
+  then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
+    by (metis bin_eval.simps(2) eval(1) eval(2) evalDet unfold_binary xv)
+  have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
+    by (smt (verit, ccfv_SIG) ConstantExpr constantAsStamp.simps(1) eval_bits_1_64 take_bit64 validStampIntConst valid_value.simps(1) xv xvv)
+  then have rhs: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
+    using xv xvv using evaltree.BinaryExpr
+    by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps)
+  have "val[xv * yv] = val[xv << (IntVal 64 i)]"
+    using val_MulPower2
+    by (metis ConstantExprE eval(1) evaltree_not_undef lhs yv)
+  then show ?thesis
+    by (metis eval(1) eval(2) evalDet lhs rhs)
+qed
+  sorry (* termination issues *)
 
 
 end (* End of MulPhase *)

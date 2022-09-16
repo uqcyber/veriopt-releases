@@ -1,9 +1,9 @@
+subsection \<open>AbsNode Phase\<close>
+
 theory AbsPhase
   imports
     Common
 begin
-
-section \<open>Optimizations for Abs Nodes\<close>
 
 phase AbsNode
   terminating size

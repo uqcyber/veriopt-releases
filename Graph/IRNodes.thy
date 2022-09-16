@@ -1,5 +1,5 @@
-section \<open>Nodes\<close>
-subsection \<open>Types of Nodes\<close>
+section \<open>Graph Representation\<close>
+subsection \<open>IR Graph Nodes\<close>
 
 theory IRNodes
   imports

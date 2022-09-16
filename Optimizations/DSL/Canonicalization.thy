@@ -137,20 +137,15 @@ val _ =
 
 ML_file "rewrites.ML"
 
-phase Opt
-  terminating size
-begin
-
-end
-
-print_phases
-export_phases \<open>MyPhases\<close>
+subsubsection \<open>Semantic Preservation Obligation\<close>
 
 fun rewrite_preservation :: "IRExpr Rewrite \<Rightarrow> bool" where
   "rewrite_preservation (Transform x y) = (y \<le> x)" |
   "rewrite_preservation (Conditional x y cond) = (cond \<longrightarrow> (y \<le> x))" |
   "rewrite_preservation (Sequential x y) = (rewrite_preservation x \<and> rewrite_preservation y)" |
   "rewrite_preservation (Transitive x) = rewrite_preservation x"
+
+subsubsection \<open>Termination Obligation\<close>
 
 fun rewrite_termination :: "IRExpr Rewrite \<Rightarrow> (IRExpr \<Rightarrow> nat) \<Rightarrow> bool" where
   "rewrite_termination (Transform x y) trm = (trm x > trm y)" |
@@ -164,16 +159,21 @@ fun intval :: "Value Rewrite \<Rightarrow> bool" where
   "intval (Sequential x y) = (intval x \<and> intval y)" |
   "intval (Transitive x) = intval x"
 
+subsubsection \<open>Standard Termination Measure\<close>
+
 fun size :: "IRExpr \<Rightarrow> nat" where
-  "size (UnaryExpr op e) = (size e) + 1" |
-  "size (BinaryExpr BinAdd x y) = (size x) + ((size y) * 2)" |
-  "size (BinaryExpr op x y) = (size x) + (size y)" |
+  "size (UnaryExpr op e) = (size e) * 2" |
+  "size (BinaryExpr op x y) = (size x) + ((size y) * 2)" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr c) = 1" |
   "size (ParameterExpr ind s) = 2" |
   "size (LeafExpr nid s) = 2" |
   "size (ConstantVar c) = 2" |
   "size (VariableExpr x s) = 2"
+
+subsubsection \<open>Automated Tactics\<close>
+
+named_theorems size_simps "size simplication rules"
 
 method unfold_optimization =
   (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
@@ -183,8 +183,10 @@ method unfold_optimization =
     rule conjE, simp, simp del: le_expr_def, force?)
 
 method unfold_size =
-  (unfold size.simps, simp del: le_expr_def)?
+  (unfold size.simps, simp add: size_simps del: le_expr_def)?
+  | (simp add: size_simps del: le_expr_def)?
   | (unfold size.simps)?
+  
 
 print_methods
 

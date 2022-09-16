@@ -1,3 +1,5 @@
+subsection \<open>Experimental AndNode Phase\<close>
+
 theory NewAnd
   imports
     Common
@@ -450,10 +452,6 @@ proof -
 qed
 
 thm_oracles L1 L2
-
-text \<open>
-(x + 1110 0000) & (0001 1111)
-\<close>
 
 lemma unfold_binary_width_add:
   shows "([m,p] \<turnstile> BinaryExpr BinAdd xe ye \<mapsto> IntVal b val) = (\<exists> x y.

@@ -1,14 +1,15 @@
+subsection \<open>BinaryNode Phase\<close>
+
 theory BinaryNode
   imports
     Common
 begin
 
-phase BinaryNde 
+phase BinaryNode 
   terminating size
 begin
 
 optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2)"
-  apply (cases op; simp)
   unfolding le_expr_def
   apply (rule allI impI)+
   subgoal premises bin for m p v

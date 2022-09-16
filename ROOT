@@ -8,13 +8,13 @@ session Graph in Graph = "HOL-Library" +
   theories
     Values
     ValueThms
+    Stamp
     IRNodes
     IRNodeHierarchy
-    Stamp
     IRGraph
-    Traversal
-    Comparison
     Long
+    Comparison
+    Traversal
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
@@ -23,18 +23,19 @@ session Semantics in Semantics = Graph +
   description
     "Semantics of the GraalVM IR"
   options [document = pdf, document_output = "output",
-           show_question_marks = false, quick_and_dirty]
+           show_question_marks = false]
   sessions
     "HOL-Eisbach"
   theories
+    Form
+    IRGraphFrames
+    IRStepObj
+    IRStepThms
     IRTreeEval
     IRTreeEvalThms
+    (*TermRewrites*)
     TreeToGraph
-    (*Form
-    IRGraphFrames
     TreeToGraphThms
-    IRStepObj
-    IRStepThms*)
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"
@@ -42,14 +43,13 @@ session Semantics in Semantics = Graph +
 session Proofs in Proofs = Semantics +
   description
     "Supporting proof theories and definitions"
-  options [quick_and_dirty] (* two sorries in experimental blocks in StampEvalThms *)
   sessions
     Snippets
   theories
     Bisimulation
     Rewrites
-    Stuttering
     StampEvalThms
+    Stuttering
 
 session OptimizationDSL in "Optimizations/DSL" = Proofs +
   description
@@ -73,8 +73,23 @@ session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL
            show_question_marks = false, quick_and_dirty]
   theories
     Common
-    (*AddPhase*)
+
+    AbsPhase
+    AddPhase
+    AndPhase
+    BinaryNode
     ConditionalPhase
+    MulPhase
+    NewAnd
+    NotPhase
+    OrPhase
+    ShiftPhase
+    SignedDivPhase
+    SignedRemPhase
+    SubPhase
+    XorPhase
+
+    ProofStatus
   document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"
@@ -123,46 +138,6 @@ session Snippets = "HOL-Library" +
     "root.tex"
     "mathpartir.sty"
 
-session NewOptimizations in "Papers/NewOptimizations" = Canonicalizations +
-  description
-    "A collection of the new optimization proofs"
-  options [quick_and_dirty, document = pdf, document_output = "output"]
-  sessions
-    Optimizations
-    Canonicalizations
-  theories
-    Canonicalizations.AbsPhase
-    Canonicalizations.AddPhase
-    Canonicalizations.AndPhase
-    Canonicalizations.ConditionalPhase
-    Canonicalizations.MulPhase
-    Canonicalizations.NegatePhase
-    Canonicalizations.NotPhase
-    Canonicalizations.OrPhase
-    Canonicalizations.SignedDivPhase
-    Canonicalizations.SubPhase
-    Canonicalizations.XorPhase
-    Canonicalizations.ProofStatus
-  document_theories
-    Canonicalizations.AbsPhase
-    Canonicalizations.AddPhase
-    Canonicalizations.AndPhase
-    Canonicalizations.ConditionalPhase
-    Canonicalizations.MulPhase
-    Canonicalizations.NegatePhase
-    Canonicalizations.NotPhase
-    Canonicalizations.OrPhase
-    Canonicalizations.SignedDivPhase
-    Canonicalizations.SubPhase
-    Canonicalizations.XorPhase
-  document_files (in ".")
-    "root.tex"
-  document_files (in "../Stamps")
-    "lattice.tex"
-  document_files (in "../../latex")
-    "mathpartir.sty"
-
-
 
 session Document in "Papers/Main" = Canonicalizations +
   description
@@ -181,12 +156,16 @@ session Document in "Papers/Main" = Canonicalizations +
     ConditionalElimination.ConditionalElimination
   document_theories
     Graph.Values
+    Graph.ValueThms
+    Graph.Stamp
+
     Graph.IRNodes
     Graph.IRNodeHierarchy
-    Graph.Stamp
+    
     Graph.IRGraph
     Graph.Traversal
     Graph.Comparison
+    Graph.Long
 
     Semantics.IRTreeEval
     Semantics.IRTreeEvalThms
@@ -207,7 +186,20 @@ session Document in "Papers/Main" = Canonicalizations +
     OptimizationDSL.Canonicalization
 
     Canonicalizations.Common
+    Canonicalizations.AbsPhase
+    Canonicalizations.AddPhase
+    Canonicalizations.AndPhase
+    Canonicalizations.BinaryNode
     Canonicalizations.ConditionalPhase
+    Canonicalizations.MulPhase
+    Canonicalizations.NewAnd
+    Canonicalizations.NotPhase
+    Canonicalizations.OrPhase
+    Canonicalizations.ShiftPhase
+    Canonicalizations.SignedDivPhase
+    Canonicalizations.SignedRemPhase
+    Canonicalizations.SubPhase
+    Canonicalizations.XorPhase
 
     ConditionalElimination.ConditionalElimination
   document_files (in ".")
@@ -251,33 +243,16 @@ session StampLattice in "Papers/Stamps" = Graph +
     "mathpartir.sty"
 
 
-session TreePaperSnippets in "Papers/Tree" = Optimizations +
+session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
   description
     "Snippets of Isabelle theories used for the preparation of the future paper ``Verifying term graph optimizations using Isabelle/HOL''"
   options [document = pdf, document_output = "output",
-           show_question_marks = false, quick_and_dirty]
+           show_question_marks = false]
   sessions
     Snippets
-    Canonicalizations
   theories
-    Canonicalizations.ConditionalPhase
     TreeSnippets
     SlideSnippets
   document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"
-
-(*
-session ValidationPaperSnippets in "Papers/Validation" = Tests +
-  description
-    "Snippets of Isabelle theories used for the preparation of the future paper ``Validating Faithful Formalization of an Existing Compiler''"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
-  sessions
-    Snippets
-    Optimizations
-  theories
-    ValidationSnippets
-  document_files (in "../../latex")
-    "root.tex"
-    "mathpartir.sty"*)

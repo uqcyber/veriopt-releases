@@ -1,9 +1,9 @@
+subsection \<open>NegateNode Phase\<close>
+
 theory NegatePhase
   imports
     Common
 begin
-
-section \<open>Optimizations for Negate Nodes\<close>
 
 phase NegateNode
   terminating size
@@ -31,23 +31,13 @@ lemma exp_distribute_sub:
   using val_distribute_sub apply auto
   using evaltree_not_undef by auto
 
+thm_oracles exp_distribute_sub
+
 lemma exp_negative_cancel:
   shows "exp[-(-x)] \<ge> exp[x]"
-  using val_negative_cancel apply auto 
-  subgoal premises p for m p vb
-    proof -
-      have 2: "[m,p] \<turnstile> x \<mapsto> vb"
-        by (simp add: p(2))
-      then have "val[-(-vb)] \<noteq> UndefVal"
-        by (simp add: p(1))
-      then have "val[-(-vb)] = vb"
-        apply (cases vb; auto) using "2" eval_unused_bits_zero by auto
-      then have "[m,p] \<turnstile> x \<mapsto> val[-(-vb)]"
-        by (simp add: "2")
-      then show ?thesis
-        by auto
-    qed
-  done
+  using val_negative_cancel apply auto
+  by (metis (no_types, opaque_lifting) eval_unused_bits_zero intval_negate.elims intval_negate.simps(1) minus_equation_iff new_int.simps take_bit_dist_neg) 
+ 
 
 lemma exp_negative_shift: 
   assumes "stamp_expr x = IntegerStamp b' lo hi" 

@@ -1,4 +1,4 @@
-section \<open>Runtime Values and Arithmetic\<close>
+section \<open>Operator Semantics\<close>
 
 theory Values
   imports
@@ -7,9 +7,6 @@ theory Values
     "HOL-Library.Float"
     "HOL-Library.LaTeXsugar"
 begin
-
-lemma "-((x::float)-y) = (y-x)"
-  by simp
 
 text \<open>
 In order to properly implement the IR semantics we first introduce
@@ -41,6 +38,7 @@ abbreviation valid_int_widths :: "nat set" where
   "valid_int_widths \<equiv> {1, 8, 16, 32, 64}"
 
 
+experiment begin
 text \<open>Option 2: explicit width stored with each integer value.
       However, this does not help us to distinguish between short (signed) and char (unsigned).\<close>
 
@@ -51,8 +49,9 @@ setup_lifting type_definition_IntWidth
 
 lift_definition IntWidthBits :: "IntWidth \<Rightarrow> nat"
   is "\<lambda>w. w" .
+end
 
-
+experiment begin
 text \<open>Option 3: explicit type stored with each integer value.\<close>
 
 datatype IntType = ILong | IInt | IShort | IChar | IByte | IBoolean
@@ -72,10 +71,10 @@ fun int_signed :: "IntType \<Rightarrow> bool" where
   "int_signed IChar  = False" |
   "int_signed IByte  =  True" |
   "int_signed IBoolean = True"
+end
 
 
 text \<open>Option 4: int64 with the number of significant bits.\<close>
-
 
 type_synonym iwidth = "nat"  (* TODO: 1..64 *)
 type_synonym objref = "nat option"
@@ -181,59 +180,15 @@ fun intval_add :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
     (if b1 = b2 then IntVal b1 (take_bit b1 (v1+v2)) else UndefVal)" |
   "intval_add _ _ = UndefVal"
 
-(* TODO if needed:
-instantiation Value :: ab_semigroup_add
-begin
-
-definition plus_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "plus_Value = intval_add"
-
-print_locale! ab_semigroup_add
-
-instance proof
-  fix a b c :: Value
-  show "a + b + c = a + (b + c)"
-    apply (simp add: plus_Value_def)
-    apply (induction a; induction b; induction c; auto)
-    
-  show "a + b = b + a"
-    apply (simp add: plus_Value_def)
-    apply (induction a; induction b; auto)
-    done
-qed
-end
-*)
-
 (* Corresponds to JVM isub and lsub instructions. *)
 fun intval_sub :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_sub (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (v1-v2)" |
   "intval_sub _ _ = UndefVal"
 
-
-instantiation Value :: minus
-begin
-
-definition minus_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "minus_Value = intval_sub"
-
-instance proof qed
-end
-
-
 (* Corresponds to JVM imul and lmul instructions. *)
 fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_mul (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (v1*v2)" |
   "intval_mul _ _ = UndefVal"
-
-instantiation Value :: times
-begin
-
-definition times_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "times_Value = intval_mul"
-
-instance proof qed
-end
-
 
 (* Java division rounds towards 0, so we use sdiv, not div. *)
 (* TODO: find a signed division operator in the Word library? *)
@@ -243,15 +198,6 @@ fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
            ((int_signed_value b1 v1) sdiv (int_signed_value b2 v2)))" |
   "intval_div _ _ = UndefVal"
 
-instantiation Value :: divide
-begin
-
-definition divide_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "divide_Value = intval_div"
-
-instance proof qed
-end
-
 (* Java % is a modulo operator that can give negative results, since div rounds towards 0. *)
 fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_mod (IntVal b1 v1) (IntVal b2 v2) = 
@@ -259,37 +205,42 @@ fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
            ((int_signed_value b1 v1) smod (int_signed_value b2 v2)))" |
   "intval_mod _ _ = UndefVal"
 
-instantiation Value :: modulo
-begin
+fun intval_negate :: "Value \<Rightarrow> Value" where
+  "intval_negate (IntVal t v) = new_int t (- v)" |
+  "intval_negate _ = UndefVal"
 
-definition modulo_Value :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "modulo_Value = intval_mod"
+fun intval_abs :: "Value \<Rightarrow> Value" where
+  "intval_abs (IntVal t v) = new_int t (if int_signed_value t v < 0 then - v else v)" |
+  "intval_abs _ = UndefVal"
 
-instance proof qed
-end
+text \<open>TODO: clarify which widths this should work on: just 1-bit or all?\<close>
+fun intval_logic_negation :: "Value \<Rightarrow> Value" where
+  "intval_logic_negation (IntVal b v) = new_int b (logic_negate v)" |
+  "intval_logic_negation _ = UndefVal"
 
 
 
-subsection \<open>Bitwise Operators and Comparisons\<close>
-
-
-(* NOTE: this bitwise syntax bundle is added for Isabelle 2021-1. *)
-context
-  includes bit_operations_syntax
-begin
-
+subsection \<open>Bitwise Operators\<close>
 
 fun intval_and :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_and (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (v1 AND v2)" |
+  "intval_and (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (and v1 v2)" |
   "intval_and _ _ = UndefVal"
 
 fun intval_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_or (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (v1 OR v2)" |
+  "intval_or (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (or v1 v2)" |
   "intval_or _ _ = UndefVal"
 
 fun intval_xor :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_xor (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (v1 XOR v2)" |
+  "intval_xor (IntVal b1 v1) (IntVal b2 v2) = new_int_bin b1 b2 (xor v1 v2)" |
   "intval_xor _ _ = UndefVal"
+
+fun intval_not :: "Value \<Rightarrow> Value" where
+  "intval_not (IntVal t v) = new_int t (not v)" |
+  "intval_not _ = UndefVal"
+
+
+
+subsection \<open>Comparison Operators\<close>
 
 fun intval_short_circuit_or :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_short_circuit_or (IntVal b1 v1) (IntVal b2 v2) = bool_to_val_bin b1 b2 (((v1 \<noteq> 0) \<or> (v2 \<noteq> 0)))" |
@@ -308,25 +259,8 @@ fun intval_below :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_below (IntVal b1 v1) (IntVal b2 v2) = bool_to_val_bin b1 b2 (v1 < v2)" |
   "intval_below _ _ = UndefVal"
 
-fun intval_not :: "Value \<Rightarrow> Value" where
-  "intval_not (IntVal t v) = new_int t (NOT v)" |
-  "intval_not _ = UndefVal"
-
-fun intval_negate :: "Value \<Rightarrow> Value" where
-  "intval_negate (IntVal t v) = new_int t (- v)" |
-  "intval_negate _ = UndefVal"
-
-fun intval_abs :: "Value \<Rightarrow> Value" where
-  "intval_abs (IntVal t v) = new_int t (if int_signed_value t v < 0 then - v else v)" |
-  "intval_abs _ = UndefVal"
-
 fun intval_conditional :: "Value \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_conditional cond tv fv = (if (val_to_bool cond) then tv else fv)"
-
-text \<open>TODO: clarify which widths this should work on: just 1-bit or all?\<close>
-fun intval_logic_negation :: "Value \<Rightarrow> Value" where
-  "intval_logic_negation (IntVal b v) = new_int b (logic_negate v)" |
-  "intval_logic_negation _ = UndefVal"
 
 
 
@@ -334,16 +268,6 @@ subsection \<open>Narrowing and Widening Operators\<close>
 
 text \<open>Note: we allow these operators to have inBits=outBits, because the Graal compiler
   also seems to allow that case, even though it should rarely / never arise in practice.\<close>
-
-(* Not needed now:
-fun narrow_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
-  "narrow_helper inBits outBits val =
-    (if outBits \<le> inBits \<and> outBits \<le> 32 \<and>
-        outBits \<in> valid_int_widths \<and>
-        inBits \<in> valid_int_widths
-     then IntVal32 (signed_take_bit (outBits - 1) val)
-     else UndefVal)"
-*)
 
 value "sint(signed_take_bit 0 (1 :: int32))" (* gives -1, which matches compiler *)
 
@@ -354,27 +278,7 @@ fun intval_narrow :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Va
       else UndefVal)" |
   "intval_narrow _ _ _ = UndefVal"
 
-value "intval(intval_narrow 16 8 (IntVal32 (512 - 2)))"  (* gives -2 (IntVal32 4294967294) *)
-
-(* Not needed now:
-fun choose_32_64 :: "nat \<Rightarrow> int64 \<Rightarrow> Value" where
-  "choose_32_64 outBits v = (if outBits = 64 then (IntVal64 v) else (IntVal32 (scast v)))"
-*)
-
 value "sint (signed_take_bit 7 ((256 + 128) :: int64))"
-
-(*
-fun sign_extend_helper :: "nat \<Rightarrow> nat \<Rightarrow> int32 \<Rightarrow> Value" where
-  "sign_extend_helper inBits outBits val =
-    (if inBits \<le> outBits \<and> inBits \<le> 32 \<and>
-        outBits \<in> valid_int_widths \<and>
-        inBits \<in> valid_int_widths
-     then
-       (if outBits = 64 
-        then IntVal64 (scast (signed_take_bit (inBits - 1) val))
-        else IntVal32 (signed_take_bit (inBits - 1) val))
-     else UndefVal)"
-*)
 
 fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_sign_extend inBits outBits (IntVal b v) =
@@ -422,14 +326,6 @@ lemma intval_zero_extend_ok:
 
 subsection \<open>Bit-Shifting Operators\<close>
 
-(*
-lemma [code]: "shiftl1 n = n * 2"
-  by (simp add: shiftl1_eq_mult_2)
-
-lemma [code]: "shiftr1 n = n div 2"
-  by (simp add: shiftr1_eq_div_2)
-*)
-
 definition shiftl (infix "<<" 75) where 
   "shiftl w n = (push_bit n) w"
 
@@ -469,7 +365,7 @@ text \<open>Note that Java shift operators use unary numeric promotion, unlike o
   right-hand input can be any size.\<close>
 
 fun shift_amount :: "iwidth \<Rightarrow> int64 \<Rightarrow> nat" where
-  "shift_amount b val = unat (val AND (if b = 64 then 0x3F else 0x1f))"
+  "shift_amount b val = unat (and val (if b = 64 then 0x3F else 0x1f))"
 
 fun intval_left_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_left_shift (IntVal b1 v1) (IntVal b2 v2) = new_int b1 (v1 << shift_amount b1 v2)" |
@@ -480,9 +376,9 @@ text \<open>Signed shift is more complex, because we sometimes have to insert 1 
 fun intval_right_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_right_shift (IntVal b1 v1) (IntVal b2 v2) = 
      (let shift = shift_amount b1 v2 in
-      let ones = mask b1 AND (NOT (mask (b1 - shift) :: int64)) in
+      let ones = and (mask b1) (not (mask (b1 - shift) :: int64)) in
       (if int_signed_value b1 v1 < 0
-       then new_int b1 (ones OR (v1 >>> shift))
+       then new_int b1 (or ones (v1 >>> shift))
        else new_int b1 (v1 >>> shift)))" |
   "intval_right_shift _ _ = UndefVal"
 
@@ -490,10 +386,8 @@ fun intval_uright_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_uright_shift (IntVal b1 v1) (IntVal b2 v2) = new_int b1 (v1 >>> shift_amount b1 v2)" |
   "intval_uright_shift _ _ = UndefVal"
 
-end
 
-
-section \<open>Examples of Narrowing / Widening Functions\<close>
+subsubsection \<open>Examples of Narrowing / Widening Functions\<close>
 
 experiment begin
 corollary "intval_narrow 32 8 (IntVal 32 (256 + 128)) = IntVal 8 128" by simp

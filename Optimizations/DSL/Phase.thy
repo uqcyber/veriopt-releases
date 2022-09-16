@@ -1,3 +1,5 @@
+subsection \<open>Optimization Phases\<close>
+
 theory Phase
   imports Main
 begin

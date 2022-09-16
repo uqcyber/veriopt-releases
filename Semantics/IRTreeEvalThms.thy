@@ -481,7 +481,7 @@ next
     by auto
   then show ?L
      by (rule BinaryExpr)
-qed
+ qed
 
 lemma unfold_unary:
   shows "([m,p] \<turnstile> UnaryExpr op xe \<mapsto> val)
@@ -719,6 +719,44 @@ next
     by blast
 qed
 
+
+
+lemma unfold_binary_width:
+  assumes "op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_shift_ops"
+  shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> IntVal b val) = (\<exists> x y.
+          (([m,p] \<turnstile> xe \<mapsto> IntVal b x) \<and>
+           ([m,p] \<turnstile> ye \<mapsto> IntVal b y) \<and>
+           (IntVal b val = bin_eval op (IntVal b x) (IntVal b y)) \<and>
+           (IntVal b val \<noteq> UndefVal)
+        ))" (is "?L = ?R")
+proof (intro iffI)
+  assume 3: ?L
+  show ?R apply (rule evaltree.cases[OF 3])
+         apply force+ apply auto[1] 
+    using assms apply (cases op; auto)
+          apply (smt (verit) intval_add.elims Value.inject(1))
+    using intval_mul.elims Value.inject(1)
+         apply (smt (verit) new_int.simps new_int_bin.simps)
+    using intval_sub.elims Value.inject(1)
+        apply (smt (verit) new_int.simps new_int_bin.simps)
+    using intval_and.elims Value.inject(1)
+       apply (smt (verit) new_int.simps new_int_bin.simps take_bit_and)
+    using intval_or.elims Value.inject(1)
+      apply (smt (verit) new_int.simps new_int_bin.simps take_bit_or)
+    using intval_xor.elims Value.inject(1)
+     apply (smt (verit) new_int.simps new_int_bin.simps take_bit_xor)
+  by blast
+
+next
+  assume R: ?R
+  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"
+        and "[m,p] \<turnstile> ye \<mapsto> IntVal b y"
+        and "new_int b val = bin_eval op (IntVal b x) (IntVal b y)"
+        and "new_int b val \<noteq> UndefVal"
+    using bin_eval_unused_bits_zero by force
+  then show ?L 
+    using R by blast
+qed
 
 end
 

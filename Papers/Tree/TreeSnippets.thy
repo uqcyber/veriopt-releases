@@ -14,6 +14,11 @@ begin
 declare [[show_types=false,show_sorts=false]]
 no_notation ConditionalExpr ("_ ? _ : _")
 
+\<comment> \<open>We want to disable and reduce how aggressive automated tactics are as obligations are generated in the paper\<close>
+method unfold_size = -
+method unfold_optimization = 
+  (unfold rewrite_preservation.simps, unfold rewrite_termination.simps,
+    rule conjE, simp, simp del: le_expr_def)
 
 subsection \<open>Markup syntax for common operations\<close>
 
@@ -143,10 +148,10 @@ lemma sub_same_val:
 
 snipbegin \<open>sub-same-32\<close>
 optimization SubIdentity:
-  "(e - e) \<longmapsto> ConstantExpr (IntVal b 0)
+  "e - e \<longmapsto> ConstantExpr (IntVal b 0)
      when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
   snipend -
-  apply (metis Suc_lessI mult_eq_1_iff mult_pos_pos nat.discI nat.inject numeral_3_eq_3 size_pos zero_less_numeral)
+   using IRExpr.disc(42) size.simps(4) size_non_const apply presburger
   apply (rule impI) apply simp
 proof -
   assume assms: "stamp_binary BinSub (stamp_expr e) (stamp_expr e) = IntegerStamp b lo hi \<and> wf_stamp exp[e - e]"
@@ -256,6 +261,7 @@ snipend -
   snipbegin \<open>InverseRightSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
+  using RedundantSubAdd2(2) rewrite_termination.simps(1) apply blast
   using RedundantSubAdd2(1) rewrite_preservation.simps(1) by blast
 end
 
@@ -265,7 +271,6 @@ text \<open>@{thm[display,margin=60] mono_unary}
 @{thm[display,margin=60] mono_conditional}
 \<close>
 snipend -
-
 
 phase SnipPhase 
   terminating size
@@ -280,7 +285,7 @@ snipend -
 
 snipbegin \<open>AddCommuteConstantRight\<close>
 optimization AddCommuteConstantRight:
-  "((const v) + y) \<longmapsto> (y + (const v)) when \<not>(is_ConstantExpr y)"
+  "(const v) + y \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
 snipend -
   snipbegin \<open>AddCommuteConstantRightObligation\<close>
   text \<open>@{subgoals[display,margin=50]}\<close>
@@ -288,12 +293,13 @@ snipend -
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
-optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
+optimization AddNeutral: "e + (const (IntVal 32 0)) \<longmapsto> e"
 snipend -
   snipbegin \<open>AddNeutralObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using AddNeutral(1) rewrite_preservation.simps(1) by blast
+  apply auto
+  using AddNeutral(1) rewrite_preservation.simps(1) by force
 
 snipbegin \<open>AddToSub\<close>
 optimization AddToSub: "-e + y \<longmapsto> y - e"

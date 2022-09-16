@@ -67,6 +67,73 @@ lemma exp_and_nots:
    apply (cases x; cases y; auto) using val_and_nots 
   by fastforce+ 
 
+
+lemma exp_sign_extend:
+  assumes "e = (1 << In) - 1"
+  shows
+   "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
+                                               (ConstantExpr (new_int b e))
+                              \<ge> (UnaryExpr (UnaryZeroExtend In Out) x)"
+  apply auto
+  subgoal premises p for m p va
+    proof - 
+      obtain va where va: "[m,p] \<turnstile> x \<mapsto> va"
+        using p(2) by auto
+      then have "va \<noteq> UndefVal"
+        by (simp add: evaltree_not_undef)
+      then have 1: "intval_and (intval_sign_extend In Out va) (IntVal b (take_bit b e)) \<noteq> UndefVal"
+        using evalDet p(1) p(2) va by blast
+      then have 2: "intval_sign_extend In Out va \<noteq> UndefVal"
+        by auto
+      then have 21: "(0::nat) < b"
+        by (simp add: p(4))
+      then have 3: "b \<sqsubseteq> (64::nat)"
+        by (simp add: p(5))
+      then have 4: "- ((2::int) ^ b div (2::int)) \<sqsubseteq> sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e))"
+        by (simp add: p(6))
+     then have 5: "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e)) < (2::int) ^ b div (2::int)"
+        by (simp add: p(7))
+      then have 6: "[m,p] \<turnstile> UnaryExpr (UnaryZeroExtend In Out)
+                 x \<mapsto> intval_and (intval_sign_extend In Out va) (IntVal b (take_bit b e))"
+        apply (cases va; simp) 
+        apply (simp add: \<open>(va::Value) \<noteq> UndefVal\<close>) defer 
+         subgoal premises p for x3
+          proof -
+            have "va = ObjRef x3"
+              using p(1) by auto
+            then have "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e)) < (2::int) ^ b div (2::int)"
+              by (simp add: "5")
+            then show ?thesis
+              using "2" intval_sign_extend.simps(3) p(1) by blast
+          qed 
+          
+         subgoal premises p for x4
+          proof -
+            have sg1: "va = ObjStr x4"
+              using "2" p(1) by auto
+            then have "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e)) < (2::int) ^ b div (2::int)"
+              by (simp add: "5")
+            then show ?thesis
+              using "1" sg1 by auto
+          qed 
+
+          (* Last subgoal*)
+          subgoal premises p for x21 x22
+            proof - 
+              have sgg1: "va = IntVal x21 x22"
+                by (simp add: p(1))
+              then have sgg2: "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e)) < (2::int) ^ b div (2::int)"
+                by (simp add: "5")
+              then show ?thesis
+                sorry
+              qed
+            done
+      then show ?thesis
+        by (metis evalDet p(2) va)
+    qed 
+  done 
+
+
 (*lemma exp_and_neutral: 
   "exp[x & ~(const (new_int b 0))] \<ge> x"
   apply auto using val_and_neutral eval_unused_bits_zero sorry (*
@@ -99,6 +166,7 @@ text \<open>Optimisations\<close>
 optimization AndEqual: "x & x \<longmapsto> x"
   using exp_and_equal by blast
 
+(* Has a counterexample *)
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
                                          when \<not>(is_ConstantExpr y)"
   using val_and_commute apply auto 
@@ -108,13 +176,13 @@ optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
     using exp_and_nots by auto 
 
+(* Need to prove exp_sign_extend*)
 optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
-                                                     (ConstantExpr (IntVal 32 e))
-                                   \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) x)
-                                                   when (e = (1 << In) - 1)"
-   apply simp_all 
-   apply auto
-  sorry 
+                                               (const (new_int b e))
+                              \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) x)
+                                  when (e = (1 << In) - 1)"
+   using exp_sign_extend by simp 
+  
 
 
 optimization AndNeutral: "(x & ~(const (IntVal b 0))) \<longmapsto> x 

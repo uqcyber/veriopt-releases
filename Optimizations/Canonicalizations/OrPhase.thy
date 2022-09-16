@@ -47,19 +47,42 @@ lemma val_or_not_operands:
   apply (cases x; cases y; auto)
   by (simp add: take_bit_not_take_bit)
 
-(* Expr level proofs *)
+(* Exp level proofs *)
 lemma exp_or_equal:
   "exp[x | x] \<ge> exp[x]"
-   apply simp using val_or_equal sorry (*
-  by (metis bin_eval.simps(5) evalDet evaltree_not_undef unfold_binary)*)
+  apply simp using val_or_equal apply auto 
+  subgoal premises p for m p xa y
+    proof -
+      obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+        using p(2) by auto
+      obtain y where y: "[m,p] \<turnstile> x \<mapsto> y"
+        using p(2) by auto
+      then have "val[xa | y] \<noteq> UndefVal"
+        by (metis evalDet p(1) p(2) p(3) xa)
+      then have "val[xa | xa] = xa"
+        apply (cases xa; auto) using eval_unused_bits_zero xa by auto
+      then show ?thesis
+        by (metis evalDet p(1) p(2) xa)
+    qed 
+  done
 
 lemma exp_elim_redundant_false:
  "exp[x | false] \<ge> exp[x]"
-   apply simp using val_elim_redundant_false 
-   apply (cases x) sorry (*
-  by (metis BinaryExprE bin_eval.simps(5) bool_to_val.simps(2) evaltree_not_undef)+*)
-  
-(* Optimizations *)
+   apply simp using val_elim_redundant_false apply auto
+   subgoal premises p for m p xa
+    proof - 
+      obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+        using p(2) by auto
+      then have "val[xa | (IntVal 32 0)] \<noteq> UndefVal"
+        using evalDet p(2) p(3) by blast
+      then have "[m,p] \<turnstile> x \<mapsto> val[xa | (IntVal 32 0)]"
+        apply (cases xa; auto) using eval_unused_bits_zero xa by fastforce
+      then show ?thesis
+        using evalDet p(2) xa by blast
+    qed
+  done
+
+text \<open>Optimisations\<close>
 optimization OrEqual: "x | x \<longmapsto> x"
   by (meson exp_or_equal le_expr_def)
 

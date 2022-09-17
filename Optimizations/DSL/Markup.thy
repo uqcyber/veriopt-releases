@@ -8,12 +8,12 @@ begin
 
 datatype 'a Rewrite =
   Transform 'a 'a ("_ \<longmapsto> _" 10) |
-  Conditional 'a 'a "bool" ("_ \<longmapsto> _ when _" 70) |
+  Conditional 'a 'a "bool" ("_ \<longmapsto> _ when _" 11) |
   Sequential "'a Rewrite" "'a Rewrite" |
   Transitive "'a Rewrite"
 
 datatype 'a ExtraNotation =
-  ConditionalNotation 'a 'a 'a ("_ ? _ : _") |
+  ConditionalNotation 'a 'a 'a ("_ ? _ : _" 50) |
   EqualsNotation 'a 'a ("_ eq _") |
   ConstantNotation 'a ("const _" 120) |
   TrueNotation ("true") |

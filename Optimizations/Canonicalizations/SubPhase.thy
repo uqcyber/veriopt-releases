@@ -195,8 +195,13 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
    Canonicalization.size y = (0::nat)
 *)
 optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"  
-   defer using exp_sub_negative_value apply simp
-  sorry
+  using exp_sub_negative_value by simp
+
+thm_oracles SubNegativeValue
+
+optimization SubNegativeConstant: "x - (const (intval_negate y)) \<longmapsto> x + (const y)"
+   defer
+  apply auto sorry
 
 optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"

@@ -67,24 +67,22 @@ lemma val_sub_then_left_sub:
 
 lemma val_subtract_zero:
   assumes "x = new_int b v"
-  assumes "intval_sub x (IntVal 32 0) \<noteq> UndefVal "
-  shows "intval_sub x (IntVal 32 0) = val[x]"
-  using assms apply (induction x; simp)
-  by presburger
+  assumes "intval_sub x (IntVal b 0) \<noteq> UndefVal "
+  shows "intval_sub x (IntVal b 0) = val[x]"
+  using assms by (induction x; simp)
 
 lemma val_zero_subtract_value:
   assumes "x = new_int b v"
-  assumes "intval_sub (IntVal 32 0) x \<noteq> UndefVal "
-  shows "intval_sub (IntVal 32 0) x = val[-x]"
-  using assms apply (induction x; simp)
-  by presburger
-
+  assumes "intval_sub (IntVal b 0) x \<noteq> UndefVal "
+  shows "intval_sub (IntVal b 0) x = val[-x]"
+  using assms by (induction x; simp)
+(*
 lemma val_zero_subtract_value_64:
   assumes "x = new_int b v"
   assumes "intval_sub (IntVal 64 0) x \<noteq> UndefVal "
   shows "intval_sub (IntVal 64 0) x = val[-x]"
   using assms apply (induction x; simp)
-  by presburger
+  by presburger*)
 
 lemma val_sub_then_left_add:
   assumes "val[x - (x + y)] \<noteq> UndefVal"
@@ -110,7 +108,7 @@ lemma val_sub_negative_const:
 
 (* Expression level proofs *)
 lemma exp_sub_after_right_add:
-  shows "exp[(x+y)-y] \<ge> exp[x]"
+  shows "exp[(x + y) - y] \<ge> exp[x]"
   apply auto using val_sub_after_right_add_2
   using evalDet eval_unused_bits_zero intval_add.elims new_int.simps
   by (smt (verit)) 
@@ -133,22 +131,29 @@ lemma exp_sub_negative_value:
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
-(* exp[x - (x - y)] = exp[x - x + y] \<Rightarrow> false *)
 lemma exp_sub_then_left_sub:
   assumes "wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi"
   shows "exp[x - (x - y)] \<ge> exp[y]"
-  using val_sub_then_left_sub assms
-proof -
-  have 1: "exp[x - (x - y)] = exp[x - x + y]"
-    apply simp
-    sorry
-  have "exp[x - (x - y)] \<ge> exp[(const (new_int b 0)) + y]"
-    sorry
-  have "exp[(const IntVal b 0) + y] \<ge> exp[y]"
-    sorry
-  then show ?thesis
-    using "1" by fastforce
-qed
+  using val_sub_then_left_sub assms apply auto
+  subgoal premises p for m p xa xaa ya
+    proof- 
+      obtain xa where xa: "[m, p] \<turnstile> x \<mapsto> xa"
+        using p(4) by blast
+      obtain ya where ya: "[m, p] \<turnstile> y \<mapsto> ya"
+        using p(7) by auto
+      obtain xaa where xaa: "[m, p] \<turnstile> x \<mapsto> xaa"
+        using p(4) by blast
+      have 1: "val[xa - (xaa - ya)] \<noteq> UndefVal"
+        by (metis evalDet p(4) p(5) p(6) p(7) xa xaa ya)
+      then have "val[xaa - ya] \<noteq> UndefVal"
+        by auto
+      then have "[m,p] \<turnstile> y \<mapsto> val[xa - (xaa - ya)]"
+        by (smt (verit) "1" evalDet eval_unused_bits_zero intval_sub.elims new_int_bin.simps p(1) 
+            p(7) xa xaa ya)
+      then show ?thesis
+        by (metis evalDet p(4) p(6) p(7) xa xaa ya)
+    qed 
+  done
 
 text \<open>Optimisations\<close>
 
@@ -184,10 +189,10 @@ optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x
   by (smt (verit) add.right_neutral diff_add_cancel eval_unused_bits_zero intval_sub.elims 
       intval_word.simps new_int.simps new_int_bin.simps)
 
+(* Doesn't have any subgoals? *)
 (*
 optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto> 
-                                    x + (const (IntVal b y)) 
-                                    when (y < 0)"  
+                                    x + (const (IntVal b y))  when (y < 0)"  
   done
 *)
 
@@ -212,6 +217,16 @@ optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x)
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
   "forPrimitive (IntegerStamp b lo hi) v = ConstantExpr (if take_bit b v = v then (IntVal b v) else UndefVal)" |
   "forPrimitive _ _ = ConstantExpr UndefVal"
+
+(*
+optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when 
+                      (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+   apply auto
+   apply (meson less_add_same_cancel1 less_trans_Suc size_pos)
+  by (smt (verit) Value.inject(1) eq_iff_diff_eq_0 evalDet intval_sub.elims new_int.elims 
+      new_int_bin.elims take_bit_of_0 unfold_const validDefIntConst valid_stamp.simps(1) 
+      valid_value.simps(1) wf_stamp_def)
+*)
 
 lemma unfold_forPrimitive:
   "forPrimitive s v = ConstantExpr (if is_IntegerStamp s \<and> take_bit (stp_bits s) v = v then (IntVal (stp_bits s) v) else UndefVal)"

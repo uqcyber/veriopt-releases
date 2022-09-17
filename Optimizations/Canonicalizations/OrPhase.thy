@@ -46,19 +46,20 @@ lemma val_or_not_operands:
   apply (cases x; cases y; auto)
   by (simp add: take_bit_not_take_bit)
 
-(* Expr level proofs *)
+(* Exp level proofs *)
 lemma exp_or_equal:
   "exp[x | x] \<ge> exp[x]"
    using val_or_equal apply auto
    by (smt (verit, ccfv_SIG) evalDet eval_unused_bits_zero intval_negate.elims intval_or.simps(2) intval_or.simps(6) intval_or.simps(7) new_int.simps val_or_equal)
+
 
 lemma exp_elim_redundant_false:
  "exp[x | false] \<ge> exp[x]"
    using val_elim_redundant_false apply auto
    by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_or.elims new_int.simps new_int_bin.simps val_elim_redundant_false)
 
-
-(* Optimizations *)
+ 
+text \<open>Optimisations\<close>
 optimization OrEqual: "x | x \<longmapsto> x"
   by (meson exp_or_equal le_expr_def)
 

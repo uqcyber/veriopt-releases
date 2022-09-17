@@ -23,7 +23,6 @@ lemma bin_eliminate_redundant_false:
  "bin[x \<oplus> 0] = bin[x]"
   by simp
 
-
 (* Value level proofs *)
 lemma val_xor_self_is_false:
   assumes "val[x \<oplus> x] \<noteq> UndefVal"
@@ -31,7 +30,8 @@ lemma val_xor_self_is_false:
   using assms by (cases x; auto)
 
 lemma val_xor_self_is_false_2:
-  assumes "(val[x \<oplus> x]) \<noteq> UndefVal \<and> x = IntVal 32 v" 
+  assumes "(val[x \<oplus> x]) \<noteq> UndefVal"
+  and     "x = IntVal 32 v" 
   shows "val[x \<oplus> x] = bool_to_val False"
   using assms by (cases x; auto)
 
@@ -49,15 +49,14 @@ lemma val_xor_commute:
 lemma val_eliminate_redundant_false:
   assumes "x = new_int b v"
   assumes "val[x \<oplus> (bool_to_val False)] \<noteq> UndefVal"
-  shows "val[x \<oplus> (bool_to_val False)] = x"
+  shows   "val[x \<oplus> (bool_to_val False)] = x"
   using assms apply (cases x; auto)
   by meson
 
-
-(* Expression level proofs *)
+(* Exp level proofs *)
 lemma exp_xor_self_is_false:
  assumes "wf_stamp x \<and> stamp_expr x = default_stamp" 
- shows "exp[x \<oplus> x] \<ge> exp[false]" 
+ shows   "exp[x \<oplus> x] \<ge> exp[false]" 
   using assms apply auto unfolding wf_stamp_def
   using IntVal0 Value.inject(1) bool_to_val.simps(2) constantAsStamp.simps(1) evalDet 
         int_signed_value_bounds new_int.simps unfold_const val_xor_self_is_false_2 valid_int 
@@ -81,12 +80,13 @@ lemma exp_eliminate_redundant_false:
   done
 
 text \<open>Optimisations\<close>
+
 optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when 
                       (wf_stamp x \<and> stamp_expr x = default_stamp)"
-  apply (metis One_nat_def Suc_lessI eval_nat_numeral(3) less_Suc_eq mult.right_neutral numeral_2_eq_2 one_less_mult size_pos)
+   apply (metis One_nat_def Suc_lessI eval_nat_numeral(3) less_Suc_eq mult.right_neutral 
+          numeral_2_eq_2 one_less_mult size_pos)
   using exp_xor_self_is_false by auto 
 
-(* Has counterexample *)
 optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
    unfolding le_expr_def using val_xor_commute size_non_const 
    apply simp apply auto 
@@ -95,12 +95,16 @@ optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<op
 optimization EliminateRedundantFalse: "(x \<oplus> false) \<longmapsto> x"
     using exp_eliminate_redundant_false by blast 
 
-
 (* BW: this doesn't seem right *)
-optimization MaskOutRHS: "(x \<oplus> const y) \<longmapsto> UnaryExpr UnaryNot x
-                                 when ((stamp_expr (x) = IntegerStamp bits l h))"
-    unfolding le_expr_def apply auto 
+(* Doesn't have any subgoals *)
+(*
+optimization MaskOutRHS: "(x \<oplus> y) \<longmapsto> ~x
+                          when (is_ConstantExpr y
+                             \<and> (stamp_expr (BinaryExpr BinXor x y) = IntegerStamp stampBits l h) 
+                             \<and> (BinaryExpr BinAnd y (ConstantExpr (new_int stampBits (not 0))) 
+                                                   = ConstantExpr (new_int stampBits (not 0))))"
   sorry
+*)
 
 end (* End of XorPhase *)
 

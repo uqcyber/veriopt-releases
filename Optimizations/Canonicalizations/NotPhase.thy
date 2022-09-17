@@ -17,7 +17,7 @@ lemma bin_not_cancel:
 (* Value level proofs *)
 lemma val_not_cancel:
   assumes "val[~(new_int b v)] \<noteq> UndefVal"
-  shows "val[~(~(new_int b v))] = (new_int b v)"
+  shows   "val[~(~(new_int b v))] = (new_int b v)"
    using bin_not_cancel
   by (simp add: take_bit_not_take_bit)
 
@@ -30,6 +30,7 @@ lemma exp_not_cancel:
 
 
 text \<open>Optimisations\<close>
+
 optimization NotCancel: "exp[~(~a)] \<longmapsto> a"
   by (metis exp_not_cancel)
 

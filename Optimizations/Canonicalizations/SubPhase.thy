@@ -10,7 +10,6 @@ phase SubNode
 begin
 
 (* Word level proofs *)
-
 lemma bin_sub_after_right_add:
   shows "((x::('a::len) word) + (y::('a::len) word)) - y = x"
   by simp
@@ -47,66 +46,58 @@ lemma bin_sub_negative_const:
 lemma val_sub_after_right_add_2:
   assumes "x = new_int b v"
   assumes "val[(x + y) - y] \<noteq> UndefVal"
-  shows "val[(x + y) - (y)] = val[x]"
+  shows   "val[(x + y) - y] = val[x]"
   using bin_sub_after_right_add 
   using assms apply (cases x; cases y; auto)
   by (metis (full_types) intval_sub.simps(2))
 
 lemma val_sub_after_left_sub:
   assumes "val[(x - y) - x] \<noteq> UndefVal"
-  shows "val[(x - y) - x] = val[-y]"
+  shows   "val[(x - y) - x] = val[-y]"
   using assms apply (cases x; cases y; auto)
   using intval_sub.elims by fastforce
 
 lemma val_sub_then_left_sub:
   assumes "y = new_int b v"
   assumes "val[x - (x - y)] \<noteq> UndefVal"
-  shows "val[x - (x - y)] = val[y]"
+  shows   "val[x - (x - y)] = val[y]"
   using assms apply (cases x; cases y; auto)
   by (metis (mono_tags) intval_sub.simps(5))
 
 lemma val_subtract_zero:
   assumes "x = new_int b v"
   assumes "intval_sub x (IntVal b 0) \<noteq> UndefVal "
-  shows "intval_sub x (IntVal b 0) = val[x]"
+  shows   "intval_sub x (IntVal b 0) = val[x]"
   using assms by (induction x; simp)
 
 lemma val_zero_subtract_value:
   assumes "x = new_int b v"
   assumes "intval_sub (IntVal b 0) x \<noteq> UndefVal "
-  shows "intval_sub (IntVal b 0) x = val[-x]"
+  shows   "intval_sub (IntVal b 0) x = val[-x]"
   using assms by (induction x; simp)
-(*
-lemma val_zero_subtract_value_64:
-  assumes "x = new_int b v"
-  assumes "intval_sub (IntVal 64 0) x \<noteq> UndefVal "
-  shows "intval_sub (IntVal 64 0) x = val[-x]"
-  using assms apply (induction x; simp)
-  by presburger*)
 
 lemma val_sub_then_left_add:
   assumes "val[x - (x + y)] \<noteq> UndefVal"
-  shows "val[x - (x + y)] = val[-y]"
+  shows   "val[x - (x + y)] = val[-y]"
   using assms apply (cases x; cases y; auto)
   by (metis (mono_tags, lifting) intval_sub.simps(5))
 
 lemma val_sub_negative_value:
-  assumes "val[x - (- y)] \<noteq> UndefVal"
-  shows "val[x - (-y)] = val[x + y]"
+  assumes "val[x - (-y)] \<noteq> UndefVal"
+  shows   "val[x - (-y)] = val[x + y]"
   using assms by (cases x; cases y; auto)
 
 lemma val_sub_self_is_zero:
   assumes "x = new_int b v \<and> val[x - x] \<noteq> UndefVal"
-  shows "val[x - x] = new_int b 0"
+  shows   "val[x - x] = new_int b 0"
   using assms by (cases x; auto)
 
 lemma val_sub_negative_const:
   assumes "y = new_int b v \<and> val[x - (-y)] \<noteq> UndefVal"
-  shows "val[x - (- y)] = val[x + y]"
+  shows "val[x - (-y)] = val[x + y]"
   using assms by (cases x; cases y; auto)
 
-
-(* Expression level proofs *)
+(* Exp level proofs *)
 lemma exp_sub_after_right_add:
   shows "exp[(x + y) - y] \<ge> exp[x]"
   apply auto using val_sub_after_right_add_2
@@ -133,7 +124,7 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
 
 lemma exp_sub_then_left_sub:
   assumes "wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi"
-  shows "exp[x - (x - y)] \<ge> exp[y]"
+  shows   "exp[x - (x - y)] \<ge> exp[y]"
   using val_sub_then_left_sub assms apply auto
   subgoal premises p for m p xa xaa ya
     proof- 
@@ -167,7 +158,6 @@ optimization SubAfterSubLeft: "((x - y) - x) \<longmapsto>  -y"
    apply auto
   by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_after_left_sub)
 
-
 optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
    apply auto
   by (metis evalDet unary_eval.simps(2) unfold_unary 
@@ -182,7 +172,6 @@ optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y
                                when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using exp_sub_then_left_sub by blast
  
-
 optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x 
                              when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   apply auto
@@ -196,12 +185,8 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
   done
 *)
 
-(* Strange final subgoal 
-   Canonicalization.size y = (0::nat)
-*)
 optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"  
-   defer using exp_sub_negative_value apply blast 
-  sorry
+   defer using exp_sub_negative_value by blast 
 
 optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"

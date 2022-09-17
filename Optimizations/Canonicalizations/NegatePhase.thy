@@ -17,12 +17,12 @@ lemma bin_negative_cancel:
 (* Value level proofs *)
 lemma val_negative_cancel:
   assumes "intval_negate (new_int b v) \<noteq> UndefVal"
-  shows "val[-(-(new_int b v))] = val[new_int b v]"
+  shows   "val[-(-(new_int b v))] = val[new_int b v]"
   using assms by simp
 
 lemma val_distribute_sub:
   assumes "x \<noteq> UndefVal \<and> y \<noteq> UndefVal"
-  shows "val[-(x - y)] = val[y - x]"
+  shows   "val[-(x - y)] = val[y - x]"
   using assms by (cases x; cases y; auto)
 
 (* Exp level proofs *)
@@ -36,9 +36,9 @@ thm_oracles exp_distribute_sub
 lemma exp_negative_cancel:
   shows "exp[-(-x)] \<ge> exp[x]"
   using val_negative_cancel apply auto
-  by (metis (no_types, opaque_lifting) eval_unused_bits_zero intval_negate.elims intval_negate.simps(1) minus_equation_iff new_int.simps take_bit_dist_neg) 
+  by (metis (no_types, opaque_lifting) eval_unused_bits_zero intval_negate.elims 
+      intval_negate.simps(1) minus_equation_iff new_int.simps take_bit_dist_neg) 
  
-
 lemma exp_negative_shift: 
   assumes "stamp_expr x = IntegerStamp b' lo hi" 
   and     "unat y = (b' - 1)"
@@ -87,6 +87,7 @@ lemma exp_negative_shift:
   done
 
 text \<open>Optimisations\<close>
+
 optimization NegateCancel: "-(-(x)) \<longmapsto> x"
   using val_negative_cancel exp_negative_cancel by blast 
 

@@ -208,7 +208,8 @@ lemma exp_multiply_zero_64:
 lemma exp_multiply_neutral:
  "exp[x * (const (IntVal b 1))] \<ge> x"
   using val_multiply_neutral apply auto
-  by (smt (verit) Value.inject(1) eval_unused_bits_zero intval_mul.elims mult.right_neutral new_int.elims new_int_bin.elims)
+  by (smt (verit) Value.inject(1) eval_unused_bits_zero intval_mul.elims mult.right_neutral 
+      new_int.elims new_int_bin.elims)
 
 thm_oracles exp_multiply_neutral
 
@@ -224,12 +225,12 @@ lemma exp_MulPower2:
   by (metis ConstantExprE equiv_exprs_def unfold_binary)
 
 
-(* Optimizations *)
+text \<open>Optimisations\<close>
+
 optimization EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
    apply auto using val_eliminate_redundant_negative bin_eval.simps(2)
   by (metis BinaryExpr)
 
-(* Need to prove exp_multiply_neutral *)
 optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
   using exp_multiply_neutral by blast
 
@@ -239,7 +240,6 @@ optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (
         mult_zero_right new_int.simps new_int_bin.simps take_bit_of_0 unfold_const 
         valid_stamp.simps(1) valid_value.simps(1) 
   by (smt (verit))
-
 
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
   defer

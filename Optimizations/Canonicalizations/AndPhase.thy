@@ -23,7 +23,7 @@ lemma bin_and_neutral:
 lemma val_and_equal:
   assumes "x = new_int b v"
   and     "val[x & x] \<noteq> UndefVal"
-  shows "val[x & x] = x"
+  shows   "val[x & x] = x"
    using assms by (cases x; auto)
 
 lemma val_and_nots:
@@ -33,27 +33,28 @@ lemma val_and_nots:
 lemma val_and_neutral:
   assumes "x = new_int b v"
   and     "val[x & ~(new_int b' 0)] \<noteq> UndefVal"
-  shows "val[x & ~(new_int b' 0)] = x"
+  shows   "val[x & ~(new_int b' 0)] = x"
    using assms apply (cases x; auto) apply (simp add: take_bit_eq_mask) 
    by presburger
 
 (* Not sure if this one is written correctly *)
+(*
 lemma val_and_sign_extend:
   assumes "e = (1 << In)-1"
-  shows "val[(intval_sign_extend In Out x) & (IntVal 32 e)] = intval_zero_extend In Out x"
+  shows "val[(intval_sign_extend In Out x) & (IntVal b e)] = intval_zero_extend In Out x"
   using assms apply (cases x; auto) 
   sorry
 
 lemma val_and_sign_extend_2:
-  assumes "e = (1 << In)-1 \<and> intval_and (intval_sign_extend In Out x) (IntVal32 e) \<noteq> UndefVal"
+  assumes "e = (1 << In)-1 \<and> intval_and (intval_sign_extend In Out x) (IntVal 32 e) \<noteq> UndefVal"
   shows "val[(intval_sign_extend In Out x) &  (IntVal 32 e)] = intval_zero_extend In Out x"
   using assms apply (cases x;  auto) 
-  sorry
+  sorry*)
 
 (* Extras which were missing *)
 lemma val_and_zero:
   assumes "x = new_int b v"
-  shows "val[x & (IntVal b 0)] = IntVal b 0"
+  shows   "val[x & (IntVal b 0)] = IntVal b 0"
    using assms by (cases x; auto) 
 
 (* Exp level proofs *)
@@ -67,13 +68,11 @@ lemma exp_and_nots:
    apply (cases x; cases y; auto) using val_and_nots 
   by fastforce+ 
 
-
 lemma exp_sign_extend:
   assumes "e = (1 << In) - 1"
-  shows
-   "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
-                                               (ConstantExpr (new_int b e))
-                              \<ge> (UnaryExpr (UnaryZeroExtend In Out) x)"
+  shows   "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
+                             (ConstantExpr (new_int b e))
+                           \<ge> (UnaryExpr (UnaryZeroExtend In Out) x)"
   apply auto
   subgoal premises p for m p va
     proof - 
@@ -152,7 +151,6 @@ lemma exp_sign_extend:
 
 
 (* Helpers *)
-
 lemma val_and_commute[simp]:
    "val[x & y] = val[y & x]"
    apply (cases x; cases y; auto)
@@ -163,15 +161,15 @@ text \<open>Optimisations\<close>
 optimization AndEqual: "x & x \<longmapsto> x"
   using exp_and_equal by blast
 
-(* Has a counterexample *)
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
                                          when \<not>(is_ConstantExpr y)"
   using val_and_commute apply auto 
   using size_non_const by auto
 
-
+(* 1st subgoal is False *)
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
-    using exp_and_nots sorry
+    defer using exp_and_nots 
+    apply presburger  sorry
 
 (* Need to prove exp_sign_extend*)
 optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
@@ -179,8 +177,6 @@ optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Ou
                               \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) x)
                                   when (e = (1 << In) - 1)"
    using exp_sign_extend by simp 
-  
-
 
 optimization AndNeutral: "(x & ~(const (IntVal b 0))) \<longmapsto> x 
    when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"

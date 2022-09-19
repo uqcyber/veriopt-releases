@@ -200,8 +200,8 @@ proof -
 qed
   
 lemma val_abs_negate:
-  assumes "x \<noteq> UndefVal \<and> intval_negate x \<noteq> UndefVal \<and> intval_abs(intval_negate x) \<noteq> UndefVal"
-  shows "intval_abs (intval_negate x) = intval_abs x"
+  assumes "intval_abs (intval_negate x) \<noteq> UndefVal"
+  shows   "intval_abs (intval_negate x) = intval_abs x"
   using assms apply (cases x; auto)
    apply (metis less_eq_def new_int.simps signed.dual_order.strict_iff_not signed.less_linear 
           take_bit_0)
@@ -212,13 +212,14 @@ lemma val_abs_negate:
 
 
 text \<open>Optimisations\<close>
+
 optimization AbsIdempotence: "abs(abs(x)) \<longmapsto>  abs(x)"
    apply auto 
   by (metis UnaryExpr unary_eval.simps(1) val_abs_idem)
 
 optimization AbsNegate: "(abs(-x)) \<longmapsto>  abs(x)"
     apply auto using val_abs_negate
-  by (metis evaltree_not_undef unary_eval.simps(1) unfold_unary)
+  by (metis unary_eval.simps(1) unfold_unary)
 
 end (* End of AbsPhase *)
 

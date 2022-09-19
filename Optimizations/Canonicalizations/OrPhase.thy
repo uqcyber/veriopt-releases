@@ -25,15 +25,15 @@ lemma bin_or_not_operands:
 (* Value level proofs *)
 lemma val_or_equal:
   assumes "x = new_int b v"
-  assumes "x \<noteq> UndefVal \<and> ((intval_or x x) \<noteq> UndefVal)"
-  shows "val[x | x] = val[x]"
+  and    "(val[x | x] \<noteq> UndefVal)"
+  shows   "val[x | x] = val[x]"
    apply (cases x; auto) using bin_or_equal assms 
   by auto+ 
 
 lemma val_elim_redundant_false:
   assumes "x = new_int b v"
-  assumes "val[x | false] \<noteq> UndefVal"
-  shows "val[x | false] = val[x]"
+  and     "val[x | false] \<noteq> UndefVal"
+  shows   "val[x | false] = val[x]"
    using assms apply (cases x; auto) by presburger
 
 lemma val_shift_const_right_helper:
@@ -50,19 +50,19 @@ lemma val_or_not_operands:
 lemma exp_or_equal:
   "exp[x | x] \<ge> exp[x]"
    using val_or_equal apply auto
-   by (smt (verit, ccfv_SIG) evalDet eval_unused_bits_zero intval_negate.elims intval_or.simps(2) intval_or.simps(6) intval_or.simps(7) new_int.simps val_or_equal)
-
+   by (smt (verit, ccfv_SIG) evalDet eval_unused_bits_zero intval_negate.elims intval_or.simps(2) 
+       intval_or.simps(6) intval_or.simps(7) new_int.simps val_or_equal)
 
 lemma exp_elim_redundant_false:
  "exp[x | false] \<ge> exp[x]"
    using val_elim_redundant_false apply auto
-   by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_or.elims new_int.simps new_int_bin.simps val_elim_redundant_false)
+   by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_or.elims new_int.simps 
+       new_int_bin.simps val_elim_redundant_false)
 
- 
 text \<open>Optimisations\<close>
+
 optimization OrEqual: "x | x \<longmapsto> x"
   by (meson exp_or_equal le_expr_def)
-
 
 optimization OrShiftConstantRight: "((const x) | y) \<longmapsto> y | (const x) when \<not>(is_ConstantExpr y)"
   using size_non_const apply force
@@ -71,7 +71,6 @@ optimization OrShiftConstantRight: "((const x) | y) \<longmapsto> y | (const x) 
 
 optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
   by (meson exp_elim_redundant_false le_expr_def)
-
 
 optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~(x & y)"
   defer

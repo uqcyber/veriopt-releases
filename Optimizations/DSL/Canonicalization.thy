@@ -162,14 +162,21 @@ fun intval :: "Value Rewrite \<Rightarrow> bool" where
 subsubsection \<open>Standard Termination Measure\<close>
 
 fun size :: "IRExpr \<Rightarrow> nat" where
+  unary_size:
   "size (UnaryExpr op e) = (size e) + 2" |
   (*"size (BinaryExpr BinSub x y) = (size x) + (size y) + 3" |
   "size (BinaryExpr BinMul x y) = (size x) + (size y) + 3" |*)
+  bin_const_size:
   "size (BinaryExpr op x (ConstantExpr cy)) = (size x) + 2" |
+  bin_size:
   "size (BinaryExpr op x y) = (size x) + (size y) + 2" |
+  cond_size:
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
+  const_size:
   "size (ConstantExpr c) = 1" |
+  param_size:
   "size (ParameterExpr ind s) = 2" |
+  leaf_size:
   "size (LeafExpr nid s) = 2" |
   "size (ConstantVar c) = 2" |
   "size (VariableExpr x s) = 2"

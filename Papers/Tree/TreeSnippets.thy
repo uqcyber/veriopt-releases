@@ -371,15 +371,16 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
-thm size.simps
+thm unary_size
 snipbegin \<open>termination\<close>
 text \<open>
-@{thm[display,margin=80] size.simps(1)}
-@{thm[display,margin=80] size.simps(2)}
-@{thm[display,margin=80] size.simps(3)}
-@{thm[display,margin=80] size.simps(4)}
-@{thm[display,margin=80] size.simps(5)}
-@{thm[display,margin=80] size.simps(6)}
+@{thm[display,margin=80] unary_size}
+@{thm[display,margin=80] bin_const_size}
+@{thm[display,margin=80] bin_size}
+@{thm[display,margin=80] cond_size}
+@{thm[display,margin=80] const_size}
+@{thm[display,margin=80] param_size}
+@{thm[display,margin=80] leaf_size}
 \<close>
 snipend -
 

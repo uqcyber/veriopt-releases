@@ -123,28 +123,28 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
 lemma exp_sub_then_left_sub:
-  assumes "wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi"
   shows   "exp[x - (x - y)] \<ge> exp[y]"
-  using val_sub_then_left_sub assms apply auto
+  using val_sub_then_left_sub apply auto
   subgoal premises p for m p xa xaa ya
     proof- 
       obtain xa where xa: "[m, p] \<turnstile> x \<mapsto> xa"
-        using p(4) by blast
+        using p(2) by blast
       obtain ya where ya: "[m, p] \<turnstile> y \<mapsto> ya"
-        using p(7) by auto
+        using p(5) by auto
       obtain xaa where xaa: "[m, p] \<turnstile> x \<mapsto> xaa"
-        using p(4) by blast
+        using p(2) by blast
       have 1: "val[xa - (xaa - ya)] \<noteq> UndefVal"
-        by (metis evalDet p(4) p(5) p(6) p(7) xa xaa ya)
+        by (metis evalDet p(2) p(3) p(4) p(5) xa xaa ya)
       then have "val[xaa - ya] \<noteq> UndefVal"
         by auto
       then have "[m,p] \<turnstile> y \<mapsto> val[xa - (xaa - ya)]"
-        by (smt (verit) "1" evalDet eval_unused_bits_zero intval_sub.elims new_int_bin.simps p(1) 
-            p(7) xa xaa ya)
+        by (metis "1" Value.exhaust evalDet eval_unused_bits_zero evaltree_not_undef intval_sub.simps(6) intval_sub.simps(7) new_int.simps p(5) val_sub_then_left_sub xa xaa ya)
       then show ?thesis
-        by (metis evalDet p(4) p(6) p(7) xa xaa ya)
+        by (metis evalDet p(2) p(4) p(5) xa xaa ya)
     qed 
-  done
+    done
+
+thm_oracles exp_sub_then_left_sub
 
 text \<open>Optimisations\<close>
 
@@ -169,8 +169,7 @@ optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
   by (metis evalDet intval_add_sym unary_eval.simps(2) unfold_unary 
       val_sub_then_left_add)
 
-optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y 
-                               when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
   using size_simps apply simp
   using exp_sub_then_left_sub by blast
  

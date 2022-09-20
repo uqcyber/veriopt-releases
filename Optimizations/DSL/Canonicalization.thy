@@ -162,8 +162,11 @@ fun intval :: "Value Rewrite \<Rightarrow> bool" where
 subsubsection \<open>Standard Termination Measure\<close>
 
 fun size :: "IRExpr \<Rightarrow> nat" where
-  "size (UnaryExpr op e) = (size e) * 2" |
-  "size (BinaryExpr op x y) = (size x) + ((size y) * 2)" |
+  "size (UnaryExpr op e) = (size e) + 2" |
+  (*"size (BinaryExpr BinSub x y) = (size x) + (size y) + 3" |
+  "size (BinaryExpr BinMul x y) = (size x) + (size y) + 3" |*)
+  "size (BinaryExpr op x (ConstantExpr cy)) = (size x) + 2" |
+  "size (BinaryExpr op x y) = (size x) + (size y) + 2" |
   "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
   "size (ConstantExpr c) = 1" |
   "size (ParameterExpr ind s) = 2" |
@@ -183,9 +186,10 @@ method unfold_optimization =
     rule conjE, simp, simp del: le_expr_def, force?)
 
 method unfold_size =
-  (unfold size.simps, simp add: size_simps del: le_expr_def)?
-  | (simp add: size_simps del: le_expr_def)?
-  | (unfold size.simps)?
+  (((unfold size.simps, simp add: size_simps del: le_expr_def)?
+  ; (simp add: size_simps del: le_expr_def)?
+  ; (auto simp: size_simps)?
+  ; (unfold size.simps)?)[1])
   
 
 print_methods

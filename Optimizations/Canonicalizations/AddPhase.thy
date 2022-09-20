@@ -17,7 +17,8 @@ lemma binadd_commute:
 
 (* horrible backward proof - needs improving *)
 optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
-  using size_non_const apply fastforce
+  using size_non_const
+  apply (metis add_2_eq_Suc' less_Suc_eq plus_1_eq_Suc size.simps(11) size_non_add)
   unfolding le_expr_def
   apply (rule impI)
   subgoal premises 1
@@ -40,7 +41,8 @@ optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v
   unfolding le_expr_def
    apply (auto simp: intval_add_sym)
   (* termination proof *)
-  using size_non_const by fastforce
+  using size_non_const
+  by (metis add_2_eq_Suc' lessI plus_1_eq_Suc size.simps(11) size_non_add)
 
 
 (* TODO: define is_neutral and then lemmas like this: 
@@ -90,6 +92,7 @@ lemma just_goal2:
 
 
 optimization RedundantSubAdd2: " e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
+  apply (metis add.commute add_less_cancel_right less_add_Suc2 plus_1_eq_Suc size_binary_const size_non_add trans_less_add2)
   by (smt (verit, del_insts) BinaryExpr BinaryExprE RedundantSubAdd(1) binadd_commute le_expr_def rewrite_preservation.simps(1))
 
 (* Demonstration of our FOUR levels of expression rewrites:
@@ -133,10 +136,6 @@ lemma AddToSubHelperLowLevel:
   shows "intval_add (intval_negate e) y = intval_sub y e" (is "?x = ?y")
   by (induction y; induction e; auto)
 
-
-optimization AddToSub: "-e + y \<longmapsto> y - e"
-  using AddToSubHelperLowLevel by auto
-  
 
 print_phases
 
@@ -192,11 +191,13 @@ optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
   by (smt (verit) evalDet intval_add.elims new_int.elims)
 
 optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
+  apply (metis Nat.add_0_right add_2_eq_Suc' add_less_mono1 add_mono_thms_linordered_field(2) less_SucI not_less_less_Suc_eq size_binary_const size_non_add size_pos)
    using AddToSubHelperLowLevel intval_add_sym by auto 
 
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
-  using exp_add_left_negate_to_sub by blast
-
+  defer
+  using exp_add_left_negate_to_sub apply blast
+  by (smt (verit, best) One_nat_def add.commute add_Suc_right is_ConstantExpr_def less_add_Suc2 numeral_2_eq_2 plus_1_eq_Suc size.simps(1) size.simps(11) size_binary_const size_non_add)
 (* ----- Ends here ----- *)
 
 end

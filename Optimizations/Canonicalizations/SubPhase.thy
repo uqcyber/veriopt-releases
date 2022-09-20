@@ -155,7 +155,8 @@ optimization SubAfterAddLeft: "((x + y) - x) \<longmapsto>  y"
   using exp_sub_after_right_add2 by blast
 
 optimization SubAfterSubLeft: "((x - y) - x) \<longmapsto>  -y"
-   apply auto
+  apply (metis Suc_lessI add_2_eq_Suc' add_less_cancel_right less_trans_Suc not_add_less1 size_binary_const size_binary_lhs size_binary_rhs size_non_add)
+   apply auto 
   by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_after_left_sub)
 
 optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
@@ -170,6 +171,7 @@ optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
 
 optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y 
                                when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+  using size_simps apply simp
   using exp_sub_then_left_sub by blast
  
 optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x 
@@ -185,7 +187,8 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
   done
 *)
 
-optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"  
+optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"
+  apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
   using exp_sub_negative_value by simp
 
 thm_oracles SubNegativeValue
@@ -196,9 +199,11 @@ optimization SubNegativeConstant: "x - (const (intval_negate y)) \<longmapsto> x
 
 optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+  defer
    apply auto unfolding wf_stamp_def
-  by (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
+  apply (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
           new_int_bin.simps unary_eval.simps(2) unfold_unary)
+  sorry
 
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
   "forPrimitive (IntegerStamp b lo hi) v = ConstantExpr (if take_bit b v = v then (IntVal b v) else UndefVal)" |
@@ -252,7 +257,7 @@ lemma evalSubArgsStamp:
   using assms sorry
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> forPrimitive (stamp_expr exp[x - x]) 0 when ((wf_stamp x) \<and> (wf_stamp exp[x - x]))"
-  apply (simp add: Suc_lessI size_pos)
+  using size_non_const apply fastforce
    apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises eval for m p v 
   proof -

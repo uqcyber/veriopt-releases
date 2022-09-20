@@ -83,14 +83,13 @@ text \<open>Optimisations\<close>
 
 optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when 
                       (wf_stamp x \<and> stamp_expr x = default_stamp)"
-   apply (metis One_nat_def Suc_lessI eval_nat_numeral(3) less_Suc_eq mult.right_neutral 
-          numeral_2_eq_2 one_less_mult size_pos)
+  using size_non_const apply force
   using exp_xor_self_is_false by auto 
 
 optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
-   unfolding le_expr_def using val_xor_commute size_non_const 
-   apply simp apply auto 
-   using val_xor_commute by auto
+  using size_flip_binary apply force 
+  unfolding le_expr_def using val_xor_commute
+  by auto
 
 optimization EliminateRedundantFalse: "(x \<oplus> false) \<longmapsto> x"
     using exp_eliminate_redundant_false by blast 

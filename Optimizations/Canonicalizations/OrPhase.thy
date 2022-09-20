@@ -65,7 +65,7 @@ optimization OrEqual: "x | x \<longmapsto> x"
   by (meson exp_or_equal le_expr_def)
 
 optimization OrShiftConstantRight: "((const x) | y) \<longmapsto> y | (const x) when \<not>(is_ConstantExpr y)"
-  using size_non_const apply force
+  using size_flip_binary apply force
   apply auto
   by (simp add: BinaryExpr unfold_const val_shift_const_right_helper)
 
@@ -73,10 +73,9 @@ optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
   by (meson exp_elim_redundant_false le_expr_def)
 
 optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~(x & y)"
-  defer
+  apply (metis add_2_eq_Suc' less_SucI not_add_less1 not_less_eq size_binary_const size_non_add)
    apply auto using val_or_not_operands
-  apply (metis BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3))
-  sorry (* termination *)
+  by (metis BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3))
 
 end (* End of OrPhase *)
 

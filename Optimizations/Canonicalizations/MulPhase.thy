@@ -248,6 +248,7 @@ lemma greaterConstant:
 text \<open>Optimisations\<close>
 
 optimization EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
+  apply (metis One_nat_def Suc_eq_plus1 add_Suc_shift add_less_imp_less_right less_Suc_eq not_add_less1 not_less_eq numeral_2_eq_2 size_binary_const size_non_add)
    apply auto using val_eliminate_redundant_negative bin_eval.simps(2)
   by (metis BinaryExpr)
 
@@ -262,13 +263,11 @@ optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (
   by (smt (verit))
 
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
-  defer
   apply auto using val_multiply_negative
-  apply (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
+  by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
       intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps 
       take_bit_dist_neg unary_eval.simps(2) unfold_unary 
       val_eliminate_redundant_negative)
-  sorry (* termination *)
 
 fun isNonZero :: "Stamp \<Rightarrow> bool" where
   "isNonZero (IntegerStamp b lo hi) = (lo > 0)" |

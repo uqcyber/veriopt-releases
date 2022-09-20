@@ -32,16 +32,11 @@ optimization ConditionalEqualBranches: "(e ? x : x) \<longmapsto> x" .
 
 optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x 
     when (stamp_under (stamp_expr u) (stamp_expr v) \<and> wf_stamp u \<and> wf_stamp v)"
-  apply simp apply (rule impI) apply (rule allI)+ apply (rule impI)
-  using stamp_under_defn
-  by force
+  using stamp_under_defn by auto
 
 optimization condition_bounds_y: "((u < v) ? x : y) \<longmapsto> y 
     when (stamp_under (stamp_expr v) (stamp_expr u) \<and> wf_stamp u \<and> wf_stamp v)"
-  apply simp apply (rule impI) apply (rule allI)+ apply (rule impI)
-  using stamp_under_defn_inverse
-  by force
-
+  using stamp_under_defn_inverse by auto
 
 (** Start of new proofs **)
 

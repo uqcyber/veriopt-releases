@@ -73,7 +73,7 @@ lemma diff_diff_cancel_value:
 snipbegin \<open>algebraic-laws-values\<close>
 text_raw \<open>\begin{align}
 @{thm diff_self_value[show_types]} \label{prop-v-minus-v}\\
-@{thm diff_diff_cancel_value[show_types]}
+@{thm diff_diff_cancel_value[show_types]} \label{prop-redundant-sub}
 \end{align}\<close>
 snipend -
 
@@ -151,7 +151,8 @@ optimization SubIdentity:
   "e - e \<longmapsto> ConstantExpr (IntVal b 0)
      when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
   snipend -
-   using IRExpr.disc(42) size.simps(4) size_non_const apply presburger
+   using IRExpr.disc(42) size.simps(4) size_non_const
+   apply simp
   apply (rule impI) apply simp
 proof -
   assume assms: "stamp_binary BinSub (stamp_expr e) (stamp_expr e) = IntegerStamp b lo hi \<and> wf_stamp exp[e - e]"
@@ -162,6 +163,13 @@ proof -
     by (smt (verit, best) BinaryExprE TreeSnippets.wf_stamp_def assms bin_eval.simps(3) constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val unfold_const valid_stamp.simps(1) valid_value.simps(1))
 qed
 thm_oracles SubIdentity
+
+snipbegin \<open>RedundantSubtract\<close>
+optimization RedundantSubtract:
+  "e\<^sub>1 - (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>2"
+snipend -
+  using size_simps apply simp
+  using diff_diff_cancel_expr by presburger
 end
 
 subsection \<open>Representing terms\<close>
@@ -363,15 +371,16 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
-thm size.simps
+thm unary_size
 snipbegin \<open>termination\<close>
 text \<open>
-@{thm[display,margin=80] size.simps(1)}
-@{thm[display,margin=80] size.simps(2)}
-@{thm[display,margin=80] size.simps(3)}
-@{thm[display,margin=80] size.simps(4)}
-@{thm[display,margin=80] size.simps(5)}
-@{thm[display,margin=80] size.simps(6)}
+@{thm[display,margin=80] unary_size}
+@{thm[display,margin=80] bin_const_size}
+@{thm[display,margin=80] bin_size}
+@{thm[display,margin=80] cond_size}
+@{thm[display,margin=80] const_size}
+@{thm[display,margin=80] param_size}
+@{thm[display,margin=80] leaf_size}
 \<close>
 snipend -
 

@@ -221,8 +221,8 @@ inductive
     \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr ce te fe) \<mapsto> result" |
 
   UnaryExpr:
-  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v;
-    result = (unary_eval op v);
+  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> x;
+    result = (unary_eval op x);
     result \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> result" |
 

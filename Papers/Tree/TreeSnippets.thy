@@ -341,21 +341,21 @@ phase Conditional
 begin
 snipend -
 
-snipbegin \<open>phase-example-1\<close>optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x) when (wf_stamp e \<and> stamp_expr e = IntegerStamp b lo hi \<and> b > 0)"snipend -
+snipbegin \<open>phase-example-1\<close>optimization NegateCond: "((!e) ? x : y) \<longmapsto> (e ? y : x) when (wf_stamp e \<and> stamp_expr e = IntegerStamp b lo hi \<and> b > 0)"snipend -
   apply (simp add: size_simps)
   using ConditionalPhase.NegateConditionFlipBranches(1)
   using StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def by force
 
-snipbegin \<open>phase-example-2\<close>optimization const_true: "(true ? x : y) \<longmapsto> x"snipend -
+snipbegin \<open>phase-example-2\<close>optimization TrueCond: "(true ? x : y) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-3\<close>optimization const_false: "(false ? x : y) \<longmapsto> y"snipend -
+snipbegin \<open>phase-example-3\<close>optimization FalseCond: "(false ? x : y) \<longmapsto> y"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-4\<close>optimization equal_branches: "(e ? x : x) \<longmapsto> x"snipend -
+snipbegin \<open>phase-example-4\<close>optimization BranchEqual: "(e ? x : x) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x
+snipbegin \<open>phase-example-5\<close>optimization LessCond: "((u < v) ? x : y) \<longmapsto> x
                    when (stamp_under (stamp_expr u) (stamp_expr v) 
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -
   apply (auto simp: trm_def)
@@ -371,7 +371,7 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
-thm unary_size
+thm bin_size
 snipbegin \<open>termination\<close>
 text \<open>
 @{thm[display,margin=80] unary_size}

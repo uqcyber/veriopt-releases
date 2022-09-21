@@ -374,11 +374,13 @@ lemma simplified_binary: "\<not>(is_ConstantExpr b) \<Longrightarrow> size (Bina
   by (induction b; induction op; auto simp: is_ConstantExpr_def)
 
 thm bin_size
+thm bin_const_size
 thm unary_size
 thm size_non_add
 snipbegin \<open>termination\<close>
 text \<open>
 @{thm[display,margin=80] unary_size}
+@{thm[display,margin=80] bin_const_size}
 @{thm[display,margin=80] (concl) simplified_binary}
 @{thm[display,margin=80] cond_size}
 @{thm[display,margin=80] const_size}

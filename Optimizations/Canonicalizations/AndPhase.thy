@@ -163,13 +163,13 @@ optimization AndEqual: "x & x \<longmapsto> x"
 
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
                                          when \<not>(is_ConstantExpr y)"
-  using val_and_commute apply auto 
-  using size_non_const by auto
+  using size_flip_binary by auto
 
 (* 1st subgoal is False *)
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
     defer using exp_and_nots 
-    apply presburger  sorry
+   apply presburger
+  by (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
 
 (* Need to prove exp_sign_extend*)
 optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 

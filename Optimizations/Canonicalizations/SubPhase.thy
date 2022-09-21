@@ -123,28 +123,28 @@ definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
 lemma exp_sub_then_left_sub:
-  assumes "wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi"
   shows   "exp[x - (x - y)] \<ge> exp[y]"
-  using val_sub_then_left_sub assms apply auto
+  using val_sub_then_left_sub apply auto
   subgoal premises p for m p xa xaa ya
     proof- 
       obtain xa where xa: "[m, p] \<turnstile> x \<mapsto> xa"
-        using p(4) by blast
+        using p(2) by blast
       obtain ya where ya: "[m, p] \<turnstile> y \<mapsto> ya"
-        using p(7) by auto
+        using p(5) by auto
       obtain xaa where xaa: "[m, p] \<turnstile> x \<mapsto> xaa"
-        using p(4) by blast
+        using p(2) by blast
       have 1: "val[xa - (xaa - ya)] \<noteq> UndefVal"
-        by (metis evalDet p(4) p(5) p(6) p(7) xa xaa ya)
+        by (metis evalDet p(2) p(3) p(4) p(5) xa xaa ya)
       then have "val[xaa - ya] \<noteq> UndefVal"
         by auto
       then have "[m,p] \<turnstile> y \<mapsto> val[xa - (xaa - ya)]"
-        by (smt (verit) "1" evalDet eval_unused_bits_zero intval_sub.elims new_int_bin.simps p(1) 
-            p(7) xa xaa ya)
+        by (metis "1" Value.exhaust evalDet eval_unused_bits_zero evaltree_not_undef intval_sub.simps(6) intval_sub.simps(7) new_int.simps p(5) val_sub_then_left_sub xa xaa ya)
       then show ?thesis
-        by (metis evalDet p(4) p(6) p(7) xa xaa ya)
+        by (metis evalDet p(2) p(4) p(5) xa xaa ya)
     qed 
-  done
+    done
+
+thm_oracles exp_sub_then_left_sub
 
 text \<open>Optimisations\<close>
 
@@ -155,7 +155,8 @@ optimization SubAfterAddLeft: "((x + y) - x) \<longmapsto>  y"
   using exp_sub_after_right_add2 by blast
 
 optimization SubAfterSubLeft: "((x - y) - x) \<longmapsto>  -y"
-   apply auto
+  apply (metis Suc_lessI add_2_eq_Suc' add_less_cancel_right less_trans_Suc not_add_less1 size_binary_const size_binary_lhs size_binary_rhs size_non_add)
+   apply auto 
   by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_after_left_sub)
 
 optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
@@ -168,8 +169,8 @@ optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
   by (metis evalDet intval_add_sym unary_eval.simps(2) unfold_unary 
       val_sub_then_left_add)
 
-optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y 
-                               when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
+  using size_simps apply simp
   using exp_sub_then_left_sub by blast
  
 optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x 
@@ -185,7 +186,8 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
   done
 *)
 
-optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"  
+optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"
+  apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
   using exp_sub_negative_value by simp
 
 thm_oracles SubNegativeValue
@@ -272,9 +274,11 @@ optimization SubNegativeConstant: "x - (const (val[-y])) \<longmapsto> x + (cons
 
 optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+  defer
    apply auto unfolding wf_stamp_def
-  by (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
+  apply (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
           new_int_bin.simps unary_eval.simps(2) unfold_unary)
+  sorry
 
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
   "forPrimitive (IntegerStamp b lo hi) v = ConstantExpr (if take_bit b v = v then (IntVal b v) else UndefVal)" |
@@ -328,7 +332,7 @@ lemma evalSubArgsStamp:
   using assms sorry
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> forPrimitive (stamp_expr exp[x - x]) 0 when ((wf_stamp x) \<and> (wf_stamp exp[x - x]))"
-  apply (simp add: Suc_lessI size_pos)
+  using size_non_const apply fastforce
    apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises eval for m p v 
   proof -

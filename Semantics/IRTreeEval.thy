@@ -216,13 +216,13 @@ inductive
   ConditionalExpr:
   "\<lbrakk>[m,p] \<turnstile> ce \<mapsto> cond;
     branch = (if val_to_bool cond then te else fe);
-    [m,p] \<turnstile> branch \<mapsto> v;
-    v \<noteq> UndefVal\<rbrakk>
-    \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr ce te fe) \<mapsto> v" |
+    [m,p] \<turnstile> branch \<mapsto> result;
+    result \<noteq> UndefVal\<rbrakk>
+    \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr ce te fe) \<mapsto> result" |
 
   UnaryExpr:
-  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v;
-    result = (unary_eval op v);
+  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> x;
+    result = (unary_eval op x);
     result \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> result" |
 

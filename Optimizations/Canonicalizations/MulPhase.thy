@@ -154,12 +154,11 @@ lemma val_MulPower2Sub1:
     qed 
     using val_to_bool.simps(2) by presburger
 
-(* Helper *)
+(* Value level helpers *)
 lemma val_distribute_multiplication:
   assumes "x = new_int 64 xx \<and> q = new_int 64 qq \<and> a = new_int 64 aa"
   shows "val[x * (q + a)] = val[(x * q) + (x * a)]"
   apply (cases x; cases q; cases a; auto) using distrib_left assms by auto
-
 
 (*  x * ((2 ^ j) + (2 ^ k)) = (x << j) + (x << k)  *)
 lemma val_MulPower2AddPower2:
@@ -190,7 +189,8 @@ lemma val_MulPower2AddPower2:
      using Value.distinct(1) intval_mul.simps(1) new_int.simps new_int_bin.simps
      by (smt (verit))
    then show "?thesis" 
-     using "1" Value.distinct(1) assms(1) assms(3) assms(5) assms(6) intval_mul.simps(1) n new_int.simps new_int_bin.elims val_MulPower2
+     using "1" Value.distinct(1) assms(1) assms(3) assms(5) assms(6) intval_mul.simps(1) n 
+           new_int.simps new_int_bin.elims val_MulPower2
      by (smt (verit, del_insts))
    qed
 
@@ -224,10 +224,31 @@ lemma exp_MulPower2:
   using assms apply simp using val_MulPower2
   by (metis ConstantExprE equiv_exprs_def unfold_binary)
 
+lemma exp_MulPower2Add1:
+  fixes i :: "64 word"
+  assumes "y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1))"
+  and     "0 < i"
+  and     "i < 64"
+  and     "exp[x > (const IntVal b 0)]"
+  and     "exp[y > (const IntVal b 0)]"
+shows   "exp[x * y] = exp[(x << ConstantExpr (IntVal 64 i)) + x]"
+  sorry  
+
+(* Exp level helpers *)
+
+(* Subgoal is false *)
+lemma greaterConstant:
+  assumes "a > b"
+  and "y = ConstantExpr (IntVal 64 a)"
+  and "x = ConstantExpr (IntVal 64 b)"
+  shows "y > x"
+  apply auto
+  sorry
 
 text \<open>Optimisations\<close>
 
 optimization EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
+  apply (metis One_nat_def Suc_eq_plus1 add_Suc_shift add_less_imp_less_right less_Suc_eq not_add_less1 not_less_eq numeral_2_eq_2 size_binary_const size_non_add)
    apply auto using val_eliminate_redundant_negative bin_eval.simps(2)
   by (metis BinaryExpr)
 
@@ -242,13 +263,11 @@ optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (
   by (smt (verit))
 
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
-  defer
   apply auto using val_multiply_negative
-  apply (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
+  by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
       intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps 
       take_bit_dist_neg unary_eval.simps(2) unfold_unary 
       val_eliminate_redundant_negative)
-  sorry (* termination *)
 
 fun isNonZero :: "Stamp \<Rightarrow> bool" where
   "isNonZero (IntegerStamp b lo hi) = (lo > 0)" |
@@ -312,6 +331,47 @@ proof -
     by (metis eval(1) eval(2) evalDet lhs rhs)
 qed
   sorry (* termination issues *)
+
+
+(* Need to prove exp_MulPower2Add1 *)
+optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x 
+                              when (i > 0 \<and>  
+                                    64 > i \<and>
+                                    y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1)) )"
+   defer
+   apply simp apply (rule impI; (rule allI)+; rule impI)
+  subgoal premises p for m p v
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p by fast
+    then obtain xvv where xvv: "xv = IntVal 64 xvv"
+      by (smt (verit) p ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims 
+          new_int_bin.simps unfold_binary)
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p  by blast
+    have ygezero: "y > ConstantExpr (IntVal 64 0)"
+      using greaterConstant p by fastforce 
+    then have 1: "0 < i \<and>
+                  i < 64 \<and> 
+                  y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1))"
+      using p by blast
+    then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
+      by (metis bin_eval.simps(2) evalDet p(1) p(2) xv yv unfold_binary)
+    then have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
+      by (metis verit_comp_simplify1(2) zero_less_numeral ConstantExpr constantAsStamp.simps(1) 
+          take_bit64 validStampIntConst valid_value.simps(1))
+    then have rhs2: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
+      by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps xv xvv 
+          evaltree.BinaryExpr)
+    then have rhs: "[m, p] \<turnstile> exp[(x << const (IntVal 64 i)) + x] \<mapsto> val[(xv << (IntVal 64 i)) + xv]" 
+       by (metis (no_types, lifting) intval_add.simps(1) rhs2 bin_eval.simps(1) Value.simps(5) 
+           evaltree.BinaryExpr intval_left_shift.simps(1) new_int.simps xv xvv)
+     then have "val[xv * yv] = val[(xv << (IntVal 64 i)) + xv]"
+       using "1" exp_MulPower2Add1 ygezero by auto
+     then show ?thesis
+      by (metis evalDet lhs p(1) p(2) rhs)
+  qed
+  sorry (* Termination *)
 
 
 end (* End of MulPhase *)

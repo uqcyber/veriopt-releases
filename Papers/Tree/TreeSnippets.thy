@@ -341,10 +341,9 @@ phase Conditional
 begin
 snipend -
 
-snipbegin \<open>phase-example-1\<close>optimization NegateCond: "((!e) ? x : y) \<longmapsto> (e ? y : x) when (wf_stamp e \<and> stamp_expr e = IntegerStamp b lo hi \<and> b > 0)"snipend -
+snipbegin \<open>phase-example-1\<close>optimization NegateCond: "((!e) ? x : y) \<longmapsto> (e ? y : x)"snipend -
   apply (simp add: size_simps)
-  using ConditionalPhase.NegateConditionFlipBranches(1)
-  using StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def by force
+  using ConditionalPhase.NegateConditionFlipBranches(1) by simp
 
 snipbegin \<open>phase-example-2\<close>optimization TrueCond: "(true ? x : y) \<longmapsto> x"snipend -
   by (auto simp: trm_def)

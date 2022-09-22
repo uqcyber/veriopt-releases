@@ -608,54 +608,96 @@ next
     using False by presburger
 qed
 
-lemma noZeros:
+lemma noZeros_Count:
   fixes a :: "64 word"
   assumes "zeroCount a = 0"
   shows "i < Nat.size a \<longrightarrow> bit a i"
   using assms unfolding zeroCount_def size64
   using zeroCount_finite by auto
 
+lemma allZeros_Count:
+  fixes a :: "64 word"
+  assumes "zeroCount a = 64"
+  shows "\<not>(bit a i)"
+  using assms unfolding zeroCount_def size64
+  using zeroCount_finite apply auto sorry
+
+lemma zeroBits:
+  fixes a :: "'a::len word"
+  shows "(\<forall>i. \<not>(bit a i)) \<longleftrightarrow> a = 0"
+  apply auto
+  by (simp add: bit_word_eqI)
+
+lemma mask_bit_iff:
+  fixes a :: "'a::len word"
+  assumes "n \<le> Nat.size a"
+  shows "a = mask n \<Longrightarrow> bit a i \<longleftrightarrow> i < n"
+  apply auto
+  using Word.bit_mask_iff
+   apply auto[1] using assms
+  by (simp add: Word.bit_mask_iff wsst_TYs(3))
+
+lemma maskBitCount:
+  fixes a :: "'a::len word"
+  assumes "n \<le> Nat.size a"
+  shows "a = mask n \<Longrightarrow> card {i. bit a i} = n"
+  using mask_bit_iff assms
+  by fastforce
+
+lemma packedMask:
+  fixes a :: "64 word"
+  assumes "numberOfLeadingZeros a = zeroCount a"
+  shows "a = mask (64 - numberOfLeadingZeros a)"
+  using assms
+proof (induction "64 - numberOfLeadingZeros a")
+  case 0
+  have "numberOfLeadingZeros a = 64"
+    by (metis "0.hyps" local.numberOfLeadingZeros_range nat_less_le size64 zero_less_diff)
+  then have "zeroCount a = 64"
+    using assms by fastforce
+  then have "a = 0"
+    using allZeros_Count zeroBits by blast
+  then show ?case
+    by (simp add: "0.hyps")
+next
+  case (Suc x)
+  then have "numberOfLeadingZeros a = 64 - Suc x"
+    by (metis add_diff_cancel_right' add_diff_inverse_nat less_numeral_extra(3) nat_diff_split zero_less_Suc)
+  then have "zeroCount a = 64 - Suc x"
+    using assms by presburger
+  from Suc show ?case sorry
+qed
+(*
+proof (induction a)
+  case zero
+  then show ?case
+    by (simp add: MaxOrNeg_neg highestOneBit_def numberOfLeadingZeros_def size64)
+next
+  case (suc a)
+  then show ?case unfolding MaxOrNeg_neg highestOneBit_def numberOfLeadingZeros_def zeroCount_def
+    using size64 apply auto sorry
+qed
+*)
+
 lemma zerosAboveOnly:
   fixes a :: "64 word"
   assumes "numberOfLeadingZeros a = zeroCount a"
   shows "\<not>(bit a i) \<longrightarrow> i \<ge> (64 - numberOfLeadingZeros a)"
-  sorry
-(*proof -
-  have "a = 2^(64 - numberOfLeadingZeros a)"
-    using assms 
-    unfolding numberOfLeadingZeros_def zeroCount_def highestOneBit_def MaxOrNeg_def sorry
-  then show ?thesis sorry
-qed
-  apply (rule impI) subgoal premises notSet
 proof -
-  obtain z where "zeroCount a = zeroCount (z::64 word)"
-    by auto
-  have adef: "a = 2^(64- numberOfLeadingZeros a) * (1 + z)"
-    sorry
-  have "and a (2^i) = 0"
-    using notSet
-    by (simp add: and_exp_eq_0_iff_not_bit)
-  then have "a = and (2^(64- numberOfLeadingZeros a) * (1 + z)) (2^i)"
-    using adef sorry
-
-  using assms proof (induction "numberOfLeadingZeros a"; induction i)
-  case 0
-  then have "zeroCount a = 0"
-    using assms by presburger
-  then have notSet: "\<forall>i < Nat.size a. bit a i"
-    using noZeros by blast
-  have "64 - numberOfLeadingZeros a \<le> Nat.size a"
-    using numberOfLeadingZeros_range size64 by simp
-  then show ?case
-    using linorder_le_less_linear notSet size64
-    by (metis word_size_gt_0)
-next
-  case (Suc x)
-  then have "\<not>(bit a (Suc x))"
-    sorry
-  then show ?case unfolding zeroCount_def using zeroCount_finite sorry
-qed*)
-
+  obtain n where n: "n = 64 - numberOfLeadingZeros a"
+    by simp
+  then have n_range: "n \<le> Nat.size a"
+    using size64
+    by presburger
+  then have "a = (mask n)"
+    using packedMask
+    using assms n by blast
+  then have "\<not> bit a i \<longrightarrow> i \<ge> n"
+    using Word.bit_mask_iff
+    by (metis (mono_tags) le_antisym linorder_le_less_linear min_def n_range word_size)
+  then show ?thesis using n
+    by blast
+qed
 
 lemma consumes: 
   assumes "numberOfLeadingZeros (\<up>z) + bitCount (\<up>z) = 64"

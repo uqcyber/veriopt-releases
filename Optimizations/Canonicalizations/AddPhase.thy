@@ -187,17 +187,20 @@ lemma exp_add_left_negate_to_sub:
 text \<open>Optimisations\<close>
 
 optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
-   apply auto using val_redundant_add_sub eval_unused_bits_zero
-  by (smt (verit) evalDet intval_add.elims new_int.elims)
+   apply auto
+  by (smt (verit) evalDet intval_add.elims new_int.elims val_redundant_add_sub 
+      eval_unused_bits_zero)
 
 optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
-  apply (metis Nat.add_0_right add_2_eq_Suc' add_less_mono1 add_mono_thms_linordered_field(2) less_SucI not_less_less_Suc_eq size_binary_const size_non_add size_pos)
+   apply (metis Nat.add_0_right add_2_eq_Suc' add_less_mono1 add_mono_thms_linordered_field(2) 
+          less_SucI not_less_less_Suc_eq size_binary_const size_non_add size_pos)
    using AddToSubHelperLowLevel intval_add_sym by auto 
 
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   defer
   using exp_add_left_negate_to_sub apply blast
-  by (smt (verit, best) One_nat_def add.commute add_Suc_right is_ConstantExpr_def less_add_Suc2 numeral_2_eq_2 plus_1_eq_Suc size.simps(1) size.simps(11) size_binary_const size_non_add)
+  by (smt (verit, best) One_nat_def add.commute add_Suc_right is_ConstantExpr_def less_add_Suc2 
+      numeral_2_eq_2 plus_1_eq_Suc size.simps(1) size.simps(11) size_binary_const size_non_add)
 (* ----- Ends here ----- *)
 
 end

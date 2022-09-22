@@ -73,9 +73,10 @@ optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
   by (meson exp_elim_redundant_false le_expr_def)
 
 optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~(x & y)"
-  apply (metis add_2_eq_Suc' less_SucI not_add_less1 not_less_eq size_binary_const size_non_add)
-   apply auto using val_or_not_operands
-  by (metis BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3))
+   apply (metis add_2_eq_Suc' less_SucI not_add_less1 not_less_eq size_binary_const size_non_add)
+   apply auto 
+  by (metis BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3) 
+      val_or_not_operands)
 
 end (* End of OrPhase *)
 

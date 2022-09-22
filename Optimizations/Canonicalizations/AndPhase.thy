@@ -165,7 +165,6 @@ optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
                                          when \<not>(is_ConstantExpr y)"
   using size_flip_binary by auto
 
-(* 1st subgoal is False *)
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
     defer using exp_and_nots 
    apply presburger
@@ -180,7 +179,7 @@ optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Ou
 
 optimization AndNeutral: "(x & ~(const (IntVal b 0))) \<longmapsto> x 
    when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-   apply auto using val_and_neutral
+   apply auto 
   by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_and.elims intval_word.simps 
       new_int.simps new_int_bin.simps take_bit_eq_mask)
 

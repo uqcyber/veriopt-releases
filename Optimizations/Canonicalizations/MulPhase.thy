@@ -6,8 +6,19 @@ theory MulPhase
     Proofs.StampEvalThms
 begin
 
+fun mul_size :: "IRExpr \<Rightarrow> nat" where
+  "mul_size (UnaryExpr op e) = (mul_size e) + 2" |
+  "mul_size (BinaryExpr BinMul x y) = ((mul_size x) + (mul_size y) + 2) * 2" |
+  "mul_size (BinaryExpr op x y) = (mul_size x) + (mul_size y) + 2" |
+  "mul_size (ConditionalExpr cond t f) = (mul_size cond) + (mul_size t) + (mul_size f) + 2" |
+  "mul_size (ConstantExpr c) = 1" |
+  "mul_size (ParameterExpr ind s) = 2" |
+  "mul_size (LeafExpr nid s) = 2" |
+  "mul_size (ConstantVar c) = 2" |
+  "mul_size (VariableExpr x s) = 2"
+
 phase MulNode
-  terminating size
+  terminating mul_size
 begin
 
 (* Word level proofs *)
@@ -248,8 +259,8 @@ lemma greaterConstant:
 text \<open>Optimisations\<close>
 
 optimization EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
-  apply (metis One_nat_def Suc_eq_plus1 add_Suc_shift add_less_imp_less_right less_Suc_eq not_add_less1 not_less_eq numeral_2_eq_2 size_binary_const size_non_add)
-   apply auto using val_eliminate_redundant_negative bin_eval.simps(2)
+  using mul_size.simps apply auto[1]
+  using val_eliminate_redundant_negative bin_eval.simps(2)
   by (metis BinaryExpr)
 
 optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
@@ -330,7 +341,7 @@ proof -
   then show ?thesis
     by (metis eval(1) eval(2) evalDet lhs rhs)
 qed
-  sorry (* termination issues *)
+  done
 
 
 (* Need to prove exp_MulPower2Add1 *)
@@ -371,8 +382,7 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
      then show ?thesis
       by (metis evalDet lhs p(1) p(2) rhs)
   qed
-  sorry (* Termination *)
-
+done
 
 end (* End of MulPhase *)
 

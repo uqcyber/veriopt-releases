@@ -1,0 +1,135 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{isabelle,isabellesym}
+\usepackage{amssymb,amsmath}
+\usepackage{tikz-cd}
+
+\usepackage{mathpartir}
+% further packages required for unusual symbols (see also
+% isabellesym.sty), use only when needed
+
+%\usepackage{amssymb}
+  %for \<leadsto>, \<box>, \<diamond>, \<sqsupset>, \<mho>, \<Join>,
+  %\<lhd>, \<lesssim>, \<greatersim>, \<lessapprox>, \<greaterapprox>,
+  %\<triangleq>, \<yen>, \<lozenge>
+
+%\usepackage{eurosym}
+  %for \<euro>
+
+%\usepackage[only,bigsqcap]{stmaryrd}
+  %for \<Sqinter>
+
+%\usepackage{eufrak}
+  %for \<AA> ... \<ZZ>, \<aa> ... \<zz> (also included in amssymb)
+
+%\usepackage{textcomp}
+  %for \<onequarter>, \<onehalf>, \<threequarters>, \<degree>, \<cent>,
+  %\<currency>
+
+\newcommand{\dres}{\mathbin{\lhd}}
+\newcommand{\ndres}{\mathbin{\rlap{\raise.05ex\hbox{$-$}}{\dres}}}
+
+% this should be the last package used
+\usepackage{pdfsetup}
+
+% urls in roman style, theory text in math-similar italics
+\urlstyle{rm}
+\isabellestyle{it}
+
+\newcommand{\induct}[1]{}
+
+% for uniform font size
+%\renewcommand{\isastyle}{\isastyleminor}
+
+% display snips in colorboxes
+\usepackage{tcolorbox}
+
+\newcommand{\Snip}[1]{\begin{tcolorbox}[title=#1]}
+\newcommand{\EndSnip}[1]{\end{tcolorbox}}
+
+\newcommand{\isamarkupsnipbegin}[1]{\Snip{#1}}
+\newcommand{\isamarkupsnipend}[1]{\EndSnip{#1}}
+
+
+\begin{document}
+
+\title{
+  Verifying term graph optimizations using Isabelle/HOL\\
+  {\small Isabelle/HOL Theories}
+}
+\maketitle
+
+\begin{abstract}
+Our objective is to formally verify the correctness of the hundreds of expression
+optimization rules used within the GraalVM compiler.
+When defining the semantics of a programming language,
+expressions naturally form abstract syntax trees, or, terms.
+However, in order to facilitate sharing of common subexpressions,
+modern compilers represent expressions as term graphs.
+Defining the semantics of term graphs is more complicated
+than defining the semantics of their equivalent term representations.
+More significantly,
+defining optimizations directly on term graphs and proving semantics preservation is
+considerably more complicated than on the equivalent term representations.
+On terms, optimizations can be expressed as conditional term rewriting rules,
+and proofs that the rewrites are semantics preserving are relatively straightforward.
+In this paper, we explore an approach to using term rewrites to verify term graph transformations
+of optimizations within the GraalVM compiler.
+This approach significantly reduces the overall verification effort and allows for simpler encoding of optimization rules.
+\end{abstract}
+
+\pagebreak
+
+\tableofcontents
+
+\pagebreak
+
+% sane default for proof documents
+\parindent 0pt\parskip 0.5ex
+
+% generated text of all theories
+\input{Values}
+\input{ValueThms}
+\input{Stamp}
+\input{IRNodes}
+\input{IRNodeHierarchy}
+\input{IRGraph}
+\input{Long}
+
+\input{IRTreeEval}
+\input{IRTreeEvalThms}
+\input{TreeToGraph}
+\input{Form}
+\input{IRGraphFrames}
+\input{TreeToGraphThms}
+\input{IRStepObj}
+\input{IRStepThms}
+
+\input{StampEvalThms}
+
+\input{Markup}
+\input{Phase}
+\input{Canonicalization}
+
+\input{Common}
+\input{AbsPhase}
+\input{AddPhase}
+\input{AndPhase}
+\input{ConditionalPhase}
+\input{MulPhase}
+\input{NotPhase}
+\input{OrPhase}
+\input{SubPhase}
+\input{XorPhase}
+
+\input{TreeSnippets}
+
+% optional bibliography
+%\bibliographystyle{abbrv}
+%\bibliography{root}
+
+\end{document}
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

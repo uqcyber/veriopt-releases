@@ -253,6 +253,44 @@ session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
   theories
     TreeSnippets
     SlideSnippets
-  document_files (in "../../latex")
+  document_theories
+    Graph.Values
+    Graph.ValueThms
+    Graph.Stamp
+
+    Graph.IRNodes
+    Graph.IRNodeHierarchy
+    
+    Graph.IRGraph
+    Graph.Long
+
+    Semantics.IRTreeEval
+    Semantics.IRTreeEvalThms
+    Semantics.TreeToGraph
+    Semantics.Form
+    Semantics.IRGraphFrames
+    Semantics.TreeToGraphThms
+    Semantics.IRStepObj
+    Semantics.IRStepThms
+
+    Proofs.StampEvalThms
+
+    OptimizationDSL.Markup
+    OptimizationDSL.Phase
+    OptimizationDSL.Canonicalization
+
+    Canonicalizations.Common
+    Canonicalizations.AbsPhase
+    Canonicalizations.AddPhase
+    Canonicalizations.AndPhase
+    Canonicalizations.BinaryNode
+    Canonicalizations.ConditionalPhase
+    Canonicalizations.MulPhase
+    Canonicalizations.NotPhase
+    Canonicalizations.OrPhase
+    Canonicalizations.SubPhase
+    Canonicalizations.XorPhase
+  document_files (in ".")
     "root.tex"
+  document_files (in "../../latex")
     "mathpartir.sty"

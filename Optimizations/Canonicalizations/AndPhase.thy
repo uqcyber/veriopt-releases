@@ -127,13 +127,13 @@ lemma exp_sign_extend:
       then have 2: "intval_sign_extend In Out va \<noteq> UndefVal"
         by auto
       then have 21: "(0::nat) < b"
-        by (simp add: p(4))
+        using eval_bits_1_64 p(4) by blast
       then have 3: "b \<sqsubseteq> (64::nat)"
-        by (simp add: p(5))
+        using eval_bits_1_64 p(4) by blast
       then have 4: "- ((2::int) ^ b div (2::int)) \<sqsubseteq> sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e))"
-        by (simp add: p(6))
-     then have 5: "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e)) < (2::int) ^ b div (2::int)"
-        by (simp add: p(7))
+        by (simp add: "21" int_power_div_base signed_take_bit_int_greater_eq_minus_exp_word)
+      then have 5: "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e)) < (2::int) ^ b div (2::int)"
+        by (simp add: "21" "3" Suc_le_lessD int_power_div_base signed_take_bit_int_less_exp_word)
       then have 6: "[m,p] \<turnstile> UnaryExpr (UnaryZeroExtend In Out)
                  x \<mapsto> intval_and (intval_sign_extend In Out va) (IntVal b (take_bit b e))"
         apply (cases va; simp) 

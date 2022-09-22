@@ -203,7 +203,7 @@ inductive
   for m p where
 
   ConstantExpr:
-  "\<lbrakk>valid_value c (constantAsStamp c)\<rbrakk>
+  "\<lbrakk>wf_value c\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ConstantExpr c) \<mapsto> c" |
 
   ParameterExpr:

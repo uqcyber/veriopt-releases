@@ -523,7 +523,7 @@ qed
 
 optimization BinaryFoldConstant: "BinaryExpr op (const e1) (const e2) \<longmapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
    defer apply auto
-   apply (simp add: ConstantExpr bin_eval_preserves_validity)
+   apply (simp add: wf_value_def ConstantExpr bin_eval_preserves_validity)
   using nonconstants_gt_one by simp
 
 optimization AddShiftConstantRight: "((const c) + y) \<longmapsto> y + (const c) when ~(is_ConstantExpr y)"

@@ -201,13 +201,20 @@ fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
 *)
 
-(* Once all other constantAsStamp alternatives have been implemented,
-   this should be proved and constant semantics should be updated.
-lemma constants_valid:
-  assumes "v \<noteq> UndefVal"
-  shows "valid_value v (constantAsStamp v)"
-  using assms apply (induction v; auto)
+(* A preferable wf_value definition
+fun wf_value :: "Value \<Rightarrow> bool" where
+  "wf_value (IntVal b v) = (0 < b \<and> b \<le> 64 \<and> take_bit b v = v 
+    \<and> sint v \<le> snd (bit_bounds b)
+    \<and> fst (bit_bounds b) \<le> sint v)" |
+  "wf_value _ = False"
 *)
+
+definition wf_value :: "Value \<Rightarrow> bool" where
+  "wf_value v = valid_value v (constantAsStamp v)"
+
+lemma unfold_wf_value[simp]:
+  "wf_value v \<Longrightarrow> valid_value v (constantAsStamp v)"
+  using wf_value_def by auto
 
 fun compatible :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "compatible (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =

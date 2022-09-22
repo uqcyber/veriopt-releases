@@ -33,7 +33,6 @@ optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmaps
       show ?thesis
         unfolding prems x y xy (* get it in form: ConstantExpr c \<longmapsto> c *)
         apply (rule ConstantExpr)
-        apply (rule validDefIntConst)
         using prems x y xy int sorry
       qed
     done

@@ -160,6 +160,7 @@ proof -
     using assms wf_stamp_eval
     by (metis stamp_expr.simps(2))
   then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinSub e e \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> ConstantExpr (IntVal b 0) \<mapsto> v)"
+    using wf_value_def
     by (smt (verit, best) BinaryExprE TreeSnippets.wf_stamp_def assms bin_eval.simps(3) constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val unfold_const valid_stamp.simps(1) valid_value.simps(1))
 qed
 thm_oracles SubIdentity

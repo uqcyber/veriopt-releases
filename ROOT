@@ -280,7 +280,7 @@ session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
     OptimizationDSL.Canonicalization
 
     Canonicalizations.Common
-    Canonicalizations.AbsPhase
+    (*Canonicalizations.AbsPhase*)
     Canonicalizations.AddPhase
     Canonicalizations.AndPhase
     Canonicalizations.NewAnd

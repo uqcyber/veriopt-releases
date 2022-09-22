@@ -340,7 +340,7 @@ optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when
   apply simp_all 
    apply auto
   using IRExpr.disc(42) One_nat_def size_non_const apply presburger
-  by (smt (verit, best) ConstantExpr evalDet eval_bits_1_64 eval_unused_bits_zero new_int.simps take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def)
+  by (smt (verit, best) wf_value_def ConstantExpr evalDet eval_bits_1_64 eval_unused_bits_zero new_int.simps take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def)
 
 end (* End of SubPhase *)
 

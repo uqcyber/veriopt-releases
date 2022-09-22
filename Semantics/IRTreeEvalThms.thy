@@ -205,7 +205,7 @@ lemma evaltree_not_undef:
   fixes m p e v
   shows "([m,p] \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
   apply (induction rule: "evaltree.induct")
-  using valid_not_undef by auto
+  using valid_not_undef wf_value_def by auto
 
 
 lemma leafint:
@@ -449,8 +449,8 @@ lemma unfold_valid64 [simp]:
 
 (* the general case, for all constants *)
 lemma unfold_const:
-  shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (valid_value v (constantAsStamp c) \<and> v = c)"
-  by blast 
+  shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (wf_value v \<and> v = c)"
+  by blast
 
 (* TODO:
 corollary unfold_const32:
@@ -586,7 +586,7 @@ next
     by (smt (z3) EvalTreeE(6) Value.simps(11) valid_value.elims(1) valid_value.simps(1)) 
 next
   case (ConstantExpr x)
-  then show ?case
+  then show ?case using wf_value_def
     by (metis EvalTreeE(1) constantAsStamp.simps(1) valid_value.simps(1))
 next
   case (ConstantVar x)
@@ -665,7 +665,6 @@ proof -
     using that by blast+
 qed
 
-
 lemma eval_bits_1_64:
   "[m,p] \<turnstile> xe \<mapsto> (IntVal b ix) \<Longrightarrow> 0 < b \<and> b \<le> 64"
 proof (induction xe arbitrary: "b" "ix")
@@ -707,8 +706,8 @@ next
     by (smt (z3) EvalTreeE(6) Value.distinct(7) Value.inject(1) valid_stamp.simps(1) valid_value.elims(1))
 next
   case (ConstantExpr x)
-  then show ?case
-    by (metis EvalTreeE(1) constantAsStamp.simps(1) valid_stamp.simps(1) valid_value.simps(1)) 
+  then show ?case using wf_value_def
+    by (metis EvalTreeE(1) constantAsStamp.simps(1) valid_stamp.simps(1) valid_value.simps(1))
 next
   case (ConstantVar x)
   then show ?case
@@ -718,7 +717,6 @@ next
   then show ?case
     by blast
 qed
-
 
 
 lemma unfold_binary_width:

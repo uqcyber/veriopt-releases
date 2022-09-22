@@ -160,6 +160,7 @@ proof -
     using assms wf_stamp_eval
     by (metis stamp_expr.simps(2))
   then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinSub e e \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> ConstantExpr (IntVal b 0) \<mapsto> v)"
+    using wf_value_def
     by (smt (verit, best) BinaryExprE TreeSnippets.wf_stamp_def assms bin_eval.simps(3) constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val unfold_const valid_stamp.simps(1) valid_value.simps(1))
 qed
 thm_oracles SubIdentity
@@ -341,21 +342,20 @@ phase Conditional
 begin
 snipend -
 
-snipbegin \<open>phase-example-1\<close>optimization negate_condition: "((!e) ? x : y) \<longmapsto> (e ? y : x) when (wf_stamp e \<and> stamp_expr e = IntegerStamp b lo hi \<and> b > 0)"snipend -
+snipbegin \<open>phase-example-1\<close>optimization NegateCond: "((!e) ? x : y) \<longmapsto> (e ? y : x)"snipend -
   apply (simp add: size_simps)
-  using ConditionalPhase.NegateConditionFlipBranches(1)
-  using StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def by force
+  using ConditionalPhase.NegateConditionFlipBranches(1) by simp
 
-snipbegin \<open>phase-example-2\<close>optimization const_true: "(true ? x : y) \<longmapsto> x"snipend -
+snipbegin \<open>phase-example-2\<close>optimization TrueCond: "(true ? x : y) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-3\<close>optimization const_false: "(false ? x : y) \<longmapsto> y"snipend -
+snipbegin \<open>phase-example-3\<close>optimization FalseCond: "(false ? x : y) \<longmapsto> y"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-4\<close>optimization equal_branches: "(e ? x : x) \<longmapsto> x"snipend -
+snipbegin \<open>phase-example-4\<close>optimization BranchEqual: "(e ? x : x) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-5\<close>optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x
+snipbegin \<open>phase-example-5\<close>optimization LessCond: "((u < v) ? x : y) \<longmapsto> x
                    when (stamp_under (stamp_expr u) (stamp_expr v) 
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -
   apply (auto simp: trm_def)
@@ -371,12 +371,18 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
+lemma simplified_binary: "\<not>(is_ConstantExpr b) \<Longrightarrow> size (BinaryExpr op a b) = size a + size b + 2"
+  by (induction b; induction op; auto simp: is_ConstantExpr_def)
+
+thm bin_size
+thm bin_const_size
 thm unary_size
+thm size_non_add
 snipbegin \<open>termination\<close>
 text \<open>
 @{thm[display,margin=80] unary_size}
 @{thm[display,margin=80] bin_const_size}
-@{thm[display,margin=80] bin_size}
+@{thm[display,margin=80] (concl) simplified_binary}
 @{thm[display,margin=80] cond_size}
 @{thm[display,margin=80] const_size}
 @{thm[display,margin=80] param_size}

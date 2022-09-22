@@ -60,7 +60,7 @@ lemma exp_xor_self_is_false:
   using assms apply auto unfolding wf_stamp_def
   using IntVal0 Value.inject(1) bool_to_val.simps(2) constantAsStamp.simps(1) evalDet 
         int_signed_value_bounds new_int.simps unfold_const val_xor_self_is_false_2 valid_int 
-        valid_stamp.simps(1) valid_value.simps(1)
+        valid_stamp.simps(1) valid_value.simps(1) wf_value_def
   by (smt (z3) validDefIntConst)
 
 lemma exp_eliminate_redundant_false:

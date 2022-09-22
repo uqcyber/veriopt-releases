@@ -20,9 +20,20 @@ lemma negation_condition_intval:
   shows "val[(!e) ? x : y] = val[e ? y : x]"
   using assms by (cases e; auto simp: negates logic_negate_def)
 
-optimization NegateConditionFlipBranches: "((!e) ? x : y) \<longmapsto> (e ? y : x) when (wf_stamp e \<and> stamp_expr e = IntegerStamp b lo hi \<and> b > 0)"
-  apply simp using negation_condition_intval
-  by (smt (verit, ccfv_SIG) ConditionalExpr ConditionalExprE UnaryExprE negates unary_eval.simps(4) valid_value_elims(3) wf_stamp_def)
+lemma negation_preserve_eval:
+  assumes "[m, p] \<turnstile> exp[!e] \<mapsto> v"
+  shows "\<exists>v'. ([m, p] \<turnstile> exp[e] \<mapsto> v') \<and> v = val[!v']"
+  using assms by auto
+
+lemma negation_preserve_eval_intval:
+  assumes "[m, p] \<turnstile> exp[!e] \<mapsto> v"
+  shows "\<exists>v' b vv. ([m, p] \<turnstile> exp[e] \<mapsto> v') \<and> v' = IntVal b vv \<and> b > 0"
+  using assms
+  by (metis eval_bits_1_64 intval_logic_negation.elims negation_preserve_eval unfold_unary)
+
+optimization NegateConditionFlipBranches: "((!e) ? x : y) \<longmapsto> (e ? y : x)"
+  apply simp using negation_condition_intval negation_preserve_eval_intval
+  by (smt (z3) ConditionalExpr ConditionalExprE evalDet negates negation_preserve_eval)
 
 optimization DefaultTrueBranch: "(true ? x : y) \<longmapsto> x" .
 

@@ -5,6 +5,19 @@ theory StampEvalThms
           Semantics.IRTreeEvalThms
 begin
 
+lemma
+  assumes "take_bit b v = v"
+  shows "signed_take_bit b v = v"
+  using assms
+  by (metis(full_types) eq_imp_le signed_take_bit_take_bit)
+
+lemma unwrap_signed_take_bit:
+  fixes v :: int64
+  assumes "0 < b \<and> b \<le> 64"
+  assumes "signed_take_bit (b - 1) v = v"
+  shows "signed_take_bit 63 (Word.rep (signed_take_bit (b - Suc 0) v)) = sint v"
+  using assms using size64 unfolding signed_def by auto
+
 lemma unrestricted_new_int_always_valid [simp]:
   assumes "0 < b \<and> b \<le> 64"
   shows "valid_value (new_int b v) (unrestricted_stamp (IntegerStamp b lo hi))"

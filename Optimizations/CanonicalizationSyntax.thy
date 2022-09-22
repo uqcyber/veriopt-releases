@@ -474,8 +474,7 @@ optimization AndNeutral: "((x::i32exp) & (const (IntVal 32 (neg_one 32)))) \<lon
 *)
 end
 
-optimization ConditionalEqualBranches: "(b ? v : v) \<longmapsto> v"
-  by simp
+optimization ConditionalEqualBranches: "(b ? v : v) \<longmapsto> v" .
 
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y when (type x = Integer \<and> type_safe x y)"
    apply auto
@@ -524,7 +523,7 @@ qed
 
 optimization BinaryFoldConstant: "BinaryExpr op (const e1) (const e2) \<longmapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
    defer apply auto
-   apply (simp add: ConstantExpr bin_eval_preserves_validity)
+   apply (simp add: wf_value_def ConstantExpr bin_eval_preserves_validity)
   using nonconstants_gt_one by simp
 
 optimization AddShiftConstantRight: "((const c) + y) \<longmapsto> y + (const c) when ~(is_ConstantExpr y)"
@@ -560,15 +559,11 @@ lemma intval_negateadd_equals_sub_right: "bin_eval BinAdd x (unary_eval UnaryNeg
 
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   defer apply simp using intval_negateadd_equals_sub_left
-   apply (metis BinaryExpr BinaryExprE UnaryExprE)
-  unfolding size.simps
-  by simp
+  by (metis BinaryExpr BinaryExprE UnaryExprE)
 
 optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
   defer apply simp using intval_negateadd_equals_sub_right
-   apply (metis BinaryExpr BinaryExprE UnaryExprE)
-  unfolding size.simps
-  by simp
+  by (metis BinaryExpr BinaryExprE UnaryExprE)
 
 optimization MulEliminator: "((x::i32exp) * const(IntVal 32 0)) \<longmapsto> const(IntVal 32 0)"
    defer apply auto

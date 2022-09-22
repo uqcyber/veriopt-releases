@@ -213,7 +213,7 @@ lemma exp_multiply_zero_64:
   using val_multiply_zero apply auto 
   using Value.inject(1) constantAsStamp.simps(1) int_signed_value_bounds intval_mul.elims 
         mult_zero_right new_int.simps new_int_bin.simps nle_le numeral_eq_Suc take_bit_of_0 
-        unfold_const valid_stamp.simps(1) valid_value.simps(1) zero_less_Suc
+        unfold_const valid_stamp.simps(1) valid_value.simps(1) zero_less_Suc wf_value_def
   by (smt (verit))
 
 lemma exp_multiply_neutral:
@@ -289,8 +289,9 @@ lemma exp_distribute_multiplication:
 text \<open>Optimisations\<close>
 
 optimization EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
-   using mul_size.simps apply auto[1]
-  by (metis BinaryExpr val_eliminate_redundant_negative bin_eval.simps(2))
+  using mul_size.simps apply auto[1]
+  using val_eliminate_redundant_negative bin_eval.simps(2)
+  by (metis BinaryExpr)
 
 optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
   using exp_multiply_neutral by blast
@@ -302,7 +303,7 @@ optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (
       valid_stamp.simps(1) valid_value.simps(1) val_multiply_zero)
 
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
-   apply auto
+  apply auto using val_multiply_negative wf_value_def
   by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
       intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps 
       take_bit_dist_neg unary_eval.simps(2) unfold_unary val_multiply_negative
@@ -358,7 +359,7 @@ proof -
   then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
     by (metis bin_eval.simps(2) eval(1) eval(2) evalDet unfold_binary xv)
   have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
-    by (smt (verit, ccfv_SIG) ConstantExpr constantAsStamp.simps(1) eval_bits_1_64 take_bit64 validStampIntConst valid_value.simps(1) xv xvv)
+    by (smt (verit, ccfv_SIG) ConstantExpr constantAsStamp.simps(1) eval_bits_1_64 take_bit64 validStampIntConst wf_value_def valid_value.simps(1) xv xvv)
   then have rhs: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
     using xv xvv using evaltree.BinaryExpr
     by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps)
@@ -386,8 +387,8 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
           new_int_bin.simps unfold_binary)
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
       using p  by blast
-    have ygezero: "exp[y > ConstantExpr (IntVal 64 0)]"
-      using greaterConstant p by fastforce 
+    have ygezero: "y > ConstantExpr (IntVal 64 0)"
+      using greaterConstant p wf_value_def by fastforce 
     then have 1: "0 < i \<and>
                   i < 64 \<and> 
                   y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1))"
@@ -395,7 +396,7 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
     then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
       by (metis bin_eval.simps(2) evalDet p(1) p(2) xv yv unfold_binary)
     then have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
-      by (metis verit_comp_simplify1(2) zero_less_numeral ConstantExpr constantAsStamp.simps(1) 
+      by (metis wf_value_def verit_comp_simplify1(2) zero_less_numeral ConstantExpr constantAsStamp.simps(1) 
           take_bit64 validStampIntConst valid_value.simps(1))
     then have rhs2: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
       by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps xv xvv 

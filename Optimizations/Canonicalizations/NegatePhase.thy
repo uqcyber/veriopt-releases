@@ -53,13 +53,13 @@ lemma exp_negative_shift:
     then have 2: "intval_right_shift xa (IntVal b (take_bit b y)) \<noteq> UndefVal"
       by auto
     then have 3: "- ((2::int) ^ b div (2::int)) \<sqsubseteq> sint (signed_take_bit (b - Suc (0::nat)) (take_bit b y))"
-      by (simp add: p(6))
+      by (smt (verit, del_insts) One_nat_def diff_le_self gr0I half_nonnegative_int_iff linorder_not_le lower_bounds_equiv power_increasing_iff signed_0 signed_take_bit_int_greater_eq_minus_exp_word signed_take_bit_of_0 sint_greater_eq take_bit_0)
     then have 4: "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b y)) < (2::int) ^ b div (2::int)"
-      using p(7) by blast
+      by (metis Suc_le_lessD Suc_pred eval_bits_1_64 int_power_div_base p(4) signed_take_bit_int_less_exp_word size64 unfold_const wsst_TYs(3) zero_less_numeral)
     then have 5: "(0::nat) < b"
-      by (simp add: p(4))
+      using eval_bits_1_64 p(4) by blast
     then have 6: "b \<sqsubseteq> (64::nat)"
-      by (simp add: p(5))
+      using eval_bits_1_64 p(4) by blast
     then have 7: "[m,p] \<turnstile> BinaryExpr BinURightShift x
                  (ConstantExpr (IntVal b (take_bit b y))) \<mapsto> 
                   intval_negate (intval_right_shift xa (IntVal b (take_bit b y)))"

@@ -79,7 +79,7 @@ proof -
     using nat_numeral by force 
   then have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal 32 1"
     using ConstantExpr ConstantNode Value.distinct(1) \<open>kind g' (nextNid g) = ConstantNode (bool_to_val True)\<close> encodeeval_def truedef
-    by metis
+    by (metis wf_value_def)
   from if' c' show ?thesis using IfNode
     by (metis (no_types, opaque_lifting) val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nextNid g \<mapsto> IntVal 32 1\<close> encodeeval_def zero_neq_one)
 qed
@@ -106,7 +106,7 @@ proof -
     unfolding constantAsStamp.simps valid_value.simps
     using nat_numeral by force
   then have "[g', m, p] \<turnstile> nextNid g \<mapsto> IntVal 32 0"
-    by (metis ConstantExpr ConstantNode \<open>kind g' (nextNid g) = ConstantNode (bool_to_val False)\<close> encodeeval_def falsedef)
+    by (metis wf_value_def ConstantExpr ConstantNode \<open>kind g' (nextNid g) = ConstantNode (bool_to_val False)\<close> encodeeval_def falsedef)
   from if' c' show ?thesis using IfNode
     by (metis (no_types, opaque_lifting) val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nextNid g \<mapsto> IntVal 32 0\<close> encodeeval_def)
 qed

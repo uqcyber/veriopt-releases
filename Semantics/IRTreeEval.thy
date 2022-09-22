@@ -203,7 +203,7 @@ inductive
   for m p where
 
   ConstantExpr:
-  "\<lbrakk>valid_value c (constantAsStamp c)\<rbrakk>
+  "\<lbrakk>wf_value c\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ConstantExpr c) \<mapsto> c" |
 
   ParameterExpr:
@@ -221,8 +221,8 @@ inductive
     \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr ce te fe) \<mapsto> result" |
 
   UnaryExpr:
-  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> v;
-    result = (unary_eval op v);
+  "\<lbrakk>[m,p] \<turnstile> xe \<mapsto> x;
+    result = (unary_eval op x);
     result \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (UnaryExpr op xe) \<mapsto> result" |
 
@@ -417,5 +417,24 @@ lemma not_down_up_mask_and_zero_implies_zero:
   by (smt (z3) and_zero_eq bit.conj_cancel_left bit.conj_disj_distribs(1) bit.conj_disj_distribs(2) bit.de_Morgan_disj down_spec or_eq_not_not_and ucast_id up_spec word_ao_absorbs(2) word_ao_absorbs(8) word_bw_lcs(1) word_not_dist(2))
 
 end
+
+definition IRExpr_up :: "IRExpr \<Rightarrow> int64" where
+  "IRExpr_up e = not 0"
+
+definition IRExpr_down :: "IRExpr \<Rightarrow> int64" where
+  "IRExpr_down e = 0"
+
+lemma ucast_zero: "(ucast (0::int64)::int32) = 0"
+  by simp
+
+lemma ucast_minus_one: "(ucast (-1::int64)::int32) = -1"
+  apply transfer by auto
+
+interpretation simple_mask: stamp_mask
+  "IRExpr_up :: IRExpr \<Rightarrow> int64"
+  "IRExpr_down :: IRExpr \<Rightarrow> int64"
+  unfolding IRExpr_up_def IRExpr_down_def
+  apply unfold_locales
+  by (simp add: ucast_minus_one)+
 
 end

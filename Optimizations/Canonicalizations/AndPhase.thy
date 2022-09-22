@@ -6,6 +6,48 @@ theory AndPhase
     Proofs.StampEvalThms
 begin
 
+context stamp_mask
+begin
+
+lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[y]"
+  apply simp apply (rule impI; (rule allI)+)
+  apply (rule impI)
+  subgoal premises p for m p v
+  proof -
+    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+      using p(2) by blast
+    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
+      using p(2) by blast
+    have "v = val[xv & yv]"
+      using p(2) xv yv
+      by (metis BinaryExprE bin_eval.simps(4) evalDet)
+    then have "v = yv"
+      using p(1) not_down_up_mask_and_zero_implies_zero
+      by (smt (verit) eval_unused_bits_zero intval_and.elims new_int.elims new_int_bin.elims p(2) unfold_binary xv yv)
+    then show ?thesis using yv by simp
+  qed
+  done
+
+lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[x]"
+  apply simp apply (rule impI; (rule allI)+)
+  apply (rule impI)
+  subgoal premises p for m p v
+  proof -
+    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+      using p(2) by blast
+    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
+      using p(2) by blast
+    have "v = val[xv & yv]"
+      using p(2) xv yv
+      by (metis BinaryExprE bin_eval.simps(4) evalDet)
+    then have "v = xv"
+      using p(1) not_down_up_mask_and_zero_implies_zero
+      by (smt (verit) and.commute eval_unused_bits_zero intval_and.elims new_int.simps new_int_bin.simps p(2) unfold_binary xv yv)
+    then show ?thesis using xv by simp
+  qed
+  done
+end
+
 phase AndNode  
   terminating size
 begin
@@ -85,13 +127,13 @@ lemma exp_sign_extend:
       then have 2: "intval_sign_extend In Out va \<noteq> UndefVal"
         by auto
       then have 21: "(0::nat) < b"
-        by (simp add: p(4))
+        using eval_bits_1_64 p(4) by blast
       then have 3: "b \<sqsubseteq> (64::nat)"
-        by (simp add: p(5))
+        using eval_bits_1_64 p(4) by blast
       then have 4: "- ((2::int) ^ b div (2::int)) \<sqsubseteq> sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e))"
-        by (simp add: p(6))
-     then have 5: "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e)) < (2::int) ^ b div (2::int)"
-        by (simp add: p(7))
+        by (simp add: "21" int_power_div_base signed_take_bit_int_greater_eq_minus_exp_word)
+      then have 5: "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b e)) < (2::int) ^ b div (2::int)"
+        by (simp add: "21" "3" Suc_le_lessD int_power_div_base signed_take_bit_int_less_exp_word)
       then have 6: "[m,p] \<turnstile> UnaryExpr (UnaryZeroExtend In Out)
                  x \<mapsto> intval_and (intval_sign_extend In Out va) (IntVal b (take_bit b e))"
         apply (cases va; simp) 
@@ -183,7 +225,7 @@ optimization AndNeutral: "(x & ~(const (IntVal b 0))) \<longmapsto> x
   by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_and.elims intval_word.simps 
       new_int.simps new_int_bin.simps take_bit_eq_mask)
 
-(*
+
 optimization AndRightFallThrough: "(x & y) \<longmapsto> y
                                 when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
   by (simp add: IRExpr_down_def IRExpr_up_def)
@@ -191,50 +233,6 @@ optimization AndRightFallThrough: "(x & y) \<longmapsto> y
 optimization AndLeftFallThrough: "(x & y) \<longmapsto> x
                                 when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
    by (simp add: IRExpr_down_def IRExpr_up_def) 
-*)
-
-end
-
-context stamp_mask
-begin
-
-lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[y]"
-  apply simp apply (rule impI; (rule allI)+)
-  apply (rule impI)
-  subgoal premises p for m p v
-  proof -
-    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
-      using p(2) by blast
-    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
-      using p(2) by blast
-    have "v = val[xv & yv]"
-      using p(2) xv yv
-      by (metis BinaryExprE bin_eval.simps(4) evalDet)
-    then have "v = yv"
-      using p(1) not_down_up_mask_and_zero_implies_zero
-      by (smt (verit) eval_unused_bits_zero intval_and.elims new_int.elims new_int_bin.elims p(2) unfold_binary xv yv)
-    then show ?thesis using yv by simp
-  qed
-  done
-
-lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[x]"
-  apply simp apply (rule impI; (rule allI)+)
-  apply (rule impI)
-  subgoal premises p for m p v
-  proof -
-    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
-      using p(2) by blast
-    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
-      using p(2) by blast
-    have "v = val[xv & yv]"
-      using p(2) xv yv
-      by (metis BinaryExprE bin_eval.simps(4) evalDet)
-    then have "v = xv"
-      using p(1) not_down_up_mask_and_zero_implies_zero
-      by (smt (verit) and.commute eval_unused_bits_zero intval_and.elims new_int.simps new_int_bin.simps p(2) unfold_binary xv yv)
-    then show ?thesis using xv by simp
-  qed
-  done
 
 
 end (* End of AndPhase *)

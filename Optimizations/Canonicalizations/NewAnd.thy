@@ -592,6 +592,7 @@ done
 
 thm_oracles improved_opt
 
+(*
 lemma falseBelowN_nBelowLowest:
   assumes "n \<le> Nat.size a"
   assumes "\<forall> i < n. \<not>(bit a i)"
@@ -698,6 +699,7 @@ proof -
   then show ?thesis using n
     by blast
 qed
+*)
 
 (*
 lemma consumes: 

@@ -3,6 +3,7 @@ subsection \<open>SubNode Phase\<close>
 theory SubPhase
   imports
     Common
+    Proofs.StampEvalThms
 begin
 
 phase SubNode
@@ -117,11 +118,6 @@ lemma exp_sub_negative_value:
   by (smt (verit) bin_eval.simps(1) bin_eval.simps(3) evaltree_not_undef 
       unary_eval.simps(2) unfold_binary unfold_unary)
 
-
-(* wf_stamp definition borrowed from ConditionalPhase *)
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
-
 lemma exp_sub_then_left_sub:
   shows   "exp[x - (x - y)] \<ge> exp[y]"
   using val_sub_then_left_sub apply auto
@@ -173,11 +169,12 @@ optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
   using size_simps apply simp
   using exp_sub_then_left_sub by blast
  
-optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x 
-                             when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x"
   apply auto
   by (smt (verit) add.right_neutral diff_add_cancel eval_unused_bits_zero intval_sub.elims 
       intval_word.simps new_int.simps new_int_bin.simps)
+
+thm_oracles SubtractZero
 
 (* Doesn't have any subgoals? *)
 (*
@@ -198,7 +195,7 @@ lemma negate_idempotent:
   using assms
   using is_IntVal_def by force
 
-
+(*
 lemma remove_sub_preserve_take_bit:
   fixes v :: "64 word"
   assumes "b > 0 \<and> b \<le> 64"
@@ -271,28 +268,22 @@ optimization SubNegativeConstant: "x - (const (val[-y])) \<longmapsto> x + (cons
       by (metis eval evalDet lhsdef rhsdef)
   qed
   sorry
+*)
 
+(*Additional check for not constant for termination *)
 optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
-                                  when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  defer
-   apply auto unfolding wf_stamp_def
+                                  when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> \<not>(is_ConstantExpr x))"
+   defer
+  apply auto unfolding wf_stamp_def
   apply (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
           new_int_bin.simps unary_eval.simps(2) unfold_unary)
-  sorry
+  using add_2_eq_Suc' size.simps(2) size_flip_binary by presburger
 
+
+(*
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
   "forPrimitive (IntegerStamp b lo hi) v = ConstantExpr (if take_bit b v = v then (IntVal b v) else UndefVal)" |
   "forPrimitive _ _ = ConstantExpr UndefVal"
-
-(*
-optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when 
-                      (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-   apply auto
-   apply (meson less_add_same_cancel1 less_trans_Suc size_pos)
-  by (smt (verit) Value.inject(1) eq_iff_diff_eq_0 evalDet intval_sub.elims new_int.elims 
-      new_int_bin.elims take_bit_of_0 unfold_const validDefIntConst valid_stamp.simps(1) 
-      valid_value.simps(1) wf_stamp_def)
-*)
 
 lemma unfold_forPrimitive:
   "forPrimitive s v = ConstantExpr (if is_IntegerStamp s \<and> take_bit (stp_bits s) v = v then (IntVal (stp_bits s) v) else UndefVal)"
@@ -342,7 +333,14 @@ optimization SubSelfIsZero: "(x - x) \<longmapsto> forPrimitive (stamp_expr exp[
   then show ?thesis sorry
 qed
   done
+*)
 
+optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when 
+                      (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+  apply simp_all 
+   apply auto
+  using IRExpr.disc(42) One_nat_def size_non_const apply presburger
+  by (smt (verit, best) ConstantExpr evalDet eval_bits_1_64 eval_unused_bits_zero new_int.simps take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def)
 
 end (* End of SubPhase *)
 

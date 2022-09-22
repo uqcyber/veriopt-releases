@@ -699,6 +699,7 @@ proof -
     by blast
 qed
 
+(*
 lemma consumes: 
   assumes "numberOfLeadingZeros (\<up>z) + bitCount (\<up>z) = 64"
   and "\<up>z \<noteq> 0"
@@ -840,14 +841,17 @@ proof -
 qed
   done
   done
+*)
 
 end
+
 
 lemma ucast_zero: "(ucast (0::int64)::int32) = 0"
   by simp
 
 lemma ucast_minus_one: "(ucast (-1::int64)::int32) = -1"
   apply transfer by auto
+
 
 interpretation simple_mask: stamp_mask
   "IRExpr_up :: IRExpr \<Rightarrow> int64"

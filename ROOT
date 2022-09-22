@@ -283,6 +283,7 @@ session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
     Canonicalizations.AbsPhase
     Canonicalizations.AddPhase
     Canonicalizations.AndPhase
+    Canonicalizations.NewAnd
     Canonicalizations.BinaryNode
     Canonicalizations.ConditionalPhase
     Canonicalizations.MulPhase

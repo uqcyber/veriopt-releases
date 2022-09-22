@@ -111,12 +111,6 @@ lemma exp_or_absorb_and:
   apply auto using intval_or_absorb_and eval_unused_bits_zero
   by (smt (verit) evalDet intval_or.elims new_int.elims)
 
-definition IRExpr_up :: "IRExpr \<Rightarrow> int64" where
-  "IRExpr_up e = not 0"
-
-definition IRExpr_down :: "IRExpr \<Rightarrow> int64" where
-  "IRExpr_down e = 0"
-
 lemma
   assumes "y = 0"
   shows "x + y = or x y"
@@ -846,22 +840,6 @@ qed
 *)
 
 end
-
-
-lemma ucast_zero: "(ucast (0::int64)::int32) = 0"
-  by simp
-
-lemma ucast_minus_one: "(ucast (-1::int64)::int32) = -1"
-  apply transfer by auto
-
-
-interpretation simple_mask: stamp_mask
-  "IRExpr_up :: IRExpr \<Rightarrow> int64"
-  "IRExpr_down :: IRExpr \<Rightarrow> int64"
-  unfolding IRExpr_up_def IRExpr_down_def
-  apply unfold_locales
-  by (simp add: ucast_minus_one)+
-
 
 
 phase NewAnd

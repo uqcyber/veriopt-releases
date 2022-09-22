@@ -160,25 +160,6 @@ optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~(x & y)"
    apply auto using val_or_not_operands
   by (metis BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3))
 
-definition IRExpr_up :: "IRExpr \<Rightarrow> int64" where
-  "IRExpr_up e = not 0"
-
-definition IRExpr_down :: "IRExpr \<Rightarrow> int64" where
-  "IRExpr_down e = 0"
-
-lemma ucast_zero: "(ucast (0::int64)::int32) = 0"
-  by simp
-
-lemma ucast_minus_one: "(ucast (-1::int64)::int32) = -1"
-  apply transfer by auto
-
-interpretation simple_mask: stamp_mask
-  "IRExpr_up :: IRExpr \<Rightarrow> int64"
-  "IRExpr_down :: IRExpr \<Rightarrow> int64"
-  unfolding IRExpr_up_def IRExpr_down_def
-  apply unfold_locales
-  by (simp add: ucast_minus_one)+
-
 optimization OrLeftFallthrough:
   "x | y \<longmapsto> x when ((and (not (IRExpr_down x)) (IRExpr_up y)) = 0)"
   using simple_mask.OrLeftFallthrough by blast

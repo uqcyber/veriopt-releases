@@ -518,7 +518,7 @@ thm ConditionalEliminationStep.equation
 subsection \<open>Control-flow Graph Traversal\<close>
 
 type_synonym Seen = "ID set"
-type_synonym Condition = "IRNode"
+type_synonym Condition = "IRExpr"
 type_synonym Conditions = "Condition list"
 type_synonym StampFlow = "(ID \<Rightarrow> Stamp) list"
 
@@ -568,10 +568,12 @@ fun clip_lower :: "Stamp \<Rightarrow> int \<Rightarrow> Stamp" where
   "clip_lower (IntegerStamp b l h) c = (IntegerStamp b c h)" |
   "clip_lower s c = s"
 
-fun registerNewCondition :: "IRGraph \<Rightarrow> Condition \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> (ID \<Rightarrow> Stamp)" where
+fun registerNewCondition :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> (ID \<Rightarrow> Stamp)" where
   (* constrain equality by joining the stamps *)
   "registerNewCondition g (IntegerEqualsNode x y) stamps =
-    (stamps(x := join (stamps x) (stamps y)))(y := join (stamps x) (stamps y))" |
+    (stamps
+      (x := join (stamps x) (stamps y)))
+      (y := join (stamps x) (stamps y))" |
   (* constrain less than by removing overlapping stamps *)
   "registerNewCondition g (IntegerLessThanNode x y) stamps =
     (stamps
@@ -616,7 +618,9 @@ inductive Step
 
     i = find_index nid (successors_of (kind g ifcond));
     c = (if i = 0 then kind g cond else LogicNegationNode cond);
-    conds' = c # conds;
+    rep g cond ce;
+    ce' = (if i = 0 then ce else UnaryExpr UnaryLogicNegation ce);
+    conds' = ce' # conds;
 
     flow' = registerNewCondition g c (hdOr flow (stamp g))\<rbrakk>
    \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow' # flow))" |
@@ -669,7 +673,6 @@ the individual traversal steps from the Step relation and the optimizations
 from the ConditionalEliminationStep relation to perform a transformation of the
 whole graph.
 \<close>
-(*
 
 inductive ConditionalEliminationPhase 
   :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> IRGraph \<Rightarrow> bool" where
@@ -702,6 +705,7 @@ inductive ConditionalEliminationPhase
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase .
 
+(*
 
 inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<close>
   :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> ID list \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> bool" where\<^marker>\<open>tag invisible\<close>

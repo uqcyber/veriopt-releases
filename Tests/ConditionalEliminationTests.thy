@@ -2,9 +2,9 @@ section \<open>Conditional Elimination Tests\<close>
 
 theory ConditionalEliminationTests
 imports
-  Optimizations.ConditionalElimination
+  ConditionalElimination.ConditionalElimination
   Graph.Comparison
-  Tests.IRGraphSort
+  IRGraphSort
 begin
 
 text \<open>

@@ -213,9 +213,9 @@ optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
   by (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
 
 (* Need to prove exp_sign_extend*)
-optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) x) 
+optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) (x)) 
                                                (const (new_int b e))
-                              \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) x)
+                              \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) (x))
                                   when (e = (1 << In) - 1)"
    using exp_sign_extend by simp 
 

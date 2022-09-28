@@ -68,12 +68,30 @@ optimization ConditionalEliminateKnownLess: "((x < y) ? x : y) \<longmapsto> x
 (* Optimisations *)
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
   apply auto
-  by (smt (verit) Value.inject(1) bool_to_val.simps(2) bool_to_val_bin.simps evalDet intval_equals.elims val_to_bool.elims(1))
+  by (smt (verit) Value.inject(1) bool_to_val.simps(2) bool_to_val_bin.simps evalDet 
+      intval_equals.elims val_to_bool.elims(1))
 
 (* todo not sure if this is done properly *)
 optimization normalizeX: "((x eq const (IntVal 32 0)) ? 
                                 (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> x
-                                when (x = ConstantExpr (IntVal 32 0) | (x = ConstantExpr (IntVal 32 1)))" .
+                                when (IRExpr_up x = 1) \<and> stamp_expr x = IntegerStamp b 0 1" 
+  apply auto
+  subgoal premises p for m p v xa
+    proof -
+      obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+        using p by blast
+       have 3: "[m,p] \<turnstile> if val_to_bool (intval_equals xa (IntVal (32::nat) (0::64 word)))
+                  then ConstantExpr (IntVal (32::nat) (0::64 word))
+                  else ConstantExpr (IntVal (32::nat) (1::64 word)) \<mapsto> v"
+         using evalDet p(3) p(5) xa by blast
+       then have 4: "xa = IntVal 32 0 | xa = IntVal 32 1"
+         sorry
+       then have 6: "v = xa"
+         sorry
+      then show ?thesis
+        using xa by auto
+    qed
+  done
 
 (* todo not sure if this is done properly *)
 optimization normalizeX2: "((x eq (const (IntVal 32 1))) ? 

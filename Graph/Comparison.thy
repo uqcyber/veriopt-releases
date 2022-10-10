@@ -51,7 +51,8 @@ fun diffNodesGraph :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> ID set" where
 fun diffNodesInfo :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> (ID \<times> IRNode \<times> IRNode) set" where
 "diffNodesInfo g1 g2 = {(nid, kind g1 nid, kind g2 nid) | nid . nid \<in> diffNodesGraph g1 g2}"
 
-fun eqGraph :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" where
+fun eqGraph :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool" (infix "\<approx>\<^sub>s" 20)
+  where
 "eqGraph isabelle_graph graal_graph = ((diffNodesGraph isabelle_graph graal_graph) = {})"
 
 

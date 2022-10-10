@@ -1,9 +1,9 @@
 theory ValidationSnippets
   imports
-    Graph.Values
-    Optimizations.CanonicalizationTree
-    Semantics.IRStepObj
+    IRGraphSort
     Snippets.Snipping
+    Graph.Comparison
+    ConditionalElimination.ConditionalElimination
 begin
 
 notation (latex)
@@ -27,104 +27,64 @@ snipbegin \<open>ModuloTestSnippet\<close>
 text \<open>@{theory_text "static_test moduloSnippet [(IntVal 32 (1)), (Intval 32 (-2147483648))] (IntVal 32 (1))"}\<close>
 snipend -
 
-
-snipbegin \<open>SampleCanonicalizations\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] CanonicalizeAdd.add_xsub [no_vars]}}{canon:addxsub}
-\induct{@{thm[mode=Rule] CanonicalizeAdd.add_ysub [no_vars]}}{canon:addysub}
-\induct{@{thm[mode=Rule] CanonicalizeAdd.add_xnegate [no_vars]}}{canon:addxnegate}
-\induct{@{thm[mode=Rule] CanonicalizeAdd.add_ynegate [no_vars]}}{canon:addynegate}
-\induct{@{thm[mode=Rule] CanonicalizeConditional.eq_branches [no_vars]}}{canon:eqbranch}
-\induct{@{thm[mode=Rule] CanonicalizeConditional.cond_eq [no_vars]}}{canon:condeq}
-\induct{@{thm[mode=Rule] CanonicalizeConditional.condition_bounds_x [no_vars]}}{canon:conditionboundsx}
-\induct{@{thm[mode=Rule] CanonicalizeConditional.condition_bounds_y [no_vars]}}{canon:conditionboundsy}
-\end{center}
-\<close>
+snipbegin \<open>ConditionalInitialEncoding\<close>
+(* initial: ConditionalEliminationTest4_test1Snippet*)
+definition test1_initial :: IRGraph where
+"test1_initial = irgraph [
+(0, (StartNode (Some 3) 7), VoidStamp),
+(1, (ParameterNode 0), default_stamp),
+(2, (ParameterNode 1), default_stamp),
+(3, (FrameState [] None None None), IllegalStamp),
+(4, (IntegerLessThanNode 2 1), VoidStamp),
+(5, (BeginNode 8), VoidStamp),
+(6, (BeginNode 13), VoidStamp),
+(7, (IfNode 4 6 5), VoidStamp),
+(8, (EndNode), VoidStamp),
+(9, (MergeNode  [8, 10] (Some 16) 18), VoidStamp),
+(10, (EndNode), VoidStamp),
+(11, (BeginNode 15), VoidStamp),
+(12, (BeginNode 10), VoidStamp),
+(13, (IfNode 4 11 12), VoidStamp),
+(14, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+(15, (ReturnNode (Some 14) None), VoidStamp),
+(16, (FrameState [] None None None), IllegalStamp),
+(17, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+(18, (ReturnNode (Some 17) None), VoidStamp)
+]"
 snipend -
 
-snipbegin \<open>SampleCanonicalizations2\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] CanonicalizeConditional.negate_condition [no_vars]}}{canon:addxsub}
-\induct{@{thm[mode=Rule] CanonicalizeConditional.const_true [no_vars]}}{canon:addysub}
-\induct{@{thm[mode=Rule] CanonicalizeConditional.const_false [no_vars]}}{canon:addxnegate}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_same [no_vars]}}{canon:addynegate}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_distinct [no_vars]}}{canon:eqbranch}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_add_first_both_same [no_vars]}}{canon:condeq}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_add_first_second_same [no_vars]}}{canon:conditionboundsx}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_add_second_first_same [no_vars]}}{canon:conditionboundsy}
-\end{center}
-\<close>
+snipbegin \<open>ConditionalOptimizedEncoding\<close>
+(* final: ConditionalEliminationTest4_test1Snippet*)
+definition test1_final :: IRGraph where 
+"test1_final = irgraph [
+(0, (StartNode (Some 3) 7), VoidStamp),
+(1, (ParameterNode 0), default_stamp),
+(2, (ParameterNode 1), default_stamp),
+(3, (FrameState [] None None None), IllegalStamp),
+(4, (IntegerLessThanNode 2 1), VoidStamp),
+(5, (BeginNode 8), VoidStamp),
+(6, (BeginNode 13), VoidStamp),
+(7, (IfNode 4 6 5), VoidStamp),
+(8, (EndNode), VoidStamp),
+(9, (MergeNode  [8, 10] (Some 16) 18), VoidStamp),
+(10, (EndNode), VoidStamp),
+(11, (BeginNode 15), VoidStamp),
+(12, (BeginNode 10), VoidStamp),
+(13, (IfNode 19 11 12), VoidStamp),
+(14, (ConstantNode (IntVal 32 (1))), IntegerStamp 32 (1) (1)),
+(15, (ReturnNode (Some 14) None), VoidStamp),
+(16, (FrameState [] None None None), IllegalStamp),
+(17, (ConstantNode (IntVal 32 (2))), IntegerStamp 32 (2) (2)),
+(18, (ReturnNode (Some 17) None), VoidStamp),
+(19, (ConstantNode (IntVal 1 (1))), VoidStamp)
+]"
 snipend -
 
-snipbegin \<open>SampleCanonicalizations3\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_add_second_both__same [no_vars]}}{canon:addxsub}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_sub_first_both_same [no_vars]}}{canon:addysub}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_sub_second_both_same [no_vars]}}{canon:addxnegate}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_left_contains_right1 [no_vars]}}{canon:addynegate}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_left_contains_right2 [no_vars]}}{canon:eqbranch}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_right_contains_left1 [no_vars]}}{canon:condeq}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_right_contains_left2 [no_vars]}}{canon:conditionboundsx}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_left_contains_right3 [no_vars]}}{canon:conditionboundsx}
-\induct{@{thm[mode=Rule] CanonicalizeIntegerEquals.int_equals_right_contains_left3 [no_vars]}}{canon:conditionboundsy}
-\end{center}
-\<close>
+value "runConditionalElimination test1_initial"
+
+snipbegin \<open>ConditionalTest\<close>
+corollary "(runConditionalElimination test1_initial) \<approx>\<^sub>s test1_final"
+  by eval
 snipend -
-
-
-snipbegin \<open>SampleCanonicalizations4\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] CanonicalizeOr.or_same [no_vars]}}{canon:addxsub}
-\induct{@{thm[mode=Rule] CanonicalizeOr.or_demorgans [no_vars]}}{canon:addysub}
-\induct{@{thm[mode=Rule] CanonicalizeAnd.and_same [no_vars]}}{canon:addxnegate}
-\induct{@{thm[mode=Rule] CanonicalizeAnd.and_demorgans [no_vars]}}{canon:addynegate}
-\induct{@{thm[mode=Rule] CanonicalizeNot.not_not [no_vars]}}{canon:eqbranch}
-\induct{@{thm[mode=Rule] CanonicalizeAbs.abs_abs [no_vars]}}{canon:condeq}
-\induct{@{thm[mode=Rule] CanonicalizeAbs.abs_abs [no_vars]}}{canon:conditionboundsx}
-\induct{@{thm[mode=Rule] CanonicalizeNegate.negate_negate [no_vars]}}{canon:conditionboundsx}
-\induct{@{thm[mode=Rule] CanonicalizeNegate.negate_negate [no_vars]}}{canon:conditionboundsy}
-\end{center}
-\<close>
-snipend -
-
-
-snipbegin \<open>SampleCanonicalizations5\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_same32 [no_vars]}}{canon:addxsub}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_same64 [no_vars]}}{canon:addysub}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_left_add1 [no_vars]}}{canon:addxnegate}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_left_add2 [no_vars]}}{canon:addynegate}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_left_sub [no_vars]}}{canon:eqbranch}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_right_add1 [no_vars]}}{canon:condeq}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_right_add2 [no_vars]}}{canon:conditionboundsx}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_right_sub [no_vars]}}{canon:conditionboundsy}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_xzero32 [no_vars]}}{canon:conditionboundsy}
-\end{center}
-\<close>
-snipend -
-
-snipbegin \<open>SampleCanonicalizations6\<close>
-text \<open>
-\begin{center}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_xzero64 [no_vars]}}{canon:addxsub}
-\induct{@{thm[mode=Rule] CanonicalizeSub.sub_y_negate [no_vars]}}{canon:addysub}
-\induct{@{thm[mode=Rule] CanonicalizeMul.mul_negate32 [no_vars]}}{canon:addxnegate}
-\induct{@{thm[mode=Rule] CanonicalizeMul.mul_negate64 [no_vars]}}{canon:addynegate}
-\induct{@{thm[mode=Rule] CanonicalizeUnaryOp.unary_const_fold [no_vars]}}{canon:eqbranch}
-\induct{@{thm[mode=Rule] CanonicalizeBinaryOp.binary_const_fold [no_vars]}}{canon:condeq}
-\induct{@{thm[mode=Rule] CanonicalizeBinaryOp.binary_fold_yneutral [no_vars]}}{canon:conditionboundsx}
-\induct{@{thm[mode=Rule] CanonicalizeBinaryOp.binary_fold_yzero32 [no_vars]}}{canon:conditionboundsy}
-\induct{@{thm[mode=Rule] CanonicalizeBinaryOp.binary_fold_yzero64 [no_vars]}}{canon:conditionboundsy}
-\end{center}
-\<close>
-snipend -
-
-
-
 
 end

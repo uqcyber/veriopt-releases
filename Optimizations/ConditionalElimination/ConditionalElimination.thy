@@ -667,6 +667,10 @@ inductive ConditionalEliminationPhase
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase .
 
+definition runConditionalElimination :: "IRGraph \<Rightarrow> IRGraph" where
+  "runConditionalElimination g = 
+    (Predicate.the (ConditionalEliminationPhase_i_i_o g (0, {}, ([], []))))"
+
 (*
 
 inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<close>

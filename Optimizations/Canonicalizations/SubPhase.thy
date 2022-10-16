@@ -101,25 +101,25 @@ lemma val_sub_negative_const:
 (* Exp level proofs *)
 lemma exp_sub_after_right_add:
   shows "exp[(x + y) - y] \<ge> exp[x]"
-  apply auto using val_sub_after_right_add_2
-  using evalDet eval_unused_bits_zero intval_add.elims new_int.simps
-  by (smt (verit)) 
+   apply auto  
+  by (smt (verit) evalDet eval_unused_bits_zero intval_add.elims new_int.simps 
+      val_sub_after_right_add_2) 
 
 lemma exp_sub_after_right_add2:
   shows "exp[(x + y) - x] \<ge> exp[y]"
-  using exp_sub_after_right_add apply auto 
-  using bin_eval.simps(1) bin_eval.simps(3) intval_add_sym unfold_binary
+  using exp_sub_after_right_add apply auto  
   by (smt (z3) Value.inject(1) diff_eq_eq evalDet eval_unused_bits_zero intval_add.elims 
-      intval_sub.elims new_int.simps new_int_bin.simps take_bit_dist_subL)
+      intval_sub.elims new_int.simps new_int_bin.simps take_bit_dist_subL bin_eval.simps(1) 
+      bin_eval.simps(3) intval_add_sym unfold_binary)
 
 lemma exp_sub_negative_value:
  "exp[x - (-y)] \<ge> exp[x + y]"
-  apply simp using val_sub_negative_value
-  by (smt (verit) bin_eval.simps(1) bin_eval.simps(3) evaltree_not_undef 
-      unary_eval.simps(2) unfold_binary unfold_unary)
+  apply simp  
+  by (smt (verit) bin_eval.simps(1) bin_eval.simps(3) evaltree_not_undef unary_eval.simps(2) 
+      unfold_binary unfold_unary val_sub_negative_value)
 
 lemma exp_sub_then_left_sub:
-  shows   "exp[x - (x - y)] \<ge> exp[y]"
+  "exp[x - (x - y)] \<ge> exp[y]"
   using val_sub_then_left_sub apply auto
   subgoal premises p for m p xa xaa ya
     proof- 
@@ -133,12 +133,14 @@ lemma exp_sub_then_left_sub:
         by (metis evalDet p(2) p(3) p(4) p(5) xa xaa ya)
       then have "val[xaa - ya] \<noteq> UndefVal"
         by auto
-      then have "[m,p] \<turnstile> y \<mapsto> val[xa - (xaa - ya)]"
-        by (metis "1" Value.exhaust evalDet eval_unused_bits_zero evaltree_not_undef intval_sub.simps(6) intval_sub.simps(7) new_int.simps p(5) val_sub_then_left_sub xa xaa ya)
+      then have "[m, p] \<turnstile> y \<mapsto> val[xa - (xaa - ya)]"
+        by (metis "1" Value.exhaust evalDet eval_unused_bits_zero evaltree_not_undef 
+            intval_sub.simps(6) intval_sub.simps(7) new_int.simps p(5) val_sub_then_left_sub xa xaa 
+            ya)
       then show ?thesis
         by (metis evalDet p(2) p(4) p(5) xa xaa ya)
     qed 
-    done
+  done
 
 thm_oracles exp_sub_then_left_sub
 
@@ -151,19 +153,18 @@ optimization SubAfterAddLeft: "((x + y) - x) \<longmapsto>  y"
   using exp_sub_after_right_add2 by blast
 
 optimization SubAfterSubLeft: "((x - y) - x) \<longmapsto>  -y"
-  apply (metis Suc_lessI add_2_eq_Suc' add_less_cancel_right less_trans_Suc not_add_less1 size_binary_const size_binary_lhs size_binary_rhs size_non_add)
+   apply (metis Suc_lessI add_2_eq_Suc' add_less_cancel_right less_trans_Suc not_add_less1 
+          size_binary_const size_binary_lhs size_binary_rhs size_non_add)
    apply auto 
   by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_after_left_sub)
 
 optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
    apply auto
-  by (metis evalDet unary_eval.simps(2) unfold_unary 
-      val_sub_then_left_add)
+  by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_then_left_add)
 
 optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
    apply auto 
-  by (metis evalDet intval_add_sym unary_eval.simps(2) unfold_unary 
-      val_sub_then_left_add)
+  by (metis evalDet intval_add_sym unary_eval.simps(2) unfold_unary val_sub_then_left_add)
 
 optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
   using size_simps apply simp
@@ -337,10 +338,11 @@ qed
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when 
                       (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  apply simp_all 
+   apply simp_all 
    apply auto
   using IRExpr.disc(42) One_nat_def size_non_const apply presburger
-  by (smt (verit, best) wf_value_def ConstantExpr evalDet eval_bits_1_64 eval_unused_bits_zero new_int.simps take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def)
+  by (smt (verit, best) wf_value_def ConstantExpr evalDet eval_bits_1_64 eval_unused_bits_zero 
+      new_int.simps take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def)
 
 end (* End of SubPhase *)
 

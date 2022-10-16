@@ -116,10 +116,12 @@ lemma bit_less_eq_def:
 lemma less_eq_def:
   (*assumes "0 < b \<and> b \<le> 64"*)
   shows "val_to_bool(val[(new_int b v1) < (new_int b v2)]) \<longleftrightarrow> v1 <s v2"
-  unfolding new_int.simps intval_less_than.simps bool_to_val_bin.simps bool_to_val.simps int_signed_value.simps apply (simp add: val_bool_unwrap)
-  apply auto unfolding word_sless_def apply auto
-  unfolding signed_def apply auto using bit_less_eq_def
-  apply (metis bot_nat_0.extremum take_bit_0)
+  unfolding new_int.simps intval_less_than.simps bool_to_val_bin.simps bool_to_val.simps 
+            int_signed_value.simps 
+  apply (simp add: val_bool_unwrap) apply auto 
+  unfolding word_sless_def apply auto
+  unfolding signed_def apply auto 
+  using bit_less_eq_def apply (metis bot_nat_0.extremum take_bit_0)
   by (metis bit_less_eq_def bot_nat_0.extremum take_bit_0)
 
 lemma val_abs_always_pos:
@@ -130,7 +132,9 @@ proof (cases "v = 0")
   case True
   then have "v' = 0"
     using val_abs_zero assms
-    by (smt (verit, ccfv_threshold) Suc_diff_1 bit_less_eq_def bot_nat_0.extremum diff_is_0_eq len_gt_0 len_of_numeral_defs(2) order_le_less signed_eq_0_iff take_bit_0 take_bit_signed_take_bit take_bit_unwrap)
+    by (smt (verit, ccfv_threshold) Suc_diff_1 bit_less_eq_def bot_nat_0.extremum diff_is_0_eq 
+        len_gt_0 len_of_numeral_defs(2) order_le_less signed_eq_0_iff take_bit_0 
+        take_bit_signed_take_bit take_bit_unwrap)
   then show ?thesis by simp
 next
   case neq0: False
@@ -139,7 +143,11 @@ next
     case True
     then show ?thesis using less_eq_def
       using assms val_abs_pos
-      by (smt (verit, ccfv_SIG) One_nat_def Suc_leI bit.compl_one bit_less_eq_def cancel_comm_monoid_add_class.diff_cancel diff_zero len_gt_0 len_of_numeral_defs(2) mask_0 mask_1 one_le_numeral one_neq_zero signed_word_eqI take_bit_dist_subL take_bit_minus_one_eq_mask take_bit_not_eq_mask_diff take_bit_signed_take_bit zero_le_numeral)
+      by (smt (verit, ccfv_SIG) One_nat_def Suc_leI bit.compl_one bit_less_eq_def 
+          cancel_comm_monoid_add_class.diff_cancel diff_zero len_gt_0 len_of_numeral_defs(2) 
+          mask_0 mask_1 one_le_numeral one_neq_zero signed_word_eqI take_bit_dist_subL 
+          take_bit_minus_one_eq_mask take_bit_not_eq_mask_diff take_bit_signed_take_bit 
+          zero_le_numeral)
   next
     case False
     then have "val_to_bool(val[(new_int b v) < (new_int b 0)])"

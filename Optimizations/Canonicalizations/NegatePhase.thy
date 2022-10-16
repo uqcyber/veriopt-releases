@@ -86,14 +86,17 @@ lemma exp_negative_shift:
   qed 
   done
 
+
 text \<open>Optimisations\<close>
 
 optimization NegateCancel: "-(-(x)) \<longmapsto> x"
-  using val_negative_cancel exp_negative_cancel by blast 
+  using exp_negative_cancel by blast 
 
 (* FloatStamp condition is omitted. Not 100% sure. *)
 optimization DistributeSubtraction: "-(x - y) \<longmapsto> (y - x)"
-  apply (smt (z3) add.left_commute add_2_eq_Suc' add_diff_cancel_left' is_ConstantExpr_def less_Suc_eq_0_disj plus_1_eq_Suc size.simps(11) size_binary_const size_non_add zero_less_diff)
+   apply (smt (z3) add.left_commute add_2_eq_Suc' add_diff_cancel_left' is_ConstantExpr_def 
+          less_Suc_eq_0_disj plus_1_eq_Suc size.simps(11) size_binary_const size_non_add 
+          zero_less_diff)
   using exp_distribute_sub by simp
 
 (* Need to prove exp_negative_shift *)

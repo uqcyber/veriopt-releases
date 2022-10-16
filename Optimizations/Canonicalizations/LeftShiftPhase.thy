@@ -28,14 +28,12 @@ lemma val_EliminateRHS_64:
   subgoal
     proof -
       have 1: "(and vy (63) = 0)"
-        using assms 
         by (metis (no_types, lifting) Suc_1 add_2_eq_Suc' add_Suc_shift mask_1 mask_Suc_rec mult_2 
-            numeral_Bit0 numeral_Bit1 numeral_One)
-      then have 2: "(0::nat) mod (2::nat) ^ LENGTH(64) = 0"
+            numeral_Bit0 numeral_Bit1 numeral_One assms(3))
+      then have 2: "(0::nat) mod 2 ^ LENGTH(64) = 0"
         by simp
       then have 3: "(vx << 0) = vx"
-        unfolding shiftl_def
-        by simp
+        unfolding shiftl_def by simp
       then have "take_bit LENGTH(64) ((vx << unat (and vy (63)))::64 word) = vx"
         unfolding Word.take_bit_length_eq 1 Word.unat_word_ariths(4) 2 3 by auto
       then show ?thesis
@@ -125,7 +123,7 @@ text \<open>Optimisations\<close>
 optimization EliminateRHS_64: "(x << const(y)) \<longmapsto> x when 
                                (stamp_expr x = IntegerStamp 64 lo hi \<and> 
                                 wf_stamp x)"
-  using exp_EliminateRHS wf_stamp_def  bin_eval.simps(8) sorry
+  using exp_EliminateRHS wf_stamp_def  bin_eval.simps(8)  sorry
 
 end (* End of ShiftNode *)
 

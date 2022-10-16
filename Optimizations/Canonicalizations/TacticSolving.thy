@@ -114,7 +114,9 @@ lemma exp_xor_self_is_false:
   shows "exp[x \<oplus> x] >= exp[false]"
   unfolding le_expr_def using assms unfolding wf_stamp_def
   using val_xor_self_is_false evaltree_not_undef
-  by (smt (z3) wf_value_def bin_eval.simps(6) bin_eval_new_int constantAsStamp.simps(1) evalDet int_signed_value_bounds new_int.simps new_int_take_bits unfold_binary unfold_const valid_int valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn)
+  by (smt (z3) wf_value_def bin_eval.simps(6) bin_eval_new_int constantAsStamp.simps(1) evalDet 
+      int_signed_value_bounds new_int.simps new_int_take_bits unfold_binary unfold_const valid_int 
+      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn)
 
 
 lemma val_or_commute[simp]:
@@ -146,16 +148,14 @@ optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
   unfolding size.simps apply (simp add: Suc_lessI)
   apply auto using OrInverseVal unfolding wf_stamp_def
-  by (smt (z3) wf_value_def constantAsStamp.simps(1) evalDet int_signed_value_bounds mask_eq_take_bit_minus_one 
-      new_int.elims new_int_take_bits unfold_const valid_int valid_stamp.simps(1) 
-      valid_value.simps(1) well_formed_equal_defn)
+  by (smt (z3) wf_value_def constantAsStamp.simps(1) evalDet int_signed_value_bounds 
+      mask_eq_take_bit_minus_one new_int.elims new_int_take_bits unfold_const valid_int 
+      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn)
 
 
 optimization OrInverse2: "exp[~n | n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  using OrInverse apply simp 
-   using OrInverse exp_or_commutative 
-  by auto
+   using OrInverse exp_or_commutative by auto
 
 lemma XorInverseVal:
   assumes "n = IntVal 32 v"
@@ -168,15 +168,13 @@ optimization XorInverse: "exp[n \<oplus> ~n] \<longmapsto> (const (new_int 32 (n
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
   unfolding size.simps apply (simp add: Suc_lessI)
   apply auto using XorInverseVal
-  by (smt (verit) wf_value_def constantAsStamp.simps(1) evalDet int_signed_value_bounds intval_xor.elims 
-      mask_eq_take_bit_minus_one new_int.elims new_int_take_bits unfold_const valid_stamp.simps(1) 
-      valid_value.simps(1) well_formed_equal_defn wf_stamp_def)
+  by (smt (verit) wf_value_def constantAsStamp.simps(1) evalDet int_signed_value_bounds 
+      intval_xor.elims mask_eq_take_bit_minus_one new_int.elims new_int_take_bits unfold_const 
+      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn wf_stamp_def)
 
 optimization XorInverse2: "exp[(~n) \<oplus> n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  using XorInverse apply simp
-   using XorInverse exp_xor_commutative 
-  by simp
+   using XorInverse exp_xor_commutative by auto
 
 end
 

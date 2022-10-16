@@ -159,8 +159,8 @@ print_phases
  - AddLeftNegateToSub 
 
  -- Left to go --
- - mergeSignExtendAdd
- - mergeZeroExtendAdd
+ - MergeSignExtendAdd
+ - MergeZeroExtendAdd
 
 *)
 
@@ -179,7 +179,7 @@ lemma val_add_right_negate_to_sub:
 
 (* Exp level proofs *)
 lemma exp_add_left_negate_to_sub:
- "exp[-e + y] \<ge> exp[y - e]"
+  "exp[-e + y] \<ge> exp[y - e]"
   apply (cases e; cases y; auto)
   using AddToSubHelperLowLevel by auto+
 
@@ -197,10 +197,10 @@ optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
    using AddToSubHelperLowLevel intval_add_sym by auto 
 
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
-  defer
-  using exp_add_left_negate_to_sub apply blast
-  by (smt (verit, best) One_nat_def add.commute add_Suc_right is_ConstantExpr_def less_add_Suc2 
-      numeral_2_eq_2 plus_1_eq_Suc size.simps(1) size.simps(11) size_binary_const size_non_add)
+  apply (smt (verit, best) One_nat_def add.commute add_Suc_right is_ConstantExpr_def less_add_Suc2 
+         numeral_2_eq_2 plus_1_eq_Suc size.simps(1) size.simps(11) size_binary_const size_non_add)
+  using exp_add_left_negate_to_sub by blast
+
 (* ----- Ends here ----- *)
 
 end

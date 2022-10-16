@@ -23,7 +23,8 @@ lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrigh
       by (metis BinaryExprE bin_eval.simps(4) evalDet)
     then have "v = yv"
       using p(1) not_down_up_mask_and_zero_implies_zero
-      by (smt (verit) eval_unused_bits_zero intval_and.elims new_int.elims new_int_bin.elims p(2) unfold_binary xv yv)
+      by (smt (verit) eval_unused_bits_zero intval_and.elims new_int.elims new_int_bin.elims p(2) 
+          unfold_binary xv yv)
     then show ?thesis using yv by simp
   qed
   done
@@ -42,7 +43,8 @@ lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longright
       by (metis BinaryExprE bin_eval.simps(4) evalDet)
     then have "v = xv"
       using p(1) not_down_up_mask_and_zero_implies_zero
-      by (smt (verit) and.commute eval_unused_bits_zero intval_and.elims new_int.simps new_int_bin.simps p(2) unfold_binary xv yv)
+      by (smt (verit) and.commute eval_unused_bits_zero intval_and.elims new_int.simps 
+          new_int_bin.simps p(2) unfold_binary xv yv)
     then show ?thesis using xv by simp
   qed
   done
@@ -102,12 +104,12 @@ lemma val_and_zero:
 (* Exp level proofs *)
 lemma exp_and_equal:
   "exp[x & x] \<ge> exp[x]"
-   apply auto using val_and_equal eval_unused_bits_zero
-  by (smt (verit) evalDet intval_and.elims new_int.elims)
+   apply auto 
+  by (smt (verit) evalDet intval_and.elims new_int.elims val_and_equal eval_unused_bits_zero)
 
 lemma exp_and_nots:
   "exp[~x & ~y] \<ge> exp[~(x | y)]"
-   apply (cases x; cases y; auto) using val_and_nots 
+   apply (cases x; cases y; auto) using val_and_nots
   by fastforce+ 
 
 lemma exp_sign_extend:
@@ -208,9 +210,8 @@ optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
   using size_flip_binary by auto
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
-    defer using exp_and_nots 
-   apply presburger
-  by (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
+   apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
+  using exp_and_nots by presburger
 
 (* Need to prove exp_sign_extend*)
 optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) (x)) 

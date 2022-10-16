@@ -76,32 +76,24 @@ Proofs that the implies relation is correct with respect to the
 existing evaluation semantics.
 \<close>
 
-experiment begin
 lemma logic_negate_type:
   assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation x \<mapsto> v"
-  assumes "v \<noteq> UndefVal"
-  shows "\<exists>v2. [m, p] \<turnstile> x \<mapsto> IntVal32 v2"
-proof -
-  obtain ve where ve: "[m, p] \<turnstile> x \<mapsto> ve"
-    using assms(1) by blast
-  then have "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation x \<mapsto> unary_eval UnaryLogicNegation ve"
-    by (metis UnaryExprE assms(1) evalDet)
-  then show ?thesis using assms unary_eval.elims evalDet ve IRUnaryOp.distinct
-    sorry (* proof found - return later *)
-qed
+  shows "\<exists>b v2. [m, p] \<turnstile> x \<mapsto> IntVal b v2"
+  using assms
+  by (metis UnaryExprE intval_logic_negation.elims unary_eval.simps(4))
 
+lemma intval_logic_negation_inverse:
+  assumes "b > 0"
+  assumes "x = IntVal b v"
+  shows "val_to_bool (intval_logic_negation x) \<longleftrightarrow> \<not>(val_to_bool x)"
+  using assms by (cases x; auto simp: logic_negate_def) 
 
 lemma logic_negation_relation_tree:
   assumes "[m, p] \<turnstile> y \<mapsto> val"
   assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation y \<mapsto> invval"
-  assumes "invval \<noteq> UndefVal"
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
-proof -
-  obtain v where "invval = unary_eval UnaryLogicNegation v"
-    using assms(2) by blast
-  then have "[m, p] \<turnstile> y \<mapsto> v" using UnaryExprE assms(1,2) sorry
-  then show ?thesis sorry
-  qed
+  using assms using intval_logic_negation_inverse
+  by (metis UnaryExprE evalDet eval_bits_1_64 logic_negate_type unary_eval.simps(4))
 
 lemma logic_negation_relation:
   assumes "[g, m, p] \<turnstile> y \<mapsto> val"
@@ -109,31 +101,13 @@ lemma logic_negation_relation:
   assumes "[g, m, p] \<turnstile> neg \<mapsto> invval"
   assumes "invval \<noteq> UndefVal"
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
-proof -
-  obtain yencode where 5: "g \<turnstile> y \<simeq> yencode"
-    using assms(1) encodeeval_def by auto
-  then have 6: "g \<turnstile> neg \<simeq> UnaryExpr UnaryLogicNegation yencode"
-    using rep.intros(7) assms(2) by simp
-  then have 7: "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation yencode \<mapsto> invval"
-    using assms(3) encodeeval_def
-    by (metis repDet)
-  obtain v1 where v1: "[g, m, p] \<turnstile> y \<mapsto> IntVal 32 v1"
-    using assms(1,2,3,4) using logic_negate_type sorry
-  have "invval = bool_to_val (\<not>(val_to_bool val))"
-    using assms(1,2,3) evalDet unary_eval.simps(4)
-    sorry
-  have "val_to_bool invval \<longleftrightarrow> \<not>(val_to_bool val)" 
-    using \<open>invval = bool_to_val (\<not> val_to_bool val)\<close> by force
-  then show ?thesis
-    by simp
-qed
-end
+  using assms
+  by (metis LogicNegationNode encodeeval_def logic_negation_relation_tree repDet)
 
 lemma implies_valid:
   assumes "x & y \<hookrightarrow> imp"
   assumes "[m, p] \<turnstile> x \<mapsto> v1"
   assumes "[m, p] \<turnstile> y \<mapsto> v2"
-  assumes "v1 \<noteq> UndefVal \<and> v2 \<noteq> UndefVal"
   shows "(imp \<longrightarrow> (val_to_bool v1 \<longrightarrow> val_to_bool v2)) \<and>
          (\<not>imp \<longrightarrow> (val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2)))"
     (is "(?TP \<longrightarrow> ?TC) \<and> (?FP \<longrightarrow> ?FC)")
@@ -165,9 +139,9 @@ proof -
     then show ?case using evalDet
       using assms(2,3) by blast
   next
-    case (negate_true y)
+    case (negate_true x y)
     then show ?case
-      sorry
+      using logic_negation_relation_tree sorry
   qed
 next
   assume KnownFalse: ?FP
@@ -186,11 +160,8 @@ next
       using xval yval evaltree.BinaryExpr
       by (metis BinaryExprE bin_eval.simps(12) eq_imp_less.prems(2) evalDet)
     have "val_to_bool (intval_equals xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than xval yval))"
-      using assms(4) apply (cases xval; cases yval; auto) sorry
-(* WAS:
-      apply (metis (full_types) val_to_bool.simps(1) Values.bool_to_val.simps(2) signed.less_irrefl)
-      by (metis (mono_tags) val_to_bool.simps(1) Values.bool_to_val.elims signed.order.strict_implies_not_eq)
-*)
+      apply (cases xval; cases yval; auto)
+      by (smt (verit, best) bool_to_val.simps(2) val_to_bool.simps(1))
     then show ?case
       using eqeval lesseval
       by (metis eq_imp_less.prems(1) eq_imp_less.prems(2) evalDet)
@@ -209,11 +180,8 @@ next
       using xval yval evaltree.BinaryExpr
       by (metis BinaryExprE bin_eval.simps(12) eq_imp_less_rev.prems(2) evalDet)
     have "val_to_bool (intval_equals xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than yval xval))"
-      using assms(4) apply (cases xval; cases yval; auto) sorry
-(* WAS:
-      apply (metis (full_types) val_to_bool.simps(1) Values.bool_to_val.simps(2) signed.less_irrefl)
-      by (metis (full_types) val_to_bool.simps(1) Values.bool_to_val.elims signed.order.strict_implies_not_eq)
-*)
+      apply (cases xval; cases yval; auto)
+      by (metis (full_types) bool_to_val.simps(2) less_irrefl val_to_bool.simps(1))
     then show ?case
       using eqeval lesseval
       by (metis eq_imp_less_rev.prems(1) eq_imp_less_rev.prems(2) evalDet)
@@ -232,11 +200,8 @@ next
       using xval yval evaltree.BinaryExpr
       by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_rev_less.prems(2))
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than yval xval))"
-      using assms(4) apply (cases xval; cases yval; auto) sorry
-(* WAS:
-      apply (metis val_to_bool.simps(1) Values.bool_to_val.elims signed.not_less_iff_gr_or_eq)
-      by (metis val_to_bool.simps(1) Values.bool_to_val.elims signed.less_asym')
-*)
+      apply (cases xval; cases yval; auto)
+      by (smt (verit) bool_to_val.simps(2) val_to_bool.simps(1))
     then show ?case
       by (metis evalDet less_imp_rev_less.prems(1) less_imp_rev_less.prems(2) lesseval revlesseval)
   next
@@ -254,11 +219,8 @@ next
       using xval yval evaltree.BinaryExpr
       by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_not_eq.prems(1))
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_equals xval yval))"
-      using assms(4) apply (cases xval; cases yval; auto) sorry
-(* WAS:
-       apply (metis (full_types) bool_to_val.simps(2) signed.less_imp_not_eq val_to_bool.simps(1))
-      by (metis (full_types) bool_to_val.simps(2) signed.less_imp_not_eq2 val_to_bool.simps(1))
-*)
+      apply (cases xval; cases yval; auto)
+      by (smt (verit, best) bool_to_val.simps(2) val_to_bool.simps(1))
     then show ?case
       by (metis eqeval evalDet less_imp_not_eq.prems(1) less_imp_not_eq.prems(2) lesseval)
   next
@@ -276,11 +238,8 @@ next
       using xval yval evaltree.BinaryExpr
       by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_not_eq_rev.prems(1))
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_equals yval xval))"
-      using assms(4) apply (cases xval; cases yval; auto) sorry
-(* WAS:
-      apply (metis (full_types) bool_to_val.simps(2) signed.less_imp_not_eq2 val_to_bool.simps(1))
-      by (metis (full_types, opaque_lifting) val_to_bool.simps(1) Values.bool_to_val.elims signed.dual_order.strict_implies_not_eq)
-*)
+      apply (cases xval; cases yval; auto)
+      by (smt (verit, best) bool_to_val.simps(2) val_to_bool.simps(1))
     then show ?case
       by (metis eqeval evalDet less_imp_not_eq_rev.prems(1) less_imp_not_eq_rev.prems(2) lesseval)
   next
@@ -300,7 +259,6 @@ lemma implies_true_valid:
   assumes "imp"
   assumes "[m, p] \<turnstile> x \<mapsto> v1"
   assumes "[m, p] \<turnstile> y \<mapsto> v2"
-  assumes "v1 \<noteq> UndefVal \<and> v2 \<noteq> UndefVal"
   shows "val_to_bool v1 \<longrightarrow> val_to_bool v2"
   using assms implies_valid
   by blast
@@ -310,7 +268,6 @@ lemma implies_false_valid:
   assumes "\<not>imp"
   assumes "[m, p] \<turnstile> x \<mapsto> v1"
   assumes "[m, p] \<turnstile> y \<mapsto> v2"
-  assumes "v1 \<noteq> UndefVal \<and> v2 \<noteq> UndefVal"
   shows "val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2)"
   using assms implies_valid by blast
 
@@ -345,14 +302,14 @@ our evaluation semantics.
 lemma
   assumes "kind g nid = IntegerEqualsNode x y"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
-  assumes "v \<noteq> UndefVal"
   assumes "([g, m, p] \<turnstile> x \<mapsto> xval) \<and> ([g, m, p] \<turnstile> y \<mapsto> yval)"
-  shows "val_to_bool (intval_equals xval yval) \<longleftrightarrow> v = IntVal32 1"
+  shows "val_to_bool (intval_equals xval yval) \<longleftrightarrow> v = IntVal 32 1"
 proof -
   have "v = intval_equals xval yval"
-    using assms(1, 2, 3, 4) BinaryExprE IntegerEqualsNode bin_eval.simps(7)
+    using assms(1, 2, 3) BinaryExprE IntegerEqualsNode bin_eval.simps(7)
     by (smt (verit) bin_eval.simps(11) encodeeval_def evalDet repDet)
-  then show ?thesis using intval_equals.simps val_to_bool.simps sorry
+  then show ?thesis using intval_equals.simps val_to_bool.simps
+    by (smt (verit) bool_to_val.simps(1) bool_to_val.simps(2) bool_to_val_bin.simps intval_equals.elims one_neq_zero)
 qed
 
 lemma tryFoldIntegerEqualsAlwaysDistinct:
@@ -360,11 +317,13 @@ lemma tryFoldIntegerEqualsAlwaysDistinct:
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "alwaysDistinct (stamps x) (stamps y)"
-  shows "v = IntVal32 0"
+  shows "v = IntVal 32 0"
 proof -
   have "\<forall> val. \<not>(valid_value val (join (stamps x) (stamps y)))"
     using assms(1,4) unfolding alwaysDistinct.simps
     by (smt (verit, best) is_stamp_empty.elims(2) valid_int valid_value.simps(1))
+  obtain xv where "[g, m, p] \<turnstile> x \<mapsto> xv"
+    using assms using assms(2,3) unfolding encodeeval_def sorry
   have "\<not>(\<exists> val . ([g, m, p] \<turnstile> x \<mapsto> val) \<and> ([g, m, p] \<turnstile> y \<mapsto> val))"
     using assms(1,4) unfolding alwaysDistinct.simps wf_stamp.simps encodeeval_def sorry
   then show ?thesis sorry
@@ -375,7 +334,7 @@ lemma tryFoldIntegerEqualsNeverDistinct:
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "neverDistinct (stamps x) (stamps y)"
-  shows "v = IntVal32 1"
+  shows "v = IntVal 32 1"
   using assms IntegerEqualsNodeE sorry
 
 lemma tryFoldIntegerLessThanTrue:
@@ -383,7 +342,7 @@ lemma tryFoldIntegerLessThanTrue:
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "stpi_upper (stamps x) < stpi_lower (stamps y)"
-  shows "v = IntVal32 1"
+  shows "v = IntVal 32 1"
 proof -
   have stamp_type: "is_IntegerStamp (stamps x)"
     using assms
@@ -406,7 +365,7 @@ lemma tryFoldIntegerLessThanFalse:
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "stpi_lower (stamps x) \<ge> stpi_upper (stamps y)"
-  shows "v = IntVal32 0"
+  shows "v = IntVal 32 0"
   proof -
   have stamp_type: "is_IntegerStamp (stamps x)"
     using assms
@@ -431,13 +390,16 @@ theorem tryFoldProofTrue:
   shows "val_to_bool v"
   using assms(2) proof (induction "kind g nid" stamps True rule: tryFold.induct)
 case (1 stamps x y)
-  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms sorry
+  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms
+    by force
 next
   case (2 stamps x y)
-  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms sorry
+  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms
+    by (smt (verit, best) one_neq_zero tryFold.cases tryFoldIntegerEqualsNeverDistinct tryFoldIntegerLessThanTrue val_to_bool.simps(1))
 next
   case (3 stamps x y)
-  then show ?case using tryFoldIntegerLessThanTrue assms sorry
+  then show ?case using tryFoldIntegerLessThanTrue assms
+    by (smt (verit, best) one_neq_zero tryFold.cases tryFoldIntegerEqualsNeverDistinct val_to_bool.simps(1))
 next
 case (4 stamps x y)
   then show ?case using tryFoldIntegerLessThanFalse assms sorry
@@ -704,6 +666,10 @@ inductive ConditionalEliminationPhase
     \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase .
+
+definition runConditionalElimination :: "IRGraph \<Rightarrow> IRGraph" where
+  "runConditionalElimination g = 
+    (Predicate.the (ConditionalEliminationPhase_i_i_o g (0, {}, ([], []))))"
 
 (*
 

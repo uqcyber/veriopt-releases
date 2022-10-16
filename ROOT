@@ -295,3 +295,18 @@ session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
     "root.tex"
   document_files (in "../../latex")
     "mathpartir.sty"
+
+
+session ValidationPaperSnippets in "Papers/Validation" = ConditionalElimination +
+  description
+    "Snippets of Isabelle theories used for the preparation of the future paper ``Validating Faithful Formalization of an Existing Compiler''"
+  options [document = pdf, document_output = "output",
+           show_question_marks = false, quick_and_dirty]
+  sessions
+    Snippets
+  theories
+    IRGraphSort
+    ValidationSnippets
+  document_files (in "../../latex")
+    "root.tex"
+    "mathpartir.sty"

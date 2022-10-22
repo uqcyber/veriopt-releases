@@ -2,16 +2,148 @@ section \<open>Conditional Elimination Phase\<close>
 
 theory ConditionalElimination
   imports
+    Semantics.IRTreeEvalThms
     Proofs.Rewrites
     Proofs.Bisimulation
 begin
 
 subsection \<open>Individual Elimination Rules\<close>
+
+text \<open>The set of rules used for determining whether a condition @{term q1} implies
+    another condition @{term q2} or its negation.
+    These rules are used for conditional elimination.\<close>
+
+inductive impliesx :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<Rrightarrow> _") and 
+      impliesnot :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<Rrightarrow>\<not> _") where
+  q_imp_q: 
+  "q \<Rrightarrow> q" |
+  eq_impliesnot_less:
+  "(BinaryExpr BinIntegerEquals x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerLessThan x y)" |
+  eq_impliesnot_less_rev:
+  "(BinaryExpr BinIntegerEquals x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerLessThan y x)" |
+  less_impliesnot_rev_less:
+  "(BinaryExpr BinIntegerLessThan x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerLessThan y x)" |
+  less_impliesnot_eq:
+  "(BinaryExpr BinIntegerLessThan x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerEquals x y)" |
+  less_impliesnot_eq_rev:
+  "(BinaryExpr BinIntegerLessThan x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerEquals y x)" |
+  negate_true:
+  "\<lbrakk>x \<Rrightarrow>\<not> y\<rbrakk> \<Longrightarrow> x \<Rrightarrow> (UnaryExpr UnaryLogicNegation y)" |
+  negate_false:
+  "\<lbrakk>x \<Rrightarrow> y\<rbrakk> \<Longrightarrow> x \<Rrightarrow>\<not> (UnaryExpr UnaryLogicNegation y)"
+
+text \<open>The relation @{term "q1 \<Rrightarrow> q2"} indicates that the implication @{term "q1 \<longrightarrow> q2"}
+    is known true (i.e. universally valid), 
+    and the relation @{term "q1 \<Rrightarrow>\<not> q2"} indicates that the implication @{term "q1 \<longrightarrow> q2"}
+    is known false (i.e. @{term "q1 \<longrightarrow>\<not> q2"} is universally valid.
+    If neither @{term "q1 \<Rrightarrow> q2"} nor @{term "q1 \<Rrightarrow>\<not> q2"} then the status is unknown.
+    Only the known true and known false cases can be used for conditional elimination.\<close>
+
+fun implies_valid :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" (infix "\<Zinj>" 50) where
+  "implies_valid q1 q2 = 
+    (\<forall>m p v1 v2. ([m, p] \<turnstile> q1 \<mapsto> v1) \<and> ([m,p] \<turnstile> q2 \<mapsto> v2) \<longrightarrow> 
+            (val_to_bool v1 \<longrightarrow> val_to_bool v2))"
+
+fun impliesnot_valid :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" (infix "\<Zpinj>" 50) where
+  "impliesnot_valid q1 q2 = 
+    (\<forall>m p v1 v2. ([m, p] \<turnstile> q1 \<mapsto> v1) \<and> ([m,p] \<turnstile> q2 \<mapsto> v2) \<longrightarrow> 
+            (val_to_bool v1 \<longrightarrow> \<not>val_to_bool v2))"
+
+text \<open>The relation @{term "q1 \<Zinj> q2"} means @{term "q1 \<longrightarrow> q2"} is universally valid, 
+      and the relation @{term "q1 \<Zpinj> q2"} means @{term "q1 \<longrightarrow> \<not>q2"} is universally valid.\<close>
+
+lemma eq_impliesnot_less_helper:
+  "v1 = v2 \<longrightarrow> \<not>(int_signed_value b v1 < int_signed_value b v2)" 
+  by force 
+
+lemma eq_impliesnot_less_val:
+  "val_to_bool(intval_equals v1 v2) \<longrightarrow> \<not>val_to_bool(intval_less_than v1 v2)"
+  using eq_impliesnot_less_helper bool_to_val.simps bool_to_val_bin.simps intval_equals.simps
+    intval_less_than.elims val_to_bool.elims val_to_bool.simps
+  by (smt (verit))
+
+lemma eq_impliesnot_less_rev_val:
+  "val_to_bool(intval_equals v1 v2) \<longrightarrow> \<not>val_to_bool(intval_less_than v2 v1)"
+proof -
+  have a: "intval_equals v1 v2 = intval_equals v2 v1"
+    using bool_to_val_bin.simps intval_equals.simps intval_equals.elims
+    by (smt (verit))
+  show ?thesis using a eq_impliesnot_less_val by presburger 
+qed
+
+lemma less_impliesnot_rev_less_val:
+  "val_to_bool(intval_less_than v1 v2) \<longrightarrow> \<not>val_to_bool(intval_less_than v2 v1)"
+  by (smt (verit, del_insts) Value.exhaust Value.inject(1) bool_to_val.simps(2)
+      bool_to_val_bin.simps intval_less_than.simps(1) intval_less_than.simps(5)
+      intval_less_than.simps(6) intval_less_than.simps(7) val_to_bool.elims(2)) 
+
+lemma less_impliesnot_eq_val:
+  "val_to_bool(intval_less_than v1 v2) \<longrightarrow> \<not>val_to_bool(intval_equals v1 v2)"
+  using eq_impliesnot_less_val by blast 
+
+lemma logic_negate_type:
+  assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation x \<mapsto> v"
+  shows "\<exists>b v2. [m, p] \<turnstile> x \<mapsto> IntVal b v2"
+  using assms
+  by (metis UnaryExprE intval_logic_negation.elims unary_eval.simps(4))
+
+lemma intval_logic_negation_inverse:
+  assumes "b > 0"
+  assumes "x = IntVal b v"
+  shows "val_to_bool (intval_logic_negation x) \<longleftrightarrow> \<not>(val_to_bool x)"
+  using assms by (cases x; auto simp: logic_negate_def) 
+
+lemma logic_negation_relation_tree:
+  assumes "[m, p] \<turnstile> y \<mapsto> val"
+  assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation y \<mapsto> invval"
+  shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
+  using assms using intval_logic_negation_inverse
+  by (metis UnaryExprE evalDet eval_bits_1_64 logic_negate_type unary_eval.simps(4))
+
+text \<open>The following theorem shows that the known true/false rules are valid.\<close>
+
+theorem implies_impliesnot_valid:
+  shows "((q1 \<Rrightarrow> q2) \<longrightarrow> (q1 \<Zinj> q2)) \<and>
+         ((q1 \<Rrightarrow>\<not> q2) \<longrightarrow> (q1 \<Zpinj> q2))"
+          (is "(?imp \<longrightarrow> ?val) \<and> (?notimp \<longrightarrow> ?notval)")
+proof (induct q1 q2  rule: impliesx_impliesnot.induct)
+  case (q_imp_q q)
+  then show ?case 
+    using evalDet by fastforce
+next
+  case (eq_impliesnot_less x y)
+  then show ?case apply auto using eq_impliesnot_less_val evalDet by blast
+next
+  case (eq_impliesnot_less_rev x y)
+  then show ?case apply auto using eq_impliesnot_less_rev_val evalDet by blast
+next
+  case (less_impliesnot_rev_less x y)
+  then show ?case apply auto using less_impliesnot_rev_less_val evalDet by blast
+next
+  case (less_impliesnot_eq x y)
+  then show ?case apply auto using less_impliesnot_eq_val evalDet by blast
+next
+  case (less_impliesnot_eq_rev x y)
+  then show ?case apply auto using eq_impliesnot_less_rev_val evalDet by metis 
+next
+  case (negate_true x y)
+  then show ?case apply auto
+    by (metis logic_negation_relation_tree unary_eval.simps(4) unfold_unary)
+next
+  case (negate_false x y)
+  then show ?case apply auto 
+    by (metis UnaryExpr logic_negation_relation_tree unary_eval.simps(4)) 
+qed
+
+
+
+
+
 text \<open>
-We introduce a TriState as in the Graal compiler to represent when static
-analysis can tell us information about the value of a boolean expression.
-Unknown = No information can be inferred
-KnownTrue/KnownFalse = We can infer the expression will always be true or false.
+We introduce a type @{term "TriState"} (as in the GraalVM compiler) to represent when static
+analysis can tell us information about the value of a Boolean expression.
+If @{term "Unknown"} then no information can be inferred and if
+@{term "KnownTrue"}/@{term "KnownFalse"} one can infer the expression is always true/false.
 \<close>
 datatype TriState = Unknown | KnownTrue | KnownFalse
 
@@ -48,10 +180,9 @@ inductive condition_implies :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> IRNod
   "\<lbrakk>(g \<turnstile> a & b \<hookrightarrow> imp)\<rbrakk> \<Longrightarrow> (g \<turnstile> a & b \<rightharpoonup> imp)"
 
 
-
 inductive implies_tree :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool \<Rightarrow> bool"
   ("_ & _ \<hookrightarrow> _") where
-  eq_imp_less:
+  eq_imp_less: 
   "(BinaryExpr BinIntegerEquals x y) & (BinaryExpr BinIntegerLessThan x y) \<hookrightarrow> False" |
   eq_imp_less_rev:
   "(BinaryExpr BinIntegerEquals x y) & (BinaryExpr BinIntegerLessThan y x) \<hookrightarrow> False" |
@@ -61,39 +192,17 @@ inductive implies_tree :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool \<Righ
   "(BinaryExpr BinIntegerLessThan x y) & (BinaryExpr BinIntegerEquals x y) \<hookrightarrow> False" |
   less_imp_not_eq_rev:
   "(BinaryExpr BinIntegerLessThan x y) & (BinaryExpr BinIntegerEquals y x) \<hookrightarrow> False" |
-
   x_imp_x:
   "x & x \<hookrightarrow> True" |
-
   negate_false:
   "\<lbrakk>x & y \<hookrightarrow> True\<rbrakk> \<Longrightarrow> x & (UnaryExpr UnaryLogicNegation y) \<hookrightarrow> False" |
   negate_true:
   "\<lbrakk>x & y \<hookrightarrow> False\<rbrakk> \<Longrightarrow> x & (UnaryExpr UnaryLogicNegation y) \<hookrightarrow> True"
 
-
 text \<open>
 Proofs that the implies relation is correct with respect to the 
 existing evaluation semantics.
 \<close>
-
-lemma logic_negate_type:
-  assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation x \<mapsto> v"
-  shows "\<exists>b v2. [m, p] \<turnstile> x \<mapsto> IntVal b v2"
-  using assms
-  by (metis UnaryExprE intval_logic_negation.elims unary_eval.simps(4))
-
-lemma intval_logic_negation_inverse:
-  assumes "b > 0"
-  assumes "x = IntVal b v"
-  shows "val_to_bool (intval_logic_negation x) \<longleftrightarrow> \<not>(val_to_bool x)"
-  using assms by (cases x; auto simp: logic_negate_def) 
-
-lemma logic_negation_relation_tree:
-  assumes "[m, p] \<turnstile> y \<mapsto> val"
-  assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation y \<mapsto> invval"
-  shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
-  using assms using intval_logic_negation_inverse
-  by (metis UnaryExprE evalDet eval_bits_1_64 logic_negate_type unary_eval.simps(4))
 
 lemma logic_negation_relation:
   assumes "[g, m, p] \<turnstile> y \<mapsto> val"
@@ -103,6 +212,7 @@ lemma logic_negation_relation:
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
   using assms
   by (metis LogicNegationNode encodeeval_def logic_negation_relation_tree repDet)
+
 
 lemma implies_valid:
   assumes "x & y \<hookrightarrow> imp"
@@ -271,6 +381,7 @@ lemma implies_false_valid:
   shows "val_to_bool v1 \<longrightarrow> \<not>(val_to_bool v2)"
   using assms implies_valid by blast
 
+
 text \<open>
 The following relation corresponds to the UnaryOpLogicNode.tryFold
 and BinaryOpLogicNode.tryFold methods and their associated concrete implementations.
@@ -309,7 +420,8 @@ proof -
     using assms(1, 2, 3) BinaryExprE IntegerEqualsNode bin_eval.simps(7)
     by (smt (verit) bin_eval.simps(11) encodeeval_def evalDet repDet)
   then show ?thesis using intval_equals.simps val_to_bool.simps
-    by (smt (verit) bool_to_val.simps(1) bool_to_val.simps(2) bool_to_val_bin.simps intval_equals.elims one_neq_zero)
+    by (smt (verit) bool_to_val.simps(1) bool_to_val.simps(2) bool_to_val_bin.simps 
+        intval_equals.elims one_neq_zero)
 qed
 
 lemma tryFoldIntegerEqualsAlwaysDistinct:
@@ -447,14 +559,14 @@ inductive ConditionalEliminationStep ::
   impliesTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     g \<turnstile> cid \<simeq> cond;
-    \<exists> ce \<in> conds . (ce & cond \<hookrightarrow> True);
+    \<exists> ce \<in> conds . (ce \<Rrightarrow> cond);
     g' = constantCondition True ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
 
   impliesFalse:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     g \<turnstile> cid \<simeq> cond;
-    \<exists> ce \<in> conds . (ce & cond \<hookrightarrow> False);
+    \<exists> ce \<in> conds . (ce \<Rrightarrow>\<not> cond);
     g' = constantCondition False ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
 

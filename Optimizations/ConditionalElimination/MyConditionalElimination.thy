@@ -2,7 +2,6 @@ section \<open>Conditional Elimination Phase\<close>
 
 theory MyConditionalElimination
   imports
-    "HOL-Library.FSet"
     Semantics.IRTreeEvalThms
     Proofs.Rewrites
     Proofs.Bisimulation
@@ -519,7 +518,7 @@ inductive tryFold :: "IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow
     stpi_lower (stamps x) \<ge> stpi_upper (stamps y)\<rbrakk> 
     \<Longrightarrow> tryFold (IntegerLessThanNode x y) stamps False"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) tryFold .
+(*code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) tryFold .*)
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool) tryFold .
 
 text \<open>
@@ -679,7 +678,7 @@ inductive condset_implies :: "IRExpr set \<Rightarrow> IRExpr \<Rightarrow> bool
   impliesFalse:
   "(\<exists>ce \<in> conds . (ce \<Rrightarrow>\<not> cond)) \<Longrightarrow> condset_implies conds cond False"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) condset_implies .
+(*code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) condset_implies .*)
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool) condset_implies .
 
 fun conds_implies :: "IRExpr set \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> IRNode \<Rightarrow> IRExpr \<Rightarrow> bool option" where

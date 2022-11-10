@@ -48,10 +48,14 @@ lemma nextNidNotIn:
   unfolding nextNid.simps
   using ids_finite max_plus_one by blast
 
+fun bool_to_val_width1 :: "bool \<Rightarrow> Value" where
+  "bool_to_val_width1 True = (IntVal 1 1)" |
+  "bool_to_val_width1 False = (IntVal 1 0)"
+
 fun constantCondition :: "bool \<Rightarrow> ID \<Rightarrow> IRNode \<Rightarrow> IRGraph \<Rightarrow> IRGraph" where
   "constantCondition val nid (IfNode cond t f) g = 
     replace_node nid (IfNode (nextNid g) t f, stamp g nid) 
-      (add_node (nextNid g) ((ConstantNode (bool_to_val val)), constantAsStamp (bool_to_val val)) g)" |
+      (add_node (nextNid g) ((ConstantNode (bool_to_val_width1 val)), constantAsStamp (bool_to_val_width1 val)) g)" |
   "constantCondition cond nid _ g = g"
 
 lemma constantConditionTrue:
@@ -71,6 +75,7 @@ proof -
   moreover have "\<And> c. ConstantNode c \<noteq> NoNode" by simp
   ultimately have "kind g' (nextNid g) = ConstantNode (bool_to_val True)"
     using add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD
+    sorry
     by (smt (z3) DiffI add_node_lookup replace_node_unchanged)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal 32 1)"
     using truedef by simp
@@ -99,6 +104,7 @@ proof -
     by (metis assms(1) equals0D ids_some nextNidNotIn)
   moreover have "\<And> c. ConstantNode c \<noteq> NoNode" by simp
   ultimately have "kind g' (nextNid g) = ConstantNode (bool_to_val False)"
+    sorry
     by (smt (z3) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal 32 0)"
     using falsedef by simp

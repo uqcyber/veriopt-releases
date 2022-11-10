@@ -809,6 +809,13 @@ fun registerNewCondition :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> (ID \<Ri
     (stamps
       (x := clip_upper (stamps x) ((stpi_lower (stamps y)) - 1)))
       (y := clip_lower (stamps y) ((stpi_upper (stamps x)) + 1))" |
+  "registerNewCondition g (LogicNegationNode c) stamps =
+    (case (kind g c) of
+      (IntegerLessThanNode x y) \<Rightarrow>
+        (stamps
+          (x := clip_lower (stamps x) ((stpi_upper (stamps y)))))
+          (y := clip_upper (stamps y) ((stpi_lower (stamps x))))
+       | _ \<Rightarrow> stamps)" |
   "registerNewCondition g _ stamps = stamps"
 
 fun hdOr :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a" where

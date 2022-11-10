@@ -269,6 +269,7 @@ fun is_same_ir_node_type :: "IRNode \<Rightarrow> IRNode \<Rightarrow> bool" whe
   ((is_InvokeWithExceptionNode n1) \<and> (is_InvokeWithExceptionNode n2)) \<or>
   ((is_IsNullNode n1) \<and> (is_IsNullNode n2)) \<or>
   ((is_KillingBeginNode n1) \<and> (is_KillingBeginNode n2)) \<or>
+  ((is_LeftShiftNode n1) \<and> (is_LeftShiftNode n2)) \<or>
   ((is_LoadFieldNode n1) \<and> (is_LoadFieldNode n2)) \<or>
   ((is_LogicNegationNode n1) \<and> (is_LogicNegationNode n2)) \<or>
   ((is_LoopBeginNode n1) \<and> (is_LoopBeginNode n2)) \<or>
@@ -277,6 +278,7 @@ fun is_same_ir_node_type :: "IRNode \<Rightarrow> IRNode \<Rightarrow> bool" whe
   ((is_MergeNode n1) \<and> (is_MergeNode n2)) \<or>
   ((is_MethodCallTargetNode n1) \<and> (is_MethodCallTargetNode n2)) \<or>
   ((is_MulNode n1) \<and> (is_MulNode n2)) \<or>
+  ((is_NarrowNode n1) \<and> (is_NarrowNode n2)) \<or>
   ((is_NegateNode n1) \<and> (is_NegateNode n2)) \<or>
   ((is_NewArrayNode n1) \<and> (is_NewArrayNode n2)) \<or>
   ((is_NewInstanceNode n1) \<and> (is_NewInstanceNode n2)) \<or>
@@ -285,14 +287,19 @@ fun is_same_ir_node_type :: "IRNode \<Rightarrow> IRNode \<Rightarrow> bool" whe
   ((is_ParameterNode n1) \<and> (is_ParameterNode n2)) \<or>
   ((is_PiNode n1) \<and> (is_PiNode n2)) \<or>
   ((is_ReturnNode n1) \<and> (is_ReturnNode n2)) \<or>
+  ((is_RightShiftNode n1) \<and> (is_RightShiftNode n2)) \<or>
   ((is_ShortCircuitOrNode n1) \<and> (is_ShortCircuitOrNode n2)) \<or>
   ((is_SignedDivNode n1) \<and> (is_SignedDivNode n2)) \<or>
+  ((is_SignedRemNode n1) \<and> (is_SignedRemNode n2)) \<or>
+  ((is_SignExtendNode n1) \<and> (is_SignExtendNode n2)) \<or>
   ((is_StartNode n1) \<and> (is_StartNode n2)) \<or>
   ((is_StoreFieldNode n1) \<and> (is_StoreFieldNode n2)) \<or>
   ((is_SubNode n1) \<and> (is_SubNode n2)) \<or>
+  ((is_UnsignedRightShiftNode n1) \<and> (is_UnsignedRightShiftNode n2)) \<or>
   ((is_UnwindNode n1) \<and> (is_UnwindNode n2)) \<or>
   ((is_ValuePhiNode n1) \<and> (is_ValuePhiNode n2)) \<or>
   ((is_ValueProxyNode n1) \<and> (is_ValueProxyNode n2)) \<or>
-  ((is_XorNode n1) \<and> (is_XorNode n2)))"
+  ((is_XorNode n1) \<and> (is_XorNode n2)) \<or>
+  ((is_ZeroExtendNode n1) \<and> (is_ZeroExtendNode n2)))"
 
 end

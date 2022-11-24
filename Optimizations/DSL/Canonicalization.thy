@@ -163,7 +163,7 @@ subsubsection \<open>Standard Termination Measure\<close>
 
 fun size :: "IRExpr \<Rightarrow> nat" where
   unary_size:
-  "size (UnaryExpr op e) = (size e) + 2" |
+  "size (UnaryExpr op x) = (size x) + 2" |
   (*"size (BinaryExpr BinSub x y) = (size x) + (size y) + 3" |
   "size (BinaryExpr BinMul x y) = (size x) + (size y) + 3" |*)
   bin_const_size:
@@ -171,7 +171,7 @@ fun size :: "IRExpr \<Rightarrow> nat" where
   bin_size:
   "size (BinaryExpr op x y) = (size x) + (size y) + 2" |
   cond_size:
-  "size (ConditionalExpr cond t f) = (size cond) + (size t) + (size f) + 2" |
+  "size (ConditionalExpr c t f) = (size c) + (size t) + (size f) + 2" |
   const_size:
   "size (ConstantExpr c) = 1" |
   param_size:

@@ -76,7 +76,7 @@ proof -
   ultimately have "kind g' (nextNid g) = ConstantNode (bool_to_val True)"
     using add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD
     sorry
-    by (smt (z3) DiffI add_node_lookup replace_node_unchanged)
+    (* by (smt (z3) DiffI add_node_lookup replace_node_unchanged) *)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal 32 1)"
     using truedef by simp
   have "valid_value (IntVal 32 1) (constantAsStamp (IntVal 32 1))"
@@ -105,7 +105,7 @@ proof -
   moreover have "\<And> c. ConstantNode c \<noteq> NoNode" by simp
   ultimately have "kind g' (nextNid g) = ConstantNode (bool_to_val False)"
     sorry
-    by (smt (z3) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD)
+    (*by (smt (z3) add_changed add_node_def assms(1) assms(2) constantCondition.simps(1) not_in_g other_node_unchanged replace_node_def replace_node_lookup singletonD) *)
   then have c': "kind g' (nextNid g) = ConstantNode (IntVal 32 0)"
     using falsedef by simp
   have "valid_value (IntVal 32 0) (constantAsStamp (IntVal 32 0))"
@@ -150,7 +150,8 @@ lemma constantConditionIfNode:
     replace_node nid (IfNode (nextNid g) t f, stamp g nid) 
      (add_node (nextNid g) ((ConstantNode (bool_to_val val)), constantAsStamp (bool_to_val val)) g)"
   using constantCondition.simps
-  by (simp add: assms)
+  sorry
+  (* by (simp add: assms) *)
 
 lemma constantCondition_changeonly:
   assumes "nid \<in> ids g"

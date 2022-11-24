@@ -64,10 +64,10 @@ text \<open>\begin{align}
 snipend -
 
 \<comment> \<open>Values\<close>
-lemma diff_self_value: "\<forall>v::'a::len word. v - v = 0"
+lemma diff_self_value: "\<forall>x::'a::len word. x - x = 0"
   by simp
 lemma diff_diff_cancel_value:
-  "\<forall> v\<^sub>1 v\<^sub>2::'a::len word . v\<^sub>1 - (v\<^sub>1 - v\<^sub>2) = v\<^sub>2"
+  "\<forall> x y::'a::len word . x - (x - y) = y"
   by simp
 
 snipbegin \<open>algebraic-laws-values\<close>
@@ -84,33 +84,33 @@ translations
 notation (ExprRule output)
   Refines ("_ \<longmapsto> _")
 lemma diff_self_expr:
-  assumes "\<forall>m p v. [m,p] \<turnstile> exp[e - e] \<mapsto> IntVal b v"
-  shows "exp[e - e] \<ge> exp[const (IntVal b 0)]"
+  assumes "\<forall>m p v. [m,p] \<turnstile> exp[x - x] \<mapsto> IntVal b v"
+  shows "exp[x - x] \<ge> exp[const (IntVal b 0)]"
   using assms apply simp
   by (metis(full_types) evalDet val_to_bool.simps(1) zero_neq_one)
 
 method open_eval = (simp; (rule impI)?; (rule allI)+; rule impI)
 
 lemma diff_diff_cancel_expr:
-  shows "exp[e\<^sub>1 - (e\<^sub>1 - e\<^sub>2)] \<ge> exp[e\<^sub>2]"
+  shows "exp[x - (x - y)] \<ge> exp[y]"
   apply open_eval
   subgoal premises eval for m p v
   proof -
-    obtain v1 where v1: "[m, p] \<turnstile> e\<^sub>1 \<mapsto> v1"
+    obtain vx where vx: "[m, p] \<turnstile> x \<mapsto> vx"
       using eval by blast
-    obtain v2 where v2: "[m, p] \<turnstile> e\<^sub>2 \<mapsto> v2"
+    obtain vy where vy: "[m, p] \<turnstile> y \<mapsto> vy"
       using eval by blast
-    then have e: "[m, p] \<turnstile> exp[e\<^sub>1 - (e\<^sub>1 - e\<^sub>2)] \<mapsto> val[v1 - (v1 - v2)]"
-      using v1 v2 eval
+    then have e: "[m, p] \<turnstile> exp[x - (x - y)] \<mapsto> val[vx - (vx - vy)]"
+      using vx vy eval
       by (smt (verit, ccfv_SIG) bin_eval.simps(3) evalDet unfold_binary)
-    then have notUn: "val[v1 - (v1 - v2)] \<noteq> UndefVal"
+    then have notUn: "val[vx - (vx - vy)] \<noteq> UndefVal"
       using evaltree_not_undef by auto
-    then have "val[v1 - (v1 - v2)] = v2"
-      apply (cases v1; cases v2; auto simp: notUn)
-      using eval_unused_bits_zero v2 apply blast
+    then have "val[vx - (vx - vy)] = vy"
+      apply (cases vx; cases vy; auto simp: notUn)
+      using eval_unused_bits_zero vy apply blast
       by (metis(full_types) intval_sub.simps(5))
     then show ?thesis 
-      by (metis e eval evalDet v2)
+      by (metis e eval evalDet vy)
   qed
   done
 
@@ -142,24 +142,24 @@ phase SnipPhase
   terminating size
 begin
 lemma sub_same_val:
-  assumes "val[e - e] = IntVal b v"
-  shows "val[e - e] = val[IntVal b 0]"
-  using assms by (cases e; auto)
+  assumes "val[x - x] = IntVal b v"
+  shows "val[x - x] = val[IntVal b 0]"
+  using assms by (cases x; auto)
 
 snipbegin \<open>sub-same-32\<close>
 optimization SubIdentity:
-  "e - e \<longmapsto> ConstantExpr (IntVal b 0)
-     when ((stamp_expr exp[e - e] = IntegerStamp b lo hi) \<and> wf_stamp exp[e - e])"
+  "x - x \<longmapsto> ConstantExpr (IntVal b 0)
+     when ((stamp_expr exp[x - x] = IntegerStamp b lo hi) \<and> wf_stamp exp[x - x])"
   snipend -
    using IRExpr.disc(42) size.simps(4) size_non_const
    apply simp
   apply (rule impI) apply simp
 proof -
-  assume assms: "stamp_binary BinSub (stamp_expr e) (stamp_expr e) = IntegerStamp b lo hi \<and> wf_stamp exp[e - e]"
-  have "\<forall>m p v . ([m, p] \<turnstile> exp[e - e] \<mapsto> v) \<longrightarrow> (\<exists>vv. v = IntVal b vv)"
+  assume assms: "stamp_binary BinSub (stamp_expr x) (stamp_expr x) = IntegerStamp b lo hi \<and> wf_stamp exp[x - x]"
+  have "\<forall>m p v . ([m, p] \<turnstile> exp[x - x] \<mapsto> v) \<longrightarrow> (\<exists>vv. v = IntVal b vv)"
     using assms wf_stamp_eval
     by (metis stamp_expr.simps(2))
-  then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinSub e e \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> ConstantExpr (IntVal b 0) \<mapsto> v)"
+  then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinSub x x \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> ConstantExpr (IntVal b 0) \<mapsto> v)"
     using wf_value_def
     by (smt (verit, best) BinaryExprE TreeSnippets.wf_stamp_def assms bin_eval.simps(3) constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val unfold_const valid_stamp.simps(1) valid_value.simps(1))
 qed
@@ -167,7 +167,7 @@ thm_oracles SubIdentity
 
 snipbegin \<open>RedundantSubtract\<close>
 optimization RedundantSubtract:
-  "e\<^sub>1 - (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>2"
+  "x - (x - y) \<longmapsto> y"
 snipend -
   using size_simps apply simp
   using diff_diff_cancel_expr by presburger
@@ -257,7 +257,7 @@ phase SnipPhase
 begin
 snipbegin \<open>InverseLeftSub\<close>
 optimization InverseLeftSub:
-  "(e\<^sub>1 - e\<^sub>2) + e\<^sub>2 \<longmapsto> e\<^sub>1"
+  "(x - y) + y \<longmapsto> x"
 snipend -
   snipbegin \<open>InverseLeftSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
@@ -265,7 +265,7 @@ snipend -
   using RedundantSubAdd by auto
 
 snipbegin \<open>InverseRightSub\<close>
-optimization InverseRightSub: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
+optimization InverseRightSub: "y + (x - y) \<longmapsto> x"
 snipend -
   snipbegin \<open>InverseRightSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
@@ -302,7 +302,7 @@ snipend -
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
-optimization AddNeutral: "e + (const (IntVal 32 0)) \<longmapsto> e"
+optimization AddNeutral: "x + (const (IntVal 32 0)) \<longmapsto> x"
 snipend -
   snipbegin \<open>AddNeutralObligation\<close>
   text \<open>@{subgoals[display]}\<close>
@@ -311,7 +311,7 @@ snipend -
   using AddNeutral(1) rewrite_preservation.simps(1) by force
 
 snipbegin \<open>AddToSub\<close>
-optimization AddToSub: "-e + y \<longmapsto> y - e"
+optimization AddToSub: "-x + y \<longmapsto> y - x"
 snipend -
   snipbegin \<open>AddToSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
@@ -342,20 +342,20 @@ phase Conditional
 begin
 snipend -
 
-snipbegin \<open>phase-example-1\<close>optimization NegateCond: "((!e) ? x : y) \<longmapsto> (e ? y : x)"snipend -
+snipbegin \<open>phase-example-1\<close>optimization NegateCond: "((!c) ? t : f) \<longmapsto> (c ? f : t)"snipend -
   apply (simp add: size_simps)
   using ConditionalPhase.NegateConditionFlipBranches(1) by simp
 
-snipbegin \<open>phase-example-2\<close>optimization TrueCond: "(true ? x : y) \<longmapsto> x"snipend -
+snipbegin \<open>phase-example-2\<close>optimization TrueCond: "(true ? t : f) \<longmapsto> t"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-3\<close>optimization FalseCond: "(false ? x : y) \<longmapsto> y"snipend -
+snipbegin \<open>phase-example-3\<close>optimization FalseCond: "(false ? t : f) \<longmapsto> f"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-4\<close>optimization BranchEqual: "(e ? x : x) \<longmapsto> x"snipend -
+snipbegin \<open>phase-example-4\<close>optimization BranchEqual: "(c ? x : x) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
 
-snipbegin \<open>phase-example-5\<close>optimization LessCond: "((u < v) ? x : y) \<longmapsto> x
+snipbegin \<open>phase-example-5\<close>optimization LessCond: "((u < v) ? t : f) \<longmapsto> t
                    when (stamp_under (stamp_expr u) (stamp_expr v) 
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -
   apply (auto simp: trm_def)

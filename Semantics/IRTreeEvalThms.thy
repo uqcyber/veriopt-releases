@@ -307,8 +307,8 @@ like $mono (UnaryExpr op)$, but it is not obvious how to do this for both argume
 of the binary expressions.\<close>
 
 lemma mono_unary: 
-  assumes "e \<ge> e'"
-  shows "(UnaryExpr op e) \<ge> (UnaryExpr op e')"
+  assumes "x \<ge> x'"
+  shows "(UnaryExpr op x) \<ge> (UnaryExpr op x')"
   using UnaryExpr assms by auto
 
 lemma mono_binary: 
@@ -375,20 +375,20 @@ qed
 *)
 
 lemma mono_conditional: 
-  assumes "ce \<ge> ce'"
-  assumes "te \<ge> te'"
-  assumes "fe \<ge> fe'"
-  shows "(ConditionalExpr ce te fe) \<ge> (ConditionalExpr ce' te' fe')"
+  assumes "c \<ge> c'"
+  assumes "t \<ge> t'"
+  assumes "f \<ge> f'"
+  shows "(ConditionalExpr c t f) \<ge> (ConditionalExpr c' t' f')"
 proof (simp only: le_expr_def; (rule allI)+; rule impI)
   fix m p v
-  assume a: "[m,p] \<turnstile> ConditionalExpr ce te fe \<mapsto> v"
-  then obtain cond where ce: "[m,p] \<turnstile> ce \<mapsto> cond" by auto
-  then have ce': "[m,p] \<turnstile> ce' \<mapsto> cond" using assms by auto
-  (*have co: "compatible (stamp_expr te) (stamp_expr fe)"
+  assume a: "[m,p] \<turnstile> ConditionalExpr c t f \<mapsto> v"
+  then obtain cond where c: "[m,p] \<turnstile> c \<mapsto> cond" by auto
+  then have c': "[m,p] \<turnstile> c' \<mapsto> cond" using assms by auto
+  (*have co: "compatible (stamp_expr t) (stamp_expr f)"
     using a by auto*)
-  define branch  where b:  "branch  = (if val_to_bool cond then te else fe)"
-  define branch' where b': "branch' = (if val_to_bool cond then te' else fe')"
-  then have beval: "[m,p] \<turnstile> branch \<mapsto> v" using a b ce evalDet by blast 
+  define branch  where b:  "branch  = (if val_to_bool cond then t else f)"
+  define branch' where b': "branch' = (if val_to_bool cond then t' else f')"
+  then have beval: "[m,p] \<turnstile> branch \<mapsto> v" using a b c evalDet by blast 
   (*then have "compatible (stamp_expr branch) (stamp_expr branch')"
       using helping
       using assms(2) assms(3) b b' by force
@@ -411,8 +411,8 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
       then show ?thesis sorry
     qed*)
   from beval have "[m,p] \<turnstile> branch' \<mapsto> v" using assms b b' by auto
-  then show "[m,p] \<turnstile> ConditionalExpr ce' te' fe' \<mapsto> v"
-    using ConditionalExpr ce' b'
+  then show "[m,p] \<turnstile> ConditionalExpr c' t' f' \<mapsto> v"
+    using ConditionalExpr c' b'
     using a by blast
 qed
 

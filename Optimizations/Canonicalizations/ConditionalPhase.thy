@@ -43,11 +43,11 @@ optimization ConditionalEqualBranches: "(e ? x : x) \<longmapsto> x" .
 
 optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x 
     when (stamp_under (stamp_expr u) (stamp_expr v) \<and> wf_stamp u \<and> wf_stamp v)"
-  using stamp_under_defn by auto
+  using stamp_under_defn by fastforce
 
 optimization condition_bounds_y: "((u < v) ? x : y) \<longmapsto> y 
     when (stamp_under (stamp_expr v) (stamp_expr u) \<and> wf_stamp u \<and> wf_stamp v)"
-  using stamp_under_defn_inverse by auto
+  using stamp_under_defn_inverse by fastforce
 
 (** Start of new proofs **)
 
@@ -63,7 +63,7 @@ lemma val_optimise_integer_test:
 optimization ConditionalEliminateKnownLess: "((x < y) ? x : y) \<longmapsto> x 
                                  when (stamp_under (stamp_expr x) (stamp_expr y)
                                       \<and> wf_stamp x \<and> wf_stamp y)"
-    using stamp_under_defn by auto
+    using stamp_under_defn by fastforce
 
 (* Optimisations *)
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"

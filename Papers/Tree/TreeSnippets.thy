@@ -365,7 +365,7 @@ snipbegin \<open>phase-example-3\<close>optimization FalseCond: "(false ? t : f)
 
 snipbegin \<open>phase-example-4\<close>optimization BranchEqual: "(c ? x : x) \<longmapsto> x"snipend -
   by (auto simp: trm_def)
-
+ 
 snipbegin \<open>phase-example-5\<close>optimization LessCond: "((u < v) ? t : f) \<longmapsto> t
                    when (stamp_under (stamp_expr u) (stamp_expr v) 
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -

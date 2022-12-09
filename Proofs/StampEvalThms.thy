@@ -530,65 +530,67 @@ lemma stamp_under_defn:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"
   assumes "wf_stamp x \<and> wf_stamp y"
   assumes "([m, p] \<turnstile> x \<mapsto> xv) \<and> ([m, p] \<turnstile> y \<mapsto> yv)"
-  shows "val_to_bool (bin_eval BinIntegerLessThan xv yv)"
+  shows "val_to_bool (bin_eval BinIntegerLessThan xv yv) \<or> (bin_eval BinIntegerLessThan xv yv) = UndefVal"
 proof -
   have yval: "valid_value yv (stamp_expr y)"
     using assms wf_stamp_def by blast
   obtain b lx hi where xstamp: "stamp_expr x = IntegerStamp b lx hi"
     using assms(1)
     by (metis stamp_under.elims(2))
-  then obtain lo hy where ystamp: "stamp_expr y = IntegerStamp b lo hy"
+  then obtain b' lo hy where ystamp: "stamp_expr y = IntegerStamp b' lo hy"
     using assms(1)
-    by (metis Stamp.sel(1) stamp_under.elims(2))
+    by (meson stamp_under.elims(2))
   obtain xvv where xvv: "xv = IntVal b xvv"
     by (metis assms(2) assms(3) valid_int wf_stamp_def xstamp)
   then have xval: "valid_value (IntVal b xvv) (stamp_expr x)"
     using assms(2) assms(3) wf_stamp_def by blast
-  obtain yvv where yvv: "yv = IntVal b yvv"
+  obtain yvv where yvv: "yv = IntVal b' yvv"
     by (metis valid_int ystamp yval)
-  then have xval: "valid_value (IntVal b yvv) (stamp_expr y)"
-    using yval by auto
+  then have xval: "valid_value (IntVal b' yvv) (stamp_expr y)"
+    using yval 
+    by blast
   have xunder: "int_signed_value b xvv \<le> hi"
     using xvv xval valid_value.simps
     by (metis assms(2) assms(3) wf_stamp_def xstamp)
-  have yunder: "lo \<le> int_signed_value b yvv"
+  have yunder: "lo \<le> int_signed_value b' yvv"
     using yvv yval valid_value.simps
     by (metis ystamp)
   have unwrap: "\<forall>cond. bool_to_val_bin b b cond = bool_to_val cond"
     by simp
-  from xunder yunder have "int_signed_value b xvv < int_signed_value b yvv"
+  from xunder yunder have "int_signed_value b xvv < int_signed_value b' yvv"
     using assms(1) xstamp ystamp by auto
-  then have "(intval_less_than xv yv) = IntVal 32 1"
+  then have "(intval_less_than xv yv) = IntVal 32 1 \<or> (intval_less_than xv yv) = UndefVal"
     using xvv yvv
     using intval_less_than.simps(1) unwrap
-    using bool_to_val.simps(1) by presburger
-  then show ?thesis
+    using bool_to_val.simps(1)
     by simp
+  then show ?thesis
+    by force
 qed
 
 lemma stamp_under_defn_inverse:
   assumes "stamp_under (stamp_expr y) (stamp_expr x)"
   assumes "wf_stamp x \<and> wf_stamp y"
   assumes "([m, p] \<turnstile> x \<mapsto> xv) \<and> ([m, p] \<turnstile> y \<mapsto> yv)"
-  shows "\<not>(val_to_bool (bin_eval BinIntegerLessThan xv yv))"
+  shows "\<not>(val_to_bool (bin_eval BinIntegerLessThan xv yv)) \<or> (bin_eval BinIntegerLessThan xv yv) = UndefVal"
 proof -
   have yval: "valid_value yv (stamp_expr y)"
     using assms wf_stamp_def by blast
   obtain b lo hx where xstamp: "stamp_expr x = IntegerStamp b lo hx"
     using assms(1)
     by (metis stamp_under.elims(2))
-  then obtain ly hi where ystamp: "stamp_expr y = IntegerStamp b ly hi"
+  then obtain b' ly hi where ystamp: "stamp_expr y = IntegerStamp b' ly hi"
     using assms(1)
-    by (metis Stamp.sel(1) stamp_under.elims(2))
+    by (meson stamp_under.elims(2))
   obtain xvv where xvv: "xv = IntVal b xvv"
     by (metis assms(2) assms(3) valid_int wf_stamp_def xstamp)
   then have xval: "valid_value (IntVal b xvv) (stamp_expr x)"
     using assms(2) assms(3) wf_stamp_def by blast
-  obtain yvv where yvv: "yv = IntVal b yvv"
+  obtain yvv where yvv: "yv = IntVal b' yvv"
     by (metis valid_int ystamp yval)
-  then have xval: "valid_value (IntVal b yvv) (stamp_expr y)"
+  then have xval: "valid_value (IntVal b' yvv) (stamp_expr y)"
     using yval by auto
-  have yunder: "int_signed_value b yvv \<le> hi"
+  have yunder: "int_signed_value b' yvv \<le> hi"
     using yvv yval valid_value.simps
     by (metis ystamp)
   have xover: "lo \<le> int_signed_value b xvv"
@@ -596,14 +598,13 @@ proof -
     by (metis assms(2) assms(3) wf_stamp_def xstamp)
   have unwrap: "\<forall>cond. bool_to_val_bin b b cond = bool_to_val cond"
     by simp
-  from xover yunder have "int_signed_value b yvv < int_signed_value b xvv"
+  from xover yunder have "int_signed_value b' yvv < int_signed_value b xvv"
     using assms(1) xstamp ystamp by auto
-  then have "(intval_less_than xv yv) = IntVal 32 0"
+  then have "(intval_less_than xv yv) = IntVal 32 0  \<or> (intval_less_than xv yv) = UndefVal"
     using xvv yvv
-    using intval_less_than.simps(1) unwrap
-    by force
+    using intval_less_than.simps(1) unwrap by simp
   then show ?thesis
-    by simp
+    by force
 qed
 
 end

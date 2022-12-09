@@ -33,7 +33,7 @@ lemma negation_preserve_eval_intval:
 
 optimization NegateConditionFlipBranches: "((!e) ? x : y) \<longmapsto> (e ? y : x)"
   apply simp using negation_condition_intval negation_preserve_eval_intval
-  by (smt (z3) ConditionalExpr ConditionalExprE evalDet negates negation_preserve_eval)
+  by (smt (verit, best) ConditionalExpr ConditionalExprE Value.distinct(1) evalDet negates negation_preserve_eval)
 
 optimization DefaultTrueBranch: "(true ? x : y) \<longmapsto> x" .
 
@@ -83,7 +83,8 @@ optimization normalizeX: "((x eq const (IntVal 32 0)) ?
        have 3: "[m,p] \<turnstile> if val_to_bool (intval_equals xa (IntVal (32::nat) (0::64 word)))
                   then ConstantExpr (IntVal (32::nat) (0::64 word))
                   else ConstantExpr (IntVal (32::nat) (1::64 word)) \<mapsto> v"
-         using evalDet p(3) p(5) xa by blast
+         using evalDet p(3) p(5) xa
+         using p(4) p(6) by blast
        then have 4: "xa = IntVal 32 0 | xa = IntVal 32 1"
          sorry
        then have 6: "v = xa"

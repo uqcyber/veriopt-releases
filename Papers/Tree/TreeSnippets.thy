@@ -35,6 +35,17 @@ notation (latex)
   constantAsStamp ("\<^latex>\<open>stamp-from-value\<close> _")
 
 notation (latex)
+  find_node_and_stamp ("\<^latex>\<open>find-matching\<close> _")
+
+notation (latex)
+  add_node ("\<^latex>\<open>insert\<close> _")
+
+notation (latex)
+  get_fresh_id ("\<^latex>\<open>fresh-id\<close> _")
+
+
+
+notation (latex)
   size ("\<^latex>\<open>trm(\<close>_\<^latex>\<open>)\<close>")
 
 
@@ -413,6 +424,17 @@ text \<open>
 \induct{@{thm[mode=Rule] rep.AddNode [no_vars]}}{rep:binary}
 \induct{@{thm[mode=Rule] rep.LeafNode [no_vars]}}{rep:leaf}
 \induct{@{thm[mode=Rule] rep.RefNode [no_vars]}}{rep:ref}
+\<close>
+snipend -
+
+snipbegin \<open>tree2graph\<close>
+text \<open>
+\induct{@{thm[mode=Rule] unrep.UnaryNodeSame [no_vars]}}{unrep:unarysame}
+\induct{@{thm[mode=Rule] unrep.ConstantNodeNew [no_vars]}}{unrep:constantnew}
+\induct{@{thm[mode=Rule] unrep.ParameterNodeNew [no_vars]}}{unrep:parameternew}
+\induct{@{thm[mode=Rule] unrep.UnaryNodeNew [no_vars]}}{unrep:unarynew}
+\induct{@{thm[mode=Rule] unrep.BinaryNodeNew [no_vars]}}{unrep:binarynew}
+\induct{@{thm[mode=Rule] unrep.AllLeafNodes [no_vars]}}{unrep:leaf}
 \<close>
 snipend -
 no_translations

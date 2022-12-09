@@ -354,49 +354,49 @@ inductive
     \<Longrightarrow> g \<oplus> (ParameterExpr i s) \<leadsto> (g', n)" |
 
   ConditionalNodeSame:
-  "\<lbrakk>g \<oplus> ce \<leadsto> (g2, c);
+  "\<lbrakk>find_node_and_stamp g4 (ConditionalNode c t f, s') = Some n;
+    g \<oplus> ce \<leadsto> (g2, c);
     g2 \<oplus> te \<leadsto> (g3, t);
     g3 \<oplus> fe \<leadsto> (g4, f);
-    s' = meet (stamp g4 t) (stamp g4 f);
-    find_node_and_stamp g4 (ConditionalNode c t f, s') = Some n\<rbrakk>
+    s' = meet (stamp g4 t) (stamp g4 f)\<rbrakk>
     \<Longrightarrow> g \<oplus> (ConditionalExpr ce te fe) \<leadsto> (g4, n)" |
 
   ConditionalNodeNew:
-  "\<lbrakk>g \<oplus> ce \<leadsto> (g2, c);
+  "\<lbrakk>find_node_and_stamp g4 (ConditionalNode c t f, s') = None;
+    g \<oplus> ce \<leadsto> (g2, c);
     g2 \<oplus> te \<leadsto> (g3, t);
     g3 \<oplus> fe \<leadsto> (g4, f);
     s' = meet (stamp g4 t) (stamp g4 f);
-    find_node_and_stamp g4 (ConditionalNode c t f, s') = None;
     n = get_fresh_id g4;
     g' = add_node n (ConditionalNode c t f, s') g4\<rbrakk>
     \<Longrightarrow> g \<oplus> (ConditionalExpr ce te fe) \<leadsto> (g', n)" |
 
   UnaryNodeSame:
-  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
-    s' = stamp_unary op (stamp g2 x);
-    find_node_and_stamp g2 (unary_node op x, s') = Some n\<rbrakk>
+  "\<lbrakk>find_node_and_stamp g2 (unary_node op x, s') = Some n;
+    g \<oplus> xe \<leadsto> (g2, x);
+    s' = stamp_unary op (stamp g2 x)\<rbrakk>
     \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g2, n)" |
 
   UnaryNodeNew:
-  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
+  "\<lbrakk>find_node_and_stamp g2 (unary_node op x, s') = None;
+    g \<oplus> xe \<leadsto> (g2, x);
     s' = stamp_unary op (stamp g2 x);
-    find_node_and_stamp g2 (unary_node op x, s') = None;
     n = get_fresh_id g2;
     g' = add_node n (unary_node op x, s') g2\<rbrakk>
     \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g', n)" |
 
   BinaryNodeSame:
-  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
+  "\<lbrakk>find_node_and_stamp g3 (bin_node op x y, s') = Some n;
+    g \<oplus> xe \<leadsto> (g2, x);
     g2 \<oplus> ye \<leadsto> (g3, y);
-    s' = stamp_binary op (stamp g3 x) (stamp g3 y);
-    find_node_and_stamp g3 (bin_node op x y, s') = Some n\<rbrakk>
+    s' = stamp_binary op (stamp g3 x) (stamp g3 y)\<rbrakk>
     \<Longrightarrow> g \<oplus> (BinaryExpr op xe ye) \<leadsto> (g3, n)" |
 
   BinaryNodeNew:
-  "\<lbrakk>g \<oplus> xe \<leadsto> (g2, x);
+  "\<lbrakk>find_node_and_stamp g3 (bin_node op x y, s') = None;
+    g \<oplus> xe \<leadsto> (g2, x);
     g2 \<oplus> ye \<leadsto> (g3, y);
     s' = stamp_binary op (stamp g3 x) (stamp g3 y);
-    find_node_and_stamp g3 (bin_node op x y, s') = None;
     n = get_fresh_id g3;
     g' = add_node n (bin_node op x y, s') g3\<rbrakk>
     \<Longrightarrow> g \<oplus> (BinaryExpr op xe ye) \<leadsto> (g', n)" |

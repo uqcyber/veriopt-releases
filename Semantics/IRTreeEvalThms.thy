@@ -413,7 +413,7 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
   from beval have "[m,p] \<turnstile> branch' \<mapsto> v" using assms b b' by auto
   then show "[m,p] \<turnstile> ConditionalExpr c' t' f' \<mapsto> v"
     using ConditionalExpr c' b'
-    using a by blast
+    by (simp add: evaltree_not_undef)
 qed
 
 (*

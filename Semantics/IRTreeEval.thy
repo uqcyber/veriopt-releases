@@ -215,6 +215,7 @@ inductive
   compatible (stamp_expr te) (stamp_expr fe);*)
   ConditionalExpr:
   "\<lbrakk>[m,p] \<turnstile> ce \<mapsto> cond;
+    cond \<noteq> UndefVal;
     branch = (if val_to_bool cond then te else fe);
     [m,p] \<turnstile> branch \<mapsto> result;
     result \<noteq> UndefVal\<rbrakk>

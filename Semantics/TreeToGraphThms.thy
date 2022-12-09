@@ -1404,7 +1404,7 @@ theorem term_graph_reconstruction:
     then show ?case
       by (metis IRNode.distinct(2447) ParameterNode add_node_lookup)
   next
-    case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
+    case (ConditionalNodeSame g4 c t f s' n g ce g2 te g3 fe)
     then have k: "kind g4 n = ConditionalNode c t f"
       using find_exists_kind by blast
     have c: "g4 \<turnstile> c \<simeq> ce" using local.ConditionalNodeSame unrep_unchanged
@@ -1416,7 +1416,7 @@ theorem term_graph_reconstruction:
     then show ?case using c t f
       using ConditionalNode k by blast
   next
-    case (ConditionalNodeNew g ce g2 c te g3 t fe g4 f s' n g')
+    case (ConditionalNodeNew g4 c t f s' g ce g2 te g3 fe n g')
     moreover have "ConditionalNode c t f \<noteq> NoNode"
       using unary_node.elims by blast
     ultimately have k: "kind g' n = ConditionalNode c t f"
@@ -1434,7 +1434,7 @@ theorem term_graph_reconstruction:
     then show ?case using c t f
       using ConditionalNode k by blast
   next
-    case (UnaryNodeSame g xe g' x s' op n)
+    case (UnaryNodeSame g' op x s' n g xe)
     then have k: "kind g' n = unary_node op x"
       using find_exists_kind local.UnaryNodeSame by blast
     then have "g' \<turnstile> x \<simeq> xe" using local.UnaryNodeSame by blast
@@ -1448,7 +1448,7 @@ theorem term_graph_reconstruction:
       using SignExtendNode unary_node.simps(6) apply presburger
       using ZeroExtendNode unary_node.simps(7) by presburger
   next
-    case (UnaryNodeNew g xe g2 x s' op n g')
+    case (UnaryNodeNew g2 op x s' g xe n g')
     moreover have "unary_node op x \<noteq> NoNode"
       using unary_node.elims by blast
     ultimately have k: "kind g' n = unary_node op x"
@@ -1469,7 +1469,7 @@ theorem term_graph_reconstruction:
       using SignExtendNode unary_node.simps(6) apply presburger
       using ZeroExtendNode unary_node.simps(7) by presburger
   next
-    case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
+    case (BinaryNodeSame g3 op x y s' n g xe g2 ye)
     then have k: "kind g3 n = bin_node op x y"
       using find_exists_kind by blast
     have x: "g3 \<turnstile> x \<simeq> xe" using local.BinaryNodeSame unrep_unchanged
@@ -1491,7 +1491,7 @@ theorem term_graph_reconstruction:
       using IntegerLessThanNode bin_node.simps(12) apply presburger
       using IntegerBelowNode bin_node.simps(13) by presburger
   next
-    case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
+    case (BinaryNodeNew g3 op x y s' g xe g2 ye n g')
     moreover have "bin_node op x y \<noteq> NoNode"
       using bin_node.elims by blast
     ultimately have k: "kind g' n = bin_node op x y"
@@ -2599,7 +2599,7 @@ lemma unrep_preserves_closure:
     case (ConditionalNodeSame g ce g2 c te g3 t fe g4 f s' n)
     then show ?case by blast
   next
-    case (ConditionalNodeNew g ce g2 c te g3 t fe g4 f s' n g')
+    case (ConditionalNodeNew g4 c t f s' g ce g2 te g3 fe n g')
     then have dom: "ids g' = ids g4 \<union> {n}"
       by (meson IRNode.distinct(591) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ConditionalNode c t f"
@@ -2610,15 +2610,15 @@ lemma unrep_preserves_closure:
       unfolding succ.simps by simp
     have "inputs g' n \<subseteq> ids g' \<and> succ g' n \<subseteq> ids g' \<and> kind g' n \<noteq> NoNode"
       using k inp suc unrep_contains unrep_preserves_contains
-      using ConditionalNodeNew(1,3,5,10)
+      using ConditionalNodeNew
       by (smt (verit) IRNode.simps(643) Un_insert_right bot.extremum dom insert_absorb insert_subset subset_insertI sup_bot_right)
     then show ?case using dom
-      by (smt (z3) ConditionalNodeNew.hyps(10) ConditionalNodeNew.hyps(2) ConditionalNodeNew.hyps(4) ConditionalNodeNew.hyps(6) ConditionalNodeNew.prems Diff_eq_empty_iff Diff_iff Un_insert_right Un_upper1 add_node_def inputs.simps insertE replace_node_def replace_node_unchanged subset_trans succ.simps sup_bot_right)
+      by (smt (z3) ConditionalNodeNew.hyps ConditionalNodeNew.prems Diff_eq_empty_iff Diff_iff Un_insert_right Un_upper1 add_node_def inputs.simps insertE replace_node_def replace_node_unchanged subset_trans succ.simps sup_bot_right)
   next
     case (UnaryNodeSame g xe g2 x s' op n)
     then show ?case by blast
   next
-    case (UnaryNodeNew g xe g2 x s' op n g')
+    case (UnaryNodeNew g2 op x s' g xe n g')
     then have dom: "ids g' = ids g2 \<union> {n}"
       by (metis add_node_ids_subset add_node_lookup ids_add_update ids_some unrep.UnaryNodeNew unrep_contains)
     have k: "kind g' n = unary_node op x"
@@ -2630,15 +2630,15 @@ lemma unrep_preserves_closure:
       using unary_succ by simp
     have "inputs g' n \<subseteq> ids g' \<and> succ g' n \<subseteq> ids g' \<and> kind g' n \<noteq> NoNode"
       using k inp suc unrep_contains unrep_preserves_contains
-      using UnaryNodeNew(1,6)
+      using UnaryNodeNew
       by (metis Un_upper1 dom empty_subsetI ids_some insert_not_empty insert_subsetI not_in_g_inputs subset_iff)
     then show ?case
-      by (smt (verit) Un_insert_right UnaryNodeNew.hyps(2) UnaryNodeNew.hyps(6) UnaryNodeNew.prems add_changed changeonly.elims(2) dom inputs.simps insert_iff singleton_iff subset_insertI subset_trans succ.simps sup_bot_right)
+      by (smt (verit) Un_insert_right UnaryNodeNew.hyps UnaryNodeNew.prems add_changed changeonly.elims(2) dom inputs.simps insert_iff singleton_iff subset_insertI subset_trans succ.simps sup_bot_right)
   next
     case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
     then show ?case by blast
   next
-    case (BinaryNodeNew g xe g2 x ye g3 y s' op n g')
+    case (BinaryNodeNew g3 op x y s' g xe g2 ye n g')
     then have dom: "ids g' = ids g3 \<union> {n}"
       by (metis binary_inputs fresh_ids ids_add_update ids_some insert_not_empty not_in_g_inputs)
     have k: "kind g' n = bin_node op x y"
@@ -2650,7 +2650,7 @@ lemma unrep_preserves_closure:
       using binary_succ by simp
     have "inputs g' n \<subseteq> ids g' \<and> succ g' n \<subseteq> ids g' \<and> kind g' n \<noteq> NoNode"
       using k inp suc unrep_contains unrep_preserves_contains
-      using BinaryNodeNew(1,3,6)
+      using BinaryNodeNew
       by (metis Un_upper1 dom empty_subsetI ids_some insert_not_empty insert_subsetI not_in_g_inputs subset_iff)
     then show ?case using dom BinaryNodeNew
       by (smt (verit, del_insts) Diff_eq_empty_iff Diff_iff Un_insert_right Un_upper1 add_node_def inputs.simps insertE replace_node_def replace_node_unchanged subset_trans succ.simps sup_bot_right)

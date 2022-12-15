@@ -25,7 +25,7 @@ fun wrapped_command (command: string) (name: string option) =
   in
     Document_Output.document_output
         {markdown = false,            
-         markup = fn _ => Latex.enclose_text "%\n" "\n" (Latex.string latex)}
+         markup = fn _ => XML.enclose "%\n" "\n" (Latex.string latex)}
     (*(Pure_Syn.document_command {markdown = false} (NONE, doc))*)
   end
 

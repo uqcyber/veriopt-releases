@@ -119,7 +119,7 @@ fun export_phases thy name =
     val path = Path.binding (
                 Path.append directory filename,
                 Position.none);
-    val thy' = thy |> Generated_Files.add_files (path, content);
+    val thy' = thy |> Generated_Files.add_files (path, (Bytes.string content));
 
     val _ = Export.export thy' path [YXML.parse cleaned];
 
@@ -131,7 +131,7 @@ fun export_phases thy name =
 val _ =
   Outer_Syntax.command \<^command_keyword>\<open>export_phases\<close>
     "export information about encoded optimizations"
-    (Parse.text >>
+    (Parse.path >>
       (fn name => Toplevel.theory (fn state => export_phases state name)))
 \<close>
 

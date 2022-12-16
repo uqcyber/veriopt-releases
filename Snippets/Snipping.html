@@ -14,7 +14,7 @@
 
 <pre class="source"><span class="keyword1"><span class="command"><span>section</span></span></span><span> </span><span class="plain_text"><span>Snipping</span></span><span>
 
-</span><span class="keyword1"><span class="command"><span>theory</span></span></span><span> </span><span>Snipping</span><span>
+</span><span class="keyword1"><span class="command"><span>theory</span></span></span><span> </span><a href="Snipping.html"><span>Snipping</span></a><span>
   </span><span class="keyword2"><span class="keyword"><span>imports</span></span></span><span> </span><a href="../../HOL/HOL/Main.html"><span>Main</span></a><span>
   </span><span class="keyword2"><span class="keyword"><span>keywords</span></span></span><span>
     </span><span class="quoted"><span>"</span><span>snipbegin</span><span>"</span></span><span> </span><span class="main"><span>::</span></span><span> document_heading </span><span class="keyword2"><span class="keyword"><span>and</span></span></span><span>
@@ -39,7 +39,7 @@ however, it appears to be hard-coded which makes this a bit of a hack.
   </span><span class="keyword2"><span class="keyword"><span>in</span></span></span><span>
     </span><span class="entity"><span>Document_Output.document_output</span></span><span>
         </span><span class="main"><span>{</span></span><span>markdown</span><span> </span><span class="main"><span>=</span></span><span> </span><span>false</span><span class="main"><span>,</span></span><span>            
-         </span><span>markup</span><span> </span><span class="main"><span>=</span></span><span> </span><span class="keyword1"><span class="keyword"><span>fn</span></span></span><span> </span><span class="main"><span>_</span></span><span> </span><span class="main"><span>=&gt;</span></span><span> </span><span>Latex.enclose_text</span><span> </span><span class="inner_quoted"><span>"%\n"</span></span><span> </span><span class="inner_quoted"><span>"\n"</span></span><span> </span><span class="main"><span>(</span></span><span>Latex.string</span><span> </span><span class="entity"><span>latex</span></span><span class="main"><span>)</span></span><span class="main"><span>}</span></span><span>
+         </span><span>markup</span><span> </span><span class="main"><span>=</span></span><span> </span><span class="keyword1"><span class="keyword"><span>fn</span></span></span><span> </span><span class="main"><span>_</span></span><span> </span><span class="main"><span>=&gt;</span></span><span> </span><span>XML.enclose</span><span> </span><span class="inner_quoted"><span>"%\n"</span></span><span> </span><span class="inner_quoted"><span>"\n"</span></span><span> </span><span class="main"><span>(</span></span><span>Latex.string</span><span> </span><span class="entity"><span>latex</span></span><span class="main"><span>)</span></span><span class="main"><span>}</span></span><span>
     </span><span class="comment1"><span>(*(Pure_Syn.document_command {markdown = false} (NONE, doc))*)</span></span><span>
   </span><span class="keyword2"><span class="keyword"><span>end</span></span></span><span>
 

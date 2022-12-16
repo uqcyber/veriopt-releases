@@ -1,0 +1,27 @@
+{"kind": "chapter",
+ "items":
+   [{"name": "Canonicalizations", "description": "Canonicalization phase"},
+    {"name": "ConditionalElimination",
+     "description": "(experimental) Conditional elimination phase"},
+    {"name": "Document", "description": "Whole project document"},
+    {"name": "Graph",
+     "description": "GraalVM Intermediate Representation encoding"},
+    {"name": "OptimizationDSL",
+     "description": "DSL for expressing optimizations"},
+    {"name": "Optimizations",
+     "description": "(deprecated) Graph transformation optimizations"},
+    {"name": "Proofs",
+     "description": "Supporting proof theories and definitions"},
+    {"name": "Semantics", "description": "Semantics of the GraalVM IR"},
+    {"name": "Snippets",
+     "description":
+       "Additional commands to enable the generation of LaTeX snippets of theories"},
+    {"name": "StampLattice",
+     "description":
+       "(experimental) Investigation of an alternative approach to representing stamps in Isabelle/HOL"},
+    {"name": "TreePaperSnippets",
+     "description":
+       "Snippets of Isabelle theories used for the preparation of the future paper ``Verifying term graph optimizations using Isabelle/HOL''"},
+    {"name": "ValidationPaperSnippets",
+     "description":
+       "Snippets of Isabelle theories used for the preparation of the future paper ``Validating Faithful Formalization of an Existing Compiler''"}]}

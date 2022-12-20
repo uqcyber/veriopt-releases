@@ -43,10 +43,9 @@ session Semantics in Semantics = Graph +
 session Proofs in Proofs = Semantics +
   description
     "Supporting proof theories and definitions"
-  options [quick_and_dirty]
   sessions
     Snippets
-  theories
+  theories 
     Bisimulation
     Rewrites
     StampEvalThms

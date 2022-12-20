@@ -20,7 +20,7 @@ Full document: https://uqcyber.github.io/veriopt-releases/Document/document.pdf
 Outline, ignoring proof details: https://uqcyber.github.io/veriopt-releases/Document/outline.pdf
 
 ## Editing Theories
-Theories can be modified within the Isabelle/HOL IDE using the following command. Isabelle2021 will need to be installed and the tool wrapper should be accessible via the `isabelle` command on your machine.
+Theories can be modified within the Isabelle/HOL IDE using the following command. Isabelle2022 will need to be installed and the tool wrapper should be accessible via the `isabelle` command on your machine.
 
 ```bash
 git clone https://github.com/uqcyber/veriopt-releases
@@ -28,7 +28,7 @@ isabelle jedit -d veriopt-releases ROOT
 ```
 
 ## Building Theories
-Building the theories will check all the theories in the repository are correct and generate HTML and PDF outputs. You can build the theories with the following command. Isabelle2021 will need to be installed and the tool wrapper should be accessible via the `isabelle` command on your machine.
+Building the theories will check all the theories in the repository are correct and generate HTML and PDF outputs. You can build the theories with the following command. Isabelle2022 will need to be installed and the tool wrapper should be accessible via the `isabelle` command on your machine.
 
 ```bash
 git clone https://github.com/uqcyber/veriopt-releases

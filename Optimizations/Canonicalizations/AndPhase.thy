@@ -19,12 +19,10 @@ lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrigh
     obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
       using p(2) by blast
     have "v = val[xv & yv]"
-      using p(2) xv yv
-      by (metis BinaryExprE bin_eval.simps(4) evalDet)
+      by (metis BinaryExprE bin_eval.simps(4) evalDet p(2) xv yv)
     then have "v = yv"
-      using p(1) not_down_up_mask_and_zero_implies_zero
       by (smt (verit) eval_unused_bits_zero intval_and.elims new_int.elims new_int_bin.elims p(2) 
-          unfold_binary xv yv)
+          unfold_binary xv yv p(1) not_down_up_mask_and_zero_implies_zero)
     then show ?thesis using yv by simp
   qed
   done
@@ -39,12 +37,10 @@ lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longright
     obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
       using p(2) by blast
     have "v = val[xv & yv]"
-      using p(2) xv yv
-      by (metis BinaryExprE bin_eval.simps(4) evalDet)
-    then have "v = xv"
-      using p(1) not_down_up_mask_and_zero_implies_zero
+      by (metis BinaryExprE bin_eval.simps(4) evalDet p(2) xv yv)
+    then have "v = xv" 
       by (smt (verit) and.commute eval_unused_bits_zero intval_and.elims new_int.simps 
-          new_int_bin.simps p(2) unfold_binary xv yv)
+          new_int_bin.simps p(2) unfold_binary xv yv p(1) not_down_up_mask_and_zero_implies_zero)
     then show ?thesis using xv by simp
   qed
   done
@@ -211,7 +207,7 @@ optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
    apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
-  using exp_and_nots by presburger
+  using exp_and_nots by auto
 
 (* Need to prove exp_sign_extend*)
 optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) (x)) 

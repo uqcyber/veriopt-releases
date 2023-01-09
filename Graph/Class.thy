@@ -2,56 +2,114 @@ theory Class
   imports Canonicalizations.Common
 begin
 
+text \<open> Representation of a Generic Class containing fields, methods and constructors \<close>
+
+text \<open> _____ Representation of a Field _____ \<close>
+
+type_synonym FieldName = "string"
+type_synonym FieldType = "string"
+
+datatype Field = 
+  NewField (field_name: FieldName)
+           (field_type: FieldType)
+
+text \<open> _____ Representation of a Method _____ \<close>
+
+type_synonym MethodName = "string"
+type_synonym ReturnType = "string"
+type_synonym MethodParameters = "string" (* TODO change to more detailed type containing type information perhaps *)
+
+(* TODO could extend this to include exceptions throwable? *)
+datatype Method = 
+  NewMethod (method_name: MethodName)
+            (method_returnType: ReturnType)
+            (method_parameters: MethodParameters)
+
+text \<open> _____ Representation of a Constructor _____ \<close>
+
+type_synonym ConstructorParameters = "string" (* TODO change to more detailed type containing type information perhaps *)
+
+datatype Constructor = 
+  NewConstructor (constructor_params: ConstructorParameters)
+
 text \<open> Representation of a Generic Class \<close>
 
-(** For now, make fields, methods and constructors just strings (their name) **)
+type_synonym Fields = "Field list"
+type_synonym Methods = "Method list"
+type_synonym Constructors = "Constructor list"
 
-(* Use lists for fields, methods and constructors *)
-(* TODO change to more detailed type soon *)
-type_synonym Fields = "string"
-type_synonym Methods = "string"
-type_synonym Constructors = "string"
-
-(* Use strings for class & superclass name *)
 type_synonym ClassName = "string"
 type_synonym ParentClass = "string"
 
-(** Extremely simple class representation **)
 datatype Classz = 
-  NewClass (name: ClassName) 
-           (fields: Fields) 
-           (methodsz: Methods) 
-           (constructors: Constructors)  
-           (parent: ParentClass)
+  NewClass (class_name: ClassName) 
+           (class_fields: Fields) 
+           (class_methods: Methods) 
+           (class_constructors: Constructors)  
+           (class_parent: ParentClass)
 
-(* Functions, based on the Class.java class functions *)
+(* Testing simple implementation *)
 
-(* Retrieves the name of this class *)
-fun class_name :: "Classz \<Rightarrow> string" where
-  "class_name (NewClass c_name _ _ _ _) = c_name"
+(*
 
-(* Retrieves this class' superclass *)
-fun class_super :: "Classz \<Rightarrow> string" where
-  "class_super (NewClass _ _ _ _ c_super) = c_super"
+public class bestClassEver extends Object {
 
-(* Retrieves the fields of this class (currently, as a string) *)
-fun class_fields :: "Classz \<Rightarrow> string" where
-  "class_fields (NewClass _ c_fields _ _ _) = c_fields"
+    private int x;
+    private float y;
 
-(* Retrieves the methods of this class (currently, as a string) *)
-fun class_methods :: "Classz \<Rightarrow> string" where
-  "class_methods (NewClass _ _ c_methods _ _) = c_methods"
+    public bestClassEver(int x) {
+        this.x = x;
+    }
+    
+    public bestClassEver(float y) {
+        this.y = y;
+    }
+    
+    public int getX() {
+        return this.x;
+    }
+    
+    public void setY(float newY) {
+        this.y = newY;
+    }
+}
 
-(* Retrieves the constructors of this class (currently, as a string) *)
-fun class_constructors :: "Classz \<Rightarrow> string" where
-  "class_constructors (NewClass _ _ _ c_constructors _) = c_constructors"
+*)
 
-(* Testing implementation *)
-value "class_name (NewClass ''hello1'' ''hello2'' ''hello3'' ''hello4'' ''hello5'')"
-value "class_super (NewClass ''hello1'' ''hello2'' ''hello3'' ''hello4'' ''hello5'')"
-value "class_fields (NewClass ''hello1'' ''hello2'' ''hello3'' ''hello4'' ''hello5'')"
-value "class_methods (NewClass ''hello1'' ''hello2'' ''hello3'' ''hello4'' ''hello5'')"
-value "class_constructors (NewClass ''hello1'' ''hello2'' ''hello3'' ''hello4'' ''hello5'')"
+definition bestClassEver :: "Classz" where 
+  "bestClassEver = 
+    NewClass ''bestClassEver'' 
+             [NewField ''x'' ''I'', NewField ''y'' ''float''] 
+             [NewMethod ''getX'' ''I'' ''null'', NewMethod ''setY'' ''null'' ''float newY''] 
+             [NewConstructor ''I x'', NewConstructor ''float y''] 
+             ''Object''"
 
+(* Testing class-based functions *)
+value "class_name bestClassEver"
+value "class_parent bestClassEver"
+value "class_fields bestClassEver"
+value "class_methods bestClassEver"
+value "class_constructors bestClassEver"
+
+(* Testing field-based functions *)
+value "field_name (hd (class_fields bestClassEver))"
+value "field_type (hd (class_fields bestClassEver))"
+
+value "field_name (hd (tl (class_fields bestClassEver)))"
+value "field_type (hd (tl (class_fields bestClassEver)))"
+
+(* Testing method-based functions *)
+value "method_name (hd (class_methods bestClassEver))"
+value "method_returnType (hd (class_methods bestClassEver))"
+value "method_parameters (hd (class_methods bestClassEver))"
+
+value "method_name (hd (tl (class_methods bestClassEver)))"
+value "method_returnType (hd (tl (class_methods bestClassEver)))"
+value "method_parameters (hd (tl (class_methods bestClassEver)))"
+
+(* Testing constructor-based functions *)
+value "constructor_params (hd (class_constructors bestClassEver))"
+
+value "constructor_params (hd (tl (class_constructors bestClassEver)))"
 
 end

@@ -9,7 +9,7 @@ text \<open> _____ Representation of a Field _____ \<close>
 type_synonym FieldName = "string"
 type_synonym FieldType = "string"
 
-datatype Field = 
+datatype JVMField = 
   NewField (field_name: FieldName)
            (field_type: FieldType)
 
@@ -20,7 +20,7 @@ type_synonym ReturnType = "string"
 type_synonym MethodParameters = "string" (* TODO change to more detailed type containing type information perhaps *)
 
 (* TODO could extend this to include exceptions throwable? *)
-datatype Method = 
+datatype JVMMethod = 
   NewMethod (method_name: MethodName)
             (method_returnType: ReturnType)
             (method_parameters: MethodParameters)
@@ -29,19 +29,19 @@ text \<open> _____ Representation of a Constructor _____ \<close>
 
 type_synonym ConstructorParameters = "string" (* TODO change to more detailed type containing type information perhaps *)
 
-datatype Constructor = 
+datatype JVMConstructor = 
   NewConstructor (constructor_params: ConstructorParameters)
 
-text \<open> Representation of a Generic Class \<close>
+text \<open> Representation of a standard class \<close>
 
-type_synonym Fields = "Field list"
-type_synonym Methods = "Method list"
-type_synonym Constructors = "Constructor list"
+type_synonym Fields = "JVMField list"
+type_synonym Methods = "JVMMethod list"
+type_synonym Constructors = "JVMConstructor list"
 
 type_synonym ClassName = "string"
 type_synonym ParentClass = "string"
 
-datatype Classz = 
+datatype JVMClass = 
   NewClass (class_name: ClassName) 
            (class_fields: Fields) 
            (class_methods: Methods) 
@@ -76,7 +76,7 @@ public class bestClassEver extends Object {
 
 *)
 
-definition bestClassEver :: "Classz" where 
+definition bestClassEver :: "JVMClass" where 
   "bestClassEver = 
     NewClass ''bestClassEver'' 
              [NewField ''x'' ''I'', NewField ''y'' ''float''] 

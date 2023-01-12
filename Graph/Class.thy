@@ -18,12 +18,14 @@ text \<open> _____ Representation of a Method _____ \<close>
 type_synonym MethodName = "string"
 type_synonym ReturnType = "string"
 type_synonym MethodParameters = "string" (* TODO change to more detailed type containing type information perhaps *)
+type_synonym MethodUniqueName = "string"
 
 (* TODO could extend this to include exceptions throwable? *)
 datatype JVMMethod = 
   NewMethod (method_name: MethodName)
             (method_returnType: ReturnType)
-            (method_parameters: MethodParameters)
+            (method_parameters: MethodParameters) 
+            (method_unique_name: MethodUniqueName)
 
 text \<open> _____ Representation of a Constructor _____ \<close>
 
@@ -80,8 +82,8 @@ definition bestClassEver :: "JVMClass" where
   "bestClassEver = 
     NewClass ''bestClassEver'' 
              [NewField ''x'' ''I'', NewField ''y'' ''float''] 
-             [NewMethod ''getX'' ''I'' ''null'', NewMethod ''setY'' ''null'' ''float newY''] 
-             [NewConstructor ''I x'', NewConstructor ''float y''] 
+             [NewMethod ''getX'' ''I'' ''null'' ''bestClassEver_getXI(n)'', NewMethod ''setY'' ''null'' ''float'' ''bestClassEver_SetYn(f)''] 
+             [NewConstructor ''I'', NewConstructor ''float''] 
              ''Object''"
 
 (* Testing class-based functions *)
@@ -102,10 +104,12 @@ value "field_type (hd (tl (class_fields bestClassEver)))"
 value "method_name (hd (class_methods bestClassEver))"
 value "method_returnType (hd (class_methods bestClassEver))"
 value "method_parameters (hd (class_methods bestClassEver))"
+value "method_unique_name (hd (class_methods bestClassEver))"
 
 value "method_name (hd (tl (class_methods bestClassEver)))"
 value "method_returnType (hd (tl (class_methods bestClassEver)))"
 value "method_parameters (hd (tl (class_methods bestClassEver)))"
+value "method_unique_name (hd (tl (class_methods bestClassEver)))"
 
 (* Testing constructor-based functions *)
 value "constructor_params (hd (class_constructors bestClassEver))"

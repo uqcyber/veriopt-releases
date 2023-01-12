@@ -2,34 +2,36 @@ theory Class
   imports Canonicalizations.Common
 begin
 
-text \<open> Representation of a Generic Class containing fields, methods and constructors \<close>
+text \<open> Representation of a standard class containing fields, methods and constructors \<close>
 
-text \<open> _____ Representation of a Field _____ \<close>
+text \<open> _____ Representation of Fields and Parameters _____ \<close>
 
 type_synonym FieldName = "string"
 type_synonym FieldType = "string"
+type_synonym ParameterType = "string"
 
 datatype JVMField = 
   NewField (field_name: FieldName)
-           (field_type: FieldType)
+           (field_type: FieldType) |
+  NewParameter (parameter_type: ParameterType)
 
 text \<open> _____ Representation of a Method _____ \<close>
 
 type_synonym MethodName = "string"
 type_synonym ReturnType = "string"
-type_synonym MethodParameters = "string" (* TODO change to more detailed type containing type information perhaps *)
+type_synonym MethodParameters = "JVMField list"
 type_synonym MethodUniqueName = "string"
 
 (* TODO could extend this to include exceptions throwable? *)
 datatype JVMMethod = 
   NewMethod (method_name: MethodName)
             (method_returnType: ReturnType)
-            (method_parameters: MethodParameters) 
+            (method_parameters: MethodParameters)
             (method_unique_name: MethodUniqueName)
 
 text \<open> _____ Representation of a Constructor _____ \<close>
 
-type_synonym ConstructorParameters = "string" (* TODO change to more detailed type containing type information perhaps *)
+type_synonym ConstructorParameters = "JVMField list"
 
 datatype JVMConstructor = 
   NewConstructor (constructor_params: ConstructorParameters)
@@ -82,8 +84,8 @@ definition bestClassEver :: "JVMClass" where
   "bestClassEver = 
     NewClass ''bestClassEver'' 
              [NewField ''x'' ''I'', NewField ''y'' ''float''] 
-             [NewMethod ''getX'' ''I'' ''null'' ''bestClassEver_getXI(n)'', NewMethod ''setY'' ''null'' ''float'' ''bestClassEver_SetYn(f)''] 
-             [NewConstructor ''I'', NewConstructor ''float''] 
+             [NewMethod ''getX'' ''I'' [NewParameter ''null''] ''bestClassEver_getXI(n)'', NewMethod ''setY'' ''null'' [NewParameter ''float''] ''bestClassEver_SetYn(f)''] 
+             [NewConstructor [NewParameter ''I''], NewConstructor [NewParameter ''float'']] 
              ''Object''"
 
 (* Testing class-based functions *)
@@ -111,9 +113,17 @@ value "method_returnType (hd (tl (class_methods bestClassEver)))"
 value "method_parameters (hd (tl (class_methods bestClassEver)))"
 value "method_unique_name (hd (tl (class_methods bestClassEver)))"
 
+
 (* Testing constructor-based functions *)
 value "constructor_params (hd (class_constructors bestClassEver))"
 
 value "constructor_params (hd (tl (class_constructors bestClassEver)))"
+
+(* Testing parameter-based functions *)
+value "parameter_type (hd (method_parameters (hd (class_methods bestClassEver))))"
+value "parameter_type (hd (method_parameters (hd (tl (class_methods bestClassEver)))))"
+
+value "parameter_type (hd (constructor_params (hd (class_constructors bestClassEver))))"
+value "parameter_type (hd (constructor_params (hd (tl (class_constructors bestClassEver)))))"
 
 end

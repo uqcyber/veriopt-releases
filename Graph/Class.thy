@@ -126,4 +126,43 @@ value "parameter_type (hd (method_parameters (hd (tl (class_methods bestClassEve
 value "parameter_type (hd (constructor_params (hd (class_constructors bestClassEver))))"
 value "parameter_type (hd (constructor_params (hd (tl (class_constructors bestClassEver)))))"
 
+
+(* Samples from Java translator *)
+definition unit_InstanceOfTest_instanceOfSnippet4_mapping :: "JVMClass list" where
+	"unit_InstanceOfTest_instanceOfSnippet4_mapping = [
+	NewClass ''org.graalvm.compiler.core.test.InstanceOfTest$B''
+		[]
+		[]
+		[NewConstructor []]
+		''org.graalvm.compiler.core.test.InstanceOfTest$A'',
+
+	NewClass ''org.graalvm.compiler.core.test.InstanceOfTest$A''
+		[]
+		[]
+		[NewConstructor []]
+		''java.lang.Object'']"
+
+definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
+	"unit_InvokeVirtual_01_test_mapping = [
+	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B''
+		[]
+		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B.plus(I)I'']
+		[NewConstructor []]
+		''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'',
+
+	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C''
+		[]
+		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C.plus(I)I'']
+		[NewConstructor []]
+		''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'',
+
+	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A''
+		[]
+		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'']
+		[NewConstructor []]
+		''java.lang.Object'']"
+
+value "unit_InstanceOfTest_instanceOfSnippet4_mapping"
+value "unit_InvokeVirtual_01_test_mapping"
+
 end

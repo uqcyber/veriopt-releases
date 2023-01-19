@@ -52,7 +52,16 @@ datatype JVMClass =
            (class_constructors: Constructors)  
            (class_parent: ParentClass)
 
-(* Testing simple implementation *)
+
+(** Functions to interact with JVMClasses **)
+
+(* Adapted from find_index in IRStepObj.thy *)
+fun find_class_index :: "string \<Rightarrow> JVMClass list \<Rightarrow> nat" where
+  "find_class_index _ [] = 0" |
+  "find_class_index v (x # xs) = (if ((class_name x)=v) then 0 else find_class_index v xs + 1)"
+
+
+(** Testing simple implementation **)
 
 (*
 
@@ -113,7 +122,6 @@ value "method_returnType (hd (tl (class_methods bestClassEver)))"
 value "method_parameters (hd (tl (class_methods bestClassEver)))"
 value "method_unique_name (hd (tl (class_methods bestClassEver)))"
 
-
 (* Testing constructor-based functions *)
 value "constructor_params (hd (class_constructors bestClassEver))"
 
@@ -164,5 +172,8 @@ definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 
 value "unit_InstanceOfTest_instanceOfSnippet4_mapping"
 value "unit_InvokeVirtual_01_test_mapping"
+
+(* Testing out find_class_index *)
+value "find_class_index ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' unit_InvokeVirtual_01_test_mapping"
 
 end

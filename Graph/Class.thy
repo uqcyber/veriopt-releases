@@ -36,7 +36,7 @@ type_synonym ConstructorParameters = "JVMField list"
 datatype JVMConstructor = 
   NewConstructor (constructor_params: ConstructorParameters)
 
-text \<open> Representation of a standard class \<close>
+text \<open> _____ Representation of a standard class _____ \<close>
 
 type_synonym Fields = "JVMField list"
 type_synonym Methods = "JVMMethod list"
@@ -53,15 +53,24 @@ datatype JVMClass =
            (class_parent: ParentClass)
 
 
-(** Functions to interact with JVMClasses **)
+(* Empty class to indicate that the class being queried does not exist in the JVMClass mapping *)
+definition emptyClass :: "JVMClass" where 
+  "emptyClass = NewClass ''empty'' [] [] [] ''empty''"
+
+text \<open> _____ Functions to interact with JVMClasses _____ \<close>
 
 (* Adapted from find_index in IRStepObj.thy *)
 fun find_class_index :: "string \<Rightarrow> JVMClass list \<Rightarrow> nat" where
   "find_class_index _ [] = 0" |
   "find_class_index v (x # xs) = (if ((class_name x)=v) then 0 else find_class_index v xs + 1)"
 
+fun get_JVMClass :: "string \<Rightarrow> JVMClass list \<Rightarrow> JVMClass" where 
+  "get_JVMClass cName cList = 
+    (if ((find_class_index cName cList) = (length cList)) 
+      then emptyClass 
+      else (nth cList (find_class_index cName cList)))" 
 
-(** Testing simple implementation **)
+(** _____ Testing _____ **)
 
 (*
 
@@ -173,7 +182,8 @@ definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 value "unit_InstanceOfTest_instanceOfSnippet4_mapping"
 value "unit_InvokeVirtual_01_test_mapping"
 
-(* Testing out find_class_index *)
+(* Testing out functions *)
 value "find_class_index ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' unit_InvokeVirtual_01_test_mapping"
+value "get_JVMClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B'' unit_InvokeVirtual_01_test_mapping"
 
 end

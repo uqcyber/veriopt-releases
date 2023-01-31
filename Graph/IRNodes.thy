@@ -39,8 +39,8 @@ fun isDirect :: "IRInvokeKind \<Rightarrow> bool" where
 
 (* Mimics hasReceiver in the compiler *)
 fun hasReceiver :: "IRInvokeKind \<Rightarrow> bool" where
-  "hasReceiver Static = True" |
-  "hasReceiver _ = False"
+  "hasReceiver Static = False" |
+  "hasReceiver _ = True"
 
 type_synonym ID = "nat"
 type_synonym INPUT = "ID"   (* InputType.Value is the default *)

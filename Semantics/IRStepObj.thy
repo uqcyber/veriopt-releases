@@ -205,7 +205,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
   "\<lbrakk>is_Invoke (kind g nid);
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
-    invoke_kind = Static; 
+    \<not>(hasReceiver invoke_kind);
     S = (P, cl); 
     Some targetGraph = P targetMethod;
     m' = new_map_state;
@@ -213,12 +213,11 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p'\<rbrakk>
     \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
 
-(* TODO Update to use 'hasReceiver' instead of 'invoke_kind \<noteq> Static' *)
   InvokeNodeStep:
   "\<lbrakk>is_Invoke (kind g nid);
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
-    invoke_kind \<noteq> Static; 
+    hasReceiver invoke_kind; 
     m' = new_map_state;
     g \<turnstile> arguments \<simeq>\<^sub>L argsE;
     [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p';

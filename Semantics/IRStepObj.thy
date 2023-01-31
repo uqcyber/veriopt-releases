@@ -3,6 +3,7 @@ section \<open>Control-flow Semantics\<close>
 theory IRStepObj
   imports
     TreeToGraph
+    Graph.Class
 begin
 
 subsection \<open>Object Heap\<close>
@@ -26,8 +27,9 @@ fun h_load_field :: "'a \<Rightarrow> 'b \<Rightarrow> ('a, 'b) DynamicHeap \<Ri
 fun h_store_field :: "'a \<Rightarrow> 'b \<Rightarrow> Value \<Rightarrow> ('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap" where
   "h_store_field f r v (h, n) = (h(f := ((h f)(r := v))), n)"
 
-fun h_new_inst :: "('a, 'b) DynamicHeap \<Rightarrow> ('a, 'b) DynamicHeap \<times> Value" where
-  "h_new_inst (h, n) = ((h,n+1), (ObjRef (Some n)))"
+(* Alternatively store classname in ObjRef ? *)
+fun h_new_inst :: "(string, objref) DynamicHeap \<Rightarrow> string \<Rightarrow> (string, objref) DynamicHeap \<times> Value" where
+  "h_new_inst (h, n) className = (h_store_field ''class'' (Some n) (ObjStr className) (h,n+1), (ObjRef (Some n)))"
 
 type_synonym FieldRefHeap = "(string, objref) DynamicHeap"
 text_raw \<open>\EndSnip\<close>
@@ -51,6 +53,7 @@ fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
 fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
   "input_index g n n' = find_index n' (inputs_of (kind g n))"
 
+(* TODO this produces two parse trees after importing Class *)
 fun phi_inputs :: "IRGraph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
   "phi_inputs g i nodes = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) nodes)"
 
@@ -71,6 +74,7 @@ is related to the subsequent configuration.
 inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> (ID \<times> MapState \<times> FieldRefHeap) \<Rightarrow> bool"
   ("_, _ \<turnstile> _ \<rightarrow> _" 55) for g p where
 
+(* TODO this produces two parse trees after importing Class *)
   SequentialNode:
   "\<lbrakk>is_sequential_node (kind g nid);
     nid' = (successors_of (kind g nid))!0\<rbrakk> 
@@ -97,10 +101,9 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     m' = set_phis phis vs m\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
 
-
   NewInstanceNode:
-    "\<lbrakk>kind g nid = (NewInstanceNode nid f obj nid');
-      (h', ref) = h_new_inst h;
+    "\<lbrakk>kind g nid = (NewInstanceNode nid cname obj nid');
+      (h', ref) = h_new_inst h cname; 
       m' = m(nid := ref)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
@@ -163,26 +166,68 @@ subsection \<open>Interprocedural Semantics\<close>
 
 type_synonym Signature = "string"
 type_synonym Program = "Signature \<rightharpoonup> IRGraph"
+type_synonym Classes = "JVMClass list"
+type_synonym System = "Program \<times> Classes"
 
-inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> bool"
+(* 
+  Performs a dynamic look-up in the list of instantiated classes to retrieve the appropriate 
+  IRGraph to run. Takes: 
+    - A System containing the Program and list of classes.
+    - The fully-qualified name (dynamic type) of the object which the method has been invoked on.
+    - The fully-qualified name of the method invoked. 
+*)
+
+function dynamic_lookup :: "System \<Rightarrow> string \<Rightarrow> string \<Rightarrow> IRGraph option" where
+  "dynamic_lookup (P,cl) cn mn = (
+      if (cl = [] \<or> cn = ''None'')
+        then (P mn)
+        else (
+          if ((find_index (get_simple_signature mn) (simple_signatures cn cl)) = (length (simple_signatures cn cl)))
+            then (dynamic_lookup (P, cl) (class_parent (get_JVMClass cn cl)) (get_simple_signature mn))
+            else (P (nth (map method_unique_name (get_Methods cn cl))
+                   (find_index (get_simple_signature mn) (simple_signatures cn cl))))
+        )
+      )
+  "
+  by auto
+termination using ownParent by blast 
+
+inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> 
+                                  (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> bool"
   ("_ \<turnstile> _ \<longrightarrow> _" 55) 
-  for P where
+  for S where
 
   Lift:
   "\<lbrakk>g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')\<rbrakk> 
-    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((g,nid',m',p)#stk, h')" |
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((g,nid',m',p)#stk, h')" |
 
-  InvokeNodeStep:
+ InvokeNodeStepStatic:
   "\<lbrakk>is_Invoke (kind g nid);
-
     callTarget = ir_callTarget (kind g nid);
-    kind g callTarget = (MethodCallTargetNode targetMethod arguments);
+    kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
+    invoke_kind = Static; 
+    S = (P, cl); 
     Some targetGraph = P targetMethod;
     m' = new_map_state;
     g \<turnstile> arguments \<simeq>\<^sub>L argsE;
     [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p'\<rbrakk>
-    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
 
+(* TODO Update to use 'hasReceiver' instead of 'invoke_kind \<noteq> Static' *)
+  InvokeNodeStep:
+  "\<lbrakk>is_Invoke (kind g nid);
+    callTarget = ir_callTarget (kind g nid);
+    kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
+    invoke_kind \<noteq> Static; 
+    m' = new_map_state;
+    g \<turnstile> arguments \<simeq>\<^sub>L argsE;
+    [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p';
+    ObjRef self = hd p';
+    ObjStr cname = (h_load_field ''class'' self h);
+    Some targetGraph = dynamic_lookup S cname (targetMethod)\<rbrakk>
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
+
+(* TODO this produces two parse trees after importing Class *)
   ReturnNode:
   "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
     g \<turnstile> expr \<simeq> e;
@@ -190,14 +235,15 @@ inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapSt
 
     cm' = cm(cnid := v);
     cnid' = (successors_of (kind cg cnid))!0\<rbrakk> 
-    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
 
+(* TODO this produces two parse trees after importing Class *)
   ReturnNodeVoid:
   "\<lbrakk>kind g nid = (ReturnNode None _);
     cm' = cm(cnid := (ObjRef (Some (2048))));
     
     cnid' = (successors_of (kind cg cnid))!0\<rbrakk> 
-    \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
 
   UnwindNode:
   "\<lbrakk>kind g nid = (UnwindNode exception);
@@ -208,7 +254,7 @@ inductive step_top :: "Program \<Rightarrow> (IRGraph \<times> ID \<times> MapSt
     kind cg cnid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 
     cm' = cm(cnid := e)\<rbrakk>
-  \<Longrightarrow> P \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,exEdge,cm',cp)#stk, h)"
+  \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,exEdge,cm',cp)#stk, h)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 
@@ -219,7 +265,7 @@ type_synonym Trace = "(IRGraph \<times> ID \<times> MapState \<times> Params) li
 fun has_return :: "MapState \<Rightarrow> bool" where
   "has_return m = (m 0 \<noteq> UndefVal)"
 
-inductive exec :: "Program 
+inductive exec :: "System 
       \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
       \<Rightarrow> Trace 
       \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
@@ -245,7 +291,7 @@ inductive exec :: "Program
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool as Exec) "exec" .
 
 
-inductive exec_debug :: "Program
+inductive exec_debug :: "System
      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
      \<Rightarrow> nat
      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
@@ -267,9 +313,12 @@ subsubsection \<open>Heap Testing\<close>
 definition p3:: Params where
   "p3 = [IntVal 32 3]"
 
+fun graphToSystem :: "IRGraph \<Rightarrow> System" where
+  "graphToSystem graph = ((\<lambda>x. Some graph), [])"
+
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{(prod.fst(prod.snd (prod.snd (hd (prod.fst res))))) 0 
-        | res. (\<lambda>x . Some eg2_sq) \<turnstile> ([(eg2_sq,0,new_map_state,p3), (eg2_sq,0,new_map_state,p3)], new_heap) \<rightarrow>*2* res}"
+        | res. (graphToSystem eg2_sq) \<turnstile> ([(eg2_sq,0,new_map_state,p3), (eg2_sq,0,new_map_state,p3)], new_heap) \<rightarrow>*2* res}"
 
 definition field_sq :: string where
   "field_sq = ''sq''"
@@ -285,21 +334,21 @@ definition eg3_sq :: IRGraph where
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object None={sq: 9} *)
 values "{h_load_field field_sq None (prod.snd res)
-        | res. (\<lambda>x. Some eg3_sq) \<turnstile> ([(eg3_sq, 0, new_map_state, p3), (eg3_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
+        | res. (graphToSystem eg3_sq) \<turnstile> ([(eg3_sq, 0, new_map_state, p3), (eg3_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
 
 definition eg4_sq :: IRGraph where
   "eg4_sq = irgraph [
     (0, StartNode None 4, VoidStamp),
     (1, ParameterNode 0, default_stamp),
     (3, MulNode 1 1, default_stamp),
-    (4, NewInstanceNode 4 ''obj_class'' None 5, ObjectStamp ''obj_class'' True True True),
+    (4, NewInstanceNode 4 ''obj_class'' None 5, ObjectStamp ''obj_class'' True True False),
     (5, StoreFieldNode 5 field_sq 3 None (Some 4) 6, VoidStamp),
     (6, ReturnNode (Some 3) None, default_stamp)
    ]"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> heap with object 0={sq: 9} *)
-values "{h_load_field field_sq (Some 0) (prod.snd res) | res.
-          (\<lambda>x. Some eg4_sq) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
+values "{h_load_field field_sq (Some 0) (prod.snd res) 
+        | res. (graphToSystem (eg4_sq)) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
 
 end
 

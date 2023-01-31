@@ -12,7 +12,7 @@ subsection \<open>Unit test helper functions\<close>
 inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
   where
   "\<lbrakk>config0 = (g, 0, new_map_state, ps);
-    (\<lambda>x. None) \<turnstile> ([config0, config0], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l \<rbrakk>
+    (\<lambda>x. None, []) \<turnstile> ([config0, config0], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l \<rbrakk>
     \<Longrightarrow> static_test g ps ((prod.fst(prod.snd(prod.snd end))) 0)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE) static_test .
@@ -30,39 +30,41 @@ text \<open>$object_test$ and $program_test$ run a static initialisation block f
   This result-checking function is given the output heap as well as the result of the method,
   so that it can check various fields or properties of the method output.
   \<close>
-inductive object_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> (Value \<Rightarrow> FieldRefHeap \<Rightarrow> bool) => bool"
+inductive object_test :: "System \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> (Value \<Rightarrow> FieldRefHeap \<Rightarrow> bool) => bool"
   where
   InitStatics:
-  "\<lbrakk>Some init = prog '''';
+  "\<lbrakk>S = (prog, cl);
+    Some init = prog '''';
     config0 = (init, 0, new_map_state, ps);
-    prog \<turnstile> ([config0, config0], new_heap) | [] \<longrightarrow>* ((end1 # xs1), heap1) | l1;
+    (prog,cl) \<turnstile> ([config0, config0], new_heap) | [] \<longrightarrow>* ((end1 # xs1), heap1) | l1;
     
     Some g = prog m;
     config1 = (g, 0, new_map_state, ps);
-    prog \<turnstile> ([config1, config1], heap1) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2;
+    (prog,cl) \<turnstile> ([config1, config1], heap1) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2;
     result = get_result end2;
     checker result heap2 \<rbrakk>
-    \<Longrightarrow> object_test prog m ps checker" |
+    \<Longrightarrow> object_test S m ps checker" |
 
   NoStatics:
-  "\<lbrakk>'''' \<notin> dom prog;
+  "\<lbrakk>S = (prog, cl);
+    '''' \<notin> dom prog;
     Some g = prog m;
     config1 = (g, 0, new_map_state, ps);
-    prog \<turnstile> ([config1, config1], new_heap) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2;
+    (prog,cl) \<turnstile> ([config1, config1], new_heap) | [] \<longrightarrow>* ((end2 # xs2), heap2) | l2;
     result = get_result end2;
     checker result heap2 \<rbrakk>
-    \<Longrightarrow> object_test prog m ps checker"
+    \<Longrightarrow> object_test S m ps checker"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testObj) object_test .
 
-inductive program_test :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> Value => bool"
+inductive program_test :: "System \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> Value => bool"
   where
-  "object_test prog m ps (\<lambda> x h. x = result)
-    \<Longrightarrow> program_test prog m ps result"
+  "object_test S m ps (\<lambda> x h. x = result)
+    \<Longrightarrow> program_test S m ps result"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testP) program_test .
 
-
+(* TODO update to take a System, not a Program *)
 subsection \<open>Unit test helper functions - Debug versions\<close>
 
 inductive program_test_debug :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> nat \<Rightarrow> ID \<times> MapState \<times> Params \<Rightarrow> bool"
@@ -71,7 +73,7 @@ inductive program_test_debug :: "Program \<Rightarrow> Signature \<Rightarrow> V
   "\<lbrakk>'''' \<notin> dom prog;
     Some g = prog m;
     config1 = (g, 0, new_map_state, ps);
-    exec_debug prog ([config1, config1], new_heap) steps ((end2 # xs2), heap2) \<rbrakk>
+    exec_debug (prog,[]) ([config1, config1], new_heap) steps ((end2 # xs2), heap2) \<rbrakk>
     \<Longrightarrow> program_test_debug prog m ps steps (prod.snd end2)"
 (* output end2 has type: "(IRGraph \<times> ID \<times> MapState \<times> Params)" *)
 code_pred (
@@ -108,10 +110,131 @@ fun IntVal32 :: "int64 \<Rightarrow> Value" where
 fun IntVal64 :: "int64 \<Rightarrow> Value" where
   "IntVal64 val = new_int 64 val"
 
+(* Lorg/graalvm/compiler/jtt/micro/InvokeVirtual_01;.InvokeVirtual_01_test*)
+definition unit_InvokeVirtual_01_test :: Program where
+  "unit_InvokeVirtual_01_test = Map.empty (
+  ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 17), VoidStamp),
+  (6, (BeginNode 8), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (LoadFieldNode 8 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::aObject'' None 10), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' False False False),
+  (9, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'' [8, 1] Virtual), VoidStamp),
+  (10, (InvokeNode 10 9 None None (Some 11) 12), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (ReturnNode (Some 10) None), VoidStamp),
+  (13, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (14, (IntegerEqualsNode 1 13), VoidStamp),
+  (15, (BeginNode 27), VoidStamp),
+  (16, (BeginNode 18), VoidStamp),
+  (17, (IfNode 14 16 15), VoidStamp),
+  (18, (LoadFieldNode 18 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::bObject'' None 20), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' False False False),
+  (19, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'' [18, 1] Virtual), VoidStamp),
+  (20, (InvokeNode 20 19 None None (Some 21) 22), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (ReturnNode (Some 20) None), VoidStamp),
+  (23, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (24, (IntegerEqualsNode 1 23), VoidStamp),
+  (25, (BeginNode 34), VoidStamp),
+  (26, (BeginNode 28), VoidStamp),
+  (27, (IfNode 24 26 25), VoidStamp),
+  (28, (LoadFieldNode 28 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::cObject'' None 30), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' False False False),
+  (29, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'' [28, 1] Virtual), VoidStamp),
+  (30, (InvokeNode 30 29 None None (Some 31) 32), IntegerStamp 32 (-2147483648) (2147483647)),
+  (31, (FrameState [] None None None), IllegalStamp),
+  (32, (ReturnNode (Some 30) None), VoidStamp),
+  (33, (ConstantNode (new_int 32 (42))), IntegerStamp 32 (42) (42)),
+  (34, (ReturnNode (Some 33) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.<clinit>()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 2), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (NewInstanceNode 2 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' None 4), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' True True False),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (StoreFieldNode 4 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::aObject'' 2 (Some 5) None 6), VoidStamp),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (NewInstanceNode 6 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B'' None 10), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B'' True True False),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (FrameState [] None None None), IllegalStamp),
+  (9, (FrameState [] (Some 8) None None), IllegalStamp),
+  (10, (StoreFieldNode 10 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::bObject'' 6 (Some 11) None 12), VoidStamp),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (NewInstanceNode 12 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C'' None 16), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C'' True True False),
+  (13, (FrameState [] None None None), IllegalStamp),
+  (14, (FrameState [] None None None), IllegalStamp),
+  (15, (FrameState [] (Some 14) None None), IllegalStamp),
+  (16, (StoreFieldNode 16 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::cObject'' 12 (Some 17) None 18), VoidStamp),
+  (17, (FrameState [] None None None), IllegalStamp),
+  (18, (ReturnNode None None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 4), VoidStamp),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ReturnNode (Some 2) None), VoidStamp)
+  ],
+  '''' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.<clinit>()V'' [] Static), VoidStamp),
+  (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C.plus(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 6), VoidStamp),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (new_int 32 (20))), IntegerStamp 32 (20) (20)),
+  (5, (AddNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B.plus(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 6), VoidStamp),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (5, (AddNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ]
+  )"
+
+definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
+	"unit_InvokeVirtual_01_test_mapping = [
+	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B''
+		[]
+		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B.plus(I)I'']
+		[NewConstructor []]
+		''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'',
+
+	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C''
+		[]
+		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C.plus(I)I'']
+		[NewConstructor []]
+		''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'',
+
+	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A''
+		[]
+		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'']
+		[NewConstructor []]
+		''java.lang.Object'']"
+
+value "program_test (unit_InvokeVirtual_01_test, unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (0))] (new_int 32 (0))"
+
+value "program_test (unit_InvokeVirtual_01_test, unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (1))] (new_int 32 (11))"
+
+value "program_test (unit_InvokeVirtual_01_test, unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (2))] (new_int 32 (22))"
+
+value "program_test (unit_InvokeVirtual_01_test, unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (3))] (new_int 32 (42))"
+
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_b;.BC_getstatic_b_test*)
-definition unit_BC_getstatic_b_test_88 :: Program where
-  "unit_BC_getstatic_b_test_88 = Map.empty (
+definition unit_BC_getstatic_b_test :: Program where
+  "unit_BC_getstatic_b_test = Map.empty (
   ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_b.test()B'' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 2), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
@@ -130,18 +253,18 @@ definition unit_BC_getstatic_b_test_88 :: Program where
   '''' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 3), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
-  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_b.<clinit>()V'' []), VoidStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_b.<clinit>()V'' [] Static), VoidStamp),
   (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
   (4, (FrameState [] None None None), IllegalStamp),
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test unit_BC_getstatic_b_test_88 ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_b.test()B'' [] (new_int 32 (11))"
+value "program_test (unit_BC_getstatic_b_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_b.test()B'' [] (new_int 32 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_c;.BC_getstatic_c_test*)
-definition unit_BC_getstatic_c_test_89 :: Program where
-  "unit_BC_getstatic_c_test_89 = Map.empty (
+definition unit_BC_getstatic_c_test :: Program where
+  "unit_BC_getstatic_c_test = Map.empty (
   ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_c.test()C'' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 2), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
@@ -160,18 +283,18 @@ definition unit_BC_getstatic_c_test_89 :: Program where
   '''' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 3), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
-  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_c.<clinit>()V'' []), VoidStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_c.<clinit>()V'' [] Static), VoidStamp),
   (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
   (4, (FrameState [] None None None), IllegalStamp),
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test unit_BC_getstatic_c_test_89 ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_c.test()C'' [] (new_int 32 (11))"
+value "program_test (unit_BC_getstatic_c_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_c.test()C'' [] (new_int 32 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_i;.BC_getstatic_i_test*)
-definition unit_BC_getstatic_i_test_92 :: Program where
-  "unit_BC_getstatic_i_test_92 = Map.empty (
+definition unit_BC_getstatic_i_test :: Program where
+  "unit_BC_getstatic_i_test = Map.empty (
   ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_i.test()I'' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 2), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
@@ -189,18 +312,18 @@ definition unit_BC_getstatic_i_test_92 :: Program where
   '''' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 3), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
-  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_i.<clinit>()V'' []), VoidStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_i.<clinit>()V'' [] Static), VoidStamp),
   (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
   (4, (FrameState [] None None None), IllegalStamp),
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test unit_BC_getstatic_i_test_92 ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_i.test()I'' [] (new_int 32 (11))"
+value "program_test (unit_BC_getstatic_i_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_i.test()I'' [] (new_int 32 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_l;.BC_getstatic_l_test*)
-definition unit_BC_getstatic_l_test_93 :: Program where
-  "unit_BC_getstatic_l_test_93 = Map.empty (
+definition unit_BC_getstatic_l_test :: Program where
+  "unit_BC_getstatic_l_test = Map.empty (
   ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_l.test()J'' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 2), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
@@ -218,18 +341,18 @@ definition unit_BC_getstatic_l_test_93 :: Program where
   '''' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 3), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
-  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_l.<clinit>()V'' []), VoidStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_l.<clinit>()V'' [] Static), VoidStamp),
   (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
   (4, (FrameState [] None None None), IllegalStamp),
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test unit_BC_getstatic_l_test_93 ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_l.test()J'' [] (IntVal 64 (11))"
+value "program_test (unit_BC_getstatic_l_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_l.test()J'' [] (IntVal 64 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_s;.BC_getstatic_s_test*)
-definition unit_BC_getstatic_s_test_94 :: Program where
-  "unit_BC_getstatic_s_test_94 = Map.empty (
+definition unit_BC_getstatic_s_test :: Program where
+  "unit_BC_getstatic_s_test = Map.empty (
   ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.test()S'' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 2), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
@@ -248,18 +371,18 @@ definition unit_BC_getstatic_s_test_94 :: Program where
   '''' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 3), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
-  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.<clinit>()V'' []), VoidStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.<clinit>()V'' [] Static), VoidStamp),
   (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
   (4, (FrameState [] None None None), IllegalStamp),
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test unit_BC_getstatic_s_test_94 ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.test()S'' [] (new_int 32 (11))"
+value "program_test (unit_BC_getstatic_s_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.test()S'' [] (new_int 32 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_z;.BC_getstatic_z_test*)
-definition unit_BC_getstatic_z_test_95 :: Program where
-  "unit_BC_getstatic_z_test_95 = Map.empty (
+definition unit_BC_getstatic_z_test :: Program where
+  "unit_BC_getstatic_z_test = Map.empty (
   ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_z.test()Z'' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 2), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
@@ -278,13 +401,13 @@ definition unit_BC_getstatic_z_test_95 :: Program where
   '''' \<mapsto> irgraph [
   (0, (StartNode (Some 1) 3), VoidStamp),
   (1, (FrameState [] None None None), IllegalStamp),
-  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_z.<clinit>()V'' []), VoidStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_z.<clinit>()V'' [] Static), VoidStamp),
   (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
   (4, (FrameState [] None None None), IllegalStamp),
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test unit_BC_getstatic_z_test_95 ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_z.test()Z'' [] (new_int 32 (1))"
+value "program_test (unit_BC_getstatic_z_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_z.test()Z'' [] (new_int 32 (1))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_i2b;.BC_i2b_testInt*)
@@ -467,6 +590,7 @@ value "static_test unit_BC_i2s_test_134  [(new_int 32 (34))] (new_int 32 (34))"
 value "static_test unit_BC_i2s_test_134  [(new_int 32 (65535))] (new_int 32 (-1))"
 
 value "static_test unit_BC_i2s_test_134  [(new_int 32 (32768))] (new_int 32 (-32768))"
+
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_iadd2;.BC_iadd2_test*)
@@ -1028,5 +1152,6 @@ value "static_test unit_BC_ifgt_test_239  [(new_int 32 (0))] (new_int 32 (-2))"
 value "static_test unit_BC_ifgt_test_239  [(new_int 32 (1))] (new_int 32 (2))"
 
 value "static_test unit_BC_ifgt_test_239  [(new_int 32 (-1))] (new_int 32 (-2))"
+
 
 end

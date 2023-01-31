@@ -26,6 +26,22 @@ SUCC instead of ID for control-flow successor edges.
 Optional edges are handled as "INPUT option" etc.
 \<close>
 
+(* Represents the InvokeKind of a CallTargetNode *)
+datatype IRInvokeKind = 
+  Interface | Special | Static | Virtual
+
+(* Mimics isDirect in the compiler *)
+fun isDirect :: "IRInvokeKind \<Rightarrow> bool" where
+  "isDirect Interface = False" |
+  "isDirect Special = True" |
+  "isDirect Static = True" |
+  "isDirect Virtual = False"
+
+(* Mimics hasReceiver in the compiler *)
+fun hasReceiver :: "IRInvokeKind \<Rightarrow> bool" where
+  "hasReceiver Static = True" |
+  "hasReceiver _ = False"
+
 type_synonym ID = "nat"
 type_synonym INPUT = "ID"   (* InputType.Value is the default *)
 type_synonym INPUT_ASSOC = "ID" (* InputType.Association *)
@@ -63,7 +79,7 @@ datatype (discs_sels) IRNode =
   | LoopEndNode (ir_loopBegin: "INPUT_ASSOC") 
   | LoopExitNode (ir_loopBegin: "INPUT_ASSOC") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | MergeNode (ir_ends: "INPUT_ASSOC list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
-  | MethodCallTargetNode (ir_targetMethod: string) (ir_arguments: "INPUT list") 
+  | MethodCallTargetNode (ir_targetMethod: string) (ir_arguments: "INPUT list") (ir_invoke_kind: "IRInvokeKind") 
   | MulNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | NarrowNode (ir_inputBits: nat) (ir_resultBits: nat) (ir_value: "INPUT") 
   | NegateNode (ir_value: "INPUT") 
@@ -164,7 +180,7 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   inputs_of_MergeNode:
   "inputs_of (MergeNode ends stateAfter next) = ends @ (opt_to_list stateAfter)" |
   inputs_of_MethodCallTargetNode:
-  "inputs_of (MethodCallTargetNode targetMethod arguments) = arguments" |
+  "inputs_of (MethodCallTargetNode targetMethod arguments invoke_kind) = arguments" |
   inputs_of_MulNode:
   "inputs_of (MulNode x y) = [x, y]" |
   inputs_of_NarrowNode:
@@ -273,7 +289,7 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_MergeNode:
   "successors_of (MergeNode ends stateAfter next) = [next]" |
   successors_of_MethodCallTargetNode:
-  "successors_of (MethodCallTargetNode targetMethod arguments) = []" |
+  "successors_of (MethodCallTargetNode targetMethod arguments invoke_kind) = []" |
   successors_of_MulNode:
   "successors_of (MulNode x y) = []" |
   successors_of_NarrowNode:

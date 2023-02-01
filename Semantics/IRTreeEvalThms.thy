@@ -71,11 +71,11 @@ lemma bin_eval_int:
   shows "is_IntVal (bin_eval op x y)"
   apply (cases op; cases x; cases y)  (* 192 cases! *)
   unfolding is_IntVal_def using def apply auto (* leaves 14 cases*)
-                 apply presburger+ (* prove 6 more easy cases *)
-           apply (meson bool_to_val.elims)
-          apply (meson bool_to_val.elims)
-         apply (smt (verit) new_int.simps)+
-  by (meson bool_to_val.elims)+
+  apply presburger+ (* prove 6 more easy cases *)
+  apply (meson bool_to_val.elims)
+  apply (meson bool_to_val.elims) 
+  apply (smt (verit) new_int.simps)  
+  by (smt (verit, best) bool_to_val.elims new_int.simps)+
 
 lemma IntVal0:
   "(IntVal 32 0) = (new_int 32 0)"
@@ -117,8 +117,6 @@ lemma int_stamp:
   assumes i: "is_IntVal v"
   shows "is_IntegerStamp (constantAsStamp v)"
   using i unfolding is_IntegerStamp_def is_IntVal_def by auto
-
-
 
 lemma validStampIntConst:
   assumes "v = IntVal b ival"

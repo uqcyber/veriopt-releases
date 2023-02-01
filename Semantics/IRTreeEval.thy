@@ -384,8 +384,8 @@ lemma may_implies_either:
 lemma not_may_implies_false:
   "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<up>e) n) \<Longrightarrow> bit v n = False"
   using up_spec
-  using bit_and_iff bit_eq_iff bit_not_iff bit_unsigned_iff down_spec
-  by (smt (verit, best) bit.double_compl)
+  using bit_and_iff bit_eq_iff bit_not_iff bit_unsigned_iff down_spec 
+  by (metis (no_types, lifting) bit.double_compl)
 
 lemma must_implies_true:
   "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"

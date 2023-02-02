@@ -15,6 +15,7 @@ session Graph in Graph = "HOL-Library" +
     Long
     Comparison
     Traversal
+    Class
   document_files (in "../latex")
     "root.tex"
     "mathpartir.sty"

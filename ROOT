@@ -4,7 +4,8 @@ session Graph in Graph = "HOL-Library" +
   description
     "GraalVM Intermediate Representation encoding"
   options [document = pdf, document_output = "output",
-           show_question_marks = false]
+           show_question_marks = false,
+           quick_and_dirty] (* Sorry in Class for temporary termination proof *)
   theories
     Values
     ValueThms

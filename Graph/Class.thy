@@ -4,7 +4,7 @@ begin
 
 text \<open> Representation of a standard class containing fields, methods and constructors \<close>
 
-text \<open> _____ Representation of Fields and Parameters _____ \<close>
+text \<open> ----- Representation of Fields and Parameters ----- \<close>
 
 type_synonym FieldName = "string"
 type_synonym FieldType = "string"
@@ -15,7 +15,7 @@ datatype JVMField =
            (field_type: FieldType) |
   NewParameter (parameter_type: ParameterType)
 
-text \<open> _____ Representation of a Method _____ \<close>
+text \<open> ----- Representation of a Method ----- \<close>
 
 type_synonym MethodName = "string"
 type_synonym ReturnType = "string"
@@ -29,14 +29,14 @@ datatype JVMMethod =
             (method_parameters: MethodParameters)
             (method_unique_name: MethodUniqueName)
 
-text \<open> _____ Representation of a Constructor _____ \<close>
+text \<open> ----- Representation of a Constructor ----- \<close>
 
 type_synonym ConstructorParameters = "JVMField list"
 
 datatype JVMConstructor = 
   NewConstructor (constructor_params: ConstructorParameters)
 
-text \<open> _____ Representation of a standard class _____ \<close>
+text \<open> ----- Representation of a standard class ----- \<close>
 
 type_synonym Fields = "JVMField list"
 type_synonym Methods = "JVMMethod list"
@@ -62,14 +62,14 @@ lemma ownParent:
   assumes "class = NewClass n f m c p"
   shows "n \<noteq> p" sorry
 
-text \<open> _____ General Functions _____ \<close>
+text \<open> ----- General Functions ----- \<close>
 
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
   "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
 
-text \<open> _____ Functions to interact with JVMClasses _____ \<close>
+text \<open> ----- Functions to interact with JVMClasses ----- \<close>
 
 (* Returns the index of a class in the JVMClass list *)
 fun find_class_index :: "string \<Rightarrow> JVMClass list \<Rightarrow> nat" where
@@ -114,7 +114,7 @@ function toInherit :: "JVMClass \<Rightarrow> JVMClass list \<Rightarrow> JVMCla
 termination using ownParent by blast
 
 
-(** _____ Testing _____ **)
+(** ----- Testing ----- **)
 
 (*
 

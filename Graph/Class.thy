@@ -1,5 +1,5 @@
 theory Class
-  imports Canonicalizations.Common
+  imports Main
 begin
 
 text \<open> Representation of a standard class containing fields, methods and constructors \<close>

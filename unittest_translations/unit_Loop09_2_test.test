@@ -1,0 +1,41 @@
+
+(* Lorg/graalvm/compiler/jtt/loop/Loop09_2;.Loop09_2_test*)
+definition unit_Loop09_2_test :: IRGraph where
+  "unit_Loop09_2_test = irgraph [
+  (0, (StartNode (Some 2) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (StoreFieldNode 4 ''org.graalvm.compiler.jtt.loop.Loop09_2::cnt'' 3 (Some 5) None 7), VoidStamp),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (7, (EndNode), VoidStamp),
+  (8, (LoopBeginNode [7, 28] None (Some 11) 18), VoidStamp),
+  (9, (ValuePhiNode 9 [1, 20] 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (ValuePhiNode 10 [3, 27] 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (IntegerLessThanNode 10 1), VoidStamp),
+  (14, (LoopExitNode 8 (Some 16) 29), VoidStamp),
+  (15, (RefNode 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (16, (FrameState [] None None None), IllegalStamp),
+  (17, (BeginNode 22), VoidStamp),
+  (18, (IfNode 12 17 14), VoidStamp),
+  (19, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (20, (AddNode 9 19), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (LoadFieldNode 22 ''org.graalvm.compiler.jtt.loop.Loop09_2::cnt'' None 24), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (AddNode 22 19), IntegerStamp 32 (-2147483648) (2147483647)),
+  (24, (StoreFieldNode 24 ''org.graalvm.compiler.jtt.loop.Loop09_2::cnt'' 23 (Some 26) None 28), VoidStamp),
+  (25, (FrameState [] None None None), IllegalStamp),
+  (26, (FrameState [] (Some 25) None None), IllegalStamp),
+  (27, (AddNode 10 19), IntegerStamp 32 (-2147483648) (2147483647)),
+  (28, (LoopEndNode 8), VoidStamp),
+  (29, (LoadFieldNode 29 ''org.graalvm.compiler.jtt.loop.Loop09_2::cnt'' None 31), IntegerStamp 32 (-2147483648) (2147483647)),
+  (30, (SubNode 15 29), IntegerStamp 32 (-2147483648) (2147483647)),
+  (31, (ReturnNode (Some 30) None), VoidStamp)
+  ]"
+value "static_test unit_Loop09_2_test  [(new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_Loop09_2_test  [(new_int 32 (10))] (new_int 32 (10))"
+
+value "static_test unit_Loop09_2_test  [(new_int 32 (25))] (new_int 32 (25))"
+

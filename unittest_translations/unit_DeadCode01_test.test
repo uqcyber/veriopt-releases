@@ -1,0 +1,59 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/DeadCode01;.DeadCode01_test*)
+definition unit_DeadCode01_test :: IRGraph where
+  "unit_DeadCode01_test = irgraph [
+  (0, (StartNode (Some 2) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (4, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (5, (IntegerLessThanNode 1 4), VoidStamp),
+  (6, (BeginNode 31), VoidStamp),
+  (7, (BeginNode 21), VoidStamp),
+  (8, (IfNode 5 7 6), VoidStamp),
+  (9, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (10, (AddNode 1 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (12, (AddNode 1 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (AddNode 1 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (15, (ConstantNode (new_int 32 (20))), IntegerStamp 32 (20) (20)),
+  (16, (AddNode 1 15), IntegerStamp 32 (-2147483648) (2147483647)),
+  (17, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (18, (IntegerLessThanNode 14 17), VoidStamp),
+  (19, (BeginNode 28), VoidStamp),
+  (20, (BeginNode 40), VoidStamp),
+  (21, (IfNode 18 20 19), VoidStamp),
+  (22, (AddNode 14 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (AddNode 16 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (24, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (25, (IntegerLessThanNode 22 24), VoidStamp),
+  (26, (BeginNode 33), VoidStamp),
+  (27, (BeginNode 37), VoidStamp),
+  (28, (IfNode 25 27 26), VoidStamp),
+  (29, (AddNode 22 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (30, (AddNode 23 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (31, (EndNode), VoidStamp),
+  (32, (MergeNode [31, 33, 37, 40] (Some 41) 42), VoidStamp),
+  (33, (EndNode), VoidStamp),
+  (34, (ValuePhiNode 34 [10, 29, 35, 38] 32), IntegerStamp 32 (-2147483648) (2147483647)),
+  (35, (AddNode 22 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (36, (AddNode 23 15), IntegerStamp 32 (-2147483648) (2147483647)),
+  (37, (EndNode), VoidStamp),
+  (38, (AddNode 14 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (39, (AddNode 16 15), IntegerStamp 32 (-2147483648) (2147483647)),
+  (40, (EndNode), VoidStamp),
+  (41, (FrameState [] None None None), IllegalStamp),
+  (42, (ReturnNode (Some 34) None), VoidStamp)
+  ]"
+value "static_test unit_DeadCode01_test  [(new_int 32 (0))] (new_int 32 (4))"
+
+value "static_test unit_DeadCode01_test  [(new_int 32 (1))] (new_int 32 (5))"
+
+value "static_test unit_DeadCode01_test  [(new_int 32 (2))] (new_int 32 (6))"
+
+value "static_test unit_DeadCode01_test  [(new_int 32 (3))] (new_int 32 (4))"
+
+value "static_test unit_DeadCode01_test  [(new_int 32 (4))] (new_int 32 (5))"
+
+value "static_test unit_DeadCode01_test  [(new_int 32 (6))] (new_int 32 (7))"
+

@@ -1,0 +1,30 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/IfNodeCanonicalizationsTest;.IfNodeCanonicalizationsTest_compare41*)
+definition unit_IfNodeCanonicalizationsTest_compare41 :: IRGraph where
+  "unit_IfNodeCanonicalizationsTest_compare41 = irgraph [
+  (0, (StartNode (Some 3) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (IntegerLessThanNode 1 2), VoidStamp),
+  (5, (BeginNode 14), VoidStamp),
+  (6, (BeginNode 16), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (IntegerLessThanNode 2 1), VoidStamp),
+  (9, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (10, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (11, (ConditionalNode 8 9 10), IntegerStamp 32 (1) (2)),
+  (13, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (14, (EndNode), VoidStamp),
+  (15, (MergeNode [14, 16] (Some 18) 19), VoidStamp),
+  (16, (EndNode), VoidStamp),
+  (17, (ValuePhiNode 17 [11, 13] 15), IntegerStamp 32 (1) (3)),
+  (18, (FrameState [] None None None), IllegalStamp),
+  (19, (ReturnNode (Some 17) None), VoidStamp)
+  ]"
+value "static_test unit_IfNodeCanonicalizationsTest_compare41  [(new_int 32 (0)), (new_int 32 (0))] (new_int 32 (1))"
+
+value "static_test unit_IfNodeCanonicalizationsTest_compare41  [(new_int 32 (0)), (new_int 32 (1))] (new_int 32 (3))"
+
+value "static_test unit_IfNodeCanonicalizationsTest_compare41  [(new_int 32 (1)), (new_int 32 (0))] (new_int 32 (2))"
+

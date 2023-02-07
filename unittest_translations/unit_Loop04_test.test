@@ -1,0 +1,48 @@
+
+(* Lorg/graalvm/compiler/jtt/loop/Loop04;.Loop04_test*)
+definition unit_Loop04_test :: IRGraph where
+  "unit_Loop04_test = irgraph [
+  (0, (StartNode (Some 2) 9), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (4, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (5, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (6, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (7, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (9, (EndNode), VoidStamp),
+  (10, (LoopBeginNode [9, 28] None (Some 16) 26), VoidStamp),
+  (11, (ValuePhiNode 11 [3, 12] 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (12, (ValuePhiNode 12 [4, 13] 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (ValuePhiNode 13 [5, 14] 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (ValuePhiNode 14 [6, 12] 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (15, (ValuePhiNode 15 [7, 27] 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (16, (FrameState [] None None None), IllegalStamp),
+  (17, (IntegerLessThanNode 15 1), VoidStamp),
+  (19, (LoopExitNode 10 (Some 24) 38), VoidStamp),
+  (20, (RefNode 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (RefNode 12), IntegerStamp 32 (-2147483648) (2147483647)),
+  (22, (RefNode 13), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (RefNode 14), IntegerStamp 32 (-2147483648) (2147483647)),
+  (24, (FrameState [] None None None), IllegalStamp),
+  (25, (BeginNode 28), VoidStamp),
+  (26, (IfNode 17 25 19), VoidStamp),
+  (27, (AddNode 15 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (28, (LoopEndNode 10), VoidStamp),
+  (29, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (30, (MulNode 21 29), IntegerStamp 32 (-2147483648) (2147483647)),
+  (31, (AddNode 20 30), IntegerStamp 32 (-2147483648) (2147483647)),
+  (32, (ConstantNode (new_int 32 (100))), IntegerStamp 32 (100) (100)),
+  (33, (MulNode 22 32), IntegerStamp 32 (-2147483648) (2147483647)),
+  (34, (AddNode 31 33), IntegerStamp 32 (-2147483648) (2147483647)),
+  (35, (ConstantNode (new_int 32 (1000))), IntegerStamp 32 (1000) (1000)),
+  (36, (MulNode 23 35), IntegerStamp 32 (-2147483648) (2147483647)),
+  (37, (AddNode 34 36), IntegerStamp 32 (-2147483648) (2147483647)),
+  (38, (ReturnNode (Some 37) None), VoidStamp)
+  ]"
+value "static_test unit_Loop04_test  [(new_int 32 (0))] (new_int 32 (4321))"
+
+value "static_test unit_Loop04_test  [(new_int 32 (1))] (new_int 32 (2432))"
+
+value "static_test unit_Loop04_test  [(new_int 32 (10))] (new_int 32 (2432))"
+

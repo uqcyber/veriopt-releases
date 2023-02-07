@@ -1,0 +1,18 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_i2c;.BC_i2c_testLong*)
+definition unit_BC_i2c_testLong :: IRGraph where
+  "unit_BC_i2c_testLong = irgraph [
+  (0, (StartNode (Some 2) 6), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 32 16 1), IntegerStamp 16 (-32768) (32767)),
+  (4, (ZeroExtendNode 16 32 3), IntegerStamp 32 (0) (65535)),
+  (5, (ZeroExtendNode 16 64 3), IntegerStamp 64 (0) (65535)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ]"
+value "static_test unit_BC_i2c_testLong  [(new_int 32 (-1))] (IntVal 64 (65535))"
+
+value "static_test unit_BC_i2c_testLong  [(new_int 32 (645))] (IntVal 64 (645))"
+
+value "static_test unit_BC_i2c_testLong  [(new_int 32 (65535))] (IntVal 64 (65535))"
+

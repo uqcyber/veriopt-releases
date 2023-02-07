@@ -1,0 +1,30 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_s;.BC_getstatic_s_test*)
+definition unit_BC_getstatic_s_test :: Program where
+  "unit_BC_getstatic_s_test = Map.empty (
+  ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.test()S'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 2), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (LoadFieldNode 2 ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s::field'' None 3), IntegerStamp 32 (-32768) (32767)),
+  (3, (ReturnNode (Some 2) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.<clinit>()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 4), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (11))), IntegerStamp 32 (11) (11)),
+  (3, (ConstantNode (new_int 16 (11))), IntegerStamp 16 (11) (11)),
+  (4, (StoreFieldNode 4 ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s::field'' 2 (Some 5) None 6), VoidStamp),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (ReturnNode None None), VoidStamp)
+  ],
+  '''' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.<clinit>()V'' []), VoidStamp),
+  (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+value "program_test unit_BC_getstatic_s_test ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.test()S'' [] (new_int 32 (11))"
+

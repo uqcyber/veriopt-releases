@@ -1,0 +1,33 @@
+
+(* Lorg/graalvm/compiler/jtt/loop/LoopUnroll;.LoopUnroll_test*)
+definition unit_LoopUnroll_test :: IRGraph where
+  "unit_LoopUnroll_test = irgraph [
+  (0, (StartNode (Some 2) 6), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (4, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (EndNode), VoidStamp),
+  (7, (LoopBeginNode [6, 26] None (Some 11) 19), VoidStamp),
+  (8, (ValuePhiNode 8 [3, 21] 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (ValuePhiNode 9 [1, 23] 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (ValuePhiNode 10 [4, 25] 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (ConstantNode (new_int 32 (7))), IntegerStamp 32 (7) (7)),
+  (13, (IntegerLessThanNode 10 12), VoidStamp),
+  (15, (LoopExitNode 7 (Some 17) 27), VoidStamp),
+  (16, (RefNode 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (17, (FrameState [] None None None), IllegalStamp),
+  (18, (BeginNode 23), VoidStamp),
+  (19, (IfNode 13 18 15), VoidStamp),
+  (20, (AddNode 9 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (MulNode 8 20), IntegerStamp 32 (-2147483648) (2147483647)),
+  (22, (ConstantNode (new_int 32 (50))), IntegerStamp 32 (50) (50)),
+  (23, (SignedDivNode 23 9 22 None None 26), IntegerStamp 32 (-42949672) (42949672)),
+  (24, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (25, (AddNode 10 24), IntegerStamp 32 (-2147483648) (2147483647)),
+  (26, (LoopEndNode 7), VoidStamp),
+  (27, (ReturnNode (Some 16) None), VoidStamp)
+  ]"
+value "static_test unit_LoopUnroll_test  [(new_int 32 (42))] (new_int 32 (5632))"
+

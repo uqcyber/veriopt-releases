@@ -1,0 +1,41 @@
+
+(* Lorg/graalvm/compiler/jtt/hotpath/HP_scope02;.HP_scope02_test*)
+definition unit_HP_scope02_test :: IRGraph where
+  "unit_HP_scope02_test = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 28] None (Some 9) 16), VoidStamp),
+  (7, (ValuePhiNode 7 [3, 8] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 27] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (IntegerLessThanNode 8 1), VoidStamp),
+  (12, (LoopExitNode 6 (Some 14) 29), VoidStamp),
+  (13, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (FrameState [] None None None), IllegalStamp),
+  (15, (BeginNode 25), VoidStamp),
+  (16, (IfNode 10 15 12), VoidStamp),
+  (17, (ConstantNode (new_int 32 (20))), IntegerStamp 32 (20) (20)),
+  (18, (ConstantNode (new_int 32 (21))), IntegerStamp 32 (21) (21)),
+  (19, (IntegerLessThanNode 8 18), VoidStamp),
+  (21, (LoopExitNode 6 (Some 23) 31), VoidStamp),
+  (22, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (FrameState [] None None None), IllegalStamp),
+  (24, (BeginNode 28), VoidStamp),
+  (25, (IfNode 19 24 21), VoidStamp),
+  (26, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (27, (AddNode 8 26), IntegerStamp 32 (-2147483648) (2147483647)),
+  (28, (LoopEndNode 6), VoidStamp),
+  (29, (EndNode), VoidStamp),
+  (30, (MergeNode [29, 31] (Some 33) 34), VoidStamp),
+  (31, (EndNode), VoidStamp),
+  (32, (ValuePhiNode 32 [13, 22] 30), IntegerStamp 32 (-2147483648) (2147483647)),
+  (33, (FrameState [] None None None), IllegalStamp),
+  (34, (ReturnNode (Some 32) None), VoidStamp)
+  ]"
+value "static_test unit_HP_scope02_test  [(new_int 32 (40))] (new_int 32 (20))"
+
+value "static_test unit_HP_scope02_test  [(new_int 32 (22))] (new_int 32 (20))"
+

@@ -1,0 +1,20 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/ConvertCompare;.ConvertCompare_testChar42*)
+definition unit_ConvertCompare_testChar42 :: IRGraph where
+  "unit_ConvertCompare_testChar42 = irgraph [
+  (0, (StartNode (Some 2) 10), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 32 16 1), IntegerStamp 16 (-32768) (32767)),
+  (4, (ZeroExtendNode 16 32 3), IntegerStamp 32 (0) (65535)),
+  (5, (ConstantNode (new_int 32 (42))), IntegerStamp 32 (42) (42)),
+  (6, (IntegerEqualsNode 4 5), VoidStamp),
+  (7, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (8, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (9, (ConditionalNode 6 7 8), IntegerStamp 32 (0) (1)),
+  (10, (ReturnNode (Some 9) None), VoidStamp)
+  ]"
+value "static_test unit_ConvertCompare_testChar42  [(new_int 32 (42))] (new_int 32 (1))"
+
+value "static_test unit_ConvertCompare_testChar42  [(new_int 32 (65535))] (new_int 32 (0))"
+

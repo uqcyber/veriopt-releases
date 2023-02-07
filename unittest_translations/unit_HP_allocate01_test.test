@@ -1,0 +1,35 @@
+
+(* Lorg/graalvm/compiler/jtt/hotpath/HP_allocate01;.HP_allocate01_test*)
+definition unit_HP_allocate01_test :: IRGraph where
+  "unit_HP_allocate01_test = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 20] None (Some 9) 16), VoidStamp),
+  (7, (ValuePhiNode 7 [3, 17] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 19] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (IntegerLessThanNode 8 1), VoidStamp),
+  (12, (LoopExitNode 6 (Some 14) 21), VoidStamp),
+  (13, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (FrameState [] None None None), IllegalStamp),
+  (15, (BeginNode 20), VoidStamp),
+  (16, (IfNode 10 15 12), VoidStamp),
+  (17, (AddNode 7 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (18, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (19, (AddNode 8 18), IntegerStamp 32 (-2147483648) (2147483647)),
+  (20, (LoopEndNode 6), VoidStamp),
+  (21, (ReturnNode (Some 13) None), VoidStamp)
+  ]"
+value "static_test unit_HP_allocate01_test  [(new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_HP_allocate01_test  [(new_int 32 (1))] (new_int 32 (0))"
+
+value "static_test unit_HP_allocate01_test  [(new_int 32 (2))] (new_int 32 (1))"
+
+value "static_test unit_HP_allocate01_test  [(new_int 32 (3))] (new_int 32 (3))"
+
+value "static_test unit_HP_allocate01_test  [(new_int 32 (80))] (new_int 32 (3160))"
+

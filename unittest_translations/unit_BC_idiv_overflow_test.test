@@ -1,0 +1,17 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_idiv_overflow;.BC_idiv_overflow_test*)
+definition unit_BC_idiv_overflow_test :: IRGraph where
+  "unit_BC_idiv_overflow_test = irgraph [
+  (0, (StartNode (Some 3) 6), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (OrNode 2 4), IntegerStamp 32 (-2147483647) (2147483647)),
+  (6, (SignedDivNode 6 1 5 None None 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (7, (ReturnNode (Some 6) None), VoidStamp)
+  ]"
+value "static_test unit_BC_idiv_overflow_test  [(new_int 32 (-2147483648)), (new_int 32 (-1))] (new_int 32 (-2147483648))"
+
+value "static_test unit_BC_idiv_overflow_test  [(new_int 32 (-2147483648)), (new_int 32 (1))] (new_int 32 (-2147483648))"
+

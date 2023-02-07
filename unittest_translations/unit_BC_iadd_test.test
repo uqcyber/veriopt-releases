@@ -1,0 +1,25 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_iadd;.BC_iadd_test*)
+definition unit_BC_iadd_test :: IRGraph where
+  "unit_BC_iadd_test = irgraph [
+  (0, (StartNode (Some 3) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (AddNode 1 2), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_BC_iadd_test  [(new_int 32 (1)), (new_int 32 (2))] (new_int 32 (3))"
+
+value "static_test unit_BC_iadd_test  [(new_int 32 (0)), (new_int 32 (-1))] (new_int 32 (-1))"
+
+value "static_test unit_BC_iadd_test  [(new_int 32 (33)), (new_int 32 (67))] (new_int 32 (100))"
+
+value "static_test unit_BC_iadd_test  [(new_int 32 (1)), (new_int 32 (-1))] (new_int 32 (0))"
+
+value "static_test unit_BC_iadd_test  [(new_int 32 (-2147483648)), (new_int 32 (1))] (new_int 32 (-2147483647))"
+
+value "static_test unit_BC_iadd_test  [(new_int 32 (2147483647)), (new_int 32 (1))] (new_int 32 (-2147483648))"
+
+value "static_test unit_BC_iadd_test  [(new_int 32 (-2147483647)), (new_int 32 (-2))] (new_int 32 (2147483647))"
+

@@ -1,0 +1,27 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_ificmpne1;.BC_ificmpne1_test*)
+definition unit_BC_ificmpne1_test :: IRGraph where
+  "unit_BC_ificmpne1_test = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 13), VoidStamp),
+  (6, (BeginNode 11), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (12))), IntegerStamp 32 (12) (12)),
+  (10, (ConstantNode (new_int 32 (13))), IntegerStamp 32 (13) (13)),
+  (11, (EndNode), VoidStamp),
+  (12, (MergeNode [11, 13] (Some 15) 16), VoidStamp),
+  (13, (EndNode), VoidStamp),
+  (14, (ValuePhiNode 14 [8, 10] 12), IntegerStamp 32 (12) (13)),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (ReturnNode (Some 14) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ificmpne1_test  [(new_int 32 (0))] (new_int 32 (13))"
+
+value "static_test unit_BC_ificmpne1_test  [(new_int 32 (1))] (new_int 32 (12))"
+
+value "static_test unit_BC_ificmpne1_test  [(new_int 32 (2))] (new_int 32 (13))"
+

@@ -1,0 +1,29 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Cmov01;.Cmov01_test*)
+definition unit_Cmov01_test :: IRGraph where
+  "unit_Cmov01_test = irgraph [
+  (0, (StartNode (Some 3) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (IntegerLessThanNode 1 2), VoidStamp),
+  (5, (BeginNode 13), VoidStamp),
+  (6, (BeginNode 15), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (IntegerEqualsNode 1 2), VoidStamp),
+  (9, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (10, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (11, (ConditionalNode 8 9 10), IntegerStamp 32 (0) (1)),
+  (13, (EndNode), VoidStamp),
+  (14, (MergeNode [13, 15] (Some 17) 18), VoidStamp),
+  (15, (EndNode), VoidStamp),
+  (16, (ValuePhiNode 16 [11, 9] 14), IntegerStamp 32 (0) (1)),
+  (17, (FrameState [] None None None), IllegalStamp),
+  (18, (ReturnNode (Some 16) None), VoidStamp)
+  ]"
+value "static_test unit_Cmov01_test  [(new_int 32 (-1)), (new_int 32 (-1))] (new_int 32 (1))"
+
+value "static_test unit_Cmov01_test  [(new_int 32 (1)), (new_int 32 (10))] (new_int 32 (1))"
+
+value "static_test unit_Cmov01_test  [(new_int 32 (1)), (new_int 32 (0))] (new_int 32 (0))"
+

@@ -1,0 +1,35 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Reduce_Int04;.Reduce_Int04_test*)
+definition unit_Reduce_Int04_test :: IRGraph where
+  "unit_Reduce_Int04_test = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 18), VoidStamp),
+  (6, (BeginNode 13), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (9, (AddNode 1 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (FrameState [] None None None), IllegalStamp),
+  (11, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (12, (MulNode 9 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (ReturnNode (Some 12) None), VoidStamp),
+  (14, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (15, (IntegerEqualsNode 1 14), VoidStamp),
+  (16, (BeginNode 25), VoidStamp),
+  (17, (BeginNode 24), VoidStamp),
+  (18, (IfNode 15 17 16), VoidStamp),
+  (19, (ConstantNode (new_int 32 (9))), IntegerStamp 32 (9) (9)),
+  (20, (AddNode 1 19), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (ConstantNode (new_int 32 (65536))), IntegerStamp 32 (65536) (65536)),
+  (23, (MulNode 20 22), IntegerStamp 32 (-2147483648) (2147483647)),
+  (24, (ReturnNode (Some 23) None), VoidStamp),
+  (25, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_Reduce_Int04_test  [(new_int 32 (0))] (new_int 32 (40))"
+
+value "static_test unit_Reduce_Int04_test  [(new_int 32 (1))] (new_int 32 (655360))"
+

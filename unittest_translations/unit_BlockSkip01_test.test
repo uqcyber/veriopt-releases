@@ -1,0 +1,36 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/BlockSkip01;.BlockSkip01_test*)
+definition unit_BlockSkip01_test :: IRGraph where
+  "unit_BlockSkip01_test = irgraph [
+  (0, (StartNode (Some 2) 9), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (4, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (5, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (6, (IntegerLessThanNode 1 5), VoidStamp),
+  (7, (BeginNode 11), VoidStamp),
+  (8, (BeginNode 13), VoidStamp),
+  (9, (IfNode 6 8 7), VoidStamp),
+  (11, (EndNode), VoidStamp),
+  (12, (MergeNode [11, 13] (Some 15) 22), VoidStamp),
+  (13, (EndNode), VoidStamp),
+  (14, (ValuePhiNode 14 [4, 3] 12), IntegerStamp 32 (1) (2)),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (FrameState [] None None None), IllegalStamp),
+  (17, (AddNode 14 3), IntegerStamp 32 (2) (3)),
+  (18, (IntegerEqualsNode 14 3), VoidStamp),
+  (19, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (20, (ConditionalNode 18 3 19), IntegerStamp 32 (0) (1)),
+  (22, (ReturnNode (Some 20) None), VoidStamp)
+  ]"
+value "static_test unit_BlockSkip01_test  [(new_int 32 (0))] (new_int 32 (1))"
+
+value "static_test unit_BlockSkip01_test  [(new_int 32 (1))] (new_int 32 (1))"
+
+value "static_test unit_BlockSkip01_test  [(new_int 32 (2))] (new_int 32 (1))"
+
+value "static_test unit_BlockSkip01_test  [(new_int 32 (3))] (new_int 32 (0))"
+
+value "static_test unit_BlockSkip01_test  [(new_int 32 (4))] (new_int 32 (0))"
+

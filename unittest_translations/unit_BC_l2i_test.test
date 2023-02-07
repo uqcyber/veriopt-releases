@@ -1,0 +1,24 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_l2i;.BC_l2i_test*)
+definition unit_BC_l2i_test :: IRGraph where
+  "unit_BC_l2i_test = irgraph [
+  (0, (StartNode (Some 2) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 64 32 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (4, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_BC_l2i_test  [(IntVal 64 (1))] (new_int 32 (1))"
+
+value "static_test unit_BC_l2i_test  [(IntVal 64 (2))] (new_int 32 (2))"
+
+value "static_test unit_BC_l2i_test  [(IntVal 64 (3))] (new_int 32 (3))"
+
+value "static_test unit_BC_l2i_test  [(IntVal 64 (-1))] (new_int 32 (-1))"
+
+value "static_test unit_BC_l2i_test  [(IntVal 64 (-2147483647))] (new_int 32 (-2147483647))"
+
+value "static_test unit_BC_l2i_test  [(IntVal 64 (-2147483648))] (new_int 32 (-2147483648))"
+
+value "static_test unit_BC_l2i_test  [(IntVal 64 (2147483647))] (new_int 32 (2147483647))"
+

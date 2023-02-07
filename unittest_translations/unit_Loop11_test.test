@@ -1,0 +1,31 @@
+
+(* Lorg/graalvm/compiler/jtt/loop/Loop11;.Loop11_test*)
+definition unit_Loop11_test :: IRGraph where
+  "unit_Loop11_test = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 20] None (Some 9) 19), VoidStamp),
+  (7, (ValuePhiNode 7 [1, 11] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 12] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (11, (AddNode 7 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (12, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (13, (IntegerLessThanNode 7 12), VoidStamp),
+  (14, (BeginNode 20), VoidStamp),
+  (16, (LoopExitNode 6 (Some 18) 21), VoidStamp),
+  (17, (RefNode 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (18, (FrameState [] None None None), IllegalStamp),
+  (19, (IfNode 13 16 14), VoidStamp),
+  (20, (LoopEndNode 6), VoidStamp),
+  (21, (ReturnNode (Some 17) None), VoidStamp)
+  ]"
+value "static_test unit_Loop11_test  [(new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_Loop11_test  [(new_int 32 (1))] (new_int 32 (1))"
+
+value "static_test unit_Loop11_test  [(new_int 32 (5))] (new_int 32 (1))"
+

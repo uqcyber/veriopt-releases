@@ -1,0 +1,15 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_lload_0;.BC_lload_0_test*)
+definition unit_BC_lload_0_test :: IRGraph where
+  "unit_BC_lload_0_test = irgraph [
+  (0, (StartNode (Some 2) 3), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ReturnNode (Some 1) None), VoidStamp)
+  ]"
+value "static_test unit_BC_lload_0_test  [(IntVal 64 (1))] (IntVal 64 (1))"
+
+value "static_test unit_BC_lload_0_test  [(IntVal 64 (-3))] (IntVal 64 (-3))"
+
+value "static_test unit_BC_lload_0_test  [(IntVal 64 (10000))] (IntVal 64 (10000))"
+

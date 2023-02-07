@@ -1,0 +1,11 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_ldc_03;.BC_ldc_03_test*)
+definition unit_BC_ldc_03_test :: IRGraph where
+  "unit_BC_ldc_03_test = irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (IntVal 64 (-123))), IntegerStamp 64 (-123) (-123)),
+  (3, (ReturnNode (Some 2) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ldc_03_test  [] (IntVal 64 (-123))"
+

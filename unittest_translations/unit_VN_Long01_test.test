@@ -1,0 +1,174 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/VN_Long01;.VN_Long01_test*)
+definition unit_VN_Long01_test :: Program where
+  "unit_VN_Long01_test = Map.empty (
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 17), VoidStamp),
+  (6, (BeginNode 10), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (SignExtendNode 32 64 1), IntegerStamp 64 (-2147483648) (2147483647)),
+  (9, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Long01.add(J)J'' [8]), VoidStamp),
+  (10, (InvokeNode 10 9 None None (Some 11) 12), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (ReturnNode (Some 10) None), VoidStamp),
+  (13, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (14, (IntegerEqualsNode 1 13), VoidStamp),
+  (15, (BeginNode 26), VoidStamp),
+  (16, (BeginNode 19), VoidStamp),
+  (17, (IfNode 14 16 15), VoidStamp),
+  (18, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Long01.sub(J)J'' [8]), VoidStamp),
+  (19, (InvokeNode 19 18 None None (Some 20) 21), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (20, (FrameState [] None None None), IllegalStamp),
+  (21, (ReturnNode (Some 19) None), VoidStamp),
+  (22, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (23, (IntegerEqualsNode 1 22), VoidStamp),
+  (24, (BeginNode 35), VoidStamp),
+  (25, (BeginNode 28), VoidStamp),
+  (26, (IfNode 23 25 24), VoidStamp),
+  (27, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Long01.mul(J)J'' [8]), VoidStamp),
+  (28, (InvokeNode 28 27 None None (Some 29) 30), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (29, (FrameState [] None None None), IllegalStamp),
+  (30, (ReturnNode (Some 28) None), VoidStamp),
+  (31, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (32, (IntegerEqualsNode 1 31), VoidStamp),
+  (33, (BeginNode 44), VoidStamp),
+  (34, (BeginNode 37), VoidStamp),
+  (35, (IfNode 32 34 33), VoidStamp),
+  (36, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Long01.div(J)J'' [8]), VoidStamp),
+  (37, (InvokeNode 37 36 None None (Some 38) 39), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (38, (FrameState [] None None None), IllegalStamp),
+  (39, (ReturnNode (Some 37) None), VoidStamp),
+  (40, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (41, (IntegerEqualsNode 1 40), VoidStamp),
+  (42, (BeginNode 53), VoidStamp),
+  (43, (BeginNode 46), VoidStamp),
+  (44, (IfNode 41 43 42), VoidStamp),
+  (45, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Long01.mod(J)J'' [8]), VoidStamp),
+  (46, (InvokeNode 46 45 None None (Some 47) 48), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (47, (FrameState [] None None None), IllegalStamp),
+  (48, (ReturnNode (Some 46) None), VoidStamp),
+  (49, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (50, (IntegerEqualsNode 1 49), VoidStamp),
+  (51, (BeginNode 62), VoidStamp),
+  (52, (BeginNode 55), VoidStamp),
+  (53, (IfNode 50 52 51), VoidStamp),
+  (54, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Long01.and(J)J'' [8]), VoidStamp),
+  (55, (InvokeNode 55 54 None None (Some 56) 57), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (56, (FrameState [] None None None), IllegalStamp),
+  (57, (ReturnNode (Some 55) None), VoidStamp),
+  (58, (ConstantNode (new_int 32 (6))), IntegerStamp 32 (6) (6)),
+  (59, (IntegerEqualsNode 1 58), VoidStamp),
+  (60, (BeginNode 71), VoidStamp),
+  (61, (BeginNode 64), VoidStamp),
+  (62, (IfNode 59 61 60), VoidStamp),
+  (63, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Long01.or(J)J'' [8]), VoidStamp),
+  (64, (InvokeNode 64 63 None None (Some 65) 66), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (65, (FrameState [] None None None), IllegalStamp),
+  (66, (ReturnNode (Some 64) None), VoidStamp),
+  (67, (ConstantNode (new_int 32 (7))), IntegerStamp 32 (7) (7)),
+  (68, (IntegerEqualsNode 1 67), VoidStamp),
+  (69, (BeginNode 77), VoidStamp),
+  (70, (BeginNode 73), VoidStamp),
+  (71, (IfNode 68 70 69), VoidStamp),
+  (72, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Long01.xor(J)J'' [8]), VoidStamp),
+  (73, (InvokeNode 73 72 None None (Some 74) 75), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (74, (FrameState [] None None None), IllegalStamp),
+  (75, (ReturnNode (Some 73) None), VoidStamp),
+  (76, (ConstantNode (IntVal 64 (0))), IntegerStamp 64 (0) (0)),
+  (77, (ReturnNode (Some 76) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.add(J)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 6), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (3))), IntegerStamp 64 (3) (3)),
+  (4, (AddNode 1 3), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (5, (AddNode 4 4), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.sub(J)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (3))), IntegerStamp 64 (3) (3)),
+  (4, (ConstantNode (IntVal 64 (-3))), IntegerStamp 64 (-3) (-3)),
+  (5, (AddNode 1 4), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (6, (ConstantNode (IntVal 64 (0))), IntegerStamp 64 (0) (0)),
+  (7, (ReturnNode (Some 6) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.mul(J)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 6), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (3))), IntegerStamp 64 (3) (3)),
+  (4, (MulNode 1 3), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (5, (MulNode 4 4), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.div(J)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (9))), IntegerStamp 64 (9) (9)),
+  (4, (SignedDivNode 4 3 1 None None 5), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (5, (SignedDivNode 5 3 1 None None 6), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (6, (SignedDivNode 6 4 5 None None 7), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (7, (ReturnNode (Some 6) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.mod(J)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (7))), IntegerStamp 64 (7) (7)),
+  (4, (SignedRemNode 4 3 1 None None 5), IntegerStamp 64 (0) (7)),
+  (5, (SignedRemNode 5 3 1 None None 6), IntegerStamp 64 (0) (7)),
+  (6, (SignedRemNode 6 4 5 None None 7), IntegerStamp 64 (0) (6)),
+  (7, (ReturnNode (Some 6) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.and(J)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (7))), IntegerStamp 64 (7) (7)),
+  (4, (AndNode 1 3), IntegerStamp 64 (0) (7)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.or(J)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (7))), IntegerStamp 64 (7) (7)),
+  (4, (OrNode 1 3), IntegerStamp 64 (-9223372036854775801) (9223372036854775807)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Long01.xor(J)J'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 6), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (7))), IntegerStamp 64 (7) (7)),
+  (4, (XorNode 1 3), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (5, (ConstantNode (IntVal 64 (0))), IntegerStamp 64 (0) (0)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ]
+  )"
+value "program_test unit_VN_Long01_test ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' [(new_int 32 (0))] (IntVal 64 (6))"
+
+value "program_test unit_VN_Long01_test ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' [(new_int 32 (1))] (IntVal 64 (0))"
+
+value "program_test unit_VN_Long01_test ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' [(new_int 32 (2))] (IntVal 64 (36))"
+
+value "program_test unit_VN_Long01_test ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' [(new_int 32 (3))] (IntVal 64 (1))"
+
+value "program_test unit_VN_Long01_test ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' [(new_int 32 (4))] (IntVal 64 (0))"
+
+value "program_test unit_VN_Long01_test ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' [(new_int 32 (5))] (IntVal 64 (5))"
+
+value "program_test unit_VN_Long01_test ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' [(new_int 32 (6))] (IntVal 64 (7))"
+
+value "program_test unit_VN_Long01_test ''org.graalvm.compiler.jtt.optimize.VN_Long01.test(I)J'' [(new_int 32 (7))] (IntVal 64 (0))"
+

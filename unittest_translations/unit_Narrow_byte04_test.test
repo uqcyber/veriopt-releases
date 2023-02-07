@@ -1,0 +1,34 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Narrow_byte04;.Narrow_byte04_test*)
+definition unit_Narrow_byte04_test :: IRGraph where
+  "unit_Narrow_byte04_test = irgraph [
+  (0, (StartNode (Some 2) 14), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (240))), IntegerStamp 32 (240) (240)),
+  (4, (AndNode 1 3), IntegerStamp 32 (0) (240)),
+  (5, (NarrowNode 32 8 4), IntegerStamp 8 (-128) (112)),
+  (6, (SignExtendNode 8 32 5), IntegerStamp 32 (-128) (112)),
+  (7, (ConstantNode (new_int 32 (15))), IntegerStamp 32 (15) (15)),
+  (8, (AndNode 1 7), IntegerStamp 32 (0) (15)),
+  (9, (NarrowNode 32 8 8), IntegerStamp 8 (0) (15)),
+  (10, (ConstantNode (new_int 32 (-80))), IntegerStamp 32 (-80) (-80)),
+  (11, (IntegerEqualsNode 6 10), VoidStamp),
+  (12, (BeginNode 18), VoidStamp),
+  (13, (BeginNode 16), VoidStamp),
+  (14, (IfNode 11 13 12), VoidStamp),
+  (16, (EndNode), VoidStamp),
+  (17, (MergeNode [16, 18] (Some 20) 23), VoidStamp),
+  (18, (EndNode), VoidStamp),
+  (19, (ValuePhiNode 19 [8, 1] 17), IntegerStamp 32 (-2147483648) (2147483647)),
+  (20, (FrameState [] None None None), IllegalStamp),
+  (21, (NarrowNode 32 8 19), IntegerStamp 8 (-128) (127)),
+  (22, (SignExtendNode 8 32 21), IntegerStamp 32 (-128) (127)),
+  (23, (ReturnNode (Some 22) None), VoidStamp)
+  ]"
+value "static_test unit_Narrow_byte04_test  [(new_int 32 (-79))] (new_int 32 (1))"
+
+value "static_test unit_Narrow_byte04_test  [(new_int 32 (-1))] (new_int 32 (-1))"
+
+value "static_test unit_Narrow_byte04_test  [(new_int 32 (0))] (new_int 32 (0))"
+

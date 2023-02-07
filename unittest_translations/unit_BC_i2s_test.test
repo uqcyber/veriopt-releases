@@ -1,0 +1,19 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_i2s;.BC_i2s_test*)
+definition unit_BC_i2s_test :: IRGraph where
+  "unit_BC_i2s_test = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 32 16 1), IntegerStamp 16 (-32768) (32767)),
+  (4, (SignExtendNode 16 32 3), IntegerStamp 32 (-32768) (32767)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_BC_i2s_test  [(new_int 32 (-1))] (new_int 32 (-1))"
+
+value "static_test unit_BC_i2s_test  [(new_int 32 (34))] (new_int 32 (34))"
+
+value "static_test unit_BC_i2s_test  [(new_int 32 (65535))] (new_int 32 (-1))"
+
+value "static_test unit_BC_i2s_test  [(new_int 32 (32768))] (new_int 32 (-32768))"
+

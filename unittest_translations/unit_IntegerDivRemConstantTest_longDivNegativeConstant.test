@@ -1,0 +1,21 @@
+
+(* Lorg/graalvm/compiler/core/test/IntegerDivRemConstantTest;.IntegerDivRemConstantTest_longDivNegativeConstant*)
+definition unit_IntegerDivRemConstantTest_longDivNegativeConstant :: IRGraph where
+  "unit_IntegerDivRemConstantTest_longDivNegativeConstant = irgraph [
+  (0, (StartNode (Some 2) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (-413))), IntegerStamp 64 (-413) (-413)),
+  (4, (SignedDivNode 4 1 3 None None 5), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_IntegerDivRemConstantTest_longDivNegativeConstant  [(IntVal 64 (-43))] (IntVal 64 (0))"
+
+value "static_test unit_IntegerDivRemConstantTest_longDivNegativeConstant  [(IntVal 64 (0))] (IntVal 64 (0))"
+
+value "static_test unit_IntegerDivRemConstantTest_longDivNegativeConstant  [(IntVal 64 (147065))] (IntVal 64 (-356))"
+
+value "static_test unit_IntegerDivRemConstantTest_longDivNegativeConstant  [(IntVal 64 (9223372036854775807))] (IntVal 64 (-22332619943958294))"
+
+value "static_test unit_IntegerDivRemConstantTest_longDivNegativeConstant  [(IntVal 64 (-9223372036854775808))] (IntVal 64 (22332619943958294))"
+

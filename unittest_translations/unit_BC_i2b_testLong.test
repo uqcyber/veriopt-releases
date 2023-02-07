@@ -1,0 +1,20 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_i2b;.BC_i2b_testLong*)
+definition unit_BC_i2b_testLong :: IRGraph where
+  "unit_BC_i2b_testLong = irgraph [
+  (0, (StartNode (Some 2) 6), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 32 8 1), IntegerStamp 8 (-128) (127)),
+  (4, (SignExtendNode 8 32 3), IntegerStamp 32 (-128) (127)),
+  (5, (SignExtendNode 8 64 3), IntegerStamp 64 (-128) (127)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ]"
+value "static_test unit_BC_i2b_testLong  [(new_int 32 (-1))] (IntVal 64 (-1))"
+
+value "static_test unit_BC_i2b_testLong  [(new_int 32 (2))] (IntVal 64 (2))"
+
+value "static_test unit_BC_i2b_testLong  [(new_int 32 (255))] (IntVal 64 (-1))"
+
+value "static_test unit_BC_i2b_testLong  [(new_int 32 (128))] (IntVal 64 (-128))"
+

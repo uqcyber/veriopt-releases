@@ -1,0 +1,31 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/BC_ldiv_4;.BC_ldiv_4_test*)
+definition unit_BC_ldiv_4_test :: IRGraph where
+  "unit_BC_ldiv_4_test = irgraph [
+  (0, (StartNode (Some 2) 11), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (IntVal 64 (4))), IntegerStamp 64 (4) (4)),
+  (4, (ConstantNode (new_int 32 (63))), IntegerStamp 32 (63) (63)),
+  (5, (RightShiftNode 1 4), IntegerStamp 64 (-1) (0)),
+  (6, (ConstantNode (new_int 32 (62))), IntegerStamp 32 (62) (62)),
+  (7, (UnsignedRightShiftNode 5 6), IntegerStamp 64 (0) (3)),
+  (8, (AddNode 7 1), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (9, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (10, (RightShiftNode 8 9), IntegerStamp 64 (-2305843009213693952) (2305843009213693951)),
+  (11, (ReturnNode (Some 10) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ldiv_4_test  [(IntVal 64 (0))] (IntVal 64 (0))"
+
+value "static_test unit_BC_ldiv_4_test  [(IntVal 64 (4))] (IntVal 64 (1))"
+
+value "static_test unit_BC_ldiv_4_test  [(IntVal 64 (5))] (IntVal 64 (1))"
+
+value "static_test unit_BC_ldiv_4_test  [(IntVal 64 (-1))] (IntVal 64 (0))"
+
+value "static_test unit_BC_ldiv_4_test  [(IntVal 64 (-4))] (IntVal 64 (-1))"
+
+value "static_test unit_BC_ldiv_4_test  [(IntVal 64 (-5))] (IntVal 64 (-1))"
+
+value "static_test unit_BC_ldiv_4_test  [(IntVal 64 (-256))] (IntVal 64 (-64))"
+

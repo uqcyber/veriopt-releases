@@ -1,0 +1,60 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_iconst;.BC_iconst_test*)
+definition unit_BC_iconst_test :: IRGraph where
+  "unit_BC_iconst_test = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 13), VoidStamp),
+  (6, (BeginNode 8), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ReturnNode (Some 3) None), VoidStamp),
+  (9, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (10, (IntegerEqualsNode 1 9), VoidStamp),
+  (11, (BeginNode 19), VoidStamp),
+  (12, (BeginNode 14), VoidStamp),
+  (13, (IfNode 10 12 11), VoidStamp),
+  (14, (ReturnNode (Some 9) None), VoidStamp),
+  (15, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (16, (IntegerEqualsNode 1 15), VoidStamp),
+  (17, (BeginNode 25), VoidStamp),
+  (18, (BeginNode 20), VoidStamp),
+  (19, (IfNode 16 18 17), VoidStamp),
+  (20, (ReturnNode (Some 15) None), VoidStamp),
+  (21, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (22, (IntegerEqualsNode 1 21), VoidStamp),
+  (23, (BeginNode 31), VoidStamp),
+  (24, (BeginNode 26), VoidStamp),
+  (25, (IfNode 22 24 23), VoidStamp),
+  (26, (ReturnNode (Some 21) None), VoidStamp),
+  (27, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (28, (IntegerEqualsNode 1 27), VoidStamp),
+  (29, (BeginNode 37), VoidStamp),
+  (30, (BeginNode 32), VoidStamp),
+  (31, (IfNode 28 30 29), VoidStamp),
+  (32, (ReturnNode (Some 27) None), VoidStamp),
+  (33, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (34, (IntegerEqualsNode 1 33), VoidStamp),
+  (35, (BeginNode 40), VoidStamp),
+  (36, (BeginNode 38), VoidStamp),
+  (37, (IfNode 34 36 35), VoidStamp),
+  (38, (ReturnNode (Some 33) None), VoidStamp),
+  (39, (ConstantNode (new_int 32 (375))), IntegerStamp 32 (375) (375)),
+  (40, (ReturnNode (Some 39) None), VoidStamp)
+  ]"
+value "static_test unit_BC_iconst_test  [(new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_BC_iconst_test  [(new_int 32 (1))] (new_int 32 (1))"
+
+value "static_test unit_BC_iconst_test  [(new_int 32 (2))] (new_int 32 (2))"
+
+value "static_test unit_BC_iconst_test  [(new_int 32 (3))] (new_int 32 (3))"
+
+value "static_test unit_BC_iconst_test  [(new_int 32 (4))] (new_int 32 (4))"
+
+value "static_test unit_BC_iconst_test  [(new_int 32 (5))] (new_int 32 (5))"
+
+value "static_test unit_BC_iconst_test  [(new_int 32 (6))] (new_int 32 (375))"
+

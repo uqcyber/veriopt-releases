@@ -1,0 +1,11 @@
+
+(* Lorg/graalvm/compiler/api/directives/test/DeoptimizeDirectiveTest;.DeoptimizeDirectiveTest_inCompiledCode*)
+definition unit_DeoptimizeDirectiveTest_inCompiledCode :: IRGraph where
+  "unit_DeoptimizeDirectiveTest_inCompiledCode = irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (3, (ReturnNode (Some 2) None), VoidStamp)
+  ]"
+value "static_test unit_DeoptimizeDirectiveTest_inCompiledCode  [] (new_int 32 (0))"
+

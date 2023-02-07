@@ -1,0 +1,23 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_irem;.BC_irem_test4*)
+definition unit_BC_irem_test4 :: IRGraph where
+  "unit_BC_irem_test4 = irgraph [
+  (0, (StartNode (Some 3) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (SignedRemNode 4 1 2 None None 7), IntegerStamp 32 (-2147483647) (2147483647)),
+  (5, (AbsNode 4), IntegerStamp 32 (0) (2147483647)),
+  (6, (AbsNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (7, (SignedRemNode 7 6 2 None None 11), IntegerStamp 32 (-2147483647) (2147483647)),
+  (8, (ConstantNode (new_int 32 (32))), IntegerStamp 32 (32) (32)),
+  (9, (OrNode 5 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (SignExtendNode 32 64 9), IntegerStamp 64 (-2147483648) (2147483647)),
+  (11, (ReturnNode (Some 10) None), VoidStamp)
+  ]"
+value "static_test unit_BC_irem_test4  [(new_int 32 (-100000)), (new_int 32 (3000000))] (IntVal 64 (100000))"
+
+value "static_test unit_BC_irem_test4  [(new_int 32 (-100000)), (new_int 32 (30))] (IntVal 64 (10))"
+
+value "static_test unit_BC_irem_test4  [(new_int 32 (-1000000)), (new_int 32 (-30))] (IntVal 64 (10))"
+

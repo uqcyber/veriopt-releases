@@ -1,0 +1,111 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/VN_Convert02;.VN_Convert02_test*)
+definition unit_VN_Convert02_test :: Program where
+  "unit_VN_Convert02_test = Map.empty (
+  ''org.graalvm.compiler.jtt.optimize.VN_Convert02.test(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 18), VoidStamp),
+  (6, (BeginNode 11), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (9, (AddNode 1 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Convert02.i2b(I)I'' [9]), VoidStamp),
+  (11, (InvokeNode 11 10 None None (Some 12) 13), IntegerStamp 32 (-2147483648) (2147483647)),
+  (12, (FrameState [] None None None), IllegalStamp),
+  (13, (ReturnNode (Some 11) None), VoidStamp),
+  (14, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (15, (IntegerEqualsNode 1 14), VoidStamp),
+  (16, (BeginNode 27), VoidStamp),
+  (17, (BeginNode 20), VoidStamp),
+  (18, (IfNode 15 17 16), VoidStamp),
+  (19, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Convert02.i2s(I)I'' [9]), VoidStamp),
+  (20, (InvokeNode 20 19 None None (Some 21) 22), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (ReturnNode (Some 20) None), VoidStamp),
+  (23, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (24, (IntegerEqualsNode 1 23), VoidStamp),
+  (25, (BeginNode 32), VoidStamp),
+  (26, (BeginNode 29), VoidStamp),
+  (27, (IfNode 24 26 25), VoidStamp),
+  (28, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Convert02.i2c(I)I'' [9]), VoidStamp),
+  (29, (InvokeNode 29 28 None None (Some 30) 31), IntegerStamp 32 (-2147483648) (2147483647)),
+  (30, (FrameState [] None None None), IllegalStamp),
+  (31, (ReturnNode (Some 29) None), VoidStamp),
+  (32, (ReturnNode (Some 3) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Convert02.<clinit>()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 4), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (3, (ConstantNode (new_int 1 (1))), IntegerStamp 1 (-1) (-1)),
+  (4, (StoreFieldNode 4 ''org.graalvm.compiler.jtt.optimize.VN_Convert02::cond'' 2 (Some 5) None 6), VoidStamp),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (ReturnNode None None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Convert02.i2b(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 32 8 1), IntegerStamp 8 (-128) (127)),
+  (4, (SignExtendNode 8 32 3), IntegerStamp 32 (-128) (127)),
+  (5, (LoadFieldNode 5 ''org.graalvm.compiler.jtt.optimize.VN_Convert02::cond'' None 10), IntegerStamp 32 (0) (1)),
+  (6, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (7, (IntegerEqualsNode 5 6), VoidStamp),
+  (8, (BeginNode 12), VoidStamp),
+  (9, (BeginNode 13), VoidStamp),
+  (10, (IfNode 7 9 8), VoidStamp),
+  (11, (AddNode 4 4), IntegerStamp 32 (-256) (254)),
+  (12, (ReturnNode (Some 11) None), VoidStamp),
+  (13, (ReturnNode (Some 6) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Convert02.i2s(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 32 16 1), IntegerStamp 16 (-32768) (32767)),
+  (4, (SignExtendNode 16 32 3), IntegerStamp 32 (-32768) (32767)),
+  (5, (LoadFieldNode 5 ''org.graalvm.compiler.jtt.optimize.VN_Convert02::cond'' None 10), IntegerStamp 32 (0) (1)),
+  (6, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (7, (IntegerEqualsNode 5 6), VoidStamp),
+  (8, (BeginNode 12), VoidStamp),
+  (9, (BeginNode 13), VoidStamp),
+  (10, (IfNode 7 9 8), VoidStamp),
+  (11, (AddNode 4 4), IntegerStamp 32 (-65536) (65534)),
+  (12, (ReturnNode (Some 11) None), VoidStamp),
+  (13, (ReturnNode (Some 6) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.VN_Convert02.i2c(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 32 16 1), IntegerStamp 16 (-32768) (32767)),
+  (4, (ZeroExtendNode 16 32 3), IntegerStamp 32 (0) (65535)),
+  (5, (LoadFieldNode 5 ''org.graalvm.compiler.jtt.optimize.VN_Convert02::cond'' None 10), IntegerStamp 32 (0) (1)),
+  (6, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (7, (IntegerEqualsNode 5 6), VoidStamp),
+  (8, (BeginNode 12), VoidStamp),
+  (9, (BeginNode 13), VoidStamp),
+  (10, (IfNode 7 9 8), VoidStamp),
+  (11, (AddNode 4 4), IntegerStamp 32 (0) (131070)),
+  (12, (ReturnNode (Some 11) None), VoidStamp),
+  (13, (ReturnNode (Some 6) None), VoidStamp)
+  ],
+  '''' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.VN_Convert02.<clinit>()V'' []), VoidStamp),
+  (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+value "program_test unit_VN_Convert02_test ''org.graalvm.compiler.jtt.optimize.VN_Convert02.test(I)I'' [(new_int 32 (0))] (new_int 32 (20))"
+
+value "program_test unit_VN_Convert02_test ''org.graalvm.compiler.jtt.optimize.VN_Convert02.test(I)I'' [(new_int 32 (1))] (new_int 32 (22))"
+
+value "program_test unit_VN_Convert02_test ''org.graalvm.compiler.jtt.optimize.VN_Convert02.test(I)I'' [(new_int 32 (2))] (new_int 32 (24))"
+

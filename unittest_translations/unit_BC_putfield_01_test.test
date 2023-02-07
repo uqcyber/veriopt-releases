@@ -1,0 +1,41 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_putfield_01;.BC_putfield_01_test*)
+definition unit_BC_putfield_01_test :: Program where
+  "unit_BC_putfield_01_test = Map.empty (
+  ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01.test(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 3), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (LoadFieldNode 3 ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01::object'' None 4), ObjectStamp ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01$TestClass'' True False False),
+  (4, (StoreFieldNode 4 ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01$TestClass::field'' 1 (Some 5) (Some 3) 6), VoidStamp),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (LoadFieldNode 6 ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01::object'' None 7), ObjectStamp ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01$TestClass'' True False False),
+  (7, (LoadFieldNode 7 ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01$TestClass::field'' (Some 6) 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ReturnNode (Some 7) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01.<clinit>()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 2), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (NewInstanceNode 2 ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01$TestClass'' None 4), ObjectStamp ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01$TestClass'' True True False),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (StoreFieldNode 4 ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01::object'' 2 (Some 5) None 6), VoidStamp),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (ReturnNode None None), VoidStamp)
+  ],
+  '''' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01.<clinit>()V'' []), VoidStamp),
+  (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+value "program_test unit_BC_putfield_01_test ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01.test(I)I'' [(new_int 32 (0))] (new_int 32 (0))"
+
+value "program_test unit_BC_putfield_01_test ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01.test(I)I'' [(new_int 32 (1))] (new_int 32 (1))"
+
+value "program_test unit_BC_putfield_01_test ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01.test(I)I'' [(new_int 32 (2))] (new_int 32 (2))"
+
+value "program_test unit_BC_putfield_01_test ''org.graalvm.compiler.jtt.bytecode.BC_putfield_01.test(I)I'' [(new_int 32 (-4))] (new_int 32 (-4))"
+

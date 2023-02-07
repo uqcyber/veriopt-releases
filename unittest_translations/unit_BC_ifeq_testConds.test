@@ -1,0 +1,19 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_ifeq;.BC_ifeq_testConds*)
+definition unit_BC_ifeq_testConds :: IRGraph where
+  "unit_BC_ifeq_testConds = irgraph [
+  (0, (StartNode (Some 2) 11), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NarrowNode 32 16 1), IntegerStamp 16 (-32768) (32767)),
+  (4, (SignExtendNode 16 32 3), IntegerStamp 32 (-32768) (32767)),
+  (5, (ConstantNode (new_int 32 (65535))), IntegerStamp 32 (65535) (65535)),
+  (6, (ZeroExtendNode 16 32 3), IntegerStamp 32 (0) (65535)),
+  (7, (IntegerEqualsNode 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (9, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (10, (ConditionalNode 7 8 9), IntegerStamp 32 (0) (1)),
+  (11, (ReturnNode (Some 10) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ifeq_testConds  [(new_int 32 (65535))] (new_int 32 (1))"
+

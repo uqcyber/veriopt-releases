@@ -1,0 +1,36 @@
+
+(* Lorg/graalvm/compiler/jtt/lang/Int_greater02;.Int_greater02_test*)
+definition unit_Int_greater02_test :: IRGraph where
+  "unit_Int_greater02_test = irgraph [
+  (0, (StartNode (Some 2) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (4, (ConstantNode (new_int 32 (6))), IntegerStamp 32 (6) (6)),
+  (5, (IntegerLessThanNode 1 4), VoidStamp),
+  (6, (BeginNode 10), VoidStamp),
+  (7, (BeginNode 12), VoidStamp),
+  (8, (IfNode 5 7 6), VoidStamp),
+  (9, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (10, (ReturnNode (Some 9) None), VoidStamp),
+  (11, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (12, (ReturnNode (Some 11) None), VoidStamp)
+  ]"
+value "static_test unit_Int_greater02_test  [(new_int 32 (-2147483648))] (new_int 32 (0))"
+
+value "static_test unit_Int_greater02_test  [(new_int 32 (-2))] (new_int 32 (0))"
+
+value "static_test unit_Int_greater02_test  [(new_int 32 (-1))] (new_int 32 (0))"
+
+value "static_test unit_Int_greater02_test  [(new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_Int_greater02_test  [(new_int 32 (1))] (new_int 32 (0))"
+
+value "static_test unit_Int_greater02_test  [(new_int 32 (4))] (new_int 32 (0))"
+
+value "static_test unit_Int_greater02_test  [(new_int 32 (5))] (new_int 32 (0))"
+
+value "static_test unit_Int_greater02_test  [(new_int 32 (6))] (new_int 32 (1))"
+
+value "static_test unit_Int_greater02_test  [(new_int 32 (2147483647))] (new_int 32 (1))"
+

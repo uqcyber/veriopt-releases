@@ -1,0 +1,13 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/BC_lshr_C16;.BC_lshr_C16_test*)
+definition unit_BC_lshr_C16_test :: IRGraph where
+  "unit_BC_lshr_C16_test = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (16))), IntegerStamp 32 (16) (16)),
+  (4, (RightShiftNode 1 3), IntegerStamp 64 (-140737488355328) (140737488355327)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_BC_lshr_C16_test  [(IntVal 64 (87224824140))] (IntVal 64 (1330945))"
+

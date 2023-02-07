@@ -1,0 +1,90 @@
+
+(* Lorg/graalvm/compiler/jtt/loop/LoopEscape;.LoopEscape_test0*)
+definition unit_LoopEscape_test0 :: Program where
+  "unit_LoopEscape_test0 = Map.empty (
+  ''org.graalvm.compiler.jtt.loop.LoopEscape.test0(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 3), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NewInstanceNode 3 ''org.graalvm.compiler.jtt.loop.LoopEscape$L'' None 6), ObjectStamp ''org.graalvm.compiler.jtt.loop.LoopEscape$L'' True True False),
+  (4, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (StoreFieldNode 6 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::a'' 4 (Some 8) (Some 3) 9), VoidStamp),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (FrameState [] (Some 7) None None), IllegalStamp),
+  (9, (StoreFieldNode 9 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::b'' 4 (Some 10) (Some 3) 11), VoidStamp),
+  (10, (FrameState [] (Some 7) None None), IllegalStamp),
+  (11, (StoreFieldNode 11 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::c'' 4 (Some 12) (Some 3) 15), VoidStamp),
+  (12, (FrameState [] (Some 7) None None), IllegalStamp),
+  (13, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (15, (EndNode), VoidStamp),
+  (16, (LoopBeginNode [15, 39] None (Some 18) 24), VoidStamp),
+  (17, (ValuePhiNode 17 [13, 38] 16), IntegerStamp 32 (-2147483648) (2147483647)),
+  (18, (FrameState [] None None None), IllegalStamp),
+  (19, (IntegerLessThanNode 17 1), VoidStamp),
+  (21, (LoopExitNode 16 (Some 22) 40), VoidStamp),
+  (22, (FrameState [] None None None), IllegalStamp),
+  (23, (BeginNode 25), VoidStamp),
+  (24, (IfNode 19 23 21), VoidStamp),
+  (25, (LoadFieldNode 25 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::a'' (Some 3) 28), IntegerStamp 32 (-2147483648) (2147483647)),
+  (26, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (27, (AddNode 25 26), IntegerStamp 32 (-2147483648) (2147483647)),
+  (28, (StoreFieldNode 28 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::a'' 27 (Some 29) (Some 3) 30), VoidStamp),
+  (29, (FrameState [] None None None), IllegalStamp),
+  (30, (LoadFieldNode 30 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::b'' (Some 3) 33), IntegerStamp 32 (-2147483648) (2147483647)),
+  (31, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (32, (AddNode 30 31), IntegerStamp 32 (-2147483648) (2147483647)),
+  (33, (StoreFieldNode 33 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::b'' 32 (Some 34) (Some 3) 36), VoidStamp),
+  (34, (FrameState [] None None None), IllegalStamp),
+  (35, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (36, (StoreFieldNode 36 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::c'' 35 (Some 37) (Some 3) 39), VoidStamp),
+  (37, (FrameState [] None None None), IllegalStamp),
+  (38, (AddNode 17 26), IntegerStamp 32 (-2147483648) (2147483647)),
+  (39, (LoopEndNode 16), VoidStamp),
+  (40, (LoadFieldNode 40 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::a'' (Some 3) 41), IntegerStamp 32 (-2147483648) (2147483647)),
+  (41, (LoadFieldNode 41 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::b'' (Some 3) 45), IntegerStamp 32 (-2147483648) (2147483647)),
+  (42, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (43, (MulNode 41 42), IntegerStamp 32 (-2147483648) (2147483647)),
+  (44, (AddNode 40 43), IntegerStamp 32 (-2147483648) (2147483647)),
+  (45, (LoadFieldNode 45 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::c'' (Some 3) 49), IntegerStamp 32 (-2147483648) (2147483647)),
+  (46, (ConstantNode (new_int 32 (100))), IntegerStamp 32 (100) (100)),
+  (47, (MulNode 45 46), IntegerStamp 32 (-2147483648) (2147483647)),
+  (48, (AddNode 44 47), IntegerStamp 32 (-2147483648) (2147483647)),
+  (49, (ReturnNode (Some 48) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.loop.LoopEscape.<clinit>()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 2), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (NewInstanceNode 2 ''org.graalvm.compiler.jtt.loop.LoopEscape$L'' None 7), ObjectStamp ''org.graalvm.compiler.jtt.loop.LoopEscape$L'' True True False),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (6, (FrameState [] None None None), IllegalStamp),
+  (7, (StoreFieldNode 7 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::a'' 3 (Some 9) (Some 2) 10), VoidStamp),
+  (8, (FrameState [] None None None), IllegalStamp),
+  (9, (FrameState [] (Some 8) None None), IllegalStamp),
+  (10, (StoreFieldNode 10 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::b'' 4 (Some 11) (Some 2) 12), VoidStamp),
+  (11, (FrameState [] (Some 8) None None), IllegalStamp),
+  (12, (StoreFieldNode 12 ''org.graalvm.compiler.jtt.loop.LoopEscape$L::c'' 5 (Some 13) (Some 2) 14), VoidStamp),
+  (13, (FrameState [] (Some 8) None None), IllegalStamp),
+  (14, (StoreFieldNode 14 ''org.graalvm.compiler.jtt.loop.LoopEscape::ll'' 2 (Some 15) None 16), VoidStamp),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (ReturnNode None None), VoidStamp)
+  ],
+  '''' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.loop.LoopEscape.<clinit>()V'' []), VoidStamp),
+  (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+value "program_test unit_LoopEscape_test0 ''org.graalvm.compiler.jtt.loop.LoopEscape.test0(I)I'' [(new_int 32 (0))] (new_int 32 (555))"
+
+value "program_test unit_LoopEscape_test0 ''org.graalvm.compiler.jtt.loop.LoopEscape.test0(I)I'' [(new_int 32 (1))] (new_int 32 (446))"
+
+value "program_test unit_LoopEscape_test0 ''org.graalvm.compiler.jtt.loop.LoopEscape.test0(I)I'' [(new_int 32 (2))] (new_int 32 (437))"
+
+value "program_test unit_LoopEscape_test0 ''org.graalvm.compiler.jtt.loop.LoopEscape.test0(I)I'' [(new_int 32 (5))] (new_int 32 (410))"
+

@@ -1,0 +1,23 @@
+
+(* Lorg/graalvm/compiler/core/test/SubWordFieldStoreTest$byteGetter;.SubWordFieldStoreTest_snippet*)
+definition unit_SubWordFieldStoreTest_snippet__14 :: IRGraph where
+  "unit_SubWordFieldStoreTest_snippet__14 = irgraph [
+  (0, (StartNode (Some 1) 5), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (16909060))), IntegerStamp 32 (16909060) (16909060)),
+  (3, (ConstantNode (new_int 8 (4))), IntegerStamp 8 (4) (4)),
+  (4, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (5, (StoreFieldNode 5 ''org.graalvm.compiler.core.test.SubWordFieldStoreTest$byteGetter::field'' 4 (Some 6) None 7), VoidStamp),
+  (6, (FrameState [] None None None), IllegalStamp),
+  (7, (LoadFieldNode 7 ''org.graalvm.compiler.core.test.SubWordFieldStoreTest$byteGetter::field'' None 11), IntegerStamp 32 (-128) (127)),
+  (8, (IntegerEqualsNode 7 4), VoidStamp),
+  (9, (BeginNode 15), VoidStamp),
+  (10, (BeginNode 13), VoidStamp),
+  (11, (IfNode 8 10 9), VoidStamp),
+  (12, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (13, (ReturnNode (Some 12) None), VoidStamp),
+  (14, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (15, (ReturnNode (Some 14) None), VoidStamp)
+  ]"
+value "static_test unit_SubWordFieldStoreTest_snippet__14  [] (new_int 32 (1))"
+

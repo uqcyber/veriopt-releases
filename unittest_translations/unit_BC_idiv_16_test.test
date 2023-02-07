@@ -1,0 +1,52 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/BC_idiv_16;.BC_idiv_16_test*)
+definition unit_BC_idiv_16_test :: IRGraph where
+  "unit_BC_idiv_16_test = irgraph [
+  (0, (StartNode (Some 3) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (IntegerEqualsNode 1 4), VoidStamp),
+  (6, (BeginNode 18), VoidStamp),
+  (7, (BeginNode 17), VoidStamp),
+  (8, (IfNode 5 7 6), VoidStamp),
+  (9, (ConstantNode (new_int 32 (16))), IntegerStamp 32 (16) (16)),
+  (10, (ConstantNode (new_int 32 (31))), IntegerStamp 32 (31) (31)),
+  (11, (RightShiftNode 2 10), IntegerStamp 32 (-1) (0)),
+  (12, (ConstantNode (new_int 32 (28))), IntegerStamp 32 (28) (28)),
+  (13, (UnsignedRightShiftNode 11 12), IntegerStamp 32 (0) (15)),
+  (14, (AddNode 13 2), IntegerStamp 32 (-2147483648) (2147483647)),
+  (15, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (16, (RightShiftNode 14 15), IntegerStamp 32 (-134217728) (134217727)),
+  (17, (ReturnNode (Some 16) None), VoidStamp),
+  (18, (ReturnNode (Some 16) None), VoidStamp)
+  ]"
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (0)), (new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (0)), (new_int 32 (16))] (new_int 32 (1))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (0)), (new_int 32 (17))] (new_int 32 (1))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (0)), (new_int 32 (-1))] (new_int 32 (0))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (0)), (new_int 32 (-16))] (new_int 32 (-1))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (0)), (new_int 32 (-17))] (new_int 32 (-1))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (0)), (new_int 32 (-1024))] (new_int 32 (-64))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (1)), (new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (1)), (new_int 32 (16))] (new_int 32 (1))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (1)), (new_int 32 (17))] (new_int 32 (1))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (1)), (new_int 32 (-1))] (new_int 32 (0))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (1)), (new_int 32 (-16))] (new_int 32 (-1))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (1)), (new_int 32 (-17))] (new_int 32 (-1))"
+
+value "static_test unit_BC_idiv_16_test  [(new_int 32 (1)), (new_int 32 (-1024))] (new_int 32 (-64))"
+

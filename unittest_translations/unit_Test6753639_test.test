@@ -1,0 +1,30 @@
+
+(* Lorg/graalvm/compiler/jtt/hotspot/Test6753639;.Test6753639_test*)
+definition unit_Test6753639_test :: IRGraph where
+  "unit_Test6753639_test = irgraph [
+  (0, (StartNode (Some 1) 6), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (2147483647))), IntegerStamp 32 (2147483647) (2147483647)),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (ConstantNode (new_int 32 (2147483642))), IntegerStamp 32 (2147483642) (2147483642)),
+  (6, (EndNode), VoidStamp),
+  (7, (LoopBeginNode [6, 22] None (Some 10) 20), VoidStamp),
+  (8, (ValuePhiNode 8 [3, 12] 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (ValuePhiNode 9 [4, 21] 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (FrameState [] None None None), IllegalStamp),
+  (11, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (12, (AddNode 8 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (ConstantNode (new_int 32 (100000))), IntegerStamp 32 (100000) (100000)),
+  (14, (ConstantNode (new_int 32 (100001))), IntegerStamp 32 (100001) (100001)),
+  (15, (IntegerLessThanNode 12 14), VoidStamp),
+  (17, (LoopExitNode 7 (Some 18) 24), VoidStamp),
+  (18, (FrameState [] None None None), IllegalStamp),
+  (19, (BeginNode 22), VoidStamp),
+  (20, (IfNode 15 19 17), VoidStamp),
+  (21, (AddNode 9 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (22, (LoopEndNode 7), VoidStamp),
+  (23, (ConstantNode (new_int 32 (95))), IntegerStamp 32 (95) (95)),
+  (24, (ReturnNode (Some 23) None), VoidStamp)
+  ]"
+value "static_test unit_Test6753639_test  [] (new_int 32 (95))"
+

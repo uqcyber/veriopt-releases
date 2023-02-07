@@ -1,0 +1,29 @@
+
+(* Lorg/graalvm/compiler/core/test/IfCanonicalizerTest;.IfCanonicalizerTest_test10Snippet*)
+definition unit_IfCanonicalizerTest_test10Snippet :: IRGraph where
+  "unit_IfCanonicalizerTest_test10Snippet = irgraph [
+  (0, (StartNode (Some 3) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (IntegerLessThanNode 1 2), VoidStamp),
+  (5, (BeginNode 13), VoidStamp),
+  (6, (BeginNode 15), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (IntVal 64 (-1))), IntegerStamp 64 (-1) (-1)),
+  (10, (IntegerEqualsNode 1 2), VoidStamp),
+  (11, (BeginNode 20), VoidStamp),
+  (12, (BeginNode 17), VoidStamp),
+  (13, (IfNode 10 12 11), VoidStamp),
+  (14, (ConstantNode (IntVal 64 (0))), IntegerStamp 64 (0) (0)),
+  (15, (EndNode), VoidStamp),
+  (16, (MergeNode [15, 17, 20] (Some 21) 22), VoidStamp),
+  (17, (EndNode), VoidStamp),
+  (18, (ValuePhiNode 18 [8, 14, 19] 16), IntegerStamp 64 (-1) (1)),
+  (19, (ConstantNode (IntVal 64 (1))), IntegerStamp 64 (1) (1)),
+  (20, (EndNode), VoidStamp),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (ReturnNode (Some 18) None), VoidStamp)
+  ]"
+value "static_test unit_IfCanonicalizerTest_test10Snippet  [(new_int 32 (0)), (new_int 32 (1))] (IntVal 64 (-1))"
+

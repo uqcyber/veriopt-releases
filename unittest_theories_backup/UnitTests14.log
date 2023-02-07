@@ -1,0 +1,9 @@
+To see all results, run: isabelle log -v -T Tests.UnitTesting Tests
+Tests passed:       41
+Tests failed:        2
+Details of any failures:
+Output (line 767 of "~/git/graal/veriopt-releases/Tests/UnitTesting.thy"):
+"False"
+--
+Output (line 839 of "~/git/graal/veriopt-releases/Tests/UnitTesting.thy"):
+"False"

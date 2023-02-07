@@ -1,0 +1,49 @@
+
+(* Lorg/graalvm/compiler/jtt/hotpath/HP_inline01;.HP_inline01_test*)
+definition unit_HP_inline01_test :: Program where
+  "unit_HP_inline01_test = Map.empty (
+  ''org.graalvm.compiler.jtt.hotpath.HP_inline01.test(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 23] None (Some 9) 16), VoidStamp),
+  (7, (ValuePhiNode 7 [3, 20] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 22] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (IntegerLessThanNode 8 1), VoidStamp),
+  (12, (LoopExitNode 6 (Some 14) 24), VoidStamp),
+  (13, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (FrameState [] None None None), IllegalStamp),
+  (15, (BeginNode 18), VoidStamp),
+  (16, (IfNode 10 15 12), VoidStamp),
+  (17, (MethodCallTargetNode ''org.graalvm.compiler.jtt.hotpath.HP_inline01.foo(I)I'' [8]), VoidStamp),
+  (18, (InvokeNode 18 17 None None (Some 19) 23), IntegerStamp 32 (-2147483648) (2147483647)),
+  (19, (FrameState [] None None None), IllegalStamp),
+  (20, (AddNode 7 18), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (22, (AddNode 8 21), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (LoopEndNode 6), VoidStamp),
+  (24, (ReturnNode (Some 13) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.hotpath.HP_inline01.foo(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (15))), IntegerStamp 32 (15) (15)),
+  (4, (IntegerLessThanNode 1 3), VoidStamp),
+  (5, (BeginNode 14), VoidStamp),
+  (6, (BeginNode 11), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (FrameState [] None None None), IllegalStamp),
+  (9, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (10, (AddNode 1 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (ReturnNode (Some 10) None), VoidStamp),
+  (12, (FrameState [] None None None), IllegalStamp),
+  (13, (AddNode 10 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (ReturnNode (Some 13) None), VoidStamp)
+  ]
+  )"
+value "program_test unit_HP_inline01_test ''org.graalvm.compiler.jtt.hotpath.HP_inline01.test(I)I'' [(new_int 32 (20))] (new_int 32 (215))"
+

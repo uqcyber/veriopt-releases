@@ -1,0 +1,24 @@
+
+(* Lorg/graalvm/compiler/jtt/lang/Math_abs;.Math_abs_testAbsL*)
+definition unit_Math_abs_testAbsL :: IRGraph where
+  "unit_Math_abs_testAbsL = irgraph [
+  (0, (StartNode (Some 2) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (AbsNode 1), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (4, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_Math_abs_testAbsL  [(IntVal 64 (-9223372036854775808))] (IntVal 64 (-9223372036854775808))"
+
+value "static_test unit_Math_abs_testAbsL  [(IntVal 64 (-425423654342))] (IntVal 64 (425423654342))"
+
+value "static_test unit_Math_abs_testAbsL  [(IntVal 64 (-21543224))] (IntVal 64 (21543224))"
+
+value "static_test unit_Math_abs_testAbsL  [(IntVal 64 (0))] (IntVal 64 (0))"
+
+value "static_test unit_Math_abs_testAbsL  [(IntVal 64 (1325488))] (IntVal 64 (1325488))"
+
+value "static_test unit_Math_abs_testAbsL  [(IntVal 64 (313567897765))] (IntVal 64 (313567897765))"
+
+value "static_test unit_Math_abs_testAbsL  [(IntVal 64 (9223372036854775807))] (IntVal 64 (9223372036854775807))"
+

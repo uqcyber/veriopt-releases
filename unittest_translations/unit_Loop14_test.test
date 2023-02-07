@@ -1,0 +1,68 @@
+
+(* Lorg/graalvm/compiler/jtt/loop/Loop14;.Loop14_test*)
+definition unit_Loop14_test :: Program where
+  "unit_Loop14_test = Map.empty (
+  ''org.graalvm.compiler.jtt.loop.Loop14.test(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (MethodCallTargetNode ''org.graalvm.compiler.jtt.loop.Loop14.calc(I)I'' [1]), VoidStamp),
+  (4, (InvokeNode 4 3 None None (Some 5) 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (ReturnNode (Some 4) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.loop.Loop14.calc(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 52] None (Some 9) 16), VoidStamp),
+  (7, (ValuePhiNode 7 [3, 29] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 51] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (IntegerLessThanNode 8 1), VoidStamp),
+  (12, (LoopExitNode 6 (Some 14) 53), VoidStamp),
+  (13, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (FrameState [] None None None), IllegalStamp),
+  (15, (BeginNode 18), VoidStamp),
+  (16, (IfNode 10 15 12), VoidStamp),
+  (17, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (18, (StoreFieldNode 18 ''org.graalvm.compiler.jtt.loop.Loop14::value'' 17 (Some 19) None 21), VoidStamp),
+  (19, (FrameState [] None None None), IllegalStamp),
+  (21, (EndNode), VoidStamp),
+  (22, (LoopBeginNode [21, 50] None (Some 25) 32), VoidStamp),
+  (23, (ValuePhiNode 23 [7, 48] 22), IntegerStamp 32 (-2147483648) (2147483647)),
+  (24, (ValuePhiNode 24 [3, 49] 22), IntegerStamp 32 (-2147483648) (2147483647)),
+  (25, (FrameState [] None None None), IllegalStamp),
+  (26, (IntegerLessThanNode 24 1), VoidStamp),
+  (28, (LoopExitNode 22 (Some 30) 52), VoidStamp),
+  (29, (RefNode 23), IntegerStamp 32 (-2147483648) (2147483647)),
+  (30, (FrameState [] None None None), IllegalStamp),
+  (31, (BeginNode 34), VoidStamp),
+  (32, (IfNode 26 31 28), VoidStamp),
+  (34, (EndNode), VoidStamp),
+  (35, (LoopBeginNode [34, 46] None (Some 37) 43), VoidStamp),
+  (36, (ValuePhiNode 36 [3, 45] 35), IntegerStamp 32 (-2147483648) (2147483647)),
+  (37, (FrameState [] None None None), IllegalStamp),
+  (38, (IntegerLessThanNode 36 1), VoidStamp),
+  (40, (LoopExitNode 35 (Some 41) 47), VoidStamp),
+  (41, (FrameState [] None None None), IllegalStamp),
+  (42, (BeginNode 46), VoidStamp),
+  (43, (IfNode 38 42 40), VoidStamp),
+  (44, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (45, (AddNode 36 44), IntegerStamp 32 (-2147483648) (2147483647)),
+  (46, (LoopEndNode 35), VoidStamp),
+  (47, (LoadFieldNode 47 ''org.graalvm.compiler.jtt.loop.Loop14::value'' None 50), IntegerStamp 32 (-2147483648) (2147483647)),
+  (48, (AddNode 23 47), IntegerStamp 32 (-2147483648) (2147483647)),
+  (49, (AddNode 24 44), IntegerStamp 32 (-2147483648) (2147483647)),
+  (50, (LoopEndNode 22), VoidStamp),
+  (51, (AddNode 8 44), IntegerStamp 32 (-2147483648) (2147483647)),
+  (52, (LoopEndNode 6), VoidStamp),
+  (53, (ReturnNode (Some 13) None), VoidStamp)
+  ]
+  )"
+value "program_test unit_Loop14_test ''org.graalvm.compiler.jtt.loop.Loop14.test(I)I'' [(new_int 32 (1))] (new_int 32 (5))"
+
+value "program_test unit_Loop14_test ''org.graalvm.compiler.jtt.loop.Loop14.test(I)I'' [(new_int 32 (1))] (new_int 32 (5))"
+

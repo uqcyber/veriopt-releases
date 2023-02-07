@@ -1,0 +1,92 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Fold_Int01;.Fold_Int01_test*)
+definition unit_Fold_Int01_test :: IRGraph where
+  "unit_Fold_Int01_test = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 17), VoidStamp),
+  (6, (BeginNode 12), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (FrameState [] None None None), IllegalStamp),
+  (9, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (10, (ConstantNode (new_int 32 (7))), IntegerStamp 32 (7) (7)),
+  (11, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (12, (ReturnNode (Some 11) None), VoidStamp),
+  (13, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (14, (IntegerEqualsNode 1 13), VoidStamp),
+  (15, (BeginNode 27), VoidStamp),
+  (16, (BeginNode 22), VoidStamp),
+  (17, (IfNode 14 16 15), VoidStamp),
+  (18, (FrameState [] None None None), IllegalStamp),
+  (19, (ConstantNode (new_int 32 (15))), IntegerStamp 32 (15) (15)),
+  (20, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (21, (ConstantNode (new_int 32 (11))), IntegerStamp 32 (11) (11)),
+  (22, (ReturnNode (Some 21) None), VoidStamp),
+  (23, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (24, (IntegerEqualsNode 1 23), VoidStamp),
+  (25, (BeginNode 35), VoidStamp),
+  (26, (BeginNode 31), VoidStamp),
+  (27, (IfNode 24 26 25), VoidStamp),
+  (28, (FrameState [] None None None), IllegalStamp),
+  (29, (ConstantNode (new_int 32 (6))), IntegerStamp 32 (6) (6)),
+  (30, (ConstantNode (new_int 32 (12))), IntegerStamp 32 (12) (12)),
+  (31, (ReturnNode (Some 30) None), VoidStamp),
+  (32, (IntegerEqualsNode 1 9), VoidStamp),
+  (33, (BeginNode 43), VoidStamp),
+  (34, (BeginNode 39), VoidStamp),
+  (35, (IfNode 32 34 33), VoidStamp),
+  (36, (FrameState [] None None None), IllegalStamp),
+  (37, (ConstantNode (new_int 32 (26))), IntegerStamp 32 (26) (26)),
+  (38, (ConstantNode (new_int 32 (13))), IntegerStamp 32 (13) (13)),
+  (39, (ReturnNode (Some 38) None), VoidStamp),
+  (40, (IntegerEqualsNode 1 20), VoidStamp),
+  (41, (BeginNode 52), VoidStamp),
+  (42, (BeginNode 47), VoidStamp),
+  (43, (IfNode 40 42 41), VoidStamp),
+  (44, (FrameState [] None None None), IllegalStamp),
+  (45, (ConstantNode (new_int 32 (29))), IntegerStamp 32 (29) (29)),
+  (46, (ConstantNode (new_int 32 (14))), IntegerStamp 32 (14) (14)),
+  (47, (ReturnNode (Some 46) None), VoidStamp),
+  (48, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (49, (IntegerEqualsNode 1 48), VoidStamp),
+  (50, (BeginNode 59), VoidStamp),
+  (51, (BeginNode 55), VoidStamp),
+  (52, (IfNode 49 51 50), VoidStamp),
+  (53, (FrameState [] None None None), IllegalStamp),
+  (54, (ConstantNode (new_int 32 (31))), IntegerStamp 32 (31) (31)),
+  (55, (ReturnNode (Some 19) None), VoidStamp),
+  (56, (IntegerEqualsNode 1 29), VoidStamp),
+  (57, (BeginNode 66), VoidStamp),
+  (58, (BeginNode 62), VoidStamp),
+  (59, (IfNode 56 58 57), VoidStamp),
+  (60, (FrameState [] None None None), IllegalStamp),
+  (61, (ConstantNode (new_int 32 (16))), IntegerStamp 32 (16) (16)),
+  (62, (ReturnNode (Some 61) None), VoidStamp),
+  (63, (IntegerEqualsNode 1 10), VoidStamp),
+  (64, (BeginNode 70), VoidStamp),
+  (65, (BeginNode 69), VoidStamp),
+  (66, (IfNode 63 65 64), VoidStamp),
+  (67, (FrameState [] None None None), IllegalStamp),
+  (68, (ConstantNode (new_int 32 (17))), IntegerStamp 32 (17) (17)),
+  (69, (ReturnNode (Some 68) None), VoidStamp),
+  (70, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_Fold_Int01_test  [(new_int 32 (0))] (new_int 32 (10))"
+
+value "static_test unit_Fold_Int01_test  [(new_int 32 (1))] (new_int 32 (11))"
+
+value "static_test unit_Fold_Int01_test  [(new_int 32 (2))] (new_int 32 (12))"
+
+value "static_test unit_Fold_Int01_test  [(new_int 32 (3))] (new_int 32 (13))"
+
+value "static_test unit_Fold_Int01_test  [(new_int 32 (4))] (new_int 32 (14))"
+
+value "static_test unit_Fold_Int01_test  [(new_int 32 (5))] (new_int 32 (15))"
+
+value "static_test unit_Fold_Int01_test  [(new_int 32 (6))] (new_int 32 (16))"
+
+value "static_test unit_Fold_Int01_test  [(new_int 32 (7))] (new_int 32 (17))"
+

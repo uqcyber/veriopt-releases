@@ -1,0 +1,14 @@
+
+(* Lorg/graalvm/compiler/api/directives/test/OpaqueDirectiveTest;.OpaqueDirectiveTest_objectSnippet*)
+definition unit_OpaqueDirectiveTest_objectSnippet :: IRGraph where
+  "unit_OpaqueDirectiveTest_objectSnippet = irgraph [
+  (0, (StartNode (Some 1) 2), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (NewInstanceNode 2 ''org.graalvm.compiler.api.directives.test.OpaqueDirectiveTest$Dummy'' None 6), ObjectStamp ''org.graalvm.compiler.api.directives.test.OpaqueDirectiveTest$Dummy'' True True False),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (ObjRef None)), ObjectStamp ''null'' False False True),
+  (5, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ]"
+value "static_test unit_OpaqueDirectiveTest_objectSnippet  [] (new_int 32 (0))"
+

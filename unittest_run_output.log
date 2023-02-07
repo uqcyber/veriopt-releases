@@ -1,0 +1,2185 @@
+Looking for translated unit tests...
+../graal_uqcyber/compiler/unit_AArch64PairLoadStoreTest_pairStoreStaticFields.test
+../graal_uqcyber/compiler/unit_AArch64PairLoadStoreTest_parameterSpill.test
+../graal_uqcyber/compiler/unit_BC_getstatic_b_test.test
+../graal_uqcyber/compiler/unit_BC_getstatic_c_test.test
+../graal_uqcyber/compiler/unit_BC_getstatic_i_test.test
+../graal_uqcyber/compiler/unit_BC_getstatic_l_test.test
+../graal_uqcyber/compiler/unit_BC_getstatic_s_test.test
+../graal_uqcyber/compiler/unit_BC_getstatic_z_test.test
+../graal_uqcyber/compiler/unit_BC_i2b_test.test
+../graal_uqcyber/compiler/unit_BC_i2b_testInt.test
+../graal_uqcyber/compiler/unit_BC_i2b_testLong.test
+../graal_uqcyber/compiler/unit_BC_i2c_test.test
+../graal_uqcyber/compiler/unit_BC_i2c_testInt.test
+../graal_uqcyber/compiler/unit_BC_i2c_testLong.test
+../graal_uqcyber/compiler/unit_BC_i2l_test.test
+../graal_uqcyber/compiler/unit_BC_i2s_test.test
+../graal_uqcyber/compiler/unit_BC_i2s_testInt.test
+../graal_uqcyber/compiler/unit_BC_i2s_testLong.test
+../graal_uqcyber/compiler/unit_BC_iadd2_test.test
+../graal_uqcyber/compiler/unit_BC_iadd3_test.test
+../graal_uqcyber/compiler/unit_BC_iadd_test.test
+../graal_uqcyber/compiler/unit_BC_iand_test.test
+../graal_uqcyber/compiler/unit_BC_iconst_test.test
+../graal_uqcyber/compiler/unit_BC_idiv2_test.test
+../graal_uqcyber/compiler/unit_BC_idiv2_test__2.test
+../graal_uqcyber/compiler/unit_BC_idiv_16_test.test
+../graal_uqcyber/compiler/unit_BC_idiv_4_test.test
+../graal_uqcyber/compiler/unit_BC_idiv_overflow_test.test
+../graal_uqcyber/compiler/unit_BC_idiv_test.test
+../graal_uqcyber/compiler/unit_BC_idiv_testStrictlyPositive.test
+../graal_uqcyber/compiler/unit_BC_idiv_test__2.test
+../graal_uqcyber/compiler/unit_BC_ifeq_2_test.test
+../graal_uqcyber/compiler/unit_BC_ifeq_3_test.test
+../graal_uqcyber/compiler/unit_BC_ifeq_test.test
+../graal_uqcyber/compiler/unit_BC_ifeq_testCondb.test
+../graal_uqcyber/compiler/unit_BC_ifeq_testCondc.test
+../graal_uqcyber/compiler/unit_BC_ifeq_testConds.test
+../graal_uqcyber/compiler/unit_BC_ifge_2_test.test
+../graal_uqcyber/compiler/unit_BC_ifge_3_test.test
+../graal_uqcyber/compiler/unit_BC_ifge_test.test
+../graal_uqcyber/compiler/unit_BC_ifgt_test.test
+../graal_uqcyber/compiler/unit_BC_ificmplt1_test.test
+../graal_uqcyber/compiler/unit_BC_ificmplt2_test.test
+../graal_uqcyber/compiler/unit_BC_ificmpne1_test.test
+../graal_uqcyber/compiler/unit_BC_ificmpne2_test.test
+../graal_uqcyber/compiler/unit_BC_ifle_test.test
+../graal_uqcyber/compiler/unit_BC_iflt_test.test
+../graal_uqcyber/compiler/unit_BC_ifne_test.test
+../graal_uqcyber/compiler/unit_BC_iinc_1_test.test
+../graal_uqcyber/compiler/unit_BC_iinc_2_test.test
+../graal_uqcyber/compiler/unit_BC_iinc_3_test.test
+../graal_uqcyber/compiler/unit_BC_iinc_4_test.test
+../graal_uqcyber/compiler/unit_BC_iload_0_1_test.test
+../graal_uqcyber/compiler/unit_BC_iload_0_2_test.test
+../graal_uqcyber/compiler/unit_BC_iload_0_test.test
+../graal_uqcyber/compiler/unit_BC_iload_1_1_test.test
+../graal_uqcyber/compiler/unit_BC_iload_1_test.test
+../graal_uqcyber/compiler/unit_BC_iload_2_test.test
+../graal_uqcyber/compiler/unit_BC_iload_3_test.test
+../graal_uqcyber/compiler/unit_BC_imul_16_test.test
+../graal_uqcyber/compiler/unit_BC_imul_4_test.test
+../graal_uqcyber/compiler/unit_BC_imul_test.test
+../graal_uqcyber/compiler/unit_BC_ineg_test.test
+../graal_uqcyber/compiler/unit_BC_invokestatic_test.test
+../graal_uqcyber/compiler/unit_BC_ior_test.test
+../graal_uqcyber/compiler/unit_BC_irem2_test.test
+../graal_uqcyber/compiler/unit_BC_irem3_test.test
+../graal_uqcyber/compiler/unit_BC_irem4_test.test
+../graal_uqcyber/compiler/unit_BC_irem_test.test
+../graal_uqcyber/compiler/unit_BC_irem_test2.test
+../graal_uqcyber/compiler/unit_BC_irem_test3.test
+../graal_uqcyber/compiler/unit_BC_irem_test4.test
+../graal_uqcyber/compiler/unit_BC_irem_test5.test
+../graal_uqcyber/compiler/unit_BC_irem_test6.test
+../graal_uqcyber/compiler/unit_BC_irem_test__2.test
+../graal_uqcyber/compiler/unit_BC_ireturn_test.test
+../graal_uqcyber/compiler/unit_BC_ishl_test.test
+../graal_uqcyber/compiler/unit_BC_ishr_test.test
+../graal_uqcyber/compiler/unit_BC_isub_test.test
+../graal_uqcyber/compiler/unit_BC_iushr_test.test
+../graal_uqcyber/compiler/unit_BC_ixor_test.test
+../graal_uqcyber/compiler/unit_BC_l2i_test.test
+../graal_uqcyber/compiler/unit_BC_ladd2_test.test
+../graal_uqcyber/compiler/unit_BC_ladd_test.test
+../graal_uqcyber/compiler/unit_BC_land_test.test
+../graal_uqcyber/compiler/unit_BC_ldc_01_test.test
+../graal_uqcyber/compiler/unit_BC_ldc_03_test.test
+../graal_uqcyber/compiler/unit_BC_ldiv2_test.test
+../graal_uqcyber/compiler/unit_BC_ldiv2_test__2.test
+../graal_uqcyber/compiler/unit_BC_ldiv3_test.test
+../graal_uqcyber/compiler/unit_BC_ldiv_16_test.test
+../graal_uqcyber/compiler/unit_BC_ldiv_4_test.test
+../graal_uqcyber/compiler/unit_BC_ldiv_overflow_test.test
+../graal_uqcyber/compiler/unit_BC_ldiv_test.test
+../graal_uqcyber/compiler/unit_BC_ldiv_test__2.test
+../graal_uqcyber/compiler/unit_BC_lload_01_test.test
+../graal_uqcyber/compiler/unit_BC_lload_0_test.test
+../graal_uqcyber/compiler/unit_BC_lload_1_test.test
+../graal_uqcyber/compiler/unit_BC_lload_2_test.test
+../graal_uqcyber/compiler/unit_BC_lload_3_test.test
+../graal_uqcyber/compiler/unit_BC_lmul_16_test.test
+../graal_uqcyber/compiler/unit_BC_lmul_4_test.test
+../graal_uqcyber/compiler/unit_BC_lmul_test.test
+../graal_uqcyber/compiler/unit_BC_lneg_test.test
+../graal_uqcyber/compiler/unit_BC_lor_test.test
+../graal_uqcyber/compiler/unit_BC_lrem2_test.test
+../graal_uqcyber/compiler/unit_BC_lrem_test.test
+../graal_uqcyber/compiler/unit_BC_lrem_test__2.test
+../graal_uqcyber/compiler/unit_BC_lreturn_test.test
+../graal_uqcyber/compiler/unit_BC_lshl_test.test
+../graal_uqcyber/compiler/unit_BC_lshr02_test0.test
+../graal_uqcyber/compiler/unit_BC_lshr_C16_test.test
+../graal_uqcyber/compiler/unit_BC_lshr_C24_test.test
+../graal_uqcyber/compiler/unit_BC_lshr_C32_test.test
+../graal_uqcyber/compiler/unit_BC_lshr_test.test
+../graal_uqcyber/compiler/unit_BC_lsub_test.test
+../graal_uqcyber/compiler/unit_BC_lushr_test.test
+../graal_uqcyber/compiler/unit_BC_lxor_test.test
+../graal_uqcyber/compiler/unit_BC_new_test.test
+../graal_uqcyber/compiler/unit_BC_putfield_01_test.test
+../graal_uqcyber/compiler/unit_BC_putfield_test.test
+../graal_uqcyber/compiler/unit_BC_putstatic_test.test
+../graal_uqcyber/compiler/unit_BC_wide01_test.test
+../graal_uqcyber/compiler/unit_BC_wide02_test.test
+../graal_uqcyber/compiler/unit_BlackholeDirectiveTest_booleanSnippet.test
+../graal_uqcyber/compiler/unit_BlackholeDirectiveTest_intSnippet.test
+../graal_uqcyber/compiler/unit_BlockSkip01_test.test
+../graal_uqcyber/compiler/unit_Cmov01_test.test
+../graal_uqcyber/compiler/unit_CompilationWatchDogTest_snippet.test
+../graal_uqcyber/compiler/unit_ConditionalNodeTest_conditionalTest0.test
+../graal_uqcyber/compiler/unit_ConditionalNodeTest_conditionalTest1.test
+../graal_uqcyber/compiler/unit_ConditionalNodeTest_conditionalTest2.test
+../graal_uqcyber/compiler/unit_ConditionalNodeTest_conditionalTest3.test
+../graal_uqcyber/compiler/unit_ControlFlowAnchorDirectiveTest_verifyFullUnrollSnippet.test
+../graal_uqcyber/compiler/unit_ControlFlowAnchorDirectiveTest_verifyMergeSnippet.test
+../graal_uqcyber/compiler/unit_ConvertCompare_testChar42.test
+../graal_uqcyber/compiler/unit_ConvertCompare_testCharMax.test
+../graal_uqcyber/compiler/unit_DeadCode01_test.test
+../graal_uqcyber/compiler/unit_DeadCode02_test.test
+../graal_uqcyber/compiler/unit_DeoptimizeDirectiveTest_inCompiledCode.test
+../graal_uqcyber/compiler/unit_DontReuseArgumentSpaceTest_callTwice.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__10.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__11.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__12.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__13.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__14.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__15.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__16.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__17.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__18.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__2.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__3.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__4.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__5.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__6.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__7.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__8.test
+../graal_uqcyber/compiler/unit_DynamicConstantTest_run__9.test
+../graal_uqcyber/compiler/unit_Fibonacci_test.test
+../graal_uqcyber/compiler/unit_Finally01_test.test
+../graal_uqcyber/compiler/unit_Finally02_test.test
+../graal_uqcyber/compiler/unit_FloatingDivTest_snippet.test
+../graal_uqcyber/compiler/unit_FloatingDivTest_snippet3.test
+../graal_uqcyber/compiler/unit_Fold_Convert01_test.test
+../graal_uqcyber/compiler/unit_Fold_Int01_test.test
+../graal_uqcyber/compiler/unit_Fold_Int02_test.test
+../graal_uqcyber/compiler/unit_Fold_Long02_test.test
+../graal_uqcyber/compiler/unit_FuzzTest36456_method0.test
+../graal_uqcyber/compiler/unit_FuzzTest36456_method1.test
+../graal_uqcyber/compiler/unit_HP_allocate01_test.test
+../graal_uqcyber/compiler/unit_HP_control01_test.test
+../graal_uqcyber/compiler/unit_HP_dead01_test.test
+../graal_uqcyber/compiler/unit_HP_field01_test.test
+../graal_uqcyber/compiler/unit_HP_field02_test.test
+../graal_uqcyber/compiler/unit_HP_inline01_test.test
+../graal_uqcyber/compiler/unit_HP_inline02_test.test
+../graal_uqcyber/compiler/unit_HP_nest01_test.test
+../graal_uqcyber/compiler/unit_HP_nest02_test.test
+../graal_uqcyber/compiler/unit_HP_scope02_test.test
+../graal_uqcyber/compiler/unit_HP_trees01_test.test
+../graal_uqcyber/compiler/unit_IfCanonicalizerTest_test10Snippet.test
+../graal_uqcyber/compiler/unit_IfCanonicalizerTest_test7Snippet.test
+../graal_uqcyber/compiler/unit_IfCanonicalizerTest_test8Snippet.test
+../graal_uqcyber/compiler/unit_IfCanonicalizerTest_test9Snippet.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare0.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare1.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare10.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare11.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare12.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare13.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare14.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare15.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare16.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare17.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare18.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare19.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare2.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare20.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare21.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare22.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare23.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare24.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare25.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare26.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare27.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare28.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare29.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare3.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare30.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare31.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare32.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare33.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare34.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare35.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare36.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare37.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare38.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare39.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare4.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare40.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare41.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare42.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare43.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare44.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare45.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare46.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare47.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare48.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare49.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare5.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare50.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare51.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare52.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare53.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare54.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare55.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare56.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare57.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare58.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare59.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare6.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare60.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare61.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare62.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare63.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare64.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare65.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare66.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare67.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare68.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare69.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare7.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare70.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare71.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare8.test
+../graal_uqcyber/compiler/unit_IfNodeCanonicalizationsTest_compare9.test
+../graal_uqcyber/compiler/unit_InferStamp01_testi0.test
+../graal_uqcyber/compiler/unit_InferStamp01_testi1.test
+../graal_uqcyber/compiler/unit_InferStamp01_testi2.test
+../graal_uqcyber/compiler/unit_Inline01_test.test
+../graal_uqcyber/compiler/unit_Inline02_test.test
+../graal_uqcyber/compiler/unit_Int_greater01_test.test
+../graal_uqcyber/compiler/unit_Int_greater02_test.test
+../graal_uqcyber/compiler/unit_Int_greater03_test.test
+../graal_uqcyber/compiler/unit_Int_greaterEqual01_test.test
+../graal_uqcyber/compiler/unit_Int_greaterEqual02_test.test
+../graal_uqcyber/compiler/unit_Int_greaterEqual03_test.test
+../graal_uqcyber/compiler/unit_Int_less01_test.test
+../graal_uqcyber/compiler/unit_Int_less02_test.test
+../graal_uqcyber/compiler/unit_Int_less03_test.test
+../graal_uqcyber/compiler/unit_Int_lessEqual01_test.test
+../graal_uqcyber/compiler/unit_Int_lessEqual02_test.test
+../graal_uqcyber/compiler/unit_Int_lessEqual03_test.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intDivIntegerMax.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intDivIntegerMinOdd.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intDivNegativeConstant.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intDivPositiveConstant.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intRemMax.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intRemMin.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intRemNegativeConstant.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intRemPositiveConstant.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_intRemPowerOf2.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longDivLongMax.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longDivLongMinOdd.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longDivNegativeConstant.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longDivPositiveConstant.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longRemMax.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longRemMin.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longRemNegativeConstant.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longRemPositiveConstant.test
+../graal_uqcyber/compiler/unit_IntegerDivRemConstantTest_longRemPowerOf2.test
+../graal_uqcyber/compiler/unit_IntegerStampShiftTest_unsignedShiftNegativeInt.test
+../graal_uqcyber/compiler/unit_IntegerStampShiftTest_unsignedShiftNegativeLong.test
+../graal_uqcyber/compiler/unit_IntegerStampShiftTest_unsignedShiftPositiveInt.test
+../graal_uqcyber/compiler/unit_IntegerStampShiftTest_unsignedShiftPositiveLong.test
+../graal_uqcyber/compiler/unit_InvokeVirtual_01_test.test
+../graal_uqcyber/compiler/unit_LLE_01_test.test
+../graal_uqcyber/compiler/unit_Long_reverseBytes02_test.test
+../graal_uqcyber/compiler/unit_Loop01_test.test
+../graal_uqcyber/compiler/unit_Loop02_test.test
+../graal_uqcyber/compiler/unit_Loop03_test.test
+../graal_uqcyber/compiler/unit_Loop04_test.test
+../graal_uqcyber/compiler/unit_Loop07_2_test.test
+../graal_uqcyber/compiler/unit_Loop08_test.test
+../graal_uqcyber/compiler/unit_Loop09_2_test.test
+../graal_uqcyber/compiler/unit_Loop11_test.test
+../graal_uqcyber/compiler/unit_Loop14_test.test
+../graal_uqcyber/compiler/unit_Loop16_test.test
+../graal_uqcyber/compiler/unit_LoopEscape_test0.test
+../graal_uqcyber/compiler/unit_LoopEscape_test1.test
+../graal_uqcyber/compiler/unit_LoopInline_test.test
+../graal_uqcyber/compiler/unit_LoopLivenessTest_manyLoopsLarge.test
+../graal_uqcyber/compiler/unit_LoopLivenessTest_manyLoopsSmall.test
+../graal_uqcyber/compiler/unit_LoopUnroll_test.test
+../graal_uqcyber/compiler/unit_Math_abs_testAbsI.test
+../graal_uqcyber/compiler/unit_Math_abs_testAbsL.test
+../graal_uqcyber/compiler/unit_NarrowTest_snippet0.test
+../graal_uqcyber/compiler/unit_Narrow_byte01_test.test
+../graal_uqcyber/compiler/unit_Narrow_byte02_test.test
+../graal_uqcyber/compiler/unit_Narrow_byte04_test.test
+../graal_uqcyber/compiler/unit_Narrow_char01_test.test
+../graal_uqcyber/compiler/unit_Narrow_char02_test.test
+../graal_uqcyber/compiler/unit_Narrow_short01_test.test
+../graal_uqcyber/compiler/unit_Narrow_short02_test.test
+../graal_uqcyber/compiler/unit_NewInstanceTest_newBigObject.test
+../graal_uqcyber/compiler/unit_NewInstanceTest_newObject.test
+../graal_uqcyber/compiler/unit_NumberOfTrailingZeroings003_numberOfTrailingZeros0.test
+../graal_uqcyber/compiler/unit_NumberOfTrailingZeroings003_numberOfTrailingZeros1.test
+../graal_uqcyber/compiler/unit_NumberOfTrailingZeroings003_numberOfTrailingZerosM1.test
+../graal_uqcyber/compiler/unit_NumberOfTrailingZeroings003_numberOfTrailingZerosMax.test
+../graal_uqcyber/compiler/unit_NumberOfTrailingZeroings003_numberOfTrailingZerosMin.test
+../graal_uqcyber/compiler/unit_OpaqueDirectiveTest_booleanSnippet.test
+../graal_uqcyber/compiler/unit_OpaqueDirectiveTest_intSnippet.test
+../graal_uqcyber/compiler/unit_OpaqueDirectiveTest_objectSnippet.test
+../graal_uqcyber/compiler/unit_Phi01_test.test
+../graal_uqcyber/compiler/unit_Phi02_test.test
+../graal_uqcyber/compiler/unit_Phi03_test.test
+../graal_uqcyber/compiler/unit_Reduce_Convert01_test.test
+../graal_uqcyber/compiler/unit_Reduce_Int01_test.test
+../graal_uqcyber/compiler/unit_Reduce_Int02_test.test
+../graal_uqcyber/compiler/unit_Reduce_Int03_test.test
+../graal_uqcyber/compiler/unit_Reduce_Int04_test.test
+../graal_uqcyber/compiler/unit_Reduce_IntShift01_test.test
+../graal_uqcyber/compiler/unit_Reduce_IntShift02_test.test
+../graal_uqcyber/compiler/unit_StrangeFrames_test.test
+../graal_uqcyber/compiler/unit_SubCanonicalizationTest_snippet0.test
+../graal_uqcyber/compiler/unit_SubCanonicalizationTest_snippet1.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__10.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__11.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__12.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__13.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__14.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__15.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__16.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__2.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__3.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__4.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__5.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__6.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__7.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__8.test
+../graal_uqcyber/compiler/unit_SubWordFieldStoreTest_snippet__9.test
+../graal_uqcyber/compiler/unit_SubWordInputTest2_wrapper.test
+../graal_uqcyber/compiler/unit_SubWordInputTest2_wrapper__2.test
+../graal_uqcyber/compiler/unit_SubWordInputTest2_wrapper__3.test
+../graal_uqcyber/compiler/unit_SubWordInputTest_wrapper.test
+../graal_uqcyber/compiler/unit_SubWordInputTest_wrapper__2.test
+../graal_uqcyber/compiler/unit_SubWordInputTest_wrapper__3.test
+../graal_uqcyber/compiler/unit_SubWordInputTest_wrapper__4.test
+../graal_uqcyber/compiler/unit_SubWordReturnTest_testSnippet.test
+../graal_uqcyber/compiler/unit_SubWordReturnTest_testSnippet__2.test
+../graal_uqcyber/compiler/unit_SubWordReturnTest_testSnippet__3.test
+../graal_uqcyber/compiler/unit_SubWordReturnTest_testSnippet__4.test
+../graal_uqcyber/compiler/unit_Test6753639_test.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse1.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse10.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse11.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse12.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse2.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse3.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse4.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse5.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse6.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse7.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse8.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testAlwaysFalse9.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual1.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual10.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual11.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual12.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual13.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual14.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual15.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual16.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual17.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual18.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual19.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual2.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual20.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual21.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual22.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual23.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual24.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual25.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual26.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual27.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual28.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual29.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual3.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual30.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual31.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual32.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual33.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual34.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual35.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual36.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual37.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual38.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual39.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual4.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual40.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual41.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual42.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual43.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual44.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual45.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual46.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual47.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual48.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual5.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual6.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual7.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual8.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testEqual9.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater1.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater10.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater100.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater101.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater102.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater103.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater104.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater105.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater106.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater107.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater108.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater109.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater11.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater110.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater111.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater112.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater113.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater114.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater115.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater116.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater117.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater118.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater119.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater12.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater120.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater121.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater122.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater123.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater124.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater125.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater126.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater127.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater128.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater129.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater13.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater130.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater131.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater132.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater133.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater134.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater135.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater136.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater137.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater138.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater139.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater14.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater140.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater141.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater142.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater143.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater144.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater15.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater16.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater17.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater18.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater19.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater2.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater20.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater21.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater22.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater23.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater24.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater25.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater26.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater27.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater28.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater29.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater3.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater30.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater31.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater32.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater33.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater34.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater35.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater36.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater37.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater38.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater39.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater4.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater40.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater41.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater42.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater43.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater44.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater45.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater46.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater47.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater48.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater49.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater5.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater50.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater51.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater52.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater53.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater54.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater55.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater56.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater57.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater58.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater59.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater6.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater60.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater61.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater62.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater63.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater64.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater65.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater66.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater67.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater68.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater69.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater7.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater70.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater71.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater72.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater73.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater74.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater75.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater76.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater77.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater78.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater79.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater8.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater80.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater81.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater82.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater83.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater84.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater85.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater86.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater87.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater88.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater89.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater9.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater90.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater91.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater92.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater93.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater94.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater95.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater96.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater97.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater98.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreater99.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual1.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual10.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual11.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual12.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual13.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual14.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual15.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual16.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual17.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual18.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual19.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual2.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual20.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual21.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual22.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual23.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual24.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual25.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual26.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual27.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual28.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual29.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual3.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual30.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual31.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual32.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual33.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual34.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual35.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual36.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual37.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual38.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual39.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual4.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual40.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual41.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual42.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual43.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual44.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual45.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual46.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual47.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual48.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual5.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual6.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual7.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual8.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testGreaterEqual9.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller1.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller10.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller100.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller101.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller102.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller103.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller104.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller105.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller106.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller107.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller108.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller109.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller11.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller110.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller111.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller112.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller113.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller114.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller115.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller116.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller117.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller118.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller119.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller12.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller120.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller121.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller122.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller123.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller124.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller125.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller126.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller127.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller128.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller129.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller13.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller130.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller131.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller132.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller133.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller134.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller135.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller136.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller137.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller138.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller139.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller14.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller140.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller141.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller142.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller143.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller144.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller15.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller16.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller17.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller18.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller19.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller2.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller20.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller21.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller22.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller23.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller24.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller25.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller26.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller27.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller28.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller29.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller3.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller30.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller31.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller32.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller33.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller34.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller35.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller36.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller37.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller38.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller39.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller4.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller40.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller41.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller42.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller43.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller44.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller45.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller46.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller47.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller48.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller49.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller5.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller50.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller51.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller52.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller53.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller54.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller55.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller56.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller57.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller58.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller59.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller6.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller60.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller61.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller62.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller63.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller64.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller65.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller66.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller67.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller68.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller69.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller7.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller70.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller71.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller72.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller73.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller74.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller75.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller76.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller77.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller78.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller79.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller8.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller80.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller81.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller82.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller83.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller84.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller85.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller86.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller87.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller88.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller89.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller9.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller90.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller91.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller92.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller93.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller94.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller95.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller96.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller97.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller98.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmaller99.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual1.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual10.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual11.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual12.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual13.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual14.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual15.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual16.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual17.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual18.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual19.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual2.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual20.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual21.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual22.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual23.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual24.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual25.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual26.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual27.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual28.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual29.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual3.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual30.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual31.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual32.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual33.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual34.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual35.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual36.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual37.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual38.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual39.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual4.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual40.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual41.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual42.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual43.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual44.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual45.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual46.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual47.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual48.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual5.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual6.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual7.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual8.test
+../graal_uqcyber/compiler/unit_TrichotomyTest_testSmallerEqual9.test
+../graal_uqcyber/compiler/unit_UnsignedMathTest_aboveOrEqualInt.test
+../graal_uqcyber/compiler/unit_UnsignedMathTest_aboveOrEqualLong.test
+../graal_uqcyber/compiler/unit_UnsignedMathTest_aboveThanInt.test
+../graal_uqcyber/compiler/unit_UnsignedMathTest_aboveThanLong.test
+../graal_uqcyber/compiler/unit_UnsignedMathTest_belowOrEqualInt.test
+../graal_uqcyber/compiler/unit_UnsignedMathTest_belowOrEqualLong.test
+../graal_uqcyber/compiler/unit_UnsignedMathTest_belowThanInt.test
+../graal_uqcyber/compiler/unit_UnsignedMathTest_belowThanLong.test
+../graal_uqcyber/compiler/unit_VN_Convert01_test.test
+../graal_uqcyber/compiler/unit_VN_Convert02_test.test
+../graal_uqcyber/compiler/unit_VN_Int01_test.test
+../graal_uqcyber/compiler/unit_VN_Int02_test.test
+../graal_uqcyber/compiler/unit_VN_Int03_test.test
+../graal_uqcyber/compiler/unit_VN_Long01_test.test
+../graal_uqcyber/compiler/unit_VN_Long02_test.test
+../graal_uqcyber/compiler/unit_VN_Long03_test.test
+../graal_uqcyber/compiler/unit_VN_Loop01_test.test
+../graal_uqcyber/compiler/unit_VeriOptFactorialTest_fact.test
+../graal_uqcyber/compiler/unit_VeriOptFactorialTest_factAsAnObject.test
+../graal_uqcyber/compiler/unit_VeriOptFactorialTest_factStatic.test
+Generating Isabelle Tests/UnitTests*.thy files...
+Building theories from     2642 tests in      830 files out of      840.
+Starting output Tests/UnitTests10.thy
+Starting output Tests/UnitTests11.thy
+Starting output Tests/UnitTests12.thy
+Starting output Tests/UnitTests13.thy
+Starting output Tests/UnitTests14.thy
+Starting output Tests/UnitTests15.thy
+Starting output Tests/UnitTests16.thy
+Starting output Tests/UnitTests17.thy
+Starting output Tests/UnitTests18.thy
+Starting output Tests/UnitTests19.thy
+Starting output Tests/UnitTests20.thy
+Starting output Tests/UnitTests21.thy
+Starting output Tests/UnitTests22.thy
+Starting output Tests/UnitTests23.thy
+Starting output Tests/UnitTests24.thy
+Starting output Tests/UnitTests25.thy
+Starting output Tests/UnitTests26.thy
+Starting output Tests/UnitTests27.thy
+Starting output Tests/UnitTests28.thy
+Starting output Tests/UnitTests29.thy
+Starting output Tests/UnitTests30.thy
+Starting output Tests/UnitTests31.thy
+Starting output Tests/UnitTests32.thy
+Starting output Tests/UnitTests33.thy
+Starting output Tests/UnitTests34.thy
+Starting output Tests/UnitTests35.thy
+Starting output Tests/UnitTests36.thy
+Starting output Tests/UnitTests37.thy
+Starting output Tests/UnitTests38.thy
+Starting output Tests/UnitTests39.thy
+Starting output Tests/UnitTests40.thy
+Starting output Tests/UnitTests41.thy
+Starting output Tests/UnitTests42.thy
+Starting output Tests/UnitTests43.thy
+Starting output Tests/UnitTests44.thy
+Starting output Tests/UnitTests45.thy
+Starting output Tests/UnitTests46.thy
+Starting output Tests/UnitTests47.thy
+Starting output Tests/UnitTests48.thy
+Starting output Tests/UnitTests49.thy
+Starting output Tests/UnitTests50.thy
+Starting output Tests/UnitTests51.thy
+Starting output Tests/UnitTests52.thy
+Now to execute tests with Isabelle, run:
+    ./bin/unittest_run.sh Tests/UnitTests*.thy
+Running all tests through Isabelle (several hours)...
+Running tests through Isabelle...
+========== Tests/UnitTests10.thy ==========
+Started at Sat Jan 28 14:48:26 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 106.473s elapsed time, 688.823s cpu time, 90.830s GC time, factor 6.47)
+Finished Tests (0:01:48 elapsed time, 0:11:30 cpu time, factor 6.37)
+
+Finished at Sat Jan 28 14:50:17 GMT+10 2023
+0:01:51 elapsed time, 0:11:30 cpu time, factor 6.22
+========== Tests/UnitTests11.thy ==========
+Started at Sat Jan 28 14:50:23 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 117.469s elapsed time, 798.738s cpu time, 112.046s GC time, factor 6.80)
+Finished Tests (0:01:59 elapsed time, 0:13:20 cpu time, factor 6.70)
+
+Finished at Sat Jan 28 14:52:25 GMT+10 2023
+0:02:02 elapsed time, 0:13:20 cpu time, factor 6.55
+========== Tests/UnitTests12.thy ==========
+Started at Sat Jan 28 14:52:31 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 141.702s elapsed time, 949.967s cpu time, 111.316s GC time, factor 6.70)
+Finished Tests (0:02:23 elapsed time, 0:15:51 cpu time, factor 6.62)
+
+Finished at Sat Jan 28 14:54:58 GMT+10 2023
+0:02:26 elapsed time, 0:15:51 cpu time, factor 6.49
+========== Tests/UnitTests13.thy ==========
+Started at Sat Jan 28 14:55:04 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 69.059s elapsed time, 424.516s cpu time, 63.861s GC time, factor 6.15)
+Finished Tests (0:01:11 elapsed time, 0:07:06 cpu time, factor 5.99)
+
+Finished at Sat Jan 28 14:56:18 GMT+10 2023
+0:01:14 elapsed time, 0:07:06 cpu time, factor 5.76
+========== Tests/UnitTests14.thy ==========
+Started at Sat Jan 28 14:56:24 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 50.881s elapsed time, 263.552s cpu time, 67.556s GC time, factor 5.18)
+Finished Tests (0:00:52 elapsed time, 0:04:25 cpu time, factor 5.01)
+
+Finished at Sat Jan 28 14:57:19 GMT+10 2023
+0:00:55 elapsed time, 0:04:25 cpu time, factor 4.76
+========== Tests/UnitTests15.thy ==========
+Started at Sat Jan 28 14:57:26 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 66.768s elapsed time, 462.093s cpu time, 52.730s GC time, factor 6.92)
+Finished Tests (0:01:08 elapsed time, 0:07:43 cpu time, factor 6.73)
+
+Finished at Sat Jan 28 14:58:38 GMT+10 2023
+0:01:11 elapsed time, 0:07:43 cpu time, factor 6.45
+========== Tests/UnitTests16.thy ==========
+Started at Sat Jan 28 14:58:44 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 67.886s elapsed time, 487.468s cpu time, 55.605s GC time, factor 7.18)
+Finished Tests (0:01:09 elapsed time, 0:08:09 cpu time, factor 7.00)
+
+Finished at Sat Jan 28 14:59:56 GMT+10 2023
+0:01:12 elapsed time, 0:08:09 cpu time, factor 6.70
+========== Tests/UnitTests17.thy ==========
+Started at Sat Jan 28 15:00:02 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 111.743s elapsed time, 714.958s cpu time, 101.163s GC time, factor 6.40)
+Finished Tests (0:01:53 elapsed time, 0:11:56 cpu time, factor 6.31)
+
+Finished at Sat Jan 28 15:01:59 GMT+10 2023
+0:01:56 elapsed time, 0:11:56 cpu time, factor 6.14
+========== Tests/UnitTests18.thy ==========
+Started at Sat Jan 28 15:02:05 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 93.467s elapsed time, 694.869s cpu time, 68.376s GC time, factor 7.43)
+Finished Tests (0:01:35 elapsed time, 0:11:36 cpu time, factor 7.29)
+
+Finished at Sat Jan 28 15:03:44 GMT+10 2023
+0:01:38 elapsed time, 0:11:36 cpu time, factor 7.06
+========== Tests/UnitTests19.thy ==========
+Started at Sat Jan 28 15:03:49 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 47.707s elapsed time, 337.408s cpu time, 38.099s GC time, factor 7.07)
+Finished Tests (0:00:49 elapsed time, 0:05:39 cpu time, factor 6.82)
+
+Finished at Sat Jan 28 15:04:42 GMT+10 2023
+0:00:52 elapsed time, 0:05:39 cpu time, factor 6.41
+========== Tests/UnitTests20.thy ==========
+Started at Sat Jan 28 15:04:48 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 156.486s elapsed time, 677.664s cpu time, 69.119s GC time, factor 4.33)
+Finished Tests (0:02:39 elapsed time, 0:11:19 cpu time, factor 4.27)
+
+Finished at Sat Jan 28 15:07:31 GMT+10 2023
+0:02:42 elapsed time, 0:11:19 cpu time, factor 4.18
+========== Tests/UnitTests21.thy ==========
+Started at Sat Jan 28 15:07:37 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 72.272s elapsed time, 466.976s cpu time, 53.355s GC time, factor 6.46)
+Finished Tests (0:01:15 elapsed time, 0:07:49 cpu time, factor 6.25)
+
+Finished at Sat Jan 28 15:08:55 GMT+10 2023
+0:01:17 elapsed time, 0:07:49 cpu time, factor 6.02
+========== Tests/UnitTests22.thy ==========
+Started at Sat Jan 28 15:09:01 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.884s elapsed time, 258.294s cpu time, 33.577s GC time, factor 6.64)
+Finished Tests (0:00:40 elapsed time, 0:04:19 cpu time, factor 6.35)
+
+Finished at Sat Jan 28 15:09:45 GMT+10 2023
+0:00:43 elapsed time, 0:04:19 cpu time, factor 5.93
+========== Tests/UnitTests23.thy ==========
+Started at Sat Jan 28 15:09:51 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.615s elapsed time, 257.827s cpu time, 34.432s GC time, factor 6.51)
+Finished Tests (0:00:41 elapsed time, 0:04:19 cpu time, factor 6.23)
+
+Finished at Sat Jan 28 15:10:36 GMT+10 2023
+0:00:44 elapsed time, 0:04:19 cpu time, factor 5.82
+========== Tests/UnitTests24.thy ==========
+Started at Sat Jan 28 15:10:42 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.683s elapsed time, 259.014s cpu time, 34.770s GC time, factor 6.70)
+Finished Tests (0:00:40 elapsed time, 0:04:20 cpu time, factor 6.40)
+
+Finished at Sat Jan 28 15:11:25 GMT+10 2023
+0:00:43 elapsed time, 0:04:20 cpu time, factor 5.96
+========== Tests/UnitTests25.thy ==========
+Started at Sat Jan 28 15:11:31 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.344s elapsed time, 260.701s cpu time, 34.828s GC time, factor 6.63)
+Finished Tests (0:00:41 elapsed time, 0:04:22 cpu time, factor 6.34)
+
+Finished at Sat Jan 28 15:12:15 GMT+10 2023
+0:00:43 elapsed time, 0:04:22 cpu time, factor 5.96
+========== Tests/UnitTests26.thy ==========
+Started at Sat Jan 28 15:12:21 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.119s elapsed time, 252.647s cpu time, 33.791s GC time, factor 6.63)
+Finished Tests (0:00:40 elapsed time, 0:04:14 cpu time, factor 6.33)
+
+Finished at Sat Jan 28 15:13:04 GMT+10 2023
+0:00:43 elapsed time, 0:04:14 cpu time, factor 5.90
+========== Tests/UnitTests27.thy ==========
+Started at Sat Jan 28 15:13:10 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.798s elapsed time, 252.548s cpu time, 34.192s GC time, factor 6.51)
+Finished Tests (0:00:40 elapsed time, 0:04:14 cpu time, factor 6.23)
+
+Finished at Sat Jan 28 15:13:54 GMT+10 2023
+0:00:43 elapsed time, 0:04:14 cpu time, factor 5.82
+========== Tests/UnitTests28.thy ==========
+Started at Sat Jan 28 15:14:00 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 36.175s elapsed time, 249.683s cpu time, 36.118s GC time, factor 6.90)
+Finished Tests (0:00:38 elapsed time, 0:04:11 cpu time, factor 6.58)
+
+Finished at Sat Jan 28 15:14:41 GMT+10 2023
+0:00:41 elapsed time, 0:04:11 cpu time, factor 6.10
+========== Tests/UnitTests29.thy ==========
+Started at Sat Jan 28 15:14:47 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 35.118s elapsed time, 243.425s cpu time, 30.221s GC time, factor 6.93)
+Finished Tests (0:00:37 elapsed time, 0:04:05 cpu time, factor 6.59)
+
+Finished at Sat Jan 28 15:15:28 GMT+10 2023
+0:00:40 elapsed time, 0:04:05 cpu time, factor 6.08
+========== Tests/UnitTests30.thy ==========
+Started at Sat Jan 28 15:15:34 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.334s elapsed time, 248.562s cpu time, 32.035s GC time, factor 6.48)
+Finished Tests (0:00:40 elapsed time, 0:04:10 cpu time, factor 6.19)
+
+Finished at Sat Jan 28 15:16:17 GMT+10 2023
+0:00:43 elapsed time, 0:04:10 cpu time, factor 5.80
+========== Tests/UnitTests31.thy ==========
+Started at Sat Jan 28 15:16:23 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.583s elapsed time, 256.870s cpu time, 33.925s GC time, factor 6.66)
+Finished Tests (0:00:40 elapsed time, 0:04:18 cpu time, factor 6.35)
+
+Finished at Sat Jan 28 15:17:06 GMT+10 2023
+0:00:43 elapsed time, 0:04:18 cpu time, factor 5.93
+========== Tests/UnitTests32.thy ==========
+Started at Sat Jan 28 15:17:12 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 37.845s elapsed time, 252.979s cpu time, 31.201s GC time, factor 6.68)
+Finished Tests (0:00:39 elapsed time, 0:04:14 cpu time, factor 6.40)
+
+Finished at Sat Jan 28 15:17:55 GMT+10 2023
+0:00:42 elapsed time, 0:04:14 cpu time, factor 5.97
+========== Tests/UnitTests33.thy ==========
+Started at Sat Jan 28 15:18:01 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.803s elapsed time, 257.501s cpu time, 34.895s GC time, factor 6.64)
+Finished Tests (0:00:40 elapsed time, 0:04:19 cpu time, factor 6.34)
+
+Finished at Sat Jan 28 15:18:45 GMT+10 2023
+0:00:43 elapsed time, 0:04:19 cpu time, factor 5.94
+========== Tests/UnitTests34.thy ==========
+Started at Sat Jan 28 15:18:50 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.418s elapsed time, 257.171s cpu time, 34.676s GC time, factor 6.52)
+Finished Tests (0:00:41 elapsed time, 0:04:18 cpu time, factor 6.24)
+
+Finished at Sat Jan 28 15:19:35 GMT+10 2023
+0:00:44 elapsed time, 0:04:18 cpu time, factor 5.86
+========== Tests/UnitTests35.thy ==========
+Started at Sat Jan 28 15:19:41 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 35.826s elapsed time, 246.641s cpu time, 31.511s GC time, factor 6.88)
+Finished Tests (0:00:37 elapsed time, 0:04:08 cpu time, factor 6.56)
+
+Finished at Sat Jan 28 15:20:21 GMT+10 2023
+0:00:40 elapsed time, 0:04:08 cpu time, factor 6.10
+========== Tests/UnitTests36.thy ==========
+Started at Sat Jan 28 15:20:27 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.857s elapsed time, 256.394s cpu time, 35.193s GC time, factor 6.60)
+Finished Tests (0:00:41 elapsed time, 0:04:18 cpu time, factor 6.29)
+
+Finished at Sat Jan 28 15:21:11 GMT+10 2023
+0:00:43 elapsed time, 0:04:18 cpu time, factor 5.90
+========== Tests/UnitTests37.thy ==========
+Started at Sat Jan 28 15:21:17 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.444s elapsed time, 258.912s cpu time, 35.664s GC time, factor 6.56)
+Finished Tests (0:00:41 elapsed time, 0:04:20 cpu time, factor 6.28)
+
+Finished at Sat Jan 28 15:22:01 GMT+10 2023
+0:00:44 elapsed time, 0:04:20 cpu time, factor 5.91
+========== Tests/UnitTests38.thy ==========
+Started at Sat Jan 28 15:22:07 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.095s elapsed time, 257.006s cpu time, 34.631s GC time, factor 6.57)
+Finished Tests (0:00:41 elapsed time, 0:04:18 cpu time, factor 6.29)
+
+Finished at Sat Jan 28 15:22:52 GMT+10 2023
+0:00:44 elapsed time, 0:04:18 cpu time, factor 5.85
+========== Tests/UnitTests39.thy ==========
+Started at Sat Jan 28 15:22:58 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.585s elapsed time, 255.222s cpu time, 30.855s GC time, factor 6.61)
+Finished Tests (0:00:40 elapsed time, 0:04:16 cpu time, factor 6.33)
+
+Finished at Sat Jan 28 15:23:41 GMT+10 2023
+0:00:43 elapsed time, 0:04:16 cpu time, factor 5.87
+========== Tests/UnitTests40.thy ==========
+Started at Sat Jan 28 15:23:47 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 40.831s elapsed time, 275.861s cpu time, 35.772s GC time, factor 6.76)
+Finished Tests (0:00:42 elapsed time, 0:04:37 cpu time, factor 6.46)
+
+Finished at Sat Jan 28 15:24:33 GMT+10 2023
+0:00:45 elapsed time, 0:04:37 cpu time, factor 6.09
+========== Tests/UnitTests41.thy ==========
+Started at Sat Jan 28 15:24:39 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 37.564s elapsed time, 251.566s cpu time, 31.103s GC time, factor 6.70)
+Finished Tests (0:00:39 elapsed time, 0:04:13 cpu time, factor 6.39)
+
+Finished at Sat Jan 28 15:25:22 GMT+10 2023
+0:00:42 elapsed time, 0:04:13 cpu time, factor 5.94
+========== Tests/UnitTests42.thy ==========
+Started at Sat Jan 28 15:25:28 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 38.829s elapsed time, 252.725s cpu time, 36.001s GC time, factor 6.51)
+Finished Tests (0:00:40 elapsed time, 0:04:14 cpu time, factor 6.23)
+
+Finished at Sat Jan 28 15:26:11 GMT+10 2023
+0:00:43 elapsed time, 0:04:14 cpu time, factor 5.83
+========== Tests/UnitTests43.thy ==========
+Started at Sat Jan 28 15:26:17 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 36.855s elapsed time, 244.944s cpu time, 30.231s GC time, factor 6.65)
+Finished Tests (0:00:38 elapsed time, 0:04:06 cpu time, factor 6.34)
+
+Finished at Sat Jan 28 15:26:59 GMT+10 2023
+0:00:41 elapsed time, 0:04:06 cpu time, factor 5.92
+========== Tests/UnitTests44.thy ==========
+Started at Sat Jan 28 15:27:05 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 37.212s elapsed time, 250.491s cpu time, 29.925s GC time, factor 6.73)
+Finished Tests (0:00:39 elapsed time, 0:04:12 cpu time, factor 6.43)
+
+Finished at Sat Jan 28 15:27:47 GMT+10 2023
+0:00:42 elapsed time, 0:04:12 cpu time, factor 5.98
+========== Tests/UnitTests45.thy ==========
+Started at Sat Jan 28 15:27:53 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.171s elapsed time, 257.435s cpu time, 32.926s GC time, factor 6.57)
+Finished Tests (0:00:41 elapsed time, 0:04:19 cpu time, factor 6.31)
+
+Finished at Sat Jan 28 15:28:37 GMT+10 2023
+0:00:44 elapsed time, 0:04:19 cpu time, factor 5.87
+========== Tests/UnitTests46.thy ==========
+Started at Sat Jan 28 15:28:43 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.013s elapsed time, 265.181s cpu time, 31.372s GC time, factor 6.80)
+Finished Tests (0:00:41 elapsed time, 0:04:26 cpu time, factor 6.50)
+
+Finished at Sat Jan 28 15:29:27 GMT+10 2023
+0:00:44 elapsed time, 0:04:26 cpu time, factor 6.04
+========== Tests/UnitTests47.thy ==========
+Started at Sat Jan 28 15:29:33 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 35.907s elapsed time, 250.642s cpu time, 37.560s GC time, factor 6.98)
+Finished Tests (0:00:37 elapsed time, 0:04:12 cpu time, factor 6.65)
+
+Finished at Sat Jan 28 15:30:14 GMT+10 2023
+0:00:40 elapsed time, 0:04:12 cpu time, factor 6.20
+========== Tests/UnitTests48.thy ==========
+Started at Sat Jan 28 15:30:20 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.219s elapsed time, 258.480s cpu time, 34.425s GC time, factor 6.59)
+Finished Tests (0:00:41 elapsed time, 0:04:20 cpu time, factor 6.31)
+
+Finished at Sat Jan 28 15:31:04 GMT+10 2023
+0:00:44 elapsed time, 0:04:20 cpu time, factor 5.89
+========== Tests/UnitTests49.thy ==========
+Started at Sat Jan 28 15:31:10 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 39.005s elapsed time, 258.054s cpu time, 33.534s GC time, factor 6.62)
+Finished Tests (0:00:40 elapsed time, 0:04:19 cpu time, factor 6.34)
+
+Finished at Sat Jan 28 15:31:53 GMT+10 2023
+0:00:43 elapsed time, 0:04:19 cpu time, factor 5.95
+========== Tests/UnitTests50.thy ==========
+Started at Sat Jan 28 15:31:59 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 36.481s elapsed time, 252.277s cpu time, 38.275s GC time, factor 6.92)
+Finished Tests (0:00:38 elapsed time, 0:04:13 cpu time, factor 6.60)
+
+Finished at Sat Jan 28 15:32:41 GMT+10 2023
+0:00:41 elapsed time, 0:04:13 cpu time, factor 6.17
+========== Tests/UnitTests51.thy ==========
+Started at Sat Jan 28 15:32:47 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 53.267s elapsed time, 370.284s cpu time, 36.556s GC time, factor 6.95)
+Finished Tests (0:00:55 elapsed time, 0:06:11 cpu time, factor 6.73)
+
+Finished at Sat Jan 28 15:33:45 GMT+10 2023
+0:00:58 elapsed time, 0:06:11 cpu time, factor 6.39
+========== Tests/UnitTests52.thy ==========
+Started at Sat Jan 28 15:33:51 GMT+10 2023 (polyml-5.9_arm64_32-darwin on uqmuttin-8834)
+ISABELLE_TOOL_JAVA_OPTIONS="-Djava.awt.headless=true -Xms512m -Xmx4g -Xss16m -Xmx16g"
+ISABELLE_BUILD_OPTIONS=""
+
+ML_PLATFORM="arm64_32-darwin"
+ML_HOME="/Applications/Isabelle2022.app/contrib/polyml-test-bafe319bc3a6-1/arm64_32-darwin"
+ML_SYSTEM="polyml-5.9"
+ML_OPTIONS="--minheap 500"
+
+Session Pure/Pure
+Session FOL/FOL
+Session Misc/Tools
+Session HOL/HOL (main)
+Session HOL/HOL-Library (main timing)
+Session veriopt/Graph
+Session HOL/HOL-Combinatorics (main timing)
+Session HOL/HOL-Computational_Algebra (main timing)
+Session HOL/HOL-Analysis (main timing)
+Session HOL/HOL-Eisbach
+Session veriopt/Semantics
+Session veriopt/Tests
+Running Tests ...
+Tests: theory Tests.UnitTesting
+Timing Tests (8 threads, 23.383s elapsed time, 155.665s cpu time, 23.053s GC time, factor 6.66)
+Finished Tests (0:00:25 elapsed time, 0:02:37 cpu time, factor 6.22)
+
+Finished at Sat Jan 28 15:34:19 GMT+10 2023
+0:00:27 elapsed time, 0:02:37 cpu time, factor 5.62
+Showing Isabelle results...
+      43 test theory files
+      43 test output log files
+2636 tests passed
+6 tests failed
+Tests/UnitTests10.log:Tests failed:        0
+Tests/UnitTests11.log:Tests failed:        0
+Tests/UnitTests12.log:Tests failed:        0
+Tests/UnitTests13.log:Tests failed:        0
+Tests/UnitTests14.log:Tests failed:        2
+Tests/UnitTests15.log:Tests failed:        0
+Tests/UnitTests16.log:Tests failed:        0
+Tests/UnitTests17.log:Tests failed:        0
+Tests/UnitTests18.log:Tests failed:        2
+Tests/UnitTests19.log:Tests failed:        1
+Tests/UnitTests20.log:Tests failed:        1
+Tests/UnitTests21.log:Tests failed:        0
+Tests/UnitTests22.log:Tests failed:        0
+Tests/UnitTests23.log:Tests failed:        0
+Tests/UnitTests24.log:Tests failed:        0
+Tests/UnitTests25.log:Tests failed:        0
+Tests/UnitTests26.log:Tests failed:        0
+Tests/UnitTests27.log:Tests failed:        0
+Tests/UnitTests28.log:Tests failed:        0
+Tests/UnitTests29.log:Tests failed:        0
+Tests/UnitTests30.log:Tests failed:        0
+Tests/UnitTests31.log:Tests failed:        0
+Tests/UnitTests32.log:Tests failed:        0
+Tests/UnitTests33.log:Tests failed:        0
+Tests/UnitTests34.log:Tests failed:        0
+Tests/UnitTests35.log:Tests failed:        0
+Tests/UnitTests36.log:Tests failed:        0
+Tests/UnitTests37.log:Tests failed:        0
+Tests/UnitTests38.log:Tests failed:        0
+Tests/UnitTests39.log:Tests failed:        0
+Tests/UnitTests40.log:Tests failed:        0
+Tests/UnitTests41.log:Tests failed:        0
+Tests/UnitTests42.log:Tests failed:        0
+Tests/UnitTests43.log:Tests failed:        0
+Tests/UnitTests44.log:Tests failed:        0
+Tests/UnitTests45.log:Tests failed:        0
+Tests/UnitTests46.log:Tests failed:        0
+Tests/UnitTests47.log:Tests failed:        0
+Tests/UnitTests48.log:Tests failed:        0
+Tests/UnitTests49.log:Tests failed:        0
+Tests/UnitTests50.log:Tests failed:        0
+Tests/UnitTests51.log:Tests failed:        0
+Tests/UnitTests52.log:Tests failed:        0

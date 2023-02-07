@@ -1,0 +1,45 @@
+
+(* Lorg/graalvm/compiler/jtt/hotpath/HP_dead01;.HP_dead01_test*)
+definition unit_HP_dead01_test :: IRGraph where
+  "unit_HP_dead01_test = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 32] None (Some 9) 16), VoidStamp),
+  (7, (ValuePhiNode 7 [3, 30] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 31] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (IntegerLessThanNode 1 8), VoidStamp),
+  (11, (BeginNode 32), VoidStamp),
+  (13, (LoopExitNode 6 (Some 15) 33), VoidStamp),
+  (14, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (IfNode 10 13 11), VoidStamp),
+  (17, (AddNode 8 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (18, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (19, (ConstantNode (new_int 32 (31))), IntegerStamp 32 (31) (31)),
+  (20, (RightShiftNode 8 19), IntegerStamp 32 (-1) (0)),
+  (21, (UnsignedRightShiftNode 20 19), IntegerStamp 32 (0) (1)),
+  (22, (AddNode 21 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (24, (RightShiftNode 22 23), IntegerStamp 32 (-1073741824) (1073741823)),
+  (25, (MulNode 8 24), IntegerStamp 32 (-2147483648) (2147483647)),
+  (26, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (27, (ConstantNode (new_int 32 (-10))), IntegerStamp 32 (-10) (-10)),
+  (28, (AddNode 25 27), IntegerStamp 32 (-2147483648) (2147483647)),
+  (29, (AddNode 17 28), IntegerStamp 32 (-2147483648) (2147483647)),
+  (30, (AddNode 7 17), IntegerStamp 32 (-2147483648) (2147483647)),
+  (31, (AddNode 8 23), IntegerStamp 32 (-2147483648) (2147483647)),
+  (32, (LoopEndNode 6), VoidStamp),
+  (33, (ReturnNode (Some 14) None), VoidStamp)
+  ]"
+value "static_test unit_HP_dead01_test  [(new_int 32 (10))] (new_int 32 (110))"
+
+value "static_test unit_HP_dead01_test  [(new_int 32 (20))] (new_int 32 (420))"
+
+value "static_test unit_HP_dead01_test  [(new_int 32 (30))] (new_int 32 (930))"
+
+value "static_test unit_HP_dead01_test  [(new_int 32 (40))] (new_int 32 (1640))"
+

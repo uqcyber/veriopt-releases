@@ -1,0 +1,11 @@
+
+(* Lorg/graalvm/compiler/core/test/CompilationWatchDogTest;.CompilationWatchDogTest_snippet*)
+definition unit_CompilationWatchDogTest_snippet :: IRGraph where
+  "unit_CompilationWatchDogTest_snippet = irgraph [
+  (0, (StartNode (Some 2) 3), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ReturnNode (Some 1) None), VoidStamp)
+  ]"
+value "static_test unit_CompilationWatchDogTest_snippet  [(new_int 32 (42))] (new_int 32 (42))"
+

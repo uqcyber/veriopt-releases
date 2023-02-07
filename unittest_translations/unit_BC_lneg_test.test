@@ -1,0 +1,18 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_lneg;.BC_lneg_test*)
+definition unit_BC_lneg_test :: IRGraph where
+  "unit_BC_lneg_test = irgraph [
+  (0, (StartNode (Some 2) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NegateNode 1), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (4, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_BC_lneg_test  [(IntVal 64 (0))] (IntVal 64 (0))"
+
+value "static_test unit_BC_lneg_test  [(IntVal 64 (-1))] (IntVal 64 (1))"
+
+value "static_test unit_BC_lneg_test  [(IntVal 64 (7263))] (IntVal 64 (-7263))"
+
+value "static_test unit_BC_lneg_test  [(IntVal 64 (-2147483648))] (IntVal 64 (2147483648))"
+

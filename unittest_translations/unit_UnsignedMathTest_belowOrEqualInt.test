@@ -1,0 +1,22 @@
+
+(* Lorg/graalvm/compiler/replacements/test/UnsignedMathTest;.UnsignedMathTest_belowOrEqualInt*)
+definition unit_UnsignedMathTest_belowOrEqualInt :: IRGraph where
+  "unit_UnsignedMathTest_belowOrEqualInt = irgraph [
+  (0, (StartNode (Some 3) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (6, (IntegerBelowNode 2 1), VoidStamp),
+  (7, (ConditionalNode 6 4 5), IntegerStamp 32 (0) (1)),
+  (8, (ReturnNode (Some 7) None), VoidStamp)
+  ]"
+value "static_test unit_UnsignedMathTest_belowOrEqualInt  [(new_int 32 (5)), (new_int 32 (7))] (new_int 32 (1))"
+
+value "static_test unit_UnsignedMathTest_belowOrEqualInt  [(new_int 32 (-3)), (new_int 32 (-7))] (new_int 32 (0))"
+
+value "static_test unit_UnsignedMathTest_belowOrEqualInt  [(new_int 32 (-3)), (new_int 32 (7))] (new_int 32 (0))"
+
+value "static_test unit_UnsignedMathTest_belowOrEqualInt  [(new_int 32 (42)), (new_int 32 (-5))] (new_int 32 (1))"
+

@@ -1,0 +1,13 @@
+
+(* Lorg/graalvm/compiler/hotspot/amd64/test/NumberOfTrailingZeroings003;.NumberOfTrailingZeroings003_numberOfTrailingZerosMax*)
+definition unit_NumberOfTrailingZeroings003_numberOfTrailingZerosMax :: IRGraph where
+  "unit_NumberOfTrailingZeroings003_numberOfTrailingZerosMax = irgraph [
+  (0, (StartNode (Some 1) 5), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (2147483647))), IntegerStamp 32 (2147483647) (2147483647)),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_NumberOfTrailingZeroings003_numberOfTrailingZerosMax  [] (new_int 32 (1))"
+

@@ -3,7 +3,7 @@ chapter "veriopt"
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM Intermediate Representation encoding"
-  options [document = pdf, document_output = "output",
+  options [document = false, document_output = "output",
            show_question_marks = false]
   theories
     Values
@@ -22,7 +22,7 @@ session Graph in Graph = "HOL-Library" +
 session Semantics in Semantics = Graph +
   description
     "Semantics of the GraalVM IR"
-  options [document = pdf, document_output = "output",
+  options [document = false, document_output = "output",
            show_question_marks = false]
   sessions
     "HOL-Eisbach"
@@ -54,7 +54,7 @@ session Proofs in Proofs = Semantics +
 session OptimizationDSL in "Optimizations/DSL" = Proofs +
   description
     "DSL for expressing optimizations"
-  options [document = pdf, document_output = "output",
+  options [document = false, document_output = "output",
            show_question_marks = false]
   sessions
     Snippets
@@ -69,7 +69,7 @@ session OptimizationDSL in "Optimizations/DSL" = Proofs +
 session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL +
   description
     "Canonicalization phase"
-  options [document = pdf, document_output = "output",
+  options [document = false, document_output = "output",
            show_question_marks = false, quick_and_dirty]
   theories
     Common
@@ -98,7 +98,7 @@ session ConditionalElimination in "Optimizations/ConditionalElimination" = Proof
   description
     "(experimental) Conditional elimination phase"
   options [quick_and_dirty,
-           document = pdf, document_output = "output",
+           document = false, document_output = "output",
            show_question_marks = false]
   theories
     ConditionalElimination
@@ -115,7 +115,7 @@ session Optimizations in Optimizations = OptimizationDSL +
     CanonicalizationTreeProofs
     CanonicalizationSyntax
 
-(*session Tests in Tests = Semantics +
+session Tests in Tests = Semantics +
   description
     "Miscellaneous project testing"
   theories
@@ -123,14 +123,14 @@ session Optimizations in Optimizations = OptimizationDSL +
     (*ExecExamples*)
     UnitTesting
     (*Test: ArithmeticTesting*)
-    (*ConditionalEliminationTests*)*)
+    (*ConditionalEliminationTests*)
 
 \<comment>\<open>Documentation sessions\<close>
 
 session Snippets = "HOL-Library" +
   description
     "Additional commands to enable the generation of LaTeX snippets of theories"
-  options [document = pdf, document_output = "output",
+  options [document = false, document_output = "output",
            show_question_marks = false]
   theories
     Snipping

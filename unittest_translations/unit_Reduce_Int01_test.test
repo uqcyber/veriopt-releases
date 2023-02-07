@@ -1,0 +1,90 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Reduce_Int01;.Reduce_Int01_test*)
+definition unit_Reduce_Int01_test :: IRGraph where
+  "unit_Reduce_Int01_test = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 15), VoidStamp),
+  (6, (BeginNode 10), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (ReturnNode (Some 8) None), VoidStamp),
+  (11, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (12, (IntegerEqualsNode 1 11), VoidStamp),
+  (13, (BeginNode 23), VoidStamp),
+  (14, (BeginNode 18), VoidStamp),
+  (15, (IfNode 12 14 13), VoidStamp),
+  (16, (ConstantNode (new_int 32 (11))), IntegerStamp 32 (11) (11)),
+  (17, (FrameState [] None None None), IllegalStamp),
+  (18, (ReturnNode (Some 16) None), VoidStamp),
+  (19, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (20, (IntegerEqualsNode 1 19), VoidStamp),
+  (21, (BeginNode 31), VoidStamp),
+  (22, (BeginNode 26), VoidStamp),
+  (23, (IfNode 20 22 21), VoidStamp),
+  (24, (ConstantNode (new_int 32 (12))), IntegerStamp 32 (12) (12)),
+  (25, (FrameState [] None None None), IllegalStamp),
+  (26, (ReturnNode (Some 24) None), VoidStamp),
+  (27, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (28, (IntegerEqualsNode 1 27), VoidStamp),
+  (29, (BeginNode 39), VoidStamp),
+  (30, (BeginNode 34), VoidStamp),
+  (31, (IfNode 28 30 29), VoidStamp),
+  (32, (ConstantNode (new_int 32 (13))), IntegerStamp 32 (13) (13)),
+  (33, (FrameState [] None None None), IllegalStamp),
+  (34, (ReturnNode (Some 32) None), VoidStamp),
+  (35, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (36, (IntegerEqualsNode 1 35), VoidStamp),
+  (37, (BeginNode 47), VoidStamp),
+  (38, (BeginNode 42), VoidStamp),
+  (39, (IfNode 36 38 37), VoidStamp),
+  (40, (FrameState [] None None None), IllegalStamp),
+  (41, (ConstantNode (new_int 32 (14))), IntegerStamp 32 (14) (14)),
+  (42, (ReturnNode (Some 41) None), VoidStamp),
+  (43, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (44, (IntegerEqualsNode 1 43), VoidStamp),
+  (45, (BeginNode 56), VoidStamp),
+  (46, (BeginNode 51), VoidStamp),
+  (47, (IfNode 44 46 45), VoidStamp),
+  (48, (ConstantNode (new_int 32 (15))), IntegerStamp 32 (15) (15)),
+  (49, (FrameState [] None None None), IllegalStamp),
+  (50, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (51, (ReturnNode (Some 48) None), VoidStamp),
+  (52, (ConstantNode (new_int 32 (6))), IntegerStamp 32 (6) (6)),
+  (53, (IntegerEqualsNode 1 52), VoidStamp),
+  (54, (BeginNode 64), VoidStamp),
+  (55, (BeginNode 59), VoidStamp),
+  (56, (IfNode 53 55 54), VoidStamp),
+  (57, (ConstantNode (new_int 32 (16))), IntegerStamp 32 (16) (16)),
+  (58, (FrameState [] None None None), IllegalStamp),
+  (59, (ReturnNode (Some 57) None), VoidStamp),
+  (60, (ConstantNode (new_int 32 (7))), IntegerStamp 32 (7) (7)),
+  (61, (IntegerEqualsNode 1 60), VoidStamp),
+  (62, (BeginNode 68), VoidStamp),
+  (63, (BeginNode 67), VoidStamp),
+  (64, (IfNode 61 63 62), VoidStamp),
+  (65, (ConstantNode (new_int 32 (17))), IntegerStamp 32 (17) (17)),
+  (66, (FrameState [] None None None), IllegalStamp),
+  (67, (ReturnNode (Some 65) None), VoidStamp),
+  (68, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_Reduce_Int01_test  [(new_int 32 (0))] (new_int 32 (10))"
+
+value "static_test unit_Reduce_Int01_test  [(new_int 32 (1))] (new_int 32 (11))"
+
+value "static_test unit_Reduce_Int01_test  [(new_int 32 (2))] (new_int 32 (12))"
+
+value "static_test unit_Reduce_Int01_test  [(new_int 32 (3))] (new_int 32 (13))"
+
+value "static_test unit_Reduce_Int01_test  [(new_int 32 (4))] (new_int 32 (14))"
+
+value "static_test unit_Reduce_Int01_test  [(new_int 32 (5))] (new_int 32 (15))"
+
+value "static_test unit_Reduce_Int01_test  [(new_int 32 (6))] (new_int 32 (16))"
+
+value "static_test unit_Reduce_Int01_test  [(new_int 32 (7))] (new_int 32 (17))"
+

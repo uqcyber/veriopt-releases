@@ -1,0 +1,85 @@
+
+(* Lorg/graalvm/compiler/jtt/micro/InvokeVirtual_01;.InvokeVirtual_01_test*)
+definition unit_InvokeVirtual_01_test :: Program where
+  "unit_InvokeVirtual_01_test = Map.empty (
+  ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 17), VoidStamp),
+  (6, (BeginNode 8), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (LoadFieldNode 8 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::aObject'' None 10), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' False False False),
+  (9, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'' [8, 1]), VoidStamp),
+  (10, (InvokeNode 10 9 None None (Some 11) 12), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (ReturnNode (Some 10) None), VoidStamp),
+  (13, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (14, (IntegerEqualsNode 1 13), VoidStamp),
+  (15, (BeginNode 27), VoidStamp),
+  (16, (BeginNode 18), VoidStamp),
+  (17, (IfNode 14 16 15), VoidStamp),
+  (18, (LoadFieldNode 18 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::bObject'' None 20), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' False False False),
+  (19, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'' [18, 1]), VoidStamp),
+  (20, (InvokeNode 20 19 None None (Some 21) 22), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (ReturnNode (Some 20) None), VoidStamp),
+  (23, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (24, (IntegerEqualsNode 1 23), VoidStamp),
+  (25, (BeginNode 34), VoidStamp),
+  (26, (BeginNode 28), VoidStamp),
+  (27, (IfNode 24 26 25), VoidStamp),
+  (28, (LoadFieldNode 28 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::cObject'' None 30), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' False False False),
+  (29, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'' [28, 1]), VoidStamp),
+  (30, (InvokeNode 30 29 None None (Some 31) 32), IntegerStamp 32 (-2147483648) (2147483647)),
+  (31, (FrameState [] None None None), IllegalStamp),
+  (32, (ReturnNode (Some 30) None), VoidStamp),
+  (33, (ConstantNode (new_int 32 (42))), IntegerStamp 32 (42) (42)),
+  (34, (ReturnNode (Some 33) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.<clinit>()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 2), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (NewInstanceNode 2 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' None 4), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' True True False),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (StoreFieldNode 4 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::aObject'' 2 (Some 5) None 6), VoidStamp),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (NewInstanceNode 6 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B'' None 10), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B'' True True False),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (FrameState [] None None None), IllegalStamp),
+  (9, (FrameState [] (Some 8) None None), IllegalStamp),
+  (10, (StoreFieldNode 10 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::bObject'' 6 (Some 11) None 12), VoidStamp),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (NewInstanceNode 12 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C'' None 16), ObjectStamp ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C'' True True False),
+  (13, (FrameState [] None None None), IllegalStamp),
+  (14, (FrameState [] None None None), IllegalStamp),
+  (15, (FrameState [] (Some 14) None None), IllegalStamp),
+  (16, (StoreFieldNode 16 ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01::cObject'' 12 (Some 17) None 18), VoidStamp),
+  (17, (FrameState [] None None None), IllegalStamp),
+  (18, (ReturnNode None None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 4), VoidStamp),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ReturnNode (Some 2) None), VoidStamp)
+  ],
+  '''' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.<clinit>()V'' []), VoidStamp),
+  (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+value "program_test unit_InvokeVirtual_01_test ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (0))] (new_int 32 (0))"
+
+value "program_test unit_InvokeVirtual_01_test ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (1))] (new_int 32 (11))"
+
+value "program_test unit_InvokeVirtual_01_test ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (2))] (new_int 32 (22))"
+
+value "program_test unit_InvokeVirtual_01_test ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (3))] (new_int 32 (42))"
+

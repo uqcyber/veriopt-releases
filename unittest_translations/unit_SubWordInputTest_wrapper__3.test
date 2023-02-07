@@ -1,0 +1,25 @@
+
+(* Lorg/graalvm/compiler/core/test/SubWordInputTest$shortGetter;.SubWordInputTest_wrapper*)
+definition unit_SubWordInputTest_wrapper__3 :: IRGraph where
+  "unit_SubWordInputTest_wrapper__3 = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (NarrowNode 32 16 1), IntegerStamp 16 (-32768) (32767)),
+  (5, (SignExtendNode 16 32 4), IntegerStamp 32 (-32768) (32767)),
+  (6, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (7, (ReturnNode (Some 6) None), VoidStamp)
+  ]"
+value "static_test unit_SubWordInputTest_wrapper__3  [(new_int 32 (-65536))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper__3  [(new_int 32 (-65536))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper__3  [(new_int 32 (-65535))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper__3  [(new_int 32 (-65535))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper__3  [(new_int 32 (65535))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper__3  [(new_int 32 (65535))] (new_int 32 (1))"
+

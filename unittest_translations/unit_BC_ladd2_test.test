@@ -1,0 +1,27 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_ladd2;.BC_ladd2_test*)
+definition unit_BC_ladd2_test :: IRGraph where
+  "unit_BC_ladd2_test = irgraph [
+  (0, (StartNode (Some 3) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (SignExtendNode 32 64 1), IntegerStamp 64 (-2147483648) (2147483647)),
+  (5, (SignExtendNode 32 64 2), IntegerStamp 64 (-2147483648) (2147483647)),
+  (6, (AddNode 4 5), IntegerStamp 64 (-4294967296) (4294967294)),
+  (7, (ReturnNode (Some 6) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ladd2_test  [(new_int 32 (1)), (new_int 32 (2))] (IntVal 64 (3))"
+
+value "static_test unit_BC_ladd2_test  [(new_int 32 (0)), (new_int 32 (-1))] (IntVal 64 (-1))"
+
+value "static_test unit_BC_ladd2_test  [(new_int 32 (33)), (new_int 32 (67))] (IntVal 64 (100))"
+
+value "static_test unit_BC_ladd2_test  [(new_int 32 (1)), (new_int 32 (-1))] (IntVal 64 (0))"
+
+value "static_test unit_BC_ladd2_test  [(new_int 32 (-2147483648)), (new_int 32 (1))] (IntVal 64 (-2147483647))"
+
+value "static_test unit_BC_ladd2_test  [(new_int 32 (2147483647)), (new_int 32 (1))] (IntVal 64 (2147483648))"
+
+value "static_test unit_BC_ladd2_test  [(new_int 32 (-2147483647)), (new_int 32 (-2))] (IntVal 64 (-2147483649))"
+

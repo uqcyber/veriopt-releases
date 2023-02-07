@@ -1,0 +1,106 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Phi02;.Phi02_test*)
+definition unit_Phi02_test :: Program where
+  "unit_Phi02_test = Map.empty (
+  ''org.graalvm.compiler.jtt.optimize.Phi02.test(I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 3), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NewInstanceNode 3 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi'' None 5), ObjectStamp ''org.graalvm.compiler.jtt.optimize.Phi02$Phi'' True True False),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (StoreFieldNode 5 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' 1 (Some 7) (Some 3) 9), VoidStamp),
+  (6, (FrameState [] None None None), IllegalStamp),
+  (7, (FrameState [] (Some 6) None None), IllegalStamp),
+  (8, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.Phi02.test2(Lorg/graalvm/compiler/jtt/optimize/Phi02$Phi;I)I'' [3, 1]), VoidStamp),
+  (9, (InvokeNode 9 8 None None (Some 10) 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (FrameState [] None None None), IllegalStamp),
+  (11, (ReturnNode (Some 9) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.Phi02.test2(Lorg/graalvm/compiler/jtt/optimize/Phi02$Phi;I)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 9), VoidStamp),
+  (1, (ParameterNode 0), ObjectStamp ''org.graalvm.compiler.jtt.optimize.Phi02$Phi'' True False False),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (5, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (6, (IntegerLessThanNode 2 5), VoidStamp),
+  (7, (BeginNode 12), VoidStamp),
+  (8, (BeginNode 20), VoidStamp),
+  (9, (IfNode 6 8 7), VoidStamp),
+  (10, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (LoadFieldNode 12 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' (Some 1) 14), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (AddNode 12 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (StoreFieldNode 14 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' 13 (Some 16) (Some 1) 50), VoidStamp),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (FrameState [] (Some 15) None None), IllegalStamp),
+  (17, (AddNode 2 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (19, (FrameState [] None None None), IllegalStamp),
+  (20, (LoadFieldNode 20 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' (Some 1) 22), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (AddNode 20 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (22, (StoreFieldNode 22 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' 21 (Some 24) (Some 1) 30), VoidStamp),
+  (23, (FrameState [] None None None), IllegalStamp),
+  (24, (FrameState [] (Some 23) None None), IllegalStamp),
+  (25, (AddNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (26, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (27, (IntegerLessThanNode 25 26), VoidStamp),
+  (28, (BeginNode 32), VoidStamp),
+  (29, (BeginNode 63), VoidStamp),
+  (30, (IfNode 27 29 28), VoidStamp),
+  (31, (FrameState [] None None None), IllegalStamp),
+  (32, (LoadFieldNode 32 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' (Some 1) 34), IntegerStamp 32 (-2147483648) (2147483647)),
+  (33, (AddNode 32 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (34, (StoreFieldNode 34 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' 33 (Some 36) (Some 1) 42), VoidStamp),
+  (35, (FrameState [] None None None), IllegalStamp),
+  (36, (FrameState [] (Some 35) None None), IllegalStamp),
+  (37, (AddNode 25 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (38, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (39, (IntegerLessThanNode 37 38), VoidStamp),
+  (40, (BeginNode 44), VoidStamp),
+  (41, (BeginNode 55), VoidStamp),
+  (42, (IfNode 39 41 40), VoidStamp),
+  (43, (FrameState [] None None None), IllegalStamp),
+  (44, (LoadFieldNode 44 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' (Some 1) 46), IntegerStamp 32 (-2147483648) (2147483647)),
+  (45, (AddNode 44 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (46, (StoreFieldNode 46 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' 45 (Some 48) (Some 1) 52), VoidStamp),
+  (47, (FrameState [] None None None), IllegalStamp),
+  (48, (FrameState [] (Some 47) None None), IllegalStamp),
+  (49, (AddNode 37 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (50, (EndNode), VoidStamp),
+  (51, (MergeNode [50, 52, 61, 69] (Some 70) 71), VoidStamp),
+  (52, (EndNode), VoidStamp),
+  (53, (ValuePhiNode 53 [17, 49, 60, 68] 51), IntegerStamp 32 (-2147483648) (2147483647)),
+  (54, (FrameState [] None None None), IllegalStamp),
+  (55, (LoadFieldNode 55 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' (Some 1) 57), IntegerStamp 32 (-2147483648) (2147483647)),
+  (56, (AddNode 55 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (57, (StoreFieldNode 57 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' 56 (Some 59) (Some 1) 61), VoidStamp),
+  (58, (FrameState [] None None None), IllegalStamp),
+  (59, (FrameState [] (Some 58) None None), IllegalStamp),
+  (60, (AddNode 37 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (61, (EndNode), VoidStamp),
+  (62, (FrameState [] None None None), IllegalStamp),
+  (63, (LoadFieldNode 63 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' (Some 1) 65), IntegerStamp 32 (-2147483648) (2147483647)),
+  (64, (AddNode 63 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (65, (StoreFieldNode 65 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' 64 (Some 67) (Some 1) 69), VoidStamp),
+  (66, (FrameState [] None None None), IllegalStamp),
+  (67, (FrameState [] (Some 66) None None), IllegalStamp),
+  (68, (AddNode 25 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (69, (EndNode), VoidStamp),
+  (70, (FrameState [] None None None), IllegalStamp),
+  (71, (LoadFieldNode 71 ''org.graalvm.compiler.jtt.optimize.Phi02$Phi::f'' (Some 1) 73), IntegerStamp 32 (-2147483648) (2147483647)),
+  (72, (AddNode 53 71), IntegerStamp 32 (-2147483648) (2147483647)),
+  (73, (ReturnNode (Some 72) None), VoidStamp)
+  ]
+  )"
+value "program_test unit_Phi02_test ''org.graalvm.compiler.jtt.optimize.Phi02.test(I)I'' [(new_int 32 (0))] (new_int 32 (8))"
+
+value "program_test unit_Phi02_test ''org.graalvm.compiler.jtt.optimize.Phi02.test(I)I'' [(new_int 32 (1))] (new_int 32 (10))"
+
+value "program_test unit_Phi02_test ''org.graalvm.compiler.jtt.optimize.Phi02.test(I)I'' [(new_int 32 (2))] (new_int 32 (12))"
+
+value "program_test unit_Phi02_test ''org.graalvm.compiler.jtt.optimize.Phi02.test(I)I'' [(new_int 32 (3))] (new_int 32 (8))"
+
+value "program_test unit_Phi02_test ''org.graalvm.compiler.jtt.optimize.Phi02.test(I)I'' [(new_int 32 (4))] (new_int 32 (10))"
+
+value "program_test unit_Phi02_test ''org.graalvm.compiler.jtt.optimize.Phi02.test(I)I'' [(new_int 32 (6))] (new_int 32 (14))"
+

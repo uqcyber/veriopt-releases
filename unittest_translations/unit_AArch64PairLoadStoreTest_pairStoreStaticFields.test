@@ -1,0 +1,19 @@
+
+(* Lorg/graalvm/compiler/core/aarch64/test/AArch64PairLoadStoreTest;.AArch64PairLoadStoreTest_pairStoreStaticFields*)
+definition unit_AArch64PairLoadStoreTest_pairStoreStaticFields :: IRGraph where
+  "unit_AArch64PairLoadStoreTest_pairStoreStaticFields = irgraph [
+  (0, (StartNode (Some 3) 4), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (StoreFieldNode 4 ''org.graalvm.compiler.core.aarch64.test.AArch64PairLoadStoreTest$A::c'' 1 (Some 5) None 6), VoidStamp),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (StoreFieldNode 6 ''org.graalvm.compiler.core.aarch64.test.AArch64PairLoadStoreTest$A::d'' 2 (Some 7) None 8), VoidStamp),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (LoadFieldNode 8 ''org.graalvm.compiler.core.aarch64.test.AArch64PairLoadStoreTest$A::c'' None 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (LoadFieldNode 9 ''org.graalvm.compiler.core.aarch64.test.AArch64PairLoadStoreTest$A::d'' None 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (AddNode 8 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (ReturnNode (Some 10) None), VoidStamp)
+  ]"
+value "static_test unit_AArch64PairLoadStoreTest_pairStoreStaticFields  [(new_int 32 (1)), (new_int 32 (2))] (new_int 32 (3))"
+

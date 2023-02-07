@@ -1,0 +1,86 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Reduce_IntShift02;.Reduce_IntShift02_test*)
+definition unit_Reduce_IntShift02_test :: IRGraph where
+  "unit_Reduce_IntShift02_test = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 20), VoidStamp),
+  (6, (BeginNode 15), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (80))), IntegerStamp 32 (80) (80)),
+  (9, (AddNode 1 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (FrameState [] None None None), IllegalStamp),
+  (11, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (12, (UnsignedRightShiftNode 9 11), IntegerStamp 32 (0) (536870911)),
+  (13, (ConstantNode (new_int 32 (-8))), IntegerStamp 32 (-8) (-8)),
+  (14, (AndNode 9 13), IntegerStamp 32 (-2147483648) (2147483640)),
+  (15, (ReturnNode (Some 14) None), VoidStamp),
+  (16, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (17, (IntegerEqualsNode 1 16), VoidStamp),
+  (18, (BeginNode 32), VoidStamp),
+  (19, (BeginNode 27), VoidStamp),
+  (20, (IfNode 17 19 18), VoidStamp),
+  (21, (ConstantNode (new_int 32 (-2147483638))), IntegerStamp 32 (-2147483638) (-2147483638)),
+  (22, (AddNode 1 21), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (FrameState [] None None None), IllegalStamp),
+  (24, (LeftShiftNode 22 11), IntegerStamp 32 (-2147483648) (2147483640)),
+  (25, (ConstantNode (new_int 32 (536870911))), IntegerStamp 32 (536870911) (536870911)),
+  (26, (AndNode 22 25), IntegerStamp 32 (0) (536870911)),
+  (27, (ReturnNode (Some 26) None), VoidStamp),
+  (28, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (29, (IntegerEqualsNode 1 28), VoidStamp),
+  (30, (BeginNode 43), VoidStamp),
+  (31, (BeginNode 39), VoidStamp),
+  (32, (IfNode 29 31 30), VoidStamp),
+  (33, (ConstantNode (new_int 32 (192))), IntegerStamp 32 (192) (192)),
+  (34, (AddNode 1 33), IntegerStamp 32 (-2147483648) (2147483647)),
+  (35, (FrameState [] None None None), IllegalStamp),
+  (36, (RightShiftNode 34 11), IntegerStamp 32 (-268435456) (268435455)),
+  (37, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (38, (RightShiftNode 34 37), IntegerStamp 32 (-134217728) (134217727)),
+  (39, (ReturnNode (Some 38) None), VoidStamp),
+  (40, (IntegerEqualsNode 1 11), VoidStamp),
+  (41, (BeginNode 53), VoidStamp),
+  (42, (BeginNode 49), VoidStamp),
+  (43, (IfNode 40 42 41), VoidStamp),
+  (44, (ConstantNode (new_int 32 (208))), IntegerStamp 32 (208) (208)),
+  (45, (AddNode 1 44), IntegerStamp 32 (-2147483648) (2147483647)),
+  (46, (FrameState [] None None None), IllegalStamp),
+  (47, (UnsignedRightShiftNode 45 11), IntegerStamp 32 (0) (536870911)),
+  (48, (UnsignedRightShiftNode 45 37), IntegerStamp 32 (0) (268435455)),
+  (49, (ReturnNode (Some 48) None), VoidStamp),
+  (50, (IntegerEqualsNode 1 37), VoidStamp),
+  (51, (BeginNode 62), VoidStamp),
+  (52, (BeginNode 57), VoidStamp),
+  (53, (IfNode 50 52 51), VoidStamp),
+  (54, (FrameState [] None None None), IllegalStamp),
+  (55, (LeftShiftNode 1 11), IntegerStamp 32 (-2147483648) (2147483640)),
+  (56, (LeftShiftNode 1 37), IntegerStamp 32 (-2147483648) (2147483632)),
+  (57, (ReturnNode (Some 56) None), VoidStamp),
+  (58, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (59, (IntegerEqualsNode 1 58), VoidStamp),
+  (60, (BeginNode 68), VoidStamp),
+  (61, (BeginNode 67), VoidStamp),
+  (62, (IfNode 59 61 60), VoidStamp),
+  (63, (FrameState [] None None None), IllegalStamp),
+  (64, (ConstantNode (new_int 32 (16))), IntegerStamp 32 (16) (16)),
+  (65, (LeftShiftNode 1 64), IntegerStamp 32 (-2147483648) (2147418112)),
+  (66, (ConstantNode (new_int 32 (17))), IntegerStamp 32 (17) (17)),
+  (67, (ReturnNode (Some 3) None), VoidStamp),
+  (68, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_Reduce_IntShift02_test  [(new_int 32 (0))] (new_int 32 (80))"
+
+value "static_test unit_Reduce_IntShift02_test  [(new_int 32 (1))] (new_int 32 (11))"
+
+value "static_test unit_Reduce_IntShift02_test  [(new_int 32 (2))] (new_int 32 (12))"
+
+value "static_test unit_Reduce_IntShift02_test  [(new_int 32 (3))] (new_int 32 (13))"
+
+value "static_test unit_Reduce_IntShift02_test  [(new_int 32 (4))] (new_int 32 (64))"
+
+value "static_test unit_Reduce_IntShift02_test  [(new_int 32 (5))] (new_int 32 (0))"
+

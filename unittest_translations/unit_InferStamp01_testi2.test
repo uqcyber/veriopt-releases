@@ -1,0 +1,31 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/InferStamp01;.InferStamp01_testi2*)
+definition unit_InferStamp01_testi2 :: IRGraph where
+  "unit_InferStamp01_testi2 = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 22] None (Some 9) 17), VoidStamp),
+  (7, (ValuePhiNode 7 [1, 19] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 21] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (11, (IntegerLessThanNode 8 10), VoidStamp),
+  (13, (LoopExitNode 6 (Some 15) 23), VoidStamp),
+  (14, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (BeginNode 22), VoidStamp),
+  (17, (IfNode 11 16 13), VoidStamp),
+  (18, (ConstantNode (new_int 32 (16))), IntegerStamp 32 (16) (16)),
+  (19, (LeftShiftNode 7 18), IntegerStamp 32 (-2147483648) (2147418112)),
+  (20, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (21, (AddNode 8 20), IntegerStamp 32 (-2147483648) (2147483647)),
+  (22, (LoopEndNode 6), VoidStamp),
+  (23, (ReturnNode (Some 14) None), VoidStamp)
+  ]"
+value "static_test unit_InferStamp01_testi2  [(new_int 32 (2005440938))] (new_int 32 (0))"
+
+value "static_test unit_InferStamp01_testi2  [(new_int 32 (-142042710))] (new_int 32 (0))"
+

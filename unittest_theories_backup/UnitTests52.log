@@ -1,0 +1,4 @@
+To see all results, run: isabelle log -v -T Tests.UnitTesting Tests
+Tests passed:       27
+Tests failed:        0
+Details of any failures:

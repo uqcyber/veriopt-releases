@@ -1,0 +1,13 @@
+
+(* Lorg/graalvm/compiler/api/directives/test/BlackholeDirectiveTest;.BlackholeDirectiveTest_intSnippet*)
+definition unit_BlackholeDirectiveTest_intSnippet :: IRGraph where
+  "unit_BlackholeDirectiveTest_intSnippet = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (42))), IntegerStamp 32 (42) (42)),
+  (4, (AddNode 1 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_BlackholeDirectiveTest_intSnippet  [(new_int 32 (17))] (new_int 32 (42))"
+

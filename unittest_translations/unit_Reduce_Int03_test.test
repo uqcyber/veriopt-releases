@@ -1,0 +1,86 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Reduce_Int03;.Reduce_Int03_test*)
+definition unit_Reduce_Int03_test :: IRGraph where
+  "unit_Reduce_Int03_test = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 16), VoidStamp),
+  (6, (BeginNode 11), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (11, (ReturnNode (Some 10) None), VoidStamp),
+  (12, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (13, (IntegerEqualsNode 1 12), VoidStamp),
+  (14, (BeginNode 23), VoidStamp),
+  (15, (BeginNode 18), VoidStamp),
+  (16, (IfNode 13 15 14), VoidStamp),
+  (17, (FrameState [] None None None), IllegalStamp),
+  (18, (ReturnNode (Some 3) None), VoidStamp),
+  (19, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (20, (IntegerEqualsNode 1 19), VoidStamp),
+  (21, (BeginNode 31), VoidStamp),
+  (22, (BeginNode 26), VoidStamp),
+  (23, (IfNode 20 22 21), VoidStamp),
+  (24, (FrameState [] None None None), IllegalStamp),
+  (25, (ConstantNode (new_int 32 (25))), IntegerStamp 32 (25) (25)),
+  (26, (ReturnNode (Some 25) None), VoidStamp),
+  (27, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (28, (IntegerEqualsNode 1 27), VoidStamp),
+  (29, (BeginNode 38), VoidStamp),
+  (30, (BeginNode 33), VoidStamp),
+  (31, (IfNode 28 30 29), VoidStamp),
+  (32, (FrameState [] None None None), IllegalStamp),
+  (33, (ReturnNode (Some 12) None), VoidStamp),
+  (34, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (35, (IntegerEqualsNode 1 34), VoidStamp),
+  (36, (BeginNode 44), VoidStamp),
+  (37, (BeginNode 40), VoidStamp),
+  (38, (IfNode 35 37 36), VoidStamp),
+  (39, (FrameState [] None None None), IllegalStamp),
+  (40, (ReturnNode (Some 3) None), VoidStamp),
+  (41, (IntegerEqualsNode 1 8), VoidStamp),
+  (42, (BeginNode 52), VoidStamp),
+  (43, (BeginNode 47), VoidStamp),
+  (44, (IfNode 41 43 42), VoidStamp),
+  (45, (ConstantNode (new_int 32 (15))), IntegerStamp 32 (15) (15)),
+  (46, (FrameState [] None None None), IllegalStamp),
+  (47, (ReturnNode (Some 45) None), VoidStamp),
+  (48, (ConstantNode (new_int 32 (6))), IntegerStamp 32 (6) (6)),
+  (49, (IntegerEqualsNode 1 48), VoidStamp),
+  (50, (BeginNode 60), VoidStamp),
+  (51, (BeginNode 55), VoidStamp),
+  (52, (IfNode 49 51 50), VoidStamp),
+  (53, (ConstantNode (new_int 32 (16))), IntegerStamp 32 (16) (16)),
+  (54, (FrameState [] None None None), IllegalStamp),
+  (55, (ReturnNode (Some 53) None), VoidStamp),
+  (56, (ConstantNode (new_int 32 (7))), IntegerStamp 32 (7) (7)),
+  (57, (IntegerEqualsNode 1 56), VoidStamp),
+  (58, (BeginNode 64), VoidStamp),
+  (59, (BeginNode 63), VoidStamp),
+  (60, (IfNode 57 59 58), VoidStamp),
+  (61, (ConstantNode (new_int 32 (17))), IntegerStamp 32 (17) (17)),
+  (62, (FrameState [] None None None), IllegalStamp),
+  (63, (ReturnNode (Some 3) None), VoidStamp),
+  (64, (ReturnNode (Some 3) None), VoidStamp)
+  ]"
+value "static_test unit_Reduce_Int03_test  [(new_int 32 (0))] (new_int 32 (10))"
+
+value "static_test unit_Reduce_Int03_test  [(new_int 32 (1))] (new_int 32 (0))"
+
+value "static_test unit_Reduce_Int03_test  [(new_int 32 (2))] (new_int 32 (25))"
+
+value "static_test unit_Reduce_Int03_test  [(new_int 32 (3))] (new_int 32 (1))"
+
+value "static_test unit_Reduce_Int03_test  [(new_int 32 (4))] (new_int 32 (0))"
+
+value "static_test unit_Reduce_Int03_test  [(new_int 32 (5))] (new_int 32 (15))"
+
+value "static_test unit_Reduce_Int03_test  [(new_int 32 (6))] (new_int 32 (16))"
+
+value "static_test unit_Reduce_Int03_test  [(new_int 32 (7))] (new_int 32 (0))"
+

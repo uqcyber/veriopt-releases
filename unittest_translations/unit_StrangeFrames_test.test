@@ -1,0 +1,32 @@
+
+(* Lorg/graalvm/compiler/jtt/micro/StrangeFrames;.StrangeFrames_test*)
+definition unit_StrangeFrames_test :: Program where
+  "unit_StrangeFrames_test = Map.empty (
+  ''org.graalvm.compiler.jtt.micro.StrangeFrames.test(I)Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (NewInstanceNode 5 ''org.graalvm.compiler.jtt.JTTTest$DummyTestClass'' None 9), ObjectStamp ''org.graalvm.compiler.jtt.JTTTest$DummyTestClass'' True True False),
+  (6, (FrameState [] None None None), IllegalStamp),
+  (7, (FrameState [] (Some 6) None None), IllegalStamp),
+  (8, (MethodCallTargetNode ''org.graalvm.compiler.jtt.micro.StrangeFrames.twoOperandStackSlots()V'' []), VoidStamp),
+  (9, (InvokeNode 9 8 None None (Some 10) 13), VoidStamp),
+  (10, (FrameState [] None None None), IllegalStamp),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (13, (ReturnNode (Some 12) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.micro.StrangeFrames.twoOperandStackSlots()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 2), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (NewInstanceNode 2 ''org.graalvm.compiler.jtt.JTTTest$DummyTestClass'' None 4), ObjectStamp ''org.graalvm.compiler.jtt.JTTTest$DummyTestClass'' True True False),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (NewInstanceNode 4 ''org.graalvm.compiler.jtt.JTTTest$DummyTestClass'' None 7), ObjectStamp ''org.graalvm.compiler.jtt.JTTTest$DummyTestClass'' True True False),
+  (5, (FrameState [] None None None), IllegalStamp),
+  (6, (FrameState [] None None None), IllegalStamp),
+  (7, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+value "program_test unit_StrangeFrames_test ''org.graalvm.compiler.jtt.micro.StrangeFrames.test(I)Z'' [(new_int 32 (0))] (new_int 32 (1))"
+

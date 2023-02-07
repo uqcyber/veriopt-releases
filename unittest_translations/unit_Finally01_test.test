@@ -1,0 +1,14 @@
+
+(* Lorg/graalvm/compiler/jtt/except/Finally01;.Finally01_test*)
+definition unit_Finally01_test :: IRGraph where
+  "unit_Finally01_test = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_Finally01_test  [(new_int 32 (0))] (new_int 32 (-1))"
+
+value "static_test unit_Finally01_test  [(new_int 32 (1))] (new_int 32 (-1))"
+

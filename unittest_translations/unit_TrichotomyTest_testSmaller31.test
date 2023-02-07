@@ -1,0 +1,63 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/TrichotomyTest;.TrichotomyTest_testSmaller31*)
+definition unit_TrichotomyTest_testSmaller31 :: Program where
+  "unit_TrichotomyTest_testSmaller31 = Map.empty (
+  ''org.graalvm.compiler.jtt.optimize.TrichotomyTest.testSmaller31(II)Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (IntegerEqualsNode 1 2), VoidStamp),
+  (6, (BeginNode 14), VoidStamp),
+  (7, (BeginNode 16), VoidStamp),
+  (8, (IfNode 5 7 6), VoidStamp),
+  (9, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (11, (IntegerLessThanNode 2 1), VoidStamp),
+  (12, (BeginNode 21), VoidStamp),
+  (13, (BeginNode 18), VoidStamp),
+  (14, (IfNode 11 13 12), VoidStamp),
+  (15, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (16, (EndNode), VoidStamp),
+  (17, (MergeNode [16, 18, 21] (Some 23) 26), VoidStamp),
+  (18, (EndNode), VoidStamp),
+  (19, (ValuePhiNode 19 [9, 15, 20] 17), IntegerStamp 32 (-1) (1)),
+  (20, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (21, (EndNode), VoidStamp),
+  (22, (FrameState [] None None None), IllegalStamp),
+  (23, (FrameState [] (Some 22) None None), IllegalStamp),
+  (24, (IntegerEqualsNode 19 20), VoidStamp),
+  (25, (ConditionalNode 24 15 9), IntegerStamp 32 (0) (1)),
+  (26, (ReturnNode (Some 25) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.TrichotomyTest.compare11(II)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (IntegerEqualsNode 1 2), VoidStamp),
+  (5, (BeginNode 13), VoidStamp),
+  (6, (BeginNode 15), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (10, (IntegerLessThanNode 2 1), VoidStamp),
+  (11, (BeginNode 20), VoidStamp),
+  (12, (BeginNode 17), VoidStamp),
+  (13, (IfNode 10 12 11), VoidStamp),
+  (14, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (15, (EndNode), VoidStamp),
+  (16, (MergeNode [15, 17, 20] (Some 21) 22), VoidStamp),
+  (17, (EndNode), VoidStamp),
+  (18, (ValuePhiNode 18 [8, 14, 19] 16), IntegerStamp 32 (-1) (1)),
+  (19, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (20, (EndNode), VoidStamp),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (ReturnNode (Some 18) None), VoidStamp)
+  ]
+  )"
+value "program_test unit_TrichotomyTest_testSmaller31 ''org.graalvm.compiler.jtt.optimize.TrichotomyTest.testSmaller31(II)Z'' [(new_int 32 (0)), (new_int 32 (0))] (new_int 32 (0))"
+
+value "program_test unit_TrichotomyTest_testSmaller31 ''org.graalvm.compiler.jtt.optimize.TrichotomyTest.testSmaller31(II)Z'' [(new_int 32 (0)), (new_int 32 (1))] (new_int 32 (1))"
+
+value "program_test unit_TrichotomyTest_testSmaller31 ''org.graalvm.compiler.jtt.optimize.TrichotomyTest.testSmaller31(II)Z'' [(new_int 32 (1)), (new_int 32 (0))] (new_int 32 (0))"
+

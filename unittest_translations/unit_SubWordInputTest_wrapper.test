@@ -1,0 +1,32 @@
+
+(* Lorg/graalvm/compiler/core/test/SubWordInputTest$booleanGetter;.SubWordInputTest_wrapper*)
+definition unit_SubWordInputTest_wrapper :: IRGraph where
+  "unit_SubWordInputTest_wrapper = irgraph [
+  (0, (StartNode (Some 2) 11), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (NarrowNode 32 1 1), IntegerStamp 1 (-1) (0)),
+  (5, (ZeroExtendNode 1 32 4), IntegerStamp 32 (0) (1)),
+  (6, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (7, (AndNode 1 6), IntegerStamp 32 (0) (1)),
+  (8, (IntegerEqualsNode 5 7), VoidStamp),
+  (9, (BeginNode 14), VoidStamp),
+  (10, (BeginNode 12), VoidStamp),
+  (11, (IfNode 8 10 9), VoidStamp),
+  (12, (ReturnNode (Some 6) None), VoidStamp),
+  (13, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (14, (ReturnNode (Some 13) None), VoidStamp)
+  ]"
+value "static_test unit_SubWordInputTest_wrapper  [(new_int 32 (-65536))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper  [(new_int 32 (-65536))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper  [(new_int 32 (-65535))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper  [(new_int 32 (-65535))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper  [(new_int 32 (65535))] (new_int 32 (1))"
+
+value "static_test unit_SubWordInputTest_wrapper  [(new_int 32 (65535))] (new_int 32 (1))"
+

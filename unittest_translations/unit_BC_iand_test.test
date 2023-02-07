@@ -1,0 +1,21 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_iand;.BC_iand_test*)
+definition unit_BC_iand_test :: IRGraph where
+  "unit_BC_iand_test = irgraph [
+  (0, (StartNode (Some 3) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (AndNode 1 2), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_BC_iand_test  [(new_int 32 (1)), (new_int 32 (2))] (new_int 32 (0))"
+
+value "static_test unit_BC_iand_test  [(new_int 32 (0)), (new_int 32 (-1))] (new_int 32 (0))"
+
+value "static_test unit_BC_iand_test  [(new_int 32 (31)), (new_int 32 (63))] (new_int 32 (31))"
+
+value "static_test unit_BC_iand_test  [(new_int 32 (6)), (new_int 32 (4))] (new_int 32 (4))"
+
+value "static_test unit_BC_iand_test  [(new_int 32 (-2147483648)), (new_int 32 (1))] (new_int 32 (0))"
+

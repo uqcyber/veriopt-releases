@@ -1,0 +1,37 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_iflt;.BC_iflt_test*)
+definition unit_BC_iflt_test :: IRGraph where
+  "unit_BC_iflt_test = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerLessThanNode 1 3), VoidStamp),
+  (5, (BeginNode 13), VoidStamp),
+  (6, (BeginNode 11), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (10, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (11, (EndNode), VoidStamp),
+  (12, (MergeNode [11, 13] (Some 15) 18), VoidStamp),
+  (13, (EndNode), VoidStamp),
+  (14, (ValuePhiNode 14 [8, 10] 12), IntegerStamp 32 (-1) (1)),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (BeginNode 22), VoidStamp),
+  (17, (BeginNode 24), VoidStamp),
+  (18, (IfNode 4 17 16), VoidStamp),
+  (19, (AddNode 14 10), IntegerStamp 32 (-2) (0)),
+  (21, (AddNode 14 8), IntegerStamp 32 (0) (2)),
+  (22, (EndNode), VoidStamp),
+  (23, (MergeNode [22, 24] (Some 26) 27), VoidStamp),
+  (24, (EndNode), VoidStamp),
+  (25, (ValuePhiNode 25 [19, 21] 23), IntegerStamp 32 (-2) (2)),
+  (26, (FrameState [] None None None), IllegalStamp),
+  (27, (ReturnNode (Some 25) None), VoidStamp)
+  ]"
+value "static_test unit_BC_iflt_test  [(new_int 32 (0))] (new_int 32 (-2))"
+
+value "static_test unit_BC_iflt_test  [(new_int 32 (1))] (new_int 32 (-2))"
+
+value "static_test unit_BC_iflt_test  [(new_int 32 (-1))] (new_int 32 (2))"
+

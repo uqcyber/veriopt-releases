@@ -1,0 +1,17 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_ldiv_overflow;.BC_ldiv_overflow_test*)
+definition unit_BC_ldiv_overflow_test :: IRGraph where
+  "unit_BC_ldiv_overflow_test = irgraph [
+  (0, (StartNode (Some 3) 6), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (ParameterNode 1), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (IntVal 64 (1))), IntegerStamp 64 (1) (1)),
+  (5, (OrNode 2 4), IntegerStamp 64 (-9223372036854775807) (9223372036854775807)),
+  (6, (SignedDivNode 6 1 5 None None 7), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (7, (ReturnNode (Some 6) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ldiv_overflow_test  [(IntVal 64 (-9223372036854775808)), (IntVal 64 (-1))] (IntVal 64 (-9223372036854775808))"
+
+value "static_test unit_BC_ldiv_overflow_test  [(IntVal 64 (-9223372036854775808)), (IntVal 64 (1))] (IntVal 64 (-9223372036854775808))"
+

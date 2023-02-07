@@ -1,0 +1,21 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_ior;.BC_ior_test*)
+definition unit_BC_ior_test :: IRGraph where
+  "unit_BC_ior_test = irgraph [
+  (0, (StartNode (Some 3) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (OrNode 1 2), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ior_test  [(new_int 32 (1)), (new_int 32 (2))] (new_int 32 (3))"
+
+value "static_test unit_BC_ior_test  [(new_int 32 (0)), (new_int 32 (-1))] (new_int 32 (-1))"
+
+value "static_test unit_BC_ior_test  [(new_int 32 (31)), (new_int 32 (63))] (new_int 32 (63))"
+
+value "static_test unit_BC_ior_test  [(new_int 32 (6)), (new_int 32 (4))] (new_int 32 (6))"
+
+value "static_test unit_BC_ior_test  [(new_int 32 (-2147483648)), (new_int 32 (1))] (new_int 32 (-2147483647))"
+

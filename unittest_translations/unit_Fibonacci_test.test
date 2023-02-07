@@ -1,0 +1,47 @@
+
+(* Lorg/graalvm/compiler/jtt/micro/Fibonacci;.Fibonacci_test*)
+definition unit_Fibonacci_test :: IRGraph where
+  "unit_Fibonacci_test = irgraph [
+  (0, (StartNode (Some 2) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (IntegerLessThanNode 1 4), VoidStamp),
+  (6, (BeginNode 11), VoidStamp),
+  (7, (BeginNode 9), VoidStamp),
+  (8, (IfNode 5 7 6), VoidStamp),
+  (9, (ReturnNode (Some 3) None), VoidStamp),
+  (11, (EndNode), VoidStamp),
+  (12, (LoopBeginNode [11, 26] None (Some 16) 23), VoidStamp),
+  (13, (ValuePhiNode 13 [3, 14] 12), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (ValuePhiNode 14 [4, 24] 12), IntegerStamp 32 (-2147483648) (2147483647)),
+  (15, (ValuePhiNode 15 [4, 25] 12), IntegerStamp 32 (-2147483648) (2147483647)),
+  (16, (FrameState [] None None None), IllegalStamp),
+  (17, (IntegerLessThanNode 15 1), VoidStamp),
+  (19, (LoopExitNode 12 (Some 21) 27), VoidStamp),
+  (20, (RefNode 14), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (BeginNode 26), VoidStamp),
+  (23, (IfNode 17 22 19), VoidStamp),
+  (24, (AddNode 13 14), IntegerStamp 32 (-2147483648) (2147483647)),
+  (25, (AddNode 15 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (26, (LoopEndNode 12), VoidStamp),
+  (27, (ReturnNode (Some 20) None), VoidStamp)
+  ]"
+value "static_test unit_Fibonacci_test  [(new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_Fibonacci_test  [(new_int 32 (1))] (new_int 32 (1))"
+
+value "static_test unit_Fibonacci_test  [(new_int 32 (2))] (new_int 32 (1))"
+
+value "static_test unit_Fibonacci_test  [(new_int 32 (3))] (new_int 32 (2))"
+
+value "static_test unit_Fibonacci_test  [(new_int 32 (4))] (new_int 32 (3))"
+
+value "static_test unit_Fibonacci_test  [(new_int 32 (5))] (new_int 32 (5))"
+
+value "static_test unit_Fibonacci_test  [(new_int 32 (6))] (new_int 32 (8))"
+
+value "static_test unit_Fibonacci_test  [(new_int 32 (7))] (new_int 32 (13))"
+

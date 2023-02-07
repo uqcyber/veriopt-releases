@@ -1,0 +1,25 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_ladd;.BC_ladd_test*)
+definition unit_BC_ladd_test :: IRGraph where
+  "unit_BC_ladd_test = irgraph [
+  (0, (StartNode (Some 3) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (ParameterNode 1), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (AddNode 1 2), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ladd_test  [(IntVal 64 (1)), (IntVal 64 (2))] (IntVal 64 (3))"
+
+value "static_test unit_BC_ladd_test  [(IntVal 64 (0)), (IntVal 64 (-1))] (IntVal 64 (-1))"
+
+value "static_test unit_BC_ladd_test  [(IntVal 64 (33)), (IntVal 64 (67))] (IntVal 64 (100))"
+
+value "static_test unit_BC_ladd_test  [(IntVal 64 (1)), (IntVal 64 (-1))] (IntVal 64 (0))"
+
+value "static_test unit_BC_ladd_test  [(IntVal 64 (-2147483648)), (IntVal 64 (1))] (IntVal 64 (-2147483647))"
+
+value "static_test unit_BC_ladd_test  [(IntVal 64 (2147483647)), (IntVal 64 (1))] (IntVal 64 (2147483648))"
+
+value "static_test unit_BC_ladd_test  [(IntVal 64 (-2147483647)), (IntVal 64 (-2))] (IntVal 64 (-2147483649))"
+

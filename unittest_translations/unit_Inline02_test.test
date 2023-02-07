@@ -1,0 +1,25 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Inline02;.Inline02_test*)
+definition unit_Inline02_test :: IRGraph where
+  "unit_Inline02_test = irgraph [
+  (0, (StartNode (Some 2) 13), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (AddNode 1 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (AddNode 6 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (AddNode 1 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (AddNode 10 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (ReturnNode (Some 12) None), VoidStamp)
+  ]"
+value "static_test unit_Inline02_test  [(new_int 32 (0))] (new_int 32 (2))"
+
+value "static_test unit_Inline02_test  [(new_int 32 (1))] (new_int 32 (5))"
+
+value "static_test unit_Inline02_test  [(new_int 32 (2))] (new_int 32 (8))"
+

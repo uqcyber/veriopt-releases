@@ -1,0 +1,65 @@
+
+(* Lorg/graalvm/compiler/core/test/VeriOptFactorialTest;.VeriOptFactorialTest_factAsAnObject*)
+definition unit_VeriOptFactorialTest_factAsAnObject :: Program where
+  "unit_VeriOptFactorialTest_factAsAnObject = Map.empty (
+  ''org.graalvm.compiler.core.test.VeriOptFactorialTest.factAsAnObject(I)Lorg/graalvm/compiler/core/test/VeriOptFactorialTest$FactResult;'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 3), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (NewInstanceNode 3 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' None 6), ObjectStamp ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' True True False),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (6, (StoreFieldNode 6 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' 5 (Some 8) (Some 3) 10), VoidStamp),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (FrameState [] (Some 7) None None), IllegalStamp),
+  (10, (EndNode), VoidStamp),
+  (11, (LoopBeginNode [10, 26] None (Some 13) 20), VoidStamp),
+  (12, (ValuePhiNode 12 [1, 25] 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (FrameState [] None None None), IllegalStamp),
+  (14, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (15, (IntegerLessThanNode 12 14), VoidStamp),
+  (16, (BeginNode 22), VoidStamp),
+  (18, (LoopExitNode 11 (Some 19) 27), VoidStamp),
+  (19, (FrameState [] None None None), IllegalStamp),
+  (20, (IfNode 15 18 16), VoidStamp),
+  (21, (MethodCallTargetNode ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult.multiply(I)V'' [3, 12]), VoidStamp),
+  (22, (InvokeNode 22 21 None None (Some 23) 26), VoidStamp),
+  (23, (FrameState [] None None None), IllegalStamp),
+  (24, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (25, (AddNode 12 24), IntegerStamp 32 (-2147483648) (2147483647)),
+  (26, (LoopEndNode 11), VoidStamp),
+  (27, (ReturnNode (Some 3) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.core.test.VeriOptFactorialTest.<clinit>()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (3, (StoreFieldNode 3 ''org.graalvm.compiler.core.test.VeriOptFactorialTest::N'' 2 (Some 4) None 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult.multiply(I)V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 3) 4), VoidStamp),
+  (1, (ParameterNode 0), ObjectStamp ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult'' True True False),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (LoadFieldNode 4 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' (Some 1) 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (MulNode 2 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (6, (StoreFieldNode 6 ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' 5 (Some 7) (Some 1) 8), VoidStamp),
+  (7, (FrameState [] None None None), IllegalStamp),
+  (8, (ReturnNode None None), VoidStamp)
+  ],
+  '''' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.core.test.VeriOptFactorialTest.<clinit>()V'' []), VoidStamp),
+  (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+fun check_VeriOptFactorialTest_factAsAnObject_161 :: "Value \<Rightarrow> FieldRefHeap \<Rightarrow> bool" where
+  "check_VeriOptFactorialTest_factAsAnObject_161 (ObjRef x) h = (True \<and> h_load_field ''org.graalvm.compiler.core.test.VeriOptFactorialTest$FactResult::value'' x h = (new_int 32 (120)))" |
+  "check_VeriOptFactorialTest_factAsAnObject_161 _ _ = False"
+value "object_test unit_VeriOptFactorialTest_factAsAnObject ''org.graalvm.compiler.core.test.VeriOptFactorialTest.factAsAnObject(I)Lorg/graalvm/compiler/core/test/VeriOptFactorialTest$FactResult;'' [(new_int 32 (5))] check_VeriOptFactorialTest_factAsAnObject_161"
+

@@ -1,0 +1,30 @@
+
+(* Lorg/graalvm/compiler/api/directives/test/ControlFlowAnchorDirectiveTest;.ControlFlowAnchorDirectiveTest_verifyFullUnrollSnippet*)
+definition unit_ControlFlowAnchorDirectiveTest_verifyFullUnrollSnippet :: IRGraph where
+  "unit_ControlFlowAnchorDirectiveTest_verifyFullUnrollSnippet = irgraph [
+  (0, (StartNode (Some 2) 5), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 23] None (Some 9) 17), VoidStamp),
+  (7, (ValuePhiNode 7 [1, 21] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 22] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (11, (IntegerLessThanNode 8 10), VoidStamp),
+  (13, (LoopExitNode 6 (Some 15) 24), VoidStamp),
+  (14, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (BeginNode 23), VoidStamp),
+  (17, (IfNode 11 16 13), VoidStamp),
+  (18, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (19, (MulNode 7 18), IntegerStamp 32 (-2147483648) (2147483647)),
+  (20, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (21, (AddNode 19 20), IntegerStamp 32 (-2147483648) (2147483647)),
+  (22, (AddNode 8 20), IntegerStamp 32 (-2147483648) (2147483647)),
+  (23, (LoopEndNode 6), VoidStamp),
+  (24, (ReturnNode (Some 14) None), VoidStamp)
+  ]"
+value "static_test unit_ControlFlowAnchorDirectiveTest_verifyFullUnrollSnippet  [(new_int 32 (42))] (new_int 32 (10327))"
+

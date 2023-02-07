@@ -1,0 +1,33 @@
+
+(* Lorg/graalvm/compiler/core/test/ConditionalNodeTest;.ConditionalNodeTest_conditionalTest3*)
+definition unit_ConditionalNodeTest_conditionalTest3 :: IRGraph where
+  "unit_ConditionalNodeTest_conditionalTest3 = irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 14), VoidStamp),
+  (6, (BeginNode 10), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (9, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (10, (StoreFieldNode 10 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink1'' 9 (Some 11) None 16), VoidStamp),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (13, (ConstantNode (new_int 32 (6))), IntegerStamp 32 (6) (6)),
+  (14, (StoreFieldNode 14 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink1'' 3 (Some 15) None 18), VoidStamp),
+  (15, (FrameState [] None None None), IllegalStamp),
+  (16, (EndNode), VoidStamp),
+  (17, (MergeNode [16, 18] (Some 20) 21), VoidStamp),
+  (18, (EndNode), VoidStamp),
+  (19, (ValuePhiNode 19 [8, 13] 17), IntegerStamp 32 (-1) (6)),
+  (20, (FrameState [] None None None), IllegalStamp),
+  (21, (StoreFieldNode 21 ''org.graalvm.compiler.core.test.ConditionalNodeTest::sink0'' 3 (Some 22) None 24), VoidStamp),
+  (22, (FrameState [] None None None), IllegalStamp),
+  (23, (FrameState [] None None None), IllegalStamp),
+  (24, (ReturnNode (Some 8) None), VoidStamp)
+  ]"
+value "static_test unit_ConditionalNodeTest_conditionalTest3  [(new_int 32 (0))] (new_int 32 (-1))"
+
+value "static_test unit_ConditionalNodeTest_conditionalTest3  [(new_int 32 (1))] (new_int 32 (-1))"
+

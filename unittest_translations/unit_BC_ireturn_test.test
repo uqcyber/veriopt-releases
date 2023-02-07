@@ -1,0 +1,17 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_ireturn;.BC_ireturn_test*)
+definition unit_BC_ireturn_test :: IRGraph where
+  "unit_BC_ireturn_test = irgraph [
+  (0, (StartNode (Some 2) 3), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ReturnNode (Some 1) None), VoidStamp)
+  ]"
+value "static_test unit_BC_ireturn_test  [(new_int 32 (0))] (new_int 32 (0))"
+
+value "static_test unit_BC_ireturn_test  [(new_int 32 (1))] (new_int 32 (1))"
+
+value "static_test unit_BC_ireturn_test  [(new_int 32 (-1))] (new_int 32 (-1))"
+
+value "static_test unit_BC_ireturn_test  [(new_int 32 (256))] (new_int 32 (256))"
+

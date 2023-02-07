@@ -1,0 +1,22 @@
+
+(* Lorg/graalvm/compiler/core/test/SubWordFieldStoreTest$shortGetter;.SubWordFieldStoreTest_snippet*)
+definition unit_SubWordFieldStoreTest_snippet__3 :: IRGraph where
+  "unit_SubWordFieldStoreTest_snippet__3 = irgraph [
+  (0, (StartNode (Some 1) 5), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (-65536))), IntegerStamp 32 (-65536) (-65536)),
+  (3, (ConstantNode (new_int 16 (0))), IntegerStamp 16 (0) (0)),
+  (4, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (StoreFieldNode 5 ''org.graalvm.compiler.core.test.SubWordFieldStoreTest$shortGetter::field'' 4 (Some 6) None 7), VoidStamp),
+  (6, (FrameState [] None None None), IllegalStamp),
+  (7, (LoadFieldNode 7 ''org.graalvm.compiler.core.test.SubWordFieldStoreTest$shortGetter::field'' None 11), IntegerStamp 32 (-32768) (32767)),
+  (8, (IntegerEqualsNode 7 4), VoidStamp),
+  (9, (BeginNode 14), VoidStamp),
+  (10, (BeginNode 13), VoidStamp),
+  (11, (IfNode 8 10 9), VoidStamp),
+  (12, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (13, (ReturnNode (Some 12) None), VoidStamp),
+  (14, (ReturnNode (Some 4) None), VoidStamp)
+  ]"
+value "static_test unit_SubWordFieldStoreTest_snippet__3  [] (new_int 32 (1))"
+

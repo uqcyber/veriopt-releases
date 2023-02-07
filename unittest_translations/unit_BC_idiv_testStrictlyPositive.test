@@ -1,0 +1,17 @@
+
+(* Lorg/graalvm/compiler/jtt/bytecode/BC_idiv;.BC_idiv_testStrictlyPositive*)
+definition unit_BC_idiv_testStrictlyPositive :: IRGraph where
+  "unit_BC_idiv_testStrictlyPositive = irgraph [
+  (0, (StartNode (Some 2) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (64))), IntegerStamp 32 (64) (64)),
+  (4, (ConstantNode (new_int 32 (7))), IntegerStamp 32 (7) (7)),
+  (5, (AndNode 1 4), IntegerStamp 32 (0) (7)),
+  (6, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (7, (AddNode 5 6), IntegerStamp 32 (1) (8)),
+  (8, (SignedDivNode 8 3 7 None None 9), IntegerStamp 32 (8) (64)),
+  (9, (ReturnNode (Some 8) None), VoidStamp)
+  ]"
+value "static_test unit_BC_idiv_testStrictlyPositive  [(new_int 32 (6))] (new_int 32 (9))"
+

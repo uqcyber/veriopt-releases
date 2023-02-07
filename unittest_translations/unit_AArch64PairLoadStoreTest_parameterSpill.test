@@ -1,0 +1,29 @@
+
+(* Lorg/graalvm/compiler/core/aarch64/test/AArch64PairLoadStoreTest;.AArch64PairLoadStoreTest_parameterSpill*)
+definition unit_AArch64PairLoadStoreTest_parameterSpill :: IRGraph where
+  "unit_AArch64PairLoadStoreTest_parameterSpill = irgraph [
+  (0, (StartNode (Some 11) 21), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (ParameterNode 1), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (3, (ParameterNode 2), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (4, (ParameterNode 3), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (5, (ParameterNode 4), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (6, (ParameterNode 5), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (7, (ParameterNode 6), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (8, (ParameterNode 7), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (9, (ParameterNode 8), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (10, (ParameterNode 9), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (AddNode 1 2), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (13, (AddNode 3 12), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (14, (AddNode 4 13), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (15, (AddNode 5 14), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (16, (AddNode 6 15), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (17, (AddNode 7 16), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (18, (AddNode 8 17), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (19, (AddNode 9 10), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (20, (AddNode 18 19), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (21, (ReturnNode (Some 20) None), VoidStamp)
+  ]"
+value "static_test unit_AArch64PairLoadStoreTest_parameterSpill  [(IntVal 64 (1)), (IntVal 64 (2)), (IntVal 64 (3)), (IntVal 64 (4)), (IntVal 64 (5)), (IntVal 64 (6)), (IntVal 64 (7)), (IntVal 64 (8)), (IntVal 64 (9)), (IntVal 64 (10))] (IntVal 64 (55))"
+

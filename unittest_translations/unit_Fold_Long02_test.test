@@ -1,0 +1,130 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/Fold_Long02;.Fold_Long02_test*)
+definition unit_Fold_Long02_test :: Program where
+  "unit_Fold_Long02_test = Map.empty (
+  ''org.graalvm.compiler.jtt.optimize.Fold_Long02.test(I)Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 2) 7), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (IntegerEqualsNode 1 3), VoidStamp),
+  (5, (BeginNode 16), VoidStamp),
+  (6, (BeginNode 9), VoidStamp),
+  (7, (IfNode 4 6 5), VoidStamp),
+  (8, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.Fold_Long02.equ()Z'' []), VoidStamp),
+  (9, (InvokeNode 9 8 None None (Some 10) 11), IntegerStamp 32 (0) (1)),
+  (10, (FrameState [] None None None), IllegalStamp),
+  (11, (ReturnNode (Some 9) None), VoidStamp),
+  (12, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (13, (IntegerEqualsNode 1 12), VoidStamp),
+  (14, (BeginNode 25), VoidStamp),
+  (15, (BeginNode 18), VoidStamp),
+  (16, (IfNode 13 15 14), VoidStamp),
+  (17, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.Fold_Long02.neq()Z'' []), VoidStamp),
+  (18, (InvokeNode 18 17 None None (Some 19) 20), IntegerStamp 32 (0) (1)),
+  (19, (FrameState [] None None None), IllegalStamp),
+  (20, (ReturnNode (Some 18) None), VoidStamp),
+  (21, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (22, (IntegerEqualsNode 1 21), VoidStamp),
+  (23, (BeginNode 34), VoidStamp),
+  (24, (BeginNode 27), VoidStamp),
+  (25, (IfNode 22 24 23), VoidStamp),
+  (26, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.Fold_Long02.geq()Z'' []), VoidStamp),
+  (27, (InvokeNode 27 26 None None (Some 28) 29), IntegerStamp 32 (0) (1)),
+  (28, (FrameState [] None None None), IllegalStamp),
+  (29, (ReturnNode (Some 27) None), VoidStamp),
+  (30, (ConstantNode (new_int 32 (3))), IntegerStamp 32 (3) (3)),
+  (31, (IntegerEqualsNode 1 30), VoidStamp),
+  (32, (BeginNode 43), VoidStamp),
+  (33, (BeginNode 36), VoidStamp),
+  (34, (IfNode 31 33 32), VoidStamp),
+  (35, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.Fold_Long02.ge()Z'' []), VoidStamp),
+  (36, (InvokeNode 36 35 None None (Some 37) 38), IntegerStamp 32 (0) (1)),
+  (37, (FrameState [] None None None), IllegalStamp),
+  (38, (ReturnNode (Some 36) None), VoidStamp),
+  (39, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (40, (IntegerEqualsNode 1 39), VoidStamp),
+  (41, (BeginNode 52), VoidStamp),
+  (42, (BeginNode 45), VoidStamp),
+  (43, (IfNode 40 42 41), VoidStamp),
+  (44, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.Fold_Long02.ltq()Z'' []), VoidStamp),
+  (45, (InvokeNode 45 44 None None (Some 46) 47), IntegerStamp 32 (0) (1)),
+  (46, (FrameState [] None None None), IllegalStamp),
+  (47, (ReturnNode (Some 45) None), VoidStamp),
+  (48, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (49, (IntegerEqualsNode 1 48), VoidStamp),
+  (50, (BeginNode 57), VoidStamp),
+  (51, (BeginNode 54), VoidStamp),
+  (52, (IfNode 49 51 50), VoidStamp),
+  (53, (MethodCallTargetNode ''org.graalvm.compiler.jtt.optimize.Fold_Long02.lt()Z'' []), VoidStamp),
+  (54, (InvokeNode 54 53 None None (Some 55) 56), IntegerStamp 32 (0) (1)),
+  (55, (FrameState [] None None None), IllegalStamp),
+  (56, (ReturnNode (Some 54) None), VoidStamp),
+  (57, (ReturnNode (Some 3) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.Fold_Long02.equ()Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 5), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (IntVal 64 (34))), IntegerStamp 64 (34) (34)),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (ReturnNode (Some 4) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.Fold_Long02.neq()Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 6), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (IntVal 64 (34))), IntegerStamp 64 (34) (34)),
+  (3, (ConstantNode (IntVal 64 (33))), IntegerStamp 64 (33) (33)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (ReturnNode (Some 4) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.Fold_Long02.geq()Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 6), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (IntVal 64 (34))), IntegerStamp 64 (34) (34)),
+  (3, (ConstantNode (IntVal 64 (33))), IntegerStamp 64 (33) (33)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (ReturnNode (Some 4) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.Fold_Long02.ge()Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 6), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (IntVal 64 (34))), IntegerStamp 64 (34) (34)),
+  (3, (ConstantNode (IntVal 64 (35))), IntegerStamp 64 (35) (35)),
+  (4, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (5, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.Fold_Long02.ltq()Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 6), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (IntVal 64 (34))), IntegerStamp 64 (34) (34)),
+  (3, (ConstantNode (IntVal 64 (32))), IntegerStamp 64 (32) (32)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.jtt.optimize.Fold_Long02.lt()Z'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 6), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (IntVal 64 (34))), IntegerStamp 64 (34) (34)),
+  (3, (ConstantNode (IntVal 64 (31))), IntegerStamp 64 (31) (31)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (6, (ReturnNode (Some 5) None), VoidStamp)
+  ]
+  )"
+value "program_test unit_Fold_Long02_test ''org.graalvm.compiler.jtt.optimize.Fold_Long02.test(I)Z'' [(new_int 32 (0))] (new_int 32 (1))"
+
+value "program_test unit_Fold_Long02_test ''org.graalvm.compiler.jtt.optimize.Fold_Long02.test(I)Z'' [(new_int 32 (1))] (new_int 32 (1))"
+
+value "program_test unit_Fold_Long02_test ''org.graalvm.compiler.jtt.optimize.Fold_Long02.test(I)Z'' [(new_int 32 (2))] (new_int 32 (1))"
+
+value "program_test unit_Fold_Long02_test ''org.graalvm.compiler.jtt.optimize.Fold_Long02.test(I)Z'' [(new_int 32 (3))] (new_int 32 (0))"
+
+value "program_test unit_Fold_Long02_test ''org.graalvm.compiler.jtt.optimize.Fold_Long02.test(I)Z'' [(new_int 32 (4))] (new_int 32 (0))"
+
+value "program_test unit_Fold_Long02_test ''org.graalvm.compiler.jtt.optimize.Fold_Long02.test(I)Z'' [(new_int 32 (5))] (new_int 32 (0))"
+

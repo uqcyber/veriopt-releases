@@ -1,0 +1,46 @@
+
+(* Lorg/graalvm/compiler/core/test/VeriOptFactorialTest;.VeriOptFactorialTest_factStatic*)
+definition unit_VeriOptFactorialTest_factStatic :: Program where
+  "unit_VeriOptFactorialTest_factStatic = Map.empty (
+  ''org.graalvm.compiler.core.test.VeriOptFactorialTest.factStatic()I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (3, (LoadFieldNode 3 ''org.graalvm.compiler.core.test.VeriOptFactorialTest::N'' None 5), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (EndNode), VoidStamp),
+  (6, (LoopBeginNode [5, 21] None (Some 9) 17), VoidStamp),
+  (7, (ValuePhiNode 7 [2, 18] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ValuePhiNode 8 [3, 20] 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (FrameState [] None None None), IllegalStamp),
+  (10, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (11, (IntegerLessThanNode 8 10), VoidStamp),
+  (12, (BeginNode 21), VoidStamp),
+  (14, (LoopExitNode 6 (Some 16) 22), VoidStamp),
+  (15, (RefNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (16, (FrameState [] None None None), IllegalStamp),
+  (17, (IfNode 11 14 12), VoidStamp),
+  (18, (MulNode 7 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (19, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (20, (AddNode 8 19), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (LoopEndNode 6), VoidStamp),
+  (22, (ReturnNode (Some 15) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.core.test.VeriOptFactorialTest.<clinit>()V'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (5))), IntegerStamp 32 (5) (5)),
+  (3, (StoreFieldNode 3 ''org.graalvm.compiler.core.test.VeriOptFactorialTest::N'' 2 (Some 4) None 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ],
+  '''' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 3), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (MethodCallTargetNode ''org.graalvm.compiler.core.test.VeriOptFactorialTest.<clinit>()V'' []), VoidStamp),
+  (3, (InvokeNode 3 2 None None (Some 4) 5), VoidStamp),
+  (4, (FrameState [] None None None), IllegalStamp),
+  (5, (ReturnNode None None), VoidStamp)
+  ]
+  )"
+value "program_test unit_VeriOptFactorialTest_factStatic ''org.graalvm.compiler.core.test.VeriOptFactorialTest.factStatic()I'' [] (new_int 32 (120))"
+

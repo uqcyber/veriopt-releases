@@ -1,0 +1,52 @@
+
+(* Lorg/graalvm/compiler/core/test/DontReuseArgumentSpaceTest;.DontReuseArgumentSpaceTest_callTwice*)
+definition unit_DontReuseArgumentSpaceTest_callTwice :: Program where
+  "unit_DontReuseArgumentSpaceTest_callTwice = Map.empty (
+  ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.callTwice(IIIIIIIIII)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 11) 13), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (ParameterNode 2), IntegerStamp 32 (-2147483648) (2147483647)),
+  (4, (ParameterNode 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (ParameterNode 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (6, (ParameterNode 5), IntegerStamp 32 (-2147483648) (2147483647)),
+  (7, (ParameterNode 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ParameterNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (ParameterNode 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (ParameterNode 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (MethodCallTargetNode ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.killArguments(IIIIIIIIII)I'' [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), VoidStamp),
+  (13, (InvokeNode 13 12 None None (Some 14) 16), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (FrameState [] None None None), IllegalStamp),
+  (15, (MethodCallTargetNode ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.killArguments(IIIIIIIIII)I'' [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), VoidStamp),
+  (16, (InvokeNode 16 15 None None (Some 17) 18), IntegerStamp 32 (-2147483648) (2147483647)),
+  (17, (FrameState [] None None None), IllegalStamp),
+  (18, (ReturnNode (Some 16) None), VoidStamp)
+  ],
+  ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.killArguments(IIIIIIIIII)I'' \<mapsto> irgraph [
+  (0, (StartNode (Some 11) 21), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (ParameterNode 1), IntegerStamp 32 (-2147483648) (2147483647)),
+  (3, (ParameterNode 2), IntegerStamp 32 (-2147483648) (2147483647)),
+  (4, (ParameterNode 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (5, (ParameterNode 4), IntegerStamp 32 (-2147483648) (2147483647)),
+  (6, (ParameterNode 5), IntegerStamp 32 (-2147483648) (2147483647)),
+  (7, (ParameterNode 6), IntegerStamp 32 (-2147483648) (2147483647)),
+  (8, (ParameterNode 7), IntegerStamp 32 (-2147483648) (2147483647)),
+  (9, (ParameterNode 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (ParameterNode 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (FrameState [] None None None), IllegalStamp),
+  (12, (AddNode 1 2), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (AddNode 3 12), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (AddNode 4 13), IntegerStamp 32 (-2147483648) (2147483647)),
+  (15, (AddNode 5 14), IntegerStamp 32 (-2147483648) (2147483647)),
+  (16, (AddNode 6 15), IntegerStamp 32 (-2147483648) (2147483647)),
+  (17, (AddNode 7 16), IntegerStamp 32 (-2147483648) (2147483647)),
+  (18, (AddNode 8 17), IntegerStamp 32 (-2147483648) (2147483647)),
+  (19, (AddNode 9 18), IntegerStamp 32 (-2147483648) (2147483647)),
+  (20, (AddNode 10 19), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (ReturnNode (Some 20) None), VoidStamp)
+  ]
+  )"
+value "program_test unit_DontReuseArgumentSpaceTest_callTwice ''org.graalvm.compiler.core.test.DontReuseArgumentSpaceTest.callTwice(IIIIIIIIII)I'' [(new_int 32 (1)), (new_int 32 (2)), (new_int 32 (3)), (new_int 32 (4)), (new_int 32 (5)), (new_int 32 (6)), (new_int 32 (7)), (new_int 32 (8)), (new_int 32 (9)), (new_int 32 (10))] (new_int 32 (55))"
+

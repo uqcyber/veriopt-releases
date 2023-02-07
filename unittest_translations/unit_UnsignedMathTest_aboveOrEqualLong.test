@@ -1,0 +1,22 @@
+
+(* Lorg/graalvm/compiler/replacements/test/UnsignedMathTest;.UnsignedMathTest_aboveOrEqualLong*)
+definition unit_UnsignedMathTest_aboveOrEqualLong :: IRGraph where
+  "unit_UnsignedMathTest_aboveOrEqualLong = irgraph [
+  (0, (StartNode (Some 3) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (2, (ParameterNode 1), IntegerStamp 64 (-9223372036854775808) (9223372036854775807)),
+  (3, (FrameState [] None None None), IllegalStamp),
+  (4, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (5, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (6, (IntegerBelowNode 1 2), VoidStamp),
+  (7, (ConditionalNode 6 4 5), IntegerStamp 32 (0) (1)),
+  (8, (ReturnNode (Some 7) None), VoidStamp)
+  ]"
+value "static_test unit_UnsignedMathTest_aboveOrEqualLong  [(IntVal 64 (5)), (IntVal 64 (7))] (new_int 32 (0))"
+
+value "static_test unit_UnsignedMathTest_aboveOrEqualLong  [(IntVal 64 (-3)), (IntVal 64 (-7))] (new_int 32 (1))"
+
+value "static_test unit_UnsignedMathTest_aboveOrEqualLong  [(IntVal 64 (-3)), (IntVal 64 (7))] (new_int 32 (1))"
+
+value "static_test unit_UnsignedMathTest_aboveOrEqualLong  [(IntVal 64 (42)), (IntVal 64 (-5))] (new_int 32 (0))"
+

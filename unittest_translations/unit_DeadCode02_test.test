@@ -1,0 +1,14 @@
+
+(* Lorg/graalvm/compiler/jtt/optimize/DeadCode02;.DeadCode02_test*)
+definition unit_DeadCode02_test :: IRGraph where
+  "unit_DeadCode02_test = irgraph [
+  (0, (StartNode (Some 1) 15), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (8, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (9, (AddNode 2 8), IntegerStamp 32 (-2147483648) (2147483647)),
+  (10, (FrameState [] None None None), IllegalStamp),
+  (15, (ReturnNode (Some 9) None), VoidStamp)
+  ]"
+value "static_test unit_DeadCode02_test  [] (new_int 32 (1))"
+

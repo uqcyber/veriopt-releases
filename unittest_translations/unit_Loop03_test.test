@@ -1,0 +1,39 @@
+
+(* Lorg/graalvm/compiler/jtt/loop/Loop03;.Loop03_test*)
+definition unit_Loop03_test :: IRGraph where
+  "unit_Loop03_test = irgraph [
+  (0, (StartNode (Some 2) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (4, (ConstantNode (new_int 32 (2))), IntegerStamp 32 (2) (2)),
+  (5, (ConstantNode (new_int 32 (4))), IntegerStamp 32 (4) (4)),
+  (6, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (8, (EndNode), VoidStamp),
+  (9, (LoopBeginNode [8, 26] None (Some 14) 23), VoidStamp),
+  (10, (ValuePhiNode 10 [3, 11] 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (11, (ValuePhiNode 11 [4, 24] 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (12, (ValuePhiNode 12 [5, 11] 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (13, (ValuePhiNode 13 [6, 25] 9), IntegerStamp 32 (-2147483648) (2147483647)),
+  (14, (FrameState [] None None None), IllegalStamp),
+  (15, (IntegerLessThanNode 13 1), VoidStamp),
+  (17, (LoopExitNode 9 (Some 21) 33), VoidStamp),
+  (18, (RefNode 10), IntegerStamp 32 (-2147483648) (2147483647)),
+  (19, (RefNode 11), IntegerStamp 32 (-2147483648) (2147483647)),
+  (20, (RefNode 12), IntegerStamp 32 (-2147483648) (2147483647)),
+  (21, (FrameState [] None None None), IllegalStamp),
+  (22, (BeginNode 26), VoidStamp),
+  (23, (IfNode 15 22 17), VoidStamp),
+  (24, (ConstantNode (new_int 32 (7))), IntegerStamp 32 (7) (7)),
+  (25, (AddNode 13 3), IntegerStamp 32 (-2147483648) (2147483647)),
+  (26, (LoopEndNode 9), VoidStamp),
+  (27, (ConstantNode (new_int 32 (10))), IntegerStamp 32 (10) (10)),
+  (28, (MulNode 19 27), IntegerStamp 32 (-2147483648) (2147483647)),
+  (29, (AddNode 18 28), IntegerStamp 32 (-2147483648) (2147483647)),
+  (30, (ConstantNode (new_int 32 (1000))), IntegerStamp 32 (1000) (1000)),
+  (31, (MulNode 20 30), IntegerStamp 32 (-2147483648) (2147483647)),
+  (32, (AddNode 29 31), IntegerStamp 32 (-2147483648) (2147483647)),
+  (33, (ReturnNode (Some 32) None), VoidStamp)
+  ]"
+value "static_test unit_Loop03_test  [(new_int 32 (10))] (new_int 32 (7077))"
+

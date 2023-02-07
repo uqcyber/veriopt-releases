@@ -1,0 +1,16 @@
+
+(* Lorg/graalvm/compiler/replacements/test/NewInstanceTest;.NewInstanceTest_newObject*)
+definition unit_NewInstanceTest_newObject :: Program where
+  "unit_NewInstanceTest_newObject = Map.empty (
+  ''org.graalvm.compiler.replacements.test.NewInstanceTest.newObject()Ljava/lang/Object;'' \<mapsto> irgraph [
+  (0, (StartNode (Some 1) 2), VoidStamp),
+  (1, (FrameState [] None None None), IllegalStamp),
+  (2, (NewInstanceNode 2 ''java.lang.Object'' None 3), ObjectStamp ''java.lang.Object'' True True False),
+  (3, (ReturnNode (Some 2) None), VoidStamp)
+  ]
+  )"
+fun check_NewInstanceTest_newObject_75 :: "Value \<Rightarrow> FieldRefHeap \<Rightarrow> bool" where
+  "check_NewInstanceTest_newObject_75 (ObjRef x) h = (True)" |
+  "check_NewInstanceTest_newObject_75 _ _ = False"
+value "object_test unit_NewInstanceTest_newObject ''org.graalvm.compiler.replacements.test.NewInstanceTest.newObject()Ljava/lang/Object;'' [] check_NewInstanceTest_newObject_75"
+

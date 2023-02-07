@@ -34,6 +34,8 @@ VirtualBox image which has Ubuntu 2022.10 with Isabelle installed plus a copy of
 
 * The username/password for this VirtualBox image is: vboxuser / veriopt2023
 
+* Note that this VirtualBox image was built using VirtualBox 7.0.6 on Windows.  The image uses Ubuntu 20.10 and defaults to 4 cores and 16Gb RAM.  This is really the minimum requirements for Isabelle, but it should be possible to run most of the generated UnitTestsNN.thy files through Isabelle with only 12Gb of RAM, and perhaps some with 8Gb.
+
 
 Step 1: package up the translated tests into Isabelle theories.
 

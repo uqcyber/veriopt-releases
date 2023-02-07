@@ -32,7 +32,7 @@ VirtualBox image which has Ubuntu 2022.10 with Isabelle installed plus a copy of
 
 * [VirtualBox Image](https://figshare.com/ndownloader/files/39023720)
 
-* The password for this VirtualBox image is: veriopt2023
+* The username/password for this VirtualBox image is: vboxuser / veriopt2023
 
 
 Step 1: package up the translated tests into Isabelle theories.

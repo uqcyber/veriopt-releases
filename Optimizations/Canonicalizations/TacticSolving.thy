@@ -129,12 +129,21 @@ lemma val_xor_commute[simp]:
    apply (cases x; cases y; auto)
   by (simp add: word_bw_comms(3))
 
+lemma val_and_commute[simp]:
+   "val[x & y] = val[y & x]"
+   apply (cases x; cases y; auto)
+  by (simp add: word_bw_comms(1))
+
 lemma exp_or_commutative:
   "exp[x | y] \<ge> exp[y | x]"
   by auto 
 
 lemma exp_xor_commutative:
   "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
+  by auto 
+
+lemma exp_and_commutative:
+  "exp[x & y] \<ge> exp[y & x]"
   by auto 
 
 (* 32-bit proofs of new optimisations *)
@@ -175,6 +184,61 @@ optimization XorInverse: "exp[n \<oplus> ~n] \<longmapsto> (const (new_int 32 (n
 optimization XorInverse2: "exp[(~n) \<oplus> n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
    using XorInverse exp_xor_commutative by auto
+
+(* --- New optimisations --- *)
+lemma AndSelfVal:
+  assumes "n = IntVal 32 v"
+  shows "val[~n & n] = new_int 32 (0)"
+  apply simp using assms apply (cases n; auto) 
+  by (metis take_bit_and take_bit_of_0 word_and_not)
+
+optimization AndSelf: "exp[(~n) & n] \<longmapsto> (const (new_int 32 (0)))
+                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
+   unfolding size.simps apply (simp add: Suc_lessI) apply auto
+   using AndSelfVal unfolding wf_stamp_def
+  by (metis (no_types, lifting) val_and_commute ConstantExpr IntVal0 Value.inject(1) evalDet 
+      eval_bits_1_64 new_int.simps validDefIntConst valid_int wf_value_def)
+
+optimization AndSelf2: "exp[n & (~n)] \<longmapsto> (const (new_int 32 (0)))
+                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
+  using AndSelf exp_and_commutative by auto
+
+lemma NotXorToXorVal:
+  assumes "x = IntVal 32 xv"
+  assumes "y = IntVal 32 yv"
+  shows "val[(~x) \<oplus> (~y)] = val[x \<oplus> y]" 
+   using assms apply (cases x; cases y; auto) 
+  by (metis (no_types, opaque_lifting) bit.xor_compl_left bit.xor_compl_right take_bit_xor 
+      word_not_not) 
+
+lemma NotXorToXorExp:
+  assumes "stamp_expr x = IntegerStamp 32 lx hx"
+  assumes "wf_stamp x"
+  assumes "stamp_expr y = IntegerStamp 32 ly hy"
+  assumes "wf_stamp y"
+  shows "exp[(~x) \<oplus> (~y)] \<ge> exp[x \<oplus> y]" 
+  apply auto 
+  subgoal premises p for m p xa xb
+    proof -
+      obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+        using p by blast
+      obtain xb where xb: "[m,p] \<turnstile> y \<mapsto> xb"
+        using p by blast
+      have toVal: "[m,p] \<turnstile> BinaryExpr BinXor x y \<mapsto> (intval_xor xa xb)"
+        by (smt (verit, del_insts) NotXorToXorVal evalDet p(1) p(2) p(4) valid_int wf_stamp_def 
+            bin_eval.simps(6) xa xb evaltree.BinaryExpr assms)
+      then have a: "intval_xor (intval_not xa) (intval_not xb) = intval_xor xa xb" 
+        by (metis assms(1) assms(2) assms(3) assms(4) valid_int wf_stamp_def xa xb NotXorToXorVal)
+      then show ?thesis
+        by (metis a evalDet p(2) p(4) toVal xa xb)
+    qed 
+  done
+
+optimization NotXorToXor: "exp[(~x) \<oplus> (~y)] \<longmapsto> (x \<oplus> y)
+                        when (stamp_expr x = IntegerStamp 32 lx hx \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp 32 ly hy \<and> wf_stamp y)"
+   unfolding size.simps apply (simp add: Suc_lessI) 
+  by (smt (verit) NotXorToXorExp le_expr_def)
 
 end
 

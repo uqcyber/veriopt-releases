@@ -113,11 +113,9 @@ lemma exp_xor_self_is_false:
   assumes "wf_stamp x"
   shows "exp[x \<oplus> x] >= exp[false]"
   unfolding le_expr_def using assms unfolding wf_stamp_def
-  using val_xor_self_is_false evaltree_not_undef
   by (smt (z3) wf_value_def bin_eval.simps(6) bin_eval_new_int constantAsStamp.simps(1) evalDet 
       int_signed_value_bounds new_int.simps new_int_take_bits unfold_binary unfold_const valid_int 
-      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn)
-
+      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn val_xor_self_is_false)
 
 lemma val_or_commute[simp]:
    "val[x | y] = val[y | x]"
@@ -150,8 +148,8 @@ lemma exp_and_commutative:
 lemma OrInverseVal:
   assumes "n = IntVal 32 v"
   shows "val[n | ~n] \<approx> new_int 32 (-1)"
-  apply simp using assms using word_or_not apply (cases n; auto) using take_bit_or
-  by (metis bit.disj_cancel_right mask_eq_take_bit_minus_one)
+  apply simp using assms using word_or_not apply (cases n; auto)
+  by (metis bit.disj_cancel_right mask_eq_take_bit_minus_one take_bit_or)
 
 optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
@@ -161,7 +159,6 @@ optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (new_int 32 (not 0)))
       mask_eq_take_bit_minus_one new_int.elims new_int_take_bits unfold_const valid_int 
       valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn)
 
-
 optimization OrInverse2: "exp[~n | n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
    using OrInverse exp_or_commutative by auto
@@ -169,17 +166,17 @@ optimization OrInverse2: "exp[~n | n] \<longmapsto> (const (new_int 32 (not 0)))
 lemma XorInverseVal:
   assumes "n = IntVal 32 v"
   shows "val[n \<oplus> ~n] \<approx> new_int 32 (-1)"
-  apply simp using assms using word_or_not apply (cases n; auto)
+  apply simp using assms word_or_not apply (cases n; auto)
   by (metis (no_types, opaque_lifting) bit.compl_zero bit.xor_compl_right bit.xor_self 
       mask_eq_take_bit_minus_one take_bit_xor)
 
 optimization XorInverse: "exp[n \<oplus> ~n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
   unfolding size.simps apply (simp add: Suc_lessI)
-  apply auto using XorInverseVal
+  apply auto 
   by (smt (verit) wf_value_def constantAsStamp.simps(1) evalDet int_signed_value_bounds 
       intval_xor.elims mask_eq_take_bit_minus_one new_int.elims new_int_take_bits unfold_const 
-      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn wf_stamp_def)
+      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn wf_stamp_def XorInverseVal)
 
 optimization XorInverse2: "exp[(~n) \<oplus> n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
@@ -195,9 +192,9 @@ lemma AndSelfVal:
 optimization AndSelf: "exp[(~n) & n] \<longmapsto> (const (new_int 32 (0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
    unfolding size.simps apply (simp add: Suc_lessI) apply auto
-   using AndSelfVal unfolding wf_stamp_def
+   unfolding wf_stamp_def 
   by (metis (no_types, lifting) val_and_commute ConstantExpr IntVal0 Value.inject(1) evalDet 
-      eval_bits_1_64 new_int.simps validDefIntConst valid_int wf_value_def)
+      eval_bits_1_64 new_int.simps validDefIntConst valid_int wf_value_def AndSelfVal)
 
 optimization AndSelf2: "exp[n & (~n)] \<longmapsto> (const (new_int 32 (0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
@@ -224,11 +221,11 @@ lemma NotXorToXorExp:
         using p by blast
       obtain xb where xb: "[m,p] \<turnstile> y \<mapsto> xb"
         using p by blast
-      have toVal: "[m,p] \<turnstile> BinaryExpr BinXor x y \<mapsto> (intval_xor xa xb)"
+      have toVal: "[m,p] \<turnstile> exp[x \<oplus> y] \<mapsto> val[xa \<oplus> xb]"
         by (smt (verit, del_insts) NotXorToXorVal evalDet p(1) p(2) p(4) valid_int wf_stamp_def 
             bin_eval.simps(6) xa xb evaltree.BinaryExpr assms)
-      then have a: "intval_xor (intval_not xa) (intval_not xb) = intval_xor xa xb" 
-        by (metis assms(1) assms(2) assms(3) assms(4) valid_int wf_stamp_def xa xb NotXorToXorVal)
+      then have a: "val[(~xa) \<oplus> (~xb)] = val[xa \<oplus> xb]" 
+        by (metis assms valid_int wf_stamp_def xa xb NotXorToXorVal)
       then show ?thesis
         by (metis a evalDet p(2) p(4) toVal xa xb)
     qed 

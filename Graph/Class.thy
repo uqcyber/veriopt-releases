@@ -332,7 +332,7 @@ qualified definition mapJVMFunc :: "(JVMClass \<Rightarrow> 'b) \<Rightarrow> Cl
   "mapJVMFunc cf cl = List.map cf (classToJVMList cl)"
 
 qualified definition member :: "Classes \<Rightarrow> JVMClass \<Rightarrow> bool" where
-  "member cl = List.member (classToJVMList cl)"
+  "member cl c = List.member (classToJVMList cl) c"
 
 qualified definition length :: "Classes \<Rightarrow> nat" where
   "length cl = List.length (classToJVMList cl)"

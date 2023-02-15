@@ -301,8 +301,11 @@ lemma classes_eqI:
   by (simp add: classToJVMList_inject)
 
 (* Constructor *)
-definition ClassesConstructor :: "JVMClass list \<Rightarrow> Classes" where
-  "ClassesConstructor j = (if j = [] then (Abs_Classes [emptyClass]) else (Abs_Classes j))"
+setup_lifting type_definition_Classes
+
+lift_definition LiftedClassesConstructor :: "JVMClass list \<Rightarrow> Classes" is
+  "\<lambda>j. (if j = [] then [emptyClass] else j)" 
+  by simp
 
 (* Maintaining invariant *)
 lemma nonempty_cl [simp, intro]:
@@ -310,20 +313,20 @@ lemma nonempty_cl [simp, intro]:
   using classToJVMList [of cl] by simp
 
 lemma original_jvm [simp]:
-  "classToJVMList (ClassesConstructor cl) = (if (cl = []) then [emptyClass] else cl)" 
-  by (simp add: Abs_Classes_inverse ClassesConstructor_def)
+  "classToJVMList (LiftedClassesConstructor cl) = (if (cl = []) then [emptyClass] else cl)" 
+  by (simp add: Abs_Classes_inverse LiftedClassesConstructor_def)
 
 (* Abstraction transformation *)
 lemma classesToClasses [simp, code abstype]:
-  "ClassesConstructor (classToJVMList cl) = cl" 
-  by (simp add: ClassesConstructor_def classToJVMList_inverse)
+  "LiftedClassesConstructor (classToJVMList cl) = cl" 
+  by (simp add: LiftedClassesConstructor_def classToJVMList_inverse)
 
 (* Operations *)
 context
 begin
 
 qualified definition empty :: "Classes" where
-  "empty = ClassesConstructor []"
+  "empty = LiftedClassesConstructor []"
 
 qualified definition mapJVMFunc :: "(JVMClass \<Rightarrow> 'b) \<Rightarrow> Classes \<Rightarrow> 'b list" where
   "mapJVMFunc cf cl = List.map cf (classToJVMList cl)"
@@ -349,14 +352,7 @@ lemma classToJVM_map [simp, code]:
   by (simp add: Class.mapJVMFunc_def)
 
 (* Code gen setup *)
-(* TODO: Merge ClassesConstructor and LiftedClassesConstructor *)
-setup_lifting type_definition_Classes
-
-code_datatype ClassesConstructor
-
-lift_definition LiftedClassesConstructor :: "JVMClass list \<Rightarrow> Classes" is
-  "\<lambda>j. (if j = [] then [emptyClass] else j)" 
-  by simp
+(* TODO: Rename LiftedClassesConstructor *)
 
 code_datatype LiftedClassesConstructor
 
@@ -372,6 +368,7 @@ value "newclass"
 value "Class.mapJVMFunc class_name newclass"
 value "Class.mapJVMFunc class_parent newclass"
 value "classToJVMList newclass" 
+value "classToJVMList (LiftedClassesConstructor [])"
 
 (* Redefining some functions in terms of Classes, not JVMClass list *)
 (* TODO update original functions to these *)

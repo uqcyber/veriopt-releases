@@ -147,7 +147,8 @@ session Document in "Papers/Main" = Canonicalizations +
     "Whole project document"
   options [quick_and_dirty,
            document = pdf, document_output = "output",
-           show_question_marks = false]
+           show_question_marks = false,
+           document_variants="document:outline=/proof"]
   sessions
     Graph
     Semantics

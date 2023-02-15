@@ -313,7 +313,7 @@ definition p3:: Params where
   "p3 = [IntVal 32 3]"
 
 fun graphToSystem :: "IRGraph \<Rightarrow> System" where
-  "graphToSystem graph = ((\<lambda>x. Some graph), LiftedClassesConstructor [])"
+  "graphToSystem graph = ((\<lambda>x. Some graph), JVMClasses [])"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{(prod.fst(prod.snd (prod.snd (hd (prod.fst res))))) 0 

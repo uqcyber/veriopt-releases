@@ -54,7 +54,7 @@ datatype JVMClass =
 
 (* Empty placeholder class *)
 definition emptyClass :: "JVMClass" where 
-  "emptyClass = NewClass ''name'' [] [] [] ''parent''"
+  "emptyClass = NewClass ''name_empty'' [] [] [] ''parent_empty''"
 
 text \<open> ----- General Functions ----- \<close>
 
@@ -63,7 +63,7 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
   "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
 
-text \<open> ----- Functions to interact with JVMClasses ----- \<close>
+text \<open> ----- Functions to interact with JVMClass lists ----- \<close>
 
 (* Returns the index of a class in the JVMClass list *)
 fun find_class_index :: "string \<Rightarrow> JVMClass list \<Rightarrow> nat" where
@@ -303,7 +303,7 @@ lemma classes_eqI:
 (* Constructor *)
 setup_lifting type_definition_Classes
 
-lift_definition LiftedClassesConstructor :: "JVMClass list \<Rightarrow> Classes" is
+lift_definition JVMClasses :: "JVMClass list \<Rightarrow> Classes" is
   "\<lambda>j. (if j = [] then [emptyClass] else j)" 
   by simp
 
@@ -313,20 +313,20 @@ lemma nonempty_cl [simp, intro]:
   using classToJVMList [of cl] by simp
 
 lemma original_jvm [simp]:
-  "classToJVMList (LiftedClassesConstructor cl) = (if (cl = []) then [emptyClass] else cl)" 
-  by (simp add: Abs_Classes_inverse LiftedClassesConstructor_def)
+  "classToJVMList (JVMClasses cl) = (if (cl = []) then [emptyClass] else cl)" 
+  by (simp add: Abs_Classes_inverse JVMClasses_def)
 
 (* Abstraction transformation *)
 lemma classesToClasses [simp, code abstype]:
-  "LiftedClassesConstructor (classToJVMList cl) = cl" 
-  by (simp add: LiftedClassesConstructor_def classToJVMList_inverse)
+  "JVMClasses (classToJVMList cl) = cl" 
+  by (simp add: JVMClasses_def classToJVMList_inverse)
 
 (* Operations *)
 context
 begin
 
 qualified definition empty :: "Classes" where
-  "empty = LiftedClassesConstructor []"
+  "empty = JVMClasses []"
 
 qualified definition mapJVMFunc :: "(JVMClass \<Rightarrow> 'b) \<Rightarrow> Classes \<Rightarrow> 'b list" where
   "mapJVMFunc cf cl = List.map cf (classToJVMList cl)"
@@ -352,23 +352,21 @@ lemma classToJVM_map [simp, code]:
   by (simp add: Class.mapJVMFunc_def)
 
 (* Code gen setup *)
-(* TODO: Rename LiftedClassesConstructor *)
-
-code_datatype LiftedClassesConstructor
+code_datatype JVMClasses
 
 lemma [code]:
-  "classToJVMList (LiftedClassesConstructor cl) = (if cl = [] then [emptyClass] else cl)"
-  using LiftedClassesConstructor.rep_eq by simp
+  "classToJVMList (JVMClasses cl) = (if cl = [] then [emptyClass] else cl)"
+  using JVMClasses.rep_eq by simp
 
 definition newclass :: "Classes" where
-  "newclass = LiftedClassesConstructor [NewClass ''name'' [] [] [] ''parent'']"
+  "newclass = JVMClasses [NewClass ''name'' [] [] [] ''parent'']"
 
 (* Testing code gen *)
 value "newclass"
 value "Class.mapJVMFunc class_name newclass"
 value "Class.mapJVMFunc class_parent newclass"
 value "classToJVMList newclass" 
-value "classToJVMList (LiftedClassesConstructor [])"
+value "classToJVMList (JVMClasses [])"
 
 (* Redefining some functions in terms of Classes, not JVMClass list *)
 (* TODO update original functions to these *)

@@ -1,10 +1,10 @@
 theory Class
-  imports Canonicalizations.Common
+  imports Main
 begin
 
 text \<open> Representation of a standard class containing fields, methods and constructors \<close>
 
-text \<open> _____ Representation of Fields and Parameters _____ \<close>
+text \<open> ----- Representation of Fields and Parameters ----- \<close>
 
 type_synonym FieldName = "string"
 type_synonym FieldType = "string"
@@ -15,7 +15,7 @@ datatype JVMField =
            (field_type: FieldType) |
   NewParameter (parameter_type: ParameterType)
 
-text \<open> _____ Representation of a Method _____ \<close>
+text \<open> ----- Representation of a Method ----- \<close>
 
 type_synonym MethodName = "string"
 type_synonym ReturnType = "string"
@@ -29,14 +29,14 @@ datatype JVMMethod =
             (method_parameters: MethodParameters)
             (method_unique_name: MethodUniqueName)
 
-text \<open> _____ Representation of a Constructor _____ \<close>
+text \<open> ----- Representation of a Constructor ----- \<close>
 
 type_synonym ConstructorParameters = "JVMField list"
 
 datatype JVMConstructor = 
   NewConstructor (constructor_params: ConstructorParameters)
 
-text \<open> _____ Representation of a standard class _____ \<close>
+text \<open> ----- Representation of a standard class ----- \<close>
 
 type_synonym Fields = "JVMField list"
 type_synonym Methods = "JVMMethod list"
@@ -52,34 +52,28 @@ datatype JVMClass =
            (class_constructors: Constructors)  
            (class_parent: ParentClass)
 
-
-(* Empty class to indicate that the class being queried does not exist in the JVMClass mapping *)
+(* Empty placeholder class *)
 definition emptyClass :: "JVMClass" where 
-  "emptyClass = NewClass ''empty'' [] [] [] ''empty''"
+  "emptyClass = NewClass ''name'' [] [] [] ''parent''"
 
-(* Not true generally, but true for now *)
-lemma ownParent:
-  assumes "class = NewClass n f m c p"
-  shows "n \<noteq> p" sorry
-
-text \<open> _____ General Functions _____ \<close>
+text \<open> ----- General Functions ----- \<close>
 
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
   "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
 
-text \<open> _____ Functions to interact with JVMClasses _____ \<close>
+text \<open> ----- Functions to interact with JVMClasses ----- \<close>
 
 (* Returns the index of a class in the JVMClass list *)
 fun find_class_index :: "string \<Rightarrow> JVMClass list \<Rightarrow> nat" where
-  "find_class_index name cl = find_index name (map class_name (cl))"
+  "find_class_index name cl = find_index name (map class_name cl)"
 
 (* Returns a JVMClass given its name and the JVMClass mapping *)
 fun get_JVMClass :: "string \<Rightarrow> JVMClass list \<Rightarrow> JVMClass" where 
   "get_JVMClass cName cList = 
     (if ((find_class_index cName cList) = (length cList)) 
-      then emptyClass 
+      then (emptyClass) 
       else (nth cList (find_class_index cName cList)))" 
 
 (* Returns the methods belonging to a particular class, given its name and the JVMClass mapping *)
@@ -92,29 +86,53 @@ fun get_simple_signature :: "string \<Rightarrow> string" where
 
 (* Returns the simple signatures of all the methods belonging to a given class *)
 fun simple_signatures :: "string \<Rightarrow> JVMClass list \<Rightarrow> string list" where
-  "simple_signatures cname clist = (map get_simple_signature (map method_unique_name (get_Methods cname clist)))"
+  "simple_signatures cname clist = 
+    (map get_simple_signature (map method_unique_name (get_Methods cname clist)))"
 
-(* Either you are the Top (parent of java.lang.Object: ''None'') or you inherit from someone *)
-datatype 'a inherit = Top | Node  'a "'a inherit"
+fun classNames :: "JVMClass list \<Rightarrow> string set" where
+  "classNames cl = set (map class_name cl) \<union> {''java.lang.Object''}"
 
-(* Returns the parent of a given JVMClass *)
-fun climb :: "JVMClass inherit \<Rightarrow> JVMClass inherit" where 
-  "climb Top = Top" |
-  "climb (Node class parent) = parent"
+fun parentRel :: "JVMClass list \<Rightarrow> string rel" where
+  "parentRel cl = (set (map (\<lambda>c. (class_name c, class_parent c)) cl)) \<union> 
+                  {(''java.lang.Object'',''None'')}"
 
-(* Returns a path from the given JVMClass to the Top of the class hierarchy tree, based on the 
-   JVMClass list given *)
-function toInherit :: "JVMClass \<Rightarrow> JVMClass list \<Rightarrow> JVMClass inherit" where
-  "toInherit class cl = (
-    if ((get_JVMClass (class_name class) cl) = emptyClass)
-      then (Top)
-      else (Node class (toInherit (get_JVMClass (class_parent class) cl) cl))
-  )" 
-  by auto  
-termination using ownParent by blast
+fun parentOf :: "JVMClass list \<Rightarrow> (string \<rightharpoonup> string)" where
+  "parentOf [] = Map.empty" |
+  "parentOf (c#cl) = (parentOf cl)((class_name c) \<mapsto> (class_parent c))"
 
+fun superclassOf :: "JVMClass list \<Rightarrow> (string rel)" where
+  "superclassOf cl = trancl (parentRel cl)"
 
-(** _____ Testing _____ **)
+lemma "finite (set (l::('a list)))" 
+  by simp
+
+lemma domainUnion: 
+  "dom (m(a\<mapsto>b)) = dom (m) \<union> {a}" 
+  by simp
+
+lemma "finite (dom (parentOf m))"  
+  proof (induction m)
+  case Nil
+  then show ?case 
+    by simp
+next
+  case (Cons a m)
+  then show ?case unfolding parentOf.simps
+    by (metis insert_def singleton_conv sup_commute finite.simps domainUnion) 
+qed
+
+lemma wellFoundedParent:
+  assumes "acyclic (parentRel cl)"
+  shows "wf (parentRel cl)" 
+    using assms unfolding parentRel.simps  
+  by (metis (no_types, lifting) List.set_insert Un_insert_right boolean_algebra.disj_zero_right 
+      wf_set)
+
+lemma transSuperClassOf[simp]:
+  "trans (superclassOf cl)"
+  by simp
+
+(** ----- Testing ----- **)
 
 (*
 
@@ -226,8 +244,177 @@ definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 		''java.lang.Object'']"
 
 (* Testing out functions *)
+value "parentRel unit_InvokeVirtual_01_test_mapping"
+value "superclassOf unit_InvokeVirtual_01_test_mapping"
+value "classNames unit_InvokeVirtual_01_test_mapping"
+value "the (parentOf unit_InvokeVirtual_01_test_mapping ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'')"
+value "set (simple_signatures ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' unit_InvokeVirtual_01_test_mapping)"
+
 value "find_class_index ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' unit_InvokeVirtual_01_test_mapping"
 value "get_JVMClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B'' unit_InvokeVirtual_01_test_mapping"
 value "get_simple_signature ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I''"
+
+(* TODO: Extend current Classes definition to include all characteristics *)
+(*
+typedef Classes = "{cl :: JVMClass list . 
+                    cl \<noteq> [] \<and> 
+                    acyclic (parentRel cl) \<and> 
+                    (''java.lang.Object'',''None'') \<in> parentRel cl \<and>
+                    (\<forall>n y. (n,y) \<in> (parentRel cl) \<longrightarrow> (n, ''None'') \<in> (superclassOf cl))}" 
+  morphisms classToJVMList Abs_Classes
+proof -
+  obtain cl where cl:  
+    "cl = [NewClass ''java.lang.Object'' [] [] [] ''None'']" 
+    by simp
+  then have a: "cl \<noteq> []" 
+    by simp
+  then have b: "acyclic (parentRel cl)"
+    using acyclic_def cl by fastforce 
+  then have c1: "parentRel cl = {(''java.lang.Object'', ''None'')}"
+    using cl by simp
+  then have c: "(\<forall>x y. (x,y) \<in> (parentRel cl) \<longrightarrow> (x, ''None'') \<in> (superclassOf cl))"
+    by auto
+  then show ?thesis  
+    using a c1 b cl by blast 
+qed*)
+
+typedef Classes = "{cl :: JVMClass list . 
+                    cl \<noteq> []}" 
+  morphisms classToJVMList Abs_Classes
+proof -
+  obtain cl where cl:  
+    "cl = [NewClass ''java.lang.Object'' [] [] [] ''None'']" 
+    by simp
+  then have a: "cl \<noteq> []" 
+    by simp
+  then show ?thesis 
+    using cl by blast
+qed
+
+(* Equality *)
+lemma classes_eq_iff:
+  "cl1 = cl2 \<longleftrightarrow> classToJVMList cl1 = classToJVMList cl2" 
+  by (simp add: classToJVMList_inject)
+
+lemma classes_eqI:
+  "classToJVMList cl1 = classToJVMList cl2 \<Longrightarrow> cl1 = cl2" 
+  by (simp add: classToJVMList_inject)
+
+(* Constructor *)
+definition ClassesConstructor :: "JVMClass list \<Rightarrow> Classes" where
+  "ClassesConstructor j = (if j = [] then (Abs_Classes [emptyClass]) else (Abs_Classes j))"
+
+(* Maintaining invariant *)
+lemma nonempty_cl [simp, intro]:
+  "(classToJVMList cl) \<noteq> []" 
+  using classToJVMList [of cl] by simp
+
+lemma original_jvm [simp]:
+  "classToJVMList (ClassesConstructor cl) = (if (cl = []) then [emptyClass] else cl)" 
+  by (simp add: Abs_Classes_inverse ClassesConstructor_def)
+
+(* Abstraction transformation *)
+lemma classesToClasses [simp, code abstype]:
+  "ClassesConstructor (classToJVMList cl) = cl" 
+  by (simp add: ClassesConstructor_def classToJVMList_inverse)
+
+(* Operations *)
+context
+begin
+
+qualified definition empty :: "Classes" where
+  "empty = ClassesConstructor []"
+
+qualified definition mapJVMFunc :: "(JVMClass \<Rightarrow> 'b) \<Rightarrow> Classes \<Rightarrow> 'b list" where
+  "mapJVMFunc cf cl = List.map cf (classToJVMList cl)"
+
+qualified definition member :: "Classes \<Rightarrow> JVMClass \<Rightarrow> bool" where
+  "member cl = List.member (classToJVMList cl)"
+
+qualified definition length :: "Classes \<Rightarrow> nat" where
+  "length cl = List.length (classToJVMList cl)"
+
+qualified definition nth :: "Classes \<Rightarrow> nat \<Rightarrow> JVMClass" where
+  "nth cl n = List.nth (classToJVMList cl) n"
+
+end
+
+(* Code gen version with invariant maintained *)
+lemma classToJVM_empty [simp, code abstract]:
+  "classToJVMList Class.empty = [emptyClass]" 
+  by (simp add: Class.empty_def)
+
+lemma classToJVM_map [simp, code]:
+  "(Class.mapJVMFunc f cl) = List.map f (classToJVMList cl)"
+  by (simp add: Class.mapJVMFunc_def)
+
+(* Code gen setup *)
+(* TODO: Merge ClassesConstructor and LiftedClassesConstructor *)
+setup_lifting type_definition_Classes
+
+code_datatype ClassesConstructor
+
+lift_definition LiftedClassesConstructor :: "JVMClass list \<Rightarrow> Classes" is
+  "\<lambda>j. (if j = [] then [emptyClass] else j)" 
+  by simp
+
+code_datatype LiftedClassesConstructor
+
+lemma [code]:
+  "classToJVMList (LiftedClassesConstructor cl) = (if cl = [] then [emptyClass] else cl)"
+  using LiftedClassesConstructor.rep_eq by simp
+
+definition newclass :: "Classes" where
+  "newclass = LiftedClassesConstructor [NewClass ''name'' [] [] [] ''parent'']"
+
+(* Testing code gen *)
+value "newclass"
+value "Class.mapJVMFunc class_name newclass"
+value "Class.mapJVMFunc class_parent newclass"
+value "classToJVMList newclass" 
+
+(* Redefining some functions in terms of Classes, not JVMClass list *)
+(* TODO update original functions to these *)
+
+(* Returns the index of a class in the Classes list *)
+fun CLfind_class_index :: "string \<Rightarrow> Classes \<Rightarrow> nat" where
+  "CLfind_class_index name cl = find_index name (Class.mapJVMFunc class_name cl)"
+
+(* Returns a JVMClass given its name and the Classes list *)
+fun CLget_JVMClass :: "string \<Rightarrow> Classes \<Rightarrow> JVMClass" where 
+  "CLget_JVMClass cName cList = 
+    (if ((CLfind_class_index cName cList) = (Class.length cList)) 
+      then (emptyClass) 
+      else (Class.nth cList (CLfind_class_index cName cList)))" 
+
+(* Returns the methods belonging to a particular class, given its name and the Classes list *)
+fun CLget_Methods :: "string \<Rightarrow> Classes \<Rightarrow> JVMMethod list" where
+  "CLget_Methods cname clist = class_methods (CLget_JVMClass cname clist)"
+
+(* Returns the simple signatures of all the methods belonging to a given class *)
+fun CLsimple_signatures :: "string \<Rightarrow> Classes \<Rightarrow> string list" where
+  "CLsimple_signatures cname clist = 
+      (map get_simple_signature (map method_unique_name (CLget_Methods cname clist)))"
+
+lemma acyclicDef: 
+  fixes cl :: "JVMClass list"
+  shows "acyclic (parentRel cl) \<Longrightarrow> (\<forall>j. j \<in> (set cl) \<longrightarrow> (class_name j \<noteq> class_parent j))"
+  unfolding parentRel.simps acyclic_def by auto
+
+lemma finiteSuper: 
+  fixes cl :: "Classes"
+  shows "finite (superclassOf (classToJVMList cl))" 
+  by simp
+
+(* TODO fix this, won't work if the parent of classname occurs before classname in the listing *)
+fun parentPath :: "(string \<times> string) list \<Rightarrow> string \<Rightarrow> string list" where
+  "parentPath [] cn = []" |
+  "parentPath ((x, y)#xs) cn = (let fullList = ((x, y)#xs) in
+                                  if (x=cn) then ([y] @ (parentPath (remove1 (x, y) fullList) y)) 
+                                  else                  (parentPath xs cn))" 
+
+fun parentRel2 :: "JVMClass list \<Rightarrow> (string \<times> string) list" where
+  "parentRel2 cl = (map (\<lambda>c. (class_name c, class_parent c)) cl) @ 
+                   [(''java.lang.Object'',''None'')]"
 
 end

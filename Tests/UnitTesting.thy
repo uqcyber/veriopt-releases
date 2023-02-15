@@ -12,7 +12,7 @@ subsection \<open>Unit test helper functions\<close>
 inductive static_test :: "IRGraph \<Rightarrow> Value list \<Rightarrow> Value \<Rightarrow> bool"
   where
   "\<lbrakk>config0 = (g, 0, new_map_state, ps);
-    (\<lambda>x. None, []) \<turnstile> ([config0, config0], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l \<rbrakk>
+    (\<lambda>x. None, LiftedClassesConstructor []) \<turnstile> ([config0, config0], new_heap) | [] \<longrightarrow>* ((end # xs), heap) | l \<rbrakk>
     \<Longrightarrow> static_test g ps ((prod.fst(prod.snd(prod.snd end))) 0)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE) static_test .
@@ -73,7 +73,7 @@ inductive program_test_debug :: "Program \<Rightarrow> Signature \<Rightarrow> V
   "\<lbrakk>'''' \<notin> dom prog;
     Some g = prog m;
     config1 = (g, 0, new_map_state, ps);
-    exec_debug (prog,[]) ([config1, config1], new_heap) steps ((end2 # xs2), heap2) \<rbrakk>
+    exec_debug (prog, LiftedClassesConstructor []) ([config1, config1], new_heap) steps ((end2 # xs2), heap2) \<rbrakk>
     \<Longrightarrow> program_test_debug prog m ps steps (prod.snd end2)"
 (* output end2 has type: "(IRGraph \<times> ID \<times> MapState \<times> Params)" *)
 code_pred (
@@ -223,13 +223,13 @@ definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 		[NewConstructor []]
 		''java.lang.Object'']"
 
-value "program_test (unit_InvokeVirtual_01_test, unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (0))] (new_int 32 (0))"
+value "program_test (unit_InvokeVirtual_01_test, LiftedClassesConstructor unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (0))] (new_int 32 (0))"
 
-value "program_test (unit_InvokeVirtual_01_test, unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (1))] (new_int 32 (11))"
+value "program_test (unit_InvokeVirtual_01_test, LiftedClassesConstructor unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (1))] (new_int 32 (11))"
 
-value "program_test (unit_InvokeVirtual_01_test, unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (2))] (new_int 32 (22))"
+value "program_test (unit_InvokeVirtual_01_test, LiftedClassesConstructor unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (2))] (new_int 32 (22))"
 
-value "program_test (unit_InvokeVirtual_01_test, unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (3))] (new_int 32 (42))"
+value "program_test (unit_InvokeVirtual_01_test, LiftedClassesConstructor unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (3))] (new_int 32 (42))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_b;.BC_getstatic_b_test*)
@@ -259,7 +259,7 @@ definition unit_BC_getstatic_b_test :: Program where
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test (unit_BC_getstatic_b_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_b.test()B'' [] (new_int 32 (11))"
+value "program_test (unit_BC_getstatic_b_test, LiftedClassesConstructor []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_b.test()B'' [] (new_int 32 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_c;.BC_getstatic_c_test*)
@@ -289,7 +289,7 @@ definition unit_BC_getstatic_c_test :: Program where
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test (unit_BC_getstatic_c_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_c.test()C'' [] (new_int 32 (11))"
+value "program_test (unit_BC_getstatic_c_test, LiftedClassesConstructor []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_c.test()C'' [] (new_int 32 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_i;.BC_getstatic_i_test*)
@@ -318,7 +318,7 @@ definition unit_BC_getstatic_i_test :: Program where
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test (unit_BC_getstatic_i_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_i.test()I'' [] (new_int 32 (11))"
+value "program_test (unit_BC_getstatic_i_test, LiftedClassesConstructor []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_i.test()I'' [] (new_int 32 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_l;.BC_getstatic_l_test*)
@@ -347,7 +347,7 @@ definition unit_BC_getstatic_l_test :: Program where
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test (unit_BC_getstatic_l_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_l.test()J'' [] (IntVal 64 (11))"
+value "program_test (unit_BC_getstatic_l_test, LiftedClassesConstructor []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_l.test()J'' [] (IntVal 64 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_s;.BC_getstatic_s_test*)
@@ -377,7 +377,7 @@ definition unit_BC_getstatic_s_test :: Program where
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test (unit_BC_getstatic_s_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.test()S'' [] (new_int 32 (11))"
+value "program_test (unit_BC_getstatic_s_test, LiftedClassesConstructor []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_s.test()S'' [] (new_int 32 (11))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_z;.BC_getstatic_z_test*)
@@ -407,7 +407,7 @@ definition unit_BC_getstatic_z_test :: Program where
   (5, (ReturnNode None None), VoidStamp)
   ]
   )"
-value "program_test (unit_BC_getstatic_z_test, []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_z.test()Z'' [] (new_int 32 (1))"
+value "program_test (unit_BC_getstatic_z_test, LiftedClassesConstructor []) ''org.graalvm.compiler.jtt.bytecode.BC_getstatic_z.test()Z'' [] (new_int 32 (1))"
 
 
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_i2b;.BC_i2b_testInt*)
@@ -1152,6 +1152,5 @@ value "static_test unit_BC_ifgt_test_239  [(new_int 32 (0))] (new_int 32 (-2))"
 value "static_test unit_BC_ifgt_test_239  [(new_int 32 (1))] (new_int 32 (2))"
 
 value "static_test unit_BC_ifgt_test_239  [(new_int 32 (-1))] (new_int 32 (-2))"
-
 
 end

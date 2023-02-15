@@ -166,34 +166,35 @@ subsection \<open>Interprocedural Semantics\<close>
 
 type_synonym Signature = "string"
 type_synonym Program = "Signature \<rightharpoonup> IRGraph"
-type_synonym Classes = "JVMClass list"
 type_synonym System = "Program \<times> Classes"
 
-(* 
-  Performs a dynamic look-up in the list of instantiated classes to retrieve the appropriate 
-  IRGraph to run. Takes: 
+(* Performs a dynamic look-up in the list of instantiated classes to retrieve the appropriate 
+   IRGraph to run. Takes: 
     - A System containing the Program and list of classes.
     - The fully-qualified name (dynamic type) of the object which the method has been invoked on.
     - The fully-qualified name of the method invoked. 
-*)
-
-function dynamic_lookup :: "System \<Rightarrow> string \<Rightarrow> string \<Rightarrow> IRGraph option" where
-  "dynamic_lookup (P,cl) cn mn = (
-      if (cl = [] \<or> cn = ''None'')
+    - The path from the object the method was invoked on to java.lang.Object.
+ *)
+function dynamic_lookup :: "System \<Rightarrow> string \<Rightarrow> string \<Rightarrow> string list \<Rightarrow> IRGraph option" where
+  "dynamic_lookup (P,cl) cn mn path = (
+      if (cn = ''None'' \<or> cn \<notin> set (Class.mapJVMFunc class_name cl) \<or> path = [])
         then (P mn)
         else (
-          if ((find_index (get_simple_signature mn) (simple_signatures cn cl)) = (length (simple_signatures cn cl)))
-            then (dynamic_lookup (P, cl) (class_parent (get_JVMClass cn cl)) (get_simple_signature mn))
-            else (P (nth (map method_unique_name (get_Methods cn cl))
-                   (find_index (get_simple_signature mn) (simple_signatures cn cl))))
+              
+              let method_index = (find_index (get_simple_signature mn) (CLsimple_signatures cn cl)) in
+              let parent = hd path in
+
+          if (method_index = length (CLsimple_signatures cn cl))
+            then (dynamic_lookup (P, cl) parent mn (tl path))
+            else (P (nth (map method_unique_name (CLget_Methods cn cl)) method_index))
         )
       )
   "
   by auto
-termination using ownParent by blast 
+termination dynamic_lookup apply (relation "measure (\<lambda>(S,cn,mn,path). (length path))") by auto
 
 inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> 
-                                  (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> bool"
+                                 (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap \<Rightarrow> bool"
   ("_ \<turnstile> _ \<longrightarrow> _" 55) 
   for S where
 
@@ -206,8 +207,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
     \<not>(hasReceiver invoke_kind);
-    S = (P, cl); 
-    Some targetGraph = P targetMethod;
+    Some targetGraph = (dynamic_lookup S ''None'' targetMethod []);
     m' = new_map_state;
     g \<turnstile> arguments \<simeq>\<^sub>L argsE;
     [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p'\<rbrakk>
@@ -223,7 +223,8 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p';
     ObjRef self = hd p';
     ObjStr cname = (h_load_field ''class'' self h);
-    Some targetGraph = dynamic_lookup S cname (targetMethod)\<rbrakk>
+    S = (P,cl);
+    Some targetGraph = dynamic_lookup S cname (targetMethod) (parentPath (parentRel2 (classToJVMList cl)) cname)\<rbrakk>
     \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
 
 (* TODO this produces two parse trees after importing Class *)
@@ -271,8 +272,7 @@ inductive exec :: "System
       \<Rightarrow> Trace 
       \<Rightarrow> bool"
   ("_ \<turnstile> _ | _ \<longrightarrow>* _ | _")
-  for P
-  where
+  for P where
   "\<lbrakk>P \<turnstile> (((g,nid,m,p)#xs),h) \<longrightarrow> (((g',nid',m',p')#ys),h');
     \<not>(has_return m');
 
@@ -313,7 +313,7 @@ definition p3:: Params where
   "p3 = [IntVal 32 3]"
 
 fun graphToSystem :: "IRGraph \<Rightarrow> System" where
-  "graphToSystem graph = ((\<lambda>x. Some graph), [])"
+  "graphToSystem graph = ((\<lambda>x. Some graph), LiftedClassesConstructor [])"
 
 (* Eg. call eg2_sq with [3] \<longrightarrow> 9 *)
 values "{(prod.fst(prod.snd (prod.snd (hd (prod.fst res))))) 0 
@@ -350,4 +350,3 @@ values "{h_load_field field_sq (Some 0) (prod.snd res)
         | res. (graphToSystem (eg4_sq)) \<turnstile> ([(eg4_sq, 0, new_map_state, p3), (eg4_sq, 0, new_map_state, p3)], new_heap) \<rightarrow>*3* res}"
 
 end
-

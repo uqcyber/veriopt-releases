@@ -261,7 +261,7 @@ definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'', 
      NewMethod ''name'' ''I'' [NewParameter ''I''] ''UniqueName'']
 		[NewConstructor []]
-		''java.lang.Object'']"
+		''java.lang.Object'', jlObject]"
 
 (* Testing out functions *)
 value "parentRel unit_InvokeVirtual_01_test_mapping"
@@ -277,19 +277,11 @@ value "get_simple_signature ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.
 (* TODO: Extend current Classes definition to include all characteristics *)
 (*
 typedef Classes = "{cl :: JVMClass list . 
-                    acyclic (parentRel cl) \<and> 
                     (\<forall>n y. (n,y) \<in> (parentRel cl) \<longrightarrow> (n, ''None'') \<in> (superclassOf cl))}" 
   morphisms classToJVMList Abs_Classes
 proof -
-  obtain cl where cl:  
-    "cl = [NewClass ''java.lang.Object'' [] [] [] ''None'']" 
-    by simp
-  then have b: "acyclic (parentRel cl)"
-    using acyclic_def cl by fastforce 
   then have c: "(\<forall>x y. (x,y) \<in> (parentRel cl) \<longrightarrow> (x, ''None'') \<in> (superclassOf cl))"
     by auto
-  then show ?thesis  
-    using a c1 b cl by blast 
 qed*)
 
 (* Lemmas to help with Classes invariants *)
@@ -303,14 +295,19 @@ lemma containsObjImpliesNonEmpty:
   shows "List.member cl jlObject \<longrightarrow> cl \<noteq> []"
   using List.member_def by force
 
+lemma acyclic_jlObj:
+  shows "acyclic (parentRel [jlObject])" 
+  by (simp add: jlObject_def wf_acyclic)
+
 lemma acyclicDef: 
   fixes cl :: "JVMClass list"
   shows "acyclic (parentRel cl) \<Longrightarrow> (\<forall>j. j \<in> (set cl) \<longrightarrow> (class_name j \<noteq> class_parent j))"
-  unfolding parentRel.simps acyclic_def by auto
+  unfolding acyclic_def by auto
 
 typedef Classes = "{cl :: JVMClass list . 
                     List.member cl jlObject \<and>
-                    cl \<noteq> [] }" 
+                    cl \<noteq> [] \<and> 
+                    acyclic (parentRel cl)}" 
   morphisms classToJVMList Abs_Classes
 proof -
   obtain cl where cl:  
@@ -319,9 +316,11 @@ proof -
   then have a: "cl \<noteq> []" 
     by simp
   then have b: "List.member cl jlObject"
-    using cl by (simp add: member_rec(1))
+    by (simp add: member_rec(1) cl)
+  then have c: "acyclic (parentRel cl)"
+    using acyclic_jlObj cl by blast
   then show ?thesis 
-    using cl by blast
+    using cl b by blast
 qed
 
 (* Equality *)
@@ -337,11 +336,8 @@ lemma classes_eqI:
 setup_lifting type_definition_Classes
 
 lift_definition JVMClasses :: "JVMClass list \<Rightarrow> Classes" is
-  "\<lambda>j. (if (List.member j jlObject) then j else [jlObject])" 
-  apply (rule conjI) 
-   unfolding List.member_def apply simp 
-   using containsObjImpliesNonEmpty
-  by auto
+  "\<lambda>j. (if (List.member j jlObject \<and> acyclic (parentRel j)) then j else [jlObject])" 
+  unfolding List.member_def using containsObjImpliesNonEmpty acyclic_jlObj by auto
 
 (* Maintaining invariant *)
 lemma nonempty_cl [simp, intro]:
@@ -352,14 +348,19 @@ lemma containsjlobj_cl [simp, intro]:
   "List.member (classToJVMList cl) jlObject"
   using classToJVMList [of cl] by simp
 
+lemma acyclic_cl [simp, intro]:
+  "acyclic (parentRel (classToJVMList cl))"
+  using classToJVMList [of cl] by simp
+
 lemma original_jvm [simp]:
-  "classToJVMList (JVMClasses cl) = (if (List.member cl jlObject) then cl else [jlObject])"
+  "classToJVMList (JVMClasses cl) = 
+      (if (List.member cl jlObject \<and> acyclic (parentRel cl)) then cl else [jlObject])"
   using JVMClasses.rep_eq by auto
 
 (* Abstraction transformation *)
 lemma classesToClasses [simp, code abstype]:
   "JVMClasses (classToJVMList cl) = cl" 
-  by (simp add: JVMClasses_def classToJVMList_inverse)
+  using JVMClasses.abs_eq acyclic_cl classToJVMList_inverse by fastforce
 
 (* Operations *)
 context
@@ -396,18 +397,27 @@ lemma classToJVM_map [simp, code]:
 code_datatype JVMClasses
 
 lemma [code]:
-  "classToJVMList (JVMClasses cl) = (if (List.member cl jlObject) then cl else [jlObject])"
-  using JVMClasses.rep_eq by simp
+  "classToJVMList (JVMClasses cl) = 
+      (if (List.member cl jlObject \<and> acyclic (parentRel cl)) then cl else [jlObject])"
+  by (simp add: JVMClasses.rep_eq)
 
+(* Testing code gen *)
 definition newclass :: "Classes" where
   "newclass = JVMClasses [NewClass ''name'' [] [] [] ''parent'', jlObject]"
 
-(* Testing code gen *)
+definition cyclicClass :: "JVMClass list" where
+  "cyclicClass = [NewClass ''name'' [] [] [] ''name'']"
+
 value "newclass"
 value "Class.mapJVMFunc class_name newclass"
 value "Class.mapJVMFunc class_parent newclass"
-value "classToJVMList newclass" 
+value "classToJVMList newclass"
+
+(* invalid; java.lang.Object*)
 value "classToJVMList (JVMClasses [])"
+value "classToJVMList (JVMClasses cyclicClass)" 
+value "acyclic (parentRel cyclicClass)"                               (* False *)
+value "acyclic (parentRel (classToJVMList (JVMClasses cyclicClass)))" (* True *)
 
 (* Redefining some functions in terms of Classes, not JVMClass list *)
 (* TODO update original functions to these *)

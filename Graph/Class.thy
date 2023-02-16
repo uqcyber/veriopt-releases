@@ -56,6 +56,25 @@ datatype JVMClass =
 definition emptyClass :: "JVMClass" where 
   "emptyClass = NewClass ''name_empty'' [] [] [] ''parent_empty''"
 
+(* java.lang.Object *)
+definition jlObject :: "JVMClass" where
+  "jlObject = NewClass 
+     ''java.lang.Object''
+		[]
+		[NewMethod ''finalize'' ''V'' [] ''java.lang.Object.finalize()V'', 
+     NewMethod ''wait'' ''V'' [NewParameter ''J'', NewParameter ''I''] ''java.lang.Object.wait(JI)V'', 
+     NewMethod ''wait'' ''V'' [] ''java.lang.Object.wait()V'', 
+     NewMethod ''wait'' ''V'' [NewParameter ''J''] ''java.lang.Object.wait(J)V'', 
+     NewMethod ''equals'' ''Z'' [NewParameter ''java.lang.Object''] ''java.lang.Object.equals(java.lang.Object)Z'', 
+     NewMethod ''toString'' ''java.lang.String'' [] ''java.lang.Object.toString()java.lang.String'', 
+     NewMethod ''hashCode'' ''I'' [] ''java.lang.Object.hashCode()I'', 
+     NewMethod ''getClass'' ''java.lang.Class'' [] ''java.lang.Object.getClass()java.lang.Class'', 
+     NewMethod ''clone'' ''java.lang.Object'' [] ''java.lang.Object.clone()java.lang.Object'', 
+     NewMethod ''notify'' ''V'' [] ''java.lang.Object.notify()V'', 
+     NewMethod ''notifyAll'' ''V'' [] ''java.lang.Object.notifyAll()V'']
+		[NewConstructor []]
+		''None''"
+
 text \<open> ----- General Functions ----- \<close>
 
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
@@ -93,8 +112,10 @@ fun classNames :: "JVMClass list \<Rightarrow> string set" where
   "classNames cl = set (map class_name cl) \<union> {''java.lang.Object''}"
 
 fun parentRel :: "JVMClass list \<Rightarrow> string rel" where
-  "parentRel cl = (set (map (\<lambda>c. (class_name c, class_parent c)) cl)) \<union> 
-                  {(''java.lang.Object'',''None'')}"
+  "parentRel cl = (set (map (\<lambda>c. (class_name c, class_parent c)) cl))"
+
+fun parentRel2 :: "JVMClass list \<Rightarrow> (string \<times> string) list" where
+  "parentRel2 cl = (map (\<lambda>c. (class_name c, class_parent c)) cl)"
 
 fun parentOf :: "JVMClass list \<Rightarrow> (string \<rightharpoonup> string)" where
   "parentOf [] = Map.empty" |
@@ -125,8 +146,7 @@ lemma wellFoundedParent:
   assumes "acyclic (parentRel cl)"
   shows "wf (parentRel cl)" 
     using assms unfolding parentRel.simps  
-  by (metis (no_types, lifting) List.set_insert Un_insert_right boolean_algebra.disj_zero_right 
-      wf_set)
+  by (metis (no_types, lifting) wf_set)
 
 lemma transSuperClassOf[simp]:
   "trans (superclassOf cl)"
@@ -257,36 +277,49 @@ value "get_simple_signature ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.
 (* TODO: Extend current Classes definition to include all characteristics *)
 (*
 typedef Classes = "{cl :: JVMClass list . 
-                    cl \<noteq> [] \<and> 
                     acyclic (parentRel cl) \<and> 
-                    (''java.lang.Object'',''None'') \<in> parentRel cl \<and>
                     (\<forall>n y. (n,y) \<in> (parentRel cl) \<longrightarrow> (n, ''None'') \<in> (superclassOf cl))}" 
   morphisms classToJVMList Abs_Classes
 proof -
   obtain cl where cl:  
     "cl = [NewClass ''java.lang.Object'' [] [] [] ''None'']" 
     by simp
-  then have a: "cl \<noteq> []" 
-    by simp
   then have b: "acyclic (parentRel cl)"
     using acyclic_def cl by fastforce 
-  then have c1: "parentRel cl = {(''java.lang.Object'', ''None'')}"
-    using cl by simp
   then have c: "(\<forall>x y. (x,y) \<in> (parentRel cl) \<longrightarrow> (x, ''None'') \<in> (superclassOf cl))"
     by auto
   then show ?thesis  
     using a c1 b cl by blast 
 qed*)
 
+(* Lemmas to help with Classes invariants *)
+lemma containsObjImplies[simp]: 
+  shows "List.member cl jlObject \<longrightarrow> 
+        (''java.lang.Object'',''None'') \<in> parentRel cl \<longrightarrow> 
+        List.member (parentRel2 cl) (''java.lang.Object'',''None'')" 
+  using List.member_def by fastforce
+
+lemma containsObjImpliesNonEmpty:
+  shows "List.member cl jlObject \<longrightarrow> cl \<noteq> []"
+  using List.member_def by force
+
+lemma acyclicDef: 
+  fixes cl :: "JVMClass list"
+  shows "acyclic (parentRel cl) \<Longrightarrow> (\<forall>j. j \<in> (set cl) \<longrightarrow> (class_name j \<noteq> class_parent j))"
+  unfolding parentRel.simps acyclic_def by auto
+
 typedef Classes = "{cl :: JVMClass list . 
-                    cl \<noteq> []}" 
+                    List.member cl jlObject \<and>
+                    cl \<noteq> [] }" 
   morphisms classToJVMList Abs_Classes
 proof -
   obtain cl where cl:  
-    "cl = [NewClass ''java.lang.Object'' [] [] [] ''None'']" 
+    "cl = [jlObject]" 
     by simp
   then have a: "cl \<noteq> []" 
     by simp
+  then have b: "List.member cl jlObject"
+    using cl by (simp add: member_rec(1))
   then show ?thesis 
     using cl by blast
 qed
@@ -304,17 +337,24 @@ lemma classes_eqI:
 setup_lifting type_definition_Classes
 
 lift_definition JVMClasses :: "JVMClass list \<Rightarrow> Classes" is
-  "\<lambda>j. (if j = [] then [emptyClass] else j)" 
-  by simp
+  "\<lambda>j. (if (List.member j jlObject) then j else [jlObject])" 
+  apply (rule conjI) 
+   unfolding List.member_def apply simp 
+   using containsObjImpliesNonEmpty
+  by auto
 
 (* Maintaining invariant *)
 lemma nonempty_cl [simp, intro]:
   "(classToJVMList cl) \<noteq> []" 
   using classToJVMList [of cl] by simp
 
+lemma containsjlobj_cl [simp, intro]:
+  "List.member (classToJVMList cl) jlObject"
+  using classToJVMList [of cl] by simp
+
 lemma original_jvm [simp]:
-  "classToJVMList (JVMClasses cl) = (if (cl = []) then [emptyClass] else cl)" 
-  by (simp add: Abs_Classes_inverse JVMClasses_def)
+  "classToJVMList (JVMClasses cl) = (if (List.member cl jlObject) then cl else [jlObject])"
+  using JVMClasses.rep_eq by auto
 
 (* Abstraction transformation *)
 lemma classesToClasses [simp, code abstype]:
@@ -325,6 +365,7 @@ lemma classesToClasses [simp, code abstype]:
 context
 begin
 
+(* empty = contains java.lang.Object only *)
 qualified definition empty :: "Classes" where
   "empty = JVMClasses []"
 
@@ -344,8 +385,8 @@ end
 
 (* Code gen version with invariant maintained *)
 lemma classToJVM_empty [simp, code abstract]:
-  "classToJVMList Class.empty = [emptyClass]" 
-  by (simp add: Class.empty_def)
+  "classToJVMList Class.empty = [jlObject]"
+  by (metis JVMClasses.rep_eq containsObjImpliesNonEmpty Class.empty_def)
 
 lemma classToJVM_map [simp, code]:
   "(Class.mapJVMFunc f cl) = List.map f (classToJVMList cl)"
@@ -355,11 +396,11 @@ lemma classToJVM_map [simp, code]:
 code_datatype JVMClasses
 
 lemma [code]:
-  "classToJVMList (JVMClasses cl) = (if cl = [] then [emptyClass] else cl)"
+  "classToJVMList (JVMClasses cl) = (if (List.member cl jlObject) then cl else [jlObject])"
   using JVMClasses.rep_eq by simp
 
 definition newclass :: "Classes" where
-  "newclass = JVMClasses [NewClass ''name'' [] [] [] ''parent'']"
+  "newclass = JVMClasses [NewClass ''name'' [] [] [] ''parent'', jlObject]"
 
 (* Testing code gen *)
 value "newclass"
@@ -391,11 +432,6 @@ fun CLsimple_signatures :: "string \<Rightarrow> Classes \<Rightarrow> string li
   "CLsimple_signatures cname clist = 
       (map get_simple_signature (map method_unique_name (CLget_Methods cname clist)))"
 
-lemma acyclicDef: 
-  fixes cl :: "JVMClass list"
-  shows "acyclic (parentRel cl) \<Longrightarrow> (\<forall>j. j \<in> (set cl) \<longrightarrow> (class_name j \<noteq> class_parent j))"
-  unfolding parentRel.simps acyclic_def by auto
-
 lemma finiteSuper: 
   fixes cl :: "Classes"
   shows "finite (superclassOf (classToJVMList cl))" 
@@ -407,9 +443,5 @@ fun parentPath :: "(string \<times> string) list \<Rightarrow> string \<Rightarr
   "parentPath ((x, y)#xs) cn = (let fullList = ((x, y)#xs) in
                                   if (x=cn) then ([y] @ (parentPath (remove1 (x, y) fullList) y)) 
                                   else                  (parentPath xs cn))" 
-
-fun parentRel2 :: "JVMClass list \<Rightarrow> (string \<times> string) list" where
-  "parentRel2 cl = (map (\<lambda>c. (class_name c, class_parent c)) cl) @ 
-                   [(''java.lang.Object'',''None'')]"
 
 end

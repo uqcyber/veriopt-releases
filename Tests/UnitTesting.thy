@@ -221,7 +221,7 @@ definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 		[]
 		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'']
 		[NewConstructor []]
-		''java.lang.Object'']"
+		''java.lang.Object'', jlObject]"
 
 value "program_test (unit_InvokeVirtual_01_test, JVMClasses unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (0))] (new_int 32 (0))"
 

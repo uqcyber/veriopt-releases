@@ -147,8 +147,7 @@ qed
 lemma wellFoundedParent:
   assumes "acyclic (parentRel cl)"
   shows "wf (parentRel cl)" 
-    using assms unfolding parentRel.simps  
-  by (metis (no_types, lifting) wf_set)
+  using assms unfolding parentRel.simps by (metis (no_types, lifting) wf_set)
 
 lemma transSuperClassOf[simp]:
   "trans (superclassOf cl)"
@@ -323,6 +322,10 @@ lemma acyclicDef:
   shows "acyclic (parentRel cl) \<Longrightarrow> (\<forall>j. j \<in> (set cl) \<longrightarrow> (class_name j \<noteq> class_parent j))"
   unfolding acyclic_def by auto
 
+lemma acyclicParent_super:
+  shows "(acyclic (parentRel cl)) \<Longrightarrow> (acyclic (superclassOf cl))"
+  unfolding parentRel.simps superclassOf.simps acyclic_def by simp
+
 typedef Classes = "{cl :: JVMClass list . 
                     List.member cl jlObject \<and>
                     cl \<noteq> [] \<and> 
@@ -359,8 +362,7 @@ setup_lifting type_definition_Classes
 lift_definition JVMClasses :: "JVMClass list \<Rightarrow> Classes" is
   "\<lambda>j. (if (List.member j jlObject \<and> acyclic (parentRel j) \<and> inheritsFromObject j) 
         then j else [jlObject])" 
-  using acyclic_jlObj 
-  by (simp add: member_rec(1) inheritsFromObj_jlObj containsObjImpliesNonEmpty)
+  using acyclic_jlObj by (simp add: member_rec(1) inheritsFromObj_jlObj containsObjImpliesNonEmpty)
 
 (* Maintaining invariant *)
 lemma nonempty_cl [simp, intro]:

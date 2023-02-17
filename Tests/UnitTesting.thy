@@ -241,7 +241,6 @@ value "program_test (unit_InvokeVirtual_01_test, JVMClasses unit_InvokeVirtual_0
 
 value "program_test (unit_InvokeVirtual_01_test, JVMClasses unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (3))] (new_int 32 (42))"
 
-
 (* Lorg/graalvm/compiler/jtt/bytecode/BC_getstatic_b;.BC_getstatic_b_test*)
 definition unit_BC_getstatic_b_test :: Program where
   "unit_BC_getstatic_b_test = Map.empty (

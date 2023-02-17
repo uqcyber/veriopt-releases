@@ -314,8 +314,7 @@ lemma acyclic_jlObj:
 
 lemma inheritsFromObj_jlObj:
   shows "inheritsFromObject [jlObject]"
-  unfolding inheritsFromObject_def jlObject_def 
-  by simp 
+  unfolding inheritsFromObject_def jlObject_def by simp 
     
 lemma acyclicDef: 
   fixes cl :: "JVMClass list"
@@ -326,11 +325,16 @@ lemma acyclicParent_super:
   shows "(acyclic (parentRel cl)) \<Longrightarrow> (acyclic (superclassOf cl))"
   unfolding parentRel.simps superclassOf.simps acyclic_def by simp
 
+lemma remdupsInherit:
+  shows "inheritsFromObject cl \<Longrightarrow> inheritsFromObject (remdups cl)"
+  using inheritsFromObject_def by (simp add: remdups_map_remdups)  
+
 typedef Classes = "{cl :: JVMClass list . 
                     List.member cl jlObject \<and>
                     cl \<noteq> [] \<and> 
                     acyclic (parentRel cl) \<and>
-                    inheritsFromObject cl}" 
+                    inheritsFromObject cl \<and>
+                    distinct cl}" 
   morphisms classToJVMList Abs_Classes
 proof -
   obtain cl where cl: "cl = [jlObject]" 
@@ -343,8 +347,10 @@ proof -
     using acyclic_jlObj by (simp add: cl)
   have d: "inheritsFromObject cl"
     by (simp add: cl inheritsFromObj_jlObj)
+  have e: "distinct cl"
+    by (simp add: cl)
   then show ?thesis 
-    using cl b c by blast
+    using cl b c d by blast 
 qed
 
 (* Equality *)
@@ -361,8 +367,11 @@ setup_lifting type_definition_Classes
 
 lift_definition JVMClasses :: "JVMClass list \<Rightarrow> Classes" is
   "\<lambda>j. (if (List.member j jlObject \<and> acyclic (parentRel j) \<and> inheritsFromObject j) 
-        then j else [jlObject])" 
-  using acyclic_jlObj by (simp add: member_rec(1) inheritsFromObj_jlObj containsObjImpliesNonEmpty)
+        then (if (distinct j) then j else (remdups j))
+        else [jlObject])"
+  using List.member_def acyclic_jlObj containsObjImpliesNonEmpty inheritsFromObj_jlObj 
+        remdupsInherit 
+  by fastforce
 
 (* Maintaining invariant *)
 lemma nonempty_cl [simp, intro]:
@@ -379,12 +388,17 @@ lemma acyclic_cl [simp, intro]:
 
 lemma inheritsFromObj_cl [simp, intro]:
   "inheritsFromObject (classToJVMList cl)"
-   using classToJVMList [of cl] by simp
+  using classToJVMList [of cl] by simp
+
+lemma distinct_cl [simp, intro]:
+  "distinct (classToJVMList cl)"
+  using classToJVMList [of cl] by simp
 
 lemma original_jvm [simp]:
   "classToJVMList (JVMClasses cl) = 
       (if (List.member cl jlObject \<and> acyclic (parentRel cl) \<and> inheritsFromObject cl) 
-       then cl else [jlObject])"
+       then (if (distinct cl) then cl else (remdups cl)) 
+       else [jlObject])"
   using JVMClasses.rep_eq by auto
 
 (* Abstraction transformation *)
@@ -429,12 +443,13 @@ code_datatype JVMClasses
 lemma [code]:
   "classToJVMList (JVMClasses cl) = 
       (if (List.member cl jlObject \<and> acyclic (parentRel cl) \<and> inheritsFromObject cl) 
-      then cl else [jlObject])" 
+      then (if (distinct cl) then cl else (remdups cl)) 
+      else [jlObject])" 
   by (simp add: JVMClasses.rep_eq)
 
 (* Testing code gen *)
 definition newclass :: "Classes" where
-  "newclass = JVMClasses [NewClass ''name'' [] [] [] [''parent'', ''None''] ''parent'', jlObject]"
+  "newclass = JVMClasses [NewClass ''name'' [] [] [] [''parent'', ''None''] ''parent'', jlObject, jlObject]"
 
 definition cyclicClass :: "JVMClass list" where
   "cyclicClass = [NewClass ''name'' [] [] [] [''name''] ''name'']"

@@ -209,19 +209,29 @@ definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 		[]
 		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B.plus(I)I'']
 		[NewConstructor []]
+		[''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'', ''java.lang.Object'', ''None'']
 		''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'',
 
 	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C''
 		[]
 		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C.plus(I)I'']
 		[NewConstructor []]
+		[''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'', ''java.lang.Object'', ''None'']
 		''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'',
+
+	NewClass ''java.lang.Object''
+		[]
+		[NewMethod ''finalize'' ''V'' [] ''java.lang.Object.finalize()V'', NewMethod ''wait'' ''V'' [NewParameter ''J'', NewParameter ''I''] ''java.lang.Object.wait(JI)V'', NewMethod ''wait'' ''V'' [] ''java.lang.Object.wait()V'', NewMethod ''wait'' ''V'' [NewParameter ''J''] ''java.lang.Object.wait(J)V'', NewMethod ''equals'' ''Z'' [NewParameter ''java.lang.Object''] ''java.lang.Object.equals(java.lang.Object)Z'', NewMethod ''toString'' ''java.lang.String'' [] ''java.lang.Object.toString()java.lang.String'', NewMethod ''hashCode'' ''I'' [] ''java.lang.Object.hashCode()I'', NewMethod ''getClass'' ''java.lang.Class'' [] ''java.lang.Object.getClass()java.lang.Class'', NewMethod ''clone'' ''java.lang.Object'' [] ''java.lang.Object.clone()java.lang.Object'', NewMethod ''notify'' ''V'' [] ''java.lang.Object.notify()V'', NewMethod ''notifyAll'' ''V'' [] ''java.lang.Object.notifyAll()V'']
+		[NewConstructor []]
+		[''None'']
+		''None'',
 
 	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A''
 		[]
 		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'']
 		[NewConstructor []]
-		''java.lang.Object'', jlObject]"
+		[''java.lang.Object'', ''None'']
+		''java.lang.Object'']"
 
 value "program_test (unit_InvokeVirtual_01_test, JVMClasses unit_InvokeVirtual_01_test_mapping) ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01.test(I)I'' [(new_int 32 (0))] (new_int 32 (0))"
 

@@ -50,11 +50,12 @@ datatype JVMClass =
            (class_fields: Fields) 
            (class_methods: Methods) 
            (class_constructors: Constructors)  
+           (class_parents: "ParentClass list")
            (class_parent: ParentClass)
 
 (* Empty placeholder class *)
 definition emptyClass :: "JVMClass" where 
-  "emptyClass = NewClass ''name_empty'' [] [] [] ''parent_empty''"
+  "emptyClass = NewClass ''name_empty'' [] [] [] [] ''parent_empty''"
 
 (* java.lang.Object *)
 definition jlObject :: "JVMClass" where
@@ -72,7 +73,8 @@ definition jlObject :: "JVMClass" where
      NewMethod ''clone'' ''java.lang.Object'' [] ''java.lang.Object.clone()java.lang.Object'', 
      NewMethod ''notify'' ''V'' [] ''java.lang.Object.notify()V'', 
      NewMethod ''notifyAll'' ''V'' [] ''java.lang.Object.notifyAll()V'']
-		[NewConstructor []]
+		[NewConstructor []] 
+    [''None'']
 		''None''"
 
 text \<open> ----- General Functions ----- \<close>
@@ -109,7 +111,7 @@ fun simple_signatures :: "string \<Rightarrow> JVMClass list \<Rightarrow> strin
     (map get_simple_signature (map method_unique_name (get_Methods cname clist)))"
 
 fun classNames :: "JVMClass list \<Rightarrow> string set" where
-  "classNames cl = set (map class_name cl) \<union> {''java.lang.Object''}"
+  "classNames cl = set (map class_name cl)"
 
 fun parentRel :: "JVMClass list \<Rightarrow> string rel" where
   "parentRel cl = (set (map (\<lambda>c. (class_name c, class_parent c)) cl))"
@@ -187,6 +189,7 @@ definition bestClassEver :: "JVMClass" where
              [NewMethod ''getX'' ''I'' [NewParameter ''null''] ''bestClassEver_getXI(n)'', 
               NewMethod ''setY'' ''null'' [NewParameter ''float''] ''bestClassEver_SetYn(f)''] 
              [NewConstructor [NewParameter ''I''], NewConstructor [NewParameter ''float'']] 
+             [''Object'']
              ''Object''"
 
 (* Testing class-based functions *)
@@ -234,13 +237,22 @@ definition unit_InstanceOfTest_instanceOfSnippet4_mapping :: "JVMClass list" whe
 		[]
 		[]
 		[NewConstructor []]
+		[''org.graalvm.compiler.core.test.InstanceOfTest$A'', ''java.lang.Object'', ''None'']
 		''org.graalvm.compiler.core.test.InstanceOfTest$A'',
 
 	NewClass ''org.graalvm.compiler.core.test.InstanceOfTest$A''
 		[]
 		[]
 		[NewConstructor []]
-		''java.lang.Object'']" 
+		[''java.lang.Object'', ''None'']
+		''java.lang.Object'',
+
+	NewClass ''java.lang.Object''
+		[]
+		[NewMethod ''finalize'' ''V'' [] ''java.lang.Object.finalize()V'', NewMethod ''wait'' ''V'' [NewParameter ''J'', NewParameter ''I''] ''java.lang.Object.wait(JI)V'', NewMethod ''wait'' ''V'' [] ''java.lang.Object.wait()V'', NewMethod ''wait'' ''V'' [NewParameter ''J''] ''java.lang.Object.wait(J)V'', NewMethod ''equals'' ''Z'' [NewParameter ''java.lang.Object''] ''java.lang.Object.equals(java.lang.Object)Z'', NewMethod ''toString'' ''java.lang.String'' [] ''java.lang.Object.toString()java.lang.String'', NewMethod ''hashCode'' ''I'' [] ''java.lang.Object.hashCode()I'', NewMethod ''getClass'' ''java.lang.Class'' [] ''java.lang.Object.getClass()java.lang.Class'', NewMethod ''clone'' ''java.lang.Object'' [] ''java.lang.Object.clone()java.lang.Object'', NewMethod ''notify'' ''V'' [] ''java.lang.Object.notify()V'', NewMethod ''notifyAll'' ''V'' [] ''java.lang.Object.notifyAll()V'']
+		[NewConstructor []]
+		[''None'']
+		''None'']"
 
 definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 	"unit_InvokeVirtual_01_test_mapping = [
@@ -248,20 +260,29 @@ definition unit_InvokeVirtual_01_test_mapping :: "JVMClass list" where
 		[]
 		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B.plus(I)I'']
 		[NewConstructor []]
+		[''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'', ''java.lang.Object'', ''None'']
 		''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'',
 
 	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C''
 		[]
 		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$C.plus(I)I'']
 		[NewConstructor []]
+		[''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'', ''java.lang.Object'', ''None'']
 		''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'',
+
+	NewClass ''java.lang.Object''
+		[]
+		[NewMethod ''finalize'' ''V'' [] ''java.lang.Object.finalize()V'', NewMethod ''wait'' ''V'' [NewParameter ''J'', NewParameter ''I''] ''java.lang.Object.wait(JI)V'', NewMethod ''wait'' ''V'' [] ''java.lang.Object.wait()V'', NewMethod ''wait'' ''V'' [NewParameter ''J''] ''java.lang.Object.wait(J)V'', NewMethod ''equals'' ''Z'' [NewParameter ''java.lang.Object''] ''java.lang.Object.equals(java.lang.Object)Z'', NewMethod ''toString'' ''java.lang.String'' [] ''java.lang.Object.toString()java.lang.String'', NewMethod ''hashCode'' ''I'' [] ''java.lang.Object.hashCode()I'', NewMethod ''getClass'' ''java.lang.Class'' [] ''java.lang.Object.getClass()java.lang.Class'', NewMethod ''clone'' ''java.lang.Object'' [] ''java.lang.Object.clone()java.lang.Object'', NewMethod ''notify'' ''V'' [] ''java.lang.Object.notify()V'', NewMethod ''notifyAll'' ''V'' [] ''java.lang.Object.notifyAll()V'']
+		[NewConstructor []]
+		[''None'']
+		''None'',
 
 	NewClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A''
 		[]
-		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'', 
-     NewMethod ''name'' ''I'' [NewParameter ''I''] ''UniqueName'']
+		[NewMethod ''plus'' ''I'' [NewParameter ''I''] ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I'']
 		[NewConstructor []]
-		''java.lang.Object'', jlObject]"
+		[''java.lang.Object'', ''None'']
+		''java.lang.Object'']"
 
 (* Testing out functions *)
 value "parentRel unit_InvokeVirtual_01_test_mapping"
@@ -274,17 +295,10 @@ value "find_class_index ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A'' un
 value "get_JVMClass ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$B'' unit_InvokeVirtual_01_test_mapping"
 value "get_simple_signature ''org.graalvm.compiler.jtt.micro.InvokeVirtual_01$A.plus(I)I''"
 
-(* TODO: Extend current Classes definition to include all characteristics *)
-(*
-typedef Classes = "{cl :: JVMClass list . 
-                    (\<forall>n y. (n,y) \<in> (parentRel cl) \<longrightarrow> (n, ''None'') \<in> (superclassOf cl))}" 
-  morphisms classToJVMList Abs_Classes
-proof -
-  then have c: "(\<forall>x y. (x,y) \<in> (parentRel cl) \<longrightarrow> (x, ''None'') \<in> (superclassOf cl))"
-    by auto
-qed*)
-
 (* Lemmas to help with Classes invariants *)
+definition inheritsFromObject :: "JVMClass list \<Rightarrow> bool" where
+  "inheritsFromObject cl = ((remdups (map List.last (map class_parents cl))) = [''None''])"
+
 lemma containsObjImplies[simp]: 
   shows "List.member cl jlObject \<longrightarrow> 
         (''java.lang.Object'',''None'') \<in> parentRel cl \<longrightarrow> 
@@ -299,6 +313,11 @@ lemma acyclic_jlObj:
   shows "acyclic (parentRel [jlObject])" 
   by (simp add: jlObject_def wf_acyclic)
 
+lemma inheritsFromObj_jlObj:
+  shows "inheritsFromObject [jlObject]"
+  unfolding inheritsFromObject_def jlObject_def 
+  by simp 
+    
 lemma acyclicDef: 
   fixes cl :: "JVMClass list"
   shows "acyclic (parentRel cl) \<Longrightarrow> (\<forall>j. j \<in> (set cl) \<longrightarrow> (class_name j \<noteq> class_parent j))"
@@ -307,20 +326,22 @@ lemma acyclicDef:
 typedef Classes = "{cl :: JVMClass list . 
                     List.member cl jlObject \<and>
                     cl \<noteq> [] \<and> 
-                    acyclic (parentRel cl)}" 
+                    acyclic (parentRel cl) \<and>
+                    inheritsFromObject cl}" 
   morphisms classToJVMList Abs_Classes
 proof -
-  obtain cl where cl:  
-    "cl = [jlObject]" 
+  obtain cl where cl: "cl = [jlObject]" 
     by simp
   then have a: "cl \<noteq> []" 
     by simp
-  then have b: "List.member cl jlObject"
+  have b: "List.member cl jlObject"
     by (simp add: member_rec(1) cl)
-  then have c: "acyclic (parentRel cl)"
-    using acyclic_jlObj cl by blast
+  have c: "acyclic (parentRel cl)"
+    using acyclic_jlObj by (simp add: cl)
+  have d: "inheritsFromObject cl"
+    by (simp add: cl inheritsFromObj_jlObj)
   then show ?thesis 
-    using cl b by blast
+    using cl b c by blast
 qed
 
 (* Equality *)
@@ -336,8 +357,10 @@ lemma classes_eqI:
 setup_lifting type_definition_Classes
 
 lift_definition JVMClasses :: "JVMClass list \<Rightarrow> Classes" is
-  "\<lambda>j. (if (List.member j jlObject \<and> acyclic (parentRel j)) then j else [jlObject])" 
-  unfolding List.member_def using containsObjImpliesNonEmpty acyclic_jlObj by auto
+  "\<lambda>j. (if (List.member j jlObject \<and> acyclic (parentRel j) \<and> inheritsFromObject j) 
+        then j else [jlObject])" 
+  using acyclic_jlObj 
+  by (simp add: member_rec(1) inheritsFromObj_jlObj containsObjImpliesNonEmpty)
 
 (* Maintaining invariant *)
 lemma nonempty_cl [simp, intro]:
@@ -352,15 +375,20 @@ lemma acyclic_cl [simp, intro]:
   "acyclic (parentRel (classToJVMList cl))"
   using classToJVMList [of cl] by simp
 
+lemma inheritsFromObj_cl [simp, intro]:
+  "inheritsFromObject (classToJVMList cl)"
+   using classToJVMList [of cl] by simp
+
 lemma original_jvm [simp]:
   "classToJVMList (JVMClasses cl) = 
-      (if (List.member cl jlObject \<and> acyclic (parentRel cl)) then cl else [jlObject])"
+      (if (List.member cl jlObject \<and> acyclic (parentRel cl) \<and> inheritsFromObject cl) 
+       then cl else [jlObject])"
   using JVMClasses.rep_eq by auto
 
 (* Abstraction transformation *)
 lemma classesToClasses [simp, code abstype]:
   "JVMClasses (classToJVMList cl) = cl" 
-  using JVMClasses.abs_eq acyclic_cl classToJVMList_inverse by fastforce
+  using acyclic_cl classes_eqI by auto  
 
 (* Operations *)
 context
@@ -398,20 +426,21 @@ code_datatype JVMClasses
 
 lemma [code]:
   "classToJVMList (JVMClasses cl) = 
-      (if (List.member cl jlObject \<and> acyclic (parentRel cl)) then cl else [jlObject])"
+      (if (List.member cl jlObject \<and> acyclic (parentRel cl) \<and> inheritsFromObject cl) 
+      then cl else [jlObject])" 
   by (simp add: JVMClasses.rep_eq)
 
 (* Testing code gen *)
 definition newclass :: "Classes" where
-  "newclass = JVMClasses [NewClass ''name'' [] [] [] ''parent'', jlObject]"
+  "newclass = JVMClasses [NewClass ''name'' [] [] [] [''parent'', ''None''] ''parent'', jlObject]"
 
 definition cyclicClass :: "JVMClass list" where
-  "cyclicClass = [NewClass ''name'' [] [] [] ''name'']"
+  "cyclicClass = [NewClass ''name'' [] [] [] [''name''] ''name'']"
 
 value "newclass"
+value "classToJVMList newclass" 
 value "Class.mapJVMFunc class_name newclass"
 value "Class.mapJVMFunc class_parent newclass"
-value "classToJVMList newclass"
 
 (* invalid; java.lang.Object*)
 value "classToJVMList (JVMClasses [])"
@@ -446,12 +475,5 @@ lemma finiteSuper:
   fixes cl :: "Classes"
   shows "finite (superclassOf (classToJVMList cl))" 
   by simp
-
-(* TODO fix this, won't work if the parent of classname occurs before classname in the listing *)
-fun parentPath :: "(string \<times> string) list \<Rightarrow> string \<Rightarrow> string list" where
-  "parentPath [] cn = []" |
-  "parentPath ((x, y)#xs) cn = (let fullList = ((x, y)#xs) in
-                                  if (x=cn) then ([y] @ (parentPath (remove1 (x, y) fullList) y)) 
-                                  else                  (parentPath xs cn))" 
 
 end

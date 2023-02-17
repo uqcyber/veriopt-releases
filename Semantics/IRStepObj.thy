@@ -224,7 +224,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     ObjRef self = hd p';
     ObjStr cname = (h_load_field ''class'' self h);
     S = (P,cl);
-    Some targetGraph = dynamic_lookup S cname (targetMethod) (parentPath (parentRel2 (classToJVMList cl)) cname)\<rbrakk>
+    Some targetGraph = dynamic_lookup S cname targetMethod (class_parents (CLget_JVMClass cname cl))\<rbrakk>
     \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
 
 (* TODO this produces two parse trees after importing Class *)

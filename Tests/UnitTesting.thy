@@ -64,21 +64,20 @@ inductive program_test :: "System \<Rightarrow> Signature \<Rightarrow> Value li
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testP) program_test .
 
-(* TODO update to take a System, not a Program *)
 subsection \<open>Unit test helper functions - Debug versions\<close>
 
-inductive program_test_debug :: "Program \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> nat \<Rightarrow> ID \<times> MapState \<times> Params \<Rightarrow> bool"
+inductive program_test_debug :: "System \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> nat \<Rightarrow> ID \<times> MapState \<times> Params \<Rightarrow> bool"
   where
   NoStatics:
-  "\<lbrakk>'''' \<notin> dom prog;
+  "\<lbrakk>S = (prog, cl);
+    '''' \<notin> dom prog;
     Some g = prog m;
     config1 = (g, 0, new_map_state, ps);
-    exec_debug (prog, JVMClasses []) ([config1, config1], new_heap) steps ((end2 # xs2), heap2) \<rbrakk>
-    \<Longrightarrow> program_test_debug prog m ps steps (prod.snd end2)"
+    exec_debug S ([config1, config1], new_heap) steps ((end2 # xs2), heap2)\<rbrakk>
+    \<Longrightarrow> program_test_debug S m ps steps (prod.snd end2)"
 (* output end2 has type: "(IRGraph \<times> ID \<times> MapState \<times> Params)" *)
-code_pred (
-    modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testPin,
-           i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as testPout) program_test_debug .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testPin,
+                  i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as testPout) program_test_debug .
 
 (* Example of using program_test_debug:
 values "{m | m . program_test_debug prog mathodName paramList steps m}"
@@ -86,11 +85,10 @@ values "{m | m . program_test_debug prog mathodName paramList steps m}"
 
 inductive static_test_debug :: "IRGraph \<Rightarrow> Value list \<Rightarrow> nat \<Rightarrow>  ID \<times> MapState \<times> Params \<Rightarrow> bool"
   where
-  "program_test_debug (Map.empty (''_'' \<mapsto> g)) ''_'' ps steps out 
+  "program_test_debug ((Map.empty (''_'' \<mapsto> g)), JVMClasses []) ''_'' ps steps out 
    \<Longrightarrow> static_test_debug g ps steps out"
-code_pred (
-    modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testGin,
-           i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as testGout) static_test_debug .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testGin,
+                  i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as testGout) static_test_debug .
 
 (* Example of using static_test_debug:
 values "{m | m . static_test_debug graph paramList steps m}"

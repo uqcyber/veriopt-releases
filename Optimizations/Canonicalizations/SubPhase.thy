@@ -47,35 +47,34 @@ lemma bin_sub_negative_const:
 lemma val_sub_after_right_add_2:
   assumes "x = new_int b v"
   assumes "val[(x + y) - y] \<noteq> UndefVal"
-  shows   "val[(x + y) - y] = val[x]"
-  using bin_sub_after_right_add 
+  shows   "val[(x + y) - y] = x"
   using assms apply (cases x; cases y; auto)
   by (metis (full_types) intval_sub.simps(2))
 
 lemma val_sub_after_left_sub:
   assumes "val[(x - y) - x] \<noteq> UndefVal"
   shows   "val[(x - y) - x] = val[-y]"
-  using assms apply (cases x; cases y; auto)
-  using intval_sub.elims by fastforce
+  using assms intval_sub.elims apply (cases x; cases y; auto)
+  by fastforce
 
 lemma val_sub_then_left_sub:
   assumes "y = new_int b v"
   assumes "val[x - (x - y)] \<noteq> UndefVal"
-  shows   "val[x - (x - y)] = val[y]"
-  using assms apply (cases x; cases y; auto)
+  shows   "val[x - (x - y)] = y"
+  using assms apply (cases x; auto)
   by (metis (mono_tags) intval_sub.simps(5))
 
 lemma val_subtract_zero:
   assumes "x = new_int b v"
-  assumes "intval_sub x (IntVal b 0) \<noteq> UndefVal "
-  shows   "intval_sub x (IntVal b 0) = val[x]"
-  using assms by (induction x; simp)
+  assumes "val[x - (IntVal b 0)] \<noteq> UndefVal"
+  shows   "val[x - (IntVal b 0)] = x"
+  by (cases x; simp add: assms)
 
 lemma val_zero_subtract_value:
   assumes "x = new_int b v"
-  assumes "intval_sub (IntVal b 0) x \<noteq> UndefVal "
-  shows   "intval_sub (IntVal b 0) x = val[-x]"
-  using assms by (induction x; simp)
+  assumes "val[(IntVal b 0) - x] \<noteq> UndefVal"
+  shows   "val[(IntVal b 0) - x] = val[-x]"
+  by (cases x; simp add: assms)
 
 lemma val_sub_then_left_add:
   assumes "val[x - (x + y)] \<noteq> UndefVal"
@@ -86,40 +85,37 @@ lemma val_sub_then_left_add:
 lemma val_sub_negative_value:
   assumes "val[x - (-y)] \<noteq> UndefVal"
   shows   "val[x - (-y)] = val[x + y]"
-  using assms by (cases x; cases y; auto)
+  by (cases x; cases y; simp add: assms)
 
 lemma val_sub_self_is_zero:
   assumes "x = new_int b v \<and> val[x - x] \<noteq> UndefVal"
   shows   "val[x - x] = new_int b 0"
-  using assms by (cases x; auto)
+  by (cases x; simp add: assms)
 
 lemma val_sub_negative_const:
   assumes "y = new_int b v \<and> val[x - (-y)] \<noteq> UndefVal"
   shows "val[x - (-y)] = val[x + y]"
-  using assms by (cases x; cases y; auto)
+  by (cases x; simp add: assms)
 
 (* Exp level proofs *)
 lemma exp_sub_after_right_add:
-  shows "exp[(x + y) - y] \<ge> exp[x]"
+  shows "exp[(x + y) - y] \<ge> x"
    apply auto  
-  by (smt (verit) evalDet eval_unused_bits_zero intval_add.elims new_int.simps 
-      val_sub_after_right_add_2) 
+  by (smt (verit) eval_unused_bits_zero intval_add.elims val_sub_after_right_add_2 new_int.simps
+      evalDet) 
 
 lemma exp_sub_after_right_add2:
-  shows "exp[(x + y) - x] \<ge> exp[y]"
-  using exp_sub_after_right_add apply auto  
-  by (smt (z3) Value.inject(1) diff_eq_eq evalDet eval_unused_bits_zero intval_add.elims 
-      intval_sub.elims new_int.simps new_int_bin.simps take_bit_dist_subL bin_eval.simps(1) 
-      bin_eval.simps(3) intval_add_sym unfold_binary)
+  shows "exp[(x + y) - x] \<ge> y"
+  using exp_sub_after_right_add apply auto
+  by (smt (z3) bin_eval.simps(1,3) intval_add_sym unfold_binary)
 
 lemma exp_sub_negative_value:
  "exp[x - (-y)] \<ge> exp[x + y]"
-  apply simp  
-  by (smt (verit) bin_eval.simps(1) bin_eval.simps(3) evaltree_not_undef unary_eval.simps(2) 
-      unfold_binary unfold_unary val_sub_negative_value)
+  by (smt (verit) le_expr_def bin_eval.simps(1,3) val_sub_negative_value unary_eval.simps(2)
+      unfold_binary unfold_unary)
 
 lemma exp_sub_then_left_sub:
-  "exp[x - (x - y)] \<ge> exp[y]"
+  "exp[x - (x - y)] \<ge> y"
   using val_sub_then_left_sub apply auto
   subgoal premises p for m p xa xaa ya
     proof- 
@@ -130,15 +126,14 @@ lemma exp_sub_then_left_sub:
       obtain xaa where xaa: "[m, p] \<turnstile> x \<mapsto> xaa"
         using p(2) by blast
       have 1: "val[xa - (xaa - ya)] \<noteq> UndefVal"
-        by (metis evalDet p(2) p(3) p(4) p(5) xa xaa ya)
+        by (metis evalDet p(2,3,4,5) xa xaa ya)
       then have "val[xaa - ya] \<noteq> UndefVal"
         by auto
       then have "[m, p] \<turnstile> y \<mapsto> val[xa - (xaa - ya)]"
-        by (metis "1" Value.exhaust evalDet eval_unused_bits_zero evaltree_not_undef 
-            intval_sub.simps(6) intval_sub.simps(7) new_int.simps p(5) val_sub_then_left_sub xa xaa 
-            ya)
+        by (metis "1" Value.exhaust eval_unused_bits_zero evaltree_not_undef xa xaa ya new_int.simps
+            intval_sub.simps(6,7) evalDet val_sub_then_left_sub)
       then show ?thesis
-        by (metis evalDet p(2) p(4) p(5) xa xaa ya)
+        by (metis evalDet p(2,4,5) xa xaa ya)
     qed 
   done
 
@@ -153,22 +148,20 @@ optimization SubAfterAddLeft: "((x + y) - x) \<longmapsto>  y"
   using exp_sub_after_right_add2 by blast
 
 optimization SubAfterSubLeft: "((x - y) - x) \<longmapsto>  -y"
-   apply (metis Suc_lessI add_2_eq_Suc' add_less_cancel_right less_trans_Suc not_add_less1 
-          size_binary_const size_binary_lhs size_binary_rhs size_non_add)
-   apply auto 
-  by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_after_left_sub)
+  by (smt (verit) Suc_lessI add_2_eq_Suc' add_less_cancel_right less_trans_Suc not_add_less1 evalDet
+      size_binary_const size_binary_lhs size_binary_rhs size_non_add BinaryExprE bin_eval.simps(3)
+      le_expr_def unary_eval.simps(2) unfold_unary val_sub_after_left_sub)+
 
 optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
    apply auto
   by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_then_left_add)
 
 optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
-   apply auto 
+   apply auto
   by (metis evalDet intval_add_sym unary_eval.simps(2) unfold_unary val_sub_then_left_add)
 
 optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
-  using size_simps apply simp
-  using exp_sub_then_left_sub by blast
+  using size_simps exp_sub_then_left_sub by auto
  
 optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x"
   apply auto
@@ -185,16 +178,15 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
 *)
 
 optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"
-  apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
-  using exp_sub_negative_value by simp
+  by (smt (verit) add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add 
+      exp_sub_negative_value)+
 
 thm_oracles SubNegativeValue
 
 lemma negate_idempotent:
   assumes "x = IntVal b v \<and> take_bit b v = v"
   shows "x = val[-(-x)]"
-  using assms
-  using is_IntVal_def by force
+  by (auto simp: assms is_IntVal_def)
 
 (*
 lemma remove_sub_preserve_take_bit:
@@ -274,12 +266,9 @@ optimization SubNegativeConstant: "x - (const (val[-y])) \<longmapsto> x + (cons
 (*Additional check for not constant for termination *)
 optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> \<not>(is_ConstantExpr x))"
-   defer
-  apply auto unfolding wf_stamp_def
-  apply (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps 
-          new_int_bin.simps unary_eval.simps(2) unfold_unary)
-  using add_2_eq_Suc' size.simps(2) size_flip_binary by presburger
-
+  using size_flip_binary apply auto
+  by (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps size.simps(2)
+      new_int_bin.simps unary_eval.simps(2) unfold_unary wf_stamp_def add_2_eq_Suc')
 
 (*
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
@@ -338,11 +327,10 @@ qed
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when 
                       (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-   apply simp_all 
-   apply auto
-  using IRExpr.disc(42) One_nat_def size_non_const apply presburger
-  by (smt (verit, best) wf_value_def ConstantExpr evalDet eval_bits_1_64 eval_unused_bits_zero 
-      new_int.simps take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def)
+  using size_non_const apply auto
+  by (smt (verit) wf_value_def ConstantExpr  eval_bits_1_64 eval_unused_bits_zero new_int.simps
+      take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def One_nat_def
+      evalDet)
 
 end (* End of SubPhase *)
 

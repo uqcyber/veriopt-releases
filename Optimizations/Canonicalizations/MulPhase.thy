@@ -53,7 +53,6 @@ proof -
     by (metis lt2p_lem mask_eq_iff take_bit_eq_mask verit_comp_simplify1(2) wsst_TYs(3))
 qed
 
-
 (* TODO: merge this with val_eliminate_redundant_negative *)
 lemma mergeTakeBit:
   fixes a :: "nat"
@@ -62,31 +61,28 @@ lemma mergeTakeBit:
          take_bit a (b * c)" 
  by (smt (verit, ccfv_SIG) take_bit_mult take_bit_of_int unsigned_take_bit_eq word_mult_def)
 
-
 (* Value level proofs *)
 lemma val_eliminate_redundant_negative:
   assumes "val[-x * -y] \<noteq> UndefVal"
   shows "val[-x * -y] = val[x * y]"
-  using assms apply (cases x; cases y; auto)
-  using mergeTakeBit by auto
+  by (cases x; cases y; auto simp: mergeTakeBit)
 
 lemma val_multiply_neutral:
   assumes "x = new_int b v"
-  shows "val[x * (IntVal b 1)] = val[x]"
-  using assms by force
+  shows "val[x * (IntVal b 1)] = x"
+  by (auto simp: assms)
 
 lemma val_multiply_zero:
   assumes "x = new_int b v"
   shows "val[x * (IntVal b 0)] = IntVal b 0"
-  using assms by simp
+  by (simp add: assms)
 
 lemma val_multiply_negative:
   assumes "x = new_int b v"
-  shows "val[x * intval_negate (IntVal b 1)] = intval_negate x" 
-  by (smt (verit) Value.disc(1) Value.inject(1) add.inverse_neutral intval_negate.simps(1) 
+  shows "val[x * -(IntVal b 1)] = val[-x]" 
+  by (smt (verit) Value.disc(1) Value.inject(1) intval_negate.simps(1) verit_minus_simplify(4)
       is_IntVal_def mask_0 mask_eq_take_bit_minus_one new_int.elims of_bool_eq(2) take_bit_dist_neg 
-      take_bit_of_1 val_eliminate_redundant_negative val_multiply_neutral val_multiply_zero 
-      verit_minus_simplify(4) zero_neq_one assms)
+      take_bit_of_1 val_eliminate_redundant_negative val_multiply_neutral val_multiply_zero assms)
 
 (* x * 2^i = x << i*)
 lemma val_MulPower2:
@@ -104,15 +100,14 @@ lemma val_MulPower2:
       then have "(2::int) ^ 6 = 64"
         by eval
       then have "uint i < (2::int) ^ 6"
-        by (metis linorder_not_less lt2p_lem of_int_numeral p(4) size64 word_2p_lem word_of_int_2p 
+        by (metis linorder_not_less lt2p_lem of_int_numeral p(4) word_2p_lem word_of_int_2p 
             wsst_TYs(3))
       then have "and i (mask 6) = i"
         using mask_eq_iff by blast
       then show "x2 << unat i = x2 << unat (and i (63::64 word))"
-        unfolding 63
-        by force
+        by (auto simp: 63)
     qed
-    by presburger
+  by presburger
 
 (*  x * ((2 ^ j) + 1) = (x << j) + x  *)
 lemma val_MulPower2Add1:
@@ -128,17 +123,16 @@ lemma val_MulPower2Add1:
   proof -
     have 63: "(63 :: int64) = mask 6"
       by eval
-    then have "(2::int) ^ 6 = 64"
+    then have "(2 :: int) ^ 6 = 64"
       by eval
     then have "and i (mask 6) = i"
-      using mask_eq_iff by (simp add: less_mask_eq p(6))
-    then have "x2 * ((2::64 word) ^ unat i + (1::64 word)) = (x2 * ((2::64 word) ^ unat i)) + x2"
+      by (simp add: less_mask_eq p(6))
+    then have "x2 * (2 ^ unat i + 1) = (x2 * (2 ^ unat i)) + x2"
       by (simp add: distrib_left)
-    then show "x2 * ((2::64 word) ^ unat i + (1::64 word)) = x2 << unat (and i (63::64 word)) + x2"
-      by (simp add: "63" \<open>and (i::64 word) (mask (6::nat)) = i\<close>)
+    then show "x2 * (2 ^ unat i + 1) = x2 << unat (and i 63) + x2"
+      by (simp add: "63" \<open>and i (mask 6) = i\<close>)
     qed 
-    using val_to_bool.simps(2) by presburger
-
+  using val_to_bool.simps(2) by presburger
 
 (*  x * ((2 ^ j) - 1) = (x << j) - x  *)
 lemma val_MulPower2Sub1:
@@ -154,22 +148,22 @@ lemma val_MulPower2Sub1:
   proof -
     have 63: "(63 :: int64) = mask 6"
       by eval
-    then have "(2::int) ^ 6 = 64"
+    then have "(2 :: int) ^ 6 = 64"
       by eval
     then have "and i (mask 6) = i"
-      using mask_eq_iff by (simp add: less_mask_eq p(6))
-    then have "x2 * ((2::64 word) ^ unat i - (1::64 word)) = (x2 * ((2::64 word) ^ unat i)) - x2"
+      by (simp add: less_mask_eq p(6))
+    then have "x2 * (2 ^ unat i - 1) = (x2 * (2 ^ unat i)) - x2"
       by (simp add: right_diff_distrib')
-    then show "x2 * ((2::64 word) ^ unat i - (1::64 word)) = x2 << unat (and i (63::64 word)) - x2"
-      by (simp add: "63" \<open>and (i::64 word) (mask (6::nat)) = i\<close>)
+    then show "x2 * (2 ^ unat i - 1) = x2 << unat (and i 63) - x2"
+      by (simp add: "63" \<open>and i (mask 6) = i\<close>)
     qed 
-    using val_to_bool.simps(2) by presburger
+  using val_to_bool.simps(2) by presburger
 
 (* Value level helpers *)
 lemma val_distribute_multiplication:
   assumes "x = new_int 64 xx \<and> q = new_int 64 qq \<and> a = new_int 64 aa"
   shows "val[x * (q + a)] = val[(x * q) + (x * a)]"
-  apply (cases x; cases q; cases a; auto) using distrib_left assms by auto
+  by (cases x; cases q; cases a; auto simp: distrib_left assms)
 
 (*  x * ((2 ^ j) + (2 ^ k)) = (x << j) + (x << k)  *)
 lemma val_MulPower2AddPower2:
@@ -181,26 +175,25 @@ lemma val_MulPower2AddPower2:
   and     "j < 64"
   and     "x = new_int 64 xx"
   shows   "val[x * y] = val[(x << IntVal 64 i) + (x << IntVal 64 j)]"
-  using assms
   proof -
     have 63: "(63 :: int64) = mask 6"
       by eval
-    then have "(2::int) ^ 6 = 64"
+    then have "(2 :: int) ^ 6 = 64"
       by eval
     then have n: "IntVal 64 ((2 ^ unat(i)) + (2 ^ unat(j))) = 
-           val[(IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j)))]"
+             val[(IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j)))]"
        (* x * (2^i + 2^j)*)
-      using assms by (cases i; cases j; auto) 
+      by auto
    then have 1: "val[x * ((IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j))))] = 
-           val[(x * IntVal 64 (2 ^ unat(i))) + (x * IntVal 64 (2 ^ unat(j)))]"
+                 val[(x * IntVal 64 (2 ^ unat(i))) + (x * IntVal 64 (2 ^ unat(j)))]"
       (* (x * 2^i) + (x * 2^j)*)
-     using assms val_distribute_multiplication val_MulPower2 by simp 
+     using assms val_distribute_multiplication by simp 
    then have 2: "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
      by (smt (verit) Value.distinct(1) intval_mul.simps(1) new_int.simps new_int_bin.simps assms 
          val_MulPower2)
    then show "?thesis" 
-     by (smt (verit, del_insts) "1" Value.distinct(1) assms(1) assms(3) assms(5) assms(6) 
-         intval_mul.simps(1) n new_int.simps new_int_bin.elims val_MulPower2)
+     by (smt (verit, del_insts) "1" Value.distinct(1) n intval_mul.simps(1) new_int_bin.elims
+         new_int.simps val_MulPower2 assms(1,3,5,6))
    qed
 
 thm_oracles val_MulPower2AddPower2
@@ -208,14 +201,13 @@ thm_oracles val_MulPower2AddPower2
 (* Exp-level proofs *)
 lemma exp_multiply_zero_64:
  "exp[x * (const (IntVal 64 0))] \<ge> ConstantExpr (IntVal 64 0)"
-  using val_multiply_zero apply auto 
-  by (smt (verit) Value.inject(1) constantAsStamp.simps(1) int_signed_value_bounds intval_mul.elims 
-        mult_zero_right new_int.simps new_int_bin.simps nle_le numeral_eq_Suc take_bit_of_0 
-        unfold_const valid_stamp.simps(1) valid_value.simps(1) zero_less_Suc wf_value_def)
+  apply auto  
+  by (smt (verit) Value.inject(1) constantAsStamp.simps(1) intval_mul.elims mult_zero_right 
+      new_int.simps new_int_bin.simps unfold_const valid_value.simps(1) wf_value_def)
 
 lemma exp_multiply_neutral:
  "exp[x * (const (IntVal b 1))] \<ge> x"
-  using val_multiply_neutral apply auto
+  apply auto 
   by (smt (verit) Value.inject(1) eval_unused_bits_zero intval_mul.elims mult.right_neutral 
       new_int.elims new_int_bin.elims)
 
@@ -229,8 +221,7 @@ lemma exp_MulPower2:
   and     "exp[x > (const IntVal b 0)]"
   and     "exp[y > (const IntVal b 0)]"
   shows "exp[x * y] \<ge> exp[x << ConstantExpr (IntVal 64 i)]"
-   using assms apply simp
-  by (metis ConstantExprE equiv_exprs_def unfold_binary)
+  using ConstantExprE equiv_exprs_def unfold_binary assms by fastforce
 
 lemma exp_MulPower2Add1:
   fixes i :: "64 word"
@@ -239,9 +230,8 @@ lemma exp_MulPower2Add1:
   and     "i < 64"
   and     "exp[x > (const IntVal b 0)]"
   and     "exp[y > (const IntVal b 0)]"
-shows   "exp[x * y] \<ge> exp[(x << ConstantExpr (IntVal 64 i)) + x]"
-   using assms apply simp  
-  by (metis (no_types, lifting) ConstantExprE equiv_exprs_def unfold_binary)
+  shows   "exp[x * y] \<ge> exp[(x << ConstantExpr (IntVal 64 i)) + x]"
+  using ConstantExprE equiv_exprs_def unfold_binary assms by fastforce
 
 lemma exp_MulPower2Sub1:
   fixes i :: "64 word"
@@ -250,9 +240,8 @@ lemma exp_MulPower2Sub1:
   and     "i < 64"
   and     "exp[x > (const IntVal b 0)]"
   and     "exp[y > (const IntVal b 0)]"
-shows   "exp[x * y] \<ge> exp[(x << ConstantExpr (IntVal 64 i)) - x]"
-   using assms apply simp  
-  by (metis (no_types, lifting) ConstantExprE equiv_exprs_def unfold_binary)
+  shows   "exp[x * y] \<ge> exp[(x << ConstantExpr (IntVal 64 i)) - x]"
+  using ConstantExprE equiv_exprs_def unfold_binary assms by fastforce
 
 lemma exp_MulPower2AddPower2:
   fixes i j :: "64 word"
@@ -263,9 +252,8 @@ lemma exp_MulPower2AddPower2:
   and     "j < 64"
   and     "exp[x > (const IntVal b 0)]"
   and     "exp[y > (const IntVal b 0)]"
-shows   "exp[x * y] \<ge> exp[(x << ConstantExpr (IntVal 64 i)) + (x << ConstantExpr (IntVal 64 j))]"
-   using assms apply simp  
-  by (metis (no_types, lifting) ConstantExprE equiv_exprs_def unfold_binary)
+  shows   "exp[x * y] \<ge> exp[(x << ConstantExpr (IntVal 64 i)) + (x << ConstantExpr (IntVal 64 j))]"
+  using ConstantExprE equiv_exprs_def unfold_binary assms by fastforce
 
 (* Exp level helpers *)
 
@@ -280,13 +268,21 @@ lemma greaterConstant:
   sorry
 
 lemma exp_distribute_multiplication:
-  shows "exp[(x * q) + (x * a)] \<ge> exp[x * (q + a)]"
-  sorry
+  shows "exp[(x * q) + (x * a)] \<ge> exp[x * (q + a)]" 
+  apply auto
+  subgoal premises p for m p xa qa xb aa
+  proof -
+    have "[m,p] \<turnstile> BinaryExpr BinMul x (BinaryExpr BinAdd q a) \<mapsto> intval_mul xa (intval_add qa aa)"
+      sorry
+    then show ?thesis
+      using val_distribute_multiplication sorry
+  qed
+  done
 
 text \<open>Optimisations\<close>
 
 optimization EliminateRedundantNegative: "-x * -y \<longmapsto> x * y"
-  using mul_size.simps apply auto
+  apply auto
   by (metis BinaryExpr val_eliminate_redundant_negative bin_eval.simps(2))
 
 optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
@@ -294,16 +290,14 @@ optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
 
 optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (IntVal b 0)"
    apply auto 
-  by (smt (verit) Value.inject(1) constantAsStamp.simps(1) int_signed_value_bounds intval_mul.elims 
-      mult_zero_right new_int.simps new_int_bin.simps take_bit_of_0 unfold_const 
-      valid_stamp.simps(1) valid_value.simps(1) val_multiply_zero)
+  by (smt (verit) Value.inject(1) intval_mul.elims mult_zero_right new_int.simps new_int_bin.simps 
+      take_bit_of_0 unfold_const)
 
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
   apply auto 
-  by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims 
-      intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps 
-      take_bit_dist_neg unary_eval.simps(2) unfold_unary val_multiply_negative
-      val_eliminate_redundant_negative val_multiply_negative wf_value_def)
+  by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims wf_value_def
+      intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps unfold_unary
+      take_bit_dist_neg unary_eval.simps(2) val_eliminate_redundant_negative val_multiply_negative)
 
 fun isNonZero :: "Stamp \<Rightarrow> bool" where
   "isNonZero (IntegerStamp b lo hi) = (lo > 0)" |
@@ -322,17 +316,14 @@ proof -
   have "lo > 0"
     using assms(1) xstamp by force
   then have signed_above: "int_signed_value b vv > 0"
-    using assms unfolding wf_stamp_def
-    using eval vdef xstamp by fastforce
+    using assms eval vdef xstamp wf_stamp_def by fastforce
   have "take_bit b vv = vv"
     using eval eval_unused_bits_zero vdef by auto
   then have "vv > 0"
-    by (metis bit_take_bit_iff int_signed_value.simps not_less_zero signed_eq_0_iff 
-        signed_take_bit_eq_if_positive take_bit_0 take_bit_of_0 verit_comp_simplify1(1) word_gt_0 
-        signed_above)
+    by (metis bit_take_bit_iff int_signed_value.simps signed_eq_0_iff take_bit_of_0 signed_above
+        verit_comp_simplify1(1) word_gt_0 signed_take_bit_eq_if_positive)
   then show ?thesis
-    using vdef signed_above
-    by simp
+    using vdef signed_above by simp
 qed
   done
 
@@ -340,7 +331,6 @@ optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i)
                               when (i > 0 \<and> 
                                     64 > i \<and>
                                     y = exp[const (IntVal 64 (2 ^ unat(i)))])"
-   defer
    apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises eval for m p v
 proof -
@@ -348,30 +338,28 @@ proof -
     using eval(2) by blast
   then obtain xvv where xvv: "xv = IntVal 64 xvv"
     by (smt (verit) ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims 
-          new_int_bin.simps unfold_binary eval)
+        new_int_bin.simps unfold_binary eval)
   obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
-    using eval(1) eval(2) by blast
+    using eval(1,2) by blast
   then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
-    by (metis bin_eval.simps(2) eval(1) eval(2) evalDet unfold_binary xv)
+    by (metis bin_eval.simps(2) eval(1,2) evalDet unfold_binary xv)
   have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
-    by (smt (verit, ccfv_SIG) ConstantExpr constantAsStamp.simps(1) eval_bits_1_64 take_bit64 
-        validStampIntConst wf_value_def valid_value.simps(1) xv xvv)
+    by (smt (verit, ccfv_SIG) ConstantExpr constantAsStamp.simps(1) eval_bits_1_64 take_bit64 xv xvv
+        validStampIntConst wf_value_def valid_value.simps(1))
   then have rhs: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
-    using xv xvv using evaltree.BinaryExpr
-    by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps)
+    by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps xv xvv 
+        evaltree.BinaryExpr)
   have "val[xv * yv] = val[xv << (IntVal 64 i)]"
     by (metis ConstantExprE eval(1) evaltree_not_undef lhs yv val_MulPower2)
   then show ?thesis
-    by (metis eval(1) eval(2) evalDet lhs rhs)
+    by (metis eval(1,2) evalDet lhs rhs)
 qed
   done
-
 
 optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x 
                               when (i > 0 \<and>  
                                     64 > i \<and>
                                     y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1)) )"
-   defer
    apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
   proof -
@@ -381,7 +369,7 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
       by (smt (verit) p ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims 
           new_int_bin.simps unfold_binary)
     obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
-      using p  by blast
+      using p by blast
     have ygezero: "y > ConstantExpr (IntVal 64 0)"
       using greaterConstant p wf_value_def by fastforce 
     then have 1: "0 < i \<and>
@@ -389,18 +377,18 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
                   y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1))"
       using p by blast
     then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
-      by (metis bin_eval.simps(2) evalDet p(1) p(2) xv yv unfold_binary)
+      by (metis bin_eval.simps(2) evalDet p(2) xv yv unfold_binary)
     then have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
-      by (metis wf_value_def verit_comp_simplify1(2) zero_less_numeral ConstantExpr 
-          constantAsStamp.simps(1) take_bit64 validStampIntConst valid_value.simps(1))
+      by (metis wf_value_def verit_comp_simplify1(2) zero_less_numeral ConstantExpr take_bit64
+          constantAsStamp.simps(1) validStampIntConst valid_value.simps(1))
     then have rhs2: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
       by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps xv xvv 
           evaltree.BinaryExpr)
     then have rhs: "[m, p] \<turnstile> exp[(x << const (IntVal 64 i)) + x] \<mapsto> val[(xv << (IntVal 64 i)) + xv]" 
-       by (metis (no_types, lifting) intval_add.simps(1) rhs2 bin_eval.simps(1) Value.simps(5) 
-           evaltree.BinaryExpr intval_left_shift.simps(1) new_int.simps xv xvv)
+       by (metis (no_types, lifting) intval_add.simps(1) bin_eval.simps(1) Value.simps(5) xv xvv
+           evaltree.BinaryExpr intval_left_shift.simps(1) new_int.simps)
      then have simple: "val[xv * (IntVal 64 (2 ^ unat(i)))] = val[xv << (IntVal 64 i)]"
-       using val_MulPower2  sorry
+       using val_MulPower2 sorry
      then have "val[xv * yv] = val[(xv << (IntVal 64 i)) + xv]"
         sorry
      then show ?thesis
@@ -413,7 +401,6 @@ optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
                               when (i > 0 \<and>  
                                     64 > i \<and>
                                     y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) - 1)) )"
-   defer
    apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
   proof -
@@ -423,33 +410,31 @@ optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
       by (smt (verit) p ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims 
           new_int_bin.simps unfold_binary)
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
-      using p  by blast
+      using p by blast
     have ygezero: "y > ConstantExpr (IntVal 64 0)"
-      by (smt (verit, del_insts) eq_iff_diff_eq_0 mask_0 mask_eq_exp_minus_1 power_inject_exp 
-          uint_2p unat_eq_zero word_gt_0 zero_neq_one greaterConstant p) 
+      by (smt (verit, del_insts) eq_iff_diff_eq_0 mask_0 mask_eq_exp_minus_1 power_inject_exp p
+          uint_2p unat_eq_zero word_gt_0 zero_neq_one greaterConstant) 
     then have 1: "0 < i \<and>
                   i < 64 \<and> 
                   y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) - 1))"
       using p by blast
     then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
-      by (metis bin_eval.simps(2) evalDet p(1) p(2) xv yv unfold_binary)
+      by (metis bin_eval.simps(2) evalDet p(2) xv yv unfold_binary)
     then have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
-      by (metis wf_value_def verit_comp_simplify1(2) zero_less_numeral ConstantExpr 
-          constantAsStamp.simps(1) take_bit64 validStampIntConst valid_value.simps(1))
+      by (metis wf_value_def verit_comp_simplify1(2) zero_less_numeral ConstantExpr take_bit64
+          constantAsStamp.simps(1) validStampIntConst valid_value.simps(1))
     then have rhs2: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
       by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps xv xvv 
           evaltree.BinaryExpr)
     then have rhs: "[m, p] \<turnstile> exp[(x << const (IntVal 64 i)) - x] \<mapsto> val[(xv << (IntVal 64 i)) - xv]" 
       by (smt (verit, ccfv_threshold) bin_eval.simps(3) new_int_bin.simps intval_sub.simps(1) 
-          rhs2 bin_eval.simps(1) Value.simps(5) evaltree.BinaryExpr intval_left_shift.simps(1) 
-          new_int.simps xv xvv )
+          Value.simps(5) evaltree.BinaryExpr intval_left_shift.simps(1) new_int.simps xv xvv)
     then have "val[xv * yv] = val[(xv << (IntVal 64 i)) - xv]"
        using "1" exp_MulPower2Sub1 ygezero sorry 
      then show ?thesis
       by (metis evalDet lhs p(1) p(2) rhs)
   qed
 done
-
 
 end (* End of MulPhase *)
 

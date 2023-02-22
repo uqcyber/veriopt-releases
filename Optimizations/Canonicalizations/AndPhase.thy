@@ -10,40 +10,41 @@ context stamp_mask
 begin
 
 lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[y]"
-  apply simp apply (rule impI; (rule allI)+)
-  apply (rule impI)
+  apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
-  proof -
-    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
-      using p(2) by blast
-    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
-      using p(2) by blast
-    have "v = val[xv & yv]"
-      by (metis BinaryExprE bin_eval.simps(4) evalDet p(2) xv yv)
-    then have "v = yv"
-      by (smt (verit) eval_unused_bits_zero intval_and.elims new_int.elims new_int_bin.elims p(2) 
-          unfold_binary xv yv p(1) not_down_up_mask_and_zero_implies_zero)
-    then show ?thesis using yv by simp
-  qed
+    proof -
+      obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+        using p(2) by blast
+      obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
+        using p(2) by blast
+      have "v = val[xv & yv]"
+        by (metis BinaryExprE bin_eval.simps(4) evalDet p(2) xv yv)
+      then have "v = yv"
+        by (smt (verit) eval_unused_bits_zero intval_and.elims new_int.elims new_int_bin.elims xv yv
+            unfold_binary not_down_up_mask_and_zero_implies_zero p(1,2))
+      then show ?thesis 
+        by (simp add: yv)
+    qed
   done
 
 lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[x]"
-  apply simp apply (rule impI; (rule allI)+)
-  apply (rule impI)
+  apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
-  proof -
-    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
-      using p(2) by blast
-    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
-      using p(2) by blast
-    have "v = val[xv & yv]"
-      by (metis BinaryExprE bin_eval.simps(4) evalDet p(2) xv yv)
-    then have "v = xv" 
-      by (smt (verit) and.commute eval_unused_bits_zero intval_and.elims new_int.simps 
-          new_int_bin.simps p(2) unfold_binary xv yv p(1) not_down_up_mask_and_zero_implies_zero)
-    then show ?thesis using xv by simp
-  qed
+    proof -
+      obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
+        using p(2) by blast
+      obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
+        using p(2) by blast
+      have "v = val[xv & yv]"
+        by (metis BinaryExprE bin_eval.simps(4) evalDet p(2) xv yv)
+      then have "v = xv" 
+        by (smt (verit) and.commute eval_unused_bits_zero intval_and.elims new_int.simps p(1,2) xv
+            new_int_bin.simps yv unfold_binary not_down_up_mask_and_zero_implies_zero)
+      then show ?thesis 
+        by (simp add: xv)
+    qed
   done
+
 end
 
 phase AndNode  
@@ -64,18 +65,17 @@ lemma val_and_equal:
   assumes "x = new_int b v"
   and     "val[x & x] \<noteq> UndefVal"
   shows   "val[x & x] = x"
-   using assms by (cases x; auto)
+  by (auto simp: assms)
 
 lemma val_and_nots:
   "val[~x & ~y] = val[~(x | y)]"
-  apply (cases x; cases y; auto) by (simp add: take_bit_not_take_bit)
+  by (cases x; cases y; auto simp: take_bit_not_take_bit)
 
 lemma val_and_neutral:
   assumes "x = new_int b v"
   and     "val[x & ~(new_int b' 0)] \<noteq> UndefVal"
   shows   "val[x & ~(new_int b' 0)] = x"
-   using assms apply (cases x; auto) apply (simp add: take_bit_eq_mask) 
-   by presburger
+  using assms apply (simp add: take_bit_eq_mask) by presburger
 
 (* Not sure if this one is written correctly *)
 (*
@@ -95,18 +95,17 @@ lemma val_and_sign_extend_2:
 lemma val_and_zero:
   assumes "x = new_int b v"
   shows   "val[x & (IntVal b 0)] = IntVal b 0"
-   using assms by (cases x; auto) 
+  by (auto simp: assms)
 
 (* Exp level proofs *)
 lemma exp_and_equal:
   "exp[x & x] \<ge> exp[x]"
-   apply auto 
+  apply auto 
   by (smt (verit) evalDet intval_and.elims new_int.elims val_and_equal eval_unused_bits_zero)
 
 lemma exp_and_nots:
   "exp[~x & ~y] \<ge> exp[~(x | y)]"
-   apply (cases x; cases y; auto) using val_and_nots
-  by fastforce+ 
+   using val_and_nots by force
 
 lemma exp_sign_extend:
   assumes "e = (1 << In) - 1"
@@ -193,8 +192,7 @@ lemma exp_sign_extend:
 (* Helpers *)
 lemma val_and_commute[simp]:
    "val[x & y] = val[y & x]"
-   apply (cases x; cases y; auto)
-  by (simp add: word_bw_comms(1))
+  by (cases x; cases y; auto simp: word_bw_comms(1))
 
 text \<open>Optimisations\<close>
 
@@ -206,8 +204,8 @@ optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
   using size_flip_binary by auto
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
-   apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
-  using exp_and_nots by auto
+  by (smt (verit) add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add 
+      exp_and_nots)+
 
 (* Need to prove exp_sign_extend*)
 optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) (x)) 
@@ -222,7 +220,6 @@ optimization AndNeutral: "(x & ~(const (IntVal b 0))) \<longmapsto> x
   by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_and.elims intval_word.simps 
       new_int.simps new_int_bin.simps take_bit_eq_mask)
 
-
 optimization AndRightFallThrough: "(x & y) \<longmapsto> y
                                 when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
   by (simp add: IRExpr_down_def IRExpr_up_def)
@@ -230,7 +227,6 @@ optimization AndRightFallThrough: "(x & y) \<longmapsto> y
 optimization AndLeftFallThrough: "(x & y) \<longmapsto> x
                                 when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
    by (simp add: IRExpr_down_def IRExpr_up_def) 
-
 
 end (* End of AndPhase *)
 

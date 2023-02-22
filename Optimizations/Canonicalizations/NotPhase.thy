@@ -23,11 +23,9 @@ lemma val_not_cancel:
 (* Exp level proofs *)
 lemma exp_not_cancel:
    "exp[~(~a)] \<ge> exp[a]" 
-   using val_not_cancel apply auto 
-  by (metis eval_unused_bits_zero intval_logic_negation.cases new_int.simps intval_not.simps(1) 
-      intval_not.simps(2) intval_not.simps(3) intval_not.simps(4))
-
-
+  by (smt (verit) bin_not_cancel le_expr_def take_bit_not_take_bit unary_eval.simps(3) unfold_unary 
+      eval_unused_bits_zero intval_logic_negation.cases new_int.simps intval_not.simps)
+  
 text \<open>Optimisations\<close>
 
 optimization NotCancel: "exp[~(~a)] \<longmapsto> a"

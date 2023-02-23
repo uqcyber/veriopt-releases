@@ -327,7 +327,7 @@ lemma acyclicParent_super:
 
 lemma remdupsInherit:
   shows "inheritsFromObject cl \<Longrightarrow> inheritsFromObject (remdups cl)"
-  using inheritsFromObject_def by (simp add: remdups_map_remdups)  
+  using inheritsFromObject_def by (simp add: remdups_map_remdups)
 
 typedef Classes = "{cl :: JVMClass list . 
                     List.member cl jlObject \<and>
@@ -491,6 +491,11 @@ fun CLsimple_signatures :: "string \<Rightarrow> Classes \<Rightarrow> string li
 lemma finiteSuper: 
   fixes cl :: "Classes"
   shows "finite (superclassOf (classToJVMList cl))" 
+  by simp
+
+lemma finiteClasses:
+  fixes cl :: "Classes"
+  shows "finite (set (classToJVMList cl))" 
   by simp
 
 end

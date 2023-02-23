@@ -172,7 +172,13 @@ inductive
   RefNode:
   "\<lbrakk>kind g n = RefNode n';
     g \<turnstile> n' \<simeq> e\<rbrakk>
-    \<Longrightarrow> g \<turnstile> n \<simeq> e"
+    \<Longrightarrow> g \<turnstile> n \<simeq> e" |
+
+(* IsNull Node *)
+  IsNullNode:
+  "\<lbrakk>kind g n = IsNullNode v;
+    g \<turnstile> v \<simeq> lfn\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr UnaryIsNull lfn)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
 

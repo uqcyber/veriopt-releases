@@ -63,6 +63,7 @@ datatype (discs_sels) IRNode =
   | DynamicNewArrayNode (ir_elementType: "INPUT") (ir_length: "INPUT") (ir_voidClass_opt: "INPUT option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | EndNode 
   | ExceptionObjectNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
+  | FixedGuardNode (ir_condition: "INPUT_COND") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC")
   | FrameState (ir_monitorIds: "INPUT_ASSOC list") (ir_outerFrameState_opt: "INPUT_STATE option") (ir_values_opt: "INPUT list option") (ir_virtualObjectMappings_opt: "INPUT_STATE list option") 
   | IfNode (ir_condition: "INPUT_COND") (ir_trueSuccessor: "SUCC") (ir_falseSuccessor: "SUCC") 
   | IntegerBelowNode (ir_x: "INPUT") (ir_y: "INPUT") 
@@ -147,6 +148,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (EndNode) = []" |
   inputs_of_ExceptionObjectNode:
   "inputs_of (ExceptionObjectNode stateAfter next) = (opt_to_list stateAfter)" |
+  inputs_of_FixedGuardNode:
+  "inputs_of (FixedGuardNode condition stateBefore next) = [condition]" |
   inputs_of_FrameState:
   "inputs_of (FrameState monitorIds outerFrameState values virtualObjectMappings) = monitorIds @ (opt_to_list outerFrameState) @ (opt_list_to_list values) @ (opt_list_to_list virtualObjectMappings)" |
   inputs_of_IfNode:
@@ -256,6 +259,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (EndNode) = []" |
   successors_of_ExceptionObjectNode:
   "successors_of (ExceptionObjectNode stateAfter next) = [next]" |
+  successors_of_FixedGuardNode:
+  "successors_of (FixedGuardNode condition stateBefore next) = [next]" |
   successors_of_FrameState:
   "successors_of (FrameState monitorIds outerFrameState values virtualObjectMappings) = []" |
   successors_of_IfNode:
@@ -343,15 +348,15 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
 
   successors_of_RefNode: "successors_of (RefNode ref) = [ref]"
 
-
-
 lemma "inputs_of (FrameState x (Some y) (Some z) None) = x @ [y] @ z"
   unfolding inputs_of_FrameState by simp
+
 lemma "successors_of (FrameState x (Some y) (Some z) None) = []"
   unfolding inputs_of_FrameState by simp
 
 lemma "inputs_of (IfNode c t f) = [c]"
   unfolding inputs_of_IfNode by simp
+
 lemma "successors_of (IfNode c t f) = [t, f]"
   unfolding successors_of_IfNode by simp
 

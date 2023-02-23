@@ -45,6 +45,7 @@ datatype IRUnaryOp =
   | UnaryNarrow (ir_inputBits: nat) (ir_resultBits: nat)
   | UnarySignExtend (ir_inputBits: nat) (ir_resultBits: nat)
   | UnaryZeroExtend (ir_inputBits: nat) (ir_resultBits: nat)
+  | UnaryIsNull
 
 datatype IRBinaryOp =
     BinAdd
@@ -163,7 +164,8 @@ fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_eval UnaryLogicNegation v = intval_logic_negation v" |
   "unary_eval (UnaryNarrow inBits outBits) v = intval_narrow inBits outBits v" |
   "unary_eval (UnarySignExtend inBits outBits) v = intval_sign_extend inBits outBits v" |
-  "unary_eval (UnaryZeroExtend inBits outBits) v = intval_zero_extend inBits outBits v"
+  "unary_eval (UnaryZeroExtend inBits outBits) v = intval_zero_extend inBits outBits v" |
+  "unary_eval UnaryIsNull v = intval_is_null v"
 (*  "unary_eval op v1 = UndefVal" *)
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where

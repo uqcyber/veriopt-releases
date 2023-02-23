@@ -262,7 +262,8 @@ fun intval_below :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 fun intval_conditional :: "Value \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_conditional cond tv fv = (if (val_to_bool cond) then tv else fv)"
 
-
+fun intval_is_null :: "Value \<Rightarrow> Value" where
+  "intval_is_null v = (if (v = ObjRef (None)) then bool_to_val True else bool_to_val False)"
 
 subsection \<open>Narrowing and Widening Operators\<close>
 

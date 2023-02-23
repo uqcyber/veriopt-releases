@@ -80,6 +80,19 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     nid' = (successors_of (kind g nid))!0\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
+(* TODO condition before FixedGuard is IsNullNode, so FixedGuard only proceeds if this is *false*.
+        If any input to a FixedGuard evaluates to True when it's safe to proceed, this 
+        implementation won't work *)
+  FixedGuardNode:
+   "\<lbrakk>(kind g nid) = (FixedGuardNode cond before next);
+     g \<turnstile> cond \<simeq> condE; 
+     [m, p] \<turnstile> condE \<mapsto> val;
+
+     \<not>(val_to_bool val);
+
+     nid' = next\<rbrakk> 
+     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
+
   IfNode:
   "\<lbrakk>kind g nid = (IfNode cond tb fb);
     g \<turnstile> cond \<simeq> condE; 

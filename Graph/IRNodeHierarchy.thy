@@ -83,14 +83,17 @@ fun is_AbstractNewArrayNode :: "IRNode \<Rightarrow> bool" where
 fun is_AbstractNewObjectNode :: "IRNode \<Rightarrow> bool" where
   "is_AbstractNewObjectNode n = ((is_AbstractNewArrayNode n) \<or> (is_NewInstanceNode n))"
 
+fun is_AbstractFixedGuardNode :: "IRNode \<Rightarrow> bool" where
+  "is_AbstractFixedGuardNode n = (is_FixedGuardNode n)"
+
 fun is_IntegerDivRemNode :: "IRNode \<Rightarrow> bool" where
   "is_IntegerDivRemNode n = ((is_SignedDivNode n) \<or> (is_SignedRemNode n))"
 
 fun is_FixedBinaryNode :: "IRNode \<Rightarrow> bool" where
-  "is_FixedBinaryNode n = ((is_IntegerDivRemNode n))"
+  "is_FixedBinaryNode n = (is_IntegerDivRemNode n)"
 
 fun is_DeoptimizingFixedWithNextNode :: "IRNode \<Rightarrow> bool" where
-  "is_DeoptimizingFixedWithNextNode n = ((is_AbstractNewObjectNode n) \<or> (is_FixedBinaryNode n))"
+  "is_DeoptimizingFixedWithNextNode n = ((is_AbstractNewObjectNode n) \<or> (is_FixedBinaryNode n) \<or> (is_AbstractFixedGuardNode n))"
 
 fun is_AbstractMemoryCheckpoint :: "IRNode \<Rightarrow> bool" where
   "is_AbstractMemoryCheckpoint n = ((is_BytecodeExceptionNode n) \<or> (is_InvokeNode n))"

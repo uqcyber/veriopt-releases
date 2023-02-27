@@ -23,8 +23,6 @@ lemma evalAllDet:
    apply (elim EvalTreeE; auto)
   using evalDet by force
 
-
-
 subsubsection \<open>Typing Properties for Integer Evaluation Functions\<close>
 
 text \<open>We use three simple typing properties on integer values: 
@@ -165,8 +163,6 @@ proof -
   using i new_int.simps validDefIntConst 
 *)
 
-
-
 subsubsection \<open>Evaluation Results are Valid\<close>
 
 text \<open>A valid value cannot be $UndefVal$.\<close>
@@ -198,13 +194,11 @@ lemmas valid_value_elims =
   valid_ObjStamp
   valid_int
 
-
 lemma evaltree_not_undef:
   fixes m p e v
   shows "([m,p] \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
   apply (induction rule: "evaltree.induct")
   using valid_not_undef wf_value_def by auto
-
 
 lemma leafint:
   assumes ev: "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val"
@@ -215,7 +209,6 @@ proof -
     using ev by (rule LeafExprE; simp)
   then show ?thesis by auto
 qed
-
 
 lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (-2147483648) 2147483647"
   using default_stamp_def by auto
@@ -239,7 +232,6 @@ lemma valid_value_unsigned_int_range [simp]:
   using assms valid_int
   by fastforce
 *)
-
 
 subsubsection \<open>Example Data-flow Optimisations\<close>
 
@@ -291,7 +283,6 @@ lemma xyx_y:
    \<ge> (LeafExpr y (IntegerStamp 32 loy hiy))"
   by (auto simp add: LeafExpr)
 *)
-
 
 subsubsection \<open>Monotonicity of Expression Refinement\<close>
 
@@ -513,32 +504,49 @@ subsection \<open>Lemmas about $new\_int$ and integer eval results.\<close>
 
 lemma unary_eval_new_int:
   assumes def: "unary_eval op x \<noteq> UndefVal"
-  shows "\<exists>b v. unary_eval op x = new_int b v \<and>
-               b = (if op \<in> normal_unary then intval_bits x else ir_resultBits op)"
+  shows "\<exists>b v. (unary_eval op x = new_int b v \<and>
+              
+          b = (if op \<in> normal_unary  then intval_bits x      else 
+               if op \<in> boolean_unary then 32                 else 
+                                          ir_resultBits op))"
 proof (cases "op \<in> normal_unary")
   case True
   then show ?thesis
-    by (metis def empty_iff insert_iff intval_abs.elims intval_bits.simps intval_logic_negation.elims intval_negate.elims intval_not.elims unary_eval.simps(1) unary_eval.simps(2) unary_eval.simps(3) unary_eval.simps(4))
+    by (metis def empty_iff insert_iff intval_abs.elims intval_bits.simps unary_eval.simps(1,2,3,4)
+        intval_logic_negation.elims intval_negate.elims intval_not.elims)
 next
   case False
-  consider ib ob where "op = UnaryNarrow ib ob" |
-           ib ob where "op = UnaryZeroExtend ib ob" |
-           ib ob where "op = UnarySignExtend ib ob"
-    by (metis False IRUnaryOp.exhaust insert_iff)
+  then show ?thesis
+  proof (cases "op \<in> boolean_unary")
+    case True
+    then show ?thesis 
+      using assms 
+      by (metis IntVal0 IntVal1 singletonD unary_eval.simps(8) False intval_is_null.elims 
+          bool_to_val.elims)
+  next
+    case False
+      consider ib ob where "op = UnaryNarrow ib ob" |
+               ib ob where "op = UnaryZeroExtend ib ob" |
+               ib ob where "op = UnarySignExtend ib ob"
+        by (metis \<open>(op::IRUnaryOp) \<notin> normal_unary\<close> False IRUnaryOp.exhaust insert_iff)
   then show ?thesis
   proof (cases)
     case 1
     then show ?thesis
-      by (metis False IRUnaryOp.sel(4) def intval_narrow.elims unary_eval.simps(5))
+      apply auto
+      by (smt (verit, del_insts) new_int.elims def intval_narrow.elims unary_eval.simps(5))
   next
     case 2
     then show ?thesis
-      by (metis False IRUnaryOp.sel(6) def intval_zero_extend.elims unary_eval.simps(7))
+      apply auto
+      by (smt (verit, del_insts) new_int.elims def intval_zero_extend.elims unary_eval.simps(7))
   next
     case 3
     then show ?thesis
-      by (metis False IRUnaryOp.sel(5) def intval_sign_extend.elims unary_eval.simps(6))
+      apply auto
+      by (smt (verit, del_insts) new_int.elims def intval_sign_extend.elims unary_eval.simps(6))
   qed
+ qed
 qed
 
 lemma new_int_unused_bits_zero:
@@ -596,31 +604,27 @@ next
     by fastforce
 qed
 
-
 lemma unary_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<in> normal_unary"
   shows "\<exists> ix. x = IntVal b ix"
   apply (cases op)
-        prefer 7 using assms apply blast
-       prefer 6 using assms apply blast
-      prefer 5 using assms apply blast
-  using Value.distinct(1) Value.sel(1) assms(1) new_int.simps unary_eval.simps
-      intval_abs.elims intval_negate.elims intval_not.elims intval_logic_negation.elims
-     apply metis+
-  done
+  prefer 7 using assms apply auto
+  by (smt (verit) Value.distinct(1) Value.sel(1) new_int.simps intval_abs.elims intval_negate.elims 
+      intval_not.elims intval_logic_negation.elims)+
 
 lemma unary_not_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
-  assumes "op \<notin> normal_unary"
+  assumes "op \<notin> normal_unary \<and> op \<notin> boolean_unary"
   shows "b = ir_resultBits op \<and> 0 < b \<and> b \<le> 64"
   apply (cases op)
-  using assms apply blast+  (* the normal_unary cases *)
-  apply (metis IRUnaryOp.sel(4) Value.distinct(1) Value.sel(1) assms(1) intval_narrow.elims intval_narrow_ok new_int.simps unary_eval.simps(5))
-   apply (smt (verit) IRUnaryOp.sel(5) Value.distinct(1) Value.sel(1) assms(1) intval_sign_extend.elims new_int.simps order_less_le_trans unary_eval.simps(6))
-  apply (metis IRUnaryOp.sel(6) Value.distinct(1) assms(1) intval_bits.simps intval_zero_extend.elims linorder_not_less neq0_conv new_int.simps unary_eval.simps(7))
-  done
-
+  prefer 8 using assms apply blast+         (* the normal_unary and boolean_unary cases *)
+   apply (metis IRUnaryOp.sel(4) Value.distinct(1) Value.sel(1) assms(1) intval_narrow.elims 
+          intval_narrow_ok new_int.simps unary_eval.simps(5))
+   apply (smt (verit) IRUnaryOp.sel(5) Value.distinct(1) Value.sel(1) assms(1) new_int.simps
+          intval_sign_extend.elims order_less_le_trans unary_eval.simps(6))
+  by (metis IRUnaryOp.sel(6) Value.distinct(1) assms(1) intval_bits.simps intval_zero_extend.elims 
+      linorder_not_less neq0_conv new_int.simps unary_eval.simps(7))
 
 lemma unary_eval_bitsize:
   assumes "unary_eval op x = IntVal b ival"
@@ -635,13 +639,25 @@ proof (cases "op \<in> normal_unary")
     using assms by simp
 next
   case False
-  then obtain tmp where "unary_eval op x = new_int b tmp \<and> 0 < b \<and> b \<le> 64"
-    apply (cases op; simp; auto simp: 2)
-    apply (metis "2" Value.inject(1) Value.simps(5) assms(1) intval_narrow.simps(1) intval_narrow_ok new_int.simps unary_eval.simps(5))
-    apply (metis "2" Value.distinct(1) Value.inject(1) assms(1) bot_nat_0.not_eq_extremum diff_is_0_eq intval_sign_extend.elims new_int.simps unary_eval.simps(6) zero_less_diff)
-    by (smt (verit, del_insts) "2" Value.simps(5) assms(1) intval_bits.simps intval_zero_extend.simps(1) new_int.simps order_less_le_trans unary_eval.simps(7))
+  then show ?thesis
+  proof (cases "op \<in> boolean_unary")
+    case True
+    then show ?thesis
+      using assms by (cases op; auto)+
+  next
+    case False
+    then obtain tmp where "unary_eval op x = new_int b tmp \<and> 0 < b \<and> b \<le> 64"
+      apply (cases op; simp; auto simp: 2) 
+      using \<open>(op::IRUnaryOp) \<notin> normal_unary\<close> apply blast+ 
+      apply (metis "2" Value.inject(1) Value.simps(5) assms(1) intval_narrow.simps(1) new_int.simps
+             intval_narrow_ok unary_eval.simps(5))
+      apply (metis "2" Value.distinct(1) Value.inject(1) bot_nat_0.not_eq_extremum zero_less_diff
+             diff_is_0_eq intval_sign_extend.elims new_int.simps unary_eval.simps(6) assms(1))
+     by (smt (verit, del_insts) "2" Value.simps(5) assms(1) intval_bits.simps order_less_le_trans
+         intval_zero_extend.simps(1) new_int.simps unary_eval.simps(7))
   then show ?thesis
     by blast 
+ qed 
 qed
 
 (*
@@ -650,7 +666,6 @@ lemma unary2:
   assumes "[m,p] \<turnstile> UnaryExpr op xe \<mapsto> IntVal b ix"
   shows "0 < b \<and> b \<le> 64"
 *)
-
 
 lemma bin_eval_inputs_are_ints:
   assumes "bin_eval op x y = IntVal b ix"
@@ -671,11 +686,13 @@ proof (induction xe arbitrary: "b" "ix")
        xv: "([m,p] \<turnstile> x2 \<mapsto> xv) \<and>
             IntVal b ix = unary_eval op xv"
     using unfold_binary by auto
-  then have "b = (if op \<in> normal_unary then intval_bits xv else ir_resultBits op)"
-    using unary_eval_new_int
-    by (metis Value.disc(1) Value.discI(1) Value.sel(1) new_int.simps)
+  then have "b = (if op \<in> normal_unary  then intval_bits xv else 
+                  if op \<in> boolean_unary then 32 else 
+                                             ir_resultBits op)"
+    by (metis Value.disc(1) Value.discI(1) Value.sel(1) new_int.simps unary_eval_new_int)
   then show ?case
-    by (metis xv UnaryExpr.IH unary_normal_bitsize unary_not_normal_bitsize)
+    by (metis xv linorder_le_cases linorder_not_less numeral_less_iff semiring_norm(76) UnaryExpr.IH
+        semiring_norm(78) gr0I unary_normal_bitsize unary_not_normal_bitsize)
 next
   case (BinaryExpr op x y)
   then obtain xv yv where 
@@ -727,22 +744,13 @@ lemma unfold_binary_width:
         ))" (is "?L = ?R")
 proof (intro iffI)
   assume 3: ?L
-  show ?R apply (rule evaltree.cases[OF 3])
-         apply force+ apply auto[1] 
+  show ?R 
+    apply (rule evaltree.cases[OF 3])
+    apply auto
     using assms apply (cases op; auto)
-          apply (smt (verit) intval_add.elims Value.inject(1))
-    using intval_mul.elims Value.inject(1)
-         apply (smt (verit) new_int.simps new_int_bin.simps)
-    using intval_sub.elims Value.inject(1)
-        apply (smt (verit) new_int.simps new_int_bin.simps)
-    using intval_and.elims Value.inject(1)
-       apply (smt (verit) new_int.simps new_int_bin.simps take_bit_and)
-    using intval_or.elims Value.inject(1)
-      apply (smt (verit) new_int.simps new_int_bin.simps take_bit_or)
-    using intval_xor.elims Value.inject(1)
-     apply (smt (verit) new_int.simps new_int_bin.simps take_bit_xor)
-  by blast
-
+    by (smt (verit) new_int.simps new_int_bin.simps take_bit_xor take_bit_or take_bit_and 
+        intval_add.elims intval_mul.elims Value.inject(1) intval_sub.elims intval_and.elims 
+        intval_or.elims intval_xor.elims)+
 next
   assume R: ?R
   then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"

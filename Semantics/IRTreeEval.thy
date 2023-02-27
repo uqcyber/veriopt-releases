@@ -122,6 +122,14 @@ abbreviation binary_shift_ops :: "IRBinaryOp set" where
 abbreviation normal_unary :: "IRUnaryOp set" where
   "normal_unary \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation}"
 
+(* TODO add a note into the text above about this ? *)
+abbreviation boolean_unary :: "IRUnaryOp set" where
+  "boolean_unary \<equiv> {UnaryIsNull}"
+
+lemma normal_boolean_distinct:
+ "op \<in> normal_unary \<Longrightarrow> op \<notin> boolean_unary \<and> op \<in> boolean_unary \<Longrightarrow> op \<notin> normal_unary"
+  by auto
+
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 (* WAS:
   "stamp_unary op (IntegerStamp b lo hi) =
@@ -130,8 +138,13 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
                  else (ir_resultBits op)) in
     unrestricted_stamp (IntegerStamp bits lo hi))" |
 *)
+(* TODO update to generalise all boolean_unary operators to return IntegerStamp 32 0 1 *)
+  "stamp_unary UnaryIsNull _ = (IntegerStamp 32 0 1)" |
   "stamp_unary op (IntegerStamp b lo hi) =
-     unrestricted_stamp (IntegerStamp (if op \<in> normal_unary then b else (ir_resultBits op)) lo hi)" |
+     unrestricted_stamp (IntegerStamp 
+                        (if op \<in> normal_unary then b else 
+                         if op \<in> boolean_unary then 32 else 
+                          (ir_resultBits op)) lo hi)" |
   (* for now... *)
   "stamp_unary op _ = IllegalStamp"
 

@@ -135,10 +135,6 @@ next
     by (metis UnaryExpr logic_negation_relation_tree unary_eval.simps(4)) 
 qed
 
-
-
-
-
 text \<open>
 We introduce a type @{term "TriState"} (as in the GraalVM compiler) to represent when static
 analysis can tell us information about the value of a Boolean expression.

@@ -284,7 +284,8 @@ lemma mod_larger_ignore:
   fixes m n :: nat
   assumes "n < m"
   shows "(a mod 2 ^ m) mod 2 ^ n = a mod 2 ^ n"
-  by (smt (verit, del_insts) assms exp_mod_exp linorder_not_le mod_0_imp_dvd mod_mod_cancel mod_self order_less_imp_le)
+  using assms exp_mod_exp linorder_not_le mod_0_imp_dvd mod_mod_cancel mod_self order_less_imp_le
+  by (smt (verit, best))
   
 
 lemma mod_dist_over_add:

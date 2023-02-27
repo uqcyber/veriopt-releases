@@ -82,7 +82,6 @@ fun match :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> Substitution option" whe
   "match (VariableExpr x s) e = Some (\<lambda> n. if n = x then SubExpr e else SubNone)" |
   "match _ _ = None"
 
-
 fun vars :: "IRExpr \<Rightarrow> string set" where
   "vars (UnaryExpr op e) = vars e" |
   "vars (BinaryExpr op e1 e2) = vars e1 \<union> vars e2" |

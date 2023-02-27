@@ -28,9 +28,11 @@ lemma unrestricted_new_int_always_valid [simp]:
 lemma unary_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVal"
   by (cases op; auto)
 
-lemma unary_obj: "val = ObjRef x \<Longrightarrow> unary_eval op val = UndefVal"
+lemma unary_obj: 
+  "val = ObjRef x \<Longrightarrow> (if (op = UnaryIsNull) then 
+                           unary_eval op val \<noteq> UndefVal else 
+                           unary_eval op val = UndefVal)"
   by (cases op; auto)
-
 
 lemma unrestricted_stamp_valid:
   assumes "s = unrestricted_stamp (IntegerStamp b lo hi)"
@@ -183,48 +185,54 @@ lemma eval_normal_unary_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
   assumes op: "op \<in> normal_unary"
+  assumes notbool: "op \<notin> boolean_unary"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis Value.exhaust assms(1) assms(2) assms(4) assms(5) evaltree_not_undef unary_obj valid_value.simps(11))
+    by (metis Value.exhaust_sel assms(2) assms(5) assms(6) notbool singleton_iff unary_obj valid_value.simps(11) valid_value.simps(3))
   then obtain b2 v2 where v2: "result = IntVal b2 v2"
-    using assms(2) assms(4) is_IntVal_def unary_eval_int by presburger
+    by (metis Value.exhaust assms(2) assms(5) unary_eval_not_obj_ref unary_eval_not_obj_str)
   then have "result = unary_eval op (IntVal b1 v1)"
     using assms(2) v1 by blast
   then obtain vtmp where vtmp: "result = new_int b2 vtmp"
     using assms(3) v2 by auto
   obtain b' lo' hi' where "stamp_expr expr = IntegerStamp b' lo' hi'"
-    by (metis assms(5) v1 valid_int_gives)
+    by (metis assms(6) v1 valid_int_gives)
   then have "stamp_unary op (stamp_expr expr) =
     unrestricted_stamp
      (IntegerStamp (if op \<in> normal_unary then b' else ir_resultBits op) lo' hi')"
-    using stamp_unary.simps(1) by presburger
+    using stamp_unary.simps(1) normal_boolean_distinct
+    using op notbool
+    by auto
   then obtain lo2 hi2 where s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp b2 lo2 hi2)"
     unfolding stamp_expr.simps 
     using vtmp op
-    by (smt (verit, best) Value.inject(1) \<open>(result::Value) = unary_eval (op::IRUnaryOp) (IntVal (b1::nat) (v1::64 word))\<close> \<open>stamp_expr (expr::IRExpr) = IntegerStamp (b'::nat) (lo'::int) (hi'::int)\<close> assms(5) insertE intval_abs.simps(1) intval_logic_negation.simps(1) intval_negate.simps(1) intval_not.simps(1) new_int.elims singleton_iff unary_eval.simps(1) unary_eval.simps(2) unary_eval.simps(3) unary_eval.simps(4) v1 valid_int_same_bits)
+    by (metis (full_types) \<open>stamp_expr (expr::IRExpr) = IntegerStamp (b'::nat) (lo'::int) (hi'::int)\<close> assms(2) assms(6) unary_normal_bitsize v2 valid_int_same_bits)
   then have "0 < b1 \<and> b1 \<le> 64"
     using valid_int_gives
-    by (metis assms(5) v1 valid_stamp.simps(1)) 
+    using assms(1) eval_bits_1_64 v1 by blast 
   then have "fst (bit_bounds b2) \<le> int_signed_value b2 v2 \<and>
              int_signed_value b2 v2 \<le> snd (bit_bounds b2)"
-    by (smt (verit, del_insts) Stamp.inject(1) assms(3) assms(5) int_signed_value_bounds s stamp_expr.simps(1) stamp_unary.simps(1) unrestricted_stamp.simps(2) v1 valid_int_gives)
+    using assms(2) int_signed_value_bounds unary_eval_bitsize v1 v2 by blast
   then show ?thesis
     unfolding s v2 unrestricted_stamp.simps valid_value.simps
-    by (smt (z3) assms(3) assms(5) is_stamp_empty.simps(1) new_int_take_bits s stamp_expr.simps(1) stamp_unary.simps(1) unrestricted_stamp.simps(2) v1 v2 valid_int_gives valid_stamp.simps(1) vtmp)
+    using notbool 
+    by (smt (verit) \<open>(0::nat) < (b1::nat) \<and> b1 \<sqsubseteq> (64::nat)\<close> assms(2) new_int_unused_bits_zero unary_eval_bitsize v1 v2 valid_stamp.simps(1) vtmp)
 qed
 
 lemma narrow_widen_output_bits:
   assumes "unary_eval op val \<noteq> UndefVal"
   assumes "op \<notin> normal_unary"
+  assumes "op \<notin> boolean_unary"
   shows "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
 proof -
   consider ib ob where "op = UnaryNarrow ib ob"
          | ib ob where "op = UnarySignExtend ib ob"
          | ib ob where "op = UnaryZeroExtend ib ob"
-    using IRUnaryOp.exhaust_sel assms(2) by blast
+    using IRUnaryOp.exhaust_sel assms(2) 
+    using assms(3) by blast 
   then show ?thesis
   proof (cases)
     case 1
@@ -243,21 +251,23 @@ lemma eval_widen_narrow_unary_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
   assumes op: "op \<notin> normal_unary"
+  and notbool: "op \<notin> boolean_unary"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis Value.exhaust assms(1) assms(2) assms(4) assms(5) evaltree_not_undef unary_obj valid_value.simps(11))
+    by (metis Value.exhaust_sel assms(2) assms(5) assms(6) insert_iff notbool unary_obj unary_undef valid_value.simps(11))
   then have "result = unary_eval op (IntVal b1 v1)"
     using assms(2) v1 by blast
   then obtain v2 where v2: "result = new_int (ir_resultBits op) v2"
     using assms by (cases op; simp; (meson new_int.simps)+)
   then obtain v3 where v3: "result = IntVal (ir_resultBits op) v3"
     using assms by (cases op; simp; (meson new_int.simps)+)
-  then obtain lo2 hi2 where s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
-    unfolding stamp_expr.simps stamp_unary.simps
-    using assms(3) assms(5) v1 valid_int_gives by fastforce 
+  then obtain b lo2 hi2 where eval: "stamp_expr expr = IntegerStamp b lo2 hi2"
+    by (metis assms(6) v1 valid_int_gives)
+  then have s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
+    using op notbool by (cases op; auto)
   then have outBits: "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
     using assms narrow_widen_output_bits
     by blast 
@@ -270,6 +280,35 @@ proof -
     using outBits v2 v3 by auto
 qed
 
+lemma eval_boolean_unary_implies_valid_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "result = unary_eval op val"
+  assumes op: "op \<in> boolean_unary"
+  assumes notnorm: "op \<notin> normal_unary"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr op expr))"
+  proof -
+    obtain b1 where v1: "val = ObjRef (b1)" 
+      using assms intval_is_null.elims Value.collapse(1) assms(2) assms(4) op unary_eval_int unary_normal_bitsize
+Value.exhaust_sel assms(2) assms(5)  unary_obj unary_undef valid_value.simps(11)  normal_boolean_distinct
+      by (metis singletonD unary_eval.simps(8)) 
+    then have eval: "result = unary_eval op (ObjRef (b1))"
+      using assms(2) v1 by blast
+  then obtain v2 where v2: "result = IntVal 32 v2"
+    using assms(2) assms(4) is_IntVal_def unary_eval_int 
+    using bool_to_val.simps(1) bool_to_val.simps(2) intval_is_null.simps(1) unary_eval.simps(8) unary_obj 
+    by (metis op singleton_iff)
+  have vBounds: "result \<in> {bool_to_val True, bool_to_val False}"
+    using v2 v1 eval unary_eval.simps(8) intval_is_null.elims valid_value.simps(1) 
+    by (metis insertI1 insertI2 intval_is_null.simps(1) op singleton_iff) 
+  then have boolstamp: "(stamp_expr (UnaryExpr op expr)) = (IntegerStamp 32 0 1)"
+    using op by (cases op; auto) 
+  then show ?thesis
+    unfolding boolstamp using vBounds
+    by (cases result; auto)
+  qed
+
 lemma eval_unary_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
@@ -278,11 +317,20 @@ lemma eval_unary_implies_valid_value:
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
   proof (cases "op \<in> normal_unary")
     case True
-    then show ?thesis by (metis assms eval_normal_unary_implies_valid_value)
+    then show ?thesis 
+      using assms(1) assms(2) assms(3) assms(4) eval_normal_unary_implies_valid_value by blast
   next
     case False
-    then show ?thesis by (metis assms eval_widen_narrow_unary_implies_valid_value)
-  qed
+    then show ?thesis
+  proof (cases "op \<in> boolean_unary")
+    case True
+    then show ?thesis using assms eval_boolean_unary_implies_valid_value by blast 
+  next
+    case False
+    then show ?thesis using assms eval_widen_narrow_unary_implies_valid_value 
+      by (meson eval_normal_unary_implies_valid_value)
+  qed 
+qed
 
 
 subsubsection \<open>Support Lemmas for Binary Operators\<close>
@@ -332,7 +380,6 @@ lemma bin_eval_input_bits_equal:
   shows "b1 = b2"
   using assms apply (cases op; simp)
   by presburger+
-
 
 lemma bin_eval_implies_valid_value:
   assumes "[m,p] \<turnstile> expr1 \<mapsto> val1"
@@ -454,8 +501,6 @@ lemma stamp_meet_is_valid_value:
   using assms stamp_meet_commutes stamp_meet_is_valid_value1
   by metis 
 
-
-
 subsubsection \<open>Validity of conditional expressions\<close>
 
 lemma conditional_eval_implies_valid_value:
@@ -478,8 +523,6 @@ proof -
     using assms def
     by (smt (verit, best) compatible.elims(2) never_void stamp_expr.simps(6) stamp_meet_commutes) 
 qed
-
-
 
 subsubsection \<open>Validity of Whole Expression Tree Evaluation\<close>
 

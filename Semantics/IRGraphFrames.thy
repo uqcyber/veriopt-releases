@@ -420,6 +420,12 @@ next
     by (metis IRNodes.inputs_of_RefNode RefNode.hyps(1) RefNode.hyps(2) encode_in_ids inputs.elims inputs_are_usages list.set_intros(1))
   then show ?case
     by (metis IRNodes.inputs_of_RefNode RefNode.IH RefNode.hyps(1) RefNode.hyps(2) RefNode.prems(1) \<open>kind g2 n = RefNode n'\<close> child_unchanged encode_in_ids inputs.elims list.set_intros(1) local.wf rep.RefNode)
+next
+  case (IsNullNode n v)
+  then have "kind g2 n = IsNullNode v"
+    using kind_unchanged by metis
+  then show ?case
+    by (metis IRNodes.inputs_of_IsNullNode IsNullNode.IH IsNullNode.hyps(1) IsNullNode.hyps(2) IsNullNode.prems(1) \<open>kind g2 n = IsNullNode v\<close> child_unchanged encode_in_ids inputs.simps list.set_intros(1) local.wf rep.IsNullNode)
 qed
 qed
 

@@ -250,6 +250,8 @@ inductive_cases ZeroExtendNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (UnaryExpr (UnaryZeroExtend ib rb) xe)"
 inductive_cases LeafNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (LeafExpr n s)"
+inductive_cases IsNullNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (UnaryExpr UnaryIsNull lfn)"
 
 (* group those forward rules into a named set *)
 lemmas RepE\<^marker>\<open>tag invisible\<close> = 
@@ -277,7 +279,7 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   SignExtendNodeE
   ZeroExtendNodeE
   LeafNodeE
-
+  IsNullNodeE 
 
 subsection \<open>Data-flow Tree to Subgraph\<close>
 
@@ -288,8 +290,8 @@ fun unary_node :: "IRUnaryOp \<Rightarrow> ID \<Rightarrow> IRNode" where
   "unary_node UnaryLogicNegation v = LogicNegationNode v" |
   "unary_node (UnaryNarrow ib rb) v = NarrowNode ib rb v" |
   "unary_node (UnarySignExtend ib rb) v = SignExtendNode ib rb v" |
-  "unary_node (UnaryZeroExtend ib rb) v = ZeroExtendNode ib rb v"
-
+  "unary_node (UnaryZeroExtend ib rb) v = ZeroExtendNode ib rb v" |
+  "unary_node UnaryIsNull v = IsNullNode v"
 
 (* Creates the appropriate IRNode for a given binary operator. *)
 fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where

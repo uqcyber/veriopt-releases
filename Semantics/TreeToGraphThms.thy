@@ -167,6 +167,11 @@ lemma rep_ref [rep]:
    g \<turnstile> n' \<simeq> e"
   by (induction rule: rep.induct; auto)
 
+lemma rep_is_null [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow> 
+   kind g n = IsNullNode x \<Longrightarrow> 
+   (\<exists>xe. e = (UnaryExpr UnaryIsNull xe))" 
+  by (induction rule: rep.induct; auto)
 
 method solve_det uses node =
   (match node in "kind _ _ = node _" for node \<Rightarrow> 
@@ -204,13 +209,11 @@ proof (induction arbitrary: e\<^sub>2 rule: "rep.induct")
 next
   case (ParameterNode n i s)
   then show ?case
-    by (metis IRNode.disc(2685) ParameterNodeE is_RefNode_def rep_parameter)
+    by (metis IRNode.distinct(2555) ParameterNodeE rep_parameter)
 next
   case (ConditionalNode n c t f ce te fe)
   then show ?case
-    using IRNode.distinct(593)
-    using IRNode.inject(6) ConditionalNodeE rep_conditional
-    by metis
+    by (metis IRNode.distinct(605) IRNode.inject(6) ConditionalNodeE rep_conditional)
 next
   case (AbsNode n x xe)
   then show ?case
@@ -282,23 +285,28 @@ next
 next
   case (NarrowNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(2203) IRNode.inject(28) NarrowNodeE rep_narrow)
+    by (metis IRNode.distinct(2309) IRNode.inject(29) NarrowNodeE rep_narrow)
 next
   case (SignExtendNode n x xe)
   then show ?case 
-    by (metis IRNode.distinct(2599) IRNode.inject(39) SignExtendNodeE rep_sign_extend)
+    by (metis IRNode.distinct(2705) IRNode.inject(40) SignExtendNodeE rep_sign_extend)
 next
   case (ZeroExtendNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(2753) IRNode.inject(50) ZeroExtendNodeE rep_zero_extend)
+    by (metis IRNode.distinct(2859) IRNode.inject(51) ZeroExtendNodeE rep_zero_extend)
 next
   case (LeafNode n s)
-  then show ?case using rep_load_field LeafNodeE
-    by (metis is_preevaluated.simps(53))
+  then show ?case 
+    by (metis is_preevaluated.simps(54) rep_load_field LeafNodeE)
 next
   case (RefNode n')
   then show ?case
     using rep_ref by blast
+next
+  case (IsNullNode n v)
+  then show ?case
+    by (metis (no_types, lifting) rep_is_null IsNullNodeE IRNodes.IRNode.distinct(1671) 
+        IRNodes.IRNode.inject(18))  
 qed
 
 lemma repAllDet:
@@ -409,7 +417,7 @@ lemma mono_add:
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
   using mono_binary assms AddNodeE IRNode.inject(2) repDet rep_add
-  by (metis IRNode.distinct(205))
+  by (metis IRNode.distinct(209))
 
 lemma mono_mul:
   assumes "kind g1 n = MulNode x y \<and> kind g2 n = MulNode x y"
@@ -433,8 +441,7 @@ lemma encodes_contains:
   apply (induction rule: rep.induct)
   apply (match IRNode.distinct in e: "?n \<noteq> NoNode" \<Rightarrow>
           \<open>presburger add: e\<close>)+
-  apply force
-  by fastforce
+  by fastforce+
 
 lemma no_encoding:
   assumes "n \<notin> ids g"
@@ -1094,6 +1101,10 @@ proof -
       case (RefNode n')
       then show ?case
         by (metis a b c d no_encoding not_excluded_keep_type rep.RefNode repDet singletonD)
+    next
+      case (IsNullNode n)
+      then show ?case
+        by (metis a b c d emptyE insertE mono_unary no_encoding not_excluded_keep_type repDet rep.IsNullNode) 
     qed
   qed
 qed
@@ -1105,7 +1116,6 @@ lemma graph_semantics_preservation_subscript:
   assumes d: "g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2'"
   shows "graph_refinement g\<^sub>1 g\<^sub>2"
   using graph_semantics_preservation assms by simp
-
 
 lemma tree_to_graph_rewriting:
   "e\<^sub>1 \<ge> e\<^sub>2 
@@ -1129,7 +1139,6 @@ inductive_cases UnaryRepE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (UnaryExpr op xe)"
 inductive_cases BinaryRepE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr op xe ye)"
-
 
 lemma eval_contains_id[simp]: "g1 \<turnstile> n \<simeq> e \<Longrightarrow> n \<in> ids g1"
   using no_encoding by blast
@@ -1193,7 +1202,8 @@ lemma subset_implies_evals:
      apply (solve_subset_eval as_set: assms(1) eval: SignExtendNode)
     apply (solve_subset_eval as_set: assms(1) eval: ZeroExtendNode)
    apply (solve_subset_eval as_set: assms(1) eval: LeafNode)
-  by (solve_subset_eval as_set: assms(1) eval: RefNode)
+  apply (solve_subset_eval as_set: assms(1) eval: RefNode)
+  by (solve_subset_eval as_set: assms(1) eval: IsNullNode)
 
 lemma subset_refines:
   assumes "as_set g1 \<subseteq> as_set g2"
@@ -1222,7 +1232,6 @@ lemma graph_construction:
   \<Longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e\<^sub>1) \<and> graph_refinement g\<^sub>1 g\<^sub>2"
   using subset_refines
   by (meson encodeeval_def graph_represents_expression_def le_expr_def)
-
 
 subsubsection \<open>Term Graph Reconstruction\<close>
 
@@ -1304,7 +1313,8 @@ lemma graph_unchanged_rep_unchanged:
        apply (metis no_encoding rep.SignExtendNode)
       apply (metis no_encoding rep.ZeroExtendNode)
      apply (metis no_encoding rep.LeafNode)
-    by (metis no_encoding rep.RefNode)
+    apply (metis no_encoding rep.RefNode)
+   by (metis no_encoding rep.IsNullNode)
   done
 
 lemma fresh_node_subset:
@@ -1394,7 +1404,7 @@ theorem term_graph_reconstruction:
   next
     case (ConstantNodeNew g c)
     then show ?case
-      using ConstantNode IRNode.distinct(683) add_node_lookup by presburger
+      using ConstantNode IRNode.distinct(697) add_node_lookup by presburger
   next
     case (ParameterNodeSame i s)
     then show ?case
@@ -1402,7 +1412,7 @@ theorem term_graph_reconstruction:
   next
     case (ParameterNodeNew g i s)
     then show ?case
-      by (metis IRNode.distinct(2447) ParameterNode add_node_lookup)
+      by (metis IRNode.distinct(2553) ParameterNode add_node_lookup)
   next
     case (ConditionalNodeSame g4 c t f s' n g ce g2 te g3 fe)
     then have k: "kind g4 n = ConditionalNode c t f"
@@ -1440,13 +1450,9 @@ theorem term_graph_reconstruction:
     then have "g' \<turnstile> x \<simeq> xe" using local.UnaryNodeSame by blast
     then show ?case using k
       apply (cases op)
-      using AbsNode unary_node.simps(1) apply presburger
-      using NegateNode unary_node.simps(3) apply presburger
-      using NotNode unary_node.simps(2) apply presburger
-      using LogicNegationNode unary_node.simps(4) apply presburger
-      using NarrowNode unary_node.simps(5) apply presburger
-      using SignExtendNode unary_node.simps(6) apply presburger
-      using ZeroExtendNode unary_node.simps(7) by presburger
+      using unary_node.simps(1,2,3,4,5,6,7,8)
+            AbsNode NegateNode NotNode LogicNegationNode NarrowNode SignExtendNode ZeroExtendNode IsNullNode 
+      by presburger+
   next
     case (UnaryNodeNew g2 op x s' g xe n g')
     moreover have "unary_node op x \<noteq> NoNode"
@@ -1461,13 +1467,9 @@ theorem term_graph_reconstruction:
       using \<open>x \<in> ids g2\<close> by blast
     then show ?case using k
       apply (cases op)
-      using AbsNode unary_node.simps(1) apply presburger
-      using NegateNode unary_node.simps(3) apply presburger
-      using NotNode unary_node.simps(2) apply presburger
-      using LogicNegationNode unary_node.simps(4) apply presburger
-      using NarrowNode unary_node.simps(5) apply presburger
-      using SignExtendNode unary_node.simps(6) apply presburger
-      using ZeroExtendNode unary_node.simps(7) by presburger
+      using unary_node.simps(1,2,3,4,5,6,7,8)
+            AbsNode NegateNode NotNode LogicNegationNode NarrowNode SignExtendNode ZeroExtendNode IsNullNode 
+      by presburger+
   next
     case (BinaryNodeSame g3 op x y s' n g xe g2 ye)
     then have k: "kind g3 n = bin_node op x y"
@@ -1477,19 +1479,11 @@ theorem term_graph_reconstruction:
     have y: "g3 \<turnstile> y \<simeq> ye" using local.BinaryNodeSame unrep_unchanged
       using no_encoding by blast
     then show ?case using x y k apply (cases op)
-      using AddNode bin_node.simps(1) apply presburger
-      using MulNode bin_node.simps(2) apply presburger
-      using SubNode bin_node.simps(3) apply presburger
-      using AndNode bin_node.simps(4) apply presburger
-      using OrNode bin_node.simps(5) apply presburger
-      using XorNode bin_node.simps(6) apply presburger
-      using ShortCircuitOrNode bin_node.simps(7) apply presburger
-      using LeftShiftNode bin_node.simps(8) apply presburger
-      using RightShiftNode bin_node.simps(9) apply presburger
-      using UnsignedRightShiftNode bin_node.simps(10) apply presburger
-      using IntegerEqualsNode bin_node.simps(11) apply presburger
-      using IntegerLessThanNode bin_node.simps(12) apply presburger
-      using IntegerBelowNode bin_node.simps(13) by presburger
+      using bin_node.simps(1,2,3,4,5,6,7,8,9,10,11,12,13)
+            AddNode MulNode SubNode AndNode OrNode XorNode ShortCircuitOrNode LeftShiftNode 
+            RightShiftNode UnsignedRightShiftNode IntegerEqualsNode IntegerLessThanNode 
+            IntegerBelowNode  
+      by presburger+
   next
     case (BinaryNodeNew g3 op x y s' g xe g2 ye n g')
     moreover have "bin_node op x y \<noteq> NoNode"
@@ -1506,19 +1500,11 @@ theorem term_graph_reconstruction:
       using no_encoding
       by (meson fresh_node_preserves_other_nodes)
     then show ?case using x y k apply (cases op)
-      using AddNode bin_node.simps(1) apply presburger
-      using MulNode bin_node.simps(2) apply presburger
-      using SubNode bin_node.simps(3) apply presburger
-      using AndNode bin_node.simps(4) apply presburger
-      using OrNode bin_node.simps(5) apply presburger
-      using XorNode bin_node.simps(6) apply presburger
-      using ShortCircuitOrNode bin_node.simps(7) apply presburger
-      using LeftShiftNode bin_node.simps(8) apply presburger
-      using RightShiftNode bin_node.simps(9) apply presburger
-      using UnsignedRightShiftNode bin_node.simps(10) apply presburger
-      using IntegerEqualsNode bin_node.simps(11) apply presburger
-      using IntegerLessThanNode bin_node.simps(12) apply presburger
-      using IntegerBelowNode bin_node.simps(13) by presburger
+      using bin_node.simps(1,2,3,4,5,6,7,8,9,10,11,12,13)
+            AddNode MulNode SubNode AndNode OrNode XorNode ShortCircuitOrNode LeftShiftNode 
+            RightShiftNode UnsignedRightShiftNode IntegerEqualsNode IntegerLessThanNode 
+            IntegerBelowNode  
+      by presburger+
   next
     case (AllLeafNodes g n s)
     then show ?case using rep.LeafNode by blast
@@ -1551,7 +1537,6 @@ lemma add_node_as_set:
   using assms unfolding as_set_def domain_subtraction_def 
   using add_changed
   by (smt (z3) case_prodE changeonly.simps mem_Collect_eq prod.sel(1) subsetI)
-
 
 theorem refined_insert:
   assumes "e\<^sub>1 \<ge> e\<^sub>2"
@@ -1932,8 +1917,9 @@ lemma same_kind_stamp_encodes_equal:
        apply (metis SignExtendNode)
       apply (metis ZeroExtendNode)
     defer
-     apply (metis RefNode)
-    by blast
+   apply (metis RefNode) 
+  apply (metis IsNullNode)
+  by blast
     done
   done
 
@@ -2021,7 +2007,6 @@ lemma ids_add_update:
   using assms apply (subst assms(3)) using add_node_set_eq as_set_ids
   by (smt (verit, del_insts) Collect_cong Diff_idemp Diff_insert_absorb Un_commute add_node.rep_eq add_node_def ids.rep_eq ids_add_update_v1 ids_add_update_v2 insertE insert_Collect insert_is_Un map_upd_Some_unfold mem_Collect_eq replace_node_def replace_node_unchanged)
 
-
 lemma true_ids_add_update:
   assumes "k \<noteq> NoNode"
   assumes "n \<notin> ids g"
@@ -2030,7 +2015,6 @@ lemma true_ids_add_update:
   shows "true_ids g' = true_ids g \<union> {n}"
   using assms using true_ids ids_add_update
   by (smt (z3) Collect_cong Diff_iff Diff_insert_absorb Un_commute add_node_def find_new_kind insert_Diff_if insert_is_Un mem_Collect_eq replace_node_def replace_node_unchanged)
-
 
 lemma new_def:
   assumes "(new \<unlhd> as_set g') = as_set g"
@@ -2405,6 +2389,21 @@ next
     then show ?case
       using RefNode
       using rep.RefNode by presburger
+  next
+    case (IsNullNode n v)
+    then have kind: "kind g n = IsNullNode v"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{v} = inputs g n"
+      using kind inputs.simps by simp
+    have "v \<in> ids g"
+      using closed wf_closed_def isin inputs by blast
+    then have "v \<notin> new"
+      using new_def unchanged by blast
+    then show ?case 
+      using IsNullNode.IH kind kind_eq rep_is_null stamp_eq 
+      using rep.IsNullNode by presburger 
   qed 
 qed
 
@@ -2567,7 +2566,7 @@ lemma unrep_preserves_closure:
   next
     case (ConstantNodeNew g c n g')
     then have dom: "ids g' = ids g \<union> {n}"
-      by (meson IRNode.distinct(683) add_node_ids_subset ids_add_update)
+      by (meson IRNode.distinct(697) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ConstantNode c"
       using ConstantNodeNew add_node_lookup by simp
     then have inp: "{} = inputs g' n"
@@ -2584,7 +2583,7 @@ lemma unrep_preserves_closure:
   next
     case (ParameterNodeNew g i s n g')
     then have dom: "ids g' = ids g \<union> {n}"
-      using IRNode.distinct(2447) fresh_ids ids_add_update by presburger
+      by (meson IRNode.distinct(2553) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ParameterNode i"
       using ParameterNodeNew add_node_lookup by simp
     then have inp: "{} = inputs g' n"
@@ -2601,9 +2600,9 @@ lemma unrep_preserves_closure:
   next
     case (ConditionalNodeNew g4 c t f s' g ce g2 te g3 fe n g')
     then have dom: "ids g' = ids g4 \<union> {n}"
-      by (meson IRNode.distinct(591) add_node_ids_subset ids_add_update)
+      by (meson IRNode.distinct(603) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ConditionalNode c t f"
-      using ConditionalNodeNew add_node_lookup by simp
+      using ConditionalNodeNew.hyps(10) find_new_kind by blast
     then have inp: "{c, t, f} = inputs g' n"
       unfolding inputs.simps by simp
     from k have suc: "{} = succ g' n"
@@ -2611,7 +2610,7 @@ lemma unrep_preserves_closure:
     have "inputs g' n \<subseteq> ids g' \<and> succ g' n \<subseteq> ids g' \<and> kind g' n \<noteq> NoNode"
       using k inp suc unrep_contains unrep_preserves_contains
       using ConditionalNodeNew
-      by (smt (verit) IRNode.simps(643) Un_insert_right bot.extremum dom insert_absorb insert_subset subset_insertI sup_bot_right)
+      by (smt (verit, ccfv_SIG) IRNode.distinct(603) bot.extremum dom insert_subsetI sup.coboundedI1)
     then show ?case using dom
       by (smt (z3) ConditionalNodeNew.hyps ConditionalNodeNew.prems Diff_eq_empty_iff Diff_iff Un_insert_right Un_upper1 add_node_def inputs.simps insertE replace_node_def replace_node_unchanged subset_trans succ.simps sup_bot_right)
   next

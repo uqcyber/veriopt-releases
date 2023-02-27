@@ -37,7 +37,8 @@ fun un_expr_to_node :: "IRUnaryOp \<Rightarrow> (nat \<Rightarrow> IRNode)" wher
   "un_expr_to_node UnaryLogicNegation = LogicNegationNode" |
   "un_expr_to_node (UnaryNarrow inp res) = NarrowNode inp res" |
   "un_expr_to_node (UnarySignExtend inp res) = SignExtendNode inp res" |
-  "un_expr_to_node (UnaryZeroExtend inp res) = ZeroExtendNode inp res"
+  "un_expr_to_node (UnaryZeroExtend inp res) = ZeroExtendNode inp res" |
+  "un_expr_to_node UnaryIsNull = IsNullNode"
 
 fun bin_expr_to_node :: "IRBinaryOp \<Rightarrow> (nat \<Rightarrow> nat \<Rightarrow> IRNode)" where
   "bin_expr_to_node BinAdd = AddNode" |
@@ -74,7 +75,6 @@ fun gen_pattern :: "IRExpr \<Rightarrow> (nat \<times> Pattern) \<Rightarrow> (n
   "gen_pattern (VariableExpr v s) (n, p) = (n, p)" |
   "gen_pattern (ConstantVar v) (n, p) = (n, p)" |
   "gen_pattern (LeafExpr nid s) (n, p) = (n, p)"
-
 
 lemma de_bruijn_increases:
   assumes "(n', p') = gen_pattern e (n, p)"
@@ -308,9 +308,6 @@ next
   then show ?thesis using assms using apply_opt.simps
     by (metis apply_opt.elims dual_order.refl fst_conv subset_refines)
 qed
-
-
-
 
 definition ex1 :: "(IRExpr \<times> IRExpr)" where
   "ex1 = (

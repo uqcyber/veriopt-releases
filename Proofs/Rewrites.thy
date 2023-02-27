@@ -13,7 +13,7 @@ lemma replace_usages_effect:
   assumes "g' = replace_usages nid nid' g"
   shows "kind g' nid = RefNode nid'"
   using assms replace_node_lookup replace_usages.simps
-  by (metis IRNode.distinct(2755))
+  by (metis IRNode.distinct(2861))
 
 lemma replace_usages_changeonly:
   assumes "nid \<in> ids g"
@@ -179,7 +179,7 @@ proof -
   have "g' = g"
     using assms(2) assms(1)
     using constantConditionNoEffect
-    by (metis IRNode.collapse(11))
+    by (metis IRNode.collapse(12))
   then show ?thesis by simp
 qed
 

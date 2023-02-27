@@ -108,7 +108,21 @@ proof (induction rule: "step.induct")
     by (metis is_IntegerDivRemNode.simps)
   from notif notend notnew notload notstore notdivrem
   show ?case using SequentialNode step.cases
-    by (smt (z3) IRNode.disc(1028) IRNode.disc(2270) IRNode.discI(31) Pair_inject is_sequential_node.simps(18) is_sequential_node.simps(43) is_sequential_node.simps(44))
+    by (smt (verit) IRNode.disc(1102) IRNode.disc(2367) IRNode.discI(32) Pair_inject is_sequential_node.simps(17) is_sequential_node.simps(19) is_sequential_node.simps(44) is_sequential_node.simps(45))
+next
+  case (FixedGuardNode nid cond before "next" condE m p val h)
+  then have notseq: "\<not>(is_sequential_node (kind g nid))"
+    using is_sequential_node.simps is_AbstractMergeNode.simps
+    by presburger
+  have notend: "\<not>(is_AbstractEndNode (kind g nid))"
+    using is_AbstractEndNode.simps
+    by (simp add: FixedGuardNode.hyps(1))
+  have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))" 
+    using is_AbstractEndNode.simps is_SignedDivNode_def is_SignedRemNode_def
+    using FixedGuardNode.hyps(1) IRNode.disc(2171) IRNode.disc(2225) is_IntegerDivRemNode.simps by presburger
+  from notseq notend notdivrem
+  show ?case
+    by (smt (verit) FixedGuardNode.hyps(1) FixedGuardNode.hyps(5) IRNode.distinct(1013) IRNode.distinct(1031) IRNode.distinct(1033) IRNode.distinct(1037) IRNode.distinct(973) IRNode.distinct(991) IRNode.inject(10) Pair_inject step.simps) 
 next
   case (IfNode nid cond tb fb m val "next" h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -120,8 +134,8 @@ next
   have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))" 
     using is_AbstractEndNode.simps
     by (simp add: IfNode.hyps(1))
-  from notseq notend notdivrem show ?case using IfNode repDet evalDet IRNode.distinct IRNode.inject(11) Pair_inject step.simps
-    by (smt (z3) IRNode.distinct IRNode.inject(12) Pair_inject step.simps)
+  from notseq notend notdivrem show ?case
+    by (smt (z3) IRNode.distinct IRNode.inject(12) Pair_inject step.simps IfNode repDet evalDet IRNode.distinct IRNode.inject(11) Pair_inject step.simps)
 next
   case (EndNodes nid merge i phis inputs m vs m' h)
   have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -129,7 +143,7 @@ next
     by (metis is_EndNode.elims(2) is_LoopEndNode_def)
   have notif: "\<not>(is_IfNode (kind g nid))"
     using EndNodes.hyps(1) is_IfNode_def is_AbstractEndNode.elims
-    by (metis IRNode.distinct_disc(1058) is_EndNode.simps(12))
+    by (metis IRNode.distinct_disc(1164) is_EndNode.simps(13))
   have notref: "\<not>(is_RefNode (kind g nid))"
     using EndNodes.hyps(1) is_sequential_node.simps
     using IRNode.disc(1899) IRNode.distinct(1473) is_AbstractEndNode.simps is_EndNode.elims(2) is_LoopEndNode_def is_RefNode_def
@@ -137,21 +151,24 @@ next
   have notnew: "\<not>(is_NewInstanceNode (kind g nid))"
     using EndNodes.hyps(1) is_AbstractEndNode.simps
     using IRNode.distinct_disc(1442) is_EndNode.simps(29) is_NewInstanceNode_def
-    by (metis IRNode.distinct_disc(1901) is_EndNode.simps(32))
+    by (metis IRNode.distinct_disc(2008) is_EndNode.simps(33))
   have notload: "\<not>(is_LoadFieldNode (kind g nid))"
     using EndNodes.hyps(1) is_AbstractEndNode.simps
     using is_LoadFieldNode_def
-    by (metis IRNode.distinct_disc(1706) is_EndNode.simps(21))
+    by (metis IRNode.distinct_disc(1812) is_EndNode.simps(22))
   have notstore: "\<not>(is_StoreFieldNode (kind g nid))"
     using EndNodes.hyps(1) is_AbstractEndNode.simps is_StoreFieldNode_def
-    by (metis IRNode.distinct_disc(1926) is_EndNode.simps(44))
+    by (metis IRNode.distinct_disc(2032) is_EndNode.simps(45))
   have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
     using EndNodes.hyps(1) is_AbstractEndNode.simps is_SignedDivNode_def is_SignedRemNode_def
     using IRNode.distinct_disc(1498) IRNode.distinct_disc(1500) is_IntegerDivRemNode.simps is_EndNode.simps(36) is_EndNode.simps(37) 
     by auto
-  from notseq notif notref notnew notload notstore notdivrem
-  show ?case using EndNodes repAllDet evalAllDet
-    by (smt (z3) is_IfNode_def is_LoadFieldNode_def is_NewInstanceNode_def is_RefNode_def is_StoreFieldNode_def is_SignedDivNode_def is_SignedRemNode_def  Pair_inject is_IntegerDivRemNode.elims(3) step.cases)
+  have notfixedguard: "\<not>(is_FixedGuardNode (kind g nid))"
+    using EndNodes.hyps(1) is_AbstractEndNode.simps is_FixedGuardNode_def
+    by (metis IRNode.distinct_disc(997) is_EndNode.simps(11))
+  from notseq notif notref notnew notload notstore notdivrem notfixedguard
+  show ?case 
+    by (smt (verit) EndNodes repAllDet evalAllDet IRNode.disc(497) is_IfNode_def is_LoadFieldNode_def is_NewInstanceNode_def is_RefNode_def is_StoreFieldNode_def is_SignedDivNode_def is_SignedRemNode_def  Pair_inject is_IntegerDivRemNode.elims(3) step.cases)
 next
   case (NewInstanceNode nid f obj nxt h' ref h m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -177,7 +194,7 @@ next
     by (simp add: NewInstanceNode.hyps(1))
   from notseq notend notif notref notload notstore notdivrem
   show ?case using NewInstanceNode step.cases
-    by (smt (z3) IRNode.disc(1028) IRNode.disc(2270) IRNode.discI(11) IRNode.distinct(2311) IRNode.distinct(2313) IRNode.inject(31) Pair_inject)
+    by (smt (verit) IRNode.disc(1102) IRNode.disc(2367) IRNode.discI(12) IRNode.distinct(1013) IRNode.distinct(2417) IRNode.distinct(2419) IRNode.inject(32) Pair_inject)
 next
   case (LoadFieldNode nid f obj nxt m ref h v m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -191,7 +208,7 @@ next
     by (simp add: LoadFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using LoadFieldNode step.cases repDet evalDet
-    by (smt (z3) IRNode.distinct(1051) IRNode.distinct(1721) IRNode.distinct(1739) IRNode.distinct(1741) IRNode.distinct(1745) IRNode.inject(20) Pair_inject Value.inject(2) option.distinct(1) option.inject)
+    by (smt (verit) IRNode.distinct(1157) IRNode.distinct(1827) IRNode.distinct(1845) IRNode.distinct(1847) IRNode.distinct(1851) IRNode.distinct(991) IRNode.inject(21) Pair_inject Value.inject(2) option.distinct(1) option.inject)
 next
   case (StaticLoadFieldNode nid f nxt h v m' m)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -204,7 +221,7 @@ next
     by (simp add: StaticLoadFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using StaticLoadFieldNode step.cases
-    by (smt (z3) IRNode.distinct(1051) IRNode.distinct(1721) IRNode.distinct(1739) IRNode.distinct(1741) IRNode.distinct(1745) IRNode.inject(20) Pair_inject option.distinct(1))
+    by (smt (verit) IRNode.distinct(1157) IRNode.distinct(1827) IRNode.distinct(1845) IRNode.distinct(1847) IRNode.distinct(1851) IRNode.distinct(991) IRNode.inject(21) Pair_inject option.distinct(1))
 next
   case (StoreFieldNode nid f newval uu obj nxt m val ref h' h m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -217,7 +234,7 @@ next
     by (simp add: StoreFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using StoreFieldNode step.cases repDet evalDet
-    by (smt (z3) IRNode.distinct(1097) IRNode.distinct(1745) IRNode.distinct(2317) IRNode.distinct(2605) IRNode.distinct(2627) IRNode.inject(43) Pair_inject Value.inject(2) option.distinct(1) option.inject)
+    by (smt (verit) IRNode.distinct(1037) IRNode.distinct(1203) IRNode.distinct(1851) IRNode.distinct(2423) IRNode.distinct(2711) IRNode.distinct(2733) IRNode.inject(44) Pair_inject Value.inject(2) option.distinct(1) option.inject)
 next
   case (StaticStoreFieldNode nid f newval uv nxt m val h' h m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -230,7 +247,7 @@ next
     by (simp add: StaticStoreFieldNode.hyps(1))
   from notseq notend notdivrem
   show ?case using StoreFieldNode step.cases repDet evalDet
-    by (smt (z3) IRNode.distinct(1097) IRNode.distinct(1745) IRNode.distinct(2317) IRNode.distinct(2605) IRNode.distinct(2627) IRNode.inject(43) Pair_inject StaticStoreFieldNode.hyps(1) StaticStoreFieldNode.hyps(2) StaticStoreFieldNode.hyps(3) StaticStoreFieldNode.hyps(4) StaticStoreFieldNode.hyps(5) option.distinct(1))
+    by (smt (verit) IRNode.distinct(1037) IRNode.distinct(1203) IRNode.distinct(1851) IRNode.distinct(2423) IRNode.distinct(2711) IRNode.distinct(2733) IRNode.inject(44) Pair_inject StaticStoreFieldNode.hyps(1) StaticStoreFieldNode.hyps(2) StaticStoreFieldNode.hyps(3) StaticStoreFieldNode.hyps(4) StaticStoreFieldNode.hyps(5) option.distinct(1))
 next
   case (SignedDivNode nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -241,7 +258,7 @@ next
     by (simp add: SignedDivNode.hyps(1))
   from notseq notend
   show ?case using SignedDivNode step.cases repDet evalDet
-    by (smt (z3) IRNode.distinct(1091) IRNode.distinct(1739) IRNode.distinct(2311) IRNode.distinct(2601) IRNode.distinct(2605) IRNode.inject(40) Pair_inject)
+    by (smt (verit) IRNode.distinct(1031) IRNode.distinct(1197) IRNode.distinct(1845) IRNode.distinct(2417) IRNode.distinct(2707) IRNode.distinct(2711) IRNode.inject(41) Pair_inject)
 next
   case (SignedRemNode nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -252,7 +269,7 @@ next
     by (simp add: SignedRemNode.hyps(1))
   from notseq notend
   show ?case using SignedRemNode step.cases repDet evalDet
-    by (smt (z3) IRNode.distinct(1093) IRNode.distinct(1741) IRNode.distinct(2313) IRNode.distinct(2601) IRNode.distinct(2627) IRNode.inject(41) Pair_inject)
+    by (smt (verit) IRNode.distinct(1033) IRNode.distinct(1199) IRNode.distinct(1847) IRNode.distinct(2419) IRNode.distinct(2707) IRNode.distinct(2733) IRNode.inject(42) Pair_inject)
 qed
 
 lemma stepRefNode:
@@ -272,7 +289,8 @@ lemma IfNodeStepCases:
 lemma IfNodeSeq:
   shows "kind g nid = IfNode cond tb fb \<longrightarrow> \<not>(is_sequential_node (kind g nid))"
   unfolding is_sequential_node.simps
-  using is_sequential_node.simps(18) by presburger
+  using is_sequential_node.simps(18)
+  using is_sequential_node.simps(19) by presburger
   
 lemma IfNodeCond:
   assumes "kind g nid = IfNode cond tb fb"
@@ -284,13 +302,9 @@ lemma step_in_ids:
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
   shows "nid \<in> ids g"
   using assms apply (induct "(nid, m, h)" "(nid', m', h')" rule: step.induct)
-  using is_sequential_node.simps(45) not_in_g 
-  apply simp
-  apply (metis is_sequential_node.simps(53))
-  using ids_some
-  using IRNode.distinct(1113) apply presburger
-  using EndNodes(1) is_AbstractEndNode.simps is_EndNode.simps(45) ids_some
-  apply (metis IRNode.disc(1218) is_EndNode.simps(52))
+  apply fastforce
+  using IRNode.distinct(1053) IRNode.distinct(1219) ids_some apply presburger+
+  apply (metis IRNode.distinct_disc(2047) is_EndNode.simps(53) ids_some is_AbstractEndNode.simps)
   by simp+
 
 end

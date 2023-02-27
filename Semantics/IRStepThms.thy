@@ -111,18 +111,15 @@ proof (induction rule: "step.induct")
     by (smt (verit) IRNode.disc(1102) IRNode.disc(2367) IRNode.discI(32) Pair_inject is_sequential_node.simps(17) is_sequential_node.simps(19) is_sequential_node.simps(44) is_sequential_node.simps(45))
 next
   case (FixedGuardNode nid cond before "next" condE m p val h)
-  then have notseq: "\<not>(is_sequential_node (kind g nid))"
+  have notseq: "\<not>(is_sequential_node (kind g nid))"
     using is_sequential_node.simps is_AbstractMergeNode.simps
-    by presburger
+    using FixedGuardNode.hyps(1) by presburger
   have notend: "\<not>(is_AbstractEndNode (kind g nid))"
     using is_AbstractEndNode.simps
     by (simp add: FixedGuardNode.hyps(1))
-  have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))" 
-    using is_AbstractEndNode.simps is_SignedDivNode_def is_SignedRemNode_def
-    using FixedGuardNode.hyps(1) IRNode.disc(2171) IRNode.disc(2225) is_IntegerDivRemNode.simps by presburger
-  from notseq notend notdivrem
-  show ?case
-    by (smt (verit) FixedGuardNode.hyps(1) FixedGuardNode.hyps(5) IRNode.distinct(1013) IRNode.distinct(1031) IRNode.distinct(1033) IRNode.distinct(1037) IRNode.distinct(973) IRNode.distinct(991) IRNode.inject(10) Pair_inject step.simps) 
+  from notseq notend 
+  show ?case 
+    by (smt (verit) FixedGuardNode.hyps(1) FixedGuardNode.hyps(5) IRNode.distinct(1013) IRNode.distinct(1031) IRNode.distinct(1033) IRNode.distinct(1037) IRNode.distinct(973) IRNode.distinct(991) IRNode.inject(10) Pair_inject step.simps)
 next
   case (IfNode nid cond tb fb m val "next" h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -283,14 +280,12 @@ lemma IfNodeStepCases:
   assumes "[m, p] \<turnstile> condE \<mapsto> v"
   assumes "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)"
   shows "nid' \<in> {tb, fb}"
-  using step.IfNode repDet stepDet assms
+  using step.IfNode stepDet assms
   by (metis insert_iff old.prod.inject)
 
 lemma IfNodeSeq:
   shows "kind g nid = IfNode cond tb fb \<longrightarrow> \<not>(is_sequential_node (kind g nid))"
-  unfolding is_sequential_node.simps
-  using is_sequential_node.simps(18)
-  using is_sequential_node.simps(19) by presburger
+  using is_sequential_node.simps(18,19) by presburger
   
 lemma IfNodeCond:
   assumes "kind g nid = IfNode cond tb fb"
@@ -305,6 +300,6 @@ lemma step_in_ids:
   apply fastforce
   using IRNode.distinct(1053) IRNode.distinct(1219) ids_some apply presburger+
   apply (metis IRNode.distinct_disc(2047) is_EndNode.simps(53) ids_some is_AbstractEndNode.simps)
-  by simp+
+  by auto
 
 end

@@ -224,6 +224,61 @@ optimization NotXorToXor: "exp[(~x) \<oplus> (~y)] \<longmapsto> (x \<oplus> y)
                              (stamp_expr y = IntegerStamp 32 ly hy \<and> wf_stamp y)"
   using NotXorToXorExp by auto
 
+(* Proving new optimisations *)
+(* Add
+   x + ~x \<mapsto> -1 
+*)
+
+lemma constEvalIsConst: 
+  assumes "wf_value n"
+  shows "[m,p] \<turnstile> exp[(const (n))] \<mapsto> n"  
+  by (simp add: assms IRTreeEval.evaltree.ConstantExpr)
+
+lemma ExpAddCommute:
+  "exp[x + y] \<ge> exp[y + x]"
+  by (auto simp add: Values.intval_add_sym)
+
+lemma AddNotVal:
+  assumes "n = IntVal bv v"
+  shows "val[n + (~n)] = new_int bv (not 0)"
+  by (auto simp: assms)
+
+lemma AddNotExp:
+  assumes "stamp_expr n = IntegerStamp b l h"
+  assumes "wf_stamp n"
+  shows "exp[n + (~n)] \<ge> exp[(const (new_int b (not 0)))]"
+  apply auto
+  subgoal premises p for m p x xa
+  proof -
+    have xaDef: "[m,p] \<turnstile> n \<mapsto> xa"
+      by (simp add: p)
+    then have xaDef2: "[m,p] \<turnstile> n \<mapsto> x"
+      by (simp add: p)
+    then have "xa = x" 
+      using p by (simp add: evalDet)
+    then obtain xv where xv: "xa = IntVal b xv"
+      by (metis valid_int wf_stamp_def xaDef2 assms)
+    have toVal: "[m,p] \<turnstile> exp[n + (~n)] \<mapsto> val[xa + (~xa)]"
+      by (metis UnaryExpr bin_eval.simps(1) evalDet p unary_eval.simps(3) unfold_binary xaDef)
+    have wfInt: "wf_value (new_int b (not 0))"
+      using validDefIntConst xaDef by (simp add: eval_bits_1_64 xv wf_value_def) 
+    have toValRHS: "[m,p] \<turnstile> exp[(const (new_int b (not 0)))] \<mapsto> new_int b (not 0)"
+      using wfInt by (simp add: constEvalIsConst)
+    have isNeg1: "val[xa + (~xa)] = new_int b (not 0)"
+      by (simp add: xv)
+    then show ?thesis
+      using toValRHS by (simp add: \<open>(xa::Value) = (x::Value)\<close>)
+    qed 
+    done
+
+optimization AddNot: "exp[n + (~n)] \<longmapsto> (const (new_int b (not 0)))
+                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
+   apply (simp add: Suc_lessI) using AddNotExp by force
+
+optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
+                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
+  apply (simp add: Suc_lessI) using AddNot ExpAddCommute by simp
+
 end
 
 end

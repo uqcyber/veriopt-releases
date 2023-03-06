@@ -25,7 +25,6 @@ fun is_preevaluated :: "IRNode \<Rightarrow> bool" where
   "is_preevaluated (ValuePhiNode n _ _) = True" |
   "is_preevaluated _ = False"
 
-
 inductive
   rep :: "IRGraph \<Rightarrow> ID \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<turnstile> _ \<simeq> _" 55)
   for g where
@@ -182,7 +181,6 @@ inductive
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
 
-
 inductive
   replist :: "IRGraph \<Rightarrow> ID list \<Rightarrow> IRExpr list \<Rightarrow> bool" ("_ \<turnstile> _ \<simeq>\<^sub>L _" 55)
   for g where
@@ -308,8 +306,6 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinIntegerEquals x y = IntegerEqualsNode x y" |
   "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y" |
   "bin_node BinIntegerBelow x y = IntegerBelowNode x y"
-
-
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "n \<notin> ids g \<Longrightarrow> fresh_id g n"
@@ -463,14 +459,12 @@ end
 
 values "{(n, g) . (eg2_sq \<oplus> sq_param0 \<leadsto> (g, n))}"
 
-
 subsection \<open>Lift Data-flow Tree Semantics\<close>
 
 definition encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" 
   ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
   where
   "encodeeval g m p n v = (\<exists> e. (g \<turnstile> n \<simeq> e) \<and> ([m,p] \<turnstile> e \<mapsto> v))"
-
 
 subsection \<open>Graph Refinement\<close>
 
@@ -485,7 +479,8 @@ definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool
         (\<forall> n . n \<in> ids g\<^sub>1 \<longrightarrow> (\<forall>e. (g\<^sub>1 \<turnstile> n \<simeq> e) \<longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e))))"
 
 lemma graph_refinement:
-  "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
+  "graph_refinement g1 g2 \<Longrightarrow> 
+   (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
   by (meson encodeeval_def graph_refinement_def graph_represents_expression_def le_expr_def)
 
 subsection \<open>Maximal Sharing\<close>

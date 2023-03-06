@@ -39,7 +39,6 @@ definition new_heap :: "('a, 'b) DynamicHeap" where
 
 subsection \<open>Intraprocedural Semantics\<close>
 
-
 (* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
 fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
@@ -62,7 +61,6 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis (n # xs) (v # vs) m = (set_phis xs vs (m(n := v)))" |
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # xs) [] m = m"
-
 
 text \<open>
 Intraprocedural semantics are given as a small-step semantics.
@@ -171,7 +169,6 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
       h' = h_store_field f None val h;
       m' =  m(nid := val)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
-
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i * i * i \<Rightarrow> o * o * o \<Rightarrow> bool) step .
 
@@ -302,7 +299,6 @@ inductive exec :: "System
     \<Longrightarrow> exec P (((g,nid,m,p)#xs),h) l (((g',nid',m',p')#ys),h') l'"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool as Exec) "exec" .
 
-
 inductive exec_debug :: "System
      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Params) list \<times> FieldRefHeap
      \<Rightarrow> nat
@@ -318,7 +314,6 @@ inductive exec_debug :: "System
   "\<lbrakk>n = 0\<rbrakk>
     \<Longrightarrow> exec_debug p s n s"
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) "exec_debug" .
-
 
 subsubsection \<open>Heap Testing\<close>
 

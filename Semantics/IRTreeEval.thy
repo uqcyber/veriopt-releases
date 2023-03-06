@@ -33,7 +33,6 @@ type_synonym Params = "Value list"
 definition new_map_state :: "MapState" where
   "new_map_state = (\<lambda>x. UndefVal)"
 
-
 (* ======================== START OF NEW TREE STUFF ==========================*)
 subsection \<open>Data-flow Tree Representation\<close>
 
@@ -97,8 +96,6 @@ fun is_ground :: "IRExpr \<Rightarrow> bool" where
 
 typedef GroundExpr = "{ e :: IRExpr . is_ground e }"
   using is_ground.simps(6) by blast
-
-
 
 subsection \<open>Functions for re-calculating stamps\<close> 
 
@@ -328,14 +325,11 @@ text \<open>We define the induced semantic equivalence relation between expressi
 definition equiv_exprs :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<doteq> _" 55) where
   "(e1 \<doteq> e2) = (\<forall> m p v. (([m,p] \<turnstile> e1 \<mapsto> v) \<longleftrightarrow> ([m,p] \<turnstile> e2 \<mapsto> v)))"
 
-
 text \<open>We also prove that this is a total equivalence relation (@{term "equivp equiv_exprs"})
   (HOL.Equiv\_Relations), so that we can reuse standard results about equivalence relations.
 \<close>
 lemma "equivp equiv_exprs"
-  apply (auto simp add: equivp_def equiv_exprs_def)
-  by (metis equiv_exprs_def)+
-
+  apply (auto simp add: equivp_def equiv_exprs_def) by (metis equiv_exprs_def)+
 
 text \<open>We define a refinement ordering over IRExpr and show that it is a preorder.
   Note that it is asymmetric because e2 may refer to fewer variables than e1.
@@ -363,7 +357,6 @@ end
 
 abbreviation (output) Refines :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" (infix "\<sqsupseteq>" 64)
   where "e\<^sub>1 \<sqsupseteq> e\<^sub>2 \<equiv> (e\<^sub>2 \<le> e\<^sub>1)"
-
 
 subsection \<open>Stamp Masks\<close>
 
@@ -398,14 +391,12 @@ lemma may_implies_either:
 
 lemma not_may_implies_false:
   "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<up>e) n) \<Longrightarrow> bit v n = False"
-  using up_spec
-  using bit_and_iff bit_eq_iff bit_not_iff bit_unsigned_iff down_spec 
-  by (metis (no_types, lifting) bit.double_compl)
+  by (metis (no_types, lifting) bit.double_compl up_spec bit_and_iff bit_not_iff bit_unsigned_iff 
+      down_spec)
 
 lemma must_implies_true:
   "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit v n = True"
-  using down_spec
-  by (metis bit.compl_one bit_and_iff bit_minus_1_iff bit_not_iff impossible_bit ucast_id)
+  by (metis bit.compl_one bit_and_iff bit_minus_1_iff bit_not_iff impossible_bit ucast_id down_spec)
 
 lemma not_must_implies_either:
   "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> \<not>(bit (\<down>e) n) \<Longrightarrow> bit v n = False \<or> bit v n = True"
@@ -415,22 +406,21 @@ lemma must_implies_may:
   "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> n < 32 \<Longrightarrow> bit (\<down>e) n \<Longrightarrow> bit (\<up>e) n"
   by (meson must_implies_true not_may_implies_false)
 
-
 lemma up_mask_and_zero_implies_zero:
   assumes "and (\<up>x) (\<up>y) = 0"
   assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
   shows "and xv yv = 0"
-  using assms
-  by (smt (z3) and.commute and.right_neutral and_zero_eq bit.compl_zero bit.conj_cancel_right bit.conj_disj_distribs(1) ucast_id up_spec word_bw_assocs(1) word_not_dist(2))
+  by (smt (z3) assms and.commute and.right_neutral bit.compl_zero bit.conj_cancel_right ucast_id
+      bit.conj_disj_distribs(1) up_spec word_bw_assocs(1) word_not_dist(2))
 
 lemma not_down_up_mask_and_zero_implies_zero:
   assumes "and (not (\<down>x)) (\<up>y) = 0"
   assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
   shows "and xv yv = yv"
-  using assms
-  by (smt (z3) and_zero_eq bit.conj_cancel_left bit.conj_disj_distribs(1) bit.conj_disj_distribs(2) bit.de_Morgan_disj down_spec or_eq_not_not_and ucast_id up_spec word_ao_absorbs(2) word_ao_absorbs(8) word_bw_lcs(1) word_not_dist(2))
+  by (smt (z3) assms bit.conj_cancel_left bit.conj_disj_distribs(1,2) bit.de_Morgan_disj ucast_id
+      down_spec or_eq_not_not_and up_spec word_ao_absorbs(2,8) word_bw_lcs(1) word_not_dist(2))
 
 end
 
@@ -449,8 +439,7 @@ lemma ucast_minus_one: "(ucast (-1::int64)::int32) = -1"
 interpretation simple_mask: stamp_mask
   "IRExpr_up :: IRExpr \<Rightarrow> int64"
   "IRExpr_down :: IRExpr \<Rightarrow> int64"
-  unfolding IRExpr_up_def IRExpr_down_def
   apply unfold_locales
-  by (simp add: ucast_minus_one)+
+  by (simp add: ucast_minus_one IRExpr_up_def IRExpr_down_def)+
 
 end

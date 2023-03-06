@@ -94,9 +94,10 @@ fun vars :: "IRExpr \<Rightarrow> string set" where
 
 typedef Rewrite = "{ (e1,e2) :: IRExpr \<times> IRExpr | e1 e2 . vars e2 \<subseteq> vars e1 }" 
 proof -
-  have "\<exists>v. vars (ConstantExpr v) \<subseteq> vars (ConstantExpr v)" by simp
+  have "\<exists>v. vars (ConstantExpr v) \<subseteq> vars (ConstantExpr v)" 
+    by simp
   then show ?thesis
-    by blast
+    by auto
 qed
 
 fun rewrite :: "Rewrite \<Rightarrow> IRExpr \<Rightarrow> IRExpr option" where
@@ -143,13 +144,12 @@ lemma "isIntExpr e \<Longrightarrow> (\<exists>v. \<forall>m p. [m, p] \<turnsti
 lemma var_x: 
   assumes "\<forall>e \<sigma>. match (BinaryExpr BinAdd (VariableExpr ''x'' IntStamp32) (ConstantExpr (IntVal32 0))) e = Some \<sigma>"
   shows "''x'' \<in> vars (BinaryExpr BinAdd (VariableExpr ''x'' IntStamp32) (ConstantExpr (IntVal32 0)))"
-    using vars.simps by simp
+  using vars.simps by simp
 
 lemma domx: 
   assumes "match (BinaryExpr BinAdd (VariableExpr ''x'' IntStamp32) (ConstantExpr (IntVal32 0))) e = Some \<sigma>" 
   shows "''x'' \<in> dom \<sigma>"
-    using match_succeeds(2) var_x
-    by (metis assms insertI1 insert_is_Un vars.simps(2) vars.simps(8))
+    by (metis assms insertI1 insert_is_Un vars.simps(2) vars.simps(8) match_succeeds(2))
 
 lemma zero_helper_x:
   assumes "match (BinaryExpr BinAdd (VariableExpr ''x'' IntStamp32) (ConstantExpr (IntVal32 0))) e = Some \<sigma>"

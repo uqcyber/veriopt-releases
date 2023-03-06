@@ -12,15 +12,14 @@ lemma evalDet:
   "[m,p] \<turnstile> e \<mapsto> v\<^sub>1 \<Longrightarrow> 
    [m,p] \<turnstile> e \<mapsto> v\<^sub>2 \<Longrightarrow>
    v\<^sub>1 = v\<^sub>2"
-  apply (induction arbitrary: v\<^sub>2 rule: "evaltree.induct")
-  by (elim EvalTreeE; auto)+
+  apply (induction arbitrary: v\<^sub>2 rule: "evaltree.induct") by (elim EvalTreeE; auto)+
 
 lemma evalAllDet:
   "[m,p] \<turnstile> e \<mapsto>\<^sub>L v1 \<Longrightarrow> 
    [m,p] \<turnstile> e \<mapsto>\<^sub>L v2 \<Longrightarrow>
    v1 = v2"
   apply (induction arbitrary: v2 rule: "evaltrees.induct")
-   apply (elim EvalTreeE; auto)
+  apply (elim EvalTreeE; auto)
   using evalDet by force
 
 subsubsection \<open>Typing Properties for Integer Evaluation Functions\<close>
@@ -58,77 +57,52 @@ proof -
 
 (* Note: this will need qualifying once we have non-integer unary ops. *)
 lemma unary_eval_int:
-  assumes def: "unary_eval op x \<noteq> UndefVal"
+  assumes "unary_eval op x \<noteq> UndefVal"
   shows "is_IntVal (unary_eval op x)"
-  unfolding is_IntVal_def using def
-  apply (cases "unary_eval op x"; auto)
-  using unary_eval_not_obj_ref unary_eval_not_obj_str by simp+
+  by (cases "unary_eval op x"; auto simp add: assms unary_eval_not_obj_ref unary_eval_not_obj_str)
 
 lemma bin_eval_int:
-  assumes def: "bin_eval op x y \<noteq> UndefVal"
-  shows "is_IntVal (bin_eval op x y)"
-  apply (cases op; cases x; cases y)  (* 192 cases! *)
-  unfolding is_IntVal_def using def apply auto (* leaves 14 cases*)
+  assumes "bin_eval op x y \<noteq> UndefVal"
+  shows "is_IntVal (bin_eval op x y)" 
+  using assms
+  apply (cases op; cases x; cases y; auto simp add: is_IntVal_def)
   apply presburger+ (* prove 6 more easy cases *)
-  apply (meson bool_to_val.elims)
-  apply (meson bool_to_val.elims) 
-  apply (smt (verit) new_int.simps)  
   by (smt (verit, best) bool_to_val.elims new_int.simps)+
 
 lemma IntVal0:
   "(IntVal 32 0) = (new_int 32 0)"
-  unfolding new_int.simps
   by auto
 
 lemma IntVal1:
   "(IntVal 32 1) = (new_int 32 1)"
-  unfolding new_int.simps
   by auto
 
 (* ICK, a collection of relevant take_bit_x lemmas would help *)
 lemma bin_eval_new_int:
-  assumes def: "bin_eval op x y \<noteq> UndefVal"
+  assumes "bin_eval op x y \<noteq> UndefVal"
   shows "\<exists>b v. (bin_eval op x y) = new_int b v \<and>
                b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits x)"
-  apply (cases op; cases x; cases y)
-  unfolding is_IntVal_def using def apply auto
-  apply presburger+
-  apply (metis take_bit_and)
-  apply presburger
-  apply (metis take_bit_or)
-  apply presburger
-  apply (metis take_bit_xor)
-  apply presburger
-  using IntVal0 IntVal1
-  apply (metis bool_to_val.elims new_int.simps)
-  apply presburger
-  apply (smt (verit) new_int.elims)
-  apply (smt (verit, best) new_int.elims)
-  apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.simps)
-  apply presburger
-  apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.simps)
-  apply presburger
-  apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.simps)
-  by meson
+  using is_IntVal_def assms apply (cases op; cases x; cases y; simp_all)
+  by (smt (verit) bool_to_val.elims new_int.simps IntVal0 IntVal1 take_bit_xor take_bit_or 
+      take_bit_and)+
 
 lemma int_stamp:
-  assumes i: "is_IntVal v"
+  assumes "is_IntVal v"
   shows "is_IntegerStamp (constantAsStamp v)"
-  using i unfolding is_IntegerStamp_def is_IntVal_def by auto
+  using assms is_IntVal_def by auto
 
 lemma validStampIntConst:
   assumes "v = IntVal b ival"
   assumes "0 < b \<and> b \<le> 64"
   shows "valid_stamp (constantAsStamp v)"
 proof -
-  have bnds: "fst (bit_bounds b) \<le> int_signed_value b ival \<and> int_signed_value b ival \<le> snd (bit_bounds b)"
-    using assms int_signed_value_bounds
-    by presburger 
+  have bnds: "fst (bit_bounds b) \<le> int_signed_value b ival \<and> 
+              int_signed_value b ival \<le> snd (bit_bounds b)"
+    using assms(2) int_signed_value_bounds by simp
   have s: "constantAsStamp v = IntegerStamp b (int_signed_value b ival) (int_signed_value b ival)"
-    using assms(1) constantAsStamp.simps(1) by blast
+    using assms(1) by simp
   then show ?thesis
-    unfolding s valid_stamp.simps
-    using assms(2) assms bnds by linarith 
+    unfolding s valid_stamp.simps using assms(2) bnds by linarith 
 qed
 
 lemma validDefIntConst:
@@ -137,15 +111,13 @@ lemma validDefIntConst:
   assumes "take_bit b ival = ival"
   shows "valid_value v (constantAsStamp v)"
 proof -
-  have bnds: "fst (bit_bounds b) \<le> int_signed_value b ival \<and> int_signed_value b ival \<le> snd (bit_bounds b)"
-    using assms int_signed_value_bounds
-    by presburger 
+  have bnds: "fst (bit_bounds b) \<le> int_signed_value b ival \<and> 
+              int_signed_value b ival \<le> snd (bit_bounds b)"
+    using assms(2) int_signed_value_bounds by simp
   have s: "constantAsStamp v = IntegerStamp b (int_signed_value b ival) (int_signed_value b ival)"
-    using assms(1) constantAsStamp.simps(1) by blast
+    using assms(1) by simp
   then show ?thesis
-    unfolding s unfolding v unfolding valid_value.simps
-    using assms validStampIntConst
-    by simp 
+    using assms validStampIntConst by simp
 qed
 
 (* is it useful to have a new_int version of the above? 
@@ -167,26 +139,22 @@ subsubsection \<open>Evaluation Results are Valid\<close>
 
 text \<open>A valid value cannot be $UndefVal$.\<close>
 lemma valid_not_undef:
-  assumes a1: "valid_value val s"
-  assumes a2: "s \<noteq> VoidStamp"
+  assumes "valid_value val s"
+  assumes "s \<noteq> VoidStamp"
   shows "val \<noteq> UndefVal"
-  apply (rule valid_value.elims(1)[of val s True])
-  using a1 a2 by auto
+  apply (rule valid_value.elims(1)[of val s True]) using assms by auto
 
 (* Elimination rules for valid_value, for each kind of stamp. *)
 lemma valid_VoidStamp[elim]:
-  shows "valid_value val VoidStamp \<Longrightarrow>
-      val = UndefVal"
-  using valid_value.simps by metis
+  shows "valid_value val VoidStamp \<Longrightarrow> val = UndefVal"
+  by (metis valid_value.simps(12))
 
 lemma valid_ObjStamp[elim]:
-  shows "valid_value val (ObjectStamp klass exact nonNull alwaysNull) \<Longrightarrow>
-      (\<exists>v. val = ObjRef v)"
-  using valid_value.simps by (metis val_to_bool.cases)
+  shows "valid_value val (ObjectStamp klass exact nonNull alwaysNull) \<Longrightarrow> (\<exists>v. val = ObjRef v)"
+  by (metis val_to_bool.cases valid_value.simps(3,11,17))
 
 lemma valid_int[elim]:
-  shows "valid_value val (IntegerStamp b lo hi) \<Longrightarrow>
-      (\<exists>v. val = IntVal b v)"
+  shows "valid_value val (IntegerStamp b lo hi) \<Longrightarrow> (\<exists>v. val = IntVal b v)"
   using valid_value.elims(2) by fastforce
 
 lemmas valid_value_elims =
@@ -197,21 +165,21 @@ lemmas valid_value_elims =
 lemma evaltree_not_undef:
   fixes m p e v
   shows "([m,p] \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
-  apply (induction rule: "evaltree.induct")
-  using valid_not_undef wf_value_def by auto
+  apply (induction rule: "evaltree.induct") by (auto simp add: wf_value_def)
 
 lemma leafint:
-  assumes ev: "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val"
+  assumes "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val"
   shows "\<exists>b v. val = (IntVal b v)"
 (* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
 proof - 
   have "valid_value val (IntegerStamp b lo hi)"
-    using ev by (rule LeafExprE; simp)
-  then show ?thesis by auto
+    using assms by (rule LeafExprE; simp)
+  then show ?thesis
+    by auto
 qed
 
 lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (-2147483648) 2147483647"
-  using default_stamp_def by auto
+  by (auto simp add: default_stamp_def)
 
 lemma valid_value_signed_int_range [simp]:
   assumes "valid_value val (IntegerStamp b lo hi)"
@@ -219,8 +187,7 @@ lemma valid_value_signed_int_range [simp]:
   shows "\<exists>v. (val = IntVal b v \<and> 
              lo \<le> int_signed_value b v \<and> 
              int_signed_value b v \<le> hi)"
-  using assms valid_int
-  by (metis valid_value.simps(1)) 
+  by (metis valid_value.simps(1) assms(1) valid_int)
 
 (* If we want to support unsigned values:
 lemma valid_value_unsigned_int_range [simp]:
@@ -298,7 +265,7 @@ of the binary expressions.\<close>
 lemma mono_unary: 
   assumes "x \<ge> x'"
   shows "(UnaryExpr op x) \<ge> (UnaryExpr op x')"
-  using UnaryExpr assms by auto
+  using assms by auto
 
 lemma mono_binary: 
   assumes "x \<ge> x'"
@@ -310,7 +277,6 @@ lemma never_void:
   assumes "[m, p] \<turnstile> x \<mapsto> xv"
   assumes "valid_value xv (stamp_expr xe)"
   shows "stamp_expr xe \<noteq> VoidStamp"
-  using valid_value.simps
   using assms(2) by force
 
 (* These were trivially true, due to operator precedence errors.
@@ -333,7 +299,7 @@ lemma stamprange:
 
 lemma compatible_trans:
   "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"
-  by (cases x; cases y; cases z; simp del: valid_stamp.simps)
+  by (cases x; cases y; cases z; auto)
 
 lemma compatible_refl:
   "compatible x y \<Longrightarrow> compatible y x"
@@ -371,13 +337,16 @@ lemma mono_conditional:
 proof (simp only: le_expr_def; (rule allI)+; rule impI)
   fix m p v
   assume a: "[m,p] \<turnstile> ConditionalExpr c t f \<mapsto> v"
-  then obtain cond where c: "[m,p] \<turnstile> c \<mapsto> cond" by auto
-  then have c': "[m,p] \<turnstile> c' \<mapsto> cond" using assms by auto
+  then obtain cond where c: "[m,p] \<turnstile> c \<mapsto> cond" 
+    by auto
+  then have c': "[m,p] \<turnstile> c' \<mapsto> cond" 
+    using assms by simp
   (*have co: "compatible (stamp_expr t) (stamp_expr f)"
     using a by auto*)
   define branch  where b:  "branch  = (if val_to_bool cond then t else f)"
   define branch' where b': "branch' = (if val_to_bool cond then t' else f')"
-  then have beval: "[m,p] \<turnstile> branch \<mapsto> v" using a b c evalDet by blast 
+  then have beval: "[m,p] \<turnstile> branch \<mapsto> v" 
+    using a b c evalDet by blast 
   (*then have "compatible (stamp_expr branch) (stamp_expr branch')"
       using helping
       using assms(2) assms(3) b b' by force
@@ -399,10 +368,10 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
       case False
       then show ?thesis sorry
     qed*)
-  from beval have "[m,p] \<turnstile> branch' \<mapsto> v" using assms b b' by auto
+  from beval have "[m,p] \<turnstile> branch' \<mapsto> v" 
+    using assms by (auto simp add: b b')
   then show "[m,p] \<turnstile> ConditionalExpr c' t' f' \<mapsto> v"
-    using ConditionalExpr c' b'
-    by (simp add: evaltree_not_undef)
+    using c' by (simp add: evaltree_not_undef b' ConditionalExpr)
 qed
 
 (*
@@ -417,7 +386,6 @@ lemma graph_refined:
   shows "\<forall> m m' h h'. (g \<turnstile> (x1, m, h) \<rightarrow> (nid, m', h'))
                   \<longrightarrow> (g \<turnstile> (x2, m, h) \<rightarrow> (nid, m', h'))"
 *)
-
 
 subsection \<open>Unfolding rules for evaltree quadruples down to bin-eval level\<close>
 
@@ -438,8 +406,8 @@ lemma unfold_valid64 [simp]:
 
 (* the general case, for all constants *)
 lemma unfold_const:
-  shows "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (wf_value v \<and> v = c)"
-  by blast
+  "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (wf_value v \<and> v = c)"
+  by auto
 
 (* TODO:
 corollary unfold_const32:
@@ -499,7 +467,6 @@ lemmas unfold_evaltree =
   This does not seem possible with 'lemmas' - order is ignored.
 *)
 
-
 subsection \<open>Lemmas about $new\_int$ and integer eval results.\<close>
 
 lemma unary_eval_new_int:
@@ -520,8 +487,7 @@ next
   proof (cases "op \<in> boolean_unary")
     case True
     then show ?thesis 
-      using assms 
-      by (metis IntVal0 IntVal1 singletonD unary_eval.simps(8) False intval_is_null.elims 
+      by (metis IntVal0 IntVal1 singletonD unary_eval.simps(8) False intval_is_null.elims assms
           bool_to_val.elims)
   next
     case False
@@ -552,30 +518,30 @@ qed
 lemma new_int_unused_bits_zero:
   assumes "IntVal b ival = new_int b ival0"
   shows "take_bit b ival = ival"
-  using assms(1) new_int_take_bits by blast
+  by (simp add: new_int_take_bits assms)
 
 lemma unary_eval_unused_bits_zero:
   assumes "unary_eval op x = IntVal b ival"
-  shows "take_bit b ival = ival"
-  using assms unary_eval_new_int
-  by (metis Value.inject(1) Value.simps(5) new_int.elims new_int_unused_bits_zero)
+  shows "take_bit b ival = ival" 
+  by (metis unary_eval_new_int Value.inject(1) new_int.elims new_int_unused_bits_zero Value.simps(5)
+      assms)
 
 lemma bin_eval_unused_bits_zero:
   assumes "bin_eval op x y = (IntVal b ival)"
   shows "take_bit b ival = ival"
-  using assms bin_eval_new_int
-  by (metis Value.distinct(1) Value.inject(1) new_int.elims new_int_take_bits) 
+  by (metis bin_eval_new_int Value.distinct(1) Value.inject(1) new_int.elims new_int_take_bits 
+      assms) 
 
 lemma eval_unused_bits_zero:
   "[m,p] \<turnstile> xe \<mapsto> (IntVal b ix) \<Longrightarrow> take_bit b ix = ix"
 proof (induction xe)
   case (UnaryExpr x1 xe)
   then show ?case 
-    using unary_eval_unused_bits_zero by force
+    by (auto simp add: unary_eval_unused_bits_zero)
 next
   case (BinaryExpr x1 xe1 xe2)
   then show ?case
-    using bin_eval_unused_bits_zero by force
+    by (auto simp add: bin_eval_unused_bits_zero)
 next
   case (ConditionalExpr xe1 xe2 xe3)
   then show ?case
@@ -585,31 +551,31 @@ next
   then have "valid_value (p!i) s"
     by fastforce
   then show ?case
-    by (metis ParameterExprE Value.distinct(7) intval_bits.simps intval_word.simps local.ParameterExpr valid_value.elims(2)) 
+    by (metis Value.distinct(7) intval_bits.simps valid_value.elims(2) local.ParameterExpr
+        ParameterExprE intval_word.simps) 
 next
   case (LeafExpr x1 x2)
   then show ?case
     by (smt (z3) EvalTreeE(6) Value.simps(11) valid_value.elims(1) valid_value.simps(1)) 
 next
   case (ConstantExpr x)
-  then show ?case using wf_value_def
-    by (metis EvalTreeE(1) constantAsStamp.simps(1) valid_value.simps(1))
+  then show ?case 
+    by (metis EvalTreeE(1) constantAsStamp.simps(1) valid_value.simps(1) wf_value_def)
 next
   case (ConstantVar x)
   then show ?case
-    by fastforce
+    by auto
 next
   case (VariableExpr x1 x2)
   then show ?case
-    by fastforce
+    by auto
 qed
 
 lemma unary_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<in> normal_unary"
   shows "\<exists> ix. x = IntVal b ix"
-  apply (cases op)
-  prefer 7 using assms apply auto
+  using assms apply (cases op; auto)
   by (smt (verit) Value.distinct(1) Value.sel(1) new_int.simps intval_abs.elims intval_negate.elims 
       intval_not.elims intval_logic_negation.elims)+
 
@@ -617,14 +583,10 @@ lemma unary_not_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<notin> normal_unary \<and> op \<notin> boolean_unary"
   shows "b = ir_resultBits op \<and> 0 < b \<and> b \<le> 64"
-  apply (cases op)
-  prefer 8 using assms apply blast+         (* the normal_unary and boolean_unary cases *)
-   apply (metis IRUnaryOp.sel(4) Value.distinct(1) Value.sel(1) assms(1) intval_narrow.elims 
-          intval_narrow_ok new_int.simps unary_eval.simps(5))
-   apply (smt (verit) IRUnaryOp.sel(5) Value.distinct(1) Value.sel(1) assms(1) new_int.simps
-          intval_sign_extend.elims order_less_le_trans unary_eval.simps(6))
-  by (metis IRUnaryOp.sel(6) Value.distinct(1) assms(1) intval_bits.simps intval_zero_extend.elims 
-      linorder_not_less neq0_conv new_int.simps unary_eval.simps(7))
+  apply (cases op) prefer 8 using assms apply blast+  (* the normal_unary and boolean_unary cases *)
+  by (smt(verit) Value.distinct(1) assms(1) intval_bits.simps intval_narrow.elims intval_narrow_ok
+      intval_zero_extend.elims linorder_not_less neq0_conv new_int.simps unary_eval.simps(5,6,7) 
+      IRUnaryOp.sel(4,5,6) intval_sign_extend.elims)+
 
 lemma unary_eval_bitsize:
   assumes "unary_eval op x = IntVal b ival"
@@ -643,20 +605,16 @@ next
   proof (cases "op \<in> boolean_unary")
     case True
     then show ?thesis
-      using assms by (cases op; auto)+
+      using assms by (cases op; simp)+
   next
     case False
     then obtain tmp where "unary_eval op x = new_int b tmp \<and> 0 < b \<and> b \<le> 64"
-      apply (cases op; simp; auto simp: 2) 
-      using \<open>(op::IRUnaryOp) \<notin> normal_unary\<close> apply blast+ 
-      apply (metis "2" Value.inject(1) Value.simps(5) assms(1) intval_narrow.simps(1) new_int.simps
-             intval_narrow_ok unary_eval.simps(5))
-      apply (metis "2" Value.distinct(1) Value.inject(1) bot_nat_0.not_eq_extremum zero_less_diff
-             diff_is_0_eq intval_sign_extend.elims new_int.simps unary_eval.simps(6) assms(1))
-     by (smt (verit, del_insts) "2" Value.simps(5) assms(1) intval_bits.simps order_less_le_trans
-         intval_zero_extend.simps(1) new_int.simps unary_eval.simps(7))
+     using \<open>(op::IRUnaryOp) \<notin> normal_unary\<close> apply (cases op; simp; auto simp: 2) 
+     by (smt (verit) Value.simps(5) assms intval_bits.simps order_less_le_trans new_int.simps
+         intval_zero_extend.simps(1) unary_eval.simps(5,6,7) intval_narrow_ok intval_narrow.simps(1)
+         intval_sign_extend.elims)+
   then show ?thesis
-    by blast 
+    by simp 
  qed 
 qed
 
@@ -674,8 +632,7 @@ proof -
   have "bin_eval op x y \<noteq> UndefVal"
     by (simp add: assms)
   then show ?thesis
-    using assms apply (cases op; cases x; cases y; simp)
-    using that by blast+
+    using assms that by (cases op; cases x; cases y; auto)
 qed
 
 lemma eval_bits_1_64:
@@ -685,27 +642,28 @@ proof (induction xe arbitrary: "b" "ix")
   then obtain xv where 
        xv: "([m,p] \<turnstile> x2 \<mapsto> xv) \<and>
             IntVal b ix = unary_eval op xv"
-    using unfold_binary by auto
+    by (auto simp add: unfold_binary)
   then have "b = (if op \<in> normal_unary  then intval_bits xv else 
                   if op \<in> boolean_unary then 32 else 
                                              ir_resultBits op)"
     by (metis Value.disc(1) Value.discI(1) Value.sel(1) new_int.simps unary_eval_new_int)
   then show ?case
-    by (metis xv linorder_le_cases linorder_not_less numeral_less_iff semiring_norm(76) UnaryExpr.IH
-        semiring_norm(78) gr0I unary_normal_bitsize unary_not_normal_bitsize)
+    by (metis xv linorder_le_cases linorder_not_less numeral_less_iff semiring_norm(76,78) gr0I 
+        unary_normal_bitsize unary_not_normal_bitsize UnaryExpr.IH)
 next
   case (BinaryExpr op x y)
   then obtain xv yv where 
        xy: "([m,p] \<turnstile> x \<mapsto> xv) \<and>
             ([m,p] \<turnstile> y \<mapsto> yv) \<and>
             IntVal b ix = bin_eval op xv yv"
-    using unfold_binary by auto
+    by (auto simp add: unfold_binary)
   then have def: "bin_eval op xv yv \<noteq> UndefVal" and xv: "xv \<noteq> UndefVal" and "yv \<noteq> UndefVal"
     using evaltree_not_undef xy by (force, blast, blast)
   then have "b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits xv)" 
     by (metis xy intval_bits.simps new_int.simps bin_eval_new_int) 
   then show ?case
-    by (metis BinaryExpr.IH(1) Value.distinct(7) Value.distinct(9) xv bin_eval_inputs_are_ints intval_bits.elims le_add_same_cancel1 less_or_eq_imp_le numeral_Bit0 xy zero_less_numeral)
+    by (metis BinaryExpr.IH(1) Value.distinct(7,9) xv bin_eval_inputs_are_ints intval_bits.elims 
+        le_add_same_cancel1 less_or_eq_imp_le numeral_Bit0 xy zero_less_numeral)
 next
   case (ConditionalExpr xe1 xe2 xe3)
   then show ?case
@@ -713,26 +671,27 @@ next
 next
   case (ParameterExpr x1 x2)
   then show ?case
-    using ParameterExprE intval_bits.simps valid_stamp.simps(1) valid_value.elims(2) valid_value.simps(17)
-    by (metis (no_types, lifting))
+    by (metis (no_types, lifting) valid_value.elims(2) valid_value.simps(17) intval_bits.simps
+        valid_stamp.simps(1) ParameterExprE)
 next
   case (LeafExpr x1 x2)
   then show ?case
-    by (smt (z3) EvalTreeE(6) Value.distinct(7) Value.inject(1) valid_stamp.simps(1) valid_value.elims(1))
+    by (smt (z3) Value.distinct(7) Value.inject(1) valid_stamp.simps(1) valid_value.elims(1) 
+        EvalTreeE(6))
 next
   case (ConstantExpr x)
-  then show ?case using wf_value_def
-    by (metis EvalTreeE(1) constantAsStamp.simps(1) valid_stamp.simps(1) valid_value.simps(1))
+  then show ?case 
+    by (metis wf_value_def constantAsStamp.simps(1) valid_stamp.simps(1) valid_value.simps(1)
+        EvalTreeE(1))
 next
   case (ConstantVar x)
   then show ?case
-    by blast 
+    by auto 
 next
   case (VariableExpr x1 x2)
   then show ?case
-    by blast
+    by auto
 qed
-
 
 lemma unfold_binary_width:
   assumes "op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_shift_ops"
@@ -745,12 +704,11 @@ lemma unfold_binary_width:
 proof (intro iffI)
   assume 3: ?L
   show ?R 
-    apply (rule evaltree.cases[OF 3])
-    apply auto
+    apply (rule evaltree.cases[OF 3]) apply auto
     using assms apply (cases op; auto)
-    by (smt (verit) new_int.simps new_int_bin.simps take_bit_xor take_bit_or take_bit_and 
-        intval_add.elims intval_mul.elims Value.inject(1) intval_sub.elims intval_and.elims 
-        intval_or.elims intval_xor.elims)+
+    by (smt (verit) new_int.simps new_int_bin.simps take_bit_xor intval_and.elims take_bit_and
+        intval_add.elims intval_mul.elims Value.inject(1) intval_sub.elims intval_xor.elims
+        intval_or.elims take_bit_or)+
 next
   assume R: ?R
   then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"
@@ -763,4 +721,3 @@ next
 qed
 
 end
-

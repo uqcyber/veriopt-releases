@@ -6,7 +6,9 @@ Veriopt is a formal verification effort undertaken by researchers at the Univers
 
 The intermediate representation of the compiler is formalized within the [Isabelle/HOL](https://isabelle.in.tum.de/) interactive theorem prover. Optimizations are then proven to be semantic preserving transformations of the intermediate representation.
 
-This artifact focuses just on validating the Isabelle IR graph semantics using unit tests translated from the GraalVM unit tests (Section III of the paper).  
+This artifact focuses primarily on validating the Isabelle IR graph semantics using unit tests translated from the GraalVM unit tests (Section III of the paper).  However, the Isabelle/HOL theories used to validate binary arithmetic operators (Section II of the paper) and some examples of validating conditional elimination optimizations (Section IV of the paper) are also included and can be viewed using the Isabelle/HOL prover.
+
+## Overview of Repository Contents
 
 This repository contains:
 
@@ -24,9 +26,20 @@ This repository contains:
 * Other folders starting with a capital letter: the supporting Isabelle theories for IR graphs etc.
 
 
-## Instructions
+## Validating Arithmetic Operator Semantics (Section II of paper)
 
-Note: step 2 requires the Isabelle 2022 theorem prover, so if you do not have that already 
+Change into the 'veriopt-releases' directory, view the Isabelle/HOL theory file Tests/ArithmeticTesting.thy.  
+
+You can view this theory using any text editor, but to fully check its contents you will need to view it using the Isabelle/HOL prover version 2022.  That is, run the command:
+
+* isabelle jedit -d . Tests/ArithmeticTesting.thy
+
+If you do not have Isabelle installed on your computer, it is included in the VirtualBox image, as described in the following section.
+
+
+## Validating GraalVM IR Graph Semantics (Section III of paper)
+
+Note: step 2 below requires the Isabelle 2022 theorem prover, so if you do not have that already 
 installed on your computer, we recommend that you perform all these steps inside the following
 VirtualBox image which has Ubuntu 2022.10 with Isabelle installed plus a copy of this repository.
 
@@ -35,6 +48,8 @@ VirtualBox image which has Ubuntu 2022.10 with Isabelle installed plus a copy of
 * The username/password for this VirtualBox image is: vboxuser / veriopt2023
 
 * Note that this VirtualBox image was built using VirtualBox 7.0.6 on Windows.  The image uses Ubuntu 20.10 and defaults to 4 cores and 16Gb RAM.  This is really the minimum requirements for Isabelle, but it should be possible to run most of the generated UnitTestsNN.thy files through Isabelle with only 12Gb of RAM, and perhaps some with 8Gb.
+
+Step 0: change into the 'veriopt-releases' directory.
 
 
 Step 1: package up the translated tests into Isabelle theories.
@@ -61,8 +76,18 @@ Step 3: inspect the summary log for the number of passing and failing tests
 
 Note that generated theories 14 and 18 should each contain two failing tests, theories 19 and 20 should each contain one failing test, and the remaining *.thy files should have zero test failures.  This is a total of 6 failing tests out of 2642 translated unit tests.  A full set of the expected output *.log files can be seen in the 'unittest_theories_backup' folder.
 
+## Validating Optimization Transformations (Section IV of paper)
 
-## Viewing Theories
+Change into the 'veriopt-releases' directory, then view the Isabelle/HOL theory file Tests/MostConditionalEliminationTests.thy.  That is, run the command:
+
+* isabelle jedit -d . Tests/MostConditionalEliminationTests.thy
+
+
+You can view this theory using any text editor, but to fully check its contents you will need to view it using the Isabelle/HOL prover version 2022.  If you do not have that tool installed on your computer, it is included in the VirtualBox image, as described in the above section.
+
+
+## Viewing Other Supporting Theories
+
 The theories developed as part of this project are automatically built as HTML and deployed for viewing at the below URL:
 
 https://uqcyber.github.io/veriopt-releases

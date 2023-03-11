@@ -43,9 +43,11 @@ Note: step 2 below requires the Isabelle 2022 theorem prover, so if you do not h
 installed on your computer, we recommend that you perform all these steps inside the following
 VirtualBox image which has Ubuntu 2022.10 with Isabelle installed plus a copy of this repository.
 
-* [VirtualBox Image](https://figshare.com/ndownloader/files/39023720)
+* [VirtualBox Image](https://figshare.com/ndownloader/files/39023720)  Full FigShare citation: Utting, Mark (2023): Ubuntu22VerioptTesting.ova. figshare. Software. https://doi.org/10.6084/m9.figshare.21988334.v1
 
 * The username/password for this VirtualBox image is: vboxuser / veriopt2023
+
+* The Sha-256 checksum of this VirtualBox image is: 3c3d5ef6a4b6f73b5afc2b7aea80167280faf7b5e0a184c47f43f7f2abe546f9.
 
 * Note that this VirtualBox image was built using VirtualBox 7.0.6 on Windows.  The image uses Ubuntu 20.10 and defaults to 4 cores and 16Gb RAM.  This is really the minimum requirements for Isabelle, but it should be possible to run most of the generated UnitTestsNN.thy files through Isabelle with only 12Gb of RAM, and perhaps some with 8Gb.
 

@@ -135,7 +135,7 @@ lemma exp_and_commutative:
   "exp[x & y] \<ge> exp[y & x]"
   by auto 
 
-(* 32-bit proofs of new optimisations *)
+(* --- New Optimisations - submitted and added into Graal --- *)
 lemma OrInverseVal:
   assumes "n = IntVal 32 v"
   shows "val[n | ~n] \<approx> new_int 32 (-1)"
@@ -171,7 +171,6 @@ optimization XorInverse2: "exp[(~n) \<oplus> n] \<longmapsto> (const (new_int 32
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
    using XorInverse exp_xor_commutative by auto
 
-(* --- New optimisations --- *)
 lemma AndSelfVal:
   assumes "n = IntVal 32 v"
   shows "val[~n & n] = new_int 32 0"
@@ -222,9 +221,9 @@ lemma NotXorToXorExp:
 optimization NotXorToXor: "exp[(~x) \<oplus> (~y)] \<longmapsto> (x \<oplus> y)
                         when (stamp_expr x = IntegerStamp 32 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 32 ly hy \<and> wf_stamp y)"
-  using NotXorToXorExp by auto
+  using NotXorToXorExp by simp
 
-(* Proving new optimisations *)
+(* --- New optimisations - submitted, not added into Graal yet --- *)
 (* Add
    x + ~x \<mapsto> -1 
 *)
@@ -269,7 +268,7 @@ lemma AddNotExp:
     then show ?thesis
       using toValRHS by (simp add: \<open>(xa::Value) = (x::Value)\<close>)
     qed 
-    done
+   done
 
 optimization AddNot: "exp[n + (~n)] \<longmapsto> (const (new_int b (not 0)))
                         when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
@@ -277,7 +276,189 @@ optimization AddNot: "exp[n + (~n)] \<longmapsto> (const (new_int b (not 0)))
 
 optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
                         when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
-  apply (simp add: Suc_lessI) using AddNot ExpAddCommute by simp
+   apply (simp add: Suc_lessI) using AddNot ExpAddCommute by simp
+
+(* 
+  ~e == e \<mapsto> false
+ *)
+
+lemma TakeBitNotSelf:
+  "(take_bit 32 (not e) = e) = False"
+  by (metis even_not_iff even_take_bit_eq zero_neq_numeral)
+
+lemma ValNeverEqNotSelf:
+  assumes "e = IntVal 32 ev"
+  shows "val[intval_equals (\<not>e) e] = val[bool_to_val False]"
+  by (simp add: TakeBitNotSelf assms)
+
+lemma ExpIntBecomesIntVal:
+  assumes "stamp_expr x = IntegerStamp 32 xl xh"
+  assumes "wf_stamp x"
+  assumes "valid_value v (IntegerStamp 32 xl xh)"
+  assumes "[m,p] \<turnstile> x \<mapsto> v"
+  shows "\<exists>xv. v = IntVal 32 xv"
+  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3)) 
+
+lemma ExpNeverNotSelf:
+  assumes "stamp_expr x = IntegerStamp 32 xl xh"
+  assumes "wf_stamp x"
+  shows "exp[BinaryExpr BinIntegerEquals (\<not>x) x] \<ge>
+         exp[(const (bool_to_val False))]" 
+  using assms apply auto
+  subgoal premises p for m p xa xaa
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(5) by auto
+    then obtain xv where xv: "xa = IntVal 32 xv"
+      by (metis p(1,2) valid_int wf_stamp_def)
+    then have lhsVal: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals (\<not>x) x] \<mapsto> 
+                               val[intval_equals (\<not>xa) xa]" 
+      by (metis p(3,4,5,6) unary_eval.simps(3) evaltree.BinaryExpr bin_eval.simps(11) xa UnaryExpr 
+          evalDet)
+    have wfVal: "wf_value (IntVal 32 0)" 
+      using wf_value_def apply rule 
+      by (metis IntVal0 intval_word.simps nat_le_linear new_int.simps numeral_le_iff wf_value_def
+          semiring_norm(71,76) validDefIntConst verit_comp_simplify1(3) zero_less_numeral)
+    then have rhsVal: "[m,p] \<turnstile> exp[(const (bool_to_val False))] \<mapsto> val[bool_to_val False]"
+      by auto
+    then have valEq: "val[intval_equals (\<not>xa) xa] = val[bool_to_val False]" 
+      using ValNeverEqNotSelf by (simp add: xv)
+    then show ?thesis
+      by (metis bool_to_val.simps(2) evalDet p(3,5) rhsVal xa)
+   qed
+  done
+
+optimization NeverEqNotSelf: "exp[BinaryExpr BinIntegerEquals (\<not>x) x] \<longmapsto> 
+                              exp[(const (bool_to_val False))]
+                        when (stamp_expr x = IntegerStamp 32 xl xh \<and> wf_stamp x)"
+  apply (simp add: Suc_lessI) using ExpNeverNotSelf by force
+
+(* --- New optimisations - not submitted / added into Graal yet --- *)
+(* 
+  (x ^ y) == x \<mapsto> y == 0
+  x == (x ^ y) \<mapsto> y == 0 
+  (x ^ y) == y \<mapsto> x == 0 
+  y == (x ^ y) \<mapsto> x == 0
+ *)
+lemma BinXorFallThrough:
+  shows "bin[(x \<oplus> y) = x] \<longleftrightarrow> bin[y = 0]"
+  by (metis xor.assoc xor.left_neutral xor_self_eq)
+
+lemma valXorEqual:
+  assumes "x = new_int 32 xv"
+  assumes "val[x \<oplus> x] \<noteq> UndefVal"
+  shows "val[x \<oplus> x] = val[new_int 32 0]"
+  using assms by (cases x; auto)
+
+lemma valXorAssoc:
+  assumes "x = new_int b xv"
+  assumes "y = new_int b yv"
+  assumes "z = new_int b zv"
+  assumes "val[(x \<oplus> y) \<oplus> z] \<noteq> UndefVal"
+  assumes "val[x \<oplus> (y \<oplus> z)] \<noteq> UndefVal"
+  shows "val[(x \<oplus> y) \<oplus> z] = val[x \<oplus> (y \<oplus> z)]"
+  by (simp add: xor.commute xor.left_commute assms)
+
+lemma valNeutral:
+  assumes "x = new_int b xv"
+  assumes "val[x \<oplus> (new_int b 0)] \<noteq> UndefVal"
+  shows "val[x \<oplus> (new_int b 0)] = val[x]"
+  using assms by (auto; meson)
+
+lemma ValXorFallThrough:
+  assumes "x = new_int b xv"
+  assumes "y = new_int b yv"
+  shows "val[intval_equals (x \<oplus> y) x] = val[intval_equals y (new_int b 0)]"
+  by (simp add: assms BinXorFallThrough)
+
+lemma ValEqAssoc:
+  "val[intval_equals x y] = val[intval_equals y x]"
+  apply (cases x; cases y; auto) by (smt (verit, best))
+
+lemma ExpEqAssoc:
+  "exp[BinaryExpr BinIntegerEquals x y] \<ge> exp[BinaryExpr BinIntegerEquals y x]"
+  by (auto simp add: ValEqAssoc)
+
+lemma ExpXorBinEqCommute:
+  "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) y] \<ge> exp[BinaryExpr BinIntegerEquals (y \<oplus> x) y]"
+  using exp_xor_commutative mono_binary by blast
+
+lemma ExpXorFallThrough:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "stamp_expr y = IntegerStamp b yl yh"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  shows "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) x] \<ge>
+         exp[BinaryExpr BinIntegerEquals y (const (new_int b 0))]"
+  using assms apply auto 
+  subgoal premises p for m p xa xaa ya
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(5) by auto
+    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
+      using p(8) by auto
+    obtain b xv where xv0: "xa = IntVal b xv" 
+      by (smt (verit) evalDet intval_equals.elims p(5,6) xa)
+    then have xv: "xa = new_int b xv"  
+      by (metis eval_unused_bits_zero new_int.elims xa) 
+    obtain yv where yv0: "ya = IntVal b yv" 
+      by (metis Value.inject(1) valid_int wf_stamp_def xa xv0 p(1,2,3,4) ya)
+    then have yv: "ya = new_int b yv"
+      by (metis eval_unused_bits_zero new_int.simps ya yv0) 
+    then have lhsVal: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals (x \<oplus> y) x] \<mapsto> 
+                               val[intval_equals (xa \<oplus> ya) xa]"
+      by (smt (z3) bin_eval.simps(6,11) evalDet p(5,6,7,8,9) evaltree.BinaryExpr ya xa)
+    then have wfVal: "wf_value (new_int b 0)"
+      by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def xa xv0)
+    then have evalConst: "[m,p] \<turnstile> exp[(const (new_int b 0))] \<mapsto> (new_int b 0)" 
+      by (simp add: constEvalIsConst)
+    then have rhsVal: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals y (const (new_int b 0))] \<mapsto> 
+                               val[intval_equals ya (new_int b 0)]"      
+      by (metis ValXorFallThrough lhsVal evaltree.BinaryExpr yv ya bin_eval.simps(11) BinaryExprE 
+          xv)
+    then have valEquiv: "val[intval_equals (xa \<oplus> ya) xa] = val[intval_equals ya (new_int b 0)]"
+      using ValXorFallThrough by (simp add: yv xv)
+    then have eval: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals y (const (new_int b 0))] \<mapsto> 
+                             val[intval_equals (xa \<oplus> ya) xa]" 
+      using rhsVal by simp
+    then show ?thesis
+      by (metis evalDet new_int.elims p(1,3,5,7,8) take_bit_of_0 valid_value.simps(1) wf_stamp_def 
+          ya xa xv0)
+   qed 
+  done
+
+lemma ExpXorFallThrough2:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "stamp_expr y = IntegerStamp b yl yh"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  shows "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) y] \<ge>
+         exp[BinaryExpr BinIntegerEquals x (const (new_int b 0))]"
+  by (meson assms dual_order.trans ExpXorBinEqCommute ExpXorFallThrough)
+
+optimization XorFallThrough1: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) x] \<longmapsto> 
+                               exp[BinaryExpr BinIntegerEquals y (const (new_int b 0))]
+                        when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and> 
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  using ExpXorFallThrough by force
+
+optimization XorFallThrough2: "exp[BinaryExpr BinIntegerEquals x (x \<oplus> y)] \<longmapsto> 
+                               exp[BinaryExpr BinIntegerEquals y (const (new_int b 0))]
+                        when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and> 
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  using ExpXorFallThrough ExpEqAssoc by force
+
+optimization XorFallThrough3: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) y] \<longmapsto> 
+                               exp[BinaryExpr BinIntegerEquals x (const (new_int b 0))]
+                        when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and> 
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  using ExpXorFallThrough2 by force
+
+optimization XorFallThrough4: "exp[BinaryExpr BinIntegerEquals y (x \<oplus> y)] \<longmapsto> 
+                               exp[BinaryExpr BinIntegerEquals x (const (new_int b 0))]
+                        when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and> 
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  using ExpXorFallThrough2 ExpEqAssoc by force
 
 end
 

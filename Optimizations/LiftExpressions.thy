@@ -240,7 +240,13 @@ fun gen_opt :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> (Pattern \<times> Tran
 type_synonym Morphism = "(nat, nat) fmap"
 
 fun match_subtree :: "IRGraph \<Rightarrow> Pattern \<Rightarrow> ID \<Rightarrow> Morphism option" where
-  "match_subtree g p n = None"
+  "match_subtree g p n =
+    (case (fmlookup p 0) of
+      Some node \<Rightarrow> 
+      (if (is_same_ir_node_type (kind g n) node)
+        then Some (fmupd 0 n (fmempty))
+        else None)
+    | None \<Rightarrow> None)"
 
 fun of_list :: "'a option list \<Rightarrow> 'a option" where
   "of_list (x # xs) = x" |
@@ -261,7 +267,7 @@ fun is_match :: "IRGraph \<Rightarrow> Pattern \<Rightarrow> bool" where
 lemma match_none:
   "match g p = None"
   unfolding match.simps filter_none_def match_subtree.simps
-  by simp
+  sorry
 
 lemma match_false:
   "fcard (fmdom p) > 0 \<longrightarrow> is_match g p = False"
@@ -316,24 +322,24 @@ definition ex1 :: "(IRExpr \<times> IRExpr)" where
   "ex1 = (
       (BinaryExpr BinMul
         (VariableExpr ''x'' (default_stamp))
-        (ConstantExpr (IntVal32 0))),
-      (ConstantExpr (IntVal32 0)))"
+        (ConstantExpr (IntVal 32 0))),
+      (ConstantExpr (IntVal 32 0)))"
 
 definition ex2 :: "(IRExpr \<times> IRExpr)" where
   "ex2 = (
       (BinaryExpr BinMul
         (VariableExpr ''x'' (default_stamp))
-        (ConstantExpr (IntVal32 1))),
+        (ConstantExpr (IntVal 32 1))),
       (VariableExpr ''x'' (default_stamp)))"
 
 definition ex3 :: "(IRExpr \<times> IRExpr)" where
   "ex3 = (
       (BinaryExpr BinMul
         (VariableExpr ''x'' (default_stamp))
-        (ConstantExpr (IntVal32 2))),
+        (ConstantExpr (IntVal 32 2))),
       (BinaryExpr BinLeftShift
         (VariableExpr ''x'' (default_stamp)))
-        (ConstantExpr (IntVal32 1))
+        (ConstantExpr (IntVal 32 1))
       )"
 
 value "{fmlookup (snd (gen_pattern (fst ex1)
@@ -354,6 +360,16 @@ value "{fmlookup (fst (gen_opt (fst ex2) (snd ex2))) x | x . x \<in> {0, 1, 2, 3
 
 value "(snd (gen_opt (fst ex3) (snd ex3)))"
 value "{fmlookup (fst (gen_opt (fst ex3) (snd ex3))) x | x . x \<in> {0, 1, 2, 3, 4, 5, 6}}"
+
+definition exg1 :: "IRGraph" where
+  "exg1 = irgraph [
+    (0, StartNode None 1, VoidStamp),
+    (1, MulNode 2 3, default_stamp),
+    (2, ConstantNode (IntVal 32 10), default_stamp),
+    (3, ConstantNode (IntVal 32 0), default_stamp)
+   ]"
+
+value "apply_opt (gen_opt (fst ex1) (snd ex1)) exg1"
 
 
 end

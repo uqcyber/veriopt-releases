@@ -218,26 +218,26 @@ proof (induct q1 q2  rule: impliesx_impliesnot.induct)
     using evalDet by fastforce
 next
   case (eq_impliesnot_less x y)
-  then show ?case apply auto using eq_impliesnot_less_val evalDet by blast
+  then show ?case apply auto[1] using eq_impliesnot_less_val evalDet by blast
 next
   case (eq_impliesnot_less_rev x y)
-  then show ?case apply auto using eq_impliesnot_less_rev_val evalDet by blast
+  then show ?case apply auto[1] using eq_impliesnot_less_rev_val evalDet by blast
 next
   case (less_impliesnot_rev_less x y)
-  then show ?case apply auto using less_impliesnot_rev_less_val evalDet by blast
+  then show ?case apply auto[1] using less_impliesnot_rev_less_val evalDet by blast
 next
   case (less_impliesnot_eq x y)
-  then show ?case apply auto using less_impliesnot_eq_val evalDet by blast
+  then show ?case apply auto[1] using less_impliesnot_eq_val evalDet by blast
 next
   case (less_impliesnot_eq_rev x y)
-  then show ?case apply auto using eq_impliesnot_less_rev_val evalDet by metis 
+  then show ?case apply auto[1] using eq_impliesnot_less_rev_val evalDet by metis 
 next
   case (negate_true x y)
-  then show ?case apply auto
+  then show ?case apply auto[1]
     by (metis logic_negation_relation_tree unary_eval.simps(4) unfold_unary)
 next
   case (negate_false x y)
-  then show ?case apply auto 
+  then show ?case apply auto[1]
     by (metis UnaryExpr logic_negation_relation_tree unary_eval.simps(4)) 
 qed
 

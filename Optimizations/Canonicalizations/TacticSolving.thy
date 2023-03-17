@@ -462,4 +462,53 @@ optimization XorFallThrough4: "exp[BinaryExpr BinIntegerEquals y (x \<oplus> y)]
 
 end
 
+context stamp_mask
+begin
+
+(* Generalization of old Or optimisation 
+   x | y \<mapsto> -1 when (downMask x | downMask y == -1)
+*)
+
+lemma ExpIntBecomesIntValArbitrary:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "wf_stamp x"
+  assumes "valid_value v (IntegerStamp b xl xh)"
+  assumes "[m,p] \<turnstile> x \<mapsto> v"
+  shows "\<exists>xv. v = IntVal b xv"
+  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3)) 
+
+lemma OrGeneralization:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "stamp_expr y = IntegerStamp b yl yh"
+  assumes "stamp_expr exp[x | y] = IntegerStamp b el eh"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "wf_stamp exp[x | y]"
+  assumes "(or (\<down>x) (\<down>y)) = not 0" 
+  shows "exp[x | y] \<ge> exp[(const (new_int b (not 0)))]"
+  using assms apply auto
+  subgoal premises p for m p xvv yvv
+  proof -
+    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+      by (metis p(1,3,9) valid_int wf_stamp_def)
+    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+      by (metis p(2,4,10) valid_int wf_stamp_def)
+    obtain evv where ev: "[m, p] \<turnstile> exp[x | y] \<mapsto> IntVal b evv"
+      by (metis BinaryExpr bin_eval.simps(5) unfold_binary p(5,9,10,11) valid_int wf_stamp_def
+          assms(3))
+    then have rhsWf: "wf_value (new_int b (not 0))"
+      by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def)
+    then have rhs: "(new_int b (not 0)) = val[IntVal b xv | IntVal b yv]" 
+      by (smt (verit) bit.de_Morgan_conj word_bw_comms(2) word_not_not yv bit.disj_conj_distrib xv
+          down_spec assms(5,7) intval_or.simps(1) new_int_bin.simps or.right_neutral ucast_id
+          word_ao_absorbs(1))
+    then have notMaskEq: "(new_int b (not 0)) = (new_int b (mask b))"
+      by auto
+    then show ?thesis 
+      by (metis neg_one.elims neg_one_value p(9,10) rhsWf unfold_const evalDet xv yv rhs)
+    qed
+   done
+
+end
+
 end

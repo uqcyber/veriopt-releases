@@ -218,26 +218,26 @@ proof (induct q1 q2  rule: impliesx_impliesnot.induct)
     using evalDet by fastforce
 next
   case (eq_impliesnot_less x y)
-  then show ?case apply auto using eq_impliesnot_less_val evalDet by blast
+  then show ?case apply auto[1] using eq_impliesnot_less_val evalDet by blast
 next
   case (eq_impliesnot_less_rev x y)
-  then show ?case apply auto using eq_impliesnot_less_rev_val evalDet by blast
+  then show ?case apply auto[1] using eq_impliesnot_less_rev_val evalDet by blast
 next
   case (less_impliesnot_rev_less x y)
-  then show ?case apply auto using less_impliesnot_rev_less_val evalDet by blast
+  then show ?case apply auto[1] using less_impliesnot_rev_less_val evalDet by blast
 next
   case (less_impliesnot_eq x y)
-  then show ?case apply auto using less_impliesnot_eq_val evalDet by blast
+  then show ?case apply auto[1] using less_impliesnot_eq_val evalDet by blast
 next
   case (less_impliesnot_eq_rev x y)
-  then show ?case apply auto using eq_impliesnot_less_rev_val evalDet by metis 
+  then show ?case apply auto[1] using eq_impliesnot_less_rev_val evalDet by metis 
 next
   case (negate_true x y)
-  then show ?case apply auto
+  then show ?case apply auto[1]
     by (metis logic_negation_relation_tree unary_eval.simps(4) unfold_unary)
 next
   case (negate_false x y)
-  then show ?case apply auto 
+  then show ?case apply auto[1]
     by (metis UnaryExpr logic_negation_relation_tree unary_eval.simps(4)) 
 qed
 
@@ -861,24 +861,31 @@ inductive CFGSuccessor ::
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CFGSuccessor .
 *)
 
+type_synonym DominatorCache = "(ID, ID set) map"
+
 inductive 
-  dominators_all :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set set \<Rightarrow> ID list \<Rightarrow> ID set set \<Rightarrow> ID list \<Rightarrow> bool" and
-  dominators :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set \<Rightarrow> bool" where
+  dominators_all :: "IRGraph \<Rightarrow> DominatorCache \<Rightarrow> ID \<Rightarrow> ID set set \<Rightarrow> ID list \<Rightarrow> DominatorCache \<Rightarrow> ID set set \<Rightarrow> ID list \<Rightarrow> bool" and
+  dominators :: "IRGraph \<Rightarrow> DominatorCache \<Rightarrow> ID \<Rightarrow> (ID set \<times> DominatorCache) \<Rightarrow> bool" where
 
   "\<lbrakk>pre = []\<rbrakk>
-    \<Longrightarrow> dominators_all g nid doms pre doms pre" |
+    \<Longrightarrow> dominators_all g c nid doms pre c doms pre" |
 
   "\<lbrakk>pre = pr # xs;
-    (dominators g pr doms');
-    dominators_all g pr (doms \<union> {doms'}) xs doms'' pre'\<rbrakk>
-    \<Longrightarrow> dominators_all g nid doms pre doms'' pre'" |
+    (dominators g c pr (doms', c'));
+    dominators_all g c' pr (doms \<union> {doms'}) xs c'' doms'' pre'\<rbrakk>
+    \<Longrightarrow> dominators_all g c nid doms pre c'' doms'' pre'" |
 
   "\<lbrakk>preds g nid = []\<rbrakk>
-    \<Longrightarrow> dominators g nid {nid}" |
+    \<Longrightarrow> dominators g c nid ({nid}, c)" |
   
-  "\<lbrakk>preds g nid = x # xs;
-    dominators_all g nid {} (preds g nid) doms pre'\<rbrakk>
-    \<Longrightarrow> dominators g nid ({nid} \<union> (\<Inter>doms))"
+  "\<lbrakk>c nid = None;
+    preds g nid = x # xs;
+    dominators_all g c nid {} (preds g nid) c' doms pre';
+    c'' = c'(nid \<mapsto> ({nid} \<union> (\<Inter>doms)))\<rbrakk>
+    \<Longrightarrow> dominators g c nid (({nid} \<union> (\<Inter>doms)), c'')" |
+
+  "\<lbrakk>c nid = Some doms\<rbrakk>
+    \<Longrightarrow> dominators g c nid (doms, c)"
 
 \<comment> \<open>
 Trying to simplify by removing the 3rd case won't work.
@@ -890,8 +897,8 @@ value "- \<Inter>({}::nat set set)"
 value "\<Inter>({{}, {0}}::nat set set)"
 value "{0::nat} \<union> (\<Inter>{})"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) dominators_all .
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) dominators .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) dominators_all .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) dominators .
 
 (* initial: ConditionalEliminationTest13_testSnippet2 *)
 definition ConditionalEliminationTest13_testSnippet2_initial :: IRGraph where
@@ -933,7 +940,7 @@ fun dominators :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
   "dominators g nid = {nid} \<union> (\<Inter> y \<in> preds g nid. dominators g y)"
 *)
 
-values "{x. dominators ConditionalEliminationTest13_testSnippet2_initial 25 x}"
+values "{(snd x) 13| x. dominators ConditionalEliminationTest13_testSnippet2_initial Map.empty 25 x}"
 
 (*fun condition_of :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
   "condition_of g nid = (case (kind g nid) of
@@ -991,21 +998,21 @@ inductive
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) stamps_of_dominators .
 
 inductive
-  analyse :: "IRGraph \<Rightarrow> ID \<Rightarrow> (Conditions \<times> StampFlow) \<Rightarrow> bool" where
-  "\<lbrakk>dominators g nid doms;
+  analyse :: "IRGraph \<Rightarrow> DominatorCache \<Rightarrow> ID \<Rightarrow> (Conditions \<times> StampFlow \<times> DominatorCache) \<Rightarrow> bool" where
+  "\<lbrakk>dominators g c nid (doms, c');
     conditions_of_dominators g (sorted_list_of_set doms) [] conds;
     stamps_of_dominators g (sorted_list_of_set doms) [stamp g] stamps\<rbrakk>
-    \<Longrightarrow> analyse g nid (conds, stamps)"
+    \<Longrightarrow> analyse g c nid (conds, stamps, c')"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) analyse .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) analyse .
 
-values "{x. dominators ConditionalEliminationTest13_testSnippet2_initial 13 x}"
-values "{(conds, stamps). 
-analyse ConditionalEliminationTest13_testSnippet2_initial 13 (conds, stamps)}"
-values "{(hd stamps) 1| conds stamps .
-analyse ConditionalEliminationTest13_testSnippet2_initial 13 (conds, stamps)}"
-values "{(hd stamps) 1| conds stamps .
-analyse ConditionalEliminationTest13_testSnippet2_initial 27 (conds, stamps)}"
+values "{x. dominators ConditionalEliminationTest13_testSnippet2_initial Map.empty 13 x}"
+values "{(conds, stamps, c). 
+analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 13 (conds, stamps, c)}"
+values "{(hd stamps) 1| conds stamps c .
+analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 13 (conds, stamps, c)}"
+values "{(hd stamps) 1| conds stamps c .
+analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 27 (conds, stamps, c)}"
 
 
 
@@ -1175,29 +1182,29 @@ inductive ConditionalEliminationPhase
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase . 
 
 inductive ConditionalEliminationPhase' 
-  :: "(ID \<times> Seen \<times> ToVisit) \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
+  :: "(ID \<times> Seen \<times> ToVisit \<times> DominatorCache) \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
   where
 
   \<comment> \<open>Can do a step and optimise for the current node\<close>
   "\<lbrakk>Step' g (nid, seen) (Some (nid', seen'));
-    analyse g nid (conds, flow);
+    analyse g c nid (conds, flow, c');
     ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) nid g g';
     toVisit' = nid # toVisit;
 
-    ConditionalEliminationPhase' (nid', seen', toVisit') g' g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit) g g''" |
+    ConditionalEliminationPhase' (nid', seen', toVisit', c') g' g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g''" |
 
   \<comment> \<open>Can do a step, matches whether optimised or not causing non-determinism
       We need to find a way to negate ConditionalEliminationStep\<close>
   "\<lbrakk>Step' g (nid, seen) (Some (nid', seen'));
-    analyse g nid (conds, flow);
+    analyse g c nid (conds, flow, c');
     kind g nid = IfNode cid t f;
     g \<turnstile> cid \<simeq> cond;
     condNode = kind g cid;
     conds_implies (set conds) (hdOr flow (stamp g)) condNode cond = None;
     toVisit' = nid # toVisit;
-    ConditionalEliminationPhase' (nid', seen', toVisit') g g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit) g g'" |
+    ConditionalEliminationPhase' (nid', seen', toVisit', c') g g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g'" |
 
   \<comment> \<open>Can't do a step but there is a predecessor we can backtrack to\<close>
 (*Some nid' = pred g nid;*)
@@ -1205,20 +1212,20 @@ inductive ConditionalEliminationPhase'
     
     seen' = {nid} \<union> seen;
     toVisit = nid' # toVisit';
-    ConditionalEliminationPhase' (nid', seen', toVisit') g g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit) g g'" |
+    ConditionalEliminationPhase' (nid', seen', toVisit', c) g g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g'" |
 
   \<comment> \<open>Can't do a step and have no predecessors so terminate\<close>
 (*None = pred g nid*)
   "\<lbrakk>Step' g (nid, seen) None;
     toVisit = []\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit) g g"
+    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase' . 
 
 definition runConditionalElimination :: "IRGraph \<Rightarrow> IRGraph" where
   "runConditionalElimination g = 
-    (Predicate.the (ConditionalEliminationPhase'_i_i_o (0, {}, ([])) g))"
+    (Predicate.the (ConditionalEliminationPhase'_i_i_o (0, {}, ([], Map.empty)) g))"
 
 inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<close>
   :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> ID list \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> bool" where\<^marker>\<open>tag invisible\<close>

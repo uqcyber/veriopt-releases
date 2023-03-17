@@ -123,15 +123,15 @@ lemma val_or_not_operands:
 (* Exp level proofs *)
 lemma exp_or_equal:
   "exp[x | x] \<ge> exp[x]"
-   apply auto
-   by (smt (verit, ccfv_SIG) evalDet eval_unused_bits_zero intval_negate.elims new_int.simps 
-       intval_or.simps(2,6,7) val_or_equal)
+   apply auto[1]
+   by (smt (verit, ccfv_SIG) evalDet eval_unused_bits_zero intval_negate.elims new_int.simps
+       val_or_equal intval_or.simps(2,6,7))
 
 lemma exp_elim_redundant_false:
  "exp[x | false] \<ge> exp[x]"
-   apply auto
-   by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_or.elims val_elim_redundant_false
-       new_int.simps new_int_bin.simps)
+   apply auto[1]
+   by (smt (verit) eval_unused_bits_zero intval_or.elims new_int_bin.simps val_elim_redundant_false
+        Value.sel(1) new_int.simps)
 
 text \<open>Optimisations\<close>
 

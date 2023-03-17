@@ -36,7 +36,7 @@ lemma OrLeftFallthrough:
   subgoal premises eval for m p v
   proof -
     obtain b vv where e: "[m, p] \<turnstile> exp[x | y] \<mapsto> IntVal b vv" 
-      by (metis BinaryExprE bin_eval_new_int new_int.simps eval)
+      by (metis BinaryExprE bin_eval_new_int new_int.simps eval(2))
     from e obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
       apply (subst (asm) unfold_binary_width)
       by force+
@@ -64,7 +64,7 @@ lemma OrRightFallthrough:
   subgoal premises eval for m p v
   proof -
     obtain b vv where e: "[m, p] \<turnstile> exp[x | y] \<mapsto> IntVal b vv"
-      by (metis BinaryExprE bin_eval_new_int new_int.simps eval)
+      by (metis BinaryExprE bin_eval_new_int new_int.simps eval(2))
     from e obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
       apply (subst (asm) unfold_binary_width)
       by force+
@@ -130,13 +130,13 @@ lemma val_or_not_operands:
 (* Exp level proofs *)
 lemma exp_or_equal:
   "exp[x | x] \<ge> exp[x]"
-   using val_or_equal apply auto
+   using val_or_equal apply auto[1]
    by (smt (verit, ccfv_SIG) evalDet eval_unused_bits_zero intval_negate.elims intval_or.simps(2) 
        intval_or.simps(6) intval_or.simps(7) new_int.simps val_or_equal)
 
 lemma exp_elim_redundant_false:
  "exp[x | false] \<ge> exp[x]"
-   using val_elim_redundant_false apply auto
+   using val_elim_redundant_false apply auto[1]
    by (smt (verit) Value.sel(1) eval_unused_bits_zero intval_or.elims new_int.simps 
        new_int_bin.simps val_elim_redundant_false)
 
@@ -147,7 +147,7 @@ optimization OrEqual: "x | x \<longmapsto> x"
 
 optimization OrShiftConstantRight: "((const x) | y) \<longmapsto> y | (const x) when \<not>(is_ConstantExpr y)"
   using size_flip_binary apply force
-  apply auto
+  apply auto[1]
   by (simp add: BinaryExpr unfold_const val_shift_const_right_helper)
 
 optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
@@ -155,7 +155,7 @@ optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
 
 optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~(x & y)"
    apply (metis add_2_eq_Suc' less_SucI not_add_less1 not_less_eq size_binary_const size_non_add)
-   apply auto  
+   apply auto[1]
   by (metis BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3) 
       val_or_not_operands)
 

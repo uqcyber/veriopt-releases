@@ -118,9 +118,9 @@ lemma less_eq_def:
   shows "val_to_bool(val[(new_int b v1) < (new_int b v2)]) \<longleftrightarrow> v1 <s v2"
   unfolding new_int.simps intval_less_than.simps bool_to_val_bin.simps bool_to_val.simps 
             int_signed_value.simps 
-  apply (simp add: val_bool_unwrap) apply auto 
-  unfolding word_sless_def apply auto
-  unfolding signed_def apply auto 
+  apply (simp add: val_bool_unwrap) apply auto[1]
+  unfolding word_sless_def apply auto[1]
+  unfolding signed_def apply auto[1] apply auto[2]
   using bit_less_eq_def apply (metis bot_nat_0.extremum take_bit_0)
   by (metis bit_less_eq_def bot_nat_0.extremum take_bit_0)
 
@@ -222,11 +222,11 @@ lemma val_abs_negate:
 text \<open>Optimisations\<close>
 
 optimization AbsIdempotence: "abs(abs(x)) \<longmapsto>  abs(x)"
-   apply auto 
+   apply auto[1]
   by (metis UnaryExpr unary_eval.simps(1) val_abs_idem)
 
 optimization AbsNegate: "(abs(-x)) \<longmapsto>  abs(x)"
-    apply auto using val_abs_negate
+    apply auto[1] using val_abs_negate
   by (metis unary_eval.simps(1) unfold_unary)
 
 end (* End of AbsPhase *)

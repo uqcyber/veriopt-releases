@@ -170,6 +170,8 @@ fun neverDistinct :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
 
 fun constantAsStamp :: "Value \<Rightarrow> Stamp" where
   "constantAsStamp (IntVal b v) = (IntegerStamp b (int_signed_value b v) (int_signed_value b v))" |
+  "constantAsStamp (ObjRef (None)) = ObjectStamp '''' False False True" |
+  "constantAsStamp (ObjRef (Some n)) = ObjectStamp '''' False True False" |
   (* TODO: float *)
   "constantAsStamp _ = IllegalStamp"
 

@@ -448,37 +448,20 @@ lemma ExpXorFallThrough:
   using assms apply auto 
   subgoal premises p for m p xa xaa ya
   proof -
-    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
-      using p(5) by auto
-    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
-      using p(8) by auto
-    obtain b xv where xv0: "xa = IntVal b xv" 
-      by (smt (verit) evalDet intval_equals.elims p(5,6) xa)
-    then have xv: "xa = new_int b xv"  
-      by (metis eval_unused_bits_zero new_int.elims xa) 
-    obtain yv where yv0: "ya = IntVal b yv" 
-      by (metis Value.inject(1) valid_int wf_stamp_def xa xv0 p(1,2,3,4) ya)
-    then have yv: "ya = new_int b yv"
-      by (metis eval_unused_bits_zero new_int.simps ya yv0) 
-    then have lhsVal: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals (x \<oplus> y) x] \<mapsto> 
-                               val[intval_equals (xa \<oplus> ya) xa]"
-      by (smt (z3) bin_eval.simps(6,11) evalDet p(5,6,7,8,9) evaltree.BinaryExpr ya xa)
+    obtain b xv where xa: "[m,p] \<turnstile> x \<mapsto> new_int b xv"
+      using intval_equals.elims 
+      by (metis new_int.simps eval_unused_bits_zero p(1,3,5) wf_stamp_def valid_int)
+    obtain yv where ya: "[m,p] \<turnstile> y \<mapsto> new_int b yv"
+      by (metis Value.inject(1) wf_stamp_def p(1,2,3,4,8) eval_unused_bits_zero xa new_int.simps
+          valid_int)
     then have wfVal: "wf_value (new_int b 0)"
-      by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def xa xv0)
-    then have evalConst: "[m,p] \<turnstile> exp[(const (new_int b 0))] \<mapsto> (new_int b 0)" 
-      by (simp add: constEvalIsConst)
-    then have rhsVal: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals y (const (new_int b 0))] \<mapsto> 
-                               val[intval_equals ya (new_int b 0)]"      
-      by (metis ValXorFallThrough lhsVal evaltree.BinaryExpr yv ya bin_eval.simps(11) BinaryExprE 
-          xv)
-    then have valEquiv: "val[intval_equals (xa \<oplus> ya) xa] = val[intval_equals ya (new_int b 0)]"
-      using ValXorFallThrough by (simp add: yv xv)
+      by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def xa)
     then have eval: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals y (const (new_int b 0))] \<mapsto> 
                              val[intval_equals (xa \<oplus> ya) xa]" 
-      using rhsVal by simp
+      by (metis (no_types, lifting) ValXorFallThrough constEvalIsConst bin_eval.simps(11) evalDet xa
+          p(5,6,7,8) unfold_binary ya)
     then show ?thesis
-      by (metis evalDet new_int.elims p(1,3,5,7,8) take_bit_of_0 valid_value.simps(1) wf_stamp_def 
-          ya xa xv0)
+      by (metis evalDet new_int.elims p(1,3,5,7) take_bit_of_0 valid_value.simps(1) wf_stamp_def xa)
    qed 
   done
 

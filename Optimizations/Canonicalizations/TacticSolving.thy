@@ -135,7 +135,7 @@ lemma exp_and_commutative:
   "exp[x & y] \<ge> exp[y & x]"
   by auto 
 
-(* --- New Optimisations - submitted and added into Graal --- *)
+text \<open>--- --- New Optimisations - submitted and added into Graal ---\<close>
 lemma OrInverseVal:
   assumes "n = IntVal 32 v"
   shows "val[n | ~n] \<approx> new_int 32 (-1)"
@@ -223,7 +223,62 @@ optimization NotXorToXor: "exp[(~x) \<oplus> (~y)] \<longmapsto> (x \<oplus> y)
                              (stamp_expr y = IntegerStamp 32 ly hy \<and> wf_stamp y)"
   using NotXorToXorExp by simp
 
-(* --- New optimisations - submitted, not added into Graal yet --- *)
+end
+
+text \<open>--- New optimisations - submitted, not added into Graal yet ---\<close>
+
+context stamp_mask
+begin
+
+(* Extension to old Or optimisation 
+   x | y \<mapsto> -1 when (downMask x | downMask y == -1)
+*)
+
+lemma ExpIntBecomesIntValArbitrary:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "wf_stamp x"
+  assumes "valid_value v (IntegerStamp b xl xh)"
+  assumes "[m,p] \<turnstile> x \<mapsto> v"
+  shows "\<exists>xv. v = IntVal b xv"
+  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3)) 
+
+lemma OrGeneralization:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "stamp_expr y = IntegerStamp b yl yh"
+  assumes "stamp_expr exp[x | y] = IntegerStamp b el eh"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "wf_stamp exp[x | y]"
+  assumes "(or (\<down>x) (\<down>y)) = not 0" 
+  shows "exp[x | y] \<ge> exp[(const (new_int b (not 0)))]"
+  using assms apply auto
+  subgoal premises p for m p xvv yvv
+  proof -
+    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+      by (metis p(1,3,9) valid_int wf_stamp_def)
+    obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+      by (metis p(2,4,10) valid_int wf_stamp_def)
+    obtain evv where ev: "[m, p] \<turnstile> exp[x | y] \<mapsto> IntVal b evv"
+      by (metis BinaryExpr bin_eval.simps(5) unfold_binary p(5,9,10,11) valid_int wf_stamp_def
+          assms(3))
+    then have rhsWf: "wf_value (new_int b (not 0))"
+      by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def)
+    then have rhs: "(new_int b (not 0)) = val[IntVal b xv | IntVal b yv]" 
+      by (smt (verit) bit.de_Morgan_conj word_bw_comms(2) word_not_not yv bit.disj_conj_distrib xv
+          down_spec assms(5,7) intval_or.simps(1) new_int_bin.simps or.right_neutral ucast_id
+          word_ao_absorbs(1))
+    then have notMaskEq: "(new_int b (not 0)) = (new_int b (mask b))"
+      by auto
+    then show ?thesis 
+      by (metis neg_one.elims neg_one_value p(9,10) rhsWf unfold_const evalDet xv yv rhs)
+    qed
+    done
+end
+
+phase TacticSolving
+  terminating size
+begin
+
 (* Add
    x + ~x \<mapsto> -1 
 *)
@@ -333,7 +388,7 @@ optimization NeverEqNotSelf: "exp[BinaryExpr BinIntegerEquals (\<not>x) x] \<lon
                         when (stamp_expr x = IntegerStamp 32 xl xh \<and> wf_stamp x)"
   apply (simp add: Suc_lessI) using ExpNeverNotSelf by force
 
-(* --- New optimisations - not submitted / added into Graal yet --- *)
+text \<open>--- New optimisations - not submitted / added into Graal yet ---\<close>
 (* 
   (x ^ y) == x \<mapsto> y == 0
   x == (x ^ y) \<mapsto> y == 0 
@@ -465,49 +520,108 @@ end
 context stamp_mask
 begin
 
-(* Generalization of old Or optimisation 
-   x | y \<mapsto> -1 when (downMask x | downMask y == -1)
+(* Ian's optimisation, and it's Or equivalent
+    x & y \<mapsto> x when x.up \<in> y.Down
+    x | y \<mapsto> y when x.up \<in> y.Down
+
+    x.up \<in> y.Down means (x.up & y.Down = x.up), 
+               equiv to (x.up | y.Down = y.Down)
 *)
 
-lemma ExpIntBecomesIntValArbitrary:
-  assumes "stamp_expr x = IntegerStamp b xl xh"
-  assumes "wf_stamp x"
-  assumes "valid_value v (IntegerStamp b xl xh)"
-  assumes "[m,p] \<turnstile> x \<mapsto> v"
-  shows "\<exists>xv. v = IntVal b xv"
-  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3)) 
+lemma inEquivalence:
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  shows "(and (\<up>x) yv) = (\<up>x) \<longleftrightarrow> (or (\<up>x) yv) = yv"
+  by (metis word_ao_absorbs(3) word_ao_absorbs(4))
 
-lemma OrGeneralization:
+lemma inEquivalence2:
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  shows "(and (\<up>x) (\<down>y)) = (\<up>x) \<longleftrightarrow> (or (\<up>x) (\<down>y)) = (\<down>y)"
+  by (metis word_ao_absorbs(3) word_ao_absorbs(4))
+
+(* x | y \<mapsto> y when x.up \<in> y.Down *)
+lemma RemoveLHSOrMask:
+  assumes "(and (\<up>x) (\<down>y)) = (\<up>x)"
+  assumes "(or (\<up>x) (\<down>y)) = (\<down>y)"
+  shows "exp[x | y] \<ge> exp[y]"
+  using assms apply auto
+  subgoal premises p for m p v
+  proof -
+    obtain b ev where exp: "[m, p] \<turnstile> exp[x | y] \<mapsto> IntVal b ev" 
+      by (metis BinaryExpr bin_eval.simps(5) p(3,4,5) bin_eval_new_int new_int.simps)
+    from exp obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+      apply (subst (asm) unfold_binary_width) by force+
+    from exp obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+      apply (subst (asm) unfold_binary_width) by force+
+    then have "(IntVal b yv) = val[(IntVal b xv) | (IntVal b yv)]" 
+      apply auto 
+      by (smt (verit, ccfv_threshold) not_down_up_mask_and_zero_implies_zero word_ao_absorbs(4) p(1)
+          bit.conj_cancel_right eval_unused_bits_zero or_eq_not_not_and word_bw_assocs(1) xv yv
+          word_bw_comms(1))
+    then show ?thesis    
+      by (metis p(3,4) evalDet xv yv)
+  qed
+  done
+
+(* x & y \<mapsto> x when x.up \<in> y.Down *)
+lemma RemoveRHSAndMask:
+  assumes "(and (\<up>x) (\<down>y)) = (\<up>x)"
+  assumes "(or (\<up>x) (\<down>y)) = (\<down>y)"
+  shows "exp[x & y] \<ge> exp[x]"
+  using assms apply auto
+  subgoal premises p for m p v
+  proof -
+    obtain b ev where exp: "[m, p] \<turnstile> exp[x & y] \<mapsto> IntVal b ev"
+      by (metis BinaryExpr bin_eval.simps(4) p(3,4,5) new_int.simps bin_eval_new_int)
+    from exp obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+      apply (subst (asm) unfold_binary_width) by force+
+    from exp obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+      apply (subst (asm) unfold_binary_width) by force+
+    then have "IntVal b xv = val[(IntVal b xv) & (IntVal b yv)]"
+      apply auto 
+      by (smt (verit) not_down_up_mask_and_zero_implies_zero bit.conj_cancel_right word_bw_comms(1)
+          eval_unused_bits_zero yv p(1) word_bw_assocs(1) word_ao_absorbs(4) or_eq_not_not_and)
+    then show ?thesis     
+      by (metis p(3,4) yv xv evalDet)
+   qed
+  done
+
+
+(* Ian's new And optimisation
+    x & y \<mapsto> 0 when x.up & y.up = 0
+*)
+lemma ReturnZeroAndMask:
   assumes "stamp_expr x = IntegerStamp b xl xh"
   assumes "stamp_expr y = IntegerStamp b yl yh"
-  assumes "stamp_expr exp[x | y] = IntegerStamp b el eh"
+  assumes "stamp_expr exp[x & y] = IntegerStamp b el eh"
   assumes "wf_stamp x"
   assumes "wf_stamp y"
-  assumes "wf_stamp exp[x | y]"
-  assumes "(or (\<down>x) (\<down>y)) = not 0" 
-  shows "exp[x | y] \<ge> exp[(const (new_int b (not 0)))]"
+  assumes "wf_stamp exp[x & y]"
+  assumes "(and (\<up>x) (\<up>y)) = 0"
+  shows "exp[x & y] \<ge> exp[const (new_int b 0)]"
   using assms apply auto
-  subgoal premises p for m p xvv yvv
+  subgoal premises p for m p v
   proof -
-    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
-      by (metis p(1,3,9) valid_int wf_stamp_def)
     obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
-      by (metis p(2,4,10) valid_int wf_stamp_def)
-    obtain evv where ev: "[m, p] \<turnstile> exp[x | y] \<mapsto> IntVal b evv"
-      by (metis BinaryExpr bin_eval.simps(5) unfold_binary p(5,9,10,11) valid_int wf_stamp_def
-          assms(3))
-    then have rhsWf: "wf_value (new_int b (not 0))"
+      by (metis valid_int wf_stamp_def assms(2,5) p(2,4,10) wf_stamp_def)
+    obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+      by (metis valid_int wf_stamp_def assms(1,4) p(3,9) wf_stamp_def)
+    obtain ev where exp: "[m, p] \<turnstile> exp[x & y] \<mapsto> IntVal b ev"
+      by (smt (z3) BinaryExpr bin_eval.simps(4) p assms(3) valid_int wf_stamp_def)
+    then have wfVal: "wf_value (new_int b 0)"
       by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def)
-    then have rhs: "(new_int b (not 0)) = val[IntVal b xv | IntVal b yv]" 
-      by (smt (verit) bit.de_Morgan_conj word_bw_comms(2) word_not_not yv bit.disj_conj_distrib xv
-          down_spec assms(5,7) intval_or.simps(1) new_int_bin.simps or.right_neutral ucast_id
-          word_ao_absorbs(1))
-    then have notMaskEq: "(new_int b (not 0)) = (new_int b (mask b))"
+    then have lhsEq: "IntVal b ev = val[(IntVal b xv) & (IntVal b yv)]"
+      by (metis bin_eval.simps(4) yv xv evalDet exp unfold_binary)
+    then have newIntEquiv: "new_int b 0 = IntVal b ev" 
+      apply auto by (smt (z3) p(6) eval_unused_bits_zero xv yv up_mask_and_zero_implies_zero)
+    then have isZero: "ev = 0"
       by auto
-    then show ?thesis 
-      by (metis neg_one.elims neg_one_value p(9,10) rhsWf unfold_const evalDet xv yv rhs)
-    qed
-   done
+    then show ?thesis
+      by (metis evalDet lhsEq newIntEquiv p(9,10) unfold_const wfVal xv yv)
+   qed
+  done
+
 
 end
 

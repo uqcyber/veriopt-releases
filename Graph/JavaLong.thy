@@ -1,11 +1,12 @@
 section \<open>java.lang.Long\<close>
 
 text \<open>
-Utility functions from the Long class that Graal occasionally makes use of.
+Utility functions from the Java Long class that Graal occasionally makes use of.
 \<close>
 
-theory Long
-  imports ValueThms
+theory JavaLong
+  imports JavaWords
+          "HOL-Library.FSet"
 begin
 
 lemma negative_all_set_32:
@@ -18,10 +19,182 @@ definition MaxOrNeg :: "nat set \<Rightarrow> int" where
 
 definition MinOrHighest :: "nat set \<Rightarrow> nat \<Rightarrow> nat" where
   "MinOrHighest s m = (if s = {} then m else Min s)"
- 
+
+lemma MaxOrNegEmpty:
+  "MaxOrNeg s = -1 \<longleftrightarrow> s = {}"
+  unfolding MaxOrNeg_def by auto
+
+
+subsection Long.highestOneBit
+
 (* This is a different definition to Long.highestOneBit *)
 definition highestOneBit :: "('a::len) word \<Rightarrow> int" where
-  "highestOneBit v = MaxOrNeg {n . bit v n}"
+  "highestOneBit v = MaxOrNeg {n. bit v n}"
+
+lemma highestOneBitInvar:
+  "highestOneBit v = j \<Longrightarrow> (\<forall>i::nat. (int i > j \<longrightarrow> \<not> (bit v i)))"
+  apply (induction "size v")
+  apply simp
+  by (smt (verit) MaxOrNeg_def Max_ge empty_iff finite_bit_word highestOneBit_def mem_Collect_eq of_nat_mono)
+
+
+lemma highestOneBitNeg:
+  "highestOneBit v = -1 \<longleftrightarrow> v = 0"
+  unfolding highestOneBit_def MaxOrNeg_def
+  by (metis Collect_empty_eq_bot bit_0_eq bit_word_eqI int_ops(2) negative_eq_positive one_neq_zero)
+
+lemma higherBitsFalse:
+  fixes v :: "'a :: len word"
+  shows "i > size v \<Longrightarrow> \<not> (bit v i)"
+  by (simp add: bit_word.rep_eq size_word.rep_eq)
+
+
+lemma highestOneBitN:
+  assumes "bit v n"
+  assumes "\<forall>i::nat. (int i > n \<longrightarrow> \<not> (bit v i))"
+  shows "highestOneBit v = n"
+  unfolding highestOneBit_def MaxOrNeg_def
+  by (metis Max_ge Max_in all_not_in_conv assms(1) assms(2) finite_bit_word mem_Collect_eq of_nat_less_iff order_less_le)
+
+lemma highestOneBitSize:
+  assumes "bit v n"
+  assumes "n = size v"
+  shows "highestOneBit v = n"
+  by (metis assms(1) assms(2) not_bit_length wsst_TYs(3))
+
+lemma highestOneBitMax:
+  "highestOneBit v < size v"
+  unfolding highestOneBit_def MaxOrNeg_def
+  using higherBitsFalse
+  by (simp add: bit_imp_le_length size_word.rep_eq)
+
+lemma highestOneBitAtLeast:
+  assumes "bit v n"
+  shows "highestOneBit v \<ge> n"
+proof (induction "size v")
+  case 0
+  then show ?case by simp
+next
+  case (Suc x)
+  then have "\<forall>i. bit v i \<longrightarrow> i < Suc x"
+    by (simp add: bit_imp_le_length wsst_TYs(3))
+  then show ?case
+    unfolding highestOneBit_def MaxOrNeg_def
+    using assms by auto
+qed
+
+lemma highestOneBitElim:
+  "highestOneBit v = n
+     \<Longrightarrow> ((n = -1 \<and> v = 0) \<or> (n \<ge> 0 \<and> bit v n))"
+  unfolding highestOneBit_def MaxOrNeg_def
+  by (metis Max_in finite_bit_word le0 le_minus_one_simps(3) mem_Collect_eq of_nat_0_le_iff of_nat_eq_iff)
+
+
+text \<open>A recursive implementation of highestOneBit that is suitable for code generation.\<close>
+
+fun highestOneBitRec :: "nat \<Rightarrow> ('a::len) word \<Rightarrow> int" where
+  "highestOneBitRec n v =
+    (if bit v n then n 
+     else if n = 0 then -1
+     else highestOneBitRec (n - 1) v)"
+
+lemma highestOneBitRecTrue:
+  "highestOneBitRec n v = j \<Longrightarrow> j \<ge> 0 \<Longrightarrow> bit v j"
+proof (induction "n")
+  case 0
+  then show ?case
+    by (metis diff_0 highestOneBitRec.simps leD of_nat_0_eq_iff of_nat_0_le_iff zle_diff1_eq) 
+next
+  case (Suc n)
+  then show ?case
+    by (metis diff_Suc_1 highestOneBitRec.elims nat.discI nat_int) 
+qed
+
+lemma highestOneBitRecN:
+  assumes "bit v n"
+  shows "highestOneBitRec n v = n"
+  by (simp add: assms)
+
+lemma highestOneBitRecMax:
+  "highestOneBitRec n v \<le> n"
+  by (induction n; simp)
+
+lemma highestOneBitRecElim:
+  assumes "highestOneBitRec n v = j"
+  shows "((j = -1 \<and> v = 0) \<or> (j \<ge> 0 \<and> bit v j))"
+  using assms highestOneBitRecTrue by blast
+
+lemma highestOneBitRecZero:
+  "v = 0 \<Longrightarrow> highestOneBitRec (size v) v = -1"
+  by (induction rule: "highestOneBitRec.induct"; simp)
+
+lemma highestOneBitRecLess:
+  assumes "\<not> bit v n"
+  shows "highestOneBitRec n v = highestOneBitRec (n - 1) v"
+  using assms by force
+
+
+text \<open>Some lemmas that use masks to restrict highestOneBit
+  and relate it to highestOneBitRec.\<close>
+
+lemma highestOneBitMask:
+  assumes "size v = n"
+  shows "highestOneBit v = highestOneBit (and v (mask n))"
+  by (metis assms dual_order.refl lt2p_lem mask_eq_iff size_word.rep_eq)
+
+lemma maskSmaller:
+  fixes v :: "'a :: len word"
+  assumes "\<not> bit v n"
+  shows "and v (mask (Suc n)) = and v (mask n)" 
+  unfolding bit_eq_iff
+  by (metis assms bit_and_iff bit_mask_iff less_Suc_eq) 
+
+lemma highestOneBitSmaller:
+  assumes "size v = Suc n"
+  assumes "\<not> bit v n"
+  shows "highestOneBit v = highestOneBit (and v (mask n))"
+  by (metis assms highestOneBitMask maskSmaller)
+
+lemma highestOneBitRecMask:
+  shows "highestOneBit (and v (mask (Suc n))) = highestOneBitRec n v"
+proof (induction n)
+  case 0
+  then show ?case
+    by (smt (verit, ccfv_SIG) Word.mask_Suc_0 and_mask_lt_2p and_nonnegative_int_iff bit_1_iff bit_and_iff highestOneBitN highestOneBitNeg highestOneBitRec.simps mask_eq_exp_minus_1 of_int_0 uint_1_eq uint_and word_and_def) 
+next
+  case (Suc n)
+  then show ?case 
+  proof (cases "bit v (Suc n)")
+    case True
+    have 1: "highestOneBitRec (Suc n) v = Suc n"
+      by (simp add: True)
+    have "\<forall>i::nat. (int i > (Suc n) \<longrightarrow> \<not> (bit (and v (mask (Suc (Suc n)))) i))"
+      by (simp add: bit_and_iff bit_mask_iff)
+    then have 2: "highestOneBit (and v (mask (Suc (Suc n)))) = Suc n"
+      using True highestOneBitN
+      by (metis bit_take_bit_iff lessI take_bit_eq_mask) 
+    then show ?thesis 
+      using 1 2 by auto
+  next
+    case False
+    then show ?thesis
+      by (simp add: Suc maskSmaller) 
+  qed
+qed
+
+
+text \<open>Finally - we can use the mask lemmas to relate highestOneBitRec to its spec.\<close>
+
+lemma highestOneBitImpl[code]:
+  "highestOneBit v = highestOneBitRec (size v) v"
+  by (metis highestOneBitMask highestOneBitRecMask maskSmaller not_bit_length wsst_TYs(3))
+
+
+lemma "highestOneBit (0x5 :: int8) = 2" by code_simp
+
+
+
+subsection \<open>Long.lowestOneBit\<close>
 
 definition lowestOneBit :: "('a::len) word \<Rightarrow> nat" where
   "lowestOneBit v = MinOrHighest {n . bit v n} (size v)"
@@ -32,6 +205,7 @@ lemma max_bit: "bit (v::('a::len) word) n \<Longrightarrow> n < size v"
 lemma max_set_bit: "MaxOrNeg {n . bit (v::('a::len) word) n} < Nat.size v"
   using max_bit unfolding MaxOrNeg_def
   by force
+
 
 subsection \<open>Long.numberOfLeadingZeros\<close>
 

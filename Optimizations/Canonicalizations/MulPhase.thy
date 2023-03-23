@@ -161,9 +161,18 @@ lemma val_MulPower2Sub1:
 
 (* Value level helpers *)
 lemma val_distribute_multiplication:
+  assumes "x = IntVal b xx \<and> q = IntVal b qq \<and> a = IntVal b aa"
+  assumes "val[x * (q + a)] \<noteq> UndefVal"
+  assumes "val[(x * q) + (x * a)] \<noteq> UndefVal"
+  shows "val[x * (q + a)] = val[(x * q) + (x * a)]"
+  using assms apply (cases x; cases q; cases a; auto) 
+  by (smt (verit) distrib_left mergeTakeBit new_int.elims new_int_unused_bits_zero)
+
+lemma val_distribute_multiplication64:
   assumes "x = new_int 64 xx \<and> q = new_int 64 qq \<and> a = new_int 64 aa"
   shows "val[x * (q + a)] = val[(x * q) + (x * a)]"
-  by (cases x; cases q; cases a; auto simp: distrib_left assms)
+  using assms apply (cases x; cases q; cases a; auto) 
+  using distrib_left by blast
 
 (*  x * ((2 ^ j) + (2 ^ k)) = (x << j) + (x << k)  *)
 lemma val_MulPower2AddPower2:
@@ -187,7 +196,7 @@ lemma val_MulPower2AddPower2:
    then have 1: "val[x * ((IntVal 64 (2 ^ unat(i))) + (IntVal 64 (2 ^ unat(j))))] = 
                  val[(x * IntVal 64 (2 ^ unat(i))) + (x * IntVal 64 (2 ^ unat(j)))]"
       (* (x * 2^i) + (x * 2^j)*)
-     using assms val_distribute_multiplication by simp 
+     using assms val_distribute_multiplication64 by simp 
    then have 2: "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
      by (smt (verit) Value.distinct(1) intval_mul.simps(1) new_int.simps new_int_bin.simps assms 
          val_MulPower2)
@@ -257,26 +266,47 @@ lemma exp_MulPower2AddPower2:
 
 (* Exp level helpers *)
 
-(* Subgoal is false *)
 lemma greaterConstant:
   fixes a b :: "64 word"
   assumes "a > b"
-  and     "y = ConstantExpr (IntVal 64 a)"
-  and     "x = ConstantExpr (IntVal 64 b)"
-  shows "exp[y > x]"
-  apply auto
+  and     "y = ConstantExpr (IntVal 32 a)"
+  and     "x = ConstantExpr (IntVal 32 b)"
+  shows "exp[BinaryExpr BinIntegerLessThan y x] \<ge> exp[const (new_int 32 0)]"
+  using assms 
+  apply simp unfolding equiv_exprs_def apply auto 
   sorry
 
 lemma exp_distribute_multiplication:
-  shows "exp[(x * q) + (x * a)] \<ge> exp[x * (q + a)]" 
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "stamp_expr q = IntegerStamp b ql qh"
+  assumes "stamp_expr y = IntegerStamp b yl yh"
+  assumes "wf_stamp x"
+  assumes "wf_stamp q"
+  assumes "wf_stamp y"
+  shows "exp[(x * q) + (x * y)] \<ge> exp[x * (q + y)]" 
   apply auto
   subgoal premises p for m p xa qa xb aa
   proof -
-    have "[m,p] \<turnstile> BinaryExpr BinMul x (BinaryExpr BinAdd q a) \<mapsto> intval_mul xa (intval_add qa aa)"
-      sorry
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p by simp
+    obtain qv where qv: "[m,p] \<turnstile> q \<mapsto> qv"
+      using p by simp
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p by simp
+    then obtain xvv where xvv: "xv = IntVal b xvv"
+      by (metis assms(1,4) valid_int wf_stamp_def xv)
+    then obtain qvv where qvv: "qv = IntVal b qvv"
+      by (metis qv valid_int assms(2,5) wf_stamp_def)
+    then obtain yvv where yvv: "yv = IntVal b yvv"
+      by (metis yv valid_int assms(3,6) wf_stamp_def)
+    then have rhsDefined: "val[xv * (qv + yv)] \<noteq> UndefVal"
+      by (simp add: xvv qvv)
+    have "val[xv * (qv + yv)] = val[(xv * qv) + (xv * yv)]"
+      using val_distribute_multiplication by (simp add: yvv qvv xvv) 
     then show ?thesis
-      using val_distribute_multiplication sorry
-  qed
+      by (metis bin_eval.simps(1,2) intval_add_sym intval_mul.simps(5) BinaryExpr p(1,2,3,5,6) qv xv
+          evalDet yv) 
+   qed
   done
 
 text \<open>Optimisations\<close>
@@ -371,7 +401,7 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
     obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
       using p by blast
     have ygezero: "y > ConstantExpr (IntVal 64 0)"
-      using greaterConstant p wf_value_def by fastforce 
+      using greaterConstant p wf_value_def sorry 
     then have 1: "0 < i \<and>
                   i < 64 \<and> 
                   y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1))"
@@ -390,7 +420,7 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
      then have simple: "val[xv * (IntVal 64 (2 ^ unat(i)))] = val[xv << (IntVal 64 i)]"
        using val_MulPower2 sorry
      then have "val[xv * yv] = val[(xv << (IntVal 64 i)) + xv]"
-        sorry
+       using val_MulPower2Add1 sorry
      then show ?thesis
        by (metis "1" evalDet lhs p(2) rhs)
   qed
@@ -411,9 +441,7 @@ optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
           new_int_bin.simps unfold_binary)
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
       using p by blast
-    have ygezero: "y > ConstantExpr (IntVal 64 0)"
-      by (smt (verit, del_insts) eq_iff_diff_eq_0 mask_0 mask_eq_exp_minus_1 power_inject_exp p
-          uint_2p unat_eq_zero word_gt_0 zero_neq_one greaterConstant) 
+    have ygezero: "y > ConstantExpr (IntVal 64 0)" sorry
     then have 1: "0 < i \<and>
                   i < 64 \<and> 
                   y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) - 1))"

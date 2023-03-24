@@ -3,7 +3,7 @@ subsection \<open>Experimental AndNode Phase\<close>
 theory NewAnd
   imports
     Common
-    Graph.Long
+    Graph.JavaLong
 begin
 
 lemma bin_distribute_and_over_or:

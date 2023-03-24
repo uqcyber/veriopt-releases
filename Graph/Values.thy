@@ -2,10 +2,7 @@ section \<open>Operator Semantics\<close>
 
 theory Values
   imports
-    "HOL-Library.Word"
-    "HOL-Library.Signed_Division"
-    "HOL-Library.Float"
-    "HOL-Library.LaTeXsugar"
+    JavaWords
 begin
 
 text \<open>
@@ -28,55 +25,6 @@ points to the static fields. This is examined more closely in our
 definition of the heap.
 \<close>
 
-type_synonym int64 = "64 word" \<comment> \<open>long\<close>
-type_synonym int32 = "32 word" \<comment> \<open>int\<close>
-type_synonym int16 = "16 word" \<comment> \<open>short\<close>
-type_synonym int8 = "8 word" \<comment> \<open>char\<close>
-type_synonym int1 = "1 word" \<comment> \<open>boolean\<close>
-
-abbreviation valid_int_widths :: "nat set" where
-  "valid_int_widths \<equiv> {1, 8, 16, 32, 64}"
-
-
-experiment begin
-text \<open>Option 2: explicit width stored with each integer value.
-      However, this does not help us to distinguish between short (signed) and char (unsigned).\<close>
-
-typedef IntWidth = "{ w :: nat . w=1 \<or> w=8 \<or> w=16 \<or> w=32 \<or> w=64 }"
-  by blast
-
-setup_lifting type_definition_IntWidth
-
-lift_definition IntWidthBits :: "IntWidth \<Rightarrow> nat"
-  is "\<lambda>w. w" .
-end
-
-experiment begin
-text \<open>Option 3: explicit type stored with each integer value.\<close>
-
-datatype IntType = ILong | IInt | IShort | IChar | IByte | IBoolean
-
-fun int_bits :: "IntType \<Rightarrow> nat" where
-  "int_bits ILong  = 64" |
-  "int_bits IInt   = 32" |
-  "int_bits IShort = 16" |
-  "int_bits IChar  = 16" |
-  "int_bits IByte  =  8" |
-  "int_bits IBoolean = 1"
-
-fun int_signed :: "IntType \<Rightarrow> bool" where
-  "int_signed ILong  = True" |
-  "int_signed IInt   = True" |
-  "int_signed IShort = True" |
-  "int_signed IChar  = False" |
-  "int_signed IByte  =  True" |
-  "int_signed IBoolean = True"
-end
-
-
-text \<open>Option 4: int64 with the number of significant bits.\<close>
-
-type_synonym iwidth = "nat"  (* TODO: 1..64 *)
 type_synonym objref = "nat option"
 
 datatype (discs_sels) Value  =
@@ -98,18 +46,6 @@ fun intval_bits :: "Value \<Rightarrow> nat" where
 
 fun intval_word :: "Value \<Rightarrow> int64" where
   "intval_word (IntVal b v) = v"
-
-fun bit_bounds :: "nat \<Rightarrow> (int \<times> int)" where
-  "bit_bounds bits = (((2 ^ bits) div 2) * -1, ((2 ^ bits) div 2) - 1)"
-
-definition logic_negate :: "('a::len) word \<Rightarrow> 'a word" where
-  "logic_negate x = (if x = 0 then 1 else 0)"
-
-fun int_signed_value :: "iwidth \<Rightarrow> int64 \<Rightarrow> int" where
-  "int_signed_value b v = sint (signed_take_bit (b - 1) v)"
-
-fun int_unsigned_value :: "iwidth \<Rightarrow> int64 \<Rightarrow> int" where
-  "int_unsigned_value b v = uint v"  (* NB. we could drop take_bit? *)
 
 
 text \<open>Converts an integer word into a Java value.\<close>
@@ -143,10 +79,6 @@ fun bool_to_val_bin :: "iwidth \<Rightarrow> iwidth \<Rightarrow> bool \<Rightar
 fun is_int_val :: "Value \<Rightarrow> bool" where
   "is_int_val v = is_IntVal v"
 
-
-text \<open>A convenience function for directly constructing -1 values of a given bit size.\<close>
-fun neg_one :: "iwidth \<Rightarrow> int64" where
-  "neg_one b = mask b"
 
 lemma neg_one_value[simp]: "new_int b (neg_one b) = IntVal b (mask b)"
   by simp
@@ -271,7 +203,12 @@ subsection \<open>Narrowing and Widening Operators\<close>
 text \<open>Note: we allow these operators to have inBits=outBits, because the Graal compiler
   also seems to allow that case, even though it should rarely / never arise in practice.\<close>
 
-value "sint(signed_take_bit 0 (1 :: int32))" (* gives -1, which matches compiler *)
+text \<open>Some sanity checks that $take\_bit N$ and $signed\_take\_bit (N-1)$ match up as expected.\<close>
+corollary "sint (signed_take_bit 0 (1 :: int32)) = -1" by code_simp
+corollary "sint (signed_take_bit 7 ((256 + 128) :: int64)) = -128" by code_simp
+corollary "sint (take_bit 7 ((256 + 128 + 64) :: int64)) = 64" by code_simp
+corollary "sint (take_bit 8 ((256 + 128 + 64) :: int64)) = 128 + 64" by code_simp
+
 
 fun intval_narrow :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_narrow inBits outBits (IntVal b v) =
@@ -280,7 +217,6 @@ fun intval_narrow :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Va
       else UndefVal)" |
   "intval_narrow _ _ _ = UndefVal"
 
-value "sint (signed_take_bit 7 ((256 + 128) :: int64))"
 
 fun intval_sign_extend :: "nat \<Rightarrow> nat \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_sign_extend inBits outBits (IntVal b v) =
@@ -327,38 +263,6 @@ lemma intval_zero_extend_ok:
 
 
 subsection \<open>Bit-Shifting Operators\<close>
-
-definition shiftl (infix "<<" 75) where 
-  "shiftl w n = (push_bit n) w"
-
-lemma shiftl_power[simp]: "(x::('a::len) word) * (2 ^ j) = x << j"
-  unfolding shiftl_def apply (induction j)
-   apply simp unfolding funpow_Suc_right
-  by (metis (no_types, opaque_lifting) push_bit_eq_mult)
-
-lemma "(x::('a::len) word) * ((2 ^ j) + 1) = x << j + x"
-  by (simp add: distrib_left)
-
-lemma "(x::('a::len) word) * ((2 ^ j) - 1) = x << j - x"
-  by (simp add: right_diff_distrib)
-
-lemma "(x::('a::len) word) * ((2^j) + (2^k)) = x << j + x << k"
-  by (simp add: distrib_left)
-
-lemma "(x::('a::len) word) * ((2^j) - (2^k)) = x << j - x << k"
-  by (simp add: right_diff_distrib)
-
-
-definition shiftr (infix ">>>" 75) where 
-  "shiftr w n = (drop_bit n) w"
-
-value "(255 :: 8 word) >>> (2 :: nat)"
-
-
-definition sshiftr :: "'a :: len word \<Rightarrow> nat \<Rightarrow> 'a :: len word" (infix ">>" 75) where 
-  "sshiftr w n = word_of_int ((sint w) div (2 ^ n))"
-
-value "(128 :: 8 word) >> 2"
 
 
 text \<open>Note that Java shift operators use unary numeric promotion, unlike other binary 
@@ -451,9 +355,12 @@ lemma intval_add_sym:
   shows "intval_add a b = intval_add b a"
   by (induction a; induction b; auto simp: add.commute)
 
-
-code_deps intval_add  (* view dependency graph of code definitions *)
-code_thms intval_add  (* print all code definitions used by intval_add *)
+(* view dependency graph of code definitions:
+code_deps intval_add
+*)
+(* print all code definitions used by intval_add:
+code_thms intval_add
+*)
 
 
 (* Some example tests. *)

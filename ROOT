@@ -6,13 +6,14 @@ session Graph in Graph = "HOL-Library" +
   options [document = pdf, document_output = "output",
            show_question_marks = false]
   theories
+    JavaWords
+    JavaLong
     Values
     ValueThms
     Stamp
     IRNodes
     IRNodeHierarchy
     IRGraph
-    Long
     Comparison
     Traversal
   document_files (in "../latex")
@@ -156,6 +157,8 @@ session Document in "Papers/Main" = Canonicalizations +
   theories
     ConditionalElimination.ConditionalElimination
   document_theories
+    Graph.JavaWords
+    Graph.JavaLong
     Graph.Values
     Graph.ValueThms
     Graph.Stamp
@@ -166,7 +169,6 @@ session Document in "Papers/Main" = Canonicalizations +
     Graph.IRGraph
     Graph.Traversal
     Graph.Comparison
-    Graph.Long
 
     Semantics.IRTreeEval
     Semantics.IRTreeEvalThms
@@ -255,6 +257,8 @@ session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
     TreeSnippets
     SlideSnippets
   document_theories
+    Graph.JavaWords
+    Graph.JavaLong
     Graph.Values
     Graph.ValueThms
     Graph.Stamp
@@ -263,7 +267,6 @@ session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
     Graph.IRNodeHierarchy
     
     Graph.IRGraph
-    Graph.Long
 
     Semantics.IRTreeEval
     Semantics.IRTreeEvalThms

@@ -34,16 +34,8 @@ context
   includes bit_operations_syntax
 begin
 
-text \<open>These Stamp values simulate the Java IntegerStamp class closely.\<close>
 
-datatype JavaIntegerStamp = 
-  JIS
-    (jis_bits: nat)
-    (jis_lowerBound: int64)
-    (jis_upperBound: int64)
-    (jis_downMask: int64)
-    (jis_upMask: int64)
-
+subsection \<open>The bit-subset relationship between values or masks\<close>
 
 text \<open>The Java code often has 'm2 & ~m1 == 0' to check that mask m1 is a subset (or equal) of m2.
   To improve readability, we define this pattern as the following infix abbreviation.
@@ -89,6 +81,19 @@ lemma mask_subset_ge:
   by (metis assms disjunctive_diff mask_implies_rev uint_minus_simple_alt uint_minus_simple_iff word_and_le2)
 
 
+subsection \<open>Java Integer Stamps and Invariants\<close>
+
+text \<open>These Stamp values simulate the Java IntegerStamp class closely.\<close>
+
+datatype JavaIntegerStamp = 
+  JIS
+    (jis_bits: nat)
+    (jis_lowerBound: int64)
+    (jis_upperBound: int64)
+    (jis_downMask: int64)
+    (jis_upMask: int64)
+
+
 text \<open>These stamp invariants are from the IntegerStamp.java constructor,
   plus we add the check that $0 < bits <= 64$.
   TODO: add canBeZero and its invariant.
@@ -107,6 +112,9 @@ fun isEmpty :: "JavaIntegerStamp \<Rightarrow> bool" where
     (hi <s lo \<or>
      \<not> (downMask \<subseteq>_m upMask) \<or>
      (upMask = 0 \<and> (0 <s lo \<or> hi <s 0)))"
+
+
+subsection \<open>Significant bit\<close>
 
 text \<open>Returns the most significant bit of a given width, as either 0 or 1.\<close>
 definition significantBit :: "nat \<Rightarrow> int64 \<Rightarrow> int64" where
@@ -299,6 +307,8 @@ value "max (42::nat) 3"
 value "sint ((-1 :: int8) << 2)"
 
 
+subsection \<open>Calculate minimum bound from masks\<close>
+
 text \<open>If the sign bit MUST be zero, then the value is positive and $downMask$ bits give us a
   minimum (positive) value.  
   Otherwise, the sign bit MIGHT be set, so the minimum value is $- 2^{bits-1}$
@@ -409,7 +419,9 @@ lemma neg1_shifted_is_min_value:
   by (simp add: minus_exp_eq_not_mask)
 
 
-
+text \<open>This is a helper lemma for when minValueForMasks returns a negative value.
+  In that case the bits above $n$ are all true, and we only need a subset
+  relationship on the bits below $n$ in order to prove signed less-than-or-equal.\<close>
 lemma neg_subset_leq:
   fixes a b :: int64
   assumes "0 \<le> n"
@@ -418,25 +430,45 @@ lemma neg_subset_leq:
   assumes "aLow \<subseteq>_m b"
   shows "signed_take_bit n a \<le>s signed_take_bit n b"
 proof -
-  have "bit a n"
+  have an: "bit a n"
     by (simp add: assms(2) assms(3) bit_mask_iff bit_not_iff bit_or_iff shiftl_def)
-  then have "signed_take_bit n a = (take_bit n a OR NOT (mask n))"
+  then have a: "signed_take_bit n a = (take_bit n a OR NOT (mask n))"
     unfolding signed_take_bit_def by simp
-  then have "signed_take_bit n a \<le>s 0"
-    sorry
+  then have a63: "bit (signed_take_bit n a) (64 - 1)"
+    by (smt (z3) One_nat_def Suc_leI Suc_pred' assms(1) assms(2) bit.compl_zero bit_last_iff bit_mask_iff bit_not_iff_eq bit_or_iff linorder_not_le order_le_less_trans sint_n1 size64 wsst_TYs(3))
+  then have a0: "signed_take_bit n a \<le>s 0"
+    by (metis One_nat_def bit_last_iff dual_order.strict_iff_not sint_0 size64 word_sle_eq wsst_TYs(3))
   then show ?thesis
-    sorry
+  proof (cases "bit b n")
+    case True
+    then have b: "signed_take_bit n b = (take_bit n b OR NOT (mask n))"
+      by (simp add: signed_take_bit_eq_if_negative)
+    then have "signed_take_bit n a \<subseteq>_m signed_take_bit n b"
+      using a b
+      by (metis (no_types, lifting) assms(3) assms(4) bit.double_compl mask_subset_mono_and mask_subset_mono_or mask_subset_reflexive neg1_shifted_is_not_mask or.right_neutral take_bit_eq_mask take_bit_or word_bw_comms(2))
+    then show ?thesis
+      using a63 One_nat_def mask_subset_neg64_ge_signed significantBitTrue by presburger
+  next
+    case False
+    then have b: "signed_take_bit n b = take_bit n b"
+      by (simp add: signed_take_bit_eq_if_positive)
+    then have "0 \<le>s signed_take_bit n b"
+      by (metis an bit_imp_le_length signed_0 take_bit_smaller_range word_sle_eq)
+    then show ?thesis
+      using a0 by auto
+  qed
 qed
 
 
+text \<open>The main correctness result for minValueForMasks is that all values that have
+  the required bits set will be greater than (or equal to) the lower bound that
+  minValueForMasksCorrect returns.\<close> 
 lemma minValueForMasksCorrect:
   assumes "minValueForMasks bits downMask upMask = m"
   assumes "0 < bits"
   assumes "bits \<le> 64"
   assumes "val \<subseteq>_m upMask"
   assumes "downMask \<subseteq>_m val"
-  assumes "fst (bit_bounds bits) \<le> int_signed_value bits val"
-  assumes "int_signed_value bits val \<le> snd (bit_bounds bits)"
   shows "int_signed_value bits m \<le> int_signed_value bits val"
 proof (cases "significantBit bits upMask = 0")
   case True
@@ -489,6 +521,9 @@ qed
 
 value "((-1 :: int8) << (8 - Suc 0))"
 
+
+subsection \<open>Calculate maximum bound from masks\<close>
+
 text \<open>Precondition: $significantBit downMask = 1 \<longrightarrow> significantBit upMask = 1$.\<close>
 fun maxValueForMasks:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64" where
   "maxValueForMasks bits downMask upMask = (
@@ -498,10 +533,10 @@ fun maxValueForMasks:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow
   )"
 
 value "maxValueForMasks 32 0 1"
-value "minValueForMasks 32 (-1) (-1)"
+value "sint(minValueForMasks 32 (-1) (-1))"
 
 value "maxValueForMasks 32 0 4294967295"
-value "maxValueForMasks 32 (-1) 4294967295"
+value "sint(maxValueForMasks 32 (-1) 4294967295)"
 
 value "numberOfLeadingZeros (5 :: int64)"
 
@@ -633,8 +668,6 @@ fun stamp_for_mask:: "Value \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
 
 value "val_to_int (minValueForMasks (IntVal64 1) (IntVal64 2) (IntVal64 3))"
 *)
-
-value " 2::int64"
 
 value "max (42::nat) 3"
 

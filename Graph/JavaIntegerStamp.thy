@@ -40,14 +40,14 @@ subsection \<open>The bit-subset relationship between values or masks\<close>
 text \<open>The Java code often has 'm2 & ~m1 == 0' to check that word w1 is a subset (or equal) of w2.
   To improve readability, we define this pattern as the following infix abbreviation.
 \<close>  
-abbreviation word_subseteq :: "'a :: len word \<Rightarrow> 'a :: len word \<Rightarrow> bool" (infix "\<subseteq>w" 70) where
+definition word_subseteq :: "'a :: len word \<Rightarrow> 'a :: len word \<Rightarrow> bool" (infix "\<subseteq>w" 70) where
   "word_subseteq w1 w2 \<equiv> (w1 AND NOT w2 = 0)"
 
 lemma word_subseteq_implies:
   assumes "m1 \<subseteq>w m2"
   assumes "bit m1 b"
   shows "bit m2 b"
-  by (metis assms(1) assms(2) bit_0_eq bit_and_iff bit_int_code(1) bit_not_iff impossible_bit)
+  by (metis assms(1) assms(2) word_subseteq_def bit_0_eq bit_and_iff bit_int_code(1) bit_not_iff impossible_bit)
 
 lemma word_subseteq_implies_rev:
   assumes "word_subseteq m1 m2"
@@ -56,44 +56,40 @@ lemma word_subseteq_implies_rev:
   using assms(1) assms(2) word_subseteq_implies by blast
 
 lemma word_subseteq_transitive:
-  assumes "m1 \<subseteq>w m2"
-  assumes "m2 \<subseteq>w m3"
-  shows "m1 \<subseteq>w m3"
-  by (rule bit_word_eqI; metis assms bit_and_iff word_subseteq_implies)
+  "m1 \<subseteq>w m2 \<Longrightarrow> m2 \<subseteq>w m3 \<Longrightarrow> m1 \<subseteq>w m3"
+  unfolding word_subseteq_def
+  by (rule bit_word_eqI; metis bit_and_iff bit_not_iff)
 
 lemma word_subseteq_antisym:
-  assumes "a \<subseteq>w b"
-  assumes "b \<subseteq>w a"
-  shows "a = b"
-  by (metis assms(1) assms(2) disjunctive_diff eq_iff_diff_eq_0 word_subseteq_implies)
+  "a \<subseteq>w b \<Longrightarrow> b \<subseteq>w a \<Longrightarrow> a = b"
+  by (rule bit_word_eqI; auto simp: word_subseteq_implies)
 
 
-
-abbreviation word_subset :: "'a :: len word \<Rightarrow> 'a :: len word \<Rightarrow> bool" (infix "\<subset>w" 70) where
+definition word_subset :: "'a :: len word \<Rightarrow> 'a :: len word \<Rightarrow> bool" (infix "\<subset>w" 70) where
   "word_subset w1 w2 \<equiv> (word_subseteq w1 w2 \<and> w1 \<noteq> w2)"
 
 
 interpretation word_subset_order: ordering \<open>(\<subseteq>w)\<close> \<open>(\<subset>w)\<close>
   using word_subseteq_transitive word_subseteq_antisym
-  by (smt (verit, best) bit.conj_cancel_right ordering_strictI) 
+  by (smt (verit, best) ordering_strictI word_and_not word_subseteq_def word_subset_def)
 
 
 text \<open>Some partial monotonicity properties.\<close>
 
 lemma word_subseteq_mono_and:
-  assumes "m1 \<subseteq>w m2"
-  shows "(m1 AND m) \<subseteq>w (m2 AND m)"
-  by (rule bit_word_eqI; metis assms bit_and_iff word_subseteq_implies word_subset_order.refl)
+  "m1 \<subseteq>w m2 \<Longrightarrow> (m1 AND m) \<subseteq>w (m2 AND m)"
+  unfolding word_subseteq_def
+  by (metis (no_types, opaque_lifting) bit.compl_zero bit.de_Morgan_conj or.commute word_bitwise_m1_simps(2) word_bw_assocs(1) word_not_not word_oa_dist word_or_not)
 
 lemma word_subseteq_mono_or:
-  assumes "m1 \<subseteq>w m2"
-  shows "(m1 OR m) \<subseteq>w (m2 OR m)"
-  by (rule bit_word_eqI; metis assms bit.compl_zero bit_and_iff bit_not_iff bit_or_iff negone_set)
+  "m1 \<subseteq>w m2 \<Longrightarrow> (m1 OR m) \<subseteq>w (m2 OR m)"
+  unfolding word_subseteq_def
+  by (metis (no_types, lifting) bit.conj_disj_distrib2 bit.de_Morgan_disj word_and_not word_ao_absorbs(6) word_bw_lcs(1))
 
 lemma word_subseteq_antimono_not:
-  assumes "NOT m1 \<subseteq>w NOT m2"
-  shows "m2 \<subseteq>w m1"
-  by (metis and.commute assms word_not_not)
+  "NOT m1 \<subseteq>w NOT m2 \<Longrightarrow> m2 \<subseteq>w m1"
+  unfolding word_subseteq_def
+  by (simp add: and.commute)
 
 
 lemma word_subseteq_ge:
@@ -166,14 +162,16 @@ lemma word_subseteq_pos64_ge_signed:
   assumes "significantBit 64 m2 = 0"
   shows "m1 \<le>s m2"
 proof -
-  have "0 \<le> sint m2"
+  have 3: "m1 AND NOT m2 = 0"
+    using assms(1) word_subseteq_def by auto
+  have 4: "0 \<le> sint m2"
     by (metis assms(2) bit_unsigned_iff signed_take_bit_nonnegative_iff significantBitFalse sint_uint size64 wsst_TYs(3))
   have "significantBit 64 m1 = 0"
     using assms word_subseteq_implies significantBitValue by fastforce
   then have "0 \<le> sint m1"
     by (metis bit_unsigned_iff signed_take_bit_nonnegative_iff significantBitFalse sint_uint size64 wsst_TYs(3))
   then show ?thesis
-    by (metis (no_types, opaque_lifting) AND_upper2 \<open>(0::int) \<le> sint (m2::64 word)\<close> assms(1) bit.conj_disj_distrib or.right_neutral signed_and_eq word_and_max word_or_not word_sle_eq)
+    by (metis (no_types, opaque_lifting) 3 4 AND_upper2 bit.conj_disj_distrib or.right_neutral signed_and_eq word_and_max word_or_not word_sle_eq)
 qed
 
 lemma word_subseteq_neg64_ge_signed:
@@ -182,13 +180,24 @@ lemma word_subseteq_neg64_ge_signed:
   assumes "significantBit 64 m1 = 1"
   shows "m1 \<le>s m2"
 proof -
-  have "sint m1 < 0"
+  have 3: "m1 AND NOT m2 = 0"
+    using assms(1) word_subseteq_def by auto
+  have 4: "sint m1 < 0"
     using assms(2) bit_last_iff significantBitValue by fastforce
   then have "sint m2 < 0"
     using assms(1) bit_last_iff word_subseteq_implies by blast
   then show ?thesis
-    by (metis (no_types, lifting) \<open>sint (m1::64 word) < (0::int)\<close> and.commute and_less_eq assms(1) bit.conj_disj_distrib or.right_neutral signed_and_eq word_and_max word_or_not word_sle_eq)
+    by (metis (no_types, lifting) 3 4 and.commute and_less_eq bit.conj_disj_distrib or.right_neutral signed_and_eq word_and_max word_or_not word_sle_eq)
 qed
+
+lemma pos_implies_sint_leq:
+  fixes a b :: "'a :: len word"
+  assumes "a \<le> b"
+  assumes "0 \<le> sint a"
+  assumes "0 \<le> sint b"
+  shows "sint a \<le> sint b"
+  by (smt (verit) One_nat_def Suc_pred' assms(1) assms(3) len_gt_0 signed_take_bit_int_eq_self signed_take_bit_int_less_eq sint_uint unsigned_greater_eq unsigned_less word_less_eq_iff_unsigned word_sle_eq)
+
 
 text \<open>Now we generalise the above results for any bit size, using int_signed_value.\<close>
 lemma word_subseteq_pos_ge_signed:
@@ -199,22 +208,18 @@ lemma word_subseteq_pos_ge_signed:
   assumes "significantBit bits m2 = 0"
   shows "int_signed_value bits m1 \<le> int_signed_value bits m2"
 proof -
-  have m1_0: "\<not> bit m1 (bits - (Suc 0))"
-    using assms(1) assms(4) word_subseteq_implies significantBitFalse by blast
-  then have "0 \<le> take_bit (bits - (Suc 0)) m1"
-    by simp
-  then have m2_0: "\<not> bit m2 (bits - (Suc 0))"
+  have m1f: "\<not> bit m1 (bits - 1)"
+    by (metis assms(1) assms(4) word_subseteq_implies significantBitFalse One_nat_def)
+  then have m1pos: "0 \<le> sint(signed_take_bit (bits - 1) m1)"
+    by (metis Suc_le_lessD Suc_pred' assms(2) assms(3) signed_take_bit_eq_if_positive size64 take_bit_smaller_range wsst_TYs(3))
+  have m2f: "\<not> bit m2 (bits - 1)"
     using assms significantBitFalse by auto
-  then have "0 \<le> take_bit (bits - (Suc 0)) m2"
-    by simp
-  then have m2: "0 \<le> int_signed_value bits m2"
-    by (metis (mono_tags, opaque_lifting) One_nat_def Suc_le_lessD Suc_pred' m2_0 assms(2) assms(3) bit.conj_cancel_left int_signed_value.simps mult_zero_left of_bool_eq(1) or_eq_not_not_and signed_take_bit_def size64 take_bit_smaller_range word_and_max word_not_not wsst_TYs(3))
-  then have "take_bit (bits - (Suc 0)) m1 \<le> take_bit (bits - (Suc 0)) m2"
-    using word_subseteq_ge
-    by (metis (no_types, opaque_lifting) assms(1) bit.conj_disj_distrib take_bit_and word_and_max word_and_not word_not_dist(2) word_not_not)
+  then have m2pos: "0 \<le> sint(signed_take_bit (bits - 1) m2)"
+    by (metis Suc_le_lessD Suc_pred' assms(2) assms(3) signed_take_bit_eq_if_positive size64 take_bit_smaller_range wsst_TYs(3))
+  then have "signed_take_bit (bits - 1) m1 \<le> signed_take_bit (bits - 1) m2"
+    by (metis assms(1) m1f m2f word_subseteq_ge signed_take_bit_eq_if_positive take_bit_eq_mask word_subseteq_mono_and)
   then show ?thesis
-    unfolding int_signed_value.simps signed_take_bit_def
-    by (smt (verit, ccfv_threshold) AND_upper2 One_nat_def m1_0 and.commute and.idem and.right_neutral and_zero_eq assms(1) bit.conj_disj_distribs(2) int_signed_value.elims m2 m2_0 mult_zero_left of_bool_eq(1) signed_and_eq signed_take_bit_def take_bit_and word_ao_equiv word_bw_assocs(1) word_or_not)
+    by (metis m1pos m2pos int_signed_value.simps pos_implies_sint_leq)
 qed
 
 lemma bit_not_iff_word:
@@ -225,7 +230,8 @@ lemma bit_not_iff_word:
 
 lemma bit_subset_and_or_not:
   "((a AND m) OR (NOT m)) \<subseteq>w ((b AND m) OR (NOT m)) = ((a AND m) \<subseteq>w (b AND m))"
-  by (smt (verit, del_insts) and.assoc bit.conj_cancel_left word_ao_absorbs(7) word_ao_dist word_bw_comms(1) word_not_dist(1) word_not_not)
+  by (smt (verit, del_insts) and.commute and_zero_eq bit.de_Morgan_disj word_ao_absorbs(3) word_bw_assocs(1) word_not_not word_subseteq_def word_subseteq_mono_or)
+
 
 lemma word_subseteq_neg_ge_signed:
   fixes m1 m2 :: "int64"

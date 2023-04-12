@@ -37,48 +37,69 @@ begin
 
 subsection \<open>The bit-subset relationship between values or masks\<close>
 
-text \<open>The Java code often has 'm2 & ~m1 == 0' to check that mask m1 is a subset (or equal) of m2.
+text \<open>The Java code often has 'm2 & ~m1 == 0' to check that word w1 is a subset (or equal) of w2.
   To improve readability, we define this pattern as the following infix abbreviation.
 \<close>  
-abbreviation mask_subset :: "'a :: len word \<Rightarrow> 'a :: len word \<Rightarrow> bool" (infix "\<subseteq>'_m" 70) where
-  "mask_subset m1 m2 \<equiv> (m1 AND NOT m2 = 0)"
+abbreviation word_subseteq :: "'a :: len word \<Rightarrow> 'a :: len word \<Rightarrow> bool" (infix "\<subseteq>w" 70) where
+  "word_subseteq w1 w2 \<equiv> (w1 AND NOT w2 = 0)"
 
-lemma mask_implies:
-  assumes "mask_subset m1 m2"
+lemma word_subseteq_implies:
+  assumes "m1 \<subseteq>w m2"
   assumes "bit m1 b"
   shows "bit m2 b"
   by (metis assms(1) assms(2) bit_0_eq bit_and_iff bit_int_code(1) bit_not_iff impossible_bit)
 
-lemma mask_implies_rev:
-  assumes "mask_subset m1 m2"
+lemma word_subseteq_implies_rev:
+  assumes "word_subseteq m1 m2"
   assumes "\<not> bit m2 b"
   shows "\<not> bit m1 b"
-  using assms(1) assms(2) mask_implies by blast
+  using assms(1) assms(2) word_subseteq_implies by blast
 
-lemma mask_subset_reflexive:
-  shows "m1 \<subseteq>_m m1"
-  by auto
+lemma word_subseteq_transitive:
+  assumes "m1 \<subseteq>w m2"
+  assumes "m2 \<subseteq>w m3"
+  shows "m1 \<subseteq>w m3"
+  by (rule bit_word_eqI; metis assms bit_and_iff word_subseteq_implies)
 
-lemma mask_subset_transitive:
-  assumes "m1 \<subseteq>_m m2"
-  assumes "m2 \<subseteq>_m m3"
-  shows "m1 \<subseteq>_m m3"
-  by (rule bit_word_eqI; metis assms bit_and_iff mask_implies)
+lemma word_subseteq_antisym:
+  assumes "a \<subseteq>w b"
+  assumes "b \<subseteq>w a"
+  shows "a = b"
+  by (metis assms(1) assms(2) disjunctive_diff eq_iff_diff_eq_0 word_subseteq_implies)
 
-lemma mask_subset_mono_and:
-  assumes "m1 \<subseteq>_m m2"
-  shows "(m1 AND m) \<subseteq>_m (m2 AND m)"
-  by (rule bit_word_eqI; metis assms bit_and_iff mask_implies mask_subset_reflexive)
 
-lemma mask_subset_mono_or:
-  assumes "m1 \<subseteq>_m m2"
-  shows "(m1 OR m) \<subseteq>_m (m2 OR m)"
+
+abbreviation word_subset :: "'a :: len word \<Rightarrow> 'a :: len word \<Rightarrow> bool" (infix "\<subset>w" 70) where
+  "word_subset w1 w2 \<equiv> (word_subseteq w1 w2 \<and> w1 \<noteq> w2)"
+
+
+interpretation word_subset_order: ordering \<open>(\<subseteq>w)\<close> \<open>(\<subset>w)\<close>
+  using word_subseteq_transitive word_subseteq_antisym
+  by (smt (verit, best) bit.conj_cancel_right ordering_strictI) 
+
+
+text \<open>Some partial monotonicity properties.\<close>
+
+lemma word_subseteq_mono_and:
+  assumes "m1 \<subseteq>w m2"
+  shows "(m1 AND m) \<subseteq>w (m2 AND m)"
+  by (rule bit_word_eqI; metis assms bit_and_iff word_subseteq_implies word_subset_order.refl)
+
+lemma word_subseteq_mono_or:
+  assumes "m1 \<subseteq>w m2"
+  shows "(m1 OR m) \<subseteq>w (m2 OR m)"
   by (rule bit_word_eqI; metis assms bit.compl_zero bit_and_iff bit_not_iff bit_or_iff negone_set)
 
-lemma mask_subset_ge:
-  assumes "m1 \<subseteq>_m m2"
+lemma word_subseteq_antimono_not:
+  assumes "NOT m1 \<subseteq>w NOT m2"
+  shows "m2 \<subseteq>w m1"
+  by (metis and.commute assms word_not_not)
+
+
+lemma word_subseteq_ge:
+  assumes "m1 \<subseteq>w m2"
   shows "m1 \<le> m2"
-  by (metis assms disjunctive_diff mask_implies_rev uint_minus_simple_alt uint_minus_simple_iff word_and_le2)
+  by (metis assms disjunctive_diff word_subseteq_implies_rev uint_minus_simple_alt uint_minus_simple_iff word_and_le2)
 
 
 subsection \<open>Java Integer Stamps and Invariants\<close>
@@ -105,12 +126,12 @@ fun JIS_valid :: "JavaIntegerStamp \<Rightarrow> bool" where
      int_signed_value bits hi \<le> snd (bit_bounds bits) \<and>
      downMask AND mask bits = downMask \<and>
      upMask AND mask bits = upMask \<and>
-     (downMask \<subseteq>_m upMask \<or> (upMask = 0 \<and> downMask = mask bits)))"
+     (downMask \<subseteq>w upMask \<or> (upMask = 0 \<and> downMask = mask bits)))"
 
 fun isEmpty :: "JavaIntegerStamp \<Rightarrow> bool" where
   "isEmpty (JIS bits lo hi downMask upMask) =
     (hi <s lo \<or>
-     \<not> (downMask \<subseteq>_m upMask) \<or>
+     \<not> (downMask \<subseteq>w upMask) \<or>
      (upMask = 0 \<and> (0 <s lo \<or> hi <s 0)))"
 
 
@@ -139,47 +160,47 @@ lemma significantBitTrue[simp]:
   using significantBitValue significantBit_def by force
 
 
-lemma mask_subset_pos64_ge_signed:
+lemma word_subseteq_pos64_ge_signed:
   fixes m1 m2 :: "int64"
-  assumes "m1 \<subseteq>_m m2"
+  assumes "m1 \<subseteq>w m2"
   assumes "significantBit 64 m2 = 0"
   shows "m1 \<le>s m2"
 proof -
   have "0 \<le> sint m2"
     by (metis assms(2) bit_unsigned_iff signed_take_bit_nonnegative_iff significantBitFalse sint_uint size64 wsst_TYs(3))
   have "significantBit 64 m1 = 0"
-    using assms mask_implies significantBitValue by fastforce
+    using assms word_subseteq_implies significantBitValue by fastforce
   then have "0 \<le> sint m1"
     by (metis bit_unsigned_iff signed_take_bit_nonnegative_iff significantBitFalse sint_uint size64 wsst_TYs(3))
   then show ?thesis
     by (metis (no_types, opaque_lifting) AND_upper2 \<open>(0::int) \<le> sint (m2::64 word)\<close> assms(1) bit.conj_disj_distrib or.right_neutral signed_and_eq word_and_max word_or_not word_sle_eq)
 qed
 
-lemma mask_subset_neg64_ge_signed:
+lemma word_subseteq_neg64_ge_signed:
   fixes m1 m2 :: "int64"
-  assumes "m1 \<subseteq>_m m2"
+  assumes "m1 \<subseteq>w m2"
   assumes "significantBit 64 m1 = 1"
   shows "m1 \<le>s m2"
 proof -
   have "sint m1 < 0"
     using assms(2) bit_last_iff significantBitValue by fastforce
   then have "sint m2 < 0"
-    using assms(1) bit_last_iff mask_implies by blast
+    using assms(1) bit_last_iff word_subseteq_implies by blast
   then show ?thesis
     by (metis (no_types, lifting) \<open>sint (m1::64 word) < (0::int)\<close> and.commute and_less_eq assms(1) bit.conj_disj_distrib or.right_neutral signed_and_eq word_and_max word_or_not word_sle_eq)
 qed
 
 text \<open>Now we generalise the above results for any bit size, using int_signed_value.\<close>
-lemma mask_subset_pos_ge_signed:
+lemma word_subseteq_pos_ge_signed:
   fixes m1 m2 :: "int64"
-  assumes "m1 \<subseteq>_m m2"
+  assumes "m1 \<subseteq>w m2"
   assumes "0 < bits"
   assumes "bits \<le> 64"
   assumes "significantBit bits m2 = 0"
   shows "int_signed_value bits m1 \<le> int_signed_value bits m2"
 proof -
   have m1_0: "\<not> bit m1 (bits - (Suc 0))"
-    using assms(1) assms(4) mask_implies significantBitFalse by blast
+    using assms(1) assms(4) word_subseteq_implies significantBitFalse by blast
   then have "0 \<le> take_bit (bits - (Suc 0)) m1"
     by simp
   then have m2_0: "\<not> bit m2 (bits - (Suc 0))"
@@ -189,7 +210,7 @@ proof -
   then have m2: "0 \<le> int_signed_value bits m2"
     by (metis (mono_tags, opaque_lifting) One_nat_def Suc_le_lessD Suc_pred' m2_0 assms(2) assms(3) bit.conj_cancel_left int_signed_value.simps mult_zero_left of_bool_eq(1) or_eq_not_not_and signed_take_bit_def size64 take_bit_smaller_range word_and_max word_not_not wsst_TYs(3))
   then have "take_bit (bits - (Suc 0)) m1 \<le> take_bit (bits - (Suc 0)) m2"
-    using mask_subset_ge
+    using word_subseteq_ge
     by (metis (no_types, opaque_lifting) assms(1) bit.conj_disj_distrib take_bit_and word_and_max word_and_not word_not_dist(2) word_not_not)
   then show ?thesis
     unfolding int_signed_value.simps signed_take_bit_def
@@ -203,12 +224,12 @@ lemma bit_not_iff_word:
   by (simp add: assms bit_not_iff)
 
 lemma bit_subset_and_or_not:
-  "((a AND m) OR (NOT m)) \<subseteq>_m ((b AND m) OR (NOT m)) = ((a AND m) \<subseteq>_m (b AND m))"
+  "((a AND m) OR (NOT m)) \<subseteq>w ((b AND m) OR (NOT m)) = ((a AND m) \<subseteq>w (b AND m))"
   by (smt (verit, del_insts) and.assoc bit.conj_cancel_left word_ao_absorbs(7) word_ao_dist word_bw_comms(1) word_not_dist(1) word_not_not)
 
-lemma mask_subset_neg_ge_signed:
+lemma word_subseteq_neg_ge_signed:
   fixes m1 m2 :: "int64"
-  assumes "m1 \<subseteq>_m m2"
+  assumes "m1 \<subseteq>w m2"
   assumes "0 < bits"
   assumes "bits \<le> 64"
   assumes "significantBit bits m1 = 1"
@@ -234,13 +255,13 @@ proof -
     unfolding 2 significantBitTrue
     by (metis One_nat_def bit_or_iff)
   have 2: "of_bool (bit m2 (bits - 1)) = 1"
-    using "1" assms(1) mask_implies by auto
-  then have "signed_take_bit (bits - 1) m1 \<subseteq>_m signed_take_bit (bits - 1) m2"
+    using "1" assms(1) word_subseteq_implies by auto
+  then have "signed_take_bit (bits - 1) m1 \<subseteq>w signed_take_bit (bits - 1) m2"
     unfolding signed_take_bit_def 1 2 mult_1 take_bit_eq_mask bit_subset_and_or_not
-    using mask_subset_mono_and
+    using word_subseteq_mono_and
     using assms(1) by blast
   then have "signed_take_bit (bits - 1) m1 \<le>s signed_take_bit (bits - 1) m2"
-    using 64 mask_subset_neg64_ge_signed by blast
+    using 64 word_subseteq_neg64_ge_signed by blast
   then show ?thesis
     by (simp add: word_sle_eq)
 qed
@@ -313,7 +334,8 @@ text \<open>If the sign bit MUST be zero, then the value is positive and $downMa
   minimum (positive) value.  
   Otherwise, the sign bit MIGHT be set, so the minimum value is $- 2^{bits-1}$
   plus all the bits (in $downMask$) that are known to be set.
-  Precondition: $significantBit upMark = 0 \<longrightarrow> significantBit downMask = 1$.\<close>
+  Precondition: $significantBit upMark = 0 \<longrightarrow> significantBit downMask = 1$
+  Precondition: $\<forall>i. bit downMask i \<longrightarrow> i < bits$.\<close>
 definition minValueForMasks:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64" where
   "minValueForMasks bits downMask upMask = (
     if significantBit bits upMask = (0::int64)
@@ -321,11 +343,33 @@ definition minValueForMasks:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rig
     else downMask OR ((-1) << (bits - 1))
   )"
 
+text \<open>A sanity check is that minValueForMasks is the same as $signed_take_bit$,
+  at least when $upMask$ and $downMask$ agree on the sign.\<close>
+lemma minValueForMasksIsSignedTakeBit:
+  assumes "0 < bits"
+  assumes "downMask AND (mask bits) = downMask"
+  assumes "significantBit bits downMask = significantBit bits upMask"
+  shows "minValueForMasks bits downMask upMask = signed_take_bit (bits - 1) downMask"
+proof (cases "significantBit bits upMask = 0")
+  case True
+  then have "minValueForMasks bits downMask upMask = downMask"
+    using minValueForMasks_def by presburger
+  then show ?thesis
+    by (metis (no_types, lifting) Suc_pred' True assms(1) assms(2) assms(3) maskSmaller one_neq_zero signed_take_bit_eq_if_positive significantBitValue take_bit_eq_mask)
+next
+  case False
+  then have "minValueForMasks bits downMask upMask = downMask OR ((-1) << (bits - 1))"
+    using minValueForMasks_def by presburger
+  then show ?thesis
+    by (metis (no_types, lifting) False One_nat_def assms(3) push_bit_minus_one_eq_not_mask shiftl_def signed_take_bit_eq_if_negative significantBitFalse take_bit_eq_mask word_and_max word_oa_dist word_or_not)
+qed
+
+
 lemma less_bits_less_than:
   fixes down val :: "'a :: len word"
-  assumes "down \<subseteq>_m val"
+  assumes "down \<subseteq>w val"
   shows "down \<le> val"
-  by (metis assms disjunctive_diff mask_implies word_and_le2 word_sub_le_iff)
+  by (metis assms disjunctive_diff word_subseteq_implies word_and_le2 word_sub_le_iff)
 
 lemma top_bit_false_if_le:
   fixes a b :: "'a :: len word"
@@ -351,14 +395,14 @@ text \<open>When we have a subset relation between the bits of two words, we can
 
 lemma less_bits_signed_leq_pos:
   fixes down val :: "'a :: len word"
-  assumes "down \<subseteq>_m val"
+  assumes "down \<subseteq>w val"
   assumes "\<not> bit val (LENGTH('a) - Suc 0)"
   shows "down \<le>s val"
 proof -
   have uval: "sint val = uint val"
     by (metis (no_types, lifting) assms(2) bintr_uint bit_unsigned_iff le_eq_less_or_eq signed_take_bit_eq_if_positive sint_uint uint_sint unsigned_take_bit_eq)
   have "\<not> bit down (LENGTH('a) - Suc 0)"
-    using assms(1) assms(2) mask_implies by blast
+    using assms(1) assms(2) word_subseteq_implies by blast
   then have udown: "sint down = uint down"
     by (smt (verit, ccfv_threshold) bit_last_iff signed_take_bit_int_eq_self sint_less sint_uint take_bit_int_greater_self_iff uint_sint unsigned_greater_eq)
   then show ?thesis
@@ -368,15 +412,15 @@ qed
 
 lemma less_bits_signed_leq_neg:
   fixes down val :: "'a :: len word"
-  assumes "down \<subseteq>_m val"
+  assumes "down \<subseteq>w val"
   assumes "bit down (LENGTH('a) - Suc 0)"
   shows "down \<le>s val"
 proof -
   have "bit val (LENGTH('a) - Suc 0)"
-    using assms mask_implies by auto
+    using assms word_subseteq_implies by auto
   then show ?thesis
     unfolding word_sle_eq sint_uint signed_take_bit_eq_take_bit_minus
-    using assms bit_uint_iff mask_subset_ge word_of_int_less_eq_iff by fastforce
+    using assms bit_uint_iff word_subseteq_ge word_of_int_less_eq_iff by fastforce
 qed
 
 value "of_bool False :: 1 word"
@@ -427,7 +471,7 @@ lemma neg_subset_leq:
   assumes "0 \<le> n"
   assumes "n < 64"
   assumes "a = (((-1) << n) OR aLow)"
-  assumes "aLow \<subseteq>_m b"
+  assumes "aLow \<subseteq>w b"
   shows "signed_take_bit n a \<le>s signed_take_bit n b"
 proof -
   have an: "bit a n"
@@ -443,11 +487,10 @@ proof -
     case True
     then have b: "signed_take_bit n b = (take_bit n b OR NOT (mask n))"
       by (simp add: signed_take_bit_eq_if_negative)
-    then have "signed_take_bit n a \<subseteq>_m signed_take_bit n b"
-      using a b
-      by (metis (no_types, lifting) assms(3) assms(4) bit.double_compl mask_subset_mono_and mask_subset_mono_or mask_subset_reflexive neg1_shifted_is_not_mask or.right_neutral take_bit_eq_mask take_bit_or word_bw_comms(2))
+    then have "signed_take_bit n a \<subseteq>w signed_take_bit n b"
+      by (metis (no_types, lifting) a assms(3) assms(4) bit.conj_cancel_left neg1_shifted_is_not_mask or.left_neutral take_bit_eq_mask take_bit_or word_subseteq_mono_and word_subseteq_mono_or)
     then show ?thesis
-      using a63 One_nat_def mask_subset_neg64_ge_signed significantBitTrue by presburger
+      using a63 One_nat_def word_subseteq_neg64_ge_signed significantBitTrue by presburger
   next
     case False
     then have b: "signed_take_bit n b = take_bit n b"
@@ -467,17 +510,17 @@ lemma minValueForMasksCorrect:
   assumes "minValueForMasks bits downMask upMask = m"
   assumes "0 < bits"
   assumes "bits \<le> 64"
-  assumes "val \<subseteq>_m upMask"
-  assumes "downMask \<subseteq>_m val"
+  assumes "val \<subseteq>w upMask"
+  assumes "downMask \<subseteq>w val"
   shows "int_signed_value bits m \<le> int_signed_value bits val"
 proof (cases "significantBit bits upMask = 0")
   case True
   then have 10: "\<not> bit upMask (bits - Suc 0)"
     using significantBitFalse by simp
   then have 11: "\<not> bit val (bits - Suc 0)"
-    using assms(4) mask_implies by blast
+    using assms(4) word_subseteq_implies by blast
   then have 12: "\<not> bit downMask (bits - Suc 0)"
-    using assms(5) mask_implies by blast
+    using assms(5) word_subseteq_implies by blast
   then have m: "m = downMask"
     using True assms(1) minValueForMasks_def by fastforce
   then have mval: "m \<le> val"
@@ -491,7 +534,7 @@ proof (cases "significantBit bits upMask = 0")
   then have "0 \<le> int_signed_value bits m"
     by (smt (verit, best) "11" "12" One_nat_def valpos mval bit_last_iff bit_take_bit_iff int_signed_value.simps m signed_take_bit_eq_if_positive top_bit_false_if_le)
   then show ?thesis
-    using "11" assms(2) assms(3) assms(5) m mask_subset_pos_ge_signed significantBitFalse by blast
+    using "11" assms(2) assms(3) assms(5) m word_subseteq_pos_ge_signed significantBitFalse by blast
 next
   case False
   then have 10: "bit upMask (bits - Suc 0)"
@@ -519,13 +562,13 @@ next
     by (simp add: word_sle_eq)
 qed
 
-value "((-1 :: int8) << (8 - Suc 0))"
+
 
 
 subsection \<open>Calculate maximum bound from masks\<close>
 
 text \<open>Precondition: $significantBit downMask = 1 \<longrightarrow> significantBit upMask = 1$.\<close>
-fun maxValueForMasks:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64" where
+definition maxValueForMasks:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64" where
   "maxValueForMasks bits downMask upMask = (
     if significantBit bits downMask = (1::int64)
     then (signed_take_bit (bits - 1) upMask)
@@ -541,12 +584,42 @@ value "sint(maxValueForMasks 32 (-1) 4294967295)"
 value "numberOfLeadingZeros (5 :: int64)"
 
 
-value "min 2 3::int"
+lemma maxValueForMasksCorrect:
+  assumes "maxValueForMasks bits downMask upMask = m"
+  assumes "0 < bits"
+  assumes "bits \<le> 64"
+  assumes "val \<subseteq>w upMask"
+  assumes "downMask \<subseteq>w val"
+  shows "int_signed_value bits val \<le> int_signed_value bits m"
+proof (cases "significantBit bits downMask = 1")
+  case True
+  then have 11: "bit val (bits - Suc 0)"
+    using assms(4) word_subseteq_implies assms(5) significantBitTrue by blast 
+  then have 10: "bit upMask (bits - Suc 0)"
+    using significantBitTrue assms(4) assms(5) word_subseteq_implies by blast 
+  then have m: "m = signed_take_bit (bits - 1) upMask"
+    using True assms(1) maxValueForMasks_def by fastforce
+  then have mval: "val \<le> m"
+    sorry
+(* TODO: *)
+(* strange that unsigned is easier to prove here than signed!
+  then have "0 \<le> signed_take_bit (bits - Suc 0) val"
+    using word_zero_le by blast
+  then have valpos: "0 \<le> int_signed_value bits val"
+    unfolding int_signed_value.simps One_nat_def
+    by (metis (mono_tags, opaque_lifting) "11" assms(3) bit_uint_iff less_imp_diff_less nat_less_le signed_take_bit_eq_if_positive sint_uint size64 take_bit_nonnegative take_bit_smaller_range wsst_TYs(3))
+  then have "0 \<le> int_signed_value bits m"
+    by (smt (verit, best) "11" One_nat_def valpos mval bit_last_iff bit_take_bit_iff int_signed_value.simps m signed_take_bit_eq_if_positive top_bit_false_if_le)
+  then show ?thesis
+    using "11" assms(2) assms(3) assms(5) m word_subseteq_pos_ge_signed significantBitFalse by blast
+*)
+next
+  case False
+  oops
 
-value "(word_of_int (-1)::int64)"
 
-value "((-1) :: int64) >>> nat (4 - 8)"
-value "- (1 :: int64)"
+
+
 
 definition neg_one64 :: "int64" where
   "neg_one64 = ((-1) :: int64)"

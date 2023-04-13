@@ -581,13 +581,82 @@ definition maxValueForMasks:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rig
     else (upMask AND (mask bits >>> 1))
   )"
 
-value "maxValueForMasks 32 0 1"
-value "sint(minValueForMasks 32 (-1) (-1))"
+text \<open>Some examples:\<close>
 
-value "maxValueForMasks 32 0 4294967295"
-value "sint(maxValueForMasks 32 (-1) 4294967295)"
+corollary "maxValueForMasks 32 0 5 = 5" by eval
+corollary "sint(maxValueForMasks 32 (-3) (-5)) = -5" by eval
 
-value "numberOfLeadingZeros (5 :: int64)"
+corollary "maxValueForMasks 32 0 (2^32 - 1) = 2^31 - 1" by eval
+corollary "sint(maxValueForMasks 32 (-1) 4294967295) = -1" by eval
+
+corollary "numberOfLeadingZeros (5 :: int64) = 61" by eval
+
+
+text \<open>This is just a translation to Word of the Bit Operations
+  lemma $drop\_bit\_mask\_eq$, but was annoyingly hard to prove.\<close>
+lemma word_drop_bit_mask_eq:
+  fixes n bits :: nat
+  assumes "n \<le> bits"
+  assumes "bits \<le> LENGTH('a)"
+  shows "drop_bit n (mask bits :: 'a :: len word) = (mask (bits - n) :: 'a :: len word)"
+proof (rule bit_word_eqI)
+  fix na
+  assume na: "na < LENGTH('a)"
+  then show "bit (drop_bit n (mask bits :: 'a :: len word)) na = bit (mask (bits - n) :: 'a :: len word) na"
+  proof (cases "na < bits - n")
+    case True
+    then have R: "bit (mask (bits - n) :: 'a :: len word) na"
+      unfolding bit_mask_iff
+      by (simp add: True assms na)
+    then have L: "bit (drop_bit n (mask bits :: 'a :: len word) :: 'a :: len word) na"
+      by (metis assms(2) drop_bit_mask_eq drop_bit_word.abs_eq mask_word.abs_eq min.commute min_def of_int_mask_eq uint_mask_eq uint_word_of_int_eq)
+    then show ?thesis
+      using L R by auto
+  next
+    case False
+    then show ?thesis
+      by (smt (verit, best) assms(2) drop_bit_mask_eq drop_bit_word.abs_eq mask_word.abs_eq min.commute min_def take_bit_length_eq uint_mask_eq unsigned_take_bit_eq)
+  qed
+qed
+
+
+text \<open>This is a helper lemma for when maxValueForMasks returns a positive value.
+  In that case the bits above $n$ are all false, and we only need a subset
+  relationship on the bits below $n$ in order to prove signed less-than-or-equal.\<close>
+lemma pos_subset_leq:
+  fixes a b bLow :: "'a :: len word"
+  assumes "0 \<le> n"
+  assumes "n < LENGTH('a)"
+  assumes "b = bLow AND (mask n :: 'a :: len word)"
+  assumes "a \<subseteq>w bLow"
+  shows "sint (signed_take_bit n a) \<le> sint (signed_take_bit n b)"
+proof -
+  have "of_bool (bit b n) = 0"
+    by (simp add: assms(3) bit_and_iff bit_mask_iff)
+  then have b: "signed_take_bit n b = take_bit n b"
+    by (simp add: signed_take_bit_eq_if_positive)
+  then have bpos: "0 \<le> sint (signed_take_bit n b)"
+      using assms(2) take_bit_smaller_range by auto
+  then show ?thesis
+  proof (cases "bit a n")
+    case True
+    then have "of_bool (bit a n) = 1"
+      by simp
+    then have aneg: "sint (signed_take_bit n a) < 0"
+      using signed_take_bit_negative_iff
+      by (smt (verit, del_insts) True bit_1_iff bit_imp_le_length bit_last_iff diff_Suc_less dual_order.strict_iff_not negone_set or_negative_int_iff signed_or_eq signed_take_bit_eq_if_negative signed_take_bit_of_minus_1 take_bit_smaller_range)
+    then show ?thesis 
+      using aneg bpos by arith
+  next
+    case False
+    then have a: "signed_take_bit n a = take_bit n a"
+      by (simp add: signed_take_bit_eq_if_positive)
+    then have apos: "0 \<le> sint (signed_take_bit n a)"
+      using assms(2) take_bit_smaller_range by auto
+    then show ?thesis
+      by (metis a and.right_idem assms(3) assms(4) b bpos less_bits_less_than pos_implies_sint_leq take_bit_eq_mask word_subseteq_mono_and)
+  qed
+qed
 
 
 lemma maxValueForMasksCorrect:
@@ -596,36 +665,39 @@ lemma maxValueForMasksCorrect:
   assumes "bits \<le> 64"
   assumes "val \<subseteq>w upMask"
   assumes "downMask \<subseteq>w val"
-  shows "int_signed_value bits val \<le> int_signed_value bits m"
+  shows "int_signed_value bits val \<le> int_signed_value bits m" (is "?L \<le> ?R")
 proof (cases "significantBit bits downMask = 1")
   case True
-  then have 11: "bit val (bits - Suc 0)"
-    using assms(4) word_subseteq_implies assms(5) significantBitTrue by blast 
   then have 10: "bit upMask (bits - Suc 0)"
-    using significantBitTrue assms(4) assms(5) word_subseteq_implies by blast 
+    using significantBitTrue assms(4) assms(5) word_subseteq_implies by blast
   then have m: "m = signed_take_bit (bits - 1) upMask"
     using True assms(1) maxValueForMasks_def by fastforce
-  then have mval: "val \<le> m"
-    sorry
-(* TODO: *)
-(* strange that unsigned is easier to prove here than signed!
-  then have "0 \<le> signed_take_bit (bits - Suc 0) val"
-    using word_zero_le by blast
-  then have valpos: "0 \<le> int_signed_value bits val"
-    unfolding int_signed_value.simps One_nat_def
-    by (metis (mono_tags, opaque_lifting) "11" assms(3) bit_uint_iff less_imp_diff_less nat_less_le signed_take_bit_eq_if_positive sint_uint size64 take_bit_nonnegative take_bit_smaller_range wsst_TYs(3))
-  then have "0 \<le> int_signed_value bits m"
-    by (smt (verit, best) "11" One_nat_def valpos mval bit_last_iff bit_take_bit_iff int_signed_value.simps m signed_take_bit_eq_if_positive top_bit_false_if_le)
+  then have m': "signed_take_bit (bits - 1) m = signed_take_bit (bits - 1) upMask"
+    by simp
+  then have 11: "bit val (bits - Suc 0)"
+    using True assms(5) word_subseteq_implies_rev by auto
+  then have "signed_take_bit (bits - 1) val \<subseteq>w signed_take_bit (bits - 1) upMask"
+    by (simp add: "10" assms(4) signed_take_bit_def take_bit_eq_mask word_subseteq_mono_and word_subseteq_mono_or)
   then show ?thesis
-    using "11" assms(2) assms(3) assms(5) m word_subseteq_pos_ge_signed significantBitFalse by blast
-*)
+    unfolding int_signed_value.simps m'
+    using "11" assms(2) assms(3) assms(4) word_subseteq_neg_ge_signed by auto
 next
   case False
-  oops
+  then have m: "m = upMask AND (drop_bit 1 (mask bits))" 
+    by (metis assms(1) maxValueForMasks_def shiftr_def)
+  then have "\<not> bit (drop_bit 1 (mask bits)) (bits - Suc 0)"
+    by (metis One_nat_def assms(2) bit_iff_and_drop_bit_eq_1 bit_mask_iff drop_bit_drop_bit le_add_diff_inverse2 less_not_refl less_one linorder_not_less)
+  then have "\<not> bit m (bits - Suc 0)"
+    using m bit_and_iff by blast 
+  then show ?thesis
+    unfolding int_signed_value.simps
+    using pos_subset_leq word_drop_bit_mask_eq
+    by (metis One_nat_def Suc_pred' assms(2) assms(3) assms(4) linorder_not_le m not_less_eq size64 wsst_TYs(3))
+qed
 
 
 
-
+subsection \<open>Constructor functions for JavaIntegerStamp\<close>
 
 definition neg_one64 :: "int64" where
   "neg_one64 = ((-1) :: int64)"

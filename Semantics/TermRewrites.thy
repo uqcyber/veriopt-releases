@@ -1,6 +1,5 @@
 theory TermRewrites
   imports Semantics.IRTreeEvalThms Semantics.TreeToGraphThms
-
 begin
 
 (*
@@ -218,6 +217,7 @@ fun vars :: "IRExpr \<Rightarrow> String.literal fset" where
   "vars (ConstantVar x) = {|x|}" |
   "vars (VariableExpr x s) = {|x|}"
 
+(*
 typedef Rewrite = "{ (e1,e2,cond) :: IRExpr \<times> IRExpr \<times> (Substitution \<Rightarrow> bool) | e1 e2 cond . vars e2 |\<subseteq>| vars e1 }" 
 proof -
   have "\<exists>v. vars (ConstantExpr v) |\<subseteq>| vars (ConstantExpr v)" by simp
@@ -275,7 +275,7 @@ value "pattern_depth (UnaryExpr UnaryAbs (UnaryExpr UnaryNot (VariableExpr (STR 
 value "pattern_depth (BinaryExpr BinAdd (UnaryExpr UnaryNot (VariableExpr (STR ''x'') VoidStamp)) (VariableExpr (STR ''x'') VoidStamp))"
 value "pattern_depth (BinaryExpr BinAdd (UnaryExpr UnaryNot (ConstantExpr (IntVal 32 0))) (VariableExpr (STR ''x'') VoidStamp))"
 value "pattern_depth (BinaryExpr BinAdd (VariableExpr (STR ''x'') VoidStamp) (VariableExpr (STR ''x'') VoidStamp))"
-
+*)
 (*fun fresh :: "String.literal \<Rightarrow> IRExpr \<Rightarrow> String.literal" where
   "fresh var e = var"*)
 
@@ -286,6 +286,7 @@ datatype PatternExpr =
   | BinaryPattern IRBinaryOp VarName VarName
   | ConditionalPattern VarName VarName VarName
   | VariablePattern VarName
+  | ConstantPattern Value
 
 type_synonym Vars = "VarName fset"
 
@@ -320,22 +321,31 @@ code_datatype Abs_PatternExpr
 *)
 
 datatype MATCH =
-    match VarName PatternExpr |
-    equality VarName VarName ("_ == _") |
-    seq MATCH MATCH ("_; _") |
-    noop
+  match VarName PatternExpr |
+  equality VarName VarName ("_ == _") |
+  seq MATCH MATCH (infixl ";" 50) |
+  either MATCH MATCH ("_ || _") |
+  noop
 
-datatype CODE =
-    code MATCH IRExpr ("_ ? _")
+fun pattern_vars :: "PatternExpr \<Rightarrow> String.literal fset" where
+  "pattern_vars (UnaryPattern op v1) = {|v1|}" |
+  "pattern_vars (BinaryPattern op v1 v2) = {|v1, v2|}" |
+  "pattern_vars (ConditionalPattern v1 v2 v3) = {|v1, v2, v3|}" |
+  "pattern_vars (VariablePattern v1) = {|v1|}" |
+  "pattern_vars (ConstantPattern c) = {||}"
+
+fun match_vars :: "MATCH \<Rightarrow> String.literal fset" where
+  "match_vars (match v p) = pattern_vars p" |
+  "match_vars (seq m1 m2) = match_vars m1 |\<union>| match_vars m2" |
+  "match_vars (either m1 m2) = match_vars m1 |\<union>| match_vars m2" |
+  "match_vars _ = {||}"
+
+(*datatype CODE =
+    code MATCH IRExpr ("_ ? _")*)
 
 type_synonym VariablePairs = "(VarName \<times> VarName) list"
 
 type_synonym Symbols = "VariablePairs \<times> Vars"
-
-value
-  "(match (STR ''e'') (BinaryPattern BinAdd (STR ''ea'') (STR ''eb''));
-   (match (STR ''ea'') (BinaryPattern BinSub (STR ''eaa'') (STR ''eab''));
-   ((STR ''eab'') == (STR ''eb'')))) ? (VariableExpr (STR ''ea'') default_stamp)"
 
 definition var :: "string \<Rightarrow> IRExpr" where
   "var v = (VariableExpr (String.implode v) VoidStamp)"
@@ -381,35 +391,37 @@ definition join :: "('b \<Rightarrow> 'c \<times> MATCH) \<Rightarrow> ('b \<Rig
     (let (rhs_scope, rhs_match) = (y s lhs_scope) in
     (rhs_scope, (lhs_match; rhs_match))))"
 
-abbreviation decend where
-  "decend f e v \<equiv> (\<lambda>s s'. f e (snd (fresh v s)) s')"
+abbreviation descend where
+  "descend f e v \<equiv> (\<lambda>s s'. f e (snd (fresh v s)) s')"
 
 value "match \<langle> fresh STR ''e''"
 
 fun register_name where
-  "register_name (s, m) vn v = (s, m(vn:=Some v))"
+  "register_name (s, m) vn v = (s, m(vn\<mapsto>v))"
 
 fun match_pattern :: "IRExpr \<Rightarrow> VarName \<Rightarrow> Scope \<Rightarrow> Scope \<times> MATCH" where
   "match_pattern (UnaryExpr op e) v =
     match v \<langle>
       (UnaryPattern op \<langle> fresh STR ''a'')
-    |> decend match_pattern e STR ''a''
+    |> descend match_pattern e STR ''a''
     " |
   "match_pattern (BinaryExpr op e1 e2) v =
     (match v \<langle> 
       (BinaryPattern op \<langle> fresh STR ''a'' \<rangle> fresh STR ''b'')
-    |> decend match_pattern e1 STR ''a'')
-    |> decend match_pattern e2 STR ''b''" |
+    |> descend match_pattern e1 STR ''a'')
+    |> descend match_pattern e2 STR ''b''" |
   "match_pattern (ConditionalExpr b e1 e2) v =
     ((match v \<langle>
       ((ConditionalPattern \<langle> fresh STR ''a'' \<rangle> fresh STR ''b'') \<rangle> fresh STR ''c'')
-    |> decend match_pattern b STR ''a'')
-    |> decend match_pattern e1 STR ''b'')
-    |> decend match_pattern e2 STR ''c''" |
+    |> descend match_pattern b STR ''a'')
+    |> descend match_pattern e1 STR ''b'')
+    |> descend match_pattern e2 STR ''c''" |
   "match_pattern (VariableExpr vn st) v = 
     (\<lambda>s. (case (snd s) vn of 
       None \<Rightarrow> (register_name s vn v, noop) |
-      Some v' \<Rightarrow> (register_name s vn v, v' == v)))"
+      Some v' \<Rightarrow> (register_name s vn v, v' == v)))" |
+  "match_pattern (ConstantExpr c) v =
+    (\<lambda>s. (s, match v (ConstantPattern c)))"
 
 fun expr_result :: "IRExpr \<Rightarrow> Scope \<Rightarrow> IRExpr" where
   "expr_result (UnaryExpr op e) s = 
@@ -423,10 +435,15 @@ fun expr_result :: "IRExpr \<Rightarrow> Scope \<Rightarrow> IRExpr" where
                 | Some v' \<Rightarrow> VariableExpr v' st)" |
   "expr_result e v = e"
 
-fun generate :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> MATCH \<times> IRExpr" where
+datatype Rules =
+  base IRExpr |
+  cond MATCH Rules (infixl "?" 52) |
+  else Rules Rules (infixl "else" 50)
+
+fun generate :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> Rules" where
   "generate p r = 
     (let (s, m) = match_pattern p STR ''e'' ({||}, (\<lambda>x. None))
-     in (m, expr_result r s))"
+     in (m ? (base (expr_result r s))))"
 
 value
   "generate 
@@ -441,12 +458,12 @@ value
       (var ''y''))
     (var ''x'')"
 
-code_printing
+(*code_printing
   type_constructor MATCH \<rightharpoonup> (Scala) "MATCH"
   | constant match \<rightharpoonup> (Scala) "match"
   | constant seq \<rightharpoonup> (Scala) "seq"
   | constant noop \<rightharpoonup> (Scala) "noop"
-  | constant equality \<rightharpoonup> (Scala) "=="
+  | constant equality \<rightharpoonup> (Scala) "=="*)
 
 definition redundant_sub where
   "redundant_sub = generate 
@@ -455,15 +472,397 @@ definition redundant_sub where
       (var ''y''))
     (var ''x'')"
 
+(* "x + -e \<longmapsto> x - e" *)
+definition AddLeftNegateToSub where
+  "AddLeftNegateToSub = generate 
+    (BinaryExpr BinAdd
+      (var ''x'')
+      (UnaryExpr UnaryNeg (var ''e'')))
+    (BinaryExpr BinSub (var ''x'') (var ''e''))"
+
+value AddLeftNegateToSub
+
 definition redundant_sub_gen where
-  "redundant_sub_gen = ((((MATCH.match STR ''e''
+  "redundant_sub_gen = fst ((((MATCH.match STR ''e''
    (BinaryPattern BinAdd STR ''a''
      STR ''b''); MATCH.match STR ''a''
                   (BinaryPattern BinSub STR ''az'' STR ''bz'')); noop); noop); STR ''bz'' == STR ''b'',
   VariableExpr STR ''az'' VoidStamp)"
 
+type_synonym Subst = "VarName \<Rightarrow> IRExpr option"
+
+fun eval_match :: "MATCH \<Rightarrow> Subst \<Rightarrow> Subst option" where
+  "eval_match (match v (UnaryPattern op1 x)) s =
+    (case s v of 
+      Some (UnaryExpr op2 xe) \<Rightarrow>
+        (if op1 = op2 then Some (s(x\<mapsto>xe)) else None) |
+      Some _ \<Rightarrow> None |
+      None \<Rightarrow> None)" |
+  "eval_match (match v (BinaryPattern op1 x y)) s =
+    (case s v of
+      Some (BinaryExpr op2 xe ye) \<Rightarrow>
+        (if op1 = op2 
+          then Some (s(x\<mapsto>xe) ++ s(y\<mapsto>ye))
+          else None) |
+      Some _ \<Rightarrow> None |
+      None \<Rightarrow> None)" |
+  "eval_match (match v (ConditionalPattern c tb fb)) s =
+    (case s v of
+      Some (ConditionalExpr ce te fe) \<Rightarrow>
+        (Some (s(c\<mapsto>ce) ++ s(tb\<mapsto>te) ++ s(fb\<mapsto>fe))) |
+      Some _ \<Rightarrow> None |
+      None \<Rightarrow> None)" |
+  "eval_match (match v (ConstantPattern c1)) s =
+    (case s v of 
+      Some (ConstantExpr c2) \<Rightarrow>
+        (if c1 = c2 then Some s else None) |
+      Some _ \<Rightarrow> None |
+      None \<Rightarrow> None)" |
+  "eval_match (equality v1 v2) s =
+    (if s v1 = s v2 then Some s else None)" |
+  "eval_match (seq m1 m2) s =
+      (case eval_match m1 s of 
+        None \<Rightarrow> None |
+        Some s' \<Rightarrow> eval_match m2 s')" |
+  "eval_match (either m1 m2) s =
+      (case eval_match m1 s of
+        None \<Rightarrow> eval_match m2 s |
+        Some s' \<Rightarrow> Some s')" |
+  "eval_match noop s = Some s" |
+  "eval_match _ s = None"
+
+definition start_unification where
+  "start_unification e = ((\<lambda>x. None)(STR ''e'' := Some e))"
+
+fun ground_expr :: "IRExpr \<Rightarrow> Subst \<Rightarrow> IRExpr option" where
+  "ground_expr (VariableExpr v s) u = u v" |
+  "ground_expr (UnaryExpr op e) u = (case (ground_expr e u)
+    of None \<Rightarrow> None | Some e' \<Rightarrow> Some (UnaryExpr op e'))" |
+  "ground_expr (BinaryExpr op e1 e2) u = (case (ground_expr e1 u)
+    of None \<Rightarrow> None | Some e1' \<Rightarrow> 
+    (case (ground_expr e2 u)
+      of None \<Rightarrow> None | Some e2' \<Rightarrow> Some (BinaryExpr op e1' e2')))" |
+  "ground_expr e u = Some e" (* TODO Conditional *)
+
+fun eval_rules :: "Rules \<Rightarrow> Subst \<Rightarrow> IRExpr option" where
+  "eval_rules (base e) u = ground_expr e u" |
+  "eval_rules (cond m r) u = (case (eval_match m u) of
+    None \<Rightarrow> None |
+    Some u' \<Rightarrow> eval_rules r u')" |
+  "eval_rules (r1 else r2) u = (case (eval_rules r1 u) of
+    None \<Rightarrow> (eval_rules r2 u) |
+    Some r \<Rightarrow> Some r)"
+
+definition redundant_sub_ground where
+  "redundant_sub_ground = (BinaryExpr BinAdd 
+          (BinaryExpr BinSub (ConstantExpr (IntVal 32 15)) (ConstantExpr (IntVal 32 10)))
+          (ConstantExpr (IntVal 32 10)))"
+
+definition AddLeftNegateToSub_ground where
+  "AddLeftNegateToSub_ground = (BinaryExpr BinAdd 
+          (ConstantExpr (IntVal 32 10))
+          (UnaryExpr UnaryNeg (ConstantExpr (IntVal 32 15))))"
+
+fun match_of_rule :: "Rules \<Rightarrow> MATCH" where
+  "match_of_rule (cond m e) = m"
+
+value "redundant_sub"
+
+value "eval_rules redundant_sub (start_unification redundant_sub_ground)"
+value "redundant_sub_ground"
+value "AddLeftNegateToSub"
+value "eval_rules AddLeftNegateToSub (start_unification redundant_sub_ground)"
+value "
+(eval_match (match_of_rule AddLeftNegateToSub) (start_unification redundant_sub_ground))
+"
+value "
+(the (eval_match (match_of_rule AddLeftNegateToSub) (start_unification AddLeftNegateToSub_ground)))
+STR ''az''"
+value "eval_rules AddLeftNegateToSub (start_unification AddLeftNegateToSub_ground)"
+
+fun optimize_noop :: "MATCH \<Rightarrow> MATCH" where
+  "optimize_noop (lhs; noop) = optimize_noop lhs" |
+  "optimize_noop (noop; rhs) = optimize_noop rhs" |
+  "optimize_noop (lhs; rhs) = ((optimize_noop lhs); (optimize_noop rhs))" |
+  "optimize_noop m = m"
+
+lemma noop_semantics_rhs:
+  "eval_match (lhs; noop) s = eval_match lhs s"
+  by (simp add: option.case_eq_if)
+
+lemma noop_semantics_lhs:
+  "eval_match (noop; rhs) s = eval_match rhs s"
+  by simp
+
+lemma seq_det_lhs:
+  assumes "\<forall>s. eval_match lhs1 s = eval_match lhs2 s"
+  shows "eval_match (lhs1; rhs) s = eval_match (lhs2; rhs) s"
+  using assms by simp
+
+lemma seq_det_rhs:
+  assumes "\<forall>s. eval_match rhs1 s = eval_match rhs2 s"
+  shows "eval_match (lhs; rhs1) s = eval_match (lhs; rhs2) s"
+proof (cases "eval_match lhs s")
+  case None
+  then show ?thesis by simp
+next
+  case (Some a)
+  then obtain s' where s': "eval_match lhs s = Some s'"
+    by simp
+  then have lhs: "eval_match (lhs; rhs1) s = eval_match rhs1 s'"
+    by simp
+  from s' have rhs: "eval_match (lhs; rhs2) s = eval_match rhs2 s'"
+    by simp
+  from lhs rhs show ?thesis using assms
+    by simp
+qed
+
+lemma sound_optimize_noop:
+  "eval_match m s = eval_match (optimize_noop m) s"
+  apply (induction m arbitrary: s rule: optimize_noop.induct)
+  using noop_semantics_rhs apply force+
+  using seq_det_rhs apply force+
+  using optimize_noop.simps(17) optimize_noop.simps(24) seq_det_rhs apply presburger
+  by force+
+
+value "optimize_noop redundant_sub_gen"
+
+fun rules_bases :: "Rules \<Rightarrow> IRExpr set" where
+  "rules_bases (base e) = {e}" |
+  "rules_bases (cond m r) = rules_bases r" |
+  "rules_bases (r1 else r2) = rules_bases r1 \<union> rules_bases r2"
+
+fun rules_vars :: "Rules \<Rightarrow> VarName fset" where
+  "rules_vars (base e) = vars e" |
+  "rules_vars (cond m r) = rules_vars r" |
+  "rules_vars (r1 else r2) = rules_vars r1 |\<union>| rules_vars r2"
+
+fun valid_rule :: "Rules \<Rightarrow> bool" where
+  "valid_rule (cond m e) = (rules_vars e |\<subseteq>| match_vars m)" |
+  "valid_rule (e1 else e2) = (valid_rule e1 \<and> valid_rule e2)"
+
+experiment begin
+lemma unification_vars:
+  assumes "eval_match m e = Some u"
+  shows "\<forall>v . v |\<in>| match_vars m \<longrightarrow> (\<exists>e'. u v = Some e')"
+using assms proof (induction m)
+  case (match v p)
+  then show ?case apply simp 
+    apply (cases p) apply simp sorry
+next
+  case (equality x1 x2)
+  then show ?case sorry
+next
+  case (seq m1 m2)
+  then show ?case sorry
+next
+  case (either m1 m2)
+  then show ?case sorry
+next
+  case noop
+  then show ?case sorry
+qed
+
+lemma match_has_ground:
+  assumes "valid_rule (rule m e)"
+  shows "eval_match m (start_unification e') = Some u \<Longrightarrow> \<exists>e''. ground_expr e u = Some e''"
+  using assms unfolding valid_rule.simps
+proof -
+  have u_pop: "\<forall>v. v |\<in>| vars e \<longrightarrow> (\<exists>e'. u v = Some e')"
+    using assms unfolding valid_rule.simps sorry
+  show ?thesis
+  proof (induction e)
+    case (UnaryExpr x1 e)
+    then show ?case by fastforce
+  next
+    case (BinaryExpr x1 e1 e2)
+    then show ?case by fastforce
+  next
+    case (ConditionalExpr e1 e2 e3)
+    then show ?case by fastforce
+  next
+    case (ParameterExpr x1 x2)
+    then show ?case by fastforce
+  next
+    case (LeafExpr x1 x2)
+    then show ?case by fastforce
+  next
+    case (ConstantExpr x)
+    then show ?case by fastforce
+  next
+    case (ConstantVar x)
+    then show ?case by fastforce
+  next
+    case (VariableExpr x1 x2)
+    have "x1 |\<in>| vars e"
+      sorry
+    then show ?case using u_pop by simp
+  qed
+qed
+
+lemma rule_12:
+  assumes "valid_rule ((c1 ? e) else (c2 ? e))"
+  assumes "valid_rule ((c1 || c2) ? e)"
+  shows "eval_rules ((c1 ? e) else (c2 ? e)) u = eval_rules ((c1 || c2) ? e) u"
+proof (cases "eval_match c1 u")
+  case None
+  then show ?thesis 
+    unfolding eval_rules.simps
+    by force
+next
+  case a: (Some c1u)
+  then show ?thesis
+  proof (cases "eval_match c2 u")
+    case None
+    then show ?thesis unfolding eval_rules.simps
+      by (metis eval_match.simps(7) option.case_eq_if option.collapse)
+  next
+    case b: (Some c2u)
+    then show ?thesis using a unfolding eval_rules.simps eval_match.simps 
+      apply auto[1] using assms sorry
+  qed
+qed
+end
+  
+
+value "eval_rules (redundant_sub else AddLeftNegateToSub) (start_unification redundant_sub_ground)"
+value "eval_rules (redundant_sub else AddLeftNegateToSub) (start_unification AddLeftNegateToSub_ground)"
+value "eval_rules (AddLeftNegateToSub else redundant_sub) (start_unification redundant_sub_ground)"
+value "eval_rules (AddLeftNegateToSub else redundant_sub) (start_unification AddLeftNegateToSub_ground)"
+
+
 export_code redundant_sub in Scala
 export_code redundant_sub_gen in Scala
+
+fun export_pattern :: "PatternExpr \<Rightarrow> string" where
+  "export_pattern (UnaryPattern UnaryAbs v) = ''AbsNode''" |
+  "export_pattern (UnaryPattern UnaryNeg v) = ''NegNode''" |
+  "export_pattern (BinaryPattern BinAdd v1 v2) = ''AddNode''" |
+  "export_pattern (BinaryPattern BinSub v1 v2) = ''SubNode''"
+
+fun export_assignments :: "VarName \<Rightarrow> PatternExpr \<Rightarrow> string" where
+  "export_assignments v (UnaryPattern op v1) = 
+    ''var '' @ String.explode v1 @ '' = '' @ String.explode v @ ''.getX();
+''" |
+  "export_assignments v (BinaryPattern op v1 v2) = 
+    ''var '' @ String.explode v1 @ '' = '' @ String.explode v @ ''.getX();
+var '' @ String.explode v2 @ '' = '' @ String.explode v @ ''.getY();
+''"
+
+fun export_match :: "MATCH \<Rightarrow> string" where
+  "export_match (match v p) = ''if ('' @ String.explode v @ '' instanceof '' @ export_pattern p @ '') {
+'' @ export_assignments v p" |
+  "export_match (seq m1 m2) = export_match m1 @ '''' @ export_match m2" |
+  "export_match (equality v1 v2) = ''if ('' @ String.explode v1 @ '' == '' @ String.explode v2 @ '') {
+''" |
+  "export_match noop = ''''"
+
+fun export_irexpr :: "IRExpr \<Rightarrow> string" where
+  "export_irexpr (BinaryExpr BinAdd e1 e2) =
+    ''new AddNode('' @ export_irexpr e1 @ '', '' @ export_irexpr e2 @ '')''" |
+  "export_irexpr (BinaryExpr BinSub e1 e2) =
+    ''new SubNode('' @ export_irexpr e1 @ '', '' @ export_irexpr e2 @ '')''" |
+  "export_irexpr (VariableExpr v s) = String.explode v"
+
+fun close :: "MATCH \<Rightarrow> string" where
+  "close (match v p) = ''
+}''" |
+  "close (seq m1 m2) = close m1 @ close m2" |
+  "close (equality v1 v2) = ''
+}''" |
+  "close noop = ''''"
+
+fun export_rules :: "Rules \<Rightarrow> string" where
+  "export_rules (base e) = ''return '' @ export_irexpr e @ '';''" |
+  "export_rules (cond m r) = export_match m @ export_rules r @ close m" |
+  "export_rules (r1 else r2) = export_rules r1 @ ''
+'' @ export_rules r2"
+
+value "(redundant_sub else AddLeftNegateToSub)"
+value "export_rules redundant_sub"
+value "AddLeftNegateToSub"
+value "export_rules AddLeftNegateToSub"
+value "export_rules (redundant_sub else AddLeftNegateToSub)"
+
+fun eliminate_noop :: "Rules \<Rightarrow> Rules" where
+  "eliminate_noop (base e) = base e" |
+  "eliminate_noop (m ? r) = optimize_noop m ? eliminate_noop r" |
+  "eliminate_noop (r1 else r2) = (eliminate_noop r1 else eliminate_noop r2)"
+
+lemma eliminate_noop_valid:
+  "eval_rules r u = eval_rules (eliminate_noop r) u"
+  apply (induction r arbitrary: u rule: eliminate_noop.induct)
+  apply simp
+  using eliminate_noop.simps(2) eval_rules.simps(2) sound_optimize_noop apply presburger
+  using eliminate_noop.simps(3) eval_rules.simps(3) by presburger
+
+fun combined_size :: "Rules \<Rightarrow> nat" where
+  "combined_size (m ? r) = (2 * size m) + combined_size r" |
+  "combined_size (base e) = 0" |
+  "combined_size (r1 else r2) = combined_size r1 + combined_size r2"
+
+function (sequential) lift_match :: "Rules \<Rightarrow> Rules" where
+  "lift_match (r1 else r2) = ((lift_match r1) else (lift_match r2))" |
+  "lift_match ((m1; m2) ? r) = (lift_match (m1 ? (m2 ? r)))" |
+  "lift_match (m ? r) = m ? (lift_match r)" |
+  "lift_match r = r"
+  by pat_completeness auto
+termination lift_match
+  apply (relation "measures [combined_size, size]") apply auto[1]
+     apply auto[1] apply auto[1] apply simp
+  apply simp subgoal for m2 r apply (cases m2) 
+    by (simp add: lift_match.psimps(4))
+  apply simp
+  by simp
+
+lemma chain_equiv:
+  "eval_rules (m1 ? (m2 ? r)) u = eval_rules ((m1; m2) ? r) u"
+  by (metis eval_match.simps(6) eval_rules.simps(2) option.case_eq_if)
+
+lemma lift_match_valid:
+  "eval_rules r u = eval_rules (lift_match r) u"
+  apply (induction r arbitrary: u rule: lift_match.induct) 
+  using eval_rules.simps(3) lift_match.simps(1) apply presburger
+  using chain_equiv apply force
+  using eval_rules.simps(2) lift_match.simps(3) apply presburger
+  apply simp
+  using eval_rules.simps(2) lift_match.simps(5) apply presburger
+  apply simp
+  by simp
+
+fun lift_common :: "Rules \<Rightarrow> Rules" where
+  "lift_common (m1 ? r1 else m2 ? r2) = 
+    (if m1 = m2
+      then m1 ? (r1 else r2) else (m1 ? r1 else m2 ? r2))" |
+  "lift_common (r1 else r2) = ((lift_common r1) else (lift_common r2))" |
+  "lift_common (m ? r) = (m ? (lift_common r))" |
+  "lift_common (base e) = base e"
+
+lemma lift_common_valid:
+  "eval_rules r u = eval_rules (lift_common r) u"
+  apply (induction r arbitrary: u rule: lift_common.induct) 
+  apply (metis eval_rules.simps(2) eval_rules.simps(3) lift_common.simps(1) option.case_eq_if)
+  using eval_rules.simps(3) lift_common.simps(2) apply presburger
+  apply (metis eval_rules.simps(3) lift_common.simps(3))
+  apply simp
+  apply (metis eval_rules.simps(3) lift_common.simps(5))
+  using eval_rules.simps(2) lift_common.simps(6) apply presburger
+  by simp
+
+definition optimized_export where
+  "optimized_export = lift_common o lift_match o eliminate_noop"
+
+lemma optimized_export_valid:
+  "eval_rules r u = eval_rules (optimized_export r) u"
+  unfolding optimized_export_def comp_def
+  using lift_common_valid lift_match_valid eliminate_noop_valid by simp
+
+value "lift_match (redundant_sub else AddLeftNegateToSub)"
+value "lift_common (lift_match (redundant_sub else AddLeftNegateToSub))"
+value "optimized_export (redundant_sub else AddLeftNegateToSub)"
+value "export_rules (lift_common (lift_match (redundant_sub else AddLeftNegateToSub)))"
+value "export_rules (optimized_export (redundant_sub else AddLeftNegateToSub))"
+
 
 (*
 fun generate :: "Vars \<Rightarrow> IRExpr \<times> IRExpr \<times> (Substitution \<Rightarrow> bool) \<Rightarrow> MATCH" where

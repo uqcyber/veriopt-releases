@@ -70,11 +70,11 @@ lemma "(x::('a::len) word) * ((2^j) - (2^k)) = x << j - x << k"
 
 text \<open>Unsigned shift right.\<close>
 definition shiftr (infix ">>>" 75) where 
-  "shiftr w n = (drop_bit n) w"
+  "shiftr w n = drop_bit n w"
 
 corollary "(255 :: 8 word) >>> (2 :: nat) = 63" by code_simp
 
-
+(* TODO: define this using Word.signed_drop_bit ? *)
 text \<open>Signed shift right.\<close>
 definition sshiftr :: "'a :: len word \<Rightarrow> nat \<Rightarrow> 'a :: len word" (infix ">>" 75) where 
   "sshiftr w n = word_of_int ((sint w) div (2 ^ n))"
@@ -204,6 +204,65 @@ lemma int_signed_value_range:
   using signed_take_bit_range assms
   by (smt (verit, ccfv_SIG) One_nat_def diff_less int_signed_value.elims len_gt_0 len_num1 power_less_imp_less_exp power_strict_increasing sint_greater_eq sint_less)
 
+
+text \<open>Some lemmas to relate (int) bit bounds to bit-shifting values.\<close>
+
+lemma bit_bounds_lower:
+  assumes "0 < bits"
+  shows "word_of_int (fst (bit_bounds bits)) = ((-1) << (bits - 1))"
+   unfolding bit_bounds.simps fst_conv
+   by (metis (mono_tags, opaque_lifting) assms(1) mult_1 mult_minus1_right mult_minus_left of_int_minus of_int_power shiftl_power upper_bounds_equiv word_numeral_alt)
+
+lemma two_exp_div:
+  assumes "0 < bits"
+  shows "((2::int) ^ bits div (2::int)) = (2::int) ^ (bits - Suc 0)"
+  using assms by (auto simp: int_power_div_base)
+
+declare [[show_types]]
+
+(*
+lemma mask_drop_bit_test:
+  "\<forall> n bits :: nat.
+    0 < bits \<and> bits < 4 \<and> n < bits \<and> bits < LENGTH('a)
+    \<longrightarrow> drop_bit n (mask bits :: 'a :: len word) = mask (bits - n)"
+  nitpick
+*)
+(*
+lemma mask_drop_bit:
+  fixes n bits :: nat
+  assumes "0 < bits"
+  assumes "bits < LENGTH('a)"
+  assumes "n < bits"
+  shows "drop_bit n (mask bits :: 'a :: len word) = mask (bits - n)"
+proof -
+  have "drop_bit (n::nat) (mask (bits::nat)) = mask (bits - n)"
+    using assms drop_bit_mask_eq
+
+    thm bit_eqI
+    thm bits_induct
+    thm drop_bit_mask_eq
+
+  apply transfer
+  print_state
+
+  apply simp
+lemma bit_bounds_upper:
+  assumes 1: "0 < bits"
+  assumes "bits \<le> 64"
+  shows "word_of_int (snd (bit_bounds bits)) = (mask bits >>> 1)"
+proof -
+  have "(2 :: 'a word) ^ bits - 1 = mask bits"
+    by (simp add: mask_eq_decr_exp)
+  then show ?thesis
+    unfolding bit_bounds.simps snd_conv two_exp_div[OF 1]
+    apply (simp add: mask_eq_decr_exp[symmetric] shiftr_def)
+    apply (simp add: drop_bit_mask_eq)
+
+
+   apply (simp add: int_power_div_base)
+
+   apply (simp add: mask_eq_decr_exp)
+*)
 
 text \<open>Some lemmas about unsigned words smaller than 64-bit, for zero-extend operators.\<close>
 

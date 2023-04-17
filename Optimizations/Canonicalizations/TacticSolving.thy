@@ -603,8 +603,178 @@ lemma ReturnZeroAndMask:
     then show ?thesis
       by (metis evalDet lhsEq newIntEquiv p(9,10) unfold_const wfVal xv yv)
    qed
+   done
+
+end
+
+phase TacticSolving
+  terminating size
+begin
+
+
+(* 
+ (x ^ y) == (x ^ z) \<mapsto> y == z
+ (x ^ y) == (z ^ x) \<mapsto> y == z
+ (y ^ x) == (x ^ z) \<mapsto> y == z
+ (y ^ x) == (z ^ x) \<mapsto> y == z
+ *)
+
+lemma binXorIsEqual:
+  "bin[((x \<oplus> y) = (x \<oplus> z))] \<longleftrightarrow> bin[(y = z)]"
+  by (metis (no_types, opaque_lifting) BinXorFallThrough xor.left_commute xor_self_eq)
+
+lemma binXorIsDeterministic:
+  assumes "y \<noteq> z"
+  shows "bin[x \<oplus> y] \<noteq> bin[x \<oplus> z]"
+  by (auto simp add: binXorIsEqual assms)
+
+lemma ValXorSelfIsZero:
+  assumes "x = IntVal b xv"
+  shows "val[x \<oplus> x] = IntVal b 0" 
+  by (simp add: assms)
+
+lemma ValXorSelfIsZero2:
+  assumes "x = new_int b xv"
+  shows "val[x \<oplus> x] = IntVal b 0" 
+  by (simp add: assms)
+
+lemma ValXorIsAssociative:
+  assumes "x = IntVal b xv"
+  assumes "y = IntVal b yv"
+  assumes "val[(x \<oplus> y)] \<noteq> UndefVal"
+  shows "val[(x \<oplus> y) \<oplus> y] = val[x \<oplus> (y \<oplus> y)]"
+  by (auto simp add: word_bw_lcs(3) assms) 
+
+lemma ValXorIsAssociative2:
+  assumes "x = new_int b xv"
+  assumes "y = new_int b yv"
+  assumes "val[(x \<oplus> y)] \<noteq> UndefVal"
+  shows "val[(x \<oplus> y) \<oplus> y] = val[x \<oplus> (y \<oplus> y)]"
+  using ValXorIsAssociative by (simp add: assms)
+
+lemma XorZeroIsSelf64:
+  assumes "x = IntVal 64 xv"
+  assumes "val[x \<oplus> (IntVal 64 0)] \<noteq> UndefVal"
+  shows  "val[x \<oplus> (IntVal 64 0)] = x" 
+  using assms apply (cases x; auto)
+  subgoal
+  proof -
+    have "take_bit (LENGTH(64)) xv = xv"
+      unfolding Word.take_bit_length_eq by simp
+    then show ?thesis
+      by auto
+   qed
   done
 
+lemma ValXorElimSelf64:
+  assumes "x = IntVal 64 xv"
+  assumes "y = IntVal 64 yv"
+  assumes "val[x \<oplus> y] \<noteq> UndefVal"
+  assumes "val[y \<oplus> y] \<noteq> UndefVal"
+  shows "val[x \<oplus> (y \<oplus> y)] = x"
+  proof -
+    have removeRhs: "val[x \<oplus> (y \<oplus> y)] = val[x \<oplus> (IntVal 64 0)]"
+      by (simp add: assms(2))
+    then have XorZeroIsSelf: "val[x \<oplus> (IntVal 64 0)] = x"
+      using XorZeroIsSelf64 by (simp add: assms(1))
+    then show ?thesis
+      by (simp add: removeRhs)
+  qed
+
+lemma ValXorIsReverse64:
+  assumes "x = IntVal 64 xv"
+  assumes "y = IntVal 64 yv"
+  assumes "z = IntVal 64 zv"
+  assumes "z = val[x \<oplus> y]"
+  assumes "val[x \<oplus> y] \<noteq> UndefVal"
+  assumes "val[z \<oplus> y] \<noteq> UndefVal"
+  shows "val[z \<oplus> y] = x"
+  using ValXorIsAssociative ValXorElimSelf64 assms(1,2,4,5) by force
+
+lemma ValXorIsDeterministic_64:
+  assumes "x = IntVal 64 xv"
+  assumes "y = IntVal 64 yv"
+  assumes "z = IntVal 64 zv"
+  assumes "val[x \<oplus> y] \<noteq> UndefVal"
+  assumes "val[x \<oplus> z] \<noteq> UndefVal"
+  assumes "yv \<noteq> zv"
+  shows "val[x \<oplus> y] \<noteq> val[x \<oplus> z]" 
+  by (smt (verit) ValXorElimSelf64 ValXorIsAssociative ValXorSelfIsZero Value.distinct(1) assms
+      Value.inject(1) val_xor_commute)
+
+lemma valXorIsEqual_64:
+  assumes "x = IntVal 64 xv"
+  assumes "val[x \<oplus> y] \<noteq> UndefVal"
+  assumes "val[x \<oplus> z] \<noteq> UndefVal"
+  shows "val[intval_equals (x \<oplus> y) (x \<oplus> z)] = val[intval_equals y z]"
+  using assms apply (cases x; cases y; cases z; auto) 
+  by (smt (verit) ValXorIsDeterministic_64 assms(2) intval_xor.simps(1) new_int.simps xor.commute
+      new_int_bin.elims take_bit_xor)
+
+lemma ExpIntBecomesIntVal_64:
+  assumes "stamp_expr x = IntegerStamp 64 xl xh"
+  assumes "wf_stamp x"
+  assumes "valid_value v (IntegerStamp 64 xl xh)"
+  assumes "[m,p] \<turnstile> x \<mapsto> v"
+  shows "\<exists>xv. v = IntVal 64 xv"
+  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3)) 
+
+lemma expXorIsEqual_64:
+  assumes "stamp_expr x = IntegerStamp 64 xl xh"
+  assumes "stamp_expr y = IntegerStamp 64 yl yh"
+  assumes "stamp_expr z = IntegerStamp 64 zl zh"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "wf_stamp z"
+    shows "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (x \<oplus> z)] \<ge>
+           exp[BinaryExpr BinIntegerEquals y z]"
+  using assms apply auto
+  subgoal premises p for m p x1 y1 x2 z1
+  proof -
+    obtain xVal where xVal: "[m,p] \<turnstile> x \<mapsto> xVal"
+      using p(8) by simp
+    obtain yVal where yVal: "[m,p] \<turnstile> y \<mapsto> yVal"
+      using p(9) by simp
+    obtain zVal where zVal: "[m,p] \<turnstile> z \<mapsto> zVal"
+      using p(12) by simp
+    obtain xv where xv: "xVal = IntVal 64 xv"
+      by (metis p(1) p(4) wf_stamp_def xVal ExpIntBecomesIntVal_64)
+    then have rhs: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals y z] \<mapsto> val[intval_equals yVal zVal]"
+      by (metis BinaryExpr bin_eval.simps(11) evalDet p(7,8,9,10,11,12,13) valXorIsEqual_64 xVal 
+          yVal zVal)
+    then show ?thesis
+      by (metis xv evalDet p(8,9,10,11,12,13) valXorIsEqual_64 xVal yVal zVal)
+  qed
+  done
+
+(* 64 bit versions *)
+optimization XorIsEqual_64_1: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (x \<oplus> z)] \<longmapsto> 
+                             exp[BinaryExpr BinIntegerEquals y z]
+                        when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and> 
+                             (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and> 
+                             (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
+  using expXorIsEqual_64 by force
+
+optimization XorIsEqual_64_2: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (z \<oplus> x)] \<longmapsto> 
+                             exp[BinaryExpr BinIntegerEquals y z]
+                        when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and> 
+                             (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and> 
+                             (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)" 
+  by (meson dual_order.trans mono_binary exp_xor_commutative expXorIsEqual_64) 
+
+optimization XorIsEqual_64_3: "exp[BinaryExpr BinIntegerEquals (y \<oplus> x) (x \<oplus> z)] \<longmapsto> 
+                             exp[BinaryExpr BinIntegerEquals y z]
+                        when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and> 
+                             (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and> 
+                             (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
+  by (meson dual_order.trans mono_binary exp_xor_commutative expXorIsEqual_64) 
+
+optimization XorIsEqual_64_4: "exp[BinaryExpr BinIntegerEquals (y \<oplus> x) (z \<oplus> x)] \<longmapsto> 
+                             exp[BinaryExpr BinIntegerEquals y z]
+                        when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and> 
+                             (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and> 
+                             (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
+  by (meson dual_order.trans mono_binary exp_xor_commutative expXorIsEqual_64) 
 
 end
 

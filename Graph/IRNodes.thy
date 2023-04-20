@@ -349,19 +349,19 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   successors_of_RefNode: "successors_of (RefNode ref) = [ref]"
 
 lemma "inputs_of (FrameState x (Some y) (Some z) None) = x @ [y] @ z"
-  unfolding inputs_of_FrameState by simp
+  by simp
 
 lemma "successors_of (FrameState x (Some y) (Some z) None) = []"
-  unfolding inputs_of_FrameState by simp
+  by simp
 
 lemma "inputs_of (IfNode c t f) = [c]"
-  unfolding inputs_of_IfNode by simp
+  by simp
 
 lemma "successors_of (IfNode c t f) = [t, f]"
-  unfolding successors_of_IfNode by simp
+  by simp
 
 lemma "inputs_of (EndNode) = [] \<and> successors_of (EndNode) = []"
-  unfolding inputs_of_EndNode successors_of_EndNode by simp
+  by simp
 
 end
 

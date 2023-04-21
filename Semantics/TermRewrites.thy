@@ -263,11 +263,10 @@ section \<open>Code Generation via Match Primitives\<close>
 
 subsection \<open>Pattern Expressions\<close>
 text \<open>
-Pattern expressions correspond to @{typ IRExpr},
-except that they are not nested.
+A pattern expression corresponds to an @{typ IRExpr} without nesting.
 Nested expressions are replaced with a string placeholder.
 
-This allows match patterns that only match one node at a time.
+This restricts match primitives to match just one node.
 \<close>
 type_synonym VarName = "String.literal"
 type_synonym Vars = "VarName fset"
@@ -282,15 +281,16 @@ datatype PatternExpr =
 
 subsection \<open>Variable Generation\<close>
 text \<open>
-Variable scoping is handled by the Scope type.
+Variable scoping in match primitives is handled by the Scope type.
 Scope is a pair of;
 \begin{enumerate}
-\item the set of already used variable names and a map, and
-\item a mapping of the @{emph \<open>real\<close>} variable name to the most recent @{emph \<open>alias\<close>}.
+\item the set of used variable names, and
+\item a mapping of the @{emph \<open>real\<close>} variable names to the most recent @{emph \<open>alias\<close>} for the real variable.
 \end{enumerate}
 
 A rewriting rule consists of @{emph \<open>real\<close>} variable names which can overlap.
-A match pattern has @{emph \<open>alias\<close>} variable names to the real names that must be unique.
+A match primitive has @{emph \<open>alias\<close>} variable names to the real names.
+Aliases must be unique.
 \<close>
 type_synonym Scope = "Vars \<times> (VarName \<rightharpoonup> VarName)"
 
@@ -306,15 +306,16 @@ function fresh_var :: "VarName \<Rightarrow> Scope \<Rightarrow> VarName" where
       then fresh_var (var + STR ''z'') (remove_var var s)
       else var)"
   by fastforce+
-(* For some reason, by proving that this function terminates the definition of match_pattern
+(*(* For some reason, by proving that this function terminates the definition of match_pattern
    no longer terminates. *)
-(*termination
+termination
   apply (relation "measure (\<lambda>(v, s). (fcard (fst s)))")
   apply simp
   using fcard_fminus1_less by force*)
 
 fun fresh :: "VarName \<Rightarrow> Scope \<Rightarrow> Scope \<times> VarName" where
   "fresh var s = (let v = fresh_var var s in (add_var v s, v))"
+
 
 lemma fresh [code]:
   "fresh_var var s = 
@@ -334,11 +335,13 @@ datatype MATCH =
   noop
 
 text \<open>The definitions of la and ra help to feed the scope through when generating a match pattern.\<close>
-definition la :: "('b \<Rightarrow> 'a) \<Rightarrow> (Scope \<Rightarrow> Scope \<times> 'b) \<Rightarrow> (Scope \<Rightarrow> Scope \<times> 'a)" (infix "\<langle>" 65)
+definition la :: "('b \<Rightarrow> 'a) \<Rightarrow> (Scope \<Rightarrow> Scope \<times> 'b) \<Rightarrow> (Scope \<Rightarrow> Scope \<times> 'a)"
+  (infix "\<langle>" 65)
   where
   "la f f' s = (fst (f' s), f (snd (f' s)))"
 
-definition ra :: "(Scope \<Rightarrow> Scope \<times> ('b \<Rightarrow> 'a)) \<Rightarrow> (Scope \<Rightarrow> Scope \<times> 'b) \<Rightarrow> (Scope \<Rightarrow> Scope \<times> 'a)" (infixl "\<rangle>" 54)
+definition ra :: "(Scope \<Rightarrow> Scope \<times> ('b \<Rightarrow> 'a)) \<Rightarrow> (Scope \<Rightarrow> Scope \<times> 'b) \<Rightarrow> (Scope \<Rightarrow> Scope \<times> 'a)"
+  (infixl "\<rangle>" 54)
   where
   "ra f f' s = ((fst (f' (fst (f s)))), (snd (f s)) (snd (f' (fst (f s)))))"
 
@@ -361,8 +364,7 @@ fun match_pattern :: "IRExpr \<Rightarrow> VarName \<Rightarrow> Scope \<Rightar
   "match_pattern (UnaryExpr op e) v =
     match v \<langle>
       (UnaryPattern op \<langle> fresh STR ''a'')
-    |> descend match_pattern e STR ''a''
-    " |
+    |> descend match_pattern e STR ''a''" |
   "match_pattern (BinaryExpr op e1 e2) v =
     match v \<langle> 
       (BinaryPattern op \<langle> fresh STR ''a'' \<rangle> fresh STR ''b'')
@@ -374,7 +376,7 @@ fun match_pattern :: "IRExpr \<Rightarrow> VarName \<Rightarrow> Scope \<Rightar
     |> descend match_pattern b STR ''a''
     |> descend match_pattern e1 STR ''b''
     |> descend match_pattern e2 STR ''c''" |
-  \<comment> \<open>If a variable is reused, generate an equality check, else, generate a noop\<close>
+  \<comment> \<open>If a variable is reused, generate an equality check, else, generate a noop.\<close>
   "match_pattern (VariableExpr vn st) v = 
     (\<lambda>s. case (snd s) vn of 
       None \<Rightarrow> (register_name s vn v, noop) |
@@ -382,29 +384,8 @@ fun match_pattern :: "IRExpr \<Rightarrow> VarName \<Rightarrow> Scope \<Rightar
   "match_pattern (ConstantExpr c) v =
     (\<lambda>s. (s, match v (ConstantPattern c)))"
 
-fun expr_result :: "IRExpr \<Rightarrow> Scope \<Rightarrow> IRExpr" where
-  "expr_result (UnaryExpr op e) s = 
-    UnaryExpr op (expr_result e s)" |
-  "expr_result (BinaryExpr op e1 e2) s = 
-    BinaryExpr op (expr_result e1 s) (expr_result e2 s)" |
-  "expr_result (ConditionalExpr b e1 e2) s = 
-    ConditionalExpr (expr_result b s) (expr_result e1 s) (expr_result e2 s)" |
-  "expr_result (VariableExpr vn st) (s, m) = 
-    (case m vn of None \<Rightarrow> VariableExpr vn st 
-                | Some v' \<Rightarrow> VariableExpr v' st)" |
-  "expr_result e v = e"
 
-datatype Rules =
-  base IRExpr |
-  cond MATCH Rules (infixl "?" 52) |
-  else Rules Rules (infixl "else" 50)
-
-fun generate :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> Rules" where
-  "generate p r = 
-    (let (s, m) = match_pattern p STR ''e'' ({||}, (\<lambda>x. None))
-     in (m ? (base (expr_result r s))))"
-
-
+subsubsection \<open>Match Primitive Semantics\<close>
 type_synonym Subst = "VarName \<Rightarrow> IRExpr option"
 
 fun eval_match :: "MATCH \<Rightarrow> Subst \<Rightarrow> Subst option" where
@@ -447,9 +428,38 @@ fun eval_match :: "MATCH \<Rightarrow> Subst \<Rightarrow> Subst option" where
   "eval_match noop s = Some s" |
   "eval_match _ s = None"
 
+
+subsection \<open>Combining Rules\<close>
+
+datatype Rules =
+  base IRExpr |
+  cond MATCH Rules (infixl "?" 52) |
+  else Rules Rules (infixl "else" 50)
+
+text \<open>Use the scope of a generated match to replace real variable names with aliases in the rewrite result.\<close>
+fun expr_result :: "IRExpr \<Rightarrow> Scope \<Rightarrow> IRExpr" where
+  "expr_result (UnaryExpr op e) s = 
+    UnaryExpr op (expr_result e s)" |
+  "expr_result (BinaryExpr op e1 e2) s = 
+    BinaryExpr op (expr_result e1 s) (expr_result e2 s)" |
+  "expr_result (ConditionalExpr b e1 e2) s = 
+    ConditionalExpr (expr_result b s) (expr_result e1 s) (expr_result e2 s)" |
+  "expr_result (VariableExpr vn st) (s, m) = 
+    (case m vn of None \<Rightarrow> VariableExpr vn st 
+                | Some v' \<Rightarrow> VariableExpr v' st)" |
+  "expr_result e v = e"
+
+fun generate :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> Rules" where
+  "generate p r = 
+    (let (s, m) = match_pattern p STR ''e'' ({||}, (\<lambda>x. None))
+     in (m ? (base (expr_result r s))))"
+
+
+subsubsection \<open>Rules Semantics\<close>
 definition start_unification where
   "start_unification e = ((\<lambda>x. None)(STR ''e'' := Some e))"
 
+text \<open>Replace any variable expressions with value in a substitution.\<close>
 fun ground_expr :: "IRExpr \<Rightarrow> Subst \<Rightarrow> IRExpr option" where
   "ground_expr (VariableExpr v s) u = u v" |
   "ground_expr (UnaryExpr op e) u = (case (ground_expr e u)
@@ -458,7 +468,13 @@ fun ground_expr :: "IRExpr \<Rightarrow> Subst \<Rightarrow> IRExpr option" wher
     of None \<Rightarrow> None | Some e1' \<Rightarrow> 
     (case (ground_expr e2 u)
       of None \<Rightarrow> None | Some e2' \<Rightarrow> Some (BinaryExpr op e1' e2')))" |
-  "ground_expr e u = Some e" (* TODO Conditional *)
+  "ground_expr (ConditionalExpr e1 e2 e3) u = (case (ground_expr e1 u)
+    of None \<Rightarrow> None | Some e1' \<Rightarrow>
+    (case (ground_expr e2 u)
+      of None \<Rightarrow> None | Some e2' \<Rightarrow>
+        (case (ground_expr e2 u)
+          of None \<Rightarrow> None | Some e3' \<Rightarrow> Some (ConditionalExpr e1' e2' e3'))))" |
+  "ground_expr e u = Some e"
 
 fun eval_rules :: "Rules \<Rightarrow> Subst \<Rightarrow> IRExpr option" where
   "eval_rules (base e) u = ground_expr e u" |
@@ -468,52 +484,6 @@ fun eval_rules :: "Rules \<Rightarrow> Subst \<Rightarrow> IRExpr option" where
   "eval_rules (r1 else r2) u = (case (eval_rules r1 u) of
     None \<Rightarrow> (eval_rules r2 u) |
     Some r \<Rightarrow> Some r)"
-
-
-fun elim_noop :: "MATCH \<Rightarrow> MATCH" where
-  "elim_noop (lhs && noop) = elim_noop lhs" |
-  "elim_noop (noop && rhs) = elim_noop rhs" |
-  "elim_noop (lhs && rhs) = ((elim_noop lhs) && (elim_noop rhs))" |
-  "elim_noop m = m"
-
-lemma noop_semantics_rhs:
-  "eval_match (lhs && noop) s = eval_match lhs s"
-  by (simp add: option.case_eq_if)
-
-lemma noop_semantics_lhs:
-  "eval_match (noop && rhs) s = eval_match rhs s"
-  by simp
-
-lemma seq_det_lhs:
-  assumes "\<forall>s. eval_match lhs1 s = eval_match lhs2 s"
-  shows "eval_match (lhs1 && rhs) s = eval_match (lhs2 && rhs) s"
-  using assms by simp
-
-lemma seq_det_rhs:
-  assumes "\<forall>s. eval_match rhs1 s = eval_match rhs2 s"
-  shows "eval_match (lhs && rhs1) s = eval_match (lhs && rhs2) s"
-proof (cases "eval_match lhs s")
-  case None
-  then show ?thesis by simp
-next
-  case (Some a)
-  then obtain s' where s': "eval_match lhs s = Some s'"
-    by simp
-  then have lhs: "eval_match (lhs && rhs1) s = eval_match rhs1 s'"
-    by simp
-  from s' have rhs: "eval_match (lhs && rhs2) s = eval_match rhs2 s'"
-    by simp
-  from lhs rhs show ?thesis using assms
-    by simp
-qed
-
-lemma sound_optimize_noop:
-  "eval_match m s = eval_match (elim_noop m) s"
-  apply (induction m arbitrary: s rule: elim_noop.induct)
-  using noop_semantics_rhs apply force+
-  using seq_det_rhs apply force+
-  using elim_noop.simps(17) elim_noop.simps(24) seq_det_rhs apply presburger
-  by force+
 
 
 
@@ -628,6 +598,168 @@ qed
 end
 
 
+
+subsection \<open>Rule Optimization\<close>
+
+fun elim_noop :: "MATCH \<Rightarrow> MATCH" where
+  "elim_noop (lhs && noop) = elim_noop lhs" |
+  "elim_noop (noop && rhs) = elim_noop rhs" |
+  "elim_noop (lhs && rhs) = ((elim_noop lhs) && (elim_noop rhs))" |
+  "elim_noop m = m"
+
+lemma noop_semantics_rhs:
+  "eval_match (lhs && noop) s = eval_match lhs s"
+  by (simp add: option.case_eq_if)
+
+lemma noop_semantics_lhs:
+  "eval_match (noop && rhs) s = eval_match rhs s"
+  by simp
+
+lemma seq_det_lhs:
+  assumes "\<forall>s. eval_match lhs1 s = eval_match lhs2 s"
+  shows "eval_match (lhs1 && rhs) s = eval_match (lhs2 && rhs) s"
+  using assms by simp
+
+lemma seq_det_rhs:
+  assumes "\<forall>s. eval_match rhs1 s = eval_match rhs2 s"
+  shows "eval_match (lhs && rhs1) s = eval_match (lhs && rhs2) s"
+proof (cases "eval_match lhs s")
+  case None
+  then show ?thesis by simp
+next
+  case (Some a)
+  then obtain s' where s': "eval_match lhs s = Some s'"
+    by simp
+  then have lhs: "eval_match (lhs && rhs1) s = eval_match rhs1 s'"
+    by simp
+  from s' have rhs: "eval_match (lhs && rhs2) s = eval_match rhs2 s'"
+    by simp
+  from lhs rhs show ?thesis using assms
+    by simp
+qed
+
+lemma sound_optimize_noop:
+  "eval_match m s = eval_match (elim_noop m) s"
+  apply (induction m arbitrary: s rule: elim_noop.induct)
+  using noop_semantics_rhs apply force+
+  using seq_det_rhs apply force+
+  using elim_noop.simps(17) elim_noop.simps(24) seq_det_rhs apply presburger
+  by force+
+
+fun eliminate_noop :: "Rules \<Rightarrow> Rules" where
+  "eliminate_noop (base e) = base e" |
+  "eliminate_noop (m ? r) = elim_noop m ? eliminate_noop r" |
+  "eliminate_noop (r1 else r2) = (eliminate_noop r1 else eliminate_noop r2)"
+
+lemma eliminate_noop_valid:
+  "eval_rules r u = eval_rules (eliminate_noop r) u"
+  apply (induction r arbitrary: u rule: eliminate_noop.induct)
+  apply simp
+  using eliminate_noop.simps(2) eval_rules.simps(2) sound_optimize_noop apply presburger
+  using eliminate_noop.simps(3) eval_rules.simps(3) by presburger
+
+fun combined_size :: "Rules \<Rightarrow> nat" where
+  "combined_size (m ? r) = (2 * size m) + combined_size r" |
+  "combined_size (base e) = 0" |
+  "combined_size (r1 else r2) = combined_size r1 + combined_size r2"
+
+function (sequential) lift_match :: "Rules \<Rightarrow> Rules" where
+  "lift_match (r1 else r2) = ((lift_match r1) else (lift_match r2))" |
+  "lift_match ((m1 && m2) ? r) = (lift_match (m1 ? (m2 ? r)))" |
+  "lift_match (m ? r) = m ? (lift_match r)" |
+  "lift_match r = r"
+  by pat_completeness auto
+termination lift_match
+  apply (relation "measures [combined_size, size]") apply auto[1]
+  apply auto[1] apply auto[1] apply simp
+  apply simp subgoal for m2 r apply (cases m2) by (simp add: lift_match.psimps(4))
+  apply simp
+  by simp
+
+lemma chain_equiv:
+  "eval_rules (m1 ? (m2 ? r)) u = eval_rules ((m1 && m2) ? r) u"
+  by (metis eval_match.simps(6) eval_rules.simps(2) option.case_eq_if)
+
+lemma lift_match_valid:
+  "eval_rules r u = eval_rules (lift_match r) u"
+  apply (induction r arbitrary: u rule: lift_match.induct) 
+  using eval_rules.simps(3) lift_match.simps(1) apply presburger
+  using chain_equiv apply force
+  using eval_rules.simps(2) lift_match.simps(3) apply presburger
+  apply simp
+  using eval_rules.simps(2) lift_match.simps(5) apply presburger
+  apply simp
+  by simp
+
+(*
+fun lift_common :: "Rules \<Rightarrow> Rules" where
+  "lift_common (m1 ? r1 else m2 ? r2) = 
+    (if m1 = m2
+      then m1 ? (lift_common (r1 else r2))
+      else (lift_common (m1 ? r1) else lift_common (m2 ? r2)))" |
+  "lift_common (r1 else r2) = ((lift_common r1) else (lift_common r2))" |
+  "lift_common (m ? r) = (m ? (lift_common r))" |
+  "lift_common (base e) = base e"*)
+
+fun join_conditions :: "Rules \<Rightarrow> Rules option" where
+  "join_conditions (m1 ? r1 else m2 ? r2) = 
+    (if m1 = m2
+      then Some (m1 ? (r1 else r2)) else None)" |
+  "join_conditions (m1 ? (m2 ? r1)) = 
+    (if m1 = m2
+      then Some ((m1 ? r1)) else None)" |
+  "join_conditions r = None"
+
+lemma join_conditions_shrinks:
+  "join_conditions r = Some r' \<Longrightarrow> size r' < size r"
+  apply (induction r rule: join_conditions.induct)
+  apply (metis One_nat_def Rules.size(5) Rules.size(6) add.commute add_Suc_right join_conditions.simps(1) lessI option.distinct(1) option.inject plus_1_eq_Suc)
+  apply (metis One_nat_def Rules.size(5) join_conditions.simps(2) less_add_same_cancel1 less_numeral_extra(1) option.discI option.inject)
+  by simp+
+
+function lift_common :: "Rules \<Rightarrow> Rules" where
+  "lift_common (r1 else r2) = (
+    case join_conditions (r1 else r2) 
+    of Some r \<Rightarrow> lift_common r |
+       None \<Rightarrow> (lift_common r1 else lift_common r2))" |
+  "lift_common (m ? r) = (
+    case join_conditions r 
+    of Some r' \<Rightarrow> lift_common (m ? r') |
+       None \<Rightarrow> (m ? lift_common r))" |
+  "lift_common (base e) = base e"
+  using combined_size.cases apply blast
+  by simp+
+termination
+  apply (relation "measures [size]") apply auto[1]
+    apply simp subgoal for r1 r2 apply (induction r1 rule: join_conditions.induct) by simp+
+   apply auto[2]
+  using join_conditions_shrinks apply fastforce
+  by (simp add: join_conditions_shrinks)
+
+  
+
+(*lemma lift_common_valid:
+  "eval_rules r u = eval_rules (lift_common r) u"
+  apply (induction r arbitrary: u rule: lift_common.induct)
+  using eval_rules.simps(2) eval_rules.simps(3) lift_common.simps(1) option.case_eq_if
+  sledgehammer
+  apply (smt (verit, del_insts))
+  using eval_rules.simps(3) lift_common.simps(2) apply presburger
+  apply (metis eval_rules.simps(3) lift_common.simps(3))
+  apply simp
+  apply (metis eval_rules.simps(3) lift_common.simps(5))
+  using eval_rules.simps(2) lift_common.simps(6) apply presburger
+  by simp*)
+
+definition optimized_export where
+  "optimized_export = lift_common o lift_match o eliminate_noop"
+
+(*lemma optimized_export_valid:
+  "eval_rules r u = eval_rules (optimized_export r) u"
+  unfolding optimized_export_def comp_def
+  using lift_common_valid lift_match_valid eliminate_noop_valid by simp*)
+
+
 subsection \<open>Java Generation\<close>
 
 fun unary_op_class :: "IRUnaryOp \<Rightarrow> string" where
@@ -726,96 +858,20 @@ fun export_rules :: "Rules \<Rightarrow> string" where
   "export_rules (r1 else r2) = export_rules r1 @ ''
 '' @ export_rules r2"
 
-
-subsection \<open>Rule Optimization\<close>
-
-fun eliminate_noop :: "Rules \<Rightarrow> Rules" where
-  "eliminate_noop (base e) = base e" |
-  "eliminate_noop (m ? r) = elim_noop m ? eliminate_noop r" |
-  "eliminate_noop (r1 else r2) = (eliminate_noop r1 else eliminate_noop r2)"
-
-lemma eliminate_noop_valid:
-  "eval_rules r u = eval_rules (eliminate_noop r) u"
-  apply (induction r arbitrary: u rule: eliminate_noop.induct)
-  apply simp
-  using eliminate_noop.simps(2) eval_rules.simps(2) sound_optimize_noop apply presburger
-  using eliminate_noop.simps(3) eval_rules.simps(3) by presburger
-
-fun combined_size :: "Rules \<Rightarrow> nat" where
-  "combined_size (m ? r) = (2 * size m) + combined_size r" |
-  "combined_size (base e) = 0" |
-  "combined_size (r1 else r2) = combined_size r1 + combined_size r2"
-
-function (sequential) lift_match :: "Rules \<Rightarrow> Rules" where
-  "lift_match (r1 else r2) = ((lift_match r1) else (lift_match r2))" |
-  "lift_match ((m1 && m2) ? r) = (lift_match (m1 ? (m2 ? r)))" |
-  "lift_match (m ? r) = m ? (lift_match r)" |
-  "lift_match r = r"
-  by pat_completeness auto
-termination lift_match
-  apply (relation "measures [combined_size, size]") apply auto[1]
-  apply auto[1] apply auto[1] apply simp
-  apply simp subgoal for m2 r apply (cases m2) by (simp add: lift_match.psimps(4))
-  apply simp
-  by simp
-
-lemma chain_equiv:
-  "eval_rules (m1 ? (m2 ? r)) u = eval_rules ((m1 && m2) ? r) u"
-  by (metis eval_match.simps(6) eval_rules.simps(2) option.case_eq_if)
-
-lemma lift_match_valid:
-  "eval_rules r u = eval_rules (lift_match r) u"
-  apply (induction r arbitrary: u rule: lift_match.induct) 
-  using eval_rules.simps(3) lift_match.simps(1) apply presburger
-  using chain_equiv apply force
-  using eval_rules.simps(2) lift_match.simps(3) apply presburger
-  apply simp
-  using eval_rules.simps(2) lift_match.simps(5) apply presburger
-  apply simp
-  by simp
-
-fun lift_common :: "Rules \<Rightarrow> Rules" where
-  "lift_common (m1 ? r1 else m2 ? r2) = 
-    (if m1 = m2
-      then m1 ? (lift_common (r1 else r2))
-      else (lift_common (m1 ? r1) else lift_common (m2 ? r2)))" |
-  "lift_common (r1 else r2) = ((lift_common r1) else (lift_common r2))" |
-  "lift_common (m ? r) = (m ? (lift_common r))" |
-  "lift_common (base e) = base e"
-
-lemma lift_common_valid:
-  "eval_rules r u = eval_rules (lift_common r) u"
-  apply (induction r arbitrary: u rule: lift_common.induct)
-  using eval_rules.simps(2) eval_rules.simps(3) lift_common.simps(1) option.case_eq_if
-  apply (smt (verit, del_insts))
-  using eval_rules.simps(3) lift_common.simps(2) apply presburger
-  apply (metis eval_rules.simps(3) lift_common.simps(3))
-  apply simp
-  apply (metis eval_rules.simps(3) lift_common.simps(5))
-  using eval_rules.simps(2) lift_common.simps(6) apply presburger
-  by simp
-
-definition optimized_export where
-  "optimized_export = lift_common o lift_match o eliminate_noop"
-
-lemma optimized_export_valid:
-  "eval_rules r u = eval_rules (optimized_export r) u"
-  unfolding optimized_export_def comp_def
-  using lift_common_valid lift_match_valid eliminate_noop_valid by simp
-
 subsection \<open>Experiments\<close>
 
 definition var :: "string \<Rightarrow> IRExpr" where
   "var v = (VariableExpr (String.implode v) VoidStamp)"
 
 subsubsection \<open>Generated Rules\<close>
-(* "\<not>(\<not>x) \<longmapsto> x" *)
+
+text \<open>@{text "\<not>(\<not>x) \<longrightarrow> x"}\<close>
 definition NestedNot where
   "NestedNot = generate
     (UnaryExpr UnaryNot (UnaryExpr UnaryNot (var ''x'')))
     (var ''x'')"
 
-(* "(x - y) + y \<longmapsto> x" *)
+text \<open>@{text "(x - y) + y \<longrightarrow> x"}\<close>
 definition RedundantSub where
   "RedundantSub = generate 
     (BinaryExpr BinAdd
@@ -823,7 +879,7 @@ definition RedundantSub where
       (var ''y''))
     (var ''x'')"
 
-(* "x + -e \<longmapsto> x - e" *)
+text \<open>@{text "x + -e \<longmapsto> x - e"}\<close>
 definition AddLeftNegateToSub where
   "AddLeftNegateToSub = generate 
     (BinaryExpr BinAdd
@@ -857,31 +913,31 @@ corollary
 
 
 subsubsection \<open>Rule Application\<close>
-(* \<not>(\<not>1) *)
+text \<open>@{text "\<not>(\<not>1)"}\<close>
 definition NestedNot_ground where
   "NestedNot_ground = (UnaryExpr UnaryNot (UnaryExpr UnaryNot (ConstantExpr (IntVal 32 1))))"
 
-(* 1 *)
+text "1"
 definition NestedNot_result where
   "NestedNot_result = (ConstantExpr (IntVal 32 1))"
 
-(* (15 - 10) + 10 *)
+text "(15 - 10) + 10"
 definition RedundantSub_ground where
   "RedundantSub_ground = (BinaryExpr BinAdd 
           (BinaryExpr BinSub (ConstantExpr (IntVal 32 15)) (ConstantExpr (IntVal 32 10)))
           (ConstantExpr (IntVal 32 10)))"
 
-(* 15 *)
+text "15"
 definition RedundantSub_result where
   "RedundantSub_result = (ConstantExpr (IntVal 32 15))"
 
-(* 10 - (-15) *)
+text "10 - (-15)"
 definition AddLeftNegateToSub_ground where
   "AddLeftNegateToSub_ground = (BinaryExpr BinAdd 
           (ConstantExpr (IntVal 32 10))
           (UnaryExpr UnaryNeg (ConstantExpr (IntVal 32 15))))"
 
-(* 10 + 15 *)
+text "10 + 15"
 definition AddLeftNegateToSub_result where
   "AddLeftNegateToSub_result = (BinaryExpr BinSub
           (ConstantExpr (IntVal 32 10))
@@ -930,9 +986,42 @@ corollary
 
 subsubsection \<open>Rule Optimization\<close>
 
-value "lift_match (RedundantSub else AddLeftNegateToSub)"
-value "lift_common (lift_match (RedundantSub else AddLeftNegateToSub))"
-value "optimized_export (RedundantSub else AddLeftNegateToSub)"
+corollary
+  "lift_match (RedundantSub else AddLeftNegateToSub) =
+  (MATCH.match STR ''e'' (BinaryPattern BinAdd STR ''a'' STR ''b'') ?
+  (MATCH.match STR ''a'' (BinaryPattern BinSub STR ''az'' STR ''bz'') ?
+  (noop ? (noop ? 
+  (STR ''bz'' == STR ''b'' ?
+    base (VariableExpr STR ''az'' VoidStamp)))))
+    else
+  MATCH.match STR ''e'' (BinaryPattern BinAdd STR ''a'' STR ''b'') ?
+  (noop ?
+  (MATCH.match STR ''b'' (UnaryPattern UnaryNeg STR ''az'') ?
+  (noop ?
+    base (BinaryExpr BinSub (VariableExpr STR ''a'' VoidStamp) (VariableExpr STR ''az'' VoidStamp))))))"
+  by eval
+
+corollary
+  "lift_common (lift_match (RedundantSub else AddLeftNegateToSub)) =
+   MATCH.match STR ''e'' (BinaryPattern BinAdd STR ''a'' STR ''b'') ?
+    (MATCH.match STR ''a'' (BinaryPattern BinSub STR ''az'' STR ''bz'') ?
+    (noop ? ((STR ''bz'' == STR ''b'' ? base (VariableExpr STR ''az'' VoidStamp))))
+    else
+    noop ?
+    (MATCH.match STR ''b'' (UnaryPattern UnaryNeg STR ''az'') ?
+    (noop ? base (BinaryExpr BinSub (VariableExpr STR ''a'' VoidStamp) (VariableExpr STR ''az'' VoidStamp)))))"
+  by eval
+
+corollary
+  "optimized_export (RedundantSub else AddLeftNegateToSub) =
+   MATCH.match STR ''e'' (BinaryPattern BinAdd STR ''a'' STR ''b'') ?
+    (MATCH.match STR ''a'' (BinaryPattern BinSub STR ''az'' STR ''bz'') ?
+     (STR ''bz'' == STR ''b'' ?
+      base (VariableExpr STR ''az'' VoidStamp))
+    else
+    MATCH.match STR ''b'' (UnaryPattern UnaryNeg STR ''az'') ?
+     base (BinaryExpr BinSub (VariableExpr STR ''a'' VoidStamp) (VariableExpr STR ''az'' VoidStamp)))"
+  by eval
 
 subsubsection \<open>Java Generation\<close>
 
@@ -944,7 +1033,7 @@ value "export_rules (lift_common (lift_match (RedundantSub else AddLeftNegateToS
 value "export_rules (optimized_export (RedundantSub else AddLeftNegateToSub))"
 
 value "lift_match (eliminate_noop (NestedNot else RedundantSub else AddLeftNegateToSub))"
-value "export_rules (optimized_export (RedundantSub else AddLeftNegateToSub else NestedNot))"
+value "export_rules (optimized_export ((RedundantSub else AddLeftNegateToSub) else NestedNot))"
 value "export_rules (optimized_export (NestedNot else RedundantSub else AddLeftNegateToSub))"
 
 no_notation cond (infixl "?" 52)

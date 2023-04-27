@@ -230,7 +230,11 @@ inductive
     cond \<noteq> UndefVal;
     branch = (if val_to_bool cond then te else fe);
     [m,p] \<turnstile> branch \<mapsto> result;
-    result \<noteq> UndefVal\<rbrakk>
+    result \<noteq> UndefVal;
+
+    other = (if \<not>(val_to_bool cond) then te else fe);
+    [m,p] \<turnstile> other \<mapsto> eval;
+    eval \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr ce te fe) \<mapsto> result" |
 
   UnaryExpr:

@@ -12,8 +12,7 @@ fun replace_usages :: "ID \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> I
 lemma replace_usages_effect:
   assumes "g' = replace_usages nid nid' g"
   shows "kind g' nid = RefNode nid'"
-  using assms replace_node_lookup replace_usages.simps
-  by (metis IRNode.distinct(2861))
+  by (metis IRNode.distinct(2969) replace_usages.simps replace_node_lookup assms)
 
 lemma replace_usages_changeonly:
   assumes "nid \<in> ids g"
@@ -28,8 +27,6 @@ lemma replace_usages_unchanged:
   shows "unchanged (ids g - {nid}) g g'"
   using assms unfolding replace_usages.simps
   using assms(2) disjoint_change replace_usages_changeonly by presburger
-
-
 
 fun nextNid :: "IRGraph \<Rightarrow> ID" where
   "nextNid g = (Max (ids g)) + 1"

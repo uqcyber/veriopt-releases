@@ -60,6 +60,7 @@ datatype IRBinaryOp =
   | BinIntegerEquals
   | BinIntegerLessThan
   | BinIntegerBelow
+  | BinIntegerTest
 
 datatype (discs_sels) IRExpr =
     UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
@@ -111,7 +112,7 @@ text \<open>Note: in Java all integer calculations are done as 32 or 64 bit calc
 \<close>
 
 abbreviation binary_fixed_32_ops :: "IRBinaryOp set" where
-  "binary_fixed_32_ops \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow}"
+  "binary_fixed_32_ops \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow, BinIntegerTest}"
 
 abbreviation binary_shift_ops :: "IRBinaryOp set" where
   "binary_shift_ops \<equiv> {BinLeftShift, BinRightShift, BinURightShift}"
@@ -191,7 +192,8 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinURightShift v1 v2 = intval_uright_shift v1 v2" |
   "bin_eval BinIntegerEquals v1 v2 = intval_equals v1 v2" |
   "bin_eval BinIntegerLessThan v1 v2 = intval_less_than v1 v2" |
-  "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2"
+  "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2" |
+  "bin_eval BinIntegerTest v1 v2 = intval_test v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
 lemmas eval_thms =
@@ -232,9 +234,8 @@ inductive
     [m,p] \<turnstile> branch \<mapsto> result;
     result \<noteq> UndefVal;
 
-    other = (if \<not>(val_to_bool cond) then te else fe);
-    [m,p] \<turnstile> other \<mapsto> eval;
-    eval \<noteq> UndefVal\<rbrakk>
+    [m,p] \<turnstile> te \<mapsto> true;  true  \<noteq> UndefVal;
+    [m,p] \<turnstile> fe \<mapsto> false; false \<noteq> UndefVal\<rbrakk>
     \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr ce te fe) \<mapsto> result" |
 
   UnaryExpr:

@@ -387,6 +387,16 @@ next
         \<open>kind g2 n = IntegerLessThanNode x y\<close> child_member member_rec(1) IntegerLessThanNode 
         ids_some)
 next
+  case (IntegerTestNode n x y xe ye)
+  then have "kind g2 n = IntegerTestNode x y"
+    by (metis kind_unchanged)
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    by (metis IntegerTestNode.hyps IRNodes.inputs_of_IntegerTestNode encode_in_ids
+        in_mono inputs.simps inputs_are_usages list.set_intros(1) set_subset_Cons)
+  then show ?case
+    by (metis rep.IntegerTestNode inputs_of_IntegerTestNode child_unchanged encode_in_ids
+        \<open>kind g2 n = IntegerTestNode x y\<close> child_member member_rec(1) IntegerTestNode ids_some)
+next
   case (NarrowNode n ib rb x xe)
   then have "kind g2 n = NarrowNode ib rb x"
     by (metis kind_unchanged)

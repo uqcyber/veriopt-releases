@@ -63,7 +63,7 @@ fun is_CompareNode :: "IRNode \<Rightarrow> bool" where
   "is_CompareNode n = ((is_IntegerEqualsNode n) \<or> (is_IntegerLowerThanNode n))"
 
 fun is_BinaryOpLogicNode :: "IRNode \<Rightarrow> bool" where
-  "is_BinaryOpLogicNode n = ((is_CompareNode n))"
+  "is_BinaryOpLogicNode n = ((is_CompareNode n) \<or> (is_IntegerTestNode n))"
 
 fun is_LogicNode :: "IRNode \<Rightarrow> bool" where
   "is_LogicNode n = ((is_BinaryOpLogicNode n) \<or> (is_LogicNegationNode n) \<or> (is_ShortCircuitOrNode n) \<or> (is_UnaryOpLogicNode n))"

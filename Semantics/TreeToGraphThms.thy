@@ -137,6 +137,12 @@ lemma rep_integer_less_than [rep]:
    (\<exists>xe ye. e = BinaryExpr BinIntegerLessThan xe ye)"
   by (induction rule: rep.induct; auto)
 
+lemma rep_integer_test [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   kind g n = IntegerTestNode x y \<Longrightarrow>
+   (\<exists>xe ye. e = BinaryExpr BinIntegerTest xe ye)"
+  by (induction rule: rep.induct; auto)
+
 lemma rep_narrow [rep]:
   "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = NarrowNode ib rb x \<Longrightarrow>
@@ -210,11 +216,11 @@ proof (induction arbitrary: e\<^sub>2 rule: "rep.induct")
 next
   case (ParameterNode n i s)
   then show ?case
-    by (metis IRNode.distinct(2555) ParameterNodeE rep_parameter)
+    by (metis IRNode.distinct(2663) ParameterNodeE rep_parameter)
 next
   case (ConditionalNode n c t f ce te fe)
   then show ?case
-    by (metis IRNode.distinct(605) IRNode.inject(6) ConditionalNodeE rep_conditional)
+    by (metis IRNode.distinct(617) IRNode.inject(6) ConditionalNodeE rep_conditional)
 next
   case (AbsNode n x xe)
   then show ?case
@@ -284,21 +290,27 @@ next
   then show ?case
     by (solve_det node: IntegerLessThanNode)
 next
+  case (IntegerTestNode n x y xe ye)
+  then show ?case 
+    by (smt (verit) IRNode.distinct(31,137,241,541,637,1253,1333,1411,1493,1497,1501,1513,1515,1517,
+        1523,1525,1527,1533,1535,1537,1547,1549,1557,1559,1563) IRNode.inject(16) rep.cases
+        is_preevaluated.simps(24))
+next
   case (NarrowNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(2309) IRNode.inject(29) NarrowNodeE rep_narrow)
+    by (metis IRNode.distinct(2417) IRNode.inject(30) NarrowNodeE rep_narrow)
 next
   case (SignExtendNode n x xe)
   then show ?case 
-    by (metis IRNode.distinct(2705) IRNode.inject(40) SignExtendNodeE rep_sign_extend)
+    by (metis IRNode.distinct(2813) IRNode.inject(41) SignExtendNodeE rep_sign_extend)
 next
   case (ZeroExtendNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(2859) IRNode.inject(51) ZeroExtendNodeE rep_zero_extend)
+    by (metis IRNode.distinct(2967) IRNode.inject(52) ZeroExtendNodeE rep_zero_extend)
 next
   case (LeafNode n s)
   then show ?case 
-    by (metis is_preevaluated.simps(54) rep_load_field LeafNodeE)
+    by (metis is_preevaluated.simps(55) rep_load_field LeafNodeE)
 next
   case (RefNode n')
   then show ?case
@@ -306,8 +318,7 @@ next
 next
   case (IsNullNode n v)
   then show ?case
-    by (metis (no_types, lifting) rep_is_null IsNullNodeE IRNodes.IRNode.distinct(1671) 
-        IRNodes.IRNode.inject(18))  
+    by (metis IRNode.distinct(1779) IRNode.inject(19) IsNullNodeE rep_is_null)
 qed
 
 lemma repAllDet:
@@ -413,7 +424,7 @@ lemma mono_add:
   assumes "xe1 \<ge> xe2 \<and> ye1 \<ge> ye2"
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
-  by (metis IRNode.distinct(209) mono_binary assms AddNodeE IRNode.inject(2) repDet rep_add)
+  by (metis IRNode.distinct(213) mono_binary assms AddNodeE IRNode.inject(2) repDet rep_add)
 
 lemma mono_mul:
   assumes "kind g1 n = MulNode x y \<and> kind g2 n = MulNode x y"
@@ -1030,6 +1041,34 @@ BinaryExpr BinIntegerLessThan xe1 ye1 \<ge> BinaryExpr BinIntegerLessThan xe2 ye
           by meson
       qed
     next
+      case (IntegerTestNode n x y xe1 ye1)
+      have k: "g1 \<turnstile> n \<simeq> BinaryExpr BinIntegerTest xe1 ye1" 
+        using IntegerTestNode by (meson rep.IntegerTestNode) 
+      obtain xn yn where l: "kind g1 n = IntegerTestNode xn yn"
+        by (simp add: IntegerTestNode.hyps(1))
+      then have mx: "g1 \<turnstile> xn \<simeq> xe1"
+        using IRNode.inject(16) IntegerTestNode.hyps(1) IntegerTestNode.hyps(2) by presburger
+      from l have my: "g1 \<turnstile> yn \<simeq> ye1"
+        by (metis IRNode.inject(16) IntegerTestNode.hyps(1) IntegerTestNode.hyps(3))
+      then show ?case
+      proof -
+        have "g1 \<turnstile> xn \<simeq> xe1" 
+          by (simp add: mx)
+        have "g1 \<turnstile> yn \<simeq> ye1" 
+          by (simp add: my)
+        have xer: "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
+          using IntegerTestNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(16))
+        have "\<exists> ye2. (g2 \<turnstile> yn \<simeq> ye2) \<and> ye1 \<ge> ye2"
+          using IntegerLessThanNode a b c d l no_encoding not_excluded_keep_type repDet singletonD
+          by (metis IRNode.inject(16) IntegerTestNode.IH(2) IntegerTestNode.hyps(1) my)
+        then have "\<exists> xe2 ye2. (g2 \<turnstile> n \<simeq> BinaryExpr BinIntegerTest xe2 ye2) \<and> 
+    BinaryExpr BinIntegerTest xe1 ye1 \<ge> BinaryExpr BinIntegerTest xe2 ye2"
+          by (metis IntegerTestNode.prems l mono_binary xer rep.IntegerTestNode )
+        then show ?thesis
+          by meson
+      qed
+    next
       case (NarrowNode n inputBits resultBits x xe1)
       have k: "g1 \<turnstile> n \<simeq> UnaryExpr (UnaryNarrow inputBits resultBits) xe1" 
         using NarrowNode by (simp add: NarrowNode.hyps(2) rep.NarrowNode)
@@ -1235,6 +1274,7 @@ lemma subset_implies_evals:
          apply (solve_subset_eval as_set: assms(1) eval: IntegerBelowNode)
         apply (solve_subset_eval as_set: assms(1) eval: IntegerEqualsNode)
        apply (solve_subset_eval as_set: assms(1) eval: IntegerLessThanNode)
+       apply (solve_subset_eval as_set: assms(1) eval: IntegerTestNode)
       apply (solve_subset_eval as_set: assms(1) eval: NarrowNode)
      apply (solve_subset_eval as_set: assms(1) eval: SignExtendNode)
     apply (solve_subset_eval as_set: assms(1) eval: ZeroExtendNode)
@@ -1339,6 +1379,7 @@ lemma graph_unchanged_rep_unchanged:
            apply (metis no_encoding rep.IntegerBelowNode)
           apply (metis no_encoding rep.IntegerEqualsNode)
          apply (metis no_encoding rep.IntegerLessThanNode)
+         apply (metis no_encoding rep.IntegerTestNode)
         apply (metis no_encoding rep.NarrowNode)
        apply (metis no_encoding rep.SignExtendNode)
       apply (metis no_encoding rep.ZeroExtendNode)
@@ -1445,7 +1486,7 @@ theorem term_graph_reconstruction:
   next
     case (ParameterNodeNew g i s)
     then show ?case
-      by (metis IRNode.distinct(2553) ParameterNode add_node_lookup)
+      by (metis IRNode.distinct(2661) ParameterNode find_new_kind find_new_stamp)
   next
     case (ConditionalNodeSame g4 c t f s' n g ce g2 te g3 fe)
     then have k: "kind g4 n = ConditionalNode c t f"
@@ -1514,9 +1555,10 @@ theorem term_graph_reconstruction:
       by (simp add: local.BinaryNodeSame)
     then show ?case 
       using x k apply (cases op)
-      using bin_node.simps(1,2,3,4,5,6,7,8,9,10,11,12,13)
+      using bin_node.simps(1,2,3,4,5,6,7,8,9,10,11,12,13,14)
             AddNode MulNode SubNode AndNode OrNode ShortCircuitOrNode LeftShiftNode RightShiftNode 
             UnsignedRightShiftNode IntegerEqualsNode IntegerLessThanNode IntegerBelowNode XorNode
+            IntegerTestNode
       by presburger+
   next
     case (BinaryNodeNew g3 op x y s' g xe g2 ye n g')
@@ -1534,9 +1576,10 @@ theorem term_graph_reconstruction:
       by (meson fresh_node_preserves_other_nodes no_encoding)
     then show ?case 
       using x k apply (cases op)
-      using bin_node.simps(1,2,3,4,5,6,7,8,9,10,11,12,13)
+      using bin_node.simps(1,2,3,4,5,6,7,8,9,10,11,12,13,14)
             AddNode MulNode SubNode AndNode OrNode ShortCircuitOrNode LeftShiftNode RightShiftNode
-            UnsignedRightShiftNode IntegerEqualsNode IntegerLessThanNode XorNode IntegerBelowNode     
+            UnsignedRightShiftNode IntegerEqualsNode IntegerLessThanNode XorNode IntegerBelowNode
+            IntegerTestNode
       by presburger+
   next
     case (AllLeafNodes g n s)
@@ -1937,6 +1980,7 @@ lemma same_kind_stamp_encodes_equal:
            apply (metis IntegerBelowNode)
           apply (metis IntegerEqualsNode)
          apply (metis IntegerLessThanNode)
+          apply (metis IntegerTestNode)
         apply (metis NarrowNode)
        apply (metis SignExtendNode)
       apply (metis ZeroExtendNode)
@@ -2319,6 +2363,20 @@ next
     then show ?case 
       by (simp add: IntegerLessThanNode rep.IntegerLessThanNode)
   next
+    case (IntegerTestNode n x y xe ye)
+    then have kind: "kind g n = IntegerTestNode x y"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "{x, y} = inputs g n"
+      by (simp add: kind)
+    have "x \<in> ids g \<and> y \<in> ids g"
+      using closed wf_closed_def isin inputs by blast
+    then have "x \<notin> new \<and> y \<notin> new"
+      using unchanged by (simp add: new_def)
+    then show ?case 
+      by (simp add: IntegerTestNode rep.IntegerTestNode)
+  next
     case (NarrowNode n inputBits resultBits x xe)
     then have kind: "kind g n = NarrowNode inputBits resultBits x"
       by simp
@@ -2552,7 +2610,7 @@ lemma unrep_preserves_closure:
   next
     case (ConstantNodeNew g c n g')
     then have dom: "ids g' = ids g \<union> {n}"
-      by (meson IRNode.distinct(697) add_node_ids_subset ids_add_update)
+      by (meson IRNode.distinct(711) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ConstantNode c"
       by (simp add: add_node_lookup ConstantNodeNew)
     then have inp: "{} = inputs g' n"
@@ -2572,7 +2630,7 @@ lemma unrep_preserves_closure:
   next
     case (ParameterNodeNew g i s n g')
     then have dom: "ids g' = ids g \<union> {n}"
-      by (meson IRNode.distinct(2553) add_node_ids_subset ids_add_update)
+      by (meson IRNode.distinct(2661) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ParameterNode i"
       by (simp add: add_node_lookup ParameterNodeNew)
     then have inp: "{} = inputs g' n"
@@ -2592,7 +2650,7 @@ lemma unrep_preserves_closure:
   next
     case (ConditionalNodeNew g4 c t f s' g ce g2 te g3 fe n g')
     then have dom: "ids g' = ids g4 \<union> {n}"
-      by (meson IRNode.distinct(603) add_node_ids_subset ids_add_update)
+      by (meson IRNode.distinct(615) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ConditionalNode c t f"
       by (auto simp add: find_new_kind ConditionalNodeNew.hyps(10))
     then have inp: "{c, t, f} = inputs g' n"
@@ -2600,8 +2658,9 @@ lemma unrep_preserves_closure:
     from k have suc: "{} = succ g' n"
       by simp
     have "inputs g' n \<subseteq> ids g' \<and> succ g' n \<subseteq> ids g' \<and> kind g' n \<noteq> NoNode"
-      by (smt (z3) IRNode.distinct(603) bot.extremum dom insert_subsetI sup.coboundedI1 k inp suc
-          unrep_contains unrep_preserves_contains ConditionalNodeNew)
+      by (metis (mono_tags, lifting) ConditionalNodeNew.hyps(2) ConditionalNodeNew.hyps(4) 
+          ConditionalNodeNew.hyps(6) IRNode.distinct(615) Un_empty_right Un_insert_right dom 
+          empty_subsetI in_mono inp insertCI insert_subsetI k suc unrep_contains unrep_ids_subset)
     then show ?case 
       by (smt (z3) dom ConditionalNodeNew.hyps ConditionalNodeNew.prems Diff_eq_empty_iff Diff_iff 
           Un_insert_right Un_upper1 add_node_def inputs.simps insertE replace_node_def succ.simps

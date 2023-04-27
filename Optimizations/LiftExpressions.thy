@@ -53,7 +53,8 @@ fun bin_expr_to_node :: "IRBinaryOp \<Rightarrow> (nat \<Rightarrow> nat \<Right
   "bin_expr_to_node BinURightShift = UnsignedRightShiftNode" |
   "bin_expr_to_node BinIntegerEquals = IntegerEqualsNode" |
   "bin_expr_to_node BinIntegerLessThan = IntegerLessThanNode" |
-  "bin_expr_to_node BinIntegerBelow = IntegerBelowNode"
+  "bin_expr_to_node BinIntegerBelow = IntegerBelowNode" |
+  "bin_expr_to_node BinIntegerTest = IntegerTestNode"
 
 fun gen_pattern :: "IRExpr \<Rightarrow> (nat \<times> Pattern) \<Rightarrow> (nat \<times> Pattern)" where
   "gen_pattern (UnaryExpr op x) (n, p) =

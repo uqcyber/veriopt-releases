@@ -190,6 +190,10 @@ fun intval_is_null :: "Value \<Rightarrow> Value" where
   "intval_is_null (ObjRef (v)) = (if (v=(None)) then bool_to_val True else bool_to_val False)" |
   "intval_is_null _ = UndefVal"
 
+fun intval_test :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_test (IntVal b1 v1) (IntVal b2 v2) = bool_to_val_bin b1 b2 ((and v1 v2) = 0)" |
+  "intval_test _ _ = UndefVal"
+
 subsection \<open>Narrowing and Widening Operators\<close>
 
 text \<open>Note: we allow these operators to have inBits=outBits, because the Graal compiler

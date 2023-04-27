@@ -459,7 +459,6 @@ lemma stamp_meet_is_valid_stamp:
   shows "valid_stamp (meet stamp1 stamp2)"
   by (cases stamp1; cases stamp2; insert stamp_meet_integer_is_valid_stamp[OF 1 2]; auto)
 
-
 lemma stamp_meet_commutes: "meet stamp1 stamp2 = meet stamp2 stamp1"
   by (cases stamp1; cases stamp2; auto)
 

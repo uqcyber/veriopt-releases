@@ -84,7 +84,7 @@ lemma bin_eval_new_int:
                b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits x)"
   using is_IntVal_def assms apply (cases op; cases x; cases y; simp_all)
   by (smt (verit) bool_to_val.elims new_int.simps IntVal0 IntVal1 take_bit_xor take_bit_or 
-      take_bit_and)+
+      take_bit_and take_bit_of_0 new_int_take_bits)+
 
 lemma int_stamp:
   assumes "is_IntVal v"
@@ -343,6 +343,14 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
     using assms by simp
   (*have co: "compatible (stamp_expr t) (stamp_expr f)"
     using a by auto*)
+  then obtain tr where tr: "[m,p] \<turnstile> t \<mapsto> tr"
+    using a by auto
+  then have tr': "[m,p] \<turnstile> t' \<mapsto> tr"
+    using assms(2) by auto
+  then obtain fa where fa: "[m,p] \<turnstile> f \<mapsto> fa"
+    using a by blast
+  then have fa': "[m,p] \<turnstile> f' \<mapsto> fa"
+    using assms(3) by auto
   define branch  where b:  "branch  = (if val_to_bool cond then t else f)"
   define branch' where b': "branch' = (if val_to_bool cond then t' else f')"
   then have beval: "[m,p] \<turnstile> branch \<mapsto> v" 
@@ -371,7 +379,7 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
   from beval have "[m,p] \<turnstile> branch' \<mapsto> v" 
     using assms by (auto simp add: b b')
   then show "[m,p] \<turnstile> ConditionalExpr c' t' f' \<mapsto> v"
-    using c' by (simp add: evaltree_not_undef b' ConditionalExpr)
+    using c' fa' tr' by (simp add: evaltree_not_undef b' ConditionalExpr)
 qed
 
 (*

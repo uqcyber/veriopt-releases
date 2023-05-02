@@ -530,20 +530,33 @@ lemma remove1_size:
   "x \<in> set xs \<Longrightarrow> size (remove1 x xs) < size xs"
   by (metis diff_less length_pos_if_in_set length_remove1 zero_less_one)
 
-function eval_rules :: "Rules \<Rightarrow> Subst \<Rightarrow> IRExpr option" where
-  "eval_rules (base e) u = ground_expr e u" |
-  "eval_rules (cond m r) u = (case (eval_match m u) of
-    None \<Rightarrow> None |
-    Some u' \<Rightarrow> eval_rules r u')" |
-  "eval_rules (r1 else r2) u = (case (eval_rules r1 u) of
-    None \<Rightarrow> (eval_rules r2 u) |
-    Some r \<Rightarrow> Some r)" |
-  "eval_rules (choice rules) u = (case rules of 
-    (r' # rs) \<Rightarrow> (let rule = (SOME r. r \<in> set rules) in
-      (case (eval_rules rule u) of
-        None \<Rightarrow> (eval_rules (choice (remove1 rule rules)) u) |
-        Some r \<Rightarrow> Some r)) |
-    [] \<Rightarrow> None)"
+inductive eval_rules :: "Rules \<Rightarrow> Subst \<Rightarrow> IRExpr option \<Rightarrow> bool" where
+  "eval_rules (base e) u (ground_expr e u)" |
+  "\<lbrakk>eval_match m u = Some u';
+    eval_rules r u' e\<rbrakk>
+   \<Longrightarrow> eval_rules (cond m r) u e" |
+  "\<lbrakk>eval_match m u = None\<rbrakk>
+   \<Longrightarrow> eval_rules (cond m r) u None" |
+  "\<lbrakk>eval_rules r1 u (Some r)\<rbrakk>
+   \<Longrightarrow> eval_rules (r1 else r2) u (Some r)" |
+  "\<lbrakk>eval_rules r1 u None;
+    eval_rules r2 u e\<rbrakk>
+   \<Longrightarrow> eval_rules (r1 else r2) u e" |
+  "\<lbrakk>rule \<in> set rules;
+    eval_rules rule u (Some r)\<rbrakk>
+   \<Longrightarrow> eval_rules (choice rules) u (Some r)" |
+  "\<lbrakk>\<forall> rule \<in> set rules. eval_rules rule u None\<rbrakk>
+   \<Longrightarrow> eval_rules (choice rules) u None" |
+  "\<lbrakk>rules = []\<rbrakk>
+   \<Longrightarrow> eval_rules (choice rules) u None"
+
+inductive_cases baseE: "eval_rules (base e') u e"
+inductive_cases condE: "eval_rules (cond m r) u e"
+inductive_cases elseE: "eval_rules (r1 else r2) u e"
+inductive_cases choiceE: "eval_rules (choice r) u e"
+
+code_pred [show_modes] eval_rules .
+(*
   apply (metis Rules.exhaust old.prod.exhaust) by simp+
 termination
   apply (relation "measure (size o fst)") 
@@ -559,7 +572,7 @@ termination
       by (smt (verit) One_nat_def Suc_pred ab_semigroup_add_class.add_ac(1) add_Suc_right length_pos_if_in_set length_remove1 not_add_less2 not_less_eq size_list_conv_sum_list sum_list_map_remove1)
   qed
   done
-
+*)
 
 
 subsection \<open>Rule Optimization\<close>
@@ -609,11 +622,33 @@ lemma sound_optimize_noop:
   using elim_noop.simps(23) elim_noop.simps(46) seq_det_rhs apply presburger
   by force+
 
-lemma monotonic_choice:
-  assumes "\<forall> r \<in> set rs. eval_rules r u = eval_rules (f r) u"
-  shows "eval_rules (choice rs) u = eval_rules (choice (map f rs)) u"
-  apply (induction "choice rs" u rule: eval_rules.induct)
-  using assms sorry
+(*lemma monotonic_choice:
+  assumes "\<forall> r e. eval_rules r u e = eval_rules (f r) u e"
+  shows "eval_rules (choice rs) u e = eval_rules (choice (map f rs)) u e"
+  apply (induction rs) apply simp using choiceE assms sorry
+  subgoal for a rs apply (induction "choice rs" u rule: eval_rules.induct)*)
+
+fun optimize_match :: "(MATCH \<Rightarrow> MATCH) \<Rightarrow> Rules \<Rightarrow> Rules" where
+  "optimize_match f (base e) = base e" |
+  "optimize_match f (m ? r) = f m ? optimize_match f r" |
+  "optimize_match f (r1 else r2) = (optimize_match f r1 else optimize_match f r2)" |
+  "optimize_match f (choice rules) = choice (map (optimize_match f) rules)"
+
+lemma choice_join:
+  assumes "eval_rules (a) u e = eval_rules (f a) u e"
+  assumes "eval_rules (choice rules) u e = eval_rules (choice (map f rules)) u e"
+  shows "eval_rules (choice (a # rules)) u e = eval_rules (choice (map f (a # rules))) u e"
+  using assms
+  by (smt (verit, ccfv_threshold) choiceE eval_rules.intros(6) eval_rules.intros(7) list.map_disc_iff list.set_intros(1) list.set_intros(2) list.simps(9) option.distinct(1) set_ConsD)
+
+(*lemma optimize_match_valid:
+  fixes f :: "MATCH \<Rightarrow> MATCH"
+  assumes "eval_match m s = eval_match (f m) s"
+  shows "eval_rules r u e = eval_rules (optimize_match f r) u e"
+  apply (induction r arbitrary: u e rule: optimize_match.induct)
+  apply simp
+  using optimize_match.simps(2) condE assms *)
+
 
 fun eliminate_noop :: "Rules \<Rightarrow> Rules" where
   "eliminate_noop (base e) = base e" |
@@ -621,16 +656,32 @@ fun eliminate_noop :: "Rules \<Rightarrow> Rules" where
   "eliminate_noop (r1 else r2) = (eliminate_noop r1 else eliminate_noop r2)" |
   "eliminate_noop (choice rules) = choice (map eliminate_noop rules)"
 
+
 lemma eliminate_noop_valid:
-  "eval_rules r u = eval_rules (eliminate_noop r) u"
-  apply (induction r arbitrary: u rule: eliminate_noop.induct)
+  "eval_rules r u e = eval_rules (eliminate_noop r) u e"
+  apply (induction r arbitrary: u e rule: eliminate_noop.induct)
   apply simp
-  using eliminate_noop.simps(2) eval_rules.simps(2) sound_optimize_noop apply presburger
-  using eliminate_noop.simps(3) eval_rules.simps(3) apply presburger
-  (*by (metis eliminate_noop.simps(4) list.simps(8) monotonic_choice)*)
-  subgoal for rules u
-    apply (induction rules) apply simp using monotonic_choice
-    by (metis eliminate_noop.simps(4))
+  using eliminate_noop.simps(2) condE sound_optimize_noop
+    apply (smt (verit) eval_rules.simps) 
+  using eliminate_noop.simps(3) elseE
+   apply (smt (verit, del_insts) eval_rules.intros(4) eval_rules.intros(5))
+  unfolding eliminate_noop.simps(4)
+  subgoal premises ind for rules u e 
+    using ind apply (induction rules) apply simp
+    (*using choice_join
+    by (metis list.set_intros(1) list.set_intros(2))*)
+    subgoal premises ind' for a rules'
+    proof -
+      have a: "eval_rules (a) u e = eval_rules (eliminate_noop a) u e"
+        using ind' by simp
+      have rules: "eval_rules (choice rules') u e = eval_rules (choice (map eliminate_noop rules')) u e"
+        using ind' by auto
+      have "eval_rules (choice (a # rules')) u e = eval_rules (choice (map eliminate_noop (a # rules'))) u e"
+        using a rules using choice_join 
+        by presburger
+      then show ?thesis by simp
+    qed
+    done
   done
 
 fun elim_empty :: "MATCH \<Rightarrow> MATCH" where
@@ -656,14 +707,18 @@ fun eliminate_empty :: "Rules \<Rightarrow> Rules" where
   "eliminate_empty (choice rules) = choice (map eliminate_empty rules)"
 
 lemma eliminate_empty_valid:
-  "eval_rules r u = eval_rules (eliminate_empty r) u"
-  apply (induction r arbitrary: u rule: eliminate_empty.induct)
+  "eval_rules r u e = eval_rules (eliminate_empty r) u e"
+  apply (induction r arbitrary: u e rule: eliminate_empty.induct)
   apply simp
-  using eliminate_empty.simps(2) eval_rules.simps(2) sound_optimize_empty apply presburger
-  using eliminate_empty.simps(3) eval_rules.simps(3) apply presburger
-  subgoal for rules u
-    apply (induction rules) apply simp
-    by (metis eliminate_empty.simps(4) monotonic_choice)
+  using eliminate_empty.simps(2) sound_optimize_empty condE
+    apply (smt (verit) eval_rules.simps)
+  using eliminate_empty.simps(3) elseE
+   apply (smt (verit, del_insts) eval_rules.intros(4) eval_rules.intros(5))
+  unfolding eliminate_empty.simps(4)
+  subgoal premises ind for rules u e 
+    using ind apply (induction rules) apply simp
+    using choice_join
+    by (metis list.set_intros(1) list.set_intros(2))
   done
 
 fun combined_size :: "Rules \<Rightarrow> nat" where
@@ -673,14 +728,14 @@ fun combined_size :: "Rules \<Rightarrow> nat" where
   "combined_size (choice (rule # rules)) = 1 + combined_size rule + combined_size (choice rules)" |
   "combined_size (choice []) = 1"
 
-value "size (choice [])"
+value "size noop"
 
 function (sequential) lift_match :: "Rules \<Rightarrow> Rules" where
   "lift_match (r1 else r2) = ((lift_match r1) else (lift_match r2))" |
   "lift_match (choice rules) = choice (map lift_match rules)" |
   "lift_match ((m1 && m2) ? r) = (lift_match (m1 ? (m2 ? r)))" |
   "lift_match (m ? r) = m ? (lift_match r)" |
-  "lift_match r = r"
+  "lift_match (base e) = (base e)"
   by pat_completeness auto
 termination lift_match
   apply (relation "measures [combined_size, size]") apply auto[1]
@@ -691,21 +746,30 @@ termination lift_match
   by simp+
 
 lemma chain_equiv:
-  "eval_rules (m1 ? (m2 ? r)) u = eval_rules ((m1 && m2) ? r) u"
-  by (metis eval_match.simps(6) eval_rules.simps(2) option.case_eq_if)
+  "eval_rules (m1 ? (m2 ? r)) u e = eval_rules ((m1 && m2) ? r) u e"
+  using condE apply auto[1]
+   apply (smt (verit) eval_match.simps(6) eval_rules.simps option.simps(4) option.simps(5))
+  by (metis (no_types, lifting) eval_match.simps(6) eval_rules.intros(2) eval_rules.intros(3) option.case_eq_if option.distinct(1) option.exhaust_sel)
 
 lemma lift_match_valid:
-  "eval_rules r u = eval_rules (lift_match r) u"
-  apply (induction r arbitrary: u rule: lift_match.induct) 
-  using eval_rules.simps(3) lift_match.simps(1) apply presburger
-  subgoal for rules u apply (induction rules) apply simp
-    by (metis lift_match.simps(2) monotonic_choice)
-  using chain_equiv apply force
-  using eval_rules.simps(2) lift_match.simps(4) apply presburger
-  apply simp
-  using eval_rules.simps(2) lift_match.simps(6) apply presburger
-  apply simp
-  by simp+
+  "eval_rules r u e = eval_rules (lift_match r) u e"
+  apply (induction r arbitrary: u e rule: lift_match.induct) 
+           apply simp 
+  using lift_match.simps(1) elseE
+           apply (smt (verit) eval_rules.simps)
+  unfolding lift_match.simps(2)
+  subgoal premises ind for rules u e 
+    using ind apply (induction rules) apply simp
+    using choice_join
+    by (metis list.set_intros(1) list.set_intros(2))
+         apply (simp add: chain_equiv)
+  apply (metis (full_types) condE eval_rules.intros(2) eval_rules.intros(3) lift_match.simps(4))
+  apply (metis (full_types) condE eval_rules.intros(2) eval_rules.intros(3) lift_match.simps(5))
+      apply (metis (full_types) condE eval_rules.intros(2) eval_rules.intros(3) lift_match.simps(6))
+     apply (metis (full_types) condE eval_rules.intros(2) eval_rules.intros(3) lift_match.simps(7))
+    apply (metis (full_types) condE eval_rules.intros(2) eval_rules.intros(3) lift_match.simps(8))
+   apply (metis (full_types) condE eval_rules.intros(2) eval_rules.intros(3) lift_match.simps(9))
+  by simp
 
 (*
 fun lift_common :: "Rules \<Rightarrow> Rules" where
@@ -733,14 +797,29 @@ lemma join_conditions_shrinks:
    apply (metis One_nat_def Rules.size(6) join_conditions.simps(2) less_add_same_cancel1 option.discI option.inject zero_less_one)
   by simp+
 
+(*
+lemma join_conditions_shrinks_cond:
+  "join_conditions (m ? r) = Some r' \<Longrightarrow> combined_size r' < combined_size (m ? r)"
+  apply (induction "m ? r" rule: join_conditions.induct)
+  apply auto subgoal for m2 r1 apply (cases "m = m2") apply auto sorry
+
+lemma join_conditions_shrinks_combined:
+  "join_conditions r = Some r' \<Longrightarrow> combined_size r' < combined_size r"
+  apply (induction r rule: join_conditions.induct) apply auto
+  subgoal for m1 r1 m2 r2
+  apply (cases "m1 = m2") apply auto sledgehammer
+  apply (metis One_nat_def Rules.size(6) Rules.size(7) Suc_eq_plus1 add_Suc_right add_Suc_shift join_conditions.simps(1) lessI option.distinct(1) option.sel)
+   apply (metis One_nat_def Rules.size(6) join_conditions.simps(2) less_add_same_cancel1 option.discI option.inject zero_less_one)
+  by simp+*)
+
 function lift_common :: "Rules \<Rightarrow> Rules" where
   "lift_common (r1 else r2) = (
     case join_conditions (r1 else r2) 
     of Some r \<Rightarrow> lift_common r |
        None \<Rightarrow> (lift_common r1 else lift_common r2))" |
   "lift_common (m ? r) = (
-    case join_conditions r 
-    of Some r' \<Rightarrow> lift_common (m ? r') |
+    case join_conditions (m ? r) 
+    of Some r' \<Rightarrow> lift_common r' |
        None \<Rightarrow> (m ? lift_common r))" |
   "lift_common (choice rules) = choice (map lift_common rules)" |
   "lift_common (base e) = base e"
@@ -750,38 +829,37 @@ function lift_common :: "Rules \<Rightarrow> Rules" where
 termination
   apply (relation "measures [size]") apply auto[1]
     apply simp subgoal for r1 r2 apply (induction r1 rule: join_conditions.induct) by simp+
-   apply auto[2]
-  using join_conditions_shrinks apply fastforce
-  apply (simp add: join_conditions_shrinks)
-  by (metis Rules.size(8) less_add_same_cancel1 linorder_neqE_nat measures_less not_add_less1 not_less_eq size_list_estimation)
-
+   apply auto[1] using join_conditions_shrinks apply fastforce+ 
+  apply auto[1] using join_conditions_shrinks by (simp add: le_imp_less_Suc size_list_estimation')
+  
 lemma match_eq:
   "eval_match (m && m) u = eval_match m u"
   sorry
 
 lemma redundant_conditions:
-  "eval_rules (m ? (m ? r1)) u = eval_rules (m ? r1) u"
-  using match_eq chain_equiv by auto
+  "eval_rules (m ? (m ? r1)) u e = eval_rules (m ? r1) u e"
+  using match_eq chain_equiv
+  by (smt (verit, best) condE eval_rules.intros(2) eval_rules.intros(3))
 
 lemma join_conditions_valid:
-  "join_conditions r = Some r' \<Longrightarrow> eval_rules r u = eval_rules r' u"
+  "join_conditions r = Some r' \<Longrightarrow> eval_rules r u e = eval_rules r' u e"
   apply (induction r rule: join_conditions.induct)
-  apply (metis (no_types, lifting) eval_rules.simps(2) eval_rules.simps(3) join_conditions.simps(1) option.case_eq_if option.distinct(1) option.sel)
-  using redundant_conditions
-         apply (metis join_conditions.simps(2) option.distinct(1) option.sel)
+  apply (smt (verit, ccfv_threshold) condE elseE eval_rules.intros(2) eval_rules.intros(3) eval_rules.intros(4) eval_rules.intros(5) join_conditions.simps(1) option.distinct(1) option.sel)
+  apply (metis join_conditions.simps(2) option.discI option.inject redundant_conditions)
   by simp+
 
 lemma lift_common_valid:
-  "eval_rules r u = eval_rules (lift_common r) u"
-  apply (induction r arbitrary: u rule: lift_common.induct)
+  "eval_rules r u e = eval_rules (lift_common r) u e"
+  apply (induction r arbitrary: u e rule: lift_common.induct)
     subgoal for r1 r2 apply (cases "join_conditions (r1 else r2)")
-      apply (metis eval_rules.simps(3) lift_common.simps(1) option.simps(4))
-     using join_conditions_valid by fastforce
+    apply (smt (verit, del_insts) elseE eval_rules.intros(4) eval_rules.intros(5) lift_common.simps(1) option.simps(4))
+      by (simp add: join_conditions_valid)
     subgoal for m r u apply (cases "join_conditions (m ? r)")
-       apply simp sorry
+       apply simp apply (metis condE eval_rules.intros(2) eval_rules.intros(3))
+      by (simp add: join_conditions_valid)
     subgoal for rules u apply (induction rules)
       apply simp
-      by (metis lift_common.simps(3) monotonic_choice)
+      by (metis choice_join lift_common.simps(3) list.set_intros(1) list.set_intros(2))
     by simp
 
 
@@ -789,7 +867,7 @@ definition optimized_export where
   "optimized_export = lift_common o lift_match o eliminate_noop o eliminate_empty"
 
 lemma optimized_export_valid:
-  "eval_rules r u = eval_rules (optimized_export r) u"
+  "eval_rules r u e = eval_rules (optimized_export r) u e"
   unfolding optimized_export_def comp_def
   using lift_common_valid lift_match_valid eliminate_noop_valid eliminate_empty_valid by simp
 
@@ -1007,24 +1085,8 @@ definition AddLeftNegateToSub_result where
           (ConstantExpr (IntVal 32 10))
           (ConstantExpr (IntVal 32 15)))"
 
-lemma deterministic_eval[code]:
-  "eval_rules (choice (r' # rs)) u =
-    (case (eval_rules r' u) of
-      None \<Rightarrow> (eval_rules (choice (remove1 r' (r' # rs))) u) |
-      Some r \<Rightarrow> Some r)" sorry
-lemma [code]:
-  "eval_rules (choice []) u = None" by simp
-lemma [code]:
-  "eval_rules (base e) u = ground_expr e u" by simp
-lemma [code]:
-  "eval_rules (cond m r) u = (case (eval_match m u) of
-    None \<Rightarrow> None |
-    Some u' \<Rightarrow> eval_rules r u')" by simp
-lemma [code]:
-  "eval_rules (r1 else r2) u = (case (eval_rules r1 u) of
-    None \<Rightarrow> (eval_rules r2 u) |
-    Some r \<Rightarrow> Some r)" by simp
 
+(*
 value "eval_rules NestedNot (start_unification NestedNot_ground)"
 corollary
   "eval_rules NestedNot (start_unification NestedNot_ground)
@@ -1071,6 +1133,7 @@ corollary
   "eval_rules (AddLeftNegateToSub else RedundantSub) (start_unification AddLeftNegateToSub_ground)
     = Some AddLeftNegateToSub_result"
   by eval
+*)
 
 subsubsection \<open>Rule Optimization\<close>
 

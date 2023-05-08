@@ -195,6 +195,18 @@ fun intval_conditional :: "Value \<Rightarrow> Value \<Rightarrow> Value \<Right
   "intval_conditional cond tv fv = (if (val_to_bool cond) then tv else fv)"
 
 
+lemma intval_equals_result:
+  assumes "intval_equals v1 v2 = r"
+  assumes "r \<noteq> UndefVal"
+  shows "r = IntVal 32 0 \<or> r = IntVal 32 1"
+proof -
+  obtain b1 i1 b2 i2 where i12: "v1 = IntVal b1 i1 \<and> v2 = IntVal b2 i2"
+    by (metis assms(1) assms(2) intval_equals.simps(2) intval_equals.simps(3) intval_equals.simps(4) intval_equals.simps(5) intval_equals.simps(6) intval_equals.simps(7) intval_logic_negation.cases)
+  then have "b1 = b2"
+    by (metis assms(1) assms(2) bool_to_val_bin.elims intval_equals.simps(1))
+  then show ?thesis
+    using assms(1) bool_to_val.elims i12 by auto
+
 
 subsection \<open>Narrowing and Widening Operators\<close>
 

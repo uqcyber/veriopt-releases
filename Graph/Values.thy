@@ -194,6 +194,19 @@ fun intval_test :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_test (IntVal b1 v1) (IntVal b2 v2) = bool_to_val_bin b1 b2 ((and v1 v2) = 0)" |
   "intval_test _ _ = UndefVal"
 
+lemma intval_equals_result:
+  assumes "intval_equals v1 v2 = r"
+  assumes "r \<noteq> UndefVal"
+  shows "r = IntVal 32 0 \<or> r = IntVal 32 1"
+proof -
+  obtain b1 i1 b2 i2 where i12: "v1 = IntVal b1 i1 \<and> v2 = IntVal b2 i2"
+    by (metis assms intval_equals.simps(2,3,4,5,6,7) intval_logic_negation.cases)
+  then have "b1 = b2"
+    by (metis assms bool_to_val_bin.elims intval_equals.simps(1))
+  then show ?thesis
+    using assms(1) bool_to_val.elims i12 by auto
+qed
+
 subsection \<open>Narrowing and Widening Operators\<close>
 
 text \<open>Note: we allow these operators to have inBits=outBits, because the Graal compiler

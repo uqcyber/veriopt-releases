@@ -90,6 +90,12 @@ lemma intval_commute:
 definition isBoolean :: "IRExpr \<Rightarrow> bool" where
   "isBoolean e = (\<forall>m p cond. (([m,p] \<turnstile> e \<mapsto> cond) \<longrightarrow> (cond \<in> {IntVal 32 0, IntVal 32 1})))"
 
+lemma preserveBoolean:
+  assumes "isBoolean c"
+  shows "isBoolean exp[!c]"
+  using assms isBoolean_def apply auto
+  by (metis (no_types, lifting) IntVal0 IntVal1 intval_logic_negation.simps(1) logic_negate_def)
+
 optimization ConditionalIntegerEquals_1: "exp[BinaryExpr BinIntegerEquals (c ? x : y) (x)] \<longmapsto> c
                                           when stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x \<and>
                                                stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y \<and>
@@ -209,6 +215,16 @@ optimization ConditionalIntegerEquals_2: "exp[BinaryExpr BinIntegerEquals (c ? x
           yvv p(9,11) evalDet)
   qed
   done
+
+optimization ConditionalExtractCondition: "exp[(c ? true : false)] \<longmapsto> c
+                                          when isBoolean c"
+  using isBoolean_def by fastforce
+
+optimization ConditionalExtractCondition2: "exp[(c ? false : true)] \<longmapsto> !c
+                                          when isBoolean c"
+  apply auto
+  by (smt (z3) ConstantExprE IntVal1 insert_iff intval_logic_negation.simps(1) logic_negate_def
+      negation_preserve_eval2 singleton_iff val_to_bool.simps(1) preserveBoolean isBoolean_def)
 
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
   apply auto

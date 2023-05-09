@@ -26,6 +26,11 @@ datatype Stamp =
   | IllegalStamp
 
 
+text \<open>To help with supporting masks in future, this constructor allows masks but ignores them.\<close>
+abbreviation IntegerStampM :: "nat \<Rightarrow> int \<Rightarrow> int \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> Stamp" where
+  "IntegerStampM b lo hi down up \<equiv> IntegerStamp b lo hi"
+
+
 fun is_stamp_empty :: "Stamp \<Rightarrow> bool" where
   "is_stamp_empty (IntegerStamp b lower upper) = (upper < lower)" |
   (* "is_stamp_empty (FloatStamp b lower upper) = (upper < lower)" | *)

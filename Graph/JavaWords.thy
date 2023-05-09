@@ -422,4 +422,19 @@ proof -
     by (metis (no_types, opaque_lifting) and.right_idem take_bit_add take_bit_eq_mask)
 qed
 
+
+subsection \<open>Java min and max operators on 64-bit values\<close>
+
+text \<open>Java uses signed comparison, so we define a convenient abbreviation for this to avoid
+  accidental mistakes, because by default the Isabelle min/max will assume unsigned words.\<close>
+
+abbreviation javaMin64 :: "int64 \<Rightarrow> int64 \<Rightarrow> int64" where
+  "javaMin64 a b \<equiv> (if a \<le>s b then a else b)"
+
+
+abbreviation javaMax64 :: "int64 \<Rightarrow> int64 \<Rightarrow> int64" where
+  "javaMax64 a b \<equiv> (if a \<le>s b then b else a)"
+
+
+
 end

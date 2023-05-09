@@ -371,7 +371,7 @@ next
 qed
 
 
-lemma less_bits_less_than:
+lemma less_bits_leq_unsigned:
   fixes down val :: "'a :: len word"
   assumes "down \<subseteq>w val"
   shows "down \<le> val"
@@ -413,7 +413,7 @@ proof -
     by (smt (verit, ccfv_threshold) bit_last_iff signed_take_bit_int_eq_self sint_less sint_uint take_bit_int_greater_self_iff uint_sint unsigned_greater_eq)
   then show ?thesis
     unfolding word_sle_eq udown uval word_less_eq_iff_unsigned[symmetric]
-    using assms(1) less_bits_less_than by simp 
+    using assms(1) less_bits_leq_unsigned by simp 
 qed
 
 lemma less_bits_signed_leq_neg:
@@ -530,7 +530,7 @@ proof (cases "significantBit bits upMask = 0")
   then have m: "m = downMask"
     using True assms(1) minValueForMasks_def by fastforce
   then have mval: "m \<le> val"
-    using assms(5) less_bits_less_than by blast
+    using assms(5) less_bits_leq_unsigned by blast
 (* strange that unsigned is easier to prove here than signed! *)
   then have "0 \<le> signed_take_bit (bits - Suc 0) val"
     using word_zero_le by blast
@@ -568,7 +568,14 @@ next
     by (simp add: word_sle_eq)
 qed
 
-
+lemma minValueForMasksLowerBound:
+  assumes "0 < bits"
+  assumes "bits \<le> 64"
+  assumes "downMask \<subseteq>w upMask"
+  assumes "upMask \<subseteq>w mask bits"
+  assumes "minValueForMasks bits downMask upMask = m"
+  shows "fst (bit_bounds bits) \<le> int_signed_value bits m"
+  using assms(1) assms(2) int_signed_value_bounds by blast
 
 
 subsection \<open>Calculate maximum bound from masks\<close>
@@ -654,7 +661,7 @@ proof -
     then have apos: "0 \<le> sint (signed_take_bit n a)"
       using assms(2) take_bit_smaller_range by auto
     then show ?thesis
-      by (metis a and.right_idem assms(3) assms(4) b bpos less_bits_less_than pos_implies_sint_leq take_bit_eq_mask word_subseteq_mono_and)
+      by (metis a and.right_idem assms(3) assms(4) b bpos less_bits_leq_unsigned pos_implies_sint_leq take_bit_eq_mask word_subseteq_mono_and)
   qed
 qed
 
@@ -696,18 +703,28 @@ next
 qed
 
 
+lemma maxValueForMasksUpperBound:
+  assumes "0 < bits"
+  assumes "bits \<le> 64"
+  assumes "downMask \<subseteq>w upMask"
+  assumes "upMask \<subseteq>w mask bits"
+  assumes "maxValueForMasks bits downMask upMask = m"
+  shows "int_signed_value bits m \<le> snd (bit_bounds bits)"
+  using assms(1) assms(2) int_signed_value_bounds by blast
+
+
 
 subsection \<open>Constructor functions for JavaIntegerStamp\<close>
 
 definition neg_one64 :: "int64" where
   "neg_one64 = ((-1) :: int64)"
 
-fun createJIS:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> JavaIntegerStamp" where
+definition createJIS:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> JavaIntegerStamp" where
   "createJIS bits lo hi down up = (
     let minValue = minValueForMasks bits down up in
-    let loTemp = max lo minValue :: int64 in
-    let maxValue = maxValueForMasks bits down up in 
-    let hiTemp = min hi maxValue :: int64 in
+    let loTemp = javaMax64 lo minValue :: int64 in
+    let maxValue = maxValueForMasks bits down up in
+    let hiTemp = javaMin64 hi maxValue :: int64 in
     let defaultMask = mask bits :: int64 in
     let (boundedUpMask, boundedDownMask) = (
       if loTemp = hiTemp then
@@ -737,9 +754,107 @@ fun create_without_masks:: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Righta
   "create_without_masks bits lo hi = (createJIS bits lo hi 0 (mask bits))"
 
 
+text \<open>We start by proving that createJIS always gives lo/hi bounds at least as tight as the input
+  bounds and up/down masks that are at least as good as the input masks (restricted to bits).\<close>
+
+lemma JIS_bits_same:
+  "jis_bits (createJIS bits lo hi down up) = bits"
+  unfolding createJIS_def
+  by (smt (z3) JavaIntegerStamp.sel(1) old.prod.case) 
+
+lemma JIS_lower_bound_better:
+  "lo \<le>s jis_lowerBound (createJIS bits lo hi down up)"
+  unfolding createJIS_def minValueForMasks_def
+  by (smt (z3) JavaIntegerStamp.sel(2) old.prod.case signed.order_refl)
+
+lemma JIS_upper_bound_better:
+  "jis_upperBound (createJIS bits lo hi down up) \<le>s hi"
+  unfolding createJIS_def maxValueForMasks_def
+  by (smt (z3) JavaIntegerStamp.sel(3) old.prod.case signed.linear)
+
+lemma word_subseteq_or:
+  "a \<subseteq>w (a OR b)"
+  by (metis or.left_neutral word_bw_comms(2) word_subseteq_def word_subseteq_mono_or zero_and_eq)
+
+lemma word_subseteq_and:
+  "(a AND b) \<subseteq>w a"
+  by (metis word_ao_absorbs(8) word_subseteq_or)
+
+lemma JIS_down_mask_better:
+  assumes "(mask bits AND down) = down"
+  shows  "down \<subseteq>w jis_downMask (createJIS bits lo hi down up)"
+  unfolding createJIS_def jis_downMask_def
+  by (smt (z3) assms word_subseteq_or JavaIntegerStamp.case old.prod.case)
+
+lemma JIS_up_mask_better:
+  shows "jis_upMask (createJIS bits lo hi down up) \<subseteq>w up"
+  unfolding createJIS_def
+  by (smt (z3) word_subseteq_and JavaIntegerStamp.sel(5) and.left_commute jis_upMask_def prod.case_eq_if)
+
+
+
 value "JIS_valid (createJIS 32 (-1000) 10000 0xF0F 0x3FFF)"
 value "JIS_valid (create_without_masks 32 (-1000) 10000)"
 
+lemma and_or_mask_simp:
+  fixes m a b :: "'a :: len word"
+  shows "((((m AND a) OR b) AND m) = ((m AND a) OR b)) \<longleftrightarrow> ((b AND m) = b)"
+  by (metis (no_types, opaque_lifting) bit.disj_conj_distrib or.commute word_ao_absorbs(2) word_ao_absorbs(3))
+
+
+text \<open>These are the preconditions of every valid JIS constructor call.\<close>
+abbreviation createJISpre :: "nat \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> bool" where
+  "createJISpre bits lo hi down up \<equiv> (
+    0 < bits \<and> bits \<le> 64 \<and>
+    fst (bit_bounds bits) \<le> sint lo \<and>
+    lo \<le> hi \<and>
+    sint hi \<le> fst (bit_bounds bits) \<and>
+    down \<subseteq>w up)"
+
+
+text \<open>Now we want to prove that given valid inputs, the JIS constructor returns a
+  stamp that is valid.
+  A simple case first, where the inferred lower and upper bounds are equal.\<close>
+lemma createJIS_is_valid1:
+  fixes lo hi down up :: int64
+  assumes "createJISpre bits lo hi down up"
+  assumes "minValueForMasks bits down up = minValue"
+  assumes "javaMax64 lo minValue = loTemp"
+  assumes "maxValueForMasks bits down up = maxValue"
+  assumes "javaMin64 hi maxValue = hiTemp"
+  assumes "(mask bits :: int64) = defaultMask"
+  assumes "loTemp = hiTemp"
+  shows "JIS_valid (createJIS bits lo hi down up)"
+proof -
+  have r: "createJIS bits lo hi down up =
+    JIS bits loTemp loTemp ((defaultMask AND down) OR loTemp) (defaultMask AND up AND loTemp)"
+    unfolding createJIS_def
+    by (smt (verit, best) assms case_prod_conv)
+  then have lo: "- ((2::int) ^ bits div 2) \<le> sint (signed_take_bit (bits - Suc 0) hiTemp)"
+    using One_nat_def assms(1) int_signed_value.simps int_signed_value_range two_exp_div by presburger
+  then have hi: "sint (signed_take_bit (bits - Suc 0) hiTemp) < (2::int) ^ bits div 2"
+    using One_nat_def assms(1) int_signed_value.simps int_signed_value_range two_exp_div by presburger
+  then have 10: "(defaultMask AND down OR hiTemp) AND defaultMask =
+              defaultMask AND down OR hiTemp"
+    unfolding and_or_mask_simp
+    sorry
+(*
+  proof -
+    have "hiTemp <s (2::int64) ^ (bits - 1)"
+    unfolding and_or_mask_simp
+
+    by (smt (z3) One_nat_def Suc_pred assms bit_take_bit_iff less_irrefl maskSmaller mask_eq_iff maxValueForMasks_def min_def signed_take_bit_eq_if_positive take_bit_eq_mask word_ao_absorbs(3) word_ao_absorbs(8) word_less_eq_iff_unsigned)
+*)
+  then have 11: "(defaultMask AND up AND hiTemp) AND defaultMask =
+    defaultMask AND up AND hiTemp"
+    by (simp add: and.commute)
+  then have 12: "(defaultMask AND down OR hiTemp) \<subseteq>w
+                 (defaultMask AND up AND hiTemp)"
+    sorry
+  then show ?thesis
+    unfolding r JIS_valid.simps
+    by (simp add: assms lo hi 10 11 12)
+qed
 
 
 
@@ -820,7 +935,7 @@ fun stamp_for_mask:: "Value \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
 value "val_to_int (minValueForMasks (IntVal64 1) (IntVal64 2) (IntVal64 3))"
 *)
 
-value "max (42::nat) 3"
+value "javaMax64 42 0xffffffffffffff2c :: int64"
 
 end (* bit_operations_syntax for infix AND, OR, XOR, and prefix NOT *)
 end

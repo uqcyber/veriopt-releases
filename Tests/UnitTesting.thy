@@ -64,6 +64,35 @@ inductive program_test :: "System \<Rightarrow> Signature \<Rightarrow> Value li
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testP) program_test .
 
+text \<open>$exception_test$ handles tests where an exception is thrown as opposed to
+      there being a return result to compare to. The $exception_test$ checks that
+      the expected exception type occurs at the expected node ID in the graph.\<close>
+
+datatype ExitCause =
+  NormalReturn |
+  Exception ID string
+
+inductive exception_test :: "System
+      \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Value list) list \<times> FieldRefHeap
+      \<Rightarrow> ExitCause
+      \<Rightarrow> bool"
+  for p where
+  "\<lbrakk>kind g nid = (UnwindNode exception);
+    type = stp_type (stamp g exception)\<rbrakk>
+    \<Longrightarrow> exception_test p (((g,nid,m,ps)#stk),h) (Exception exception type)" |
+
+  "\<lbrakk>p \<turnstile> (((g,nid,m,ps)#stk),h) \<longrightarrow> (((g',nid',m',ps')#stk'),h');
+    exception_test p (((g',nid',m',ps')#stk'),h') es\<rbrakk>
+    \<Longrightarrow> exception_test p (((g,nid,m,ps)#stk),h) es" |
+
+  "\<lbrakk>p \<turnstile> (((g,nid,m,ps)#stk),h) \<longrightarrow> (((g',nid',m',ps')#stk'),h');
+    has_return m'\<rbrakk>
+    \<Longrightarrow> exception_test p (((g,nid,m,ps)#stk),h) NormalReturn"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as assertTest,
+                  i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as assertTestOut)
+          "exception_test" .
+
 subsection \<open>Unit test helper functions - Debug versions\<close>
 
 inductive program_test_debug :: "System \<Rightarrow> Signature \<Rightarrow> Value list \<Rightarrow> nat \<Rightarrow> ID \<times> MapState \<times> Params \<Rightarrow> bool"

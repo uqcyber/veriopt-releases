@@ -329,7 +329,7 @@ lemma scast_min_bound:
   shows "M \<le> sint ((scast v) :: 'b :: len word)"
   unfolding Word.scast_eq Word.sint_sbintrunc'
   using Bit_Operations.signed_take_bit_int_eq_self_iff
-  by (smt (verit) One_nat_def Suc_pred assms(1) assms(2) len_gt_0 less_Suc_eq order_less_le order_less_le_trans power_le_imp_le_exp signed_take_bit_int_greater_eq_self_iff sint_lt)
+  by (smt (verit) One_nat_def Suc_pred assms len_gt_0 less_Suc_eq order_less_le order_less_le_trans power_le_imp_le_exp signed_take_bit_int_greater_eq_self_iff sint_lt)
 
 lemma scast_bigger_max_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"

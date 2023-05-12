@@ -10,7 +10,7 @@ typedef i32exp = "{e . (\<forall>m p v . ([m,p] \<turnstile> e \<mapsto> v) \<lo
 
 lemma i32e_eval:
   "\<forall>v. \<exists>b vv. ([m, p] \<turnstile> (Rep_i32exp e) \<mapsto> v) \<longrightarrow> ([m, p] \<turnstile> (Rep_i32exp e) \<mapsto> IntVal b vv)"
-  using Rep_i32exp is_IntVal_def by fastforce 
+  using Rep_i32exp is_IntVal_def by fastforce
 
 lemma int32_binary:
   assumes "[m, p] \<turnstile> BinaryExpr op (Rep_i32exp x) (Rep_i32exp y) \<mapsto> v"
@@ -42,51 +42,56 @@ fun size :: "IRExpr \<Rightarrow> nat" where
 lemma size_gt_0: "size e > 0"
 proof (induction e)
 case (UnaryExpr x1 e)
-  then show ?case by auto
+  then show ?case
+    by auto
 next
 case (BinaryExpr x1 e1 e2)
-then show ?case by (cases x1; auto)
+  then show ?case
+    by (cases x1; auto)
 next
   case (ConditionalExpr e1 e2 e3)
-  then show ?case by auto
+  then show ?case
+    by auto
 next
   case (ParameterExpr x1 x2)
-then show ?case by auto
+  then show ?case
+    by auto
 next
   case (LeafExpr x1 x2)
-  then show ?case by auto
+  then show ?case
+    by auto
 next
   case (ConstantExpr x)
-  then show ?case by auto
+  then show ?case
+    by auto
 next
   case (ConstantVar x)
-  then show ?case by auto
+  then show ?case
+    by auto
 next
   case (VariableExpr x1 x2)
-  then show ?case by auto
+  then show ?case
+    by auto
 qed
 
 lemma binary_expr_size_gte_2: "size (BinaryExpr op x y) \<ge> 2"
-  apply (induction "BinaryExpr op x y") apply auto apply (cases op; auto) using size_gt_0
-  apply (simp add: Suc_leI trans_le_add2)
+  apply (induction "BinaryExpr op x y"; cases op; auto)
+  apply (simp add: Suc_leI trans_le_add2 size_gt_0)
   by (metis Suc_leI add_2_eq_Suc' add_Suc_shift add_mono numeral_2_eq_2 size_gt_0)+
 
 lemma size_eq_1: "(size e = 1) = is_ConstantExpr e"
-  apply (cases e; auto) using size_gt_0
-  apply (metis) using size_gt_0
-  by (metis binary_expr_size_gte_2 lessI not_less numeral_2_eq_2)
+  apply (cases e; auto)
+  by (metis binary_expr_size_gte_2 lessI not_less numeral_2_eq_2 size_gt_0)+
 
 lemma nonconstants_gt_one: "\<not> (is_ConstantExpr e) \<Longrightarrow> size e > 1"
-  apply (cases e; auto) using size_gt_0
-  apply simp using size_gt_0
-  using Suc_le_eq binary_expr_size_gte_2 numeral_2_eq_2 by auto
+  apply (cases e; auto)
+  using binary_expr_size_gte_2 by (simp add: numeral_2_eq_2 Suc_le_eq size_gt_0)+
 
 lemma size_det: "x = y \<Longrightarrow> size x = size y"
   by auto
 
 lemma size_non_add: "op \<noteq> BinAdd \<Longrightarrow> size (BinaryExpr op a b) = size a + size b"
   by (induction op; auto)
-
 
 value "exp[abs e]"
 ML_val \<open>@{term "abs e"}\<close>
@@ -113,9 +118,7 @@ definition type :: "IRExpr \<Rightarrow> Type" where
 
 lemma unfold_type[simp]:
   "(type x = Integer) = is_IntegerStamp (stamp_expr x)"
-  unfolding type_def using is_IntegerStamp_def
-  using Stamp.case_eq_if Stamp.disc(1) Type.distinct(1) Type.distinct(3)
-  by (simp add: Stamp.case_eq_if)
+  by (simp add: Stamp.case_eq_if type_def)
 
 definition type_safe :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
   "type_safe e1 e2 = 
@@ -134,9 +137,9 @@ lemma unfold_int_typesafe[simp]:
     (stp_bits (stamp_expr e1) = stp_bits (stamp_expr e2)))"
 proof -
   have "is_IntegerStamp (stamp_expr e1)"
-    using assms unfold_type by simp
-  then show ?thesis unfolding type_safe_def
-    by simp
+    using assms by simp
+  then show ?thesis
+    by (simp add: type_safe_def)
 qed
 
 lemma uminus_intstamp_prop:
@@ -144,17 +147,13 @@ lemma uminus_intstamp_prop:
   shows "type exp[-x] = Integer"
 proof -
   obtain b lo hi where "stamp_expr x = IntegerStamp b lo hi"
-    using assms is_IntegerStamp_def by auto
+    using assms by (auto simp add: is_IntegerStamp_def)
   then show ?thesis
-    using assms unfolding type_def type_safe_def
     by simp
 qed
 
-
 lemma "(size exp[x + (-y)]) > (size exp[x - y])"
-  using size.simps(1,2)
-  by force
-
+  using size.simps(1,2) by force
 
 datatype RewriteResult =
   success IRExpr |
@@ -317,10 +316,9 @@ thm constant_shift
 
 optimization neutral_zero:
   "((e::i32exp) + const(IntVal b 0)) \<longmapsto> e"
-   apply simp+
-  using Rep_i32exp is_IntVal_def
-  sorry
-(* WAS: by fastforce *)
+  apply auto
+  by (metis (no_types, lifting) add.right_neutral evalDet eval_unused_bits_zero intval_add.simps(1)
+      i32e_eval)
 
 ML_val \<open>@{term "(e1 - e2) + e2 \<longmapsto> e1"}\<close>
 
@@ -331,13 +329,10 @@ lemma neutral_left_add_sub_val:
   sorry
 (* TODO: need to derive information about the values being well-formed? *)
 
-
 optimization neutral_left_add_sub:
   "((e1::intexp) - (e2::intexp)) + e2 \<longmapsto> e1"
-   defer apply simp 
-  using neutral_left_add_sub_val
-  apply (smt (verit, del_insts) bin_eval.simps(1) bin_eval.simps(3) evalDet unfold_binary)
-  by (simp add: size_gt_0)
+  apply (simp add: size_gt_0)+
+  by (smt (verit, del_insts) bin_eval.simps(1,3) evalDet unfold_binary neutral_left_add_sub_val)
 
 lemma neutral_right_add_sub_val:
   assumes "val[e1 + (e2 - e1)] \<noteq> UndefVal"
@@ -348,11 +343,8 @@ lemma neutral_right_add_sub_val:
 
 optimization neutral_right_add_sub:
   "(e1::intexp) + ((e2::intexp) - e1) \<longmapsto> e2"
-   defer apply simp
-  using neutral_right_add_sub_val
-  apply (smt (verit) BinaryExprE bin_eval.simps(1) bin_eval.simps(3) evalDet)
-  using size_gt_0 by auto
-
+  apply (simp add: size_gt_0)+
+  by (smt (verit) BinaryExprE bin_eval.simps(1,3) evalDet neutral_right_add_sub_val)
 
 optimization add_ynegate:
   "((x::i32exp) + (-(y::i32exp))) \<longmapsto> (x - y)"
@@ -361,7 +353,6 @@ optimization add_ynegate:
   (*by (metis BinaryExpr bin_eval.simps(3) evalDet i32e_eval intval_add.simps(1) intval_negate.simps(1) intval_sub.simps(1))*)
   
 print_context
-
 
 end
 
@@ -402,10 +393,9 @@ lemma int_constants_valid:
   shows "valid_value val (constantAsStamp val)"
 proof - 
   obtain ival where ival: "val = IntVal (intval_bits val) ival"
-    using assms is_IntVal_def by fastforce 
+    using assms is_IntVal_def by force
   then show ?thesis
-    using assms validStampIntConst
-    by (metis intval_word.simps validDefIntConst) 
+    by (metis intval_word.simps validDefIntConst assms(2,3))
 qed  
 
 (*
@@ -432,7 +422,7 @@ optimization UnaryConstantFold: "UnaryExpr op c \<mapsto> ConstantExpr (unary_ev
 *)
 
 optimization AndEqual: "((x::intexp) & x) \<longmapsto> x"
-  using CanonicalizationSyntax.size_gt_0 apply auto  
+  using size_gt_0 apply auto
   by (smt (verit) and.idem eval_unused_bits_zero new_int.simps new_int_bin.elims intval_and.simps 
       constantAsStamp.elims evalDet)
 
@@ -448,10 +438,7 @@ optimization AndLeftFallthrough: "x & y \<mapsto> x when (canBeZero y.stamp & ca
 lemma neutral_and:
   assumes "valid_value x (IntegerStamp 32 lox hix)"
   shows "bin_eval BinAnd x (IntVal 32 (neg_one 32)) = x"
-  using assms bin_eval.simps(4) valid_int_gives apply (cases x; auto)
-   apply (metis take_bit_eq_mask)
-  by presburger
-
+  using assms apply (cases x; auto) by (metis take_bit_eq_mask)+
 
 context
   includes bit_operations_syntax
@@ -478,7 +465,7 @@ optimization ConditionalEliminateKnownLess: "(x < y ? y : x) \<mapsto> y when (x
 
 lemma bool_is_int_val:
   "is_IntVal (bool_to_val x)"
-  using bool_to_val.simps is_IntVal_def by (metis (full_types))
+  by (metis (full_types) is_IntVal_def bool_to_val.simps)
 
 text \<open>Not all binary operators require equal bits, but these results hold for those that do.\<close>
 
@@ -486,10 +473,8 @@ lemma bin_eval_defined:
   assumes "int_and_equal_bits c1 c2"
   assumes "val = bin_eval op c1 c2"
   shows "val \<noteq> UndefVal \<and> is_IntVal val"
-  using assms apply (cases c1; cases c2; cases op; simp)
-  using bool_is_int_val apply blast
-  apply (smt (verit) Value.disc(2) Value.distinct(1) new_int.simps)
-    using bool_is_int_val by blast+
+  using assms bool_is_int_val apply (cases c1; cases c2; cases op; simp) defer
+  apply (smt (verit) Value.disc(2) Value.distinct(1) new_int.simps) by blast+
 
 (* TODO: this needs refining, as there are three groups of binary operators,
   each with different resulting bit widths.  Maybe we need lemmas about the
@@ -500,24 +485,23 @@ lemma bin_eval_preserves_validity:
   assumes "val = bin_eval op c1 c2"
   shows "valid_value val (constantAsStamp val)"
 proof -
-  obtain b ival where "val = IntVal b ival"
-    using bin_eval_defined assms is_IntVal_def by force 
+  obtain b ival where val: "val = IntVal b ival"
+    using bin_eval_defined assms is_IntVal_def by force
   then have "valid_stamp (constantAsStamp val)"
-    using assms validStampIntConst
-    sorry
+    using assms validStampIntConst valid_stamp.elims sorry
   then show ?thesis
-    sorry
+    using val by (auto simp add: bin_eval_unused_bits_zero assms(2))
 qed
 
-optimization BinaryFoldConstant: "BinaryExpr op (const e1) (const e2) \<longmapsto> ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2 "
-   defer apply auto
-   apply (simp add: wf_value_def ConstantExpr bin_eval_preserves_validity)
-  using nonconstants_gt_one by simp
+optimization BinaryFoldConstant: "BinaryExpr op (const e1) (const e2) \<longmapsto>
+                                  ConstantExpr (bin_eval op e1 e2) when int_and_equal_bits e1 e2"
+  using nonconstants_gt_one apply auto
+  by (simp add: wf_value_def ConstantExpr bin_eval_preserves_validity)
 
 optimization AddShiftConstantRight: "((const c) + y) \<longmapsto> y + (const c) when ~(is_ConstantExpr y)"
-  defer apply simp
-   apply (smt (verit, del_insts) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
-  unfolding size.simps using nonconstants_gt_one by simp
+  using nonconstants_gt_one apply simp_all
+  by (smt (verit, del_insts) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
+
 (*
 optimization RedundantSubAdd: "isAssociative + => (a - b) + b \<mapsto> a" sorry
 optimization RedundantAddSub: "isAssociative + => (b + a) - b \<mapsto> a" sorry
@@ -525,7 +509,7 @@ optimization RedundantAddSub: "isAssociative + => (b + a) - b \<mapsto> a" sorry
 lemma neutral_add:
   assumes "valid_value x (IntegerStamp 32 lox hix)"
   shows "bin_eval BinAdd x (IntVal 32 (0)) = x"
-  using assms bin_eval.simps(4) by (cases x; auto; presburger)
+  using assms by (cases x; auto; presburger)
 
 (* TODO: this one can be false if e is malformed.  E.g. 32-bits but with upper bits set. *)
 lemma AddNeutralVal:
@@ -535,9 +519,7 @@ lemma AddNeutralVal:
   sorry
 
 optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e when (stamp_expr e = IntegerStamp 32 l u)"
-   apply simp+ apply (rule impI) apply (rule allI)+ apply (rule impI) using AddNeutralVal
-  by fastforce
-
+  apply (simp; (rule impI)+; (rule allI)+) using AddNeutralVal by fastforce
 
 lemma intval_negateadd_equals_sub_left: "bin_eval BinAdd (unary_eval UnaryNeg e) y = bin_eval BinSub y e"
   by (cases e; auto; cases y; auto)
@@ -550,12 +532,12 @@ optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   by (metis BinaryExpr BinaryExprE UnaryExprE)
 
 optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
-  defer apply simp using intval_negateadd_equals_sub_right
-  by (metis BinaryExpr BinaryExprE UnaryExprE)
+  apply simp
+  by (metis BinaryExpr BinaryExprE UnaryExprE intval_negateadd_equals_sub_right)
 
 optimization MulEliminator: "((x::i32exp) * const(IntVal 32 0)) \<longmapsto> const(IntVal 32 0)"
-  unfolding size.simps apply (simp add: size_gt_0)
-    apply auto
+  apply (simp add: size_gt_0)
+  apply auto
   using Rings.mult_zero_class.mult_zero_right
   using ConstantExpr bin_eval.simps(3) bin_eval_preserves_validity cancel_comm_monoid_add_class.diff_cancel evalDet i32e_eval int_and_equal_bits.simps(1) intval_mul.simps(1) intval_sub.simps(1)
   sorry

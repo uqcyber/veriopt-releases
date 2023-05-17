@@ -432,6 +432,13 @@ next
   then show ?case
     by (metis kind_unchanged rep.LeafNode stamp_unchanged)
 next
+  case (PiNode n n' gu)
+  then have "kind g2 n = PiNode n' gu"
+    by (metis kind_unchanged)
+  then show ?case
+    by (metis PiNode.IH \<open>kind (g2) (n) = PiNode (n') (gu)\<close> child_unchanged encode_in_ids rep.PiNode
+        inputs.elims list.set_intros(1)PiNode.hyps PiNode.prems(1,2) IRNodes.inputs_of_PiNode)
+next
   case (RefNode n n')
   then have "kind g2 n = RefNode n'"
     by (metis kind_unchanged)

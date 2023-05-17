@@ -91,6 +91,13 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
      nid' = next\<rbrakk> 
      \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
 
+   BytecodeExceptionNode:
+  "\<lbrakk>(kind g nid) = (BytecodeExceptionNode args st nid');
+    exceptionType = stp_type (stamp g nid);
+    (h', ref) = h_new_inst h exceptionType;
+    m' = m(nid := ref)\<rbrakk>
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
+
   IfNode:
   "\<lbrakk>kind g nid = (IfNode cond tb fb);
     g \<turnstile> cond \<simeq> condE; 

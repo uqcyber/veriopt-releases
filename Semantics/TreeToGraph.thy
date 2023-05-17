@@ -23,6 +23,7 @@ fun is_preevaluated :: "IRNode \<Rightarrow> bool" where
   "is_preevaluated (SignedDivNode n _ _ _ _ _) = True" |
   "is_preevaluated (SignedRemNode n _ _ _ _ _) = True" |
   "is_preevaluated (ValuePhiNode n _ _) = True" |
+  "is_preevaluated (BytecodeExceptionNode n _ _) = True" |
   "is_preevaluated _ = False"
 
 inductive
@@ -167,11 +168,19 @@ inductive
     g \<turnstile> x \<simeq> xe\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr (UnaryZeroExtend inputBits resultBits) xe)" |
 
-(* Leaf Node *)
+(* Leaf Node
+    TODO: For now, BytecodeExceptionNode is treated as a LeafNode.
+*)
   LeafNode:
   "\<lbrakk>is_preevaluated (kind g n);
     stamp g n = s\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<simeq> (LeafExpr n s)" |
+
+(* TODO: For now, ignore narrowing. *)
+  PiNode:
+  "\<lbrakk>kind g n = PiNode n' guard;
+    g \<turnstile> n' \<simeq> e\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> e" |
 
 (* Ref Node *)
   RefNode:

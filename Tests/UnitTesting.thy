@@ -22,6 +22,10 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool as testE)
 fun get_result :: "(IRGraph \<times> ID \<times> MapState \<times> Params) \<Rightarrow> Value" where
   "get_result (g,i,m,p) = m 0"
 
+(* Defines case where a unit test returns void *)
+definition VOID_RETURN :: "Value" where
+  "VOID_RETURN = (ObjRef (Some (2048)))"
+
 
 text \<open>$object_test$ and $program_test$ run a static initialisation block first
    (to initialise static fields etc.), then a named method graph.  

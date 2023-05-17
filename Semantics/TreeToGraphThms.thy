@@ -167,9 +167,21 @@ lemma rep_load_field [rep]:
    (\<exists>s. e = LeafExpr n s)"
   by (induction rule: rep.induct; auto)
 
+lemma rep_bytecode_exception [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   (kind g n) = BytecodeExceptionNode gu st n' \<Longrightarrow>
+   (\<exists>s. e = LeafExpr n s)"
+  by (induction rule: rep.induct; auto)
+
 lemma rep_ref [rep]:
   "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = RefNode n' \<Longrightarrow>
+   g \<turnstile> n' \<simeq> e"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_pi [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   kind g n = PiNode n' gu \<Longrightarrow>
    g \<turnstile> n' \<simeq> e"
   by (induction rule: rep.induct; auto)
 
@@ -185,25 +197,29 @@ method solve_det uses node =
       \<open>match IRNode.inject in i: "(node _ = node _) = _" \<Rightarrow>
         \<open>match RepE in e: "_ \<Longrightarrow> (\<And>x. _ = node x \<Longrightarrow> _) \<Longrightarrow> _" \<Rightarrow>
           \<open>match IRNode.distinct in d: "node _ \<noteq> RefNode _" \<Rightarrow>
-            \<open>metis i e r d\<close>\<close>\<close>\<close>\<close> |
+            \<open>match IRNode.distinct in f: "node _  \<noteq> PiNode _ _" \<Rightarrow>
+              \<open>metis i e r d f\<close>\<close>\<close>\<close>\<close>\<close> |
    match node in "kind _ _ = node _ _" for node \<Rightarrow> 
     \<open>match rep in r: "_ \<Longrightarrow> _ = node _ _ \<Longrightarrow> _" \<Rightarrow> 
       \<open>match IRNode.inject in i: "(node _ _ = node _ _) = _" \<Rightarrow>
         \<open>match RepE in e: "_ \<Longrightarrow> (\<And>x y. _ = node x y \<Longrightarrow> _) \<Longrightarrow> _" \<Rightarrow>
           \<open>match IRNode.distinct in d: "node _ _ \<noteq> RefNode _" \<Rightarrow>
-            \<open>metis i e r d\<close>\<close>\<close>\<close>\<close> |
+            \<open>match IRNode.distinct in f: "node _ _ \<noteq> PiNode _ _" \<Rightarrow>
+              \<open>metis i e r d f\<close>\<close>\<close>\<close>\<close>\<close> |
    match node in "kind _ _ = node _ _ _" for node \<Rightarrow> 
     \<open>match rep in r: "_ \<Longrightarrow> _ = node _ _ _ \<Longrightarrow> _" \<Rightarrow> 
       \<open>match IRNode.inject in i: "(node _ _ _ = node _ _ _) = _" \<Rightarrow>
         \<open>match RepE in e: "_ \<Longrightarrow> (\<And>x y z. _ = node x y z \<Longrightarrow> _) \<Longrightarrow> _" \<Rightarrow>
           \<open>match IRNode.distinct in d: "node _ _ _ \<noteq> RefNode _" \<Rightarrow>
-            \<open>metis i e r d\<close>\<close>\<close>\<close>\<close> |
+            \<open>match IRNode.distinct in f: "node _ _ _ \<noteq> PiNode _ _" \<Rightarrow>
+              \<open>metis i e r d f\<close>\<close>\<close>\<close>\<close>\<close> |
   match node in "kind _ _ = node _ _ _" for node \<Rightarrow> 
     \<open>match rep in r: "_ \<Longrightarrow> _ = node _ _ _ \<Longrightarrow> _" \<Rightarrow> 
       \<open>match IRNode.inject in i: "(node _ _ _ = node _ _ _) = _" \<Rightarrow>
         \<open>match RepE in e: "_ \<Longrightarrow> (\<And>x. _ = node _ _ x \<Longrightarrow> _) \<Longrightarrow> _" \<Rightarrow>
           \<open>match IRNode.distinct in d: "node _ _ _ \<noteq> RefNode _" \<Rightarrow>
-            \<open>metis i e r d\<close>\<close>\<close>\<close>\<close>)
+            \<open>match IRNode.distinct in f: "node _ _ _ \<noteq> PiNode _ _" \<Rightarrow>
+              \<open>metis i e r d f\<close>\<close>\<close>\<close>\<close>\<close>)
 
 text \<open>Now we can prove that 'rep' and 'eval', and their list versions, are deterministic.
 \<close>
@@ -216,11 +232,11 @@ proof (induction arbitrary: e\<^sub>2 rule: "rep.induct")
 next
   case (ParameterNode n i s)
   then show ?case
-    by (metis IRNode.distinct(2663) ParameterNodeE rep_parameter)
+    by (metis IRNode.distinct(2629,2663) ParameterNodeE rep_parameter)
 next
   case (ConditionalNode n c t f ce te fe)
   then show ?case
-    by (metis IRNode.distinct(617) IRNode.inject(6) ConditionalNodeE rep_conditional)
+    by (metis IRNode.distinct(583,617) IRNode.inject(6) ConditionalNodeE rep_conditional)
 next
   case (AbsNode n x xe)
   then show ?case
@@ -292,33 +308,35 @@ next
 next
   case (IntegerTestNode n x y xe ye)
   then show ?case 
-    by (smt (verit) IRNode.distinct(31,137,241,541,637,1253,1333,1411,1493,1497,1501,1513,1515,1517,
-        1523,1525,1527,1533,1535,1537,1547,1549,1557,1559,1563) IRNode.inject(16) rep.cases
-        is_preevaluated.simps(24))
+    by (metis IRNode.distinct(1529,1563) IRNode.inject(16) IntegerTestNodeE rep_integer_test)
 next
   case (NarrowNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(2417) IRNode.inject(30) NarrowNodeE rep_narrow)
+    by (metis IRNode.distinct(2383,2417) IRNode.inject(30) NarrowNodeE rep_narrow)
 next
   case (SignExtendNode n x xe)
-  then show ?case 
-    by (metis IRNode.distinct(2813) IRNode.inject(41) SignExtendNodeE rep_sign_extend)
+  then show ?case
+    by (metis IRNode.distinct(2671,2813) IRNode.inject(41) SignExtendNodeE rep_sign_extend)
 next
   case (ZeroExtendNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(2967) IRNode.inject(52) ZeroExtendNodeE rep_zero_extend)
+    by (metis IRNode.distinct(2693,2967) IRNode.inject(52) ZeroExtendNodeE rep_zero_extend)
 next
   case (LeafNode n s)
   then show ?case 
-    by (metis is_preevaluated.simps(55) rep_load_field LeafNodeE)
+    by (metis is_preevaluated.simps(41,55) rep_load_field LeafNodeE)
 next
   case (RefNode n')
   then show ?case
     using rep_ref by blast
 next
+  case (PiNode n v)
+  then show ?case
+    using rep_pi by blast
+next
   case (IsNullNode n v)
   then show ?case
-    by (metis IRNode.distinct(1779) IRNode.inject(19) IsNullNodeE rep_is_null)
+    by (metis IRNode.distinct(1745,1779) IRNode.inject(19) IsNullNodeE rep_is_null)
 qed
 
 lemma repAllDet:
@@ -424,7 +442,7 @@ lemma mono_add:
   assumes "xe1 \<ge> xe2 \<and> ye1 \<ge> ye2"
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
-  by (metis IRNode.distinct(213) mono_binary assms AddNodeE IRNode.inject(2) repDet rep_add)
+  by (smt (verit, best) AddNode mono_binary assms repDet)
 
 lemma mono_mul:
   assumes "kind g1 n = MulNode x y \<and> kind g2 n = MulNode x y"
@@ -1177,6 +1195,11 @@ BinaryExpr BinIntegerLessThan xe1 ye1 \<ge> BinaryExpr BinIntegerLessThan xe2 ye
       then show ?case
         by (metis eq_refl rep.LeafNode)
     next
+      case (PiNode n' gu)
+      then show ?case
+        by (metis encodes_contains not_excluded_keep_type not_in_g rep.PiNode repDet singleton_iff
+            a b c d)
+    next
       case (RefNode n')
       then show ?case
         by (metis a b c d no_encoding not_excluded_keep_type rep.RefNode repDet singletonD)
@@ -1279,6 +1302,7 @@ lemma subset_implies_evals:
      apply (solve_subset_eval as_set: assms(1) eval: SignExtendNode)
     apply (solve_subset_eval as_set: assms(1) eval: ZeroExtendNode)
    apply (solve_subset_eval as_set: assms(1) eval: LeafNode)
+      apply (solve_subset_eval as_set: assms(1) eval: PiNode)
   apply (solve_subset_eval as_set: assms(1) eval: RefNode)
   by (solve_subset_eval as_set: assms(1) eval: IsNullNode)
 
@@ -1384,6 +1408,7 @@ lemma graph_unchanged_rep_unchanged:
        apply (metis no_encoding rep.SignExtendNode)
       apply (metis no_encoding rep.ZeroExtendNode)
      apply (metis no_encoding rep.LeafNode)
+      apply (metis no_encoding rep.PiNode)
     apply (metis no_encoding rep.RefNode)
    by (metis no_encoding rep.IsNullNode)
   done
@@ -1985,6 +2010,7 @@ lemma same_kind_stamp_encodes_equal:
        apply (metis SignExtendNode)
       apply (metis ZeroExtendNode)
     defer
+     apply (metis PiNode)
    apply (metis RefNode) 
   apply (metis IsNullNode)
   by blast
@@ -2422,6 +2448,18 @@ next
     case (LeafNode n s)
     then show ?case
       by (metis no_encoding rep.LeafNode)
+  next
+    case (PiNode n n' gu e)
+    then have kind: "kind g n = PiNode n' gu"
+      by simp
+    then have isin: "n \<in> ids g"
+      by simp
+    have inputs: "set (n' # (opt_to_list gu)) = inputs g n"
+      by (simp add: kind)
+    have "n' \<in> ids g"
+      by (metis in_mono list.set_intros(1) inputs isin wf_closed_def closed)
+    then show ?case
+      using PiNode.IH kind kind_eq new_def rep.PiNode stamp_eq unchanged by blast
   next
     case (RefNode n n' e)
     then have kind: "kind g n = RefNode n'"

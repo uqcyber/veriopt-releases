@@ -60,6 +60,7 @@ datatype (discs_sels) IRNode =
   | BytecodeExceptionNode (ir_arguments: "INPUT list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | ConditionalNode (ir_condition: "INPUT_COND") (ir_trueValue: "INPUT") (ir_falseValue: "INPUT") 
   | ConstantNode (ir_const: Value) 
+  | ControlFlowAnchorNode (ir_next: "SUCC")
   | DynamicNewArrayNode (ir_elementType: "INPUT") (ir_length: "INPUT") (ir_voidClass_opt: "INPUT option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | EndNode 
   | ExceptionObjectNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -143,6 +144,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (ConditionalNode condition trueValue falseValue) = [condition, trueValue, falseValue]" |
   inputs_of_ConstantNode:
   "inputs_of (ConstantNode const) = []" |
+  inputs_of_ControlFlowAnchorNode:
+  "inputs_of (ControlFlowAnchorNode n) = []" |
   inputs_of_DynamicNewArrayNode:
   "inputs_of (DynamicNewArrayNode elementType length0 voidClass stateBefore next) = [elementType, length0] @ (opt_to_list voidClass) @ (opt_to_list stateBefore)" |
   inputs_of_EndNode:
@@ -256,6 +259,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (ConditionalNode condition trueValue falseValue) = []" |
   successors_of_ConstantNode:
   "successors_of (ConstantNode const) = []" |
+  successors_of_ControlFlowAnchorNode:
+  "successors_of (ControlFlowAnchorNode next) = [next]" |
   successors_of_DynamicNewArrayNode:
   "successors_of (DynamicNewArrayNode elementType length0 voidClass stateBefore next) = [next]" |
   successors_of_EndNode:

@@ -67,7 +67,10 @@ lemma bin_eval_int:
   using assms
   apply (cases op; cases x; cases y; auto simp add: is_IntVal_def)
   apply presburger+ (* prove 6 more easy cases *)
-  by (smt (verit, best) bool_to_val.elims new_int.simps)+
+  prefer 3 prefer 4
+     apply (smt (verit, best) new_int.simps)
+     apply (smt (verit, best) new_int.simps)
+  by (metis bool_to_val.elims)+
 
 lemma IntVal0:
   "(IntVal 32 0) = (new_int 32 0)"

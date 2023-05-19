@@ -12,7 +12,7 @@ fun replace_usages :: "ID \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> I
 lemma replace_usages_effect:
   assumes "g' = replace_usages nid nid' g"
   shows "kind g' nid = RefNode nid'"
-  by (metis IRNode.distinct(2969) replace_usages.simps replace_node_lookup assms)
+  using replace_usages.simps replace_node_lookup assms by blast
 
 lemma replace_usages_changeonly:
   assumes "nid \<in> ids g"
@@ -131,7 +131,11 @@ lemma constantConditionNoEffect:
   assumes "\<not>(is_IfNode (kind g nid))"
   shows "g = constantCondition b nid (kind g nid) g"
   using assms constantCondition.simps
-  apply (cases "kind g nid") prefer 13 apply (metis is_IfNode_def) by presburger+
+  apply (cases "kind g nid")
+  prefer 13 prefer 14
+   apply (metis is_IfNode_def)
+   apply (metis)
+  by presburger+
 
 lemma constantConditionIfNode:
   assumes "kind g nid = IfNode cond t f"
@@ -165,7 +169,7 @@ lemma constantConditionNoIf:
   shows "\<exists>nid' .(g m p h \<turnstile> ifcond \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> ifcond \<leadsto> nid')"
 proof -
   have "g' = g"
-    by (metis IRNode.collapse(12) constantConditionNoEffect assms)
+    using constantConditionNoEffect assms is_IfNode_def by presburger
   then show ?thesis
     by simp
 qed
@@ -181,7 +185,7 @@ proof (cases "const")
   have ifstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     by (meson IfNode True assms(1,2,3) encodeeval_def)
   have ifstep': "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    using constantConditionTrue True assms(1) assms(4) by presburger
+    using constantConditionTrue True assms(1,4) by presburger
   from ifstep ifstep' show ?thesis
     using StutterStep by blast
 next
@@ -189,7 +193,7 @@ next
   have ifstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     by (meson IfNode False assms(1,2,3) encodeeval_def)
   have ifstep': "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    using constantConditionFalse False assms(1) assms(4) by presburger
+    using constantConditionFalse False assms(1,4) by presburger
   from ifstep ifstep' show ?thesis
     using StutterStep by blast
 qed

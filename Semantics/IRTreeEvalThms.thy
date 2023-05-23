@@ -85,9 +85,78 @@ lemma bin_eval_new_int:
   assumes "bin_eval op x y \<noteq> UndefVal"
   shows "\<exists>b v. (bin_eval op x y) = new_int b v \<and>
                b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits x)"
-  using is_IntVal_def assms apply (cases op; cases x; cases y; simp_all)
-  by (smt (verit) bool_to_val.elims new_int.simps IntVal0 IntVal1 take_bit_xor take_bit_or 
-      take_bit_and take_bit_of_0 new_int_take_bits)+
+  using is_IntVal_def assms
+proof (cases op)
+  case BinAdd
+  then show ?thesis
+    using assms apply (cases x; cases y; auto) by presburger
+next
+  case BinMul
+  then show ?thesis
+    using assms apply (cases x; cases y; auto) by presburger
+next
+  case BinSub
+  then show ?thesis
+    using assms apply (cases x; cases y; auto) by presburger
+next
+  case BinAnd
+  then show ?thesis
+    using assms apply (cases x; cases y; auto) by (metis take_bit_and)+
+next
+  case BinOr
+  then show ?thesis
+    using assms apply (cases x; cases y; auto) by (metis take_bit_or)+
+next
+  case BinXor
+  then show ?thesis
+    using assms apply (cases x; cases y; auto) by (metis take_bit_xor)+
+next
+  case BinShortCircuitOr
+  then show ?thesis
+    using assms apply (cases x; cases y; auto)
+    by (metis IntVal1 bits_mod_0 bool_to_val.elims new_int.simps take_bit_eq_mod)+
+next
+  case BinLeftShift
+  then show ?thesis
+    using assms by (cases x; cases y; auto)
+next
+  case BinRightShift
+  then show ?thesis
+    using assms apply (cases x; cases y; auto) by (smt (verit, del_insts) new_int.simps)+
+next
+  case BinURightShift
+  then show ?thesis
+    using assms by (cases x; cases y; auto)
+next
+  case BinIntegerEquals
+  then show ?thesis
+    using assms apply (cases x; cases y; auto)
+    apply (metis (full_types) IntVal0 IntVal1 bool_to_val.simps(1,2) new_int.elims) by presburger
+next
+  case BinIntegerLessThan
+  then show ?thesis
+    using assms apply (cases x; cases y; auto)
+    apply (metis (no_types, opaque_lifting) bool_to_val.simps(1,2) bool_to_val.elims new_int.simps
+           IntVal1 take_bit_of_0)
+    by presburger
+next
+  case BinIntegerBelow
+  then show ?thesis
+    using assms apply (cases x; cases y; auto)
+    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps IntVal0 IntVal1)
+    by presburger
+next
+  case BinIntegerTest
+  then show ?thesis
+    using assms apply (cases x; cases y; auto)
+    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps IntVal0 IntVal1)
+    by presburger
+next
+  case BinIntegerNormalizeCompare
+  then show ?thesis
+    using assms apply (cases x; cases y; auto) using take_bit_of_0 apply blast
+    by (metis IntVal1 intval_word.simps new_int.elims take_bit_minus_one_eq_mask)+
+qed
 
 lemma int_stamp:
   assumes "is_IntVal v"
@@ -716,10 +785,82 @@ proof (intro iffI)
   assume 3: ?L
   show ?R 
     apply (rule evaltree.cases[OF 3]) apply auto
-    using assms apply (cases op; auto)
-    by (smt (verit) new_int.simps new_int_bin.simps take_bit_xor intval_and.elims take_bit_and
-        intval_add.elims intval_mul.elims Value.inject(1) intval_sub.elims intval_xor.elims
-        intval_or.elims take_bit_or)+
+    subgoal premises p for x y
+    proof (cases op)
+      case BinAdd
+      then show ?thesis
+        using assms apply auto
+        by (smt (verit) Value.inject(1) bin_eval.simps(1) bin_eval_inputs_are_ints p
+            intval_add.simps(1))
+    next
+      case BinMul
+      then show ?thesis
+        using assms apply auto
+        by (smt (verit) Value.inject(1) bin_eval.simps(2) intval_mul.elims new_int.elims p
+            new_int_bin.simps)
+    next
+      case BinSub
+      then show ?thesis
+        using assms apply auto
+        by (smt (verit) Value.inject(1) bin_eval.simps(3) intval_sub.elims new_int.elims p
+            new_int_bin.simps)
+    next
+      case BinAnd
+      then show ?thesis
+        using assms apply auto
+        by (smt (z3) BinAnd bin_eval.simps(4) bin_eval_inputs_are_ints intval_and.simps(1)
+            p(1,2,3,4) Value.inject(1) take_bit_and intval_and.elims new_int_bin.simps
+            new_int.simps)
+    next
+      case BinOr
+      then show ?thesis
+        using assms apply auto
+        by (smt (verit) bin_eval.simps(5) intval_bits.simps intval_or.elims new_int.simps p
+            new_int_bin.simps take_bit_or)
+    next
+      case BinXor
+      then show ?thesis
+        using assms apply auto
+        by (smt (verit) Value.inject(1) bin_eval.simps(6) intval_xor.elims new_int.elims p
+            new_int_bin.simps take_bit_xor)
+    next
+      case BinShortCircuitOr
+      then show ?thesis
+        using assms by auto
+    next
+      case BinLeftShift
+      then show ?thesis
+        using assms by blast
+    next
+      case BinRightShift
+      then show ?thesis
+        using assms by blast
+    next
+      case BinURightShift
+      then show ?thesis
+        using assms by blast
+    next
+      case BinIntegerEquals
+      then show ?thesis
+        using assms by blast
+    next
+      case BinIntegerLessThan
+      then show ?thesis
+        using assms by blast
+    next
+      case BinIntegerBelow
+      then show ?thesis
+        using assms by blast
+    next
+      case BinIntegerTest
+      then show ?thesis
+        using assms by blast
+    next
+      case BinIntegerNormalizeCompare
+      then show ?thesis
+        using assms by blast
+    qed
+    done
 next
   assume R: ?R
   then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"

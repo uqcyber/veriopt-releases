@@ -27,7 +27,7 @@ fun is_VirtualState :: "IRNode \<Rightarrow> bool" where
   "is_VirtualState n = ((is_FrameState n))"
 
 fun is_BinaryArithmeticNode :: "IRNode \<Rightarrow> bool" where
-  "is_BinaryArithmeticNode n = ((is_AddNode n) \<or> (is_AndNode n) \<or> (is_MulNode n) \<or> (is_OrNode n) \<or> (is_SubNode n) \<or> (is_XorNode n))"
+  "is_BinaryArithmeticNode n = ((is_AddNode n) \<or> (is_AndNode n) \<or> (is_MulNode n) \<or> (is_OrNode n) \<or> (is_SubNode n) \<or> (is_XorNode n) \<or> (is_IntegerNormalizeCompareNode n))"
 
 fun is_ShiftNode :: "IRNode \<Rightarrow> bool" where
   "is_ShiftNode n = ((is_LeftShiftNode n) \<or> (is_RightShiftNode n) \<or> (is_UnsignedRightShiftNode n))"

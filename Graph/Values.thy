@@ -85,6 +85,10 @@ lemma neg_one_signed[simp]:
       mask_eq_take_bit_minus_one neg_one.simps nle_le signed_minus_1 signed_take_bit_of_minus_1 
       signed_take_bit_take_bit less_one)
 
+lemma word_unsigned:
+  shows "\<forall> b1 v1. (IntVal b1 (word_of_int (int_unsigned_value b1 v1))) = IntVal b1 v1"
+  by simp
+
 subsection \<open>Arithmetic Operators\<close>
 
 text \<open>
@@ -193,6 +197,13 @@ fun intval_is_null :: "Value \<Rightarrow> Value" where
 fun intval_test :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_test (IntVal b1 v1) (IntVal b2 v2) = bool_to_val_bin b1 b2 ((and v1 v2) = 0)" |
   "intval_test _ _ = UndefVal"
+
+(* Corresponds to Integer.compareUnsigned and Long.compareUnsigned *)
+fun intval_normalize_compare :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_normalize_compare (IntVal b1 v1) (IntVal b2 v2) =
+   (if (b1 = b2) then new_int 32 (if (v1 < v2) then -1 else (if (v1 = v2) then 0 else 1))
+                 else UndefVal)" |
+  "intval_normalize_compare _ _ = UndefVal"
 
 lemma intval_equals_result:
   assumes "intval_equals v1 v2 = r"

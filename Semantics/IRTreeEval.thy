@@ -61,6 +61,7 @@ datatype IRBinaryOp =
   | BinIntegerLessThan
   | BinIntegerBelow
   | BinIntegerTest
+  | BinIntegerNormalizeCompare
 
 datatype (discs_sels) IRExpr =
     UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
@@ -112,7 +113,7 @@ text \<open>Note: in Java all integer calculations are done as 32 or 64 bit calc
 \<close>
 
 abbreviation binary_fixed_32_ops :: "IRBinaryOp set" where
-  "binary_fixed_32_ops \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow, BinIntegerTest}"
+  "binary_fixed_32_ops \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow, BinIntegerTest, BinIntegerNormalizeCompare}"
 
 abbreviation binary_shift_ops :: "IRBinaryOp set" where
   "binary_shift_ops \<equiv> {BinLeftShift, BinRightShift, BinURightShift}"
@@ -193,7 +194,8 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinIntegerEquals v1 v2 = intval_equals v1 v2" |
   "bin_eval BinIntegerLessThan v1 v2 = intval_less_than v1 v2" |
   "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2" |
-  "bin_eval BinIntegerTest v1 v2 = intval_test v1 v2"
+  "bin_eval BinIntegerTest v1 v2 = intval_test v1 v2" |
+  "bin_eval BinIntegerNormalizeCompare v1 v2 = intval_normalize_compare v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
 lemmas eval_thms =

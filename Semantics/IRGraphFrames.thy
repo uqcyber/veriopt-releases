@@ -397,6 +397,19 @@ next
     by (metis rep.IntegerTestNode inputs_of_IntegerTestNode child_unchanged encode_in_ids
         \<open>kind g2 n = IntegerTestNode x y\<close> child_member member_rec(1) IntegerTestNode ids_some)
 next
+  case (IntegerNormalizeCompareNode n x y xe ye)
+  then have "kind g2 n = IntegerNormalizeCompareNode x y"
+    by (metis kind_unchanged)
+  then have "x \<in> eval_usages g1 n \<and> y \<in> eval_usages g1 n"
+    by (metis IRNodes.inputs_of_IntegerNormalizeCompareNode IntegerNormalizeCompareNode.hyps(1,2,3)
+        encode_in_ids in_set_member inputs.simps inputs_are_usages member_rec(1))
+  then show ?case
+    by (metis IRNodes.inputs_of_IntegerNormalizeCompareNode IntegerNormalizeCompareNode.IH(1,2)
+        IntegerNormalizeCompareNode.hyps(1,2,3) IntegerNormalizeCompareNode.prems(1) inputs.simps
+        \<open>kind (g2::IRGraph) (n::nat) = IntegerNormalizeCompareNode (x::nat) (y::nat)\<close> local.wf
+        encode_in_ids list.set_intros(1) rep.IntegerNormalizeCompareNode set_subset_Cons in_mono
+        child_unchanged)
+next
   case (NarrowNode n ib rb x xe)
   then have "kind g2 n = NarrowNode ib rb x"
     by (metis kind_unchanged)

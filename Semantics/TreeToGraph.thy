@@ -152,6 +152,13 @@ inductive
     g \<turnstile> y \<simeq> ye\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinIntegerTest xe ye)" |
 
+  IntegerNormalizeCompareNode:
+  "\<lbrakk>kind g n = IntegerNormalizeCompareNode x y;
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinIntegerNormalizeCompare xe ye)" |
+
+
 (* Convert Nodes *)
   NarrowNode:
   "\<lbrakk>kind g n = NarrowNode inputBits resultBits x;
@@ -257,6 +264,8 @@ inductive_cases IntegerLessThanNodeE[elim!]:\<^marker>\<open>tag invisible\<clos
   "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerLessThan xe ye)"
 inductive_cases IntegerTestNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerTest xe ye)"
+inductive_cases IntegerNormalizeCompareNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerNormalizeCompare xe ye)"
 inductive_cases NarrowNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (UnaryExpr (UnaryNarrow ib rb) xe)"
 inductive_cases SignExtendNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -291,6 +300,7 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   IntegerEqualsNodeE
   IntegerLessThanNodeE
   IntegerTestNodeE
+  IntegerNormalizeCompareNodeE
   NarrowNodeE
   SignExtendNodeE
   ZeroExtendNodeE
@@ -324,7 +334,8 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinIntegerEquals x y = IntegerEqualsNode x y" |
   "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y" |
   "bin_node BinIntegerBelow x y = IntegerBelowNode x y" |
-  "bin_node BinIntegerTest x y = IntegerTestNode x y"
+  "bin_node BinIntegerTest x y = IntegerTestNode x y" |
+  "bin_node BinIntegerNormalizeCompare x y = IntegerNormalizeCompareNode x y"
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "n \<notin> ids g \<Longrightarrow> fresh_id g n"

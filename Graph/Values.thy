@@ -26,6 +26,7 @@ definition of the heap.
 \<close>
 
 type_synonym objref = "nat option"
+type_synonym length = "nat"
 
 datatype (discs_sels) Value  =
   UndefVal |
@@ -39,7 +40,8 @@ datatype (discs_sels) Value  =
   IntVal iwidth int64 | (* bits and word because we cannot know sign until do compare! *)
   (* FloatVal float | not supported *)
   ObjRef objref |
-  ObjStr string
+  ObjStr string |
+  ArrayVal length "Value list" (* Length characteristic not currently enforced in Value list *)
 
 fun intval_bits :: "Value \<Rightarrow> nat" where
   "intval_bits (IntVal b v) = b"

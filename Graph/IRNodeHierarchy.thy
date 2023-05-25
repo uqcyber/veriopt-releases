@@ -243,6 +243,7 @@ fun is_sequential_node :: "IRNode \<Rightarrow> bool" where
   "is_sequential_node (MergeNode _ _ _) = True" |
   "is_sequential_node (RefNode _) = True" |
   "is_sequential_node (ControlFlowAnchorNode _) = True" |
+  "is_sequential_node (NewArrayNode _ _ _) = True" |
   "is_sequential_node _ = False"
 
 text \<open>

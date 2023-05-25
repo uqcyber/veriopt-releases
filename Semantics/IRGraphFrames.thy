@@ -410,6 +410,18 @@ next
         encode_in_ids list.set_intros(1) rep.IntegerNormalizeCompareNode set_subset_Cons in_mono
         child_unchanged)
 next
+  case (IntegerMulHighNode n x y xe ye)
+  then have "kind g2 n = IntegerMulHighNode x y"
+    by (metis kind_unchanged)
+  then have "x \<in> eval_usages g1 n"
+    by (metis IRNodes.inputs_of_IntegerMulHighNode IntegerMulHighNode.hyps(1,2) encode_in_ids
+        inputs_of_are_usages member_rec(1))
+  then show ?case
+    by (metis inputs_of_IntegerMulHighNode IntegerMulHighNode.IH(1,2) IntegerMulHighNode.hyps(1,2,3)
+        IntegerMulHighNode.prems(1) child_unchanged encode_in_ids inputs.simps list.set_intros(1,2)
+        \<open>kind (g2::IRGraph) (n::nat) = IntegerMulHighNode (x::nat) (y::nat)\<close> rep.IntegerMulHighNode
+        local.wf)
+next
   case (NarrowNode n ib rb x xe)
   then have "kind g2 n = NarrowNode ib rb x"
     by (metis kind_unchanged)

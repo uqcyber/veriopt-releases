@@ -156,6 +156,13 @@ next
   then show ?thesis
     using assms apply (cases x; cases y; auto) using take_bit_of_0 apply blast
     by (metis IntVal1 intval_word.simps new_int.elims take_bit_minus_one_eq_mask)+
+next
+  case BinIntegerMulHigh
+  then show ?thesis
+    using assms apply (cases x; cases y; auto)
+    prefer 2 prefer 5 prefer 8
+      apply presburger+
+    by metis+
 qed
 
 lemma int_stamp:
@@ -774,7 +781,7 @@ next
 qed
 
 lemma unfold_binary_width:
-  assumes "op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_shift_ops"
+  assumes "op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_shift_ops \<and> op \<notin> binary_fixed_ops"
   shows "([m,p] \<turnstile> BinaryExpr op xe ye \<mapsto> IntVal b val) = (\<exists> x y.
           (([m,p] \<turnstile> xe \<mapsto> IntVal b x) \<and>
            ([m,p] \<turnstile> ye \<mapsto> IntVal b y) \<and>
@@ -857,6 +864,10 @@ proof (intro iffI)
         using assms by blast
     next
       case BinIntegerNormalizeCompare
+      then show ?thesis
+        using assms by blast
+    next
+      case BinIntegerMulHigh
       then show ?thesis
         using assms by blast
     qed

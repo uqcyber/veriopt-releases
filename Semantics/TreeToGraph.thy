@@ -158,6 +158,11 @@ inductive
     g \<turnstile> y \<simeq> ye\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinIntegerNormalizeCompare xe ye)" |
 
+  IntegerMulHighNode:
+  "\<lbrakk>kind g n = IntegerMulHighNode x y;
+    g \<turnstile> x \<simeq> xe;
+    g \<turnstile> y \<simeq> ye\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (BinaryExpr BinIntegerMulHigh xe ye)" |
 
 (* Convert Nodes *)
   NarrowNode:
@@ -262,6 +267,8 @@ inductive_cases IntegerEqualsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerEquals xe ye)"
 inductive_cases IntegerLessThanNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerLessThan xe ye)"
+inductive_cases IntegerMulHighNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerMulHigh xe ye)"
 inductive_cases IntegerTestNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (BinaryExpr BinIntegerTest xe ye)"
 inductive_cases IntegerNormalizeCompareNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -299,6 +306,7 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   IntegerBelowNodeE
   IntegerEqualsNodeE
   IntegerLessThanNodeE
+  IntegerMulHighNodeE
   IntegerTestNodeE
   IntegerNormalizeCompareNodeE
   NarrowNodeE
@@ -335,7 +343,8 @@ fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNo
   "bin_node BinIntegerLessThan x y = IntegerLessThanNode x y" |
   "bin_node BinIntegerBelow x y = IntegerBelowNode x y" |
   "bin_node BinIntegerTest x y = IntegerTestNode x y" |
-  "bin_node BinIntegerNormalizeCompare x y = IntegerNormalizeCompareNode x y"
+  "bin_node BinIntegerNormalizeCompare x y = IntegerNormalizeCompareNode x y" |
+  "bin_node BinIntegerMulHigh x y = IntegerMulHighNode x y"
 
 inductive fresh_id :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "n \<notin> ids g \<Longrightarrow> fresh_id g n"

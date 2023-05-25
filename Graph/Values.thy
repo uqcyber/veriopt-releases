@@ -137,6 +137,58 @@ fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
            ((int_signed_value b1 v1) smod (int_signed_value b2 v2)))" |
   "intval_mod _ _ = UndefVal"
 
+(* Corresponds to Math.multiplyHigh(L,L) and ExactMath.multiplyHigh(I,I)
+
+   The definition of multiplyHigh differs for 32 and 64 bit inputs.
+*)
+fun intval_mul_high :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_mul_high (IntVal b1 v1) (IntVal b2 v2) = (
+    if (b1 = b2 \<and> b1 = 64) then (
+      if (((int_signed_value b1 v1) < 0) \<or> ((int_signed_value b2 v2) < 0))
+         then (
+
+       let x1 = (v1 >> 32)              in
+       let x2 = (and v1 4294967295)     in
+       let y1 = (v2 >> 32)              in
+       let y2 = (and v2 4294967295)     in
+       let z2 = (x2 * y2)               in
+       let t  = (x1 * y2 + (z2 >>> 32)) in
+       let z1 = (and t 4294967295)      in
+       let z0 = (t >> 32)               in
+       let z1 = (z1 + (x2 * y1))        in
+
+       let result = (x1 * y1 + z0 + (z1 >> 32)) in
+
+       (new_int b1 result)
+      ) else (
+
+       let x1 = (v1 >>> 32)             in
+       let y1 = (v2 >>> 32)             in
+       let x2 = (and v1 4294967295)     in
+       let y2 = (and v2 4294967295)     in
+       let A  = (x1 * y1)               in
+       let B  = (x2 * y2)               in
+       let C  = ((x1 + x2) * (y1 + y2)) in
+       let K  = (C - A - B)             in
+
+       let result = ((((B >>> 32) + K) >>> 32) + A) in
+
+       (new_int b1 result)
+      )
+    ) else (
+      if (b1 = b2 \<and> b1 = 32) then (
+
+      let newv1 = (word_of_int (int_signed_value b1 v1)) in
+      let newv2 = (word_of_int (int_signed_value b1 v2)) in
+      let r = (newv1 * newv2)                            in
+
+      let result = (r >> 32) in
+
+       (new_int b1 result)
+      ) else UndefVal)
+   )" |
+  "intval_mul_high _ _ = UndefVal"
+
 fun intval_negate :: "Value \<Rightarrow> Value" where
   "intval_negate (IntVal t v) = new_int t (- v)" |
   "intval_negate _ = UndefVal"

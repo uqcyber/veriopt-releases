@@ -62,6 +62,7 @@ datatype IRBinaryOp =
   | BinIntegerBelow
   | BinIntegerTest
   | BinIntegerNormalizeCompare
+  | BinIntegerMulHigh
 
 datatype (discs_sels) IRExpr =
     UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
@@ -117,6 +118,14 @@ abbreviation binary_fixed_32_ops :: "IRBinaryOp set" where
 
 abbreviation binary_shift_ops :: "IRBinaryOp set" where
   "binary_shift_ops \<equiv> {BinLeftShift, BinRightShift, BinURightShift}"
+
+(* TODO add a note into the text above about this?
+
+  Describes operators which return a fixed width (either 32 or 64) based on their input
+  i.e., they return UndefVal for inputs which aren't 32 or 64.
+*)
+abbreviation binary_fixed_ops :: "IRBinaryOp set" where
+  "binary_fixed_ops \<equiv> {BinIntegerMulHigh}"
 
 abbreviation normal_unary :: "IRUnaryOp set" where
   "normal_unary \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation}"
@@ -195,7 +204,8 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinIntegerLessThan v1 v2 = intval_less_than v1 v2" |
   "bin_eval BinIntegerBelow v1 v2 = intval_below v1 v2" |
   "bin_eval BinIntegerTest v1 v2 = intval_test v1 v2" |
-  "bin_eval BinIntegerNormalizeCompare v1 v2 = intval_normalize_compare v1 v2"
+  "bin_eval BinIntegerNormalizeCompare v1 v2 = intval_normalize_compare v1 v2" |
+  "bin_eval BinIntegerMulHigh v1 v2 = intval_mul_high v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
 lemmas eval_thms =

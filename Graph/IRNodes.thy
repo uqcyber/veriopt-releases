@@ -70,6 +70,7 @@ datatype (discs_sels) IRNode =
   | IntegerBelowNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | IntegerEqualsNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | IntegerLessThanNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | IntegerMulHighNode (ir_x: "INPUT") (ir_y: "INPUT")
   | IntegerNormalizeCompareNode (ir_x: "INPUT") (ir_y: "INPUT")
   | IntegerTestNode (ir_x: "INPUT") (ir_y: "INPUT")
   | InvokeNode (ir_nid: ID) (ir_callTarget: "INPUT_EXT") (ir_classInit_opt: "INPUT option") (ir_stateDuring_opt: "INPUT_STATE option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -165,6 +166,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (IntegerEqualsNode x y) = [x, y]" |
   inputs_of_IntegerLessThanNode:
   "inputs_of (IntegerLessThanNode x y) = [x, y]" |
+  inputs_of_IntegerMulHighNode:
+  "inputs_of (IntegerMulHighNode x y) = [x, y]" |
   inputs_of_IntegerNormalizeCompareNode:
   "inputs_of (IntegerNormalizeCompareNode x y) = [x, y]" |
   inputs_of_IntegerTestNode:
@@ -282,6 +285,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (IntegerEqualsNode x y) = []" |
   successors_of_IntegerLessThanNode:
   "successors_of (IntegerLessThanNode x y) = []" |
+  successors_of_IntegerMulHighNode:
+  "successors_of (IntegerMulHighNode x y) = []" |
   successors_of_IntegerNormalizeCompareNode:
   "successors_of (IntegerNormalizeCompareNode x y) = []" |
   successors_of_IntegerTestNode:

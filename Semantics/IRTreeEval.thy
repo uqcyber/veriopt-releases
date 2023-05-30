@@ -45,6 +45,8 @@ datatype IRUnaryOp =
   | UnarySignExtend (ir_inputBits: nat) (ir_resultBits: nat)
   | UnaryZeroExtend (ir_inputBits: nat) (ir_resultBits: nat)
   | UnaryIsNull
+  | UnaryReverseBytes
+  | UnaryBitCount
 
 datatype IRBinaryOp =
     BinAdd
@@ -121,21 +123,27 @@ abbreviation binary_shift_ops :: "IRBinaryOp set" where
 
 (* TODO add a note into the text above about this?
 
-  Describes operators which return a fixed width (either 32 or 64) based on their input
-  i.e., they return UndefVal for inputs which aren't 32 or 64.
+  Describes operators whose output width matches the input (for 32 or 64), otherwise the output is
+  UndefVal.
 *)
 abbreviation binary_fixed_ops :: "IRBinaryOp set" where
   "binary_fixed_ops \<equiv> {BinIntegerMulHigh}"
 
 abbreviation normal_unary :: "IRUnaryOp set" where
-  "normal_unary \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation}"
+  "normal_unary \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation, UnaryReverseBytes}"
+
+(* TODO add a note into the text above about this ? *)
+abbreviation unary_fixed_32_ops :: "IRUnaryOp set" where
+  "unary_fixed_32_ops \<equiv> {UnaryBitCount}"
 
 (* TODO add a note into the text above about this ? *)
 abbreviation boolean_unary :: "IRUnaryOp set" where
   "boolean_unary \<equiv> {UnaryIsNull}"
 
-lemma normal_boolean_distinct:
- "op \<in> normal_unary \<Longrightarrow> op \<notin> boolean_unary \<and> op \<in> boolean_unary \<Longrightarrow> op \<notin> normal_unary"
+lemma unary_ops_distinct:
+  shows "op \<in> normal_unary \<Longrightarrow> op \<notin> boolean_unary \<and> op \<notin> unary_fixed_32_ops"
+  and   "op \<in> boolean_unary \<Longrightarrow> op \<notin> normal_unary \<and> op \<notin> unary_fixed_32_ops"
+  and   "op \<in> unary_fixed_32_ops \<Longrightarrow> op \<notin> boolean_unary \<and> op \<notin> normal_unary"
   by auto
 
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
@@ -150,8 +158,9 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_unary UnaryIsNull _ = (IntegerStamp 32 0 1)" |
   "stamp_unary op (IntegerStamp b lo hi) =
      unrestricted_stamp (IntegerStamp 
-                        (if op \<in> normal_unary then b else 
-                         if op \<in> boolean_unary then 32 else 
+                        (if op \<in> normal_unary       then b  else
+                         if op \<in> boolean_unary      then 32 else
+                         if op \<in> unary_fixed_32_ops then 32 else
                           (ir_resultBits op)) lo hi)" |
   (* for now... *)
   "stamp_unary op _ = IllegalStamp"
@@ -186,7 +195,9 @@ fun unary_eval :: "IRUnaryOp \<Rightarrow> Value \<Rightarrow> Value" where
   "unary_eval (UnaryNarrow inBits outBits) v = intval_narrow inBits outBits v" |
   "unary_eval (UnarySignExtend inBits outBits) v = intval_sign_extend inBits outBits v" |
   "unary_eval (UnaryZeroExtend inBits outBits) v = intval_zero_extend inBits outBits v" |
-  "unary_eval UnaryIsNull v = intval_is_null v"
+  "unary_eval UnaryIsNull v = intval_is_null v" |
+  "unary_eval UnaryReverseBytes v = intval_reverse_bytes v" |
+  "unary_eval UnaryBitCount v = intval_bit_count v"
 (*  "unary_eval op v1 = UndefVal" *)
 
 fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where

@@ -266,10 +266,24 @@ lemma "numberOfTrailingZeros (0::64 word) = 64"
   unfolding numberOfTrailingZeros_def
   using lowestOneBit_bot by simp
 
+subsection \<open>Long.reverseBytes\<close>
+
+(* Recursive version of reverseBytes for code generation *)
+fun reverseBytes_fun :: "('a::len) word \<Rightarrow> nat \<Rightarrow> ('a::len) word \<Rightarrow> ('a::len) word" where
+  "reverseBytes_fun v b flip = (if (b = 0) then (flip) else
+                       (reverseBytes_fun (v >> 8) (b - 8) (or (flip << 8) (take_bit 8 v))))"
+
 subsection \<open>Long.bitCount\<close>
 
 definition bitCount :: "('a::len) word \<Rightarrow> nat" where
   "bitCount v = card {n . bit v n}"
+
+(* Recursive version of bitCount for code generation *)
+fun bitCount_fun :: "('a::len) word \<Rightarrow> nat \<Rightarrow> nat" where
+  "bitCount_fun v n = (if (n = 0) then
+                          (if (bit v n) then 1 else 0) else
+                       if (bit v n) then (1 + bitCount_fun (v) (n - 1))
+                                    else (0 + bitCount_fun (v) (n - 1)))"
 
 lemma "bitCount 0 = 0"
   unfolding bitCount_def

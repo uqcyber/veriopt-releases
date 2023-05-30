@@ -560,46 +560,65 @@ lemma unary_eval_new_int:
   assumes def: "unary_eval op x \<noteq> UndefVal"
   shows "\<exists>b v. (unary_eval op x = new_int b v \<and>
               
-          b = (if op \<in> normal_unary  then intval_bits x      else 
-               if op \<in> boolean_unary then 32                 else 
+          b = (if op \<in> normal_unary       then intval_bits x  else
+               if op \<in> boolean_unary      then 32             else
+               if op \<in> unary_fixed_32_ops then 32             else
                                           ir_resultBits op))"
-proof (cases "op \<in> normal_unary")
-  case True
+proof (cases op)
+  case UnaryAbs
   then show ?thesis
-    by (metis def empty_iff insert_iff intval_abs.elims intval_bits.simps unary_eval.simps(1,2,3,4)
-        intval_logic_negation.elims intval_negate.elims intval_not.elims)
+    apply auto
+    by (metis intval_bits.simps intval_abs.simps(1) UnaryAbs def new_int.elims unary_eval.simps(1)
+        intval_abs.elims)
 next
-  case False
+  case UnaryNeg
   then show ?thesis
-  proof (cases "op \<in> boolean_unary")
-    case True
-    then show ?thesis 
-      by (metis IntVal0 IntVal1 singletonD unary_eval.simps(8) False intval_is_null.elims assms
-          bool_to_val.elims)
-  next
-    case False
-      consider ib ob where "op = UnaryNarrow ib ob" |
-               ib ob where "op = UnaryZeroExtend ib ob" |
-               ib ob where "op = UnarySignExtend ib ob"
-        by (metis \<open>(op::IRUnaryOp) \<notin> normal_unary\<close> False IRUnaryOp.exhaust insert_iff)
+    apply auto
+    by (metis Value.exhaust_disc intval_bits.simps intval_negate.simps(1,2,3,4) is_IntVal_def
+        is_ObjRef_def is_ObjStr_def def new_int.simps unary_eval.simps(2))
+next
+  case UnaryNot
   then show ?thesis
-  proof (cases)
-    case 1
-    then show ?thesis
-      apply auto
-      by (smt (verit, del_insts) new_int.elims def intval_narrow.elims unary_eval.simps(5))
-  next
-    case 2
-    then show ?thesis
-      apply auto
-      by (smt (verit, del_insts) new_int.elims def intval_zero_extend.elims unary_eval.simps(7))
-  next
-    case 3
-    then show ?thesis
-      apply auto
-      by (smt (verit, del_insts) new_int.elims def intval_sign_extend.elims unary_eval.simps(6))
-  qed
- qed
+    apply auto
+    by (metis intval_bits.simps intval_not.elims new_int.simps unary_eval.simps(3) def)
+next
+  case UnaryLogicNegation
+  then show ?thesis
+    apply auto
+    by (metis intval_bits.simps UnaryLogicNegation intval_logic_negation.elims new_int.elims def
+        unary_eval.simps(4))
+next
+  case (UnaryNarrow x51 x52)
+  then show ?thesis
+    apply auto
+    by (smt (verit, best) new_int.elims def intval_narrow.elims unary_eval.simps(5) def)
+next
+  case (UnarySignExtend x61 x62)
+  then show ?thesis
+    apply auto
+    by (smt (verit, del_insts) new_int.elims def intval_sign_extend.elims unary_eval.simps(6) def)
+next
+  case (UnaryZeroExtend x71 x72)
+  then show ?thesis
+    apply auto
+    by (smt (verit, best) new_int.elims def intval_zero_extend.elims unary_eval.simps(7) def)
+next
+  case UnaryIsNull
+  then show ?thesis
+    apply auto
+    by (metis bool_to_val.simps(1) new_int.simps IntVal0 IntVal1 unary_eval.simps(8) assms def
+        intval_is_null.elims bool_to_val.elims)
+next
+  case UnaryReverseBytes
+  then show ?thesis
+    apply auto
+    by (metis intval_bits.simps intval_reverse_bytes.elims new_int.elims unary_eval.simps(9) def)
+next
+  case UnaryBitCount
+  then show ?thesis
+    apply auto
+    by (metis intval_bit_count.elims new_int.simps unary_eval.simps(10) intval_bit_count.simps(1)
+        def)
 qed
 
 lemma new_int_unused_bits_zero:
@@ -664,13 +683,13 @@ lemma unary_normal_bitsize:
   shows "\<exists> ix. x = IntVal b ix"
   using assms apply (cases op; auto)
   by (smt (verit) Value.distinct(1) Value.sel(1) new_int.simps intval_abs.elims intval_negate.elims 
-      intval_not.elims intval_logic_negation.elims)+
+      intval_not.elims intval_logic_negation.elims intval_bits.simps intval_reverse_bytes.elims)+
 
 lemma unary_not_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
-  assumes "op \<notin> normal_unary \<and> op \<notin> boolean_unary"
+  assumes "op \<notin> normal_unary \<and> op \<notin> boolean_unary \<and> op \<notin> unary_fixed_32_ops"
   shows "b = ir_resultBits op \<and> 0 < b \<and> b \<le> 64"
-  apply (cases op) prefer 8 using assms apply blast+  (* the normal_unary and boolean_unary cases *)
+  apply (cases op) prefer 8 prefer 10 prefer 10 using assms apply blast+  (* the normal_unary and boolean_unary cases *)
   by (smt(verit) Value.distinct(1) assms(1) intval_bits.simps intval_narrow.elims intval_narrow_ok
       intval_zero_extend.elims linorder_not_less neq0_conv new_int.simps unary_eval.simps(5,6,7) 
       IRUnaryOp.sel(4,5,6) intval_sign_extend.elims)+
@@ -680,30 +699,10 @@ lemma unary_eval_bitsize:
   assumes 2: "x = IntVal bx ix"
   assumes "0 < bx \<and> bx \<le> 64"
   shows "0 < b \<and> b \<le> 64"
-proof (cases "op \<in> normal_unary")
-  case True
-  then obtain tmp where "unary_eval op x = new_int bx tmp"
-    by (cases op; simp; auto simp: 2)
-  then show ?thesis
-    using assms by simp
-next
-  case False
-  then show ?thesis
-  proof (cases "op \<in> boolean_unary")
-    case True
-    then show ?thesis
-      using assms by (cases op; simp)+
-  next
-    case False
-    then obtain tmp where "unary_eval op x = new_int b tmp \<and> 0 < b \<and> b \<le> 64"
-     using \<open>(op::IRUnaryOp) \<notin> normal_unary\<close> apply (cases op; simp; auto simp: 2) 
-     by (smt (verit) Value.simps(5) assms intval_bits.simps order_less_le_trans new_int.simps
-         intval_zero_extend.simps(1) unary_eval.simps(5,6,7) intval_narrow_ok intval_narrow.simps(1)
-         intval_sign_extend.elims)+
-  then show ?thesis
-    by simp 
- qed 
-qed
+  using assms apply (cases op; simp) prefer 2
+  apply (smt (verit) new_int.simps le_zero_eq gr_zeroI Value.inject(1) Value.distinct(1))
+  by (metis Value.distinct(1) Value.inject(1) new_int.elims not_gr_zero intval_narrow.simps(1)
+      le_zero_eq intval_narrow_ok)+
 
 (*
 lemma unary2:
@@ -730,8 +729,9 @@ proof (induction xe arbitrary: "b" "ix")
        xv: "([m,p] \<turnstile> x2 \<mapsto> xv) \<and>
             IntVal b ix = unary_eval op xv"
     by (auto simp add: unfold_binary)
-  then have "b = (if op \<in> normal_unary  then intval_bits xv else 
-                  if op \<in> boolean_unary then 32 else 
+  then have "b = (if op \<in> normal_unary       then intval_bits xv else
+                  if op \<in> unary_fixed_32_ops then 32             else
+                  if op \<in> boolean_unary      then 32             else
                                              ir_resultBits op)"
     by (metis Value.disc(1) Value.discI(1) Value.sel(1) new_int.simps unary_eval_new_int)
   then show ?case

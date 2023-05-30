@@ -221,6 +221,28 @@ next
         \<open>kind g2 n = AbsNode x\<close> child_member_in child_unchanged local.wf member_rec(1) 
         unchanged.simps)
 next
+  case (ReverseBytesNode n x xe)
+  then have "kind g2 n = ReverseBytesNode x"
+    by (metis kind_unchanged)
+  then have "x \<in> eval_usages g1 n"
+    by (metis IRNodes.inputs_of_ReverseBytesNode ReverseBytesNode.hyps(1,2) encode_in_ids
+        inputs.simps inputs_are_usages list.set_intros(1))
+  then show ?case
+    by (metis IRNodes.inputs_of_ReverseBytesNode ReverseBytesNode.IH ReverseBytesNode.hyps(1,2)
+        ReverseBytesNode.prems(1) child_member_in child_unchanged local.wf member_rec(1)
+        \<open>kind g2 n = ReverseBytesNode x\<close> encode_in_ids rep.ReverseBytesNode)
+next
+  case (BitCountNode n x xe)
+  then have "kind g2 n = BitCountNode x"
+    by (metis kind_unchanged)
+  then have "x \<in> eval_usages g1 n"
+    by (metis BitCountNode.hyps(1,2) IRNodes.inputs_of_BitCountNode encode_in_ids inputs.simps
+        inputs_are_usages list.set_intros(1))
+  then show ?case
+    by (metis BitCountNode.IH BitCountNode.hyps(1,2) BitCountNode.prems(1) member_rec(1) local.wf
+        IRNodes.inputs_of_BitCountNode \<open>kind g2 n = BitCountNode x\<close> encode_in_ids rep.BitCountNode
+        child_member_in child_unchanged)
+next
   case (NotNode n x xe)
   then have "kind g2 n = NotNode x"
     by (metis kind_unchanged)

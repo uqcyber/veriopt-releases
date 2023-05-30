@@ -193,8 +193,7 @@ lemma scast_min_bound:
 lemma scast_bigger_max_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
   shows "sint result < 2 ^ LENGTH('a) div 2"
-  by (smt (verit) len_gt_0 signed_scast_eq signed_take_bit_int_greater_self_iff sint_lt sint_less
-      assms sint_ge upper_bounds_equiv) 
+  using assms scast_bigger_max_bound by blast
 
 lemma scast_bigger_min_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"

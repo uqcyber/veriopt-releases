@@ -2,7 +2,7 @@ section \<open>Operator Semantics\<close>
 
 theory Values
   imports
-    JavaWords
+    JavaLong
 begin
 
 text \<open>
@@ -40,8 +40,8 @@ datatype (discs_sels) Value  =
   IntVal iwidth int64 | (* bits and word because we cannot know sign until do compare! *)
   (* FloatVal float | not supported *)
   ObjRef objref |
-  ObjStr string |
-  ArrayVal length "Value list" (* Length characteristic not currently enforced in Value list *)
+  ObjStr string
+  (* ArrayVal length "Value list"  Length characteristic not currently enforced in Value list *)
 
 fun intval_bits :: "Value \<Rightarrow> nat" where
   "intval_bits (IntVal b v) = b"
@@ -139,10 +139,7 @@ fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
            ((int_signed_value b1 v1) smod (int_signed_value b2 v2)))" |
   "intval_mod _ _ = UndefVal"
 
-(* Corresponds to Math.multiplyHigh(L,L) and ExactMath.multiplyHigh(I,I)
-
-   The definition of multiplyHigh differs for 32 and 64 bit inputs.
-*)
+(* Corresponds to Math.multiplyHigh(L,L) and ExactMath.multiplyHigh(I,I) *)
 fun intval_mul_high :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_mul_high (IntVal b1 v1) (IntVal b2 v2) = (
     if (b1 = b2 \<and> b1 = 64) then (
@@ -190,6 +187,15 @@ fun intval_mul_high :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
       ) else UndefVal)
    )" |
   "intval_mul_high _ _ = UndefVal"
+
+fun intval_reverse_bytes :: "Value \<Rightarrow> Value" where
+  "intval_reverse_bytes (IntVal b1 v1) = (new_int b1 (reverseBytes_fun v1 b1 0))" |
+  "intval_reverse_bytes _ = UndefVal"
+
+(* Corresponds to Integer.bitCount(I) and Long.bitCount(L) *)
+fun intval_bit_count :: "Value \<Rightarrow> Value" where
+  "intval_bit_count (IntVal b1 v1) = (new_int 32 (word_of_nat (bitCount_fun v1 64)))" |
+  "intval_bit_count _ = UndefVal"
 
 fun intval_negate :: "Value \<Rightarrow> Value" where
   "intval_negate (IntVal t v) = new_int t (- v)" |
@@ -265,7 +271,9 @@ lemma intval_equals_result:
   shows "r = IntVal 32 0 \<or> r = IntVal 32 1"
 proof -
   obtain b1 i1 b2 i2 where i12: "v1 = IntVal b1 i1 \<and> v2 = IntVal b2 i2"
-    by (metis assms intval_equals.simps(2,3,4,5,6,7) intval_logic_negation.cases)
+    using intval_equals.elims
+    by (metis (no_types, opaque_lifting) assms intval_equals.simps(2,3,4,5,6,7)
+        intval_logic_negation.cases)
   then have "b1 = b2"
     by (metis assms bool_to_val_bin.elims intval_equals.simps(1))
   then show ?thesis
@@ -311,7 +319,7 @@ lemma intval_narrow_ok:
   shows "0 < outBits \<and> outBits \<le> inBits \<and> inBits \<le> 64 \<and> outBits \<le> 64 \<and>
         is_IntVal val \<and>
         intval_bits val = inBits"
-  by (metis Value.disc(2) intval_narrow.elims le_trans intval_bits.simps assms)
+  by (smt (verit, best) Value.disc(2) intval_narrow.elims le_trans intval_bits.simps assms)
 
 lemma intval_sign_extend_ok:
   assumes "intval_sign_extend inBits outBits val \<noteq> UndefVal"

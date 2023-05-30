@@ -38,7 +38,9 @@ fun un_expr_to_node :: "IRUnaryOp \<Rightarrow> (nat \<Rightarrow> IRNode)" wher
   "un_expr_to_node (UnaryNarrow inp res) = NarrowNode inp res" |
   "un_expr_to_node (UnarySignExtend inp res) = SignExtendNode inp res" |
   "un_expr_to_node (UnaryZeroExtend inp res) = ZeroExtendNode inp res" |
-  "un_expr_to_node UnaryIsNull = IsNullNode"
+  "un_expr_to_node UnaryIsNull = IsNullNode" |
+  "un_expr_to_node UnaryReverseBytes = ReverseBytesNode" |
+  "un_expr_to_node UnaryBitCount = BitCountNode"
 
 fun bin_expr_to_node :: "IRBinaryOp \<Rightarrow> (nat \<Rightarrow> nat \<Rightarrow> IRNode)" where
   "bin_expr_to_node BinAdd = AddNode" |

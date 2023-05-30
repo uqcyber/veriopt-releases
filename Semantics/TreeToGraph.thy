@@ -52,6 +52,16 @@ inductive
     g \<turnstile> x \<simeq> xe\<rbrakk>
     \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr UnaryAbs xe)" |
 
+  ReverseBytesNode:
+  "\<lbrakk>kind g n = ReverseBytesNode x;
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr UnaryReverseBytes xe)" |
+
+  BitCountNode:
+  "\<lbrakk>kind g n = BitCountNode x;
+    g \<turnstile> x \<simeq> xe\<rbrakk>
+    \<Longrightarrow> g \<turnstile> n \<simeq> (UnaryExpr UnaryBitCount xe)" |
+
   NotNode:
   "\<lbrakk>kind g n = NotNode x;
     g \<turnstile> x \<simeq> xe\<rbrakk>
@@ -235,6 +245,10 @@ inductive_cases ConditionalNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (ConditionalExpr ce te fe)"
 inductive_cases AbsNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (UnaryExpr UnaryAbs xe)"
+inductive_cases ReverseBytesNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (UnaryExpr UnaryReverseBytes xe)"
+inductive_cases BitCountNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
+  "g \<turnstile> n \<simeq> (UnaryExpr UnaryBitCount xe)"
 inductive_cases NotNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
   "g \<turnstile> n \<simeq> (UnaryExpr UnaryNot xe)"
 inductive_cases NegateNodeE[elim!]:\<^marker>\<open>tag invisible\<close>
@@ -290,6 +304,8 @@ lemmas RepE\<^marker>\<open>tag invisible\<close> =
   ParameterNodeE
   ConditionalNodeE
   AbsNodeE
+  ReverseBytesNodeE
+  BitCountNodeE
   NotNodeE
   NegateNodeE
   LogicNegationNodeE
@@ -325,7 +341,9 @@ fun unary_node :: "IRUnaryOp \<Rightarrow> ID \<Rightarrow> IRNode" where
   "unary_node (UnaryNarrow ib rb) v = NarrowNode ib rb v" |
   "unary_node (UnarySignExtend ib rb) v = SignExtendNode ib rb v" |
   "unary_node (UnaryZeroExtend ib rb) v = ZeroExtendNode ib rb v" |
-  "unary_node UnaryIsNull v = IsNullNode v"
+  "unary_node UnaryIsNull v = IsNullNode v" |
+  "unary_node UnaryReverseBytes v = ReverseBytesNode v" |
+  "unary_node UnaryBitCount v = BitCountNode v"
 
 (* Creates the appropriate IRNode for a given binary operator. *)
 fun bin_node :: "IRBinaryOp \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> IRNode" where

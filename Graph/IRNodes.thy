@@ -57,6 +57,7 @@ datatype (discs_sels) IRNode =
   | AddNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | AndNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | BeginNode (ir_next: "SUCC") 
+  | BitCountNode (ir_value: "INPUT")
   | BytecodeExceptionNode (ir_arguments: "INPUT list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | ConditionalNode (ir_condition: "INPUT_COND") (ir_trueValue: "INPUT") (ir_falseValue: "INPUT") 
   | ConstantNode (ir_const: Value) 
@@ -95,6 +96,7 @@ datatype (discs_sels) IRNode =
   | ParameterNode (ir_index: nat) 
   | PiNode (ir_object: "INPUT") (ir_guard_opt: "INPUT_GUARD option") 
   | ReturnNode (ir_result_opt: "INPUT option") (ir_memoryMap_opt: "INPUT_EXT option") 
+  | ReverseBytesNode (ir_value: "INPUT")
   | RightShiftNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | ShortCircuitOrNode (ir_x: "INPUT_COND") (ir_y: "INPUT_COND") 
   | SignExtendNode (ir_inputBits: nat) (ir_resultBits: nat) (ir_value: "INPUT") 
@@ -140,6 +142,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (AndNode x y) = [x, y]" |
   inputs_of_BeginNode:
   "inputs_of (BeginNode next) = []" |
+  inputs_of_BitCountNode:
+  "inputs_of (BitCountNode value) = [value]" |
   inputs_of_BytecodeExceptionNode:
   "inputs_of (BytecodeExceptionNode arguments stateAfter next) = arguments @ (opt_to_list stateAfter)" |
   inputs_of_ConditionalNode:
@@ -216,6 +220,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (PiNode object guard) = object # (opt_to_list guard)" |
   inputs_of_ReturnNode:
   "inputs_of (ReturnNode result memoryMap) = (opt_to_list result) @ (opt_to_list memoryMap)" |
+  inputs_of_ReverseBytesNode:
+  "inputs_of (ReverseBytesNode value) = [value]" |
   inputs_of_RightShiftNode:
   "inputs_of (RightShiftNode x y) = [x, y]" |
   inputs_of_ShortCircuitOrNode:
@@ -259,6 +265,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (AndNode x y) = []" |
   successors_of_BeginNode:
   "successors_of (BeginNode next) = [next]" |
+  successors_of_BitCountNode:
+  "successors_of (BitCountNode value) = []" |
   successors_of_BytecodeExceptionNode:
   "successors_of (BytecodeExceptionNode arguments stateAfter next) = [next]" |
   successors_of_ConditionalNode:
@@ -335,6 +343,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (PiNode object guard) = []" |
   successors_of_ReturnNode:
   "successors_of (ReturnNode result memoryMap) = []" |
+  successors_of_ReverseBytesNode:
+  "successors_of (ReverseBytesNode value) = []" |
   successors_of_RightShiftNode:
   "successors_of (RightShiftNode x y) = []" |
   successors_of_ShortCircuitOrNode:

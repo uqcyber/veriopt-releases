@@ -42,7 +42,7 @@ fun is_IntegerConvertNode :: "IRNode \<Rightarrow> bool" where
   "is_IntegerConvertNode n = ((is_NarrowNode n) \<or> (is_SignExtendNode n) \<or> (is_ZeroExtendNode n))"
 
 fun is_UnaryArithmeticNode :: "IRNode \<Rightarrow> bool" where
-  "is_UnaryArithmeticNode n = ((is_AbsNode n) \<or> (is_NegateNode n) \<or> (is_NotNode n))"
+  "is_UnaryArithmeticNode n = ((is_AbsNode n) \<or> (is_NegateNode n) \<or> (is_NotNode n) \<or> (is_BitCountNode n) \<or> (is_ReverseBytesNode n))"
 
 fun is_UnaryNode :: "IRNode \<Rightarrow> bool" where
   "is_UnaryNode n = ((is_IntegerConvertNode n) \<or> (is_UnaryArithmeticNode n))"

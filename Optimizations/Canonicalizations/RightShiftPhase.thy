@@ -17,7 +17,6 @@ lemma val_ReturnXOnZeroShift:
   and     "x = IntVal 32 xv"
   shows "val[x >> (IntVal 32 0)] = x"  
   unfolding assms(2) intval_right_shift.simps(1) apply auto
-  unfolding Values.shiftr_def
   sorry
 
 (* Exp level proofs *)

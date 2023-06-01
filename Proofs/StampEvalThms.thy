@@ -219,12 +219,13 @@ lemma narrow_widen_output_bits:
   assumes "unary_eval op val \<noteq> UndefVal"
   assumes "op \<notin> normal_unary"
   assumes "op \<notin> boolean_unary"
+  assumes "op \<notin> unary_fixed_32_ops"
   shows "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
 proof -
   consider ib ob where "op = UnaryNarrow ib ob"
          | ib ob where "op = UnarySignExtend ib ob"
          | ib ob where "op = UnaryZeroExtend ib ob"
-    using IRUnaryOp.exhaust_sel assms(2,3) by blast
+    using IRUnaryOp.exhaust_sel assms(2,3,4) by blast
   then show ?thesis
   proof (cases)
     case 1
@@ -246,23 +247,24 @@ lemma eval_widen_narrow_unary_implies_valid_value:
   assumes "result = unary_eval op val"
   assumes op: "op \<notin> normal_unary"
   and notbool: "op \<notin> boolean_unary"
+  and notfixed: "op \<notin> unary_fixed_32_ops"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis Value.exhaust_sel assms(2,5,6) insert_iff  unary_obj unary_undef valid_value.simps(11)
+    by (metis Value.exhaust_sel assms(2,6,7) insertCI unary_obj unary_undef valid_value.simps(11)
         notbool)
   then have "result = unary_eval op (IntVal b1 v1)"
     using assms(2) by blast
   then obtain v2 where v2: "result = new_int (ir_resultBits op) v2"
-    using assms by (cases op; simp; (meson new_int.simps)+)
+    using assms unary_eval_new_int by presburger
   then obtain v3 where v3: "result = IntVal (ir_resultBits op) v3"
     using assms by (cases op; simp; (meson new_int.simps)+)
   then obtain b lo2 hi2 where eval: "stamp_expr expr = IntegerStamp b lo2 hi2"
-    by (metis assms(6) v1 valid_int_gives)
+    by (metis assms(7) v1 valid_int_gives)
   then have s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
-    using op notbool by (cases op; auto)
+    using op notbool notfixed by (cases op; auto)
   then have outBits: "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
     using assms narrow_widen_output_bits by blast
   then have "fst (bit_bounds (ir_resultBits op)) \<le> int_signed_value (ir_resultBits op) v3 \<and>
@@ -296,6 +298,35 @@ lemma eval_boolean_unary_implies_valid_value:
     using vBounds by (cases result; auto)
   qed
 
+lemma eval_fixed_unary_32_implies_valid_value:
+  assumes "[m,p] \<turnstile> expr \<mapsto> val"
+  assumes "result = unary_eval op val"
+  assumes op: "op \<in> unary_fixed_32_ops"
+  assumes notnorm: "op \<notin> normal_unary"
+  assumes notbool: "op \<notin> boolean_unary"
+  assumes "result \<noteq> UndefVal"
+  assumes "valid_value val (stamp_expr expr)"
+  shows "valid_value result (stamp_expr (UnaryExpr op expr))"
+  proof -
+  obtain b1 v1 where v1: "val = IntVal b1 v1"
+    by (metis Value.exhaust_sel assms(2,6,7) insertCI unary_obj unary_undef valid_value.simps(11)
+        notbool)
+  then obtain v2 where v2: "result = new_int 32 v2"
+    using assms unary_eval_new_int by presburger
+  then obtain v3 where v3: "result = IntVal 32 v3"
+    using assms by (cases op; simp; (meson new_int.simps)+)
+  then obtain b lo2 hi2 where eval: "stamp_expr expr = IntegerStamp b lo2 hi2"
+    by (metis assms(7) v1 valid_int_gives)
+  then have s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp 32 lo2 hi2)"
+    using op notbool by (cases op; auto)
+  then have "fst (bit_bounds 32)    \<le> int_signed_value 32 v3 \<and>
+             int_signed_value 32 v3 \<le> snd (bit_bounds 32)"
+    by (metis ValueThms.int_signed_value_bounds leI not_numeral_le_zero semiring_norm(68,71)
+        numeral_le_iff)
+  then show ?thesis
+    using s v2 v3 by force
+qed
+
 lemma eval_unary_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
@@ -316,9 +347,18 @@ lemma eval_unary_implies_valid_value:
   next
     case False
     then show ?thesis
+  proof (cases "op \<in> unary_fixed_32_ops")
+    case True
+    then show ?thesis
+      using assms eval_fixed_unary_32_implies_valid_value by auto
+  next
+    case False
+    then show ?thesis
       using assms
-      by (meson eval_normal_unary_implies_valid_value eval_widen_narrow_unary_implies_valid_value)
+      by (meson eval_boolean_unary_implies_valid_value eval_normal_unary_implies_valid_value
+          eval_widen_narrow_unary_implies_valid_value unary_ops_distinct(2))
   qed 
+ qed
 qed
 
 subsubsection \<open>Support Lemmas for Binary Operators\<close>

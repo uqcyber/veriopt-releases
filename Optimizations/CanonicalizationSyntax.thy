@@ -474,7 +474,9 @@ lemma bin_eval_defined:
   assumes "val = bin_eval op c1 c2"
   shows "val \<noteq> UndefVal \<and> is_IntVal val"
   using assms bool_is_int_val apply (cases c1; cases c2; cases op; simp) defer
-  apply (smt (verit) Value.disc(2) Value.distinct(1) new_int.simps) by blast+
+  apply (smt (verit) Value.disc(2) Value.distinct(1) new_int.simps)
+  prefer 5 defer
+  apply blast apply blast apply blast apply blast apply blast sorry
 
 (* TODO: this needs refining, as there are three groups of binary operators,
   each with different resulting bit widths.  Maybe we need lemmas about the

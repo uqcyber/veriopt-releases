@@ -167,9 +167,10 @@ lemma scast_max_bound:
   assumes "sint (v :: 'a :: len word) < M"
   assumes "LENGTH('a) < LENGTH('b)"
   shows "sint ((scast v) :: 'b :: len word) < M"
-  by (smt (verit) One_nat_def decr_length_less_iff linorder_not_le Word.scast_eq sint_greater_eq 
-      power_strict_increasing_iff signed_take_bit_int_less_self_iff assms Word.sint_sbintrunc'
-      Bit_Operations.signed_take_bit_int_eq_self_iff) 
+  by (smt (verit, ccfv_threshold) One_nat_def decr_length_less_iff linorder_not_le Word.scast_eq
+      Suc_pred sint_greater_eq power_strict_increasing_iff signed_take_bit_int_less_self_iff assms
+      Word.sint_sbintrunc' Bit_Operations.signed_take_bit_int_eq_self_iff diff_diff_cancel
+      diff_is_0_eq' less_induct order_less_le)
 (* helpful thms?
   Word.scast_eq: scast (?w::?'b word) = word_of_int (sint ?w)
   Word.sint_lt: sint (?x::?'a word) < (2::int) ^ (LENGTH(?'a) - (1::nat)

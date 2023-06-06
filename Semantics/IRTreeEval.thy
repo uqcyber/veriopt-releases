@@ -115,6 +115,9 @@ text \<open>Note: in Java all integer calculations are done as 32 or 64 bit calc
   and (3) other operators output the same number of bits as both their inputs.
 \<close>
 
+abbreviation binary_normal :: "IRBinaryOp set" where
+  "binary_normal \<equiv> {BinAdd, BinMul, BinSub, BinAnd, BinOr, BinXor}"
+
 abbreviation binary_fixed_32_ops :: "IRBinaryOp set" where
   "binary_fixed_32_ops \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow, BinIntegerTest, BinIntegerNormalizeCompare}"
 
@@ -139,6 +142,28 @@ abbreviation unary_fixed_32_ops :: "IRUnaryOp set" where
 (* TODO add a note into the text above about this ? *)
 abbreviation boolean_unary :: "IRUnaryOp set" where
   "boolean_unary \<equiv> {UnaryIsNull}"
+
+(* Helpful set lemmas *)
+
+lemma binary_ops_all:
+  shows "op \<in> binary_normal \<or> op \<in> binary_fixed_32_ops \<or> op \<in> binary_fixed_ops \<or> op \<in> binary_shift_ops"
+  by (cases op; auto)
+
+lemma binary_ops_distinct_normal:
+  shows "op \<in> binary_normal \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_shift_ops"
+  by auto
+
+lemma binary_ops_distinct_fixed_32:
+  shows "op \<in> binary_fixed_32_ops \<Longrightarrow> op \<notin> binary_normal \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_shift_ops"
+  by auto
+
+lemma binary_ops_distinct_fixed:
+  shows "op \<in> binary_fixed_ops \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_normal \<and> op \<notin> binary_shift_ops"
+  by auto
+
+lemma binary_ops_distinct_shift:
+  shows  "op \<in> binary_shift_ops \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_normal"
+  by auto
 
 lemma unary_ops_distinct:
   shows "op \<in> normal_unary \<Longrightarrow> op \<notin> boolean_unary \<and> op \<notin> unary_fixed_32_ops"

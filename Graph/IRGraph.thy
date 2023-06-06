@@ -183,10 +183,10 @@ proof (cases "fst k = NoNode")
         replace_node.rep_eq snd_conv)
 next
   case False
-  then show ?thesis  
-    by (smt (verit) irgraph_def Rep_IRGraph comp_apply eq_onp_same_args filter.simps(2) id_def 
-        irgraph.rep_eq map_fun_apply map_of_upd mem_Collect_eq no_node.elims replace_node.abs_eq 
-        replace_node_def snd_eqD)
+  then show ?thesis
+    by (smt (verit, ccfv_SIG) irgraph_def Rep_IRGraph comp_apply eq_onp_same_args filter.simps(2)
+        id_def irgraph.rep_eq map_fun_apply map_of_upd mem_Collect_eq no_node.elims replace_node_def
+        replace_node.abs_eq snd_eqD)
 qed
 
 lemma [code]: "add_node nid k (irgraph g) = (irgraph (((nid, k) # g)))"

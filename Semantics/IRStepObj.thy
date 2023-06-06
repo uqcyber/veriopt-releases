@@ -119,6 +119,30 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     m' = set_phis phis vs m\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
 
+  NewArrayNode:
+    "\<lbrakk>kind g nid = (NewArrayNode len st nid');
+      g \<turnstile> len \<simeq> lenE;
+      [m, p] \<turnstile> lenE \<mapsto> length';
+
+      arrayType = stp_type (stamp g nid);
+      (h', ref) = h_new_inst h arrayType;
+      ref = ObjRef refNo;
+      h'' = h_store_field '''' refNo (intval_new_array length') h';
+
+      m' = m(nid := ref)\<rbrakk>
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'')" |
+
+  ArrayLengthNode:
+    "\<lbrakk>kind g nid = (ArrayLengthNode x nid');
+      g \<turnstile> x \<simeq> xE;
+      [m, p] \<turnstile> xE \<mapsto> ObjRef ref;
+
+      h_load_field '''' ref h = arrayVal;
+      length' = array_length (arrayVal);
+
+      m' = m(nid := length')\<rbrakk>
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
+
   NewInstanceNode:
     "\<lbrakk>kind g nid = (NewInstanceNode nid cname obj nid');
       (h', ref) = h_new_inst h cname; 

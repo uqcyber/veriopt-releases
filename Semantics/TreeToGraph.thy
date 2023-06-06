@@ -24,6 +24,8 @@ fun is_preevaluated :: "IRNode \<Rightarrow> bool" where
   "is_preevaluated (SignedRemNode n _ _ _ _ _) = True" |
   "is_preevaluated (ValuePhiNode n _ _) = True" |
   "is_preevaluated (BytecodeExceptionNode n _ _) = True" |
+  "is_preevaluated (NewArrayNode n _ _) = True" |
+  "is_preevaluated (ArrayLengthNode n _) = True" |
   "is_preevaluated _ = False"
 
 inductive

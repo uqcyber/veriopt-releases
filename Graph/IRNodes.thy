@@ -56,6 +56,7 @@ datatype (discs_sels) IRNode =
   AbsNode (ir_value: "INPUT") 
   | AddNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | AndNode (ir_x: "INPUT") (ir_y: "INPUT") 
+  | ArrayLengthNode (ir_value: "INPUT") (ir_next: "SUCC")
   | BeginNode (ir_next: "SUCC") 
   | BitCountNode (ir_value: "INPUT")
   | BytecodeExceptionNode (ir_arguments: "INPUT list") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
@@ -140,6 +141,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (AddNode x y) = [x, y]" |
   inputs_of_AndNode:
   "inputs_of (AndNode x y) = [x, y]" |
+  inputs_of_ArrayLengthNode:
+  "inputs_of (ArrayLengthNode x next) = [x]" |
   inputs_of_BeginNode:
   "inputs_of (BeginNode next) = []" |
   inputs_of_BitCountNode:
@@ -263,6 +266,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (AddNode x y) = []" |
   successors_of_AndNode:
   "successors_of (AndNode x y) = []" |
+  successors_of_ArrayLengthNode:
+  "successors_of (ArrayLengthNode x next) = [next]" |
   successors_of_BeginNode:
   "successors_of (BeginNode next) = [next]" |
   successors_of_BitCountNode:

@@ -40,8 +40,8 @@ datatype (discs_sels) Value  =
   IntVal iwidth int64 | (* bits and word because we cannot know sign until do compare! *)
   (* FloatVal float | not supported *)
   ObjRef objref |
-  ObjStr string
-  (* ArrayVal length "Value list"  Length characteristic not currently enforced in Value list *)
+  ObjStr string |
+  ArrayVal length "Value list"  (* Length characteristic not currently enforced in Value list *)
 
 fun intval_bits :: "Value \<Rightarrow> nat" where
   "intval_bits (IntVal b v) = b"
@@ -56,6 +56,9 @@ fun new_int :: "iwidth \<Rightarrow> int64 \<Rightarrow> Value" where
 text \<open>Converts an integer word into a Java value, iff the two types are equal.\<close>
 fun new_int_bin :: "iwidth \<Rightarrow> iwidth \<Rightarrow> int64 \<Rightarrow> Value" where
   "new_int_bin b1 b2 w = (if b1=b2 then new_int b1 w else UndefVal)"
+
+fun array_length :: "Value \<Rightarrow> Value" where
+  "array_length (ArrayVal len list) = new_int 32 (word_of_nat len)"
 
 fun wf_bool :: "Value \<Rightarrow> bool" where
   "wf_bool (IntVal b w) = (b = 1)" |
@@ -265,19 +268,24 @@ fun intval_normalize_compare :: "Value \<Rightarrow> Value \<Rightarrow> Value" 
                  else UndefVal)" |
   "intval_normalize_compare _ _ = UndefVal"
 
+(* TODO: Pre-populate array with default values *)
+fun intval_new_array :: "Value \<Rightarrow> Value" where
+  "intval_new_array (IntVal b1 v1) = (ArrayVal (nat (int_signed_value b1 v1)) [])" |
+  "intval_new_array _ = UndefVal"
+
 lemma intval_equals_result:
   assumes "intval_equals v1 v2 = r"
   assumes "r \<noteq> UndefVal"
   shows "r = IntVal 32 0 \<or> r = IntVal 32 1"
 proof -
-  obtain b1 i1 b2 i2 where i12: "v1 = IntVal b1 i1 \<and> v2 = IntVal b2 i2"
-    using intval_equals.elims
-    by (metis (no_types, opaque_lifting) assms intval_equals.simps(2,3,4,5,6,7)
-        intval_logic_negation.cases)
+  obtain b1 i1 where i1: "v1 = IntVal b1 i1"
+    by (metis assms intval_bits.elims intval_equals.simps(2,3,4,5))
+  obtain b2 i2 where i2: "v2 = IntVal b2 i2"
+    by (smt (z3) assms intval_equals.elims)
   then have "b1 = b2"
-    by (metis assms bool_to_val_bin.elims intval_equals.simps(1))
+    by (metis i1 assms bool_to_val_bin.elims intval_equals.simps(1))
   then show ?thesis
-    using assms(1) bool_to_val.elims i12 by auto
+    using assms(1) bool_to_val.elims i1 i2 by auto
 qed
 
 subsection \<open>Narrowing and Widening Operators\<close>

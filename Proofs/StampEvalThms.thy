@@ -82,7 +82,7 @@ lemma valid_int_gives:
        valid_stamp (IntegerStamp b lo hi) \<and>
        take_bit b val = val \<and>
        lo \<le> int_signed_value b val \<and> int_signed_value b val \<le> hi"
-  by (smt (z3) Value.distinct(7) Value.inject(1) valid_value.elims(1) assms)
+  using assms apply (cases stamp; auto) by (metis that)
 
 text \<open>And the corresponding lemma where we know the stamp rather than the value.\<close>
 lemma valid_int_stamp_gives:
@@ -183,28 +183,30 @@ lemma eval_normal_unary_implies_valid_value:
   assumes "result = unary_eval op val"
   assumes op: "op \<in> normal_unary"
   assumes notbool: "op \<notin> boolean_unary"
+  assumes notfixed32: "op \<notin> unary_fixed_32_ops"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis Value.exhaust_sel assms(2,5,6) notbool singleton_iff unary_obj valid_value.simps(3,11))
+    using assms by (meson is_IntVal_def unary_eval_int unary_normal_bitsize)
   then obtain b2 v2 where v2: "result = IntVal b2 v2"
-    by (metis Value.exhaust assms(2,5) unary_eval_not_obj_ref unary_eval_not_obj_str)
+    by (metis Value.collapse(1) assms(2,6) unary_eval_int)
   then have "result = unary_eval op (IntVal b1 v1)"
     using assms(2) v1 by blast
   then obtain vtmp where vtmp: "result = new_int b2 vtmp"
     using assms(3) by (auto simp add: v2)
   obtain b' lo' hi' where "stamp_expr expr = IntegerStamp b' lo' hi'"
-    by (metis assms(6) v1 valid_int_gives)
+    by (metis assms(7) v1 valid_int_gives)
   then have "stamp_unary op (stamp_expr expr) =
     unrestricted_stamp
      (IntegerStamp (if op \<in> normal_unary then b' else ir_resultBits op) lo' hi')"
     using op by force
-  then obtain lo2 hi2 where s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp b2 lo2 hi2)"
+  then obtain lo2 hi2 where s: "(stamp_expr (UnaryExpr op expr)) =
+                                 unrestricted_stamp (IntegerStamp b2 lo2 hi2)"
     unfolding stamp_expr.simps 
-    by (metis (full_types) assms(2,6) unary_normal_bitsize v2 valid_int_same_bits op
-        \<open>stamp_expr (expr::IRExpr) = IntegerStamp (b'::nat) (lo'::int) (hi'::int)\<close>)
+    by (metis (full_types) assms(2,7) unary_normal_bitsize v2 valid_int_same_bits op
+        \<open>stamp_expr expr = IntegerStamp b' lo' hi'\<close>)
   then have "0 < b1 \<and> b1 \<le> 64"
     using assms(1) eval_bits_1_64 v1 by blast
   then have "fst (bit_bounds b2) \<le> int_signed_value b2 v2 \<and>
@@ -253,8 +255,8 @@ lemma eval_widen_narrow_unary_implies_valid_value:
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis Value.exhaust_sel assms(2,6,7) insertCI unary_obj unary_undef valid_value.simps(11)
-        notbool)
+    by (metis Value.exhaust_disc insertCI is_ArrayVal_def is_IntVal_def is_ObjRef_def is_ObjStr_def
+        unary_obj valid_value.simps(3,11,12) assms(2,4,6,7))
   then have "result = unary_eval op (IntVal b1 v1)"
     using assms(2) by blast
   then obtain v2 where v2: "result = new_int (ir_resultBits op) v2"
@@ -263,7 +265,8 @@ proof -
     using assms by (cases op; simp; (meson new_int.simps)+)
   then obtain b lo2 hi2 where eval: "stamp_expr expr = IntegerStamp b lo2 hi2"
     by (metis assms(7) v1 valid_int_gives)
-  then have s: "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
+  then have s: "(stamp_expr (UnaryExpr op expr)) =
+                 unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
     using op notbool notfixed by (cases op; auto)
   then have outBits: "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
     using assms narrow_widen_output_bits by blast
@@ -309,8 +312,8 @@ lemma eval_fixed_unary_32_implies_valid_value:
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
   proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis Value.exhaust_sel assms(2,6,7) insertCI unary_obj unary_undef valid_value.simps(11)
-        notbool)
+    by (metis Value.exhaust_sel insert_iff intval_bit_count.simps(3,4,5) unary_eval.simps(10)
+        valid_value.simps(3) assms(2,3,5,6,7))
   then obtain v2 where v2: "result = new_int 32 v2"
     using assms unary_eval_new_int by presburger
   then obtain v3 where v3: "result = IntVal 32 v3"

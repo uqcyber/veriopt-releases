@@ -111,7 +111,7 @@ fun is_AbstractBeginNode :: "IRNode \<Rightarrow> bool" where
   "is_AbstractBeginNode n = ((is_BeginNode n) \<or> (is_BeginStateSplitNode n) \<or> (is_KillingBeginNode n))"
 
 fun is_FixedWithNextNode :: "IRNode \<Rightarrow> bool" where
-  "is_FixedWithNextNode n = ((is_AbstractBeginNode n) \<or> (is_AbstractStateSplit n) \<or> (is_AccessFieldNode n) \<or> (is_DeoptimizingFixedWithNextNode n) \<or> (is_ControlFlowAnchorNode n))"
+  "is_FixedWithNextNode n = ((is_AbstractBeginNode n) \<or> (is_AbstractStateSplit n) \<or> (is_AccessFieldNode n) \<or> (is_DeoptimizingFixedWithNextNode n) \<or> (is_ControlFlowAnchorNode n) \<or> (is_ArrayLengthNode n))"
 
 fun is_WithExceptionNode :: "IRNode \<Rightarrow> bool" where
   "is_WithExceptionNode n = ((is_InvokeWithExceptionNode n))"
@@ -243,7 +243,6 @@ fun is_sequential_node :: "IRNode \<Rightarrow> bool" where
   "is_sequential_node (MergeNode _ _ _) = True" |
   "is_sequential_node (RefNode _) = True" |
   "is_sequential_node (ControlFlowAnchorNode _) = True" |
-  "is_sequential_node (NewArrayNode _ _ _) = True" |
   "is_sequential_node _ = False"
 
 text \<open>

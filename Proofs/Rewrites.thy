@@ -132,7 +132,7 @@ lemma constantConditionNoEffect:
   shows "g = constantCondition b nid (kind g nid) g"
   using assms constantCondition.simps
   apply (cases "kind g nid")
-  prefer 14 prefer 15
+  prefer 15 prefer 16
    apply (metis is_IfNode_def)
    apply (metis)
   by presburger+

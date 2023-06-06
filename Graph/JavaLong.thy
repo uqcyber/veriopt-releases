@@ -226,8 +226,8 @@ lemma "highestOneBit (0::64 word) = -1"
   by (simp add: MaxOrNeg_neg highestOneBit_def)
 
 lemma "numberOfLeadingZeros (0::64 word) = 64"
-  unfolding numberOfLeadingZeros_def using  MaxOrNeg_neg highestOneBit_def size64
-  by (smt (verit) nat_int zero_no_bits)
+  unfolding numberOfLeadingZeros_def
+  by (smt (verit, del_insts) bit_0_eq bot_set_def int_eq_iff size64 highestOneBit_def MaxOrNeg_neg)
 
 lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} < 64"
   unfolding highestOneBit_def

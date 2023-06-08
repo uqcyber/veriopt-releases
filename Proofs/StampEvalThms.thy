@@ -141,8 +141,8 @@ lemma valid_int_signed_upper_bound:
 lemma valid_int_signed_lower_bound:
   assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
   shows "-(2 ^ (bits - 1)) \<le> int_signed_value bits val"
-  by (smt (verit) diff_le_self int_signed_value.simps linorder_not_less power_increasing_iff
-      signed_take_bit_int_greater_eq_minus_exp_word sint_greater_eq)
+  by (smt (verit, ccfv_SIG) diff_le_self int_signed_value.simps linorder_not_less sint_greater_eq
+      signed_take_bit_int_greater_eq_minus_exp_word power_increasing_iff)
 
 text \<open>and $bit\_bounds$ versions of the above bounds.\<close>
 lemma valid_int_signed_upper_bit_bound:

@@ -190,8 +190,8 @@ next
 qed
 
 lemma [code]: "add_node nid k (irgraph g) = (irgraph (((nid, k) # g)))"
-  by (smt (z3) Rep_IRGraph_inject add_node.rep_eq filter.simps(2) irgraph.rep_eq map_of_upd snd_conv
-      no_node.simps)
+  by (smt (verit) Rep_IRGraph_inject add_node.rep_eq filter.simps(2) irgraph.rep_eq map_of_upd
+      snd_conv no_node.simps)
 
 lemma add_node_lookup:
   "gup = add_node nid (k, s) g \<longrightarrow> 

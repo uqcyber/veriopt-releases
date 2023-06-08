@@ -209,6 +209,18 @@ lemma rep_array_length [rep]:
    (\<exists>s. e = LeafExpr n s)"
   by (induction rule: rep.induct; auto)
 
+lemma rep_load_index [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   (kind g n) = LoadIndexedNode index guard x n' \<Longrightarrow>
+   (\<exists>s. e = LeafExpr n s)"
+  by (induction rule: rep.induct; auto)
+
+lemma rep_store_index [rep]:
+  "g \<turnstile> n \<simeq> e \<Longrightarrow>
+   (kind g n) = StoreIndexedNode check val st index guard x n' \<Longrightarrow>
+   (\<exists>s. e = LeafExpr n s)"
+  by (induction rule: rep.induct; auto)
+
 lemma rep_ref [rep]:
   "g \<turnstile> n \<simeq> e \<Longrightarrow>
    kind g n = RefNode n' \<Longrightarrow>
@@ -268,11 +280,11 @@ proof (induction arbitrary: e\<^sub>2 rule: "rep.induct")
 next
   case (ParameterNode n i s)
   then show ?case
-    by (metis IRNode.distinct(3281,3317) ParameterNodeE rep_parameter)
+    by (metis IRNode.distinct(3487,3525) ParameterNodeE rep_parameter)
 next
   case (ConditionalNode n c t f ce te fe)
   then show ?case
-    by (metis IRNode.distinct(867,903) IRNode.inject(8) ConditionalNodeE rep_conditional)
+    by (metis IRNode.distinct(897,935) IRNode.inject(8) ConditionalNodeE rep_conditional)
 next
   case (AbsNode n x xe)
   then show ?case
@@ -364,19 +376,19 @@ next
 next
   case (NarrowNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(3023,3059) IRNode.inject(35) NarrowNodeE rep_narrow)
+    by (metis IRNode.distinct(3217,3255) IRNode.inject(36) NarrowNodeE rep_narrow)
 next
   case (SignExtendNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(3327,3503) IRNode.inject(47) SignExtendNodeE rep_sign_extend)
+    by (metis IRNode.distinct(3535,3723) IRNode.inject(48) SignExtendNodeE rep_sign_extend)
 next
   case (ZeroExtendNode n x xe)
   then show ?case
-    by (metis IRNode.distinct(3349,3657) IRNode.inject(58) ZeroExtendNodeE rep_zero_extend)
+    by (metis IRNode.distinct(3559,3903) IRNode.inject(60) ZeroExtendNodeE rep_zero_extend)
 next
   case (LeafNode n s)
   then show ?case
-    by (metis is_preevaluated.simps(46,61) rep_load_field LeafNodeE)
+    by (metis is_preevaluated.simps(48,63) rep_load_field LeafNodeE)
 next
   case (RefNode n')
   then show ?case
@@ -388,7 +400,7 @@ next
 next
   case (IsNullNode n v)
   then show ?case
-    by (metis IRNode.distinct(2363,2399) IRNode.inject(24) IsNullNodeE rep_is_null)
+    by (metis IRNode.distinct(2461,2499) IRNode.inject(24) IsNullNodeE rep_is_null)
 qed
 
 lemma repAllDet:
@@ -485,7 +497,7 @@ lemma mono_conditional_graph:
   assumes "ce1 \<ge> ce2 \<and> te1 \<ge> te2 \<and> fe1 \<ge> fe2"
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
-  by (smt (verit, best) ConditionalNode assms mono_conditional repDet)
+  by (smt (verit, ccfv_SIG) ConditionalNode assms mono_conditional repDet)
 
 lemma mono_add:
   assumes "kind g1 n = AddNode x y \<and> kind g2 n = AddNode x y"
@@ -494,7 +506,7 @@ lemma mono_add:
   assumes "xe1 \<ge> xe2 \<and> ye1 \<ge> ye2"
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
-  by (smt (verit, best) AddNode mono_binary assms repDet)
+  by (metis (no_types, lifting) AddNode mono_binary assms repDet)
 
 lemma mono_mul:
   assumes "kind g1 n = MulNode x y \<and> kind g2 n = MulNode x y"
@@ -653,7 +665,7 @@ proof -
       obtain xn where l: "kind g1 n = ReverseBytesNode xn"
         by (simp add: ReverseBytesNode.hyps(1))
       then have m: "g1 \<turnstile> xn \<simeq> xe1"
-        by (metis IRNode.inject(44) ReverseBytesNode.hyps(1,2))
+        by (metis IRNode.inject(45) ReverseBytesNode.hyps(1,2))
       then show ?case
       proof (cases "xn = n'")
         case True
@@ -670,7 +682,7 @@ proof -
         have "g1 \<turnstile> xn \<simeq> xe1"
           by (simp add: m)
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
-          by (metis False IRNode.inject(44) ReverseBytesNode.IH ReverseBytesNode.hyps(1,2) b l
+          by (metis False IRNode.inject(45) ReverseBytesNode.IH ReverseBytesNode.hyps(1,2) b l
               encodes_contains ids_some not_excluded_keep_type singleton_iff)
         then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr UnaryReverseBytes xe2) \<and>
   UnaryExpr UnaryReverseBytes xe1 \<ge> UnaryExpr UnaryReverseBytes xe2"
@@ -1692,7 +1704,7 @@ theorem term_graph_reconstruction:
   next
     case (ParameterNodeNew g i s)
     then show ?case
-      by (metis IRNode.distinct(3315) ParameterNode find_new_kind find_new_stamp)
+      by (metis IRNode.distinct(3523) ParameterNode find_new_kind find_new_stamp)
   next
     case (ConditionalNodeSame g4 c t f s' n g ce g2 te g3 fe)
     then have k: "kind g4 n = ConditionalNode c t f"
@@ -2890,7 +2902,7 @@ lemma unrep_preserves_closure:
   next
     case (ConstantNodeNew g c n g')
     then have dom: "ids g' = ids g \<union> {n}"
-      by (meson IRNode.distinct(1005) add_node_ids_subset ids_add_update)
+      by (meson IRNode.distinct(1041) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ConstantNode c"
       by (simp add: add_node_lookup ConstantNodeNew)
     then have inp: "{} = inputs g' n"
@@ -2910,7 +2922,7 @@ lemma unrep_preserves_closure:
   next
     case (ParameterNodeNew g i s n g')
     then have dom: "ids g' = ids g \<union> {n}"
-      by (meson IRNode.distinct(3315) add_node_ids_subset ids_add_update)
+      by (meson IRNode.distinct(3523) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ParameterNode i"
       by (simp add: add_node_lookup ParameterNodeNew)
     then have inp: "{} = inputs g' n"
@@ -2930,7 +2942,7 @@ lemma unrep_preserves_closure:
   next
     case (ConditionalNodeNew g4 c t f s' g ce g2 te g3 fe n g')
     then have dom: "ids g' = ids g4 \<union> {n}"
-      by (meson IRNode.distinct(901) add_node_ids_subset ids_add_update)
+      by (meson IRNode.distinct(933) add_node_ids_subset ids_add_update)
     have k: "kind g' n = ConditionalNode c t f"
       by (auto simp add: find_new_kind ConditionalNodeNew.hyps(10))
     then have inp: "{c, t, f} = inputs g' n"
@@ -2938,7 +2950,7 @@ lemma unrep_preserves_closure:
     from k have suc: "{} = succ g' n"
       by simp
     have "inputs g' n \<subseteq> ids g' \<and> succ g' n \<subseteq> ids g' \<and> kind g' n \<noteq> NoNode"
-      by (metis (mono_tags, lifting) ConditionalNodeNew.hyps(2,4,6) IRNode.distinct(901) insertCI k
+      by (metis (mono_tags, lifting) ConditionalNodeNew.hyps(2,4,6) IRNode.distinct(933) insertCI k
           Un_empty_right Un_insert_right dom empty_subsetI in_mono insert_subsetI unrep_contains
           unrep_ids_subset inp suc)
     then show ?case 

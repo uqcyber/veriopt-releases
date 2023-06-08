@@ -687,9 +687,12 @@ lemma unary_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<in> normal_unary"
   shows "\<exists> ix. x = IntVal b ix"
-  using assms apply (cases op; auto)
-  by (smt (verit) Value.distinct(1) Value.sel(1) new_int.simps intval_abs.elims intval_negate.elims
-      intval_not.elims intval_logic_negation.elims intval_bits.simps intval_reverse_bytes.elims)+
+  using assms apply (cases op; auto) prefer 4
+  apply (smt (verit, ccfv_SIG) new_int.simps Value.distinct(1) intval_logic_negation.elims
+         intval_bits.simps)
+  apply (smt (verit, ccfv_SIG) intval_abs.elims intval_bits.simps new_int.simps Value.distinct(1))
+  by (smt (verit, best) Value.distinct(1) new_int.simps intval_negate.elims intval_not.elims
+      intval_bits.simps intval_reverse_bytes.elims)+
 
 lemma unary_not_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"

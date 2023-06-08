@@ -86,8 +86,8 @@ lemma neg_one_value[simp]: "new_int b (neg_one b) = IntVal b (mask b)"
 lemma neg_one_signed[simp]: 
   assumes "0 < b"
   shows "int_signed_value b (neg_one b) = -1"
-  by (smt (verit, best) assms diff_le_self diff_less int_signed_value.simps verit_comp_simplify1(1)
-      mask_eq_take_bit_minus_one neg_one.simps nle_le signed_minus_1 signed_take_bit_of_minus_1 
+  by (smt (verit, ccfv_SIG) assms diff_le_self diff_less int_signed_value.simps neg_one.simps nle_le
+      verit_comp_simplify1(1) mask_eq_take_bit_minus_one signed_minus_1 signed_take_bit_of_minus_1
       signed_take_bit_take_bit less_one)
 
 lemma word_unsigned:
@@ -268,10 +268,48 @@ fun intval_normalize_compare :: "Value \<Rightarrow> Value \<Rightarrow> Value" 
                  else UndefVal)" |
   "intval_normalize_compare _ _ = UndefVal"
 
-(* TODO: Pre-populate array with default values *)
-fun intval_new_array :: "Value \<Rightarrow> Value" where
-  "intval_new_array (IntVal b1 v1) = (ArrayVal (nat (int_signed_value b1 v1)) [])" |
-  "intval_new_array _ = UndefVal"
+(* Array-related operators and helper functions *)
+
+(* Yoinked from https://www.isa-afp.org/browser_info/Isabelle2012/HOL/List-Index/List_Index.html*)
+fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
+  "find_index _ [] = 0" |
+  "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
+
+definition default_values :: "Value list" where
+  "default_values = [new_int 32 0, new_int 64 0, ObjRef None]"
+
+definition short_types_32 :: "string list" where
+  "short_types_32 = [''[Z'', ''[I'', ''[C'', ''[B'', ''[S'']"
+
+definition short_types_64 :: "string list" where
+  "short_types_64 = [''[J'']"
+
+fun default_value :: "string \<Rightarrow> Value" where
+  "default_value n = (if (find_index n short_types_32) < (length short_types_32)
+                      then (default_values!0) else
+                     (if (find_index n short_types_64) < (length short_types_64)
+                      then (default_values!1)
+                      else (default_values!2)))"
+
+fun populate_array :: "nat \<Rightarrow> Value list \<Rightarrow> string \<Rightarrow> Value list" where
+  "populate_array len a s = (if (len = 0) then (a)
+                             else (a @ (populate_array (len-1) [default_value s] s)))"
+
+fun intval_new_array :: "Value \<Rightarrow> string \<Rightarrow> Value" where
+  "intval_new_array (IntVal b1 v1) s = (ArrayVal (nat (int_signed_value b1 v1))
+                                        (populate_array (nat (int_signed_value b1 v1)) [] s))" |
+  "intval_new_array _ _ = UndefVal"
+
+fun intval_load_index :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_load_index (ArrayVal len cons) (IntVal b1 v1) = (if (v1 \<ge> (word_of_nat len)) then (UndefVal)
+                                                          else (cons!(nat (int_signed_value b1 v1))))" |
+  "intval_load_index _ _ = UndefVal"
+
+fun intval_store_index :: "Value \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow> Value" where
+  "intval_store_index (ArrayVal len cons) (IntVal b1 v1) val =
+                      (if (v1 \<ge> (word_of_nat len)) then (UndefVal)
+                        else (ArrayVal len (list_update cons (nat (int_signed_value b1 v1)) (val))))" |
+  "intval_store_index _ _ _ = UndefVal"
 
 lemma intval_equals_result:
   assumes "intval_equals v1 v2 = r"

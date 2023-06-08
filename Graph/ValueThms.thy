@@ -187,9 +187,7 @@ lemma scast_min_bound:
   assumes "M \<le> sint (v :: 'a :: len word)"
   assumes "LENGTH('a) < LENGTH('b)"
   shows "M \<le> sint ((scast v) :: 'b :: len word)"
-  by (smt (verit) One_nat_def Suc_pred assms len_gt_0 less_Suc_eq order_less_le Word.scast_eq 
-      order_less_le_trans power_le_imp_le_exp signed_take_bit_int_greater_eq_self_iff sint_lt 
-      Word.sint_sbintrunc')
+  by (simp add: scast_min_bound assms)
 
 lemma scast_bigger_max_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"

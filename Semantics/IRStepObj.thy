@@ -127,7 +127,7 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
       arrayType = stp_type (stamp g nid);
       (h', ref) = h_new_inst h arrayType;
       ref = ObjRef refNo;
-      h'' = h_store_field '''' refNo (intval_new_array length') h';
+      h'' = h_store_field '''' refNo (intval_new_array length' arrayType) h';
 
       m' = m(nid := ref)\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'')" |
@@ -142,6 +142,37 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
 
       m' = m(nid := length')\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
+
+  LoadIndexedNode:
+    "\<lbrakk>kind g nid = (LoadIndexedNode index guard array nid');
+      g \<turnstile> index \<simeq> indexE;
+      [m, p] \<turnstile> indexE \<mapsto> indexVal;
+
+      g \<turnstile> array \<simeq> arrayE;
+      [m, p] \<turnstile> arrayE \<mapsto> ObjRef ref;
+
+      h_load_field '''' ref h = arrayVal;
+      loaded = intval_load_index arrayVal indexVal;
+
+      m' = m(nid := loaded)\<rbrakk>
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
+
+  StoreIndexedNode:
+    "\<lbrakk>kind g nid = (StoreIndexedNode check val st index guard array nid');
+      g \<turnstile> index \<simeq> indexE;
+      [m, p] \<turnstile> indexE \<mapsto> indexVal;
+
+      g \<turnstile> array \<simeq> arrayE;
+      [m, p] \<turnstile> arrayE \<mapsto> ObjRef ref;
+
+      g \<turnstile> val \<simeq> valE;
+      [m, p] \<turnstile> valE \<mapsto> value;
+
+      h_load_field '''' ref h = arrayVal;
+      updated = intval_store_index arrayVal indexVal value;
+      h' = h_store_field '''' ref updated h;
+      m' =  m(nid := updated)\<rbrakk>
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
   NewInstanceNode:
     "\<lbrakk>kind g nid = (NewInstanceNode nid cname obj nid');

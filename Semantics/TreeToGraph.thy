@@ -26,6 +26,8 @@ fun is_preevaluated :: "IRNode \<Rightarrow> bool" where
   "is_preevaluated (BytecodeExceptionNode n _ _) = True" |
   "is_preevaluated (NewArrayNode n _ _) = True" |
   "is_preevaluated (ArrayLengthNode n _) = True" |
+  "is_preevaluated (LoadIndexedNode n _ _ _) = True" |
+  "is_preevaluated (StoreIndexedNode n _ _ _ _ _ _) = True" |
   "is_preevaluated _ = False"
 
 inductive

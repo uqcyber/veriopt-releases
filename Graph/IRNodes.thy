@@ -81,6 +81,7 @@ datatype (discs_sels) IRNode =
   | KillingBeginNode (ir_next: "SUCC") 
   | LeftShiftNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | LoadFieldNode (ir_nid: ID) (ir_field: string) (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
+  | LoadIndexedNode (ir_index: "INPUT") (ir_guard_opt: "INPUT_GUARD option") (ir_value: "INPUT") (ir_next: "SUCC")
   | LogicNegationNode (ir_value: "INPUT_COND") 
   | LoopBeginNode (ir_ends: "INPUT_ASSOC list") (ir_overflowGuard_opt: "INPUT_GUARD option") (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | LoopEndNode (ir_loopBegin: "INPUT_ASSOC") 
@@ -105,6 +106,7 @@ datatype (discs_sels) IRNode =
   | SignedRemNode (ir_nid: ID) (ir_x: "INPUT") (ir_y: "INPUT") (ir_zeroCheck_opt: "INPUT_GUARD option") (ir_stateBefore_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StartNode (ir_stateAfter_opt: "INPUT_STATE option") (ir_next: "SUCC") 
   | StoreFieldNode (ir_nid: ID) (ir_field: string) (ir_value: "INPUT") (ir_stateAfter_opt: "INPUT_STATE option") (ir_object_opt: "INPUT option") (ir_next: "SUCC") 
+  | StoreIndexedNode (ir_storeCheck: "INPUT_GUARD option") (ir_value: ID) (ir_stateAfter_opt: "INPUT_STATE option") (ir_index: "INPUT") (ir_guard_opt: "INPUT_GUARD option") (ir_array: "INPUT") (ir_next: "SUCC")
   | SubNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | UnsignedRightShiftNode (ir_x: "INPUT") (ir_y: "INPUT") 
   | UnwindNode (ir_exception: "INPUT") 
@@ -191,6 +193,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (LeftShiftNode x y) = [x, y]" |
   inputs_of_LoadFieldNode:
   "inputs_of (LoadFieldNode nid0 field object next) = (opt_to_list object)" |
+  inputs_of_LoadIndexedNode:
+  "inputs_of (LoadIndexedNode index guard x next) = [x]" |
   inputs_of_LogicNegationNode:
   "inputs_of (LogicNegationNode value) = [value]" |
   inputs_of_LoopBeginNode:
@@ -239,6 +243,8 @@ fun inputs_of :: "IRNode \<Rightarrow> ID list" where
   "inputs_of (StartNode stateAfter next) = (opt_to_list stateAfter)" |
   inputs_of_StoreFieldNode:
   "inputs_of (StoreFieldNode nid0 field value stateAfter object next) = value # (opt_to_list stateAfter) @ (opt_to_list object)" |
+  inputs_of_StoreIndexedNode:
+  "inputs_of (StoreIndexedNode check val st index guard array nid') = [val, array]" |
   inputs_of_SubNode:
   "inputs_of (SubNode x y) = [x, y]" |
   inputs_of_UnsignedRightShiftNode:
@@ -316,6 +322,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (LeftShiftNode x y) = []" |
   successors_of_LoadFieldNode:
   "successors_of (LoadFieldNode nid0 field object next) = [next]" |
+  successors_of_LoadIndexedNode:
+  "successors_of (LoadIndexedNode index guard x next) = [next]" |
   successors_of_LogicNegationNode:
   "successors_of (LogicNegationNode value) = []" |
   successors_of_LoopBeginNode:
@@ -364,6 +372,8 @@ fun successors_of :: "IRNode \<Rightarrow> ID list" where
   "successors_of (StartNode stateAfter next) = [next]" |
   successors_of_StoreFieldNode:
   "successors_of (StoreFieldNode nid0 field value stateAfter object next) = [next]" |
+  successors_of_StoreIndexedNode:
+  "successors_of (StoreIndexedNode check val st index guard array next) = [next]" |
   successors_of_SubNode:
   "successors_of (SubNode x y) = []" |
   successors_of_UnsignedRightShiftNode:

@@ -110,8 +110,11 @@ fun is_BeginStateSplitNode :: "IRNode \<Rightarrow> bool" where
 fun is_AbstractBeginNode :: "IRNode \<Rightarrow> bool" where
   "is_AbstractBeginNode n = ((is_BeginNode n) \<or> (is_BeginStateSplitNode n) \<or> (is_KillingBeginNode n))"
 
+fun is_AccessArrayNode :: "IRNode \<Rightarrow> bool" where
+  "is_AccessArrayNode n = ((is_LoadIndexedNode n) \<or> (is_StoreIndexedNode n))"
+
 fun is_FixedWithNextNode :: "IRNode \<Rightarrow> bool" where
-  "is_FixedWithNextNode n = ((is_AbstractBeginNode n) \<or> (is_AbstractStateSplit n) \<or> (is_AccessFieldNode n) \<or> (is_DeoptimizingFixedWithNextNode n) \<or> (is_ControlFlowAnchorNode n) \<or> (is_ArrayLengthNode n))"
+  "is_FixedWithNextNode n = ((is_AbstractBeginNode n) \<or> (is_AbstractStateSplit n) \<or> (is_AccessFieldNode n) \<or> (is_DeoptimizingFixedWithNextNode n) \<or> (is_ControlFlowAnchorNode n) \<or> (is_ArrayLengthNode n) \<or> (is_AccessArrayNode n))"
 
 fun is_WithExceptionNode :: "IRNode \<Rightarrow> bool" where
   "is_WithExceptionNode n = ((is_InvokeWithExceptionNode n))"

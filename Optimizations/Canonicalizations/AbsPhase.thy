@@ -23,8 +23,9 @@ lemma abs_neg:
   assumes "v <s 0"
   assumes "-(2 ^ (Nat.size v - 1)) <s v" (* changed size func used*)
   shows "(if v <s 0 then - v else v) = - v \<and> 0 <s -v"
-  by (smt (verit, ccfv_SIG) assms signed_take_bit_int_greater_eq_minus_exp sint_word_ariths(4)
-      signed_take_bit_int_greater_eq_self_iff sint_0 word_sless_alt)
+  using assms apply auto
+  by (smt (verit) assms signed_take_bit_int_greater_eq_minus_exp sint_word_ariths(4) word_sless_alt
+      signed_take_bit_int_greater_eq_self_iff sint_0)
  
 lemma abs_max_neg:
   fixes v :: "('a :: len word)"
@@ -121,6 +122,7 @@ lemma val_abs_always_pos:
 proof (cases "v = 0")
   case True
   then have "v' = 0"
+    using assms apply auto
     by (smt (verit, ccfv_threshold) Suc_diff_1 bit_less_eq_def bot_nat_0.extremum diff_is_0_eq 
         len_gt_0 len_of_numeral_defs(2) order_le_less signed_eq_0_iff take_bit_0 take_bit_unwrap
         take_bit_signed_take_bit val_abs_zero assms)

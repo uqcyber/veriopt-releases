@@ -57,8 +57,9 @@ lemma val_optimise_integer_test:
   shows "val[((x & (IntVal 32 1)) eq (IntVal 32 0)) ? (IntVal 32 0) : (IntVal 32 1)] = 
          val[x & IntVal 32 1]"
   using assms apply auto
-  by (smt (verit) bool_to_val.simps(1,2) val_to_bool.simps(1) and_one_eq even_iff_mod_2_eq_zero 
-      odd_iff_mod_2_eq_one)+
+  apply (metis (full_types) bool_to_val.simps(2) val_to_bool.simps(1))
+  by (metis (mono_tags, lifting) bool_to_val.simps(1) val_to_bool.simps(1) even_iff_mod_2_eq_zero
+      odd_iff_mod_2_eq_one and_one_eq)
 
 optimization ConditionalEliminateKnownLess: "((x < y) ? x : y) \<longmapsto> x 
                                  when (stamp_under (stamp_expr x) (stamp_expr y)
@@ -228,8 +229,29 @@ optimization ConditionalExtractCondition2: "exp[(c ? false : true)] \<longmapsto
 
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
   apply auto
-  by (smt (verit) Value.inject(1) bool_to_val.simps(2) bool_to_val_bin.simps evalDet 
-      intval_equals.elims val_to_bool.elims(1))
+  subgoal premises p for m p v true false xa ya
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(8) by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p(9) by auto
+    obtain val where condEval: "[m,p] \<turnstile> if val_to_bool (intval_equals xv yv) then x else y \<mapsto> val"
+      using p by (metis (full_types))
+    have notUndef: "xv \<noteq> UndefVal \<and> yv \<noteq> UndefVal"
+      using evaltree_not_undef xv yv by blast
+    have evalNotUndef: "intval_equals xv yv \<noteq> UndefVal"
+      by (metis evalDet p(1) p(8) p(9) xv yv)
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis Value.exhaust evalNotUndef intval_equals.simps(3,4,5) notUndef)
+    obtain yb yvv where yvv: "yv = IntVal yb yvv"
+      by (metis evalNotUndef intval_equals.simps(7,8,9) intval_logic_negation.cases notUndef)
+    have unfoldEqual: "(intval_equals xv yv) = bool_to_val (xvv = yvv)"
+      using evalNotUndef xvv yvv by auto
+    then show ?thesis
+      by (smt (z3) p Value.inject(1) bool_to_val.simps(2) bool_to_val_bin.simps intval_equals.elims
+          val_to_bool.elims(1) evalDet)
+  qed
+  done
 
 (* todo not sure if this is done properly *)
 optimization normalizeX: "((x eq const (IntVal 32 0)) ? 

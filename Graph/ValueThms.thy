@@ -112,8 +112,7 @@ lemma int_signed_value_range:
   fixes ival :: "int64"
   assumes "val = int_signed_value n ival"
   shows "- (2 ^ (n - 1)) \<le> val \<and> val < 2 ^ (n - 1)"
-  by (smt (verit) One_nat_def diff_less int_signed_value.elims len_gt_0 assms signed_take_bit_range
-      len_num1 power_less_imp_less_exp power_strict_increasing sint_greater_eq sint_less)
+  using assms int_signed_value_range by blast
 
 text \<open>Some lemmas about unsigned words smaller than 64-bit, for zero-extend operators.\<close>
 
@@ -254,7 +253,7 @@ lemma signed_take_take_bit[simp]:
   fixes x :: "'a :: len word"
   assumes "0 < b"
   shows "signed_take_bit (b - 1) (take_bit b x) = signed_take_bit (b - 1) x"
-  by (smt (verit) Suc_diff_1 assms lessI linorder_not_less signed_take_bit_take_bit)
+  using signed_take_take_bit assms by blast
 
 lemma mod_larger_ignore:
   fixes a :: int

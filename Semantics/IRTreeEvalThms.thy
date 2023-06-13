@@ -595,7 +595,7 @@ next
   case (UnaryNarrow x51 x52)
   then show ?thesis
     apply auto
-    by (smt (verit, best) new_int.elims def intval_narrow.elims unary_eval.simps(5) def)
+    by (smt (verit, del_insts) new_int.elims def intval_narrow.elims unary_eval.simps(5) def)
 next
   case (UnarySignExtend x61 x62)
   then show ?thesis

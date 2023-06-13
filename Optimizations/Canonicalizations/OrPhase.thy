@@ -123,15 +123,49 @@ lemma val_or_not_operands:
 (* Exp level proofs *)
 lemma exp_or_equal:
   "exp[x | x] \<ge> exp[x]"
-   apply auto[1]
-   by (smt (verit, ccfv_SIG) evalDet eval_unused_bits_zero intval_negate.elims new_int.simps
-       val_or_equal intval_or.simps(2,6,7))
+  apply auto[1]
+  subgoal premises p for m p xa ya
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis evalDet evaltree_not_undef intval_is_null.cases intval_or.simps(3,4,5) p(1,3) xv)
+    then have evalNotUndef: "val[xv | xv] \<noteq> UndefVal"
+      using p evalDet xv by blast
+    then have orUnfold: "val[xv | xv] = (new_int xb (or xvv xvv))"
+      by (simp add: xvv)
+    then have simplify: "val[xv | xv] = (new_int xb (xvv))"
+      by (simp add: orUnfold)
+    then have eq: "(xv) = (new_int xb (xvv))"
+      using eval_unused_bits_zero xv xvv by auto
+    then show ?thesis
+      by (metis evalDet p(1,2) simplify xv)
+  qed
+  done
 
 lemma exp_elim_redundant_false:
  "exp[x | false] \<ge> exp[x]"
-   apply auto[1]
-   by (smt (verit) eval_unused_bits_zero intval_or.elims new_int_bin.simps val_elim_redundant_false
-        Value.sel(1) new_int.simps)
+  apply auto[1]
+  subgoal premises p for m p xa
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis evalDet evaltree_not_undef intval_is_null.cases intval_or.simps(3,4,5) p(1,2) xv)
+    then have evalNotUndef: "val[xv | (IntVal 32 0)] \<noteq> UndefVal"
+      using p evalDet xv by blast
+    then have widthSame: "xb=32"
+      by (metis intval_or.simps(1) new_int_bin.simps xvv)
+    then have orUnfold: "val[xv | (IntVal 32 0)] = (new_int xb (or xvv 0))"
+      by (simp add: xvv)
+    then have simplify: "val[xv | (IntVal 32 0)] = (new_int xb (xvv))"
+      by (simp add: orUnfold)
+    then have eq: "(xv) = (new_int xb (xvv))"
+      using eval_unused_bits_zero xv xvv by auto
+    then show ?thesis
+      by (metis evalDet p(1) simplify xv)
+  qed
+  done
 
 text \<open>Optimisations\<close>
 

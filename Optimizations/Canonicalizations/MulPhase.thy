@@ -209,18 +209,70 @@ thm_oracles val_MulPower2AddPower2
 
 (* Exp-level proofs *)
 lemma exp_multiply_zero_64:
- "exp[x * (const (IntVal 64 0))] \<ge> ConstantExpr (IntVal 64 0)"
-  apply auto  
-  by (smt (verit) Value.inject(1) constantAsStamp.simps(1) intval_mul.elims mult_zero_right 
-      new_int.simps new_int_bin.simps unfold_const valid_value.simps(1) wf_value_def)
+  shows "exp[x * (const (IntVal b 0))] \<ge> ConstantExpr (IntVal b 0)"
+  apply auto
+  subgoal premises p for m p xa
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (smt (z3) evalDet intval_mul.elims p(1,2) xv)
+    then have evalNotUndef: "val[xv * (IntVal b 0)] \<noteq> UndefVal"
+      using p evalDet xv by blast
+    then have mulUnfold: "val[xv * (IntVal b 0)] = IntVal xb (take_bit xb (xvv*0))"
+      by (metis new_int.simps xvv new_int_bin.simps intval_mul.simps(1))
+    then have isZero: "val[xv * (IntVal b 0)] = (new_int xb (0))"
+      by (simp add: mulUnfold)
+    then have eq: "(IntVal b 0) = (IntVal xb (0))"
+      by (metis Value.distinct(1) intval_mul.simps(1) mulUnfold new_int_bin.elims xvv)
+    then show ?thesis
+      using evalDet isZero p(1,3) xv by fastforce
+  qed
+  done
 
 lemma exp_multiply_neutral:
  "exp[x * (const (IntVal b 1))] \<ge> x"
   apply auto 
-  by (smt (verit) Value.inject(1) eval_unused_bits_zero intval_mul.elims mult.right_neutral 
-      new_int.elims new_int_bin.elims)
+  subgoal premises p for m p xa
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (smt (z3) evalDet intval_mul.elims p(1,2) xv)
+    then have evalNotUndef: "val[xv * (IntVal b 1)] \<noteq> UndefVal"
+      using p evalDet xv by blast
+    then have mulUnfold: "val[xv * (IntVal b 1)] = IntVal xb (take_bit xb (xvv*1))"
+      by (metis new_int.simps xvv new_int_bin.simps intval_mul.simps(1))
+    then show ?thesis
+      by (metis bin_multiply_identity evalDet eval_unused_bits_zero p(1) xv xvv)
+  qed
+  done
 
 thm_oracles exp_multiply_neutral
+
+lemma exp_multiply_negative:
+ "exp[x * -(const (IntVal b 1))] \<ge> exp[-x]"
+  apply auto
+  subgoal premises p for m p xa
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis array_length.cases evalDet evaltree_not_undef intval_mul.simps(3,4,5) p(1,2) xv)
+    then have rewrite: "val[-(IntVal b 1)] = IntVal b (mask b)"
+      by simp
+    then have evalNotUndef: "val[xv * -(IntVal b 1)] \<noteq> UndefVal"
+      unfolding rewrite using evalDet p(1,2) xv by blast
+    then have mulUnfold: "val[xv * (IntVal b (mask b))] =
+                          (if xb=b then (IntVal xb (take_bit xb (xvv*(mask xb)))) else UndefVal)"
+      by (metis new_int.simps xvv new_int_bin.simps intval_mul.simps(1))
+    then have sameWidth: "xb=b"
+      by (metis evalNotUndef rewrite)
+    then show ?thesis
+      by (metis evalDet eval_unused_bits_zero new_int.elims p(1,2) rewrite unary_eval.simps(2) xvv
+          unfold_unary val_multiply_negative xv)
+  qed
+  done
 
 lemma exp_MulPower2:
   fixes i :: "64 word"
@@ -304,8 +356,8 @@ lemma exp_distribute_multiplication:
     have "val[xv * (qv + yv)] = val[(xv * qv) + (xv * yv)]"
       using val_distribute_multiplication by (simp add: yvv qvv xvv) 
     then show ?thesis
-      by (metis bin_eval.simps(1,2) intval_add_sym intval_mul.simps(5) BinaryExpr p(1,2,3,5,6) qv xv
-          evalDet yv) 
+      by (smt (verit, best) bin_eval.simps(1,2) BinaryExpr p(1,2,3,5,6) qv xv evalDet yv qvv yvv
+          Value.distinct(1) intval_add.simps(1))
    qed
   done
 
@@ -319,15 +371,10 @@ optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
   using exp_multiply_neutral by blast
 
 optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (IntVal b 0)"
-   apply auto 
-  by (smt (verit) Value.inject(1) intval_mul.elims mult_zero_right new_int.simps new_int_bin.simps 
-      take_bit_of_0 unfold_const)
+  using exp_multiply_zero_64 by fast
 
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
-  apply auto 
-  by (smt (verit) Value.distinct(1) Value.sel(1) add.inverse_inverse intval_mul.elims wf_value_def
-      intval_negate.simps(1) mask_eq_take_bit_minus_one new_int.simps new_int_bin.simps unfold_unary
-      take_bit_dist_neg unary_eval.simps(2) val_eliminate_redundant_negative val_multiply_negative)
+  using exp_multiply_negative by presburger
 
 fun isNonZero :: "Stamp \<Rightarrow> bool" where
   "isNonZero (IntegerStamp b lo hi) = (lo > 0)" |
@@ -357,8 +404,16 @@ proof -
 qed
   done
 
+lemma ExpIntBecomesIntValArbitrary:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "wf_stamp x"
+  assumes "valid_value v (IntegerStamp b xl xh)"
+  assumes "[m,p] \<turnstile> x \<mapsto> v"
+  shows "\<exists>xv. v = IntVal b xv"
+  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3))
+
 optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i) 
-                              when (i > 0 \<and> 
+                              when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>
                                     y = exp[const (IntVal 64 (2 ^ unat(i)))])"
    apply simp apply (rule impI; (rule allI)+; rule impI)
@@ -367,8 +422,8 @@ proof -
   obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
     using eval(2) by blast
   then obtain xvv where xvv: "xv = IntVal 64 xvv"
-    by (smt (verit) ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims 
-        new_int_bin.simps unfold_binary eval)
+    by (smt (verit, best) wf_stamp_def ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps
+        intval_mul.elims new_int_bin.simps unfold_binary eval ExpIntBecomesIntValArbitrary)
   obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
     using eval(1,2) by blast
   then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
@@ -387,7 +442,7 @@ qed
   done
 
 optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x 
-                              when (i > 0 \<and>  
+                              when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>
                                     y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1)) )"
    apply simp apply (rule impI; (rule allI)+; rule impI)
@@ -396,8 +451,7 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
     obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
       using p by fast
     then obtain xvv where xvv: "xv = IntVal 64 xvv"
-      by (smt (verit) p ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims 
-          new_int_bin.simps unfold_binary)
+      using p by (metis valid_int wf_stamp_def)
     obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
       using p by blast
     have ygezero: "y > ConstantExpr (IntVal 64 0)"
@@ -428,7 +482,7 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
 
 (* Need to prove exp_MulPower2Sub1 *)
 optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x 
-                              when (i > 0 \<and>  
+                              when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>
                                     y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) - 1)) )"
    apply simp apply (rule impI; (rule allI)+; rule impI)
@@ -437,8 +491,7 @@ optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p by fast
     then obtain xvv where xvv: "xv = IntVal 64 xvv"
-      by (smt (verit) p ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps intval_mul.elims 
-          new_int_bin.simps unfold_binary)
+      using p by (metis valid_int wf_stamp_def)
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
       using p by blast
     have ygezero: "y > ConstantExpr (IntVal 64 0)" sorry

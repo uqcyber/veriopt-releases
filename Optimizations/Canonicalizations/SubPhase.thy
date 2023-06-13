@@ -62,7 +62,7 @@ lemma val_sub_then_left_sub:
   assumes "val[x - (x - y)] \<noteq> UndefVal"
   shows   "val[x - (x - y)] = y"
   using assms apply (cases x; auto)
-  by (metis (mono_tags) intval_sub.simps(5))
+  by (metis (mono_tags) intval_sub.simps(6))
 
 lemma val_subtract_zero:
   assumes "x = new_int b v"
@@ -80,7 +80,7 @@ lemma val_sub_then_left_add:
   assumes "val[x - (x + y)] \<noteq> UndefVal"
   shows   "val[x - (x + y)] = val[-y]"
   using assms apply (cases x; cases y; auto)
-  by (metis (mono_tags, lifting) intval_sub.simps(5))
+  by (metis (mono_tags, lifting) intval_sub.simps(6))
 
 lemma val_sub_negative_value:
   assumes "val[x - (-y)] \<noteq> UndefVal"
@@ -100,9 +100,27 @@ lemma val_sub_negative_const:
 (* Exp level proofs *)
 lemma exp_sub_after_right_add:
   shows "exp[(x + y) - y] \<ge> x"
-   apply auto  
-  by (smt (verit) eval_unused_bits_zero intval_add.elims val_sub_after_right_add_2 new_int.simps
-      evalDet) 
+  apply auto
+  subgoal premises p for m p ya xa yaa
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(3) by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p(1) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis Value.exhaust evalDet evaltree_not_undef intval_add.simps(3,4,5) intval_sub.simps(2)
+          p(2,3) xv)
+    obtain yb yvv where yvv: "yv = IntVal yb yvv"
+      by (metis evalDet evaltree_not_undef intval_add.simps(7,8,9) intval_logic_negation.cases yv
+          intval_sub.simps(2) p(2,4))
+    then have lhsDefined: "val[(xv + yv) - yv] \<noteq> UndefVal"
+      using xvv yvv apply (cases xv; cases yv; auto)
+      by (metis evalDet intval_add.simps(1) p(3,4,5) xv yv)
+     then show ?thesis
+       by (metis \<open>\<And>thesis. (\<And>(xb) xvv. (xv) = IntVal xb xvv \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> evalDet xv yv
+           eval_unused_bits_zero lhsDefined new_int.simps p(1,3,4) val_sub_after_right_add_2)
+  qed
+  done
 
 lemma exp_sub_after_right_add2:
   shows "exp[(x + y) - x] \<ge> y"
@@ -131,13 +149,53 @@ lemma exp_sub_then_left_sub:
         by auto
       then have "[m, p] \<turnstile> y \<mapsto> val[xa - (xaa - ya)]"
         by (metis "1" Value.exhaust eval_unused_bits_zero evaltree_not_undef xa xaa ya new_int.simps
-            intval_sub.simps(6,7) evalDet val_sub_then_left_sub)
+            intval_sub.simps(6,7,8,9) evalDet val_sub_then_left_sub)
       then show ?thesis
         by (metis evalDet p(2,4,5) xa xaa ya)
     qed 
   done
 
 thm_oracles exp_sub_then_left_sub
+
+lemma SubtractZero_Exp:
+  "exp[(x - (const IntVal b 0))] \<ge> x"
+  apply auto
+  subgoal premises p for m p xa
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis array_length.cases evalDet evaltree_not_undef intval_sub.simps(3,4,5) p(1,2) xv)
+    then have widthSame: "xb=b"
+      by (metis evalDet intval_sub.simps(1) new_int_bin.simps p(1) p(2) xv)
+    then have unfoldSub: "val[xv - (IntVal b 0)] = (new_int xb (xvv-0))"
+      by (simp add: xvv)
+    then have rhsSame: "val[xv] = (new_int xb (xvv))"
+      using eval_unused_bits_zero xv xvv by auto
+    then show ?thesis
+      by (metis diff_zero evalDet p(1) unfoldSub xv)
+  qed
+  done
+
+lemma ZeroSubtractValue_Exp:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp b lo hi"
+  assumes "\<not>(is_ConstantExpr x)"
+  shows "exp[(const IntVal b 0) - x] \<ge> exp[-x]"
+  using assms apply auto
+  subgoal premises p for m p xa
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(4) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis constantAsStamp.cases evalDet evaltree_not_undef intval_sub.simps(7,8,9) p(4,5) xv)
+    then have unfoldSub: "val[(IntVal b 0) - xv] = (new_int xb (0-xvv))"
+      by (metis intval_sub.simps(1) new_int_bin.simps p(1,2) valid_int_same_bits wf_stamp_def xv)
+    then show ?thesis
+      by (metis UnaryExpr intval_negate.simps(1) p(4,5) unary_eval.simps(2) verit_minus_simplify(3)
+          evalDet xv xvv)
+  qed
+  done
 
 text \<open>Optimisations\<close>
 
@@ -164,9 +222,7 @@ optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
   using size_simps exp_sub_then_left_sub by auto
  
 optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x"
-  apply auto
-  by (smt (verit) add.right_neutral diff_add_cancel eval_unused_bits_zero intval_sub.elims 
-      intval_word.simps new_int.simps new_int_bin.simps)
+  using SubtractZero_Exp by fast
 
 thm_oracles SubtractZero
 
@@ -266,9 +322,7 @@ optimization SubNegativeConstant: "x - (const (val[-y])) \<longmapsto> x + (cons
 (*Additional check for not constant for termination *)
 optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> \<not>(is_ConstantExpr x))"
-  using size_flip_binary apply auto
-  by (smt (verit) diff_0 intval_negate.simps(1) intval_sub.elims intval_word.simps size.simps(2)
-      new_int_bin.simps unary_eval.simps(2) unfold_unary wf_stamp_def add_2_eq_Suc')
+  using size_flip_binary ZeroSubtractValue_Exp by simp+
 
 (*
 fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where

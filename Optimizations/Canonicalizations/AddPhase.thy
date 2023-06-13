@@ -37,10 +37,31 @@ lemma is_neutral_0 [simp]:
   shows "val[(IntVal b x) + (IntVal b 0)] = (new_int b x)"
   by simp
 
-optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
+lemma AddNeutral_Exp:
+  shows "exp[(e + (const (IntVal 32 0)))] \<ge> exp[e]"
   apply auto
-  by (smt (verit) add_cancel_left_right intval_add.elims val_to_bool.simps(1) eval_unused_bits_zero
-      le_expr_def)
+  subgoal premises p for m p x
+  proof -
+    obtain ev where ev: "[m,p] \<turnstile> e \<mapsto> ev"
+      using p by auto
+    then obtain b evx where evx: "ev = IntVal b evx"
+      by (metis evalDet evaltree_not_undef intval_add.simps(3,4,5) intval_logic_negation.cases
+          p(1,2))
+    then have additionNotUndef: "val[ev + (IntVal 32 0)] \<noteq> UndefVal"
+      using p evalDet ev by blast
+    then have sameWidth: "b = 32"
+      by (metis evx additionNotUndef intval_add.simps(1))
+    then have unfolded: "val[ev + (IntVal 32 0)] = IntVal 32 (take_bit 32 (evx+0))"
+      by (simp add: evx)
+    then have eqE: "IntVal 32 (take_bit 32 (evx+0)) = IntVal 32 (take_bit 32 (evx))"
+      by auto
+    then show ?thesis
+      by (metis ev evalDet eval_unused_bits_zero evx p(1) sameWidth unfolded)
+  qed
+  done
+
+optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
+  using AddNeutral_Exp by presburger
 
 ML_val \<open>@{term \<open>x = y\<close>}\<close>
 
@@ -48,11 +69,33 @@ lemma NeutralLeftSubVal:
   assumes "e1 = new_int b ival"
   shows "val[(e1 - e2) + e2] \<approx> e1"
   using assms by (cases e1; cases e2; auto)
+
+lemma RedundantSubAdd_Exp:
+  shows "exp[((a - b) + b)] \<ge> a"
+  apply auto
+  subgoal premises p for m p y xa ya
+  proof -
+    obtain bv where bv: "[m,p] \<turnstile> b \<mapsto> bv"
+      using p(1) by auto
+    obtain av where av: "[m,p] \<turnstile> a \<mapsto> av"
+      using p(3) by auto
+    then have subNotUndef: "val[av - bv] \<noteq> UndefVal"
+      by (metis bv evalDet p(3,4,5))
+    then obtain bb bvv where bInt: "bv = IntVal bb bvv"
+      by (metis bv evaltree_not_undef intval_logic_negation.cases intval_sub.simps(7,8,9))
+    then obtain ba avv where aInt: "av = IntVal ba avv"
+      by (metis av evaltree_not_undef intval_logic_negation.cases intval_sub.simps(3,4,5) subNotUndef)
+    then have widthSame: "bb=ba"
+      by (metis av bInt bv evalDet intval_sub.simps(1) new_int_bin.simps p(3,4,5))
+    then have valEval: "val[((av-bv)+bv)] = val[av]"
+      using aInt av eval_unused_bits_zero widthSame bInt by simp
+    then show ?thesis
+      by (metis av bv evalDet p(1,3,4))
+  qed
+  done
   
 optimization RedundantSubAdd: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
-  apply auto
-  by (smt (verit) evalDet intval_sub.elims new_int.elims well_formed_equal_defn NeutralLeftSubVal
-      eval_unused_bits_zero)
+  using RedundantSubAdd_Exp by blast
 
 (* a little helper lemma for using universal quantified assumptions *)
 lemma allE2: "(\<forall>x y. P x y) \<Longrightarrow> (P a b \<Longrightarrow> R) \<Longrightarrow> R"
@@ -153,12 +196,35 @@ lemma exp_add_left_negate_to_sub:
   "exp[-e + y] \<ge> exp[y - e]"
   by (cases e; cases y; auto simp: AddToSubHelperLowLevel)
 
+lemma RedundantAddSub_Exp:
+  shows "exp[(b + a) - b] \<ge> a"
+  apply auto
+    subgoal premises p for m p y xa ya
+  proof -
+    obtain bv where bv: "[m,p] \<turnstile> b \<mapsto> bv"
+      using p(1) by auto
+    obtain av where av: "[m,p] \<turnstile> a \<mapsto> av"
+      using p(4) by auto
+    then have addNotUndef: "val[av + bv] \<noteq> UndefVal"
+      by (metis bv evalDet intval_add_sym intval_sub.simps(2) p(2,3,4))
+    then obtain bb bvv where bInt: "bv = IntVal bb bvv"
+      by (metis bv evalDet evaltree_not_undef intval_add.simps(3,5) intval_logic_negation.cases
+          intval_sub.simps(8) p(1,2,3,5))
+    then obtain ba avv where aInt: "av = IntVal ba avv"
+      by (metis addNotUndef intval_add.simps(2,3,4,5) intval_logic_negation.cases)
+    then have widthSame: "bb=ba"
+      by (metis addNotUndef bInt intval_add.simps(1))
+    then have valEval: "val[((bv+av)-bv)] = val[av]"
+      using aInt av eval_unused_bits_zero widthSame bInt by simp
+    then show ?thesis
+      by (metis av bv evalDet p(1,3,4))
+  qed
+  done
+
 text \<open>Optimisations\<close>
 
 optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
-  apply auto
-  by (smt (verit) evalDet intval_add.elims new_int.elims val_redundant_add_sub 
-      eval_unused_bits_zero)
+  using RedundantAddSub_Exp by blast
 
 optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
   apply (metis Nat.add_0_right add_2_eq_Suc' add_less_mono1 add_mono_thms_linordered_field(2) 

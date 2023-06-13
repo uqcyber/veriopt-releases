@@ -17,7 +17,7 @@ lemma intval_distribute_and_over_or:
 lemma exp_distribute_and_over_or:
   "exp[z & (x | y)] \<ge> exp[(z & x) | (z & y)]"
   apply auto
-  by (metis bin_eval.simps(4,5) intval_or.simps(2,5) intval_distribute_and_over_or BinaryExpr)
+  by (metis bin_eval.simps(4,5) intval_or.simps(2,6) intval_distribute_and_over_or BinaryExpr)
 
 lemma intval_and_commute:
   "val[x & y] = val[y & x]"
@@ -82,24 +82,58 @@ lemma intval_and_absorb_or:
   assumes "val[x & (x | y)] \<noteq> UndefVal"
   shows "val[x & (x | y)] = val[x]"
   using assms apply (cases x; cases y; auto)
-  by (metis (mono_tags, lifting) intval_and.simps(5))
+  by (metis (full_types) intval_and.simps(6))
 
 lemma intval_or_absorb_and:
   assumes "\<exists>b v . x = new_int b v" (* TODO: required? *)
   assumes "val[x | (x & y)] \<noteq> UndefVal"
   shows "val[x | (x & y)] = val[x]"
   using assms apply (cases x; cases y; auto)
-  by (metis (mono_tags, lifting) intval_or.simps(5))
+  by (metis (full_types) intval_or.simps(6))
 
 lemma exp_and_absorb_or:
   "exp[x & (x | y)] \<ge> exp[x]"
-  apply auto 
-  by (smt (verit) evalDet intval_or.elims new_int.elims intval_and_absorb_or eval_unused_bits_zero)
+  apply auto
+  subgoal premises p for m p xa xaa ya
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p(4) by auto
+    then have lhsDefined: "val[xv & (xv | yv)] \<noteq> UndefVal"
+      by (metis evalDet p(1,2,3,4) xv)
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis Value.exhaust_sel intval_and.simps(2,3,4,5) lhsDefined)
+    obtain yb yvv where yvv: "yv = IntVal yb yvv"
+      by (metis Value.exhaust_sel intval_and.simps(6) intval_or.simps(6,7,8,9) lhsDefined)
+    then have valEval: "val[xv & (xv | yv)] = val[xv]"
+      by (metis eval_unused_bits_zero intval_and_absorb_or lhsDefined new_int.elims xv xvv)
+    then show ?thesis
+      by (metis evalDet p(1,3,4) xv yv)
+  qed
+  done
 
 lemma exp_or_absorb_and:
   "exp[x | (x & y)] \<ge> exp[x]"
   apply auto
-  by (smt (verit) evalDet intval_or.elims new_int.elims intval_or_absorb_and eval_unused_bits_zero)
+  subgoal premises p for m p xa xaa ya
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p(4) by auto
+    then have lhsDefined: "val[xv | (xv & yv)] \<noteq> UndefVal"
+      by (metis evalDet p(1,2,3,4) xv)
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis Value.exhaust_sel intval_and.simps(3,4,5) intval_or.simps(2,6) lhsDefined)
+    obtain yb yvv where yvv: "yv = IntVal yb yvv"
+      by (metis Value.exhaust_sel intval_and.simps(6,7,8,9) intval_or.simps(6) lhsDefined)
+    then have valEval: "val[xv | (xv & yv)] = val[xv]"
+      by (metis eval_unused_bits_zero intval_or_absorb_and lhsDefined new_int.elims xv xvv)
+    then show ?thesis
+      by (metis evalDet p(1,3,4) xv yv)
+  qed
+  done
 
 lemma
   assumes "y = 0"
@@ -271,7 +305,7 @@ lemma exp_eliminate_y:
     then have "v = val[(xv & zv) | (yv & zv)]"
       by (simp add: intval_and_commute intval_distribute_and_over_or)
     also have "\<exists>b. val[yv & zv] = new_int b 0"
-      by (metis calculation e intval_or.simps(5) p unfold_binary intval_up_and_zero_implies_zero yv 
+      by (metis calculation e intval_or.simps(6) p unfold_binary intval_up_and_zero_implies_zero yv
           zv)
     ultimately have rhs: "v = val[xv & zv]"
       by (auto simp: intval_eliminate_y lhs)
@@ -430,21 +464,7 @@ lemma unfold_binary_width_add:
            (IntVal b val = bin_eval BinAdd (IntVal b x) (IntVal b y)) \<and>
            (IntVal b val \<noteq> UndefVal)
         ))" (is "?L = ?R")
-proof (intro iffI)
-  assume 3: ?L
-  show ?R 
-    apply (rule evaltree.cases[OF 3]; auto)
-    by (smt (verit) intval_add.elims intval_bits.simps)
-next
-  assume R: ?R
-  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"
-        and "[m,p] \<turnstile> ye \<mapsto> IntVal b y"
-        and "new_int b val = bin_eval BinAdd (IntVal b x) (IntVal b y)"
-        and "new_int b val \<noteq> UndefVal"
-    by auto
-  then show ?L
-    using R by blast
- qed
+  using unfold_binary_width by simp
 
 lemma unfold_binary_width_and:
   shows "([m,p] \<turnstile> BinaryExpr BinAnd xe ye \<mapsto> IntVal b val) = (\<exists> x y.
@@ -453,21 +473,7 @@ lemma unfold_binary_width_and:
            (IntVal b val = bin_eval BinAnd (IntVal b x) (IntVal b y)) \<and>
            (IntVal b val \<noteq> UndefVal)
         ))" (is "?L = ?R")
-proof (intro iffI)
-  assume 3: ?L
-  show ?R 
-    apply (rule evaltree.cases[OF 3]; auto)
-    by (smt (verit) new_int.simps new_int_bin.simps take_bit_and intval_and.elims intval_bits.simps)
-next
-  assume R: ?R
-  then obtain x y where "[m,p] \<turnstile> xe \<mapsto> IntVal b x"
-        and "[m,p] \<turnstile> ye \<mapsto> IntVal b y"
-        and "new_int b val = bin_eval BinAnd (IntVal b x) (IntVal b y)"
-        and "new_int b val \<noteq> UndefVal"
-    by auto
-  then show ?L 
-    using R by blast
-qed
+  using unfold_binary_width by simp
 
 lemma mod_dist_over_add_right:
   fixes a b c :: int64

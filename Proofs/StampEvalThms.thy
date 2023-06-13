@@ -207,14 +207,15 @@ proof -
     unfolding stamp_expr.simps 
     by (metis (full_types) assms(2,7) unary_normal_bitsize v2 valid_int_same_bits op
         \<open>stamp_expr expr = IntegerStamp b' lo' hi'\<close>)
-  then have "0 < b1 \<and> b1 \<le> 64"
+  then have bitRange: "0 < b1 \<and> b1 \<le> 64"
     using assms(1) eval_bits_1_64 v1 by blast
   then have "fst (bit_bounds b2) \<le> int_signed_value b2 v2 \<and>
              int_signed_value b2 v2 \<le> snd (bit_bounds b2)"
     using assms(2) int_signed_value_bounds unary_eval_bitsize v1 v2 by blast
   then show ?thesis
-    by (smt (verit) \<open>(0::nat) < (b1::nat) \<and> b1 \<sqsubseteq> (64::nat)\<close> assms(2) new_int_unused_bits_zero s v1
-        unary_eval_bitsize v2 valid_stamp.simps(1) vtmp valid_value.simps unrestricted_stamp.simps)
+    apply auto
+    by (metis stamp_expr.simps(1) unrestricted_new_int_always_valid bitRange assms(2) s v1 vtmp v2
+        unary_eval_bitsize)
 qed
 
 lemma narrow_widen_output_bits:
@@ -532,7 +533,9 @@ proof -
   have def: "meet (stamp_expr expr1) (stamp_expr expr2) \<noteq> IllegalStamp"
     by (smt (verit, best) Stamp.distinct(13,25) compatible.elims(2) meet.simps(1,2) assms(7))
   then have "valid_stamp (meet (stamp_expr expr1) (stamp_expr expr2))"
-    by (smt (verit, best) compatible.elims(2) stamp_meet_is_valid_stamp valid_stamp.simps(2) assms)
+    using assms apply auto
+    by (metis compatible_refl compatible.elims(2) stamp_meet_is_valid_stamp valid_stamp.simps(2)
+        assms(7))
   then show ?thesis
     by (smt (verit, best) compatible.elims(2) never_void stamp_expr.simps(6) stamp_meet_commutes def
         assms stamp_meet_is_valid_value)

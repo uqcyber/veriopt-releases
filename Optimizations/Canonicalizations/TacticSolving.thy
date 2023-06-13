@@ -163,9 +163,30 @@ lemma XorInverseVal:
 optimization XorInverse: "exp[n \<oplus> ~n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
   apply (auto simp: Suc_lessI)
-  by (smt (verit) wf_value_def constantAsStamp.simps(1) evalDet int_signed_value_bounds size.simps
-      intval_xor.elims mask_eq_take_bit_minus_one new_int.elims new_int_take_bits unfold_const 
-      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn wf_stamp_def XorInverseVal)
+  subgoal premises p for m p xa xaa
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> n \<mapsto> xv"
+      using p(3) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis evalDet evaltree_not_undef intval_logic_negation.cases intval_not.simps(3,4,5) xv
+          p(5,6))
+    have rhsDefined: "[m,p] \<turnstile> (ConstantExpr (IntVal 32 (mask 32))) \<mapsto> (IntVal 32 (mask 32))"
+      by (metis ConstantExpr add.right_neutral add_less_cancel_left neg_one_value numeral_Bit0
+          new_int_unused_bits_zero not_numeral_less_zero validDefIntConst zero_less_numeral
+          verit_comp_simplify1(3) wf_value_def)
+    have w32: "xb=32"
+      by (metis Value.inject(1) p(1,2) valid_int xv xvv wf_stamp_def)
+    then have unfoldNot: "val[(\<not>xv)] = new_int xb (not xvv)"
+      by (simp add: xvv)
+    have unfoldXor: "val[xv \<oplus> (\<not>xv)] =
+                    (if xb=xb then (new_int xb (xor xvv (not xvv))) else UndefVal)"
+      using intval_xor.simps(1) XorInverseVal w32 xvv by auto
+    then have rhs: "val[xv \<oplus> (\<not>xv)] = new_int 32 (mask 32)"
+      using unfoldXor w32 by auto
+    then show ?thesis
+      by (metis evalDet neg_one.elims neg_one_value p(3,5) rhsDefined xv)
+  qed
+  done
 
 optimization XorInverse2: "exp[(~n) \<oplus> n] \<longmapsto> (const (new_int 32 (not 0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"

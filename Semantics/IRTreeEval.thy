@@ -244,6 +244,10 @@ fun bin_eval :: "IRBinaryOp \<Rightarrow> Value \<Rightarrow> Value \<Rightarrow
   "bin_eval BinIntegerMulHigh v1 v2 = intval_mul_high v1 v2"
 (*  "bin_eval op v1 v2 = UndefVal" *)
 
+lemma defined_eval_is_intval:
+  shows "bin_eval op x y \<noteq> UndefVal \<Longrightarrow> (is_IntVal x \<and> is_IntVal y)"
+  by (cases op; cases x; cases y; auto)
+
 lemmas eval_thms =
   intval_abs.simps intval_negate.simps intval_not.simps
   intval_logic_negation.simps intval_narrow.simps

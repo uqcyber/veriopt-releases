@@ -1826,8 +1826,9 @@ lemma add_new_node_refines:
 lemma add_node_as_set:
   assumes "g' = add_node n (k, s) g"
   shows "({n} \<unlhd> as_set g) \<subseteq> as_set g'"
-  by (smt (z3) case_prodE changeonly.simps mem_Collect_eq prod.sel(1) subsetI add_changed as_set_def
-      domain_subtraction_def assms)
+  using assms apply auto
+  by (smt (verit, ccfv_SIG) case_prodE changeonly.simps mem_Collect_eq prod.sel(1) subsetI assms
+      add_changed as_set_def domain_subtraction_def)
 
 theorem refined_insert:
   assumes "e\<^sub>1 \<ge> e\<^sub>2"
@@ -2976,9 +2977,9 @@ lemma unrep_preserves_closure:
       by (metis Un_upper1 dom empty_subsetI ids_some insert_not_empty insert_subsetI not_in_g_inputs 
           subset_iff UnaryNodeNew(2) unrep_contains suc k inp)
     then show ?case
-      by (smt (verit) Un_insert_right UnaryNodeNew.hyps UnaryNodeNew.prems add_changed succ.simps
-          changeonly.elims(2) dom inputs.simps insert_iff singleton_iff subset_insertI subset_trans 
-          sup_bot_right)
+      by (smt (verit, ccfv_threshold) Un_insert_right UnaryNodeNew.hyps UnaryNodeNew.prems dom
+          add_changed succ.simps changeonly.elims(2) inputs.simps insert_iff singleton_iff
+          subset_insertI subset_trans sup_bot_right)
   next
     case (BinaryNodeSame g xe g2 x ye g3 y s' op n)
     then show ?case 

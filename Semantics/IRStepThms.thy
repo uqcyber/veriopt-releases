@@ -112,10 +112,14 @@ next
     using is_sequential_node.simps by (simp add: FixedGuardNode.hyps(1))
   have notend: "\<not>(is_AbstractEndNode (kind g nid))"
     by (simp add: FixedGuardNode.hyps(1))
-  from notseq notend
+  have notloadindex: "\<not>(is_LoadIndexedNode (kind g nid))"
+    by (simp add: FixedGuardNode.hyps(1))
+  have notstoreindex: "\<not>(is_StoreIndexedNode (kind g nid))"
+    by (simp add: FixedGuardNode.hyps(1))
+  from notseq notend notloadindex notstoreindex
   show ?case
-    by (smt (verit) IRNode.distinct(385,1459,1483,1485,1505,1507,1527,1529,1533,1535) step.cases
-        IRNode.inject(13) Pair_inject FixedGuardNode.hyps(1,5) is_preevaluated.simps(8,24))
+    by (smt (verit) IRNode.distinct(385,727,1459,1483,1505,1507,1527,1529,1533) IRNode.inject(13)
+        step.cases Pair_inject FixedGuardNode.hyps(1,5) IRNode.disc(1730,3330))
 next
   case (BytecodeExceptionNode nid args st n' ex h' ref h m' m)
   have notseq: "\<not>(is_sequential_node (kind g nid))"

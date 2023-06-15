@@ -88,8 +88,8 @@ lemma fil_eq:
   by (metis no_node_clears dom_eq dom_map_of_conv_image_fst list.set_map)
 
 lemma irgraph[code]: "ids (irgraph m) = set (map fst (no_node m))"
-  by (smt fil_eq Rep_IRGraph comp_apply eq_onp_same_args filter_none.simps ids.abs_eq ids_def 
-      irgraph.abs_eq irgraph.rep_eq irgraph_def mem_Collect_eq)
+  by (metis fil_eq Rep_IRGraph eq_onp_same_args filter_none.simps ids.abs_eq irgraph.abs_eq
+      irgraph.rep_eq mem_Collect_eq)
 
 lemma [code]: "Rep_IRGraph (irgraph m) = map_of (no_node m)"
   by (simp add: irgraph.rep_eq)

@@ -569,8 +569,8 @@ next
 next
   case (4 stamps x y)
   then show ?case
-    by (smt (z3) assms tryFold.cases tryFoldIntegerEqualsAlwaysDistinct tryFoldIntegerLessThanFalse
-        val_to_bool.simps(1))
+    by (smt (verit, del_insts) tryFold.cases tryFoldIntegerEqualsAlwaysDistinct val_to_bool.simps(1)
+        tryFoldIntegerLessThanFalse assms)
 qed
 
 inductive_cases StepE:

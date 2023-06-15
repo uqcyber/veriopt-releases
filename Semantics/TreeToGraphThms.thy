@@ -622,7 +622,7 @@ proof -
           by (metis_node_eq_ternary ConditionalNode)
         then have "\<exists> ce2 te2 fe2. (g2 \<turnstile> n \<simeq> ConditionalExpr ce2 te2 fe2) \<and> 
                ConditionalExpr ce1 te1 fe1 \<ge> ConditionalExpr ce2 te2 fe2"
-          by (smt (verit) mono_conditional ConditionalNode.prems l rep.ConditionalNode cer ter)
+          by (smt (verit, best) mono_conditional ConditionalNode.prems l rep.ConditionalNode cer ter)
         then show ?thesis
           by meson
       qed

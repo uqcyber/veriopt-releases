@@ -770,7 +770,7 @@ lemma JIS_lower_bound_better:
 lemma JIS_upper_bound_better:
   "jis_upperBound (createJIS bits lo hi down up) \<le>s hi"
   unfolding createJIS_def maxValueForMasks_def
-  by (smt (z3) JavaIntegerStamp.sel(3) old.prod.case signed.linear)
+  by (smt (z3) JavaIntegerStamp.sel(3) old.prod.case signed.linear word_zero_le)
 
 lemma word_subseteq_or:
   "a \<subseteq>w (a OR b)"

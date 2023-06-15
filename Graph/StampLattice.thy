@@ -525,6 +525,10 @@ next
   case (ObjStr x6)
   then show ?thesis
     using valid_value.elims(2) by auto
+next
+  case (ArrayVal x51 x52)
+  then show ?thesis
+    using valid_value.elims(2) by blast
 qed
 
 lemma disjoint_empty:

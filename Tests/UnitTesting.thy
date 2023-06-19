@@ -76,14 +76,31 @@ datatype ExitCause =
   NormalReturn |
   Exception ID string
 
+fun getException :: "nat list \<Rightarrow> IRGraph \<Rightarrow> nat" where
+  "getException (x#xs) g = (if (is_BytecodeExceptionNode(kind g x)) then x else (getException xs g))"
+
 inductive exception_test :: "System
       \<Rightarrow> (IRGraph \<times> ID \<times> MapState \<times> Value list) list \<times> FieldRefHeap
       \<Rightarrow> ExitCause
       \<Rightarrow> bool"
   for p where
   "\<lbrakk>kind g nid = (UnwindNode exception);
+    is_BytecodeExceptionNode (kind g exception);
     type = stp_type (stamp g exception)\<rbrakk>
     \<Longrightarrow> exception_test p (((g,nid,m,ps)#stk),h) (Exception exception type)" |
+
+  (* Currently only supports ValuePhiNode *)
+  "\<lbrakk>kind g nid = (UnwindNode exception);
+    \<not>(is_BytecodeExceptionNode (kind g exception));
+
+    is_ValuePhiNode (kind g exception);
+    inps = ir_values (kind g exception);
+    inps \<noteq> [];
+    exceptionNode = getException inps g;
+
+    ObjRef reference = m exception;
+    ObjStr type = h_load_field ''class'' reference h \<rbrakk>
+    \<Longrightarrow> exception_test p (((g,nid,m,ps)#stk),h) (Exception exceptionNode type)" |
 
   "\<lbrakk>p \<turnstile> (((g,nid,m,ps)#stk),h) \<longrightarrow> (((g',nid',m',ps')#stk'),h');
     exception_test p (((g',nid',m',ps')#stk'),h') es\<rbrakk>

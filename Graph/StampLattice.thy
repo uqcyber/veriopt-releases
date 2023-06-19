@@ -634,7 +634,7 @@ typedef (overloaded) ('a::len) intstamp =
   "{bounds :: ('a word, 'a word) prod . ((fst bounds) \<le>s (snd bounds) \<or> bounds = int_bottom)}"
 proof -
   show ?thesis
-    by (smt (z3) mem_Collect_eq prod.sel(1) prod.sel(2) signed_minus_1 sint_0)
+    by blast
 qed
 
 setup_lifting type_definition_intstamp
@@ -1027,7 +1027,7 @@ definition bot_Stamp :: "Stamp" where
   "bot_Stamp = BottomStamp"
 
 instance
-  apply standard sorry
+  apply standard apply (simp add: bot_Stamp_def) sorry
 end
 
 lemma [code]: "Rep_intstamp (from_bounds (l, u)) = (l, u)"

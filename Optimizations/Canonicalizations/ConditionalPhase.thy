@@ -235,12 +235,10 @@ optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
       using p(8) by auto
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
       using p(9) by auto
-    obtain val where condEval: "[m,p] \<turnstile> if val_to_bool (intval_equals xv yv) then x else y \<mapsto> val"
-      using p by (metis (full_types))
     have notUndef: "xv \<noteq> UndefVal \<and> yv \<noteq> UndefVal"
       using evaltree_not_undef xv yv by blast
     have evalNotUndef: "intval_equals xv yv \<noteq> UndefVal"
-      by (metis evalDet p(1) p(8) p(9) xv yv)
+      by (metis evalDet p(1,8,9) xv yv)
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis Value.exhaust evalNotUndef intval_equals.simps(3,4,5) notUndef)
     obtain yb yvv where yvv: "yv = IntVal yb yvv"
@@ -316,8 +314,8 @@ proof -
     using eval(2) by auto
   then have lhsV: "lhs = val[((xv & (IntVal 32 1)) eq (IntVal 32 0)) ? 
                         (IntVal 32 0) : (IntVal 32 1)]"
-    by (smt (verit) ConditionalExprE ConstantExprE bin_eval.simps(4,11) evalDet xv unfold_binary
-        intval_conditional.simps)
+    by (smt (verit, best) ConditionalExprE ConstantExprE bin_eval.simps(4,11) evalDet xv
+        unfold_binary intval_conditional.simps)
   obtain rhs where rhs: "[m, p] \<turnstile> exp[x & (const (IntVal 32 1))] \<mapsto> rhs"
     using eval(2) by blast
   then have rhsV: "rhs = val[xv & IntVal 32 1]"

@@ -23,8 +23,19 @@ lemma val_not_cancel:
 (* Exp level proofs *)
 lemma exp_not_cancel:
    "exp[~(~a)] \<ge> exp[a]" 
-  by (smt (verit) bin_not_cancel le_expr_def take_bit_not_take_bit unary_eval.simps(3) unfold_unary 
-      eval_unused_bits_zero intval_logic_negation.cases new_int.simps intval_not.simps)
+  apply auto
+  subgoal premises p for m p x
+  proof -
+    obtain av where av: "[m,p] \<turnstile> a \<mapsto> av"
+      using p(2) by auto
+    obtain bv avv where avv: "av = IntVal bv avv"
+      by (metis Value.exhaust av evalDet evaltree_not_undef intval_not.simps(3,4,5) p(2,3))
+    then have valEval: "val[~(~av)] = val[av]"
+      by (metis av avv evalDet eval_unused_bits_zero new_int.elims p(2,3) val_not_cancel)
+    then show ?thesis
+      by (metis av evalDet p(2))
+  qed
+  done
   
 text \<open>Optimisations\<close>
 

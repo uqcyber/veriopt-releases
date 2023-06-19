@@ -428,7 +428,8 @@ optimization AndEqual: "((x::intexp) & x) \<longmapsto> x"
 
 optimization AndShiftConstantRight: "((const x) + y) \<longmapsto> y + (const x) when ~(is_ConstantExpr y)"
   using nonconstants_gt_one apply simp_all
-  by (smt (verit, ccfv_threshold) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym)
+  by (smt (verit, ccfv_threshold) BinaryExprE bin_eval.simps(1) evaltree.simps intval_add_sym
+      IRExpr.inject(6) evalDet unfold_binary)
 
 (*
 optimization AndRightFallthrough: "x & y \<mapsto> y when (canBeZero x.stamp & canBeOne y.stamp) = 0" sorry
@@ -455,8 +456,27 @@ optimization ConditionalEqualBranches: "(b ? v : v) \<longmapsto> v" .
 
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y when (type x = Integer \<and> type_safe x y)"
   apply auto
-  by (smt (verit) bool_to_val_bin.simps bool_to_val.simps(2) evalDet intval_equals.elims 
-      val_to_bool.simps(1))
+  subgoal premises p for m p v true false xa ya
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(9) by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p(10) by auto
+    have notUndef: "xv \<noteq> UndefVal \<and> yv \<noteq> UndefVal"
+      using evaltree_not_undef xv yv by blast
+    have evalNotUndef: "intval_equals xv yv \<noteq> UndefVal"
+      by (metis evalDet p(2,9,10) xv yv)
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis Value.exhaust evalNotUndef intval_equals.simps(3,4,5) notUndef)
+    obtain yb yvv where yvv: "yv = IntVal yb yvv"
+      by (metis evalNotUndef intval_equals.simps(7,8,9) intval_logic_negation.cases notUndef)
+    have unfoldEqual: "(intval_equals xv yv) = bool_to_val (xvv = yvv)"
+      using evalNotUndef xvv yvv by auto
+    then show ?thesis
+      by (smt (verit) p yvv evalDet bool_to_val_bin.simps bool_to_val.simps(2) val_to_bool.simps(1)
+          yv intval_equals.simps(1) xv xvv)
+  qed
+  done
 
 (*
 optimization ConditionalEliminateKnownLess: "(x < y ? x : y) \<mapsto> x when (x.stamp.upper <= y.stamp.lower)" sorry

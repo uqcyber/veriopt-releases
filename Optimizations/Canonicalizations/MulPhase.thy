@@ -216,7 +216,7 @@ lemma exp_multiply_zero_64:
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(1) by auto
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
-      by (smt (z3) evalDet intval_mul.elims p(1,2) xv)
+      by (metis evalDet p(1,2) xv evaltree_not_undef intval_is_null.cases intval_mul.simps(3,4,5))
     then have evalNotUndef: "val[xv * (IntVal b 0)] \<noteq> UndefVal"
       using p evalDet xv by blast
     then have mulUnfold: "val[xv * (IntVal b 0)] = IntVal xb (take_bit xb (xvv*0))"

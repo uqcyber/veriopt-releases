@@ -56,9 +56,26 @@ lemma exp_xor_self_is_false:
  assumes "wf_stamp x \<and> stamp_expr x = default_stamp" 
  shows   "exp[x \<oplus> x] \<ge> exp[false]" 
   using assms apply auto
-  by (smt (z3) validDefIntConst IntVal0 Value.inject(1) bool_to_val.simps(2) wf_stamp_def valid_int
-      evalDet new_int.simps unfold_const valid_stamp.simps(1) valid_value.simps(1) wf_value_def
-      val_xor_self_is_false_2)
+  subgoal premises p for m p xa ya
+  proof-
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(3) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis Value.exhaust_sel assms evalDet evaltree_not_undef intval_xor.simps(5,7) p(3,4,5) xv
+          valid_value.simps(11) wf_stamp_def)
+    then have unfoldXor: "val[xv \<oplus> xv] = (new_int xb (xor xvv xvv))"
+      by simp
+    then have isZero: "xor xvv xvv = 0"
+      by simp
+    then have width: "xb = 32"
+      by (metis valid_int_same_bits xv xvv p(1,2) wf_stamp_def)
+    then have isFalse: "val[xv \<oplus> xv] = bool_to_val False"
+      unfolding unfoldXor isZero width by fastforce
+    then show ?thesis
+      by (metis (no_types, lifting) eval_bits_1_64 p(3,4) width xv xvv validDefIntConst IntVal0
+          Value.inject(1) bool_to_val.simps(2) evalDet new_int.simps unfold_const wf_value_def)
+  qed
+  done
 
 lemma exp_eliminate_redundant_false:
   shows "exp[x \<oplus> false] \<ge> exp[x]"

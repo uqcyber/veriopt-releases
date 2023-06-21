@@ -23,9 +23,9 @@ lemma abs_neg:
   assumes "v <s 0"
   assumes "-(2 ^ (Nat.size v - 1)) <s v" (* changed size func used*)
   shows "(if v <s 0 then - v else v) = - v \<and> 0 <s -v"
-  using assms apply auto
-  by (smt (verit) assms signed_take_bit_int_greater_eq_minus_exp sint_word_ariths(4) word_sless_alt
-      signed_take_bit_int_greater_eq_self_iff sint_0)
+  apply (rule conjI) using assms apply simp
+  by (smt (verit, del_insts) assms signed_take_bit_int_greater_eq_minus_exp sint_word_ariths(4)
+      word_sless_alt signed_take_bit_int_greater_eq_self_iff sint_0)
  
 lemma abs_max_neg:
   fixes v :: "('a :: len word)"
@@ -121,22 +121,20 @@ lemma val_abs_always_pos:
   shows "0 \<le>s v'"
 proof (cases "v = 0")
   case True
+  then have isZero: "intval_abs (new_int b 0) = new_int b 0"
+    by auto
   then have "v' = 0"
-    using assms apply auto
-    by (smt (verit, ccfv_threshold) Suc_diff_1 bit_less_eq_def bot_nat_0.extremum diff_is_0_eq 
-        len_gt_0 len_of_numeral_defs(2) order_le_less signed_eq_0_iff take_bit_0 take_bit_unwrap
-        take_bit_signed_take_bit val_abs_zero assms)
+    by (metis True less_eq_def signed.not_less_iff_gr_or_eq assms)
   then show ?thesis by simp
 next
   case neq0: False
   then show ?thesis
   proof (cases "val_to_bool(val[(new_int b 0) < (new_int b v)])")
     case True
+    then have "0 \<le>s v'"
+      by (metis True assms less_eq_def signed.less_imp_le val_abs_pos)
     then show ?thesis
-      by (smt (verit, ccfv_SIG) One_nat_def Suc_leI bit.compl_one bit_less_eq_def signed_word_eqI
-          cancel_comm_monoid_add_class.diff_cancel diff_zero len_gt_0 len_of_numeral_defs(2) 
-          mask_0 mask_1 one_le_numeral one_neq_zero take_bit_dist_subL take_bit_minus_one_eq_mask 
-          take_bit_not_eq_mask_diff take_bit_signed_take_bit zero_le_numeral)
+      by blast
   next
     case False
     then have "val_to_bool(val[(new_int b v) < (new_int b 0)])"
@@ -175,9 +173,8 @@ proof -
     then have nested: "(intval_abs (intval_abs x)) = new_int b (-v)"
       using val_abs_neg in_def by simp
     then have "x = new_int b (-v)"
-      by (smt (verit, best) intval_abs.simps(1) less_eq_def less_eq_zero less_numeral_extra(1) 
-          mask_1 mask_eq_take_bit_minus_one neg_one.elims neg_one_signed new_int.simps one_neq_zero
-          signed.neqE signed.not_less take_bit_of_0 val_abs_always_pos)
+      by (metis take_bit_0 val_abs_zero less_eq_def new_int.simps signed.not_less val_abs_always_pos
+          True)
     then show ?thesis
       using val_abs_always_pos True in_def less_eq_def signed.leD by blast
   next

@@ -220,7 +220,7 @@ optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
   using size_flip_binary by auto
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
-  by (smt (verit) add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add 
+  by (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add
       exp_and_nots)+
 
 (* Need to prove exp_sign_extend*)

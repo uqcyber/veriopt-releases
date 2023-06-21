@@ -51,10 +51,6 @@ lemma exp_negative_shift:
       using evalDet p(1,2) by blast
     then have 2: "val[xa >> (IntVal b (take_bit b y))] \<noteq> UndefVal"
       by auto
-    then have 3: "- ((2::int) ^ b div (2::int)) \<sqsubseteq> sint (signed_take_bit (b - Suc (0::nat)) (take_bit b y))"
-      by (smt (verit, del_insts) One_nat_def diff_le_self gr0I half_nonnegative_int_iff take_bit_0
-          linorder_not_le lower_bounds_equiv power_increasing_iff signed_0 signed_take_bit_of_0
-          signed_take_bit_int_greater_eq_minus_exp_word sint_greater_eq)
     then have 4: "sint (signed_take_bit (b - Suc (0::nat)) (take_bit b y)) < (2::int) ^ b div (2::int)"
       by (metis Suc_le_lessD Suc_pred eval_bits_1_64 int_power_div_base p(4) zero_less_numeral
           signed_take_bit_int_less_exp_word size64 unfold_const wsst_TYs(3))
@@ -96,9 +92,12 @@ optimization NegateCancel: "-(-(x)) \<longmapsto> x"
 
 (* FloatStamp condition is omitted. Not 100% sure. *)
 optimization DistributeSubtraction: "-(x - y) \<longmapsto> (y - x)"
-  by (smt (z3) add.left_commute add_2_eq_Suc' add_diff_cancel_left' is_ConstantExpr_def
-      less_Suc_eq_0_disj plus_1_eq_Suc size.simps(11) size_binary_const size_non_add zero_less_diff
-      exp_distribute_sub)+
+  apply (smt (verit, best) add.left_commute add_2_eq_Suc' add_diff_cancel_left' is_ConstantExpr_def
+         less_Suc_eq_0_disj plus_1_eq_Suc size.simps(11) size_binary_const size_non_add
+         zero_less_diff exp_distribute_sub nat_add_left_cancel_less less_add_eq_less add_Suc lessI
+         trans_less_add2 size_binary_rhs Suc_eq_plus1 Nat.add_0_right old.nat.inject
+         zero_less_Suc)
+   using exp_distribute_sub by simp
 
 (* Need to prove exp_negative_shift *)
 optimization NegativeShift: "-(x >> (const (new_int b y))) \<longmapsto> x >>> (const (new_int b y))

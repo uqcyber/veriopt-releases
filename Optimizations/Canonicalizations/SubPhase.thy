@@ -125,12 +125,23 @@ lemma exp_sub_after_right_add:
 lemma exp_sub_after_right_add2:
   shows "exp[(x + y) - x] \<ge> y"
   using exp_sub_after_right_add apply auto
-  by (smt (z3) bin_eval.simps(1,3) intval_add_sym unfold_binary)
+  by (metis bin_eval.simps(1,3) intval_add_sym unfold_binary)
 
 lemma exp_sub_negative_value:
  "exp[x - (-y)] \<ge> exp[x + y]"
-  by (smt (verit) le_expr_def bin_eval.simps(1,3) val_sub_negative_value unary_eval.simps(2)
-      unfold_binary unfold_unary)
+  apply auto
+  subgoal premises p for m p xa ya
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p(3) by auto
+    then have rhsEval: "[m,p] \<turnstile> exp[x + y] \<mapsto> val[xv + yv]"
+      by (metis bin_eval.simps(1) evalDet p(1,2,3) unfold_binary val_sub_negative_value xv)
+    then show ?thesis
+      by (metis evalDet p(1,2,3) val_sub_negative_value xv yv)
+  qed
+  done
 
 lemma exp_sub_then_left_sub:
   "exp[x - (x - y)] \<ge> y"
@@ -234,8 +245,8 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
 *)
 
 optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"
-  by (smt (verit) add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add 
-      exp_sub_negative_value)+
+  apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
+  using exp_sub_negative_value by blast
 
 thm_oracles SubNegativeValue
 

@@ -80,9 +80,8 @@ lemma val_multiply_zero:
 lemma val_multiply_negative:
   assumes "x = new_int b v"
   shows "val[x * -(IntVal b 1)] = val[-x]" 
-  by (smt (verit) Value.disc(1) Value.inject(1) intval_negate.simps(1) verit_minus_simplify(4)
-      is_IntVal_def mask_0 mask_eq_take_bit_minus_one new_int.elims of_bool_eq(2) take_bit_dist_neg 
-      take_bit_of_1 val_eliminate_redundant_negative val_multiply_neutral val_multiply_zero assms)
+  unfolding assms(1) apply auto
+  by (metis bin_multiply_negative mergeTakeBit take_bit_minus_one_eq_mask)
 
 (* x * 2^i = x << i*)
 lemma val_MulPower2:
@@ -166,7 +165,8 @@ lemma val_distribute_multiplication:
   assumes "val[(x * q) + (x * a)] \<noteq> UndefVal"
   shows "val[x * (q + a)] = val[(x * q) + (x * a)]"
   using assms apply (cases x; cases q; cases a; auto) 
-  by (smt (verit) distrib_left mergeTakeBit new_int.elims new_int_unused_bits_zero)
+  by (metis (no_types, opaque_lifting) distrib_left new_int.elims new_int_unused_bits_zero
+      mergeTakeBit)
 
 lemma val_distribute_multiplication64:
   assumes "x = new_int 64 xx \<and> q = new_int 64 qq \<and> a = new_int 64 aa"
@@ -198,10 +198,10 @@ lemma val_MulPower2AddPower2:
       (* (x * 2^i) + (x * 2^j)*)
      using assms val_distribute_multiplication64 by simp 
    then have 2: "val[(x * IntVal 64 (2 ^ unat(i)))] = val[x << IntVal 64 i]"
-     by (smt (verit) Value.distinct(1) intval_mul.simps(1) new_int.simps new_int_bin.simps assms 
-         val_MulPower2)
+     by (metis (no_types, opaque_lifting) Value.distinct(1) intval_mul.simps(1) new_int.simps
+         new_int_bin.simps assms(2,4,6) val_MulPower2)
    then show "?thesis" 
-     by (smt (verit, del_insts) "1" Value.distinct(1) n intval_mul.simps(1) new_int_bin.elims
+     by (metis (no_types, lifting) "1" Value.distinct(1) n intval_mul.simps(1) new_int_bin.elims
          new_int.simps val_MulPower2 assms(1,3,5,6))
    qed
 
@@ -356,8 +356,8 @@ lemma exp_distribute_multiplication:
     have "val[xv * (qv + yv)] = val[(xv * qv) + (xv * yv)]"
       using val_distribute_multiplication by (simp add: yvv qvv xvv) 
     then show ?thesis
-      by (smt (verit, best) bin_eval.simps(1,2) BinaryExpr p(1,2,3,5,6) qv xv evalDet yv qvv yvv
-          Value.distinct(1) intval_add.simps(1))
+      by (metis bin_eval.simps(1,2) BinaryExpr p(1,2,3,5,6) qv xv evalDet yv qvv Value.distinct(1)
+          yvv intval_add.simps(1))
    qed
   done
 
@@ -421,16 +421,19 @@ optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i)
 proof -
   obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> xv"
     using eval(2) by blast
-  then obtain xvv where xvv: "xv = IntVal 64 xvv"
-    by (smt (verit, best) wf_stamp_def ConstantExprE bin_eval.simps(2) evalDet intval_bits.simps
-        intval_mul.elims new_int_bin.simps unfold_binary eval ExpIntBecomesIntValArbitrary)
+  then have notUndef: "xv \<noteq> UndefVal"
+    by (simp add: evaltree_not_undef)
+  obtain xb xvv where xvv: "xv = IntVal xb xvv"
+    by (metis wf_stamp_def eval(1) ExpIntBecomesIntValArbitrary xv)
+  then have w64: "xb = 64"
+    by (metis wf_stamp_def intval_bits.simps ExpIntBecomesIntValArbitrary xv eval(1))
   obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
     using eval(1,2) by blast
   then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
     by (metis bin_eval.simps(2) eval(1,2) evalDet unfold_binary xv)
   have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"
     by (smt (verit, ccfv_SIG) ConstantExpr constantAsStamp.simps(1) eval_bits_1_64 take_bit64 xv xvv
-        validStampIntConst wf_value_def valid_value.simps(1))
+        validStampIntConst wf_value_def valid_value.simps(1) w64)
   then have rhs: "[m, p] \<turnstile> exp[x << const (IntVal 64 i)] \<mapsto> val[xv << (IntVal 64 i)]"
     by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps xv xvv 
         evaltree.BinaryExpr)
@@ -508,8 +511,7 @@ optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
       by (metis Value.simps(5) bin_eval.simps(8) intval_left_shift.simps(1) new_int.simps xv xvv 
           evaltree.BinaryExpr)
     then have rhs: "[m, p] \<turnstile> exp[(x << const (IntVal 64 i)) - x] \<mapsto> val[(xv << (IntVal 64 i)) - xv]" 
-      by (smt (verit, ccfv_threshold) bin_eval.simps(3) new_int_bin.simps intval_sub.simps(1) 
-          Value.simps(5) evaltree.BinaryExpr intval_left_shift.simps(1) new_int.simps xv xvv)
+      using "1" equiv_exprs_def ygezero yv by fastforce
     then have "val[xv * yv] = val[(xv << (IntVal 64 i)) - xv]"
        using "1" exp_MulPower2Sub1 ygezero sorry 
      then show ?thesis

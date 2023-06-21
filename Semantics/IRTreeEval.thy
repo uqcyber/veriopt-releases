@@ -469,15 +469,17 @@ lemma up_mask_and_zero_implies_zero:
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
   shows "and xv yv = 0"
   by (smt (z3) assms and.commute and.right_neutral bit.compl_zero bit.conj_cancel_right ucast_id
-      bit.conj_disj_distribs(1) up_spec word_bw_assocs(1) word_not_dist(2))
+      bit.conj_disj_distribs(1) up_spec word_bw_assocs(1) word_not_dist(2) word_ao_absorbs(8)
+      and_eq_not_not_or)
 
 lemma not_down_up_mask_and_zero_implies_zero:
   assumes "and (not (\<down>x)) (\<up>y) = 0"
   assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
   shows "and xv yv = yv"
-  by (smt (z3) assms bit.conj_cancel_left bit.conj_disj_distribs(1,2) bit.de_Morgan_disj ucast_id
-      down_spec or_eq_not_not_and up_spec word_ao_absorbs(2,8) word_bw_lcs(1) word_not_dist(2))
+  by (metis (no_types, opaque_lifting) assms bit.conj_cancel_left bit.conj_disj_distribs(1,2)
+      bit.de_Morgan_disj ucast_id down_spec or_eq_not_not_and up_spec word_ao_absorbs(2,8)
+      word_bw_lcs(1) word_not_dist(2))
 
 end
 

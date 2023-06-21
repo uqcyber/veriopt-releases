@@ -73,8 +73,8 @@ lemma bin_eval_int:
   apply (cases op; cases x; cases y; auto simp add: is_IntVal_def)
   apply presburger+ (* prove 6 more easy cases *)
   prefer 3 prefer 4
-     apply (smt (verit, best) new_int.simps)
-     apply (smt (verit, best) new_int.simps)
+     apply (smt (verit, del_insts) new_int.simps)
+     apply (smt (verit, del_insts) new_int.simps)
   by (metis bool_to_val.elims)+
 
 lemma IntVal0:
@@ -594,18 +594,43 @@ next
 next
   case (UnaryNarrow x51 x52)
   then show ?thesis
-    apply auto
-    by (smt (verit, del_insts) new_int.elims def intval_narrow.elims unary_eval.simps(5) def)
+    using assms apply auto
+    subgoal premises p
+    proof -
+      obtain xb xvv where xvv: "x = IntVal xb xvv"
+        by (metis UnaryNarrow def intval_logic_negation.cases intval_narrow.simps(2,3,4,5)
+            unary_eval.simps(5))
+      then have evalNotUndef: "intval_narrow x51 x52 x \<noteq> UndefVal"
+        using p by fast
+      then show ?thesis
+        by (metis (no_types, lifting) new_int.elims intval_narrow.simps(1) xvv)
+    qed done
 next
   case (UnarySignExtend x61 x62)
   then show ?thesis
-    apply auto
-    by (smt (verit, del_insts) new_int.elims def intval_sign_extend.elims unary_eval.simps(6) def)
+    using assms apply auto
+    subgoal premises p
+    proof -
+      obtain xb xvv where xvv: "x = IntVal xb xvv"
+        by (metis Value.exhaust intval_sign_extend.simps(2,3,4,5) p(2))
+      then have evalNotUndef: "intval_sign_extend x61 x62 x \<noteq> UndefVal"
+        using p by fast
+      then show ?thesis
+        by (metis intval_sign_extend.simps(1) new_int.elims xvv)
+    qed done
 next
   case (UnaryZeroExtend x71 x72)
   then show ?thesis
-    apply auto
-    by (smt (verit, best) new_int.elims def intval_zero_extend.elims unary_eval.simps(7) def)
+    using assms apply auto
+    subgoal premises p
+    proof -
+      obtain xb xvv where xvv: "x = IntVal xb xvv"
+        by (metis Value.exhaust intval_zero_extend.simps(2,3,4,5) p(2))
+      then have evalNotUndef: "intval_zero_extend x71 x72 x \<noteq> UndefVal"
+        using p by fast
+      then show ?thesis
+        by (metis intval_zero_extend.simps(1) new_int.elims xvv)
+    qed done
 next
   case UnaryIsNull
   then show ?thesis
@@ -687,31 +712,29 @@ lemma unary_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<in> normal_unary"
   shows "\<exists> ix. x = IntVal b ix"
-  using assms apply (cases op; auto) prefer 4
-  apply (smt (verit, ccfv_SIG) new_int.simps Value.distinct(1) intval_logic_negation.elims
-         intval_bits.simps)
-  apply (smt (verit, ccfv_SIG) intval_abs.elims intval_bits.simps new_int.simps Value.distinct(1))
-  by (smt (verit, best) Value.distinct(1) new_int.simps intval_negate.elims intval_not.elims
-      intval_bits.simps intval_reverse_bytes.elims)+
+  using assms apply (cases op; auto) prefer 5
+  apply (smt (verit, ccfv_threshold) Value.distinct(1) Value.inject(1) intval_reverse_bytes.elims
+      new_int.simps)
+  by (metis Value.distinct(1) Value.inject(1) intval_logic_negation.elims new_int.simps
+      intval_not.elims intval_negate.elims intval_abs.elims)+
 
 lemma unary_not_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<notin> normal_unary \<and> op \<notin> boolean_unary \<and> op \<notin> unary_fixed_32_ops"
   shows "b = ir_resultBits op \<and> 0 < b \<and> b \<le> 64"
   apply (cases op) prefer 8 prefer 10 prefer 10 using assms apply blast+  (* the normal_unary and boolean_unary cases *)
-  by (smt(verit) Value.distinct(1) assms(1) intval_bits.simps intval_narrow.elims intval_narrow_ok
-      intval_zero_extend.elims linorder_not_less neq0_conv new_int.simps unary_eval.simps(5,6,7) 
-      IRUnaryOp.sel(4,5,6) intval_sign_extend.elims)+
+  by (smt(verit, ccfv_SIG) Value.distinct(1) assms(1) intval_bits.simps intval_narrow.elims
+      intval_narrow_ok intval_zero_extend.elims linorder_not_less neq0_conv new_int.simps
+      unary_eval.simps(5,6,7) IRUnaryOp.sel(4,5,6) intval_sign_extend.elims)+
 
 lemma unary_eval_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes 2: "x = IntVal bx ix"
   assumes "0 < bx \<and> bx \<le> 64"
   shows "0 < b \<and> b \<le> 64"
-  using assms apply (cases op; simp) prefer 2
-  apply (smt (verit) new_int.simps le_zero_eq gr_zeroI Value.inject(1) Value.distinct(1))
-  by (metis Value.distinct(1) Value.inject(1) new_int.elims not_gr_zero intval_narrow.simps(1)
-      le_zero_eq intval_narrow_ok)+
+  using assms apply (cases op; simp)
+  by (metis Value.distinct(1) Value.inject(1) intval_narrow.simps(1) le_zero_eq intval_narrow_ok
+      new_int.simps le_zero_eq gr_zeroI)+
 
 (*
 lemma unary2:

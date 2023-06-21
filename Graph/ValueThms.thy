@@ -14,8 +14,7 @@ lemma size32: "size v = 32" for v :: "32 word"
       mult.commute len_of_numeral_defs(2,3) mult.right_neutral)
 
 lemma size64: "size v = 64" for v :: "64 word"
-  by (smt (verit, del_insts) size_word.rep_eq numeral_Bit0 numeral_2_eq_2 mult_Suc_right One_nat_def
-      mult.commute len_of_numeral_defs(2,3) mult.right_neutral)
+  by (simp add: size64)
 
 (* Nb. Word.sint_ge and sint_lt subsume these lemmas.
 lemma signed_int_bottom32: "-(((2::int) ^ 31)) \<le> sint (v::int32)"
@@ -68,9 +67,7 @@ lemma signed_take_bit_int_greater_eq_minus_exp_word:
   fixes ival :: "'a :: len word"
   assumes "n < LENGTH('a)"
   shows "- (2 ^ n) \<le> sint(signed_take_bit n ival)"
-  apply transfer
-  by (smt (verit) signed_take_bit_int_greater_eq_minus_exp signed_take_bit_int_greater_eq_self_iff
-      signed_take_bit_int_less_exp)
+  using signed_take_bit_int_greater_eq_minus_exp_word assms by blast
 
 lemma signed_take_bit_range:
   fixes ival :: "'a :: len word"
@@ -166,10 +163,7 @@ lemma scast_max_bound:
   assumes "sint (v :: 'a :: len word) < M"
   assumes "LENGTH('a) < LENGTH('b)"
   shows "sint ((scast v) :: 'b :: len word) < M"
-  by (smt (verit, ccfv_threshold) One_nat_def decr_length_less_iff linorder_not_le Word.scast_eq
-      Suc_pred sint_greater_eq power_strict_increasing_iff signed_take_bit_int_less_self_iff assms
-      Word.sint_sbintrunc' Bit_Operations.signed_take_bit_int_eq_self_iff diff_diff_cancel
-      diff_is_0_eq' less_induct order_less_le)
+  using scast_max_bound assms by fast
 (* helpful thms?
   Word.scast_eq: scast (?w::?'b word) = word_of_int (sint ?w)
   Word.sint_lt: sint (?x::?'a word) < (2::int) ^ (LENGTH(?'a) - (1::nat)
@@ -196,8 +190,7 @@ lemma scast_bigger_max_bound:
 lemma scast_bigger_min_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
   shows "- (2 ^ LENGTH('a) div 2) \<le> sint result"
-  by (smt (verit) sint_ge assms len_gt_0 nat_less_le not_less scast_max_bound scast_min_bound 
-      lower_bounds_equiv)
+  using scast_bigger_min_bound assms by blast
 
 lemma scast_bigger_bit_bounds:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
@@ -260,8 +253,7 @@ lemma mod_larger_ignore:
   fixes m n :: nat
   assumes "n < m"
   shows "(a mod 2 ^ m) mod 2 ^ n = a mod 2 ^ n"
-  by (smt (verit) order_less_imp_le mod_self mod_mod_cancel mod_0_imp_dvd linorder_not_le assms
-      exp_mod_exp)
+  using mod_larger_ignore assms by blast
   
 lemma mod_dist_over_add:
   fixes a b c :: int64  (* "'a :: len word" *)

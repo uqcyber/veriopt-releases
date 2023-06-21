@@ -36,8 +36,7 @@ lemma unrestricted_stamp_valid:
   assumes "s = unrestricted_stamp (IntegerStamp b lo hi)"
   assumes "0 < b \<and> b \<le> 64"
   shows "valid_stamp s"
-  by (smt (z3) Stamp.inject(1) bit_bounds.simps not_exp_less_eq_0_int prod.sel(1,2) assms
-      unrestricted_stamp.simps(2) upper_bounds_equiv valid_stamp.elims(1))
+  using assms apply auto by (simp add: pos_imp_zdiv_pos_iff self_le_power)
 
 lemma unrestricted_stamp_valid_value [simp]:
   assumes 1: "result = IntVal b ival"
@@ -141,8 +140,7 @@ lemma valid_int_signed_upper_bound:
 lemma valid_int_signed_lower_bound:
   assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
   shows "-(2 ^ (bits - 1)) \<le> int_signed_value bits val"
-  by (smt (verit, ccfv_SIG) diff_le_self int_signed_value.simps linorder_not_less sint_greater_eq
-      signed_take_bit_int_greater_eq_minus_exp_word power_increasing_iff)
+  using assms One_nat_def ValueThms.int_signed_value_range by auto
 
 text \<open>and $bit\_bounds$ versions of the above bounds.\<close>
 lemma valid_int_signed_upper_bit_bound:
@@ -472,7 +470,8 @@ lemma stamp_meet_integer_is_valid_stamp:
   assumes "is_IntegerStamp stamp1"
   assumes "is_IntegerStamp stamp2"
   shows "valid_stamp (meet stamp1 stamp2)"
-  by (smt (verit, del_insts) meet.simps(2) valid_stamp.simps(1,8) is_IntegerStamp_def assms)
+  using assms apply (cases stamp1; cases stamp2; auto)
+  using meet.simps(2) valid_stamp.simps(1,8) is_IntegerStamp_def assms by linarith+
 
 lemma stamp_meet_is_valid_stamp:
   assumes 1: "valid_stamp stamp1"
@@ -531,14 +530,16 @@ lemma conditional_eval_implies_valid_value:
   shows "valid_value val (stamp_expr (ConditionalExpr cond expr1 expr2))"
 proof -
   have def: "meet (stamp_expr expr1) (stamp_expr expr2) \<noteq> IllegalStamp"
-    by (smt (verit, best) Stamp.distinct(13,25) compatible.elims(2) meet.simps(1,2) assms(7))
+    using assms apply auto
+    by (smt (verit, ccfv_threshold) Stamp.distinct(13,25) compatible.elims(2) meet.simps(1,2))
   then have "valid_stamp (meet (stamp_expr expr1) (stamp_expr expr2))"
     using assms apply auto
     by (metis compatible_refl compatible.elims(2) stamp_meet_is_valid_stamp valid_stamp.simps(2)
         assms(7))
   then show ?thesis
-    by (smt (verit, best) compatible.elims(2) never_void stamp_expr.simps(6) stamp_meet_commutes def
-        assms stamp_meet_is_valid_value)
+    using assms apply auto
+    by (smt (verit, ccfv_SIG) Stamp.distinct(1) assms(6,7) compatible.elims(2) compatible.simps(1)
+        def compatible_refl stamp_meet_commutes stamp_meet_is_valid_value1 valid_value.simps(13))
 qed
 
 subsubsection \<open>Validity of Whole Expression Tree Evaluation\<close>

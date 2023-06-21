@@ -108,9 +108,9 @@ lemma just_goal2:
   unfolding le_expr_def unfold_binary bin_eval.simps by (metis assms evalDet evaltree_not_undef)
 
 optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
-  using size_binary_rhs_a apply simp 
-  by (smt (verit, del_insts) BinaryExpr BinaryExprE RedundantSubAdd(1) binadd_commute le_expr_def 
-      rewrite_preservation.simps(1) size.simps(4) add_2_eq_Suc')
+  using size_binary_rhs_a apply simp apply auto
+  by (metis bin_eval.simps(1,3) BinaryExpr RedundantSubAdd(1) binadd_commute le_expr_def
+      rewrite_preservation.simps(1))
 
 (* Demonstration of our FOUR levels of expression rewrites:
    =======================================================

@@ -46,9 +46,9 @@ lemma OrLeftFallthrough:
     have "\<forall> i. (bit xv i) | (bit yv i) = (bit xv i)"
       by (metis assms bit_and_iff not_down_up_mask_and_zero_implies_zero xv yv)
     then have "IntVal b xv = val[(IntVal b xv) | (IntVal b yv)]"
-      by (smt (verit, ccfv_threshold) and.idem assms bit.conj_disj_distrib eval_unused_bits_zero yv 
+      by (metis (no_types, lifting) and.idem assms bit.conj_disj_distrib eval_unused_bits_zero yv xv
           intval_or.simps(1) new_int.simps new_int_bin.simps not_down_up_mask_and_zero_implies_zero 
-          word_ao_absorbs(3) xv)
+          word_ao_absorbs(3))
     then show ?thesis
       using xv vdef by presburger
   qed

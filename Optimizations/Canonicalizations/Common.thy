@@ -40,7 +40,9 @@ lemma size_binary_lhs_c[size_simps]:
 
 lemma size_binary_rhs_a[size_simps]:
   "size (BinaryExpr op c (BinaryExpr op' a b)) > size a"
-  by (smt (verit, best) less_Suc_eq less_add_Suc2 less_add_same_cancel1 linorder_neqE_nat not_add_less1 order_less_trans pos2 size.simps(4) size_binary_const size_non_add)
+  apply auto
+  by (metis trans_less_add2 less_Suc_eq less_add_same_cancel1 linorder_neqE_nat not_add_less1 pos2
+      order_less_trans size_binary_const size_non_add)
 
 lemma size_binary_rhs_b[size_simps]:
   "size (BinaryExpr op c (BinaryExpr op' a b)) > size b"

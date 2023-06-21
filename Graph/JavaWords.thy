@@ -94,9 +94,8 @@ lemma size32: "size v = 32" for v :: "32 word"
       len_of_numeral_defs(2,3) mult.right_neutral mult_Suc_right numeral_Bit0 size_word.rep_eq)
 
 lemma size64: "size v = 64" for v :: "64 word"
-  using size_word.rep_eq
-  using One_nat_def add.right_neutral add_Suc_right len_of_numeral_defs(2) len_of_numeral_defs(3) mult.right_neutral mult_Suc_right numeral_2_eq_2 numeral_Bit0
-  by (smt (verit, del_insts) mult.commute)
+  by (metis numeral_times_numeral semiring_norm(12) semiring_norm(13) size32 len_of_numeral_defs(3)
+      size_word.rep_eq)
 
 (* Nb. Word.sint_ge and sint_lt subsume these lemmas.
 lemma signed_int_bottom32: "-(((2::int) ^ 31)) \<le> sint (v::int32)"
@@ -117,7 +116,6 @@ lemma upper_bounds_equiv:
   assumes "0 < N"
   shows "(2::int) ^ (N-1) = (2::int) ^ N div 2"
   by (simp add: assms int_power_div_base)
-
 
 text \<open>Some min/max bounds for 64-bit words\<close>
 
@@ -155,9 +153,8 @@ lemma signed_take_bit_int_greater_eq_minus_exp_word:
   fixes ival :: "'a :: len word"
   assumes "n < LENGTH('a)"
   shows "- (2 ^ n) \<le> sint(signed_take_bit n ival)"
-  apply transfer
-  by (smt (verit, best) signed_take_bit_int_greater_eq_minus_exp 
-     signed_take_bit_int_greater_eq_self_iff signed_take_bit_int_less_exp)
+  apply transfer using assms apply auto
+  by (metis min.commute signed_take_bit_signed_take_bit signed_take_bit_int_greater_eq_minus_exp)
 
 lemma signed_take_bit_range:
   fixes ival :: "'a :: len word"
@@ -200,9 +197,10 @@ lemma int_signed_value_range:
   fixes ival :: "int64"
   assumes "val = int_signed_value n ival"
   shows "- (2 ^ (n - 1)) \<le> val \<and> val < 2 ^ (n - 1)"
-  using signed_take_bit_range assms
-  by (smt (verit, ccfv_SIG) One_nat_def diff_less int_signed_value.elims len_gt_0 len_num1 power_less_imp_less_exp power_strict_increasing sint_greater_eq sint_less)
-
+  using assms apply auto
+  by (smt (verit, ccfv_SIG) diff_zero not_gr_zero zero_diff sint_greater_eq diff_less len_gt_0
+      power_strict_increasing power_less_imp_less_exp signed_take_bit_range sint_less len_num1
+      One_nat_def)+
 
 text \<open>Some lemmas to relate (int) bit bounds to bit-shifting values.\<close>
 
@@ -309,8 +307,6 @@ lemma take_bit_same_bounds:
   using assms take_bit_same_size_range
   by force
 
-
-
 text \<open>Next we show that casting a word to a wider word preserves any upper/lower bounds.
   (These lemmas may not be needed any more, since we are not using scast now?)\<close>
 
@@ -318,37 +314,36 @@ lemma scast_max_bound:
   assumes "sint (v :: 'a :: len word) < M"
   assumes "LENGTH('a) < LENGTH('b)"
   shows "sint ((scast v) :: 'b :: len word) < M"
-  unfolding Word.scast_eq Word.sint_sbintrunc'
-  using Bit_Operations.signed_take_bit_int_eq_self_iff
-  by (smt (verit, best) One_nat_def assms(1) assms(2) decr_length_less_iff linorder_not_le power_strict_increasing_iff signed_take_bit_int_less_self_iff sint_greater_eq) 
+  using assms unfolding Word.scast_eq Word.sint_sbintrunc' by (simp add: sint_uint)
 
 lemma scast_min_bound:
   assumes "M \<le> sint (v :: 'a :: len word)"
   assumes "LENGTH('a) < LENGTH('b)"
   shows "M \<le> sint ((scast v) :: 'b :: len word)"
   unfolding Word.scast_eq Word.sint_sbintrunc'
-  using Bit_Operations.signed_take_bit_int_eq_self_iff
-  by (smt (verit) One_nat_def Suc_pred assms len_gt_0 less_Suc_eq order_less_le order_less_le_trans power_le_imp_le_exp signed_take_bit_int_greater_eq_self_iff sint_lt)
+  using assms apply auto
+  by (smt (verit) One_nat_def Suc_pred assms len_gt_0 less_Suc_eq order_less_le order_less_le_trans
+      power_le_imp_le_exp signed_take_bit_int_greater_eq_self_iff sint_lt)
 
 lemma scast_bigger_max_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
   shows "sint result < 2 ^ LENGTH('a) div 2"
-  using sint_lt upper_bounds_equiv scast_max_bound
-  by (smt (verit, ccfv_threshold) assms(1) len_gt_0 signed_scast_eq signed_take_bit_int_greater_self_iff sint_ge sint_less upper_bounds_equiv)
+  using assms apply auto
+  by (smt (verit, best) assms len_gt_0 signed_scast_eq signed_take_bit_int_greater_self_iff sint_ge
+      sint_less upper_bounds_equiv sint_lt upper_bounds_equiv scast_max_bound)
 
 lemma scast_bigger_min_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
   shows "- (2 ^ LENGTH('a) div 2) \<le> sint result"
-  using sint_ge lower_bounds_equiv scast_min_bound
-  by (smt (verit) assms len_gt_0 nat_less_le not_less scast_max_bound)
+  using assms apply auto
+  by (smt (verit) assms len_gt_0 nat_less_le not_less scast_max_bound sint_ge lower_bounds_equiv
+      scast_min_bound)
 
 lemma scast_bigger_bit_bounds:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
   shows "fst (bit_bounds (LENGTH('a))) \<le> sint result \<and> sint result \<le> snd (bit_bounds (LENGTH('a)))"
   using assms scast_bigger_min_bound scast_bigger_max_bound
   by auto
-
-
 
 subsubsection \<open>Support lemmas for take bit and signed take bit.\<close>
 
@@ -384,12 +379,10 @@ lemma take_bit_dist_subR[simp]:
   using take_bit_dist_subL
   by (metis (no_types, opaque_lifting) diff_add_cancel diff_right_commute diff_self) 
 
-
 lemma take_bit_dist_neg[simp]:
   fixes ix :: "'a :: len word"
   shows "take_bit b (- take_bit b (ix)) = take_bit b (- ix)"
   by (metis diff_0 take_bit_dist_subR)
-
 
 lemma signed_take_take_bit[simp]: 
   fixes x :: "'a :: len word"
@@ -397,14 +390,12 @@ lemma signed_take_take_bit[simp]:
   shows "signed_take_bit (b - 1) (take_bit b x) = signed_take_bit (b - 1) x"
   by (smt (verit, best) Suc_diff_1 assms lessI linorder_not_less signed_take_bit_take_bit)
 
-
 lemma mod_larger_ignore:
   fixes a :: int
   fixes m n :: nat
   assumes "n < m"
   shows "(a mod 2 ^ m) mod 2 ^ n = a mod 2 ^ n"
-  by (smt (verit, del_insts) assms exp_mod_exp linorder_not_le mod_0_imp_dvd mod_mod_cancel mod_self order_less_imp_le)
-  
+  by (meson assms le_imp_power_dvd less_or_eq_imp_le mod_mod_cancel)
 
 lemma mod_dist_over_add:
   fixes a b c :: int64  (* "'a :: len word" *)
@@ -421,7 +412,6 @@ proof -
     by (metis (no_types, opaque_lifting) and.right_idem take_bit_add take_bit_eq_mask)
 qed
 
-
 subsection \<open>Java min and max operators on 64-bit values\<close>
 
 text \<open>Java uses signed comparison, so we define a convenient abbreviation for this to avoid
@@ -430,10 +420,7 @@ text \<open>Java uses signed comparison, so we define a convenient abbreviation 
 abbreviation javaMin64 :: "int64 \<Rightarrow> int64 \<Rightarrow> int64" where
   "javaMin64 a b \<equiv> (if a \<le>s b then a else b)"
 
-
 abbreviation javaMax64 :: "int64 \<Rightarrow> int64 \<Rightarrow> int64" where
   "javaMax64 a b \<equiv> (if a \<le>s b then b else a)"
-
-
 
 end

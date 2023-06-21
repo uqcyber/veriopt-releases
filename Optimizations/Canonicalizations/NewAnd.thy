@@ -287,7 +287,8 @@ lemma intval_up_and_zero_implies_zero:
   assumes "val[xv & yv] \<noteq> UndefVal"
   shows "\<exists> b . val[xv & yv] = new_int b 0"
   using assms apply (cases xv; cases yv; auto)
-  by (smt (verit, best) take_bit_and take_bit_of_0 up_mask_and_zero_implies_zero)+
+  apply (metis eval_unused_bits_zero stamp_mask.up_mask_and_zero_implies_zero stamp_mask_axioms)
+  by presburger
 
 lemma exp_eliminate_y:
   "and (\<up>y) (\<up>z) = 0 \<longrightarrow> exp[(x | y) & z] \<ge> exp[x & z]"
@@ -346,7 +347,8 @@ lemma map_join_horner:
   shows "horner_sum of_bool (2::'a::len word) (map f [0..<n]) = horner_sum of_bool 2 (map f [0..<j])"
 proof -
   have "horner_sum of_bool (2::'a::len word) (map f [0..<n]) = horner_sum of_bool 2 (map f [0..<j]) + 2 ^ length [0..<j] * horner_sum of_bool 2 (map f [j..<n])"
-    by (smt (verit) assms diff_le_self diff_zero le_add_same_cancel2 length_append length_map 
+    using assms apply auto
+    by (smt (verit) assms diff_le_self diff_zero le_add_same_cancel2 length_append length_map
         length_upt map_append upt_add_eq_append horner_sum_append)
   also have "... = horner_sum of_bool 2 (map f [0..<j]) + 2 ^ length [0..<j] * horner_sum of_bool 2 (map (\<lambda>x. False) [j..<n])"
     by (metis calculation horner_sum_append length_map assms)

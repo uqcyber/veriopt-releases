@@ -86,9 +86,9 @@ lemma neg_one_value[simp]: "new_int b (neg_one b) = IntVal b (mask b)"
 lemma neg_one_signed[simp]: 
   assumes "0 < b"
   shows "int_signed_value b (neg_one b) = -1"
-  by (smt (verit, ccfv_SIG) assms diff_le_self diff_less int_signed_value.simps neg_one.simps nle_le
-      verit_comp_simplify1(1) mask_eq_take_bit_minus_one signed_minus_1 signed_take_bit_of_minus_1
-      signed_take_bit_take_bit less_one)
+  using assms apply auto
+  by (metis (no_types, lifting) Suc_pred diff_Suc_1 signed_take_take_bit assms signed_minus_1
+      int_signed_value.simps mask_eq_take_bit_minus_one signed_take_bit_of_minus_1)
 
 lemma word_unsigned:
   shows "\<forall> b1 v1. (IntVal b1 (word_of_int (int_unsigned_value b1 v1))) = IntVal b1 v1"

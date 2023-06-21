@@ -332,7 +332,25 @@ lemma neutral_left_add_sub_val:
 optimization neutral_left_add_sub:
   "((e1::intexp) - (e2::intexp)) + e2 \<longmapsto> e1"
   apply (simp add: size_gt_0)+
-  by (smt (verit, del_insts) bin_eval.simps(1,3) evalDet unfold_binary neutral_left_add_sub_val)
+  apply ((rule allI)+; rule impI)
+  subgoal premises p for m p v
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> Rep_intexp e1 \<mapsto> xv"
+      using p by auto
+    obtain yv where yv: "[m,p] \<turnstile> Rep_intexp e2 \<mapsto> yv"
+      using p by blast
+    then have lhsEval: "[m,p] \<turnstile> exp[(e1 - e2) + e2] \<mapsto> val[(xv - yv) + yv]"
+      by (smt (verit, best) BinaryExprE bin_eval.simps(1) bin_eval.simps(3) evalDet p xv)
+    then have defined: "val[(xv - yv) + yv] \<noteq> UndefVal"
+      using evaltree_not_undef by auto
+    then have rearrange: "val[(xv - yv) + yv] = val[(xv - yv + yv)]"
+      by auto
+    then have simplify: "... = val[xv]"
+      using defined neutral_left_add_sub_val by blast
+    then show ?thesis
+      by (metis evalDet lhsEval p xv)
+  qed
+  done
 
 lemma neutral_right_add_sub_val:
   assumes "val[e1 + (e2 - e1)] \<noteq> UndefVal"
@@ -549,6 +567,31 @@ lemma intval_negateadd_equals_sub_left: "bin_eval BinAdd (unary_eval UnaryNeg e)
 lemma intval_negateadd_equals_sub_right: "bin_eval BinAdd x (unary_eval UnaryNeg e) = bin_eval BinSub x e"
   by (cases e; auto; cases x; auto)
 
+lemma mulNeutral_Exp:
+  shows "exp[(x * const(IntVal b 1))] \<ge> x"
+  apply auto
+  subgoal premises p for m p xa
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(1) by auto
+    obtain xb xvv where xvv: "xv = IntVal xb xvv"
+      by (metis (no_types, opaque_lifting) constantAsStamp.cases evalDet evaltree_not_undef p(1,2)
+          intval_mul.simps(3,4,5) xv)
+    then have width: "xb = b"
+      by (metis evalDet intval_mul.simps(1) new_int_bin.elims xv p(1,2))
+    then have constEval: "[m,p] \<turnstile> exp[const(IntVal b 1)] \<mapsto> IntVal b 1"
+      by (simp add: ConstantExpr p(3))
+    then have lhsEval: "[m,p] \<turnstile> exp[(x * const(IntVal b 1))] \<mapsto> val[xv * (IntVal b 1)]"
+      by (metis bin_eval.simps(2) evalDet unfold_binary p(1,2) xv)
+    then have mulEq: "val[xv * (IntVal b 1)] = xv"
+       using eval_unused_bits_zero width xv xvv by auto
+     then have "[m,p] \<turnstile> exp[(x * const(IntVal b 1))] \<mapsto> val[xv]"
+       using lhsEval by auto
+    then show ?thesis
+      by (metis evalDet lhsEval p(1) xv)
+  qed
+  done
+
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   defer apply simp using intval_negateadd_equals_sub_left
   by (metis BinaryExpr BinaryExprE UnaryExprE)
@@ -568,9 +611,7 @@ lemma "(x::('a::len) word) * 1 = x"
   by simp
 
 optimization MulNeutral: "(x * const(IntVal 32 1)) \<longmapsto> x"
-   apply auto
-  by (smt (verit) Groups.comm_monoid_mult_class.mult.comm_neutral intval_mul.elims new_int.simps
-      eval_unused_bits_zero intval_mul.simps(1) new_int_bin.simps)
+  using mulNeutral_Exp by blast
 
 (*
 optimization MulNegate: "(x * const (-1) ) \<mapsto> -x when (stamp_expr x = IntegerStamp 32 l u)"

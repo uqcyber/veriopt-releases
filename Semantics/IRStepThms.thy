@@ -367,23 +367,46 @@ next
     by simp
   have notend: "\<not>(is_AbstractEndNode (kind g nid))"
     by (simp add: LoadFieldNode.hyps(1))
-  have notdivrem:  "\<not>(is_IntegerDivRemNode (kind g nid))"
+  have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
     by (simp add: LoadFieldNode.hyps(1))
-  from notseq notend notdivrem
+  have notif: "\<not>(is_IfNode (kind g nid))"
+    by (simp add: LoadFieldNode.hyps(1))
+  have notref: "\<not>(is_RefNode (kind g nid))"
+    by (simp add: LoadFieldNode.hyps(1))
+  have notstore: "\<not>(is_StoreFieldNode (kind g nid))"
+    by (simp add: LoadFieldNode.hyps(1))
+  have notnewarray: "\<not>(is_NewArrayNode (kind g nid))"
+    by (simp add: LoadFieldNode.hyps(1))
+  have notarraylength: "\<not>(is_ArrayLengthNode (kind g nid))"
+    by (simp add: LoadFieldNode.hyps(1))
+  from notseq notend notdivrem notif notref notstore notnewarray notarraylength
   show ?case
     by (smt (verit) LoadFieldNode step.cases evalDet IRNode.inject(27) option.discI option.inject
-        IRNode.distinct(413,755,1483,1673,2647,2667,2669,2689,2691,2695,2697) Pair_inject repDet
-        Value.inject(2))
+        IRNode.distinct(755,1483,2647,2669,2689,2691,2697) Pair_inject repDet Value.inject(2)
+        is_ArrayLengthNode_def is_IfNode_def is_NewArrayNode_def is_StoreFieldNode_def)
 next
   case (SignedDivNode nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
     by simp
   have notend: "\<not>(is_AbstractEndNode (kind g nid))"
     by (simp add: SignedDivNode.hyps(1))
-  from notseq notend
+  have notif: "\<not>(is_IfNode (kind g nid))"
+    by (simp add: SignedDivNode.hyps(1))
+  have notref: "\<not>(is_RefNode (kind g nid))"
+    by (simp add: SignedDivNode.hyps(1))
+  have notload: "\<not>(is_LoadFieldNode (kind g nid))"
+    by (simp add: SignedDivNode.hyps(1))
+  have notstore: "\<not>(is_StoreFieldNode (kind g nid))"
+    by (simp add: SignedDivNode.hyps(1))
+  have notnewarray: "\<not>(is_NewArrayNode (kind g nid))"
+    by (simp add: SignedDivNode.hyps(1))
+  have notarraylength: "\<not>(is_ArrayLengthNode (kind g nid))"
+    by (simp add: SignedDivNode.hyps(1))
+  from notseq notend notif notref notload notstore notnewarray notarraylength
   show ?case
-    by (smt (verit) IRNode.distinct(457,799,1527,1717,2689,2757,3327,3373,3725,3729,3731) evalDet
-        IRNode.inject(49) step.cases SignedDivNode repDet Pair_inject)
+    by (smt (verit) IRNode.distinct(799,1527,2757,3373,3725,3731) evalDet IRNode.inject(49) repDet
+        SignedDivNode Pair_inject is_ArrayLengthNode_def is_IfNode_def is_NewArrayNode_def
+        is_LoadFieldNode_def is_StoreFieldNode_def step.cases)
 next
   case (SignedRemNode nid x y zero sb nxt m v1 v2 v m' h)
   then have notseq: "\<not>(is_sequential_node (kind g nid))"
@@ -414,11 +437,21 @@ next
     by (simp add: StoreFieldNode.hyps(1))
   have notdivrem: "\<not>(is_IntegerDivRemNode (kind g nid))"
     by (simp add: StoreFieldNode.hyps(1))
-  from notseq notend notdivrem
+  have notif: "\<not>(is_IfNode (kind g nid))"
+    by (simp add: StoreFieldNode.hyps(1))
+  have notref: "\<not>(is_RefNode (kind g nid))"
+    by (simp add: StoreFieldNode.hyps(1))
+  have notload: "\<not>(is_LoadFieldNode (kind g nid))"
+    by (simp add: StoreFieldNode.hyps(1))
+  have notnewarray: "\<not>(is_NewArrayNode (kind g nid))"
+    by (simp add: StoreFieldNode.hyps(1))
+  have notarraylength: "\<not>(is_ArrayLengthNode (kind g nid))"
+    by (simp add: StoreFieldNode.hyps(1))
+  from notseq notend notdivrem notif notref notload notnewarray notarraylength
   show ?case
-    by (smt (verit) IRNode.distinct(463,805,1533,1723,2695,2763,3333,3379,3729,3753,3797) evalDet
-        IRNode.inject(52) step.cases StoreFieldNode option.discI Pair_inject Value.inject(2) repDet
-        option.inject)
+    by (smt (verit) IRNode.distinct(805,1533,2763,3379,3729,3753,3797) evalDet step.cases repDet
+        IRNode.inject(52) StoreFieldNode option.discI Pair_inject Value.inject(2) option.inject
+        is_ArrayLengthNode_def is_IfNode_def is_LoadFieldNode_def is_NewArrayNode_def)
 next
   case (StaticStoreFieldNode nid f newval uv nxt m val h' h m')
   then have notseq: "\<not>(is_sequential_node (kind g nid))"

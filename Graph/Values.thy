@@ -365,7 +365,7 @@ lemma intval_narrow_ok:
   shows "0 < outBits \<and> outBits \<le> inBits \<and> inBits \<le> 64 \<and> outBits \<le> 64 \<and>
         is_IntVal val \<and>
         intval_bits val = inBits"
-  by (smt (verit, best) Value.disc(2) intval_narrow.elims le_trans intval_bits.simps assms)
+  using assms apply (cases val; auto) apply (meson le_trans)+ by presburger
 
 lemma intval_sign_extend_ok:
   assumes "intval_sign_extend inBits outBits val \<noteq> UndefVal"

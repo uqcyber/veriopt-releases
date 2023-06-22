@@ -271,8 +271,7 @@ proof -
     using assms narrow_widen_output_bits by blast
   then have "fst (bit_bounds (ir_resultBits op)) \<le> int_signed_value (ir_resultBits op) v3 \<and>
              int_signed_value (ir_resultBits op) v3 \<le> snd (bit_bounds (ir_resultBits op))"
-    by (smt (verit, del_insts) Stamp.inject(1) assms(3,5) int_signed_value_bounds s valid_int_gives
-        stamp_expr.simps(1) stamp_unary.simps(1) unrestricted_stamp.simps(2) v1)
+    using ValueThms.int_signed_value_bounds outBits by blast
   then show ?thesis
     using v2 s by (simp add: v3 outBits)
 qed

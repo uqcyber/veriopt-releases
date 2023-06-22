@@ -497,7 +497,7 @@ lemma mono_conditional_graph:
   assumes "ce1 \<ge> ce2 \<and> te1 \<ge> te2 \<and> fe1 \<ge> fe2"
   assumes "(g1 \<turnstile> n \<simeq> e1) \<and> (g2 \<turnstile> n \<simeq> e2)"
   shows "e1 \<ge> e2"
-  by (smt (verit, ccfv_SIG) ConditionalNode assms mono_conditional repDet)
+  by (smt (verit, ccfv_SIG) ConditionalNode assms mono_conditional repDet le_expr_def)
 
 lemma mono_add:
   assumes "kind g1 n = AddNode x y \<and> kind g2 n = AddNode x y"
@@ -622,6 +622,7 @@ proof -
           by (metis_node_eq_ternary ConditionalNode)
         then have "\<exists> ce2 te2 fe2. (g2 \<turnstile> n \<simeq> ConditionalExpr ce2 te2 fe2) \<and> 
                ConditionalExpr ce1 te1 fe1 \<ge> ConditionalExpr ce2 te2 fe2"
+          apply meson
           by (smt (verit, best) mono_conditional ConditionalNode.prems l rep.ConditionalNode cer ter)
         then show ?thesis
           by meson
@@ -1549,9 +1550,29 @@ lemma sorted_bottom:
   assumes "finite xs"
   assumes "x \<in> xs"
   shows "x \<le> last(sorted_list_of_set(xs::nat set))"
-  by (smt (z3) Diff_iff Max_ge empty_iff list.set(1) snoc_eq_iff_butlast sorted_insort_is_snoc
-      sorted_list_of_set(1,2) sorted_list_of_set.fold_insort_key.remove assms Max_in
-      sorted_list_of_set.fold_insort_key.infinite)
+  proof -
+  obtain largest where largest: "largest = last (sorted_list_of_set(xs))"
+    by simp
+  obtain sortedList where sortedList: "sortedList = sorted_list_of_set(xs)"
+    by simp
+  have step: "\<forall>i. 0 < i \<and> i < (length (sortedList)) \<longrightarrow> sortedList!(i-1) \<le> sortedList!(i)"
+    unfolding sortedList apply auto
+    by (metis diff_le_self sorted_list_of_set.length_sorted_key_list_of_set sorted_nth_mono
+        sorted_list_of_set(2))
+  have finalElement: "last (sorted_list_of_set(xs)) =
+                                       sorted_list_of_set(xs)!(length (sorted_list_of_set(xs)) - 1)"
+    using assms last_conv_nth sorted_list_of_set.sorted_key_list_of_set_eq_Nil_iff by blast
+  have contains0: "(x \<in> xs) = (x \<in> set (sorted_list_of_set(xs)))"
+    using assms(1) by auto
+  have lastLargest: "((x \<in> xs) \<longrightarrow> (largest \<ge> x))"
+    using step unfolding largest finalElement apply auto
+    by (metis (no_types, lifting) One_nat_def Suc_pred assms(1) card_Diff1_less in_set_conv_nth
+        sorted_list_of_set.length_sorted_key_list_of_set card_Diff_singleton_if less_Suc_eq_le
+        sorted_list_of_set.sorted_sorted_key_list_of_set length_pos_if_in_set sorted_nth_mono
+        contains0)
+  then show ?thesis
+    by (simp add: assms largest)
+qed
 
 lemma fresh: "finite xs \<Longrightarrow> last(sorted_list_of_set(xs::nat set)) + 1 \<notin> xs"
   using sorted_bottom not_le by auto
@@ -1665,8 +1686,8 @@ lemma fresh_node_preserves_other_nodes:
   assumes "n' = get_fresh_id g"
   assumes "g' = add_node n' (k, s) g"
   shows "\<forall> n \<in> ids g . (g \<turnstile> n \<simeq> e) \<longrightarrow> (g' \<turnstile> n \<simeq> e)"
-  by (smt (verit) Diff_idemp Diff_insert_absorb add_changed disjoint_change unchanged.elims(2)
-      graph_unchanged_rep_unchanged fresh_ids assms)
+  using assms apply auto
+  by (metis fresh_node_subset subset_implies_evals fresh_ids assms)
 
 lemma found_node_preserves_other_nodes:
   assumes "find_node_and_stamp g (k, s) = Some n"
@@ -1826,7 +1847,7 @@ lemma add_new_node_refines:
 lemma add_node_as_set:
   assumes "g' = add_node n (k, s) g"
   shows "({n} \<unlhd> as_set g) \<subseteq> as_set g'"
-  using assms apply auto
+  unfolding assms
   by (smt (verit, ccfv_SIG) case_prodE changeonly.simps mem_Collect_eq prod.sel(1) subsetI assms
       add_changed as_set_def domain_subtraction_def)
 
@@ -2302,7 +2323,8 @@ lemma true_ids_add_update:
 lemma new_def:
   assumes "(new \<unlhd> as_set g') = as_set g"
   shows "n \<in> ids g \<longrightarrow> n \<notin> new"
-  by (smt (z3) as_set_def case_prodD domain_subtraction_def mem_Collect_eq assms)
+  using assms apply auto unfolding as_set_def
+  by (smt (z3) as_set_def case_prodD domain_subtraction_def mem_Collect_eq assms ids_some)
 
 lemma add_preserves_rep:
   assumes unchanged: "(new \<unlhd> as_set g') = as_set g"
@@ -2318,8 +2340,9 @@ proof (cases "n \<in> new")
     using existed by simp
 next
   case False
-  then have kind_eq: "\<forall> n' . n' \<notin> new \<longrightarrow> kind g n' = kind g' n'"
+  have kind_eq: "\<forall> n' . n' \<notin> new \<longrightarrow> kind g n' = kind g' n'"
     \<comment>\<open>can be more general than $stamp\_eq$ because NoNode default is equal\<close>
+    apply (rule allI; rule impI)
     by (smt (z3) case_prodE domain_subtraction_def ids_some mem_Collect_eq subsetI unchanged
         not_excluded_keep_type)
   from False have stamp_eq: "\<forall> n' \<in> ids g' . n' \<notin> new \<longrightarrow> stamp g n' = stamp g' n'"

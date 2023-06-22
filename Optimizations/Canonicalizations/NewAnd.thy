@@ -6,13 +6,9 @@ theory NewAnd
     Graph.JavaLong
 begin
 
-lemma bin_distribute_and_over_or:
-  "bin[z & (x | y)] = bin[(z & x) | (z & y)]"
-  by (smt (verit, best) bit_and_iff bit_eqI bit_or_iff)
-
 lemma intval_distribute_and_over_or:
   "val[z & (x | y)] = val[(z & x) | (z & y)]"
-  by (cases x; cases y; cases z; auto simp: bin_distribute_and_over_or)
+  by (cases x; cases y; cases z; auto simp add: bit.conj_disj_distrib)
 
 lemma exp_distribute_and_over_or:
   "exp[z & (x | y)] \<ge> exp[(z & x) | (z & y)]"
@@ -43,15 +39,10 @@ lemma exp_xor_commute:
   "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
   by (auto simp: intval_xor_commute)
 
-lemma bin_eliminate_y:
-  assumes "bin[y & z] = 0"
-  shows "bin[(x | y) & z] = bin[x & z]"
-  by (simp add: and.commute bin_distribute_and_over_or assms)
-
 lemma intval_eliminate_y:
   assumes "val[y & z] = IntVal b 0"
   shows "val[(x | y) & z] = val[x & z]"
-  using assms bin_eliminate_y by (cases x; cases y; cases z; auto)
+  using assms by (cases x; cases y; cases z; auto simp add: bit.conj_disj_distrib2)
 
 lemma intval_and_associative:
   "val[(x & y) & z] = val[x & (y & z)]"

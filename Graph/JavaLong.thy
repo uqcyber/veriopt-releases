@@ -225,8 +225,7 @@ lemma "highestOneBit (0::64 word) = -1"
   by (simp add: MaxOrNeg_neg highestOneBit_def)
 
 lemma "numberOfLeadingZeros (0::64 word) = 64"
-  unfolding numberOfLeadingZeros_def
-  by (smt (verit) bit_0_eq bot_set_def int_eq_iff size64 highestOneBit_def MaxOrNeg_neg)
+  unfolding numberOfLeadingZeros_def by (simp add: highestOneBitImpl size64)
 
 lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} < 64"
   unfolding highestOneBit_def
@@ -239,8 +238,9 @@ lemma numberOfLeadingZeros_top: "Max {numberOfLeadingZeros (v::64 word)} \<le> 6
 
 lemma numberOfLeadingZeros_range: "0 \<le> numberOfLeadingZeros a \<and> numberOfLeadingZeros a \<le> Nat.size a"
   unfolding numberOfLeadingZeros_def apply auto
-  by (smt (verit) bot_nat_0.extremum int_eq_iff diff_right_commute diff_self diff_zero nat_le_iff
-      le_iff_diff_le_0 le_trans minus_diff_eq nat_0_le nat_le_linear of_nat_0_le_iff of_nat_1
+  apply (induction "highestOneBit a") apply (simp add: numberOfLeadingZeros_def)
+  by (metis (mono_tags, opaque_lifting) leD negative_zless  int_eq_iff diff_right_commute diff_self
+      diff_zero nat_le_iff le_iff_diff_le_0  minus_diff_eq nat_0_le nat_le_linear of_nat_0_le_iff
       MaxOrNeg_def highestOneBit_def)
 
 lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v - 1"

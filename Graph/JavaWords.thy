@@ -145,9 +145,8 @@ lemma signed_take_bit_int_less_exp_word:
   fixes ival :: "'a :: len word"
   assumes "n < LENGTH('a)"
   shows "sint(signed_take_bit n ival) < (2::int) ^ n"
-  apply transfer
-  by (smt (verit, best) not_take_bit_negative signed_take_bit_eq_take_bit_shift 
-     signed_take_bit_int_less_exp take_bit_int_greater_self_iff) 
+  apply transfer using assms apply auto
+  by (metis min.commute signed_take_bit_signed_take_bit signed_take_bit_int_less_exp)
 
 lemma signed_take_bit_int_greater_eq_minus_exp_word:
   fixes ival :: "'a :: len word"
@@ -198,9 +197,10 @@ lemma int_signed_value_range:
   assumes "val = int_signed_value n ival"
   shows "- (2 ^ (n - 1)) \<le> val \<and> val < 2 ^ (n - 1)"
   using assms apply auto
-  by (smt (verit, ccfv_SIG) diff_zero not_gr_zero zero_diff sint_greater_eq diff_less len_gt_0
-      power_strict_increasing power_less_imp_less_exp signed_take_bit_range sint_less len_num1
-      One_nat_def)+
+  apply (smt (verit, ccfv_threshold) sint_greater_eq diff_less len_gt_0 power_strict_increasing
+         power_less_imp_less_exp signed_take_bit_range len_num1 One_nat_def)
+  by (smt (verit, del_insts) sint_greater_eq diff_less len_gt_0 sint_less power_strict_increasing
+      power_less_imp_less_exp signed_take_bit_range len_num1 One_nat_def)
 
 text \<open>Some lemmas to relate (int) bit bounds to bit-shifting values.\<close>
 
@@ -320,24 +320,20 @@ lemma scast_min_bound:
   assumes "M \<le> sint (v :: 'a :: len word)"
   assumes "LENGTH('a) < LENGTH('b)"
   shows "M \<le> sint ((scast v) :: 'b :: len word)"
-  unfolding Word.scast_eq Word.sint_sbintrunc'
-  using assms apply auto
-  by (smt (verit) One_nat_def Suc_pred assms len_gt_0 less_Suc_eq order_less_le order_less_le_trans
-      power_le_imp_le_exp signed_take_bit_int_greater_eq_self_iff sint_lt)
+  using assms unfolding Word.scast_eq Word.sint_sbintrunc' by (simp add: sint_uint)
 
 lemma scast_bigger_max_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
   shows "sint result < 2 ^ LENGTH('a) div 2"
   using assms apply auto
-  by (smt (verit, best) assms len_gt_0 signed_scast_eq signed_take_bit_int_greater_self_iff sint_ge
-      sint_less upper_bounds_equiv sint_lt upper_bounds_equiv scast_max_bound)
+  by (smt (verit, ccfv_SIG) assms len_gt_0 signed_scast_eq signed_take_bit_int_greater_self_iff
+      sint_ge sint_less upper_bounds_equiv sint_lt upper_bounds_equiv scast_max_bound)
 
 lemma scast_bigger_min_bound:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
   shows "- (2 ^ LENGTH('a) div 2) \<le> sint result"
-  using assms apply auto
-  by (smt (verit) assms len_gt_0 nat_less_le not_less scast_max_bound sint_ge lower_bounds_equiv
-      scast_min_bound)
+  by (metis upper_bounds_equiv assms len_gt_0 nat_less_le not_less scast_max_bound scast_min_bound
+      sint_ge)
 
 lemma scast_bigger_bit_bounds:
   assumes "(result :: 'b :: len word) = scast (v :: 'a :: len word)"
@@ -388,7 +384,9 @@ lemma signed_take_take_bit[simp]:
   fixes x :: "'a :: len word"
   assumes "0 < b"
   shows "signed_take_bit (b - 1) (take_bit b x) = signed_take_bit (b - 1) x"
-  by (smt (verit, best) Suc_diff_1 assms lessI linorder_not_less signed_take_bit_take_bit)
+  using assms apply auto
+  by (smt (verit, ccfv_threshold) Suc_diff_1 assms lessI linorder_not_less signed_take_bit_take_bit
+      diff_Suc_less Suc_pred One_nat_def)
 
 lemma mod_larger_ignore:
   fixes a :: int

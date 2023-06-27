@@ -576,11 +576,12 @@ lemma RemoveLHSOrMask:
       apply (subst (asm) unfold_binary_width) by force+
     from exp obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
       apply (subst (asm) unfold_binary_width) by force+
-    then have "(IntVal b yv) = val[(IntVal b xv) | (IntVal b yv)]" 
-      apply auto 
-      by (smt (verit, ccfv_threshold) not_down_up_mask_and_zero_implies_zero word_ao_absorbs(4) p(1)
-          bit.conj_cancel_right eval_unused_bits_zero or_eq_not_not_and word_bw_assocs(1) xv yv
-          word_bw_comms(1))
+    then have "yv = (or xv yv)"
+      using assms yv xv apply auto
+      by (metis (no_types, opaque_lifting) down_spec ucast_id up_spec word_ao_absorbs(1) word_or_not
+          word_ao_equiv word_log_esimps(3) word_oa_dist word_oa_dist2)
+    then have "(IntVal b yv) = val[(IntVal b xv) | (IntVal b yv)]"
+      apply auto using eval_unused_bits_zero yv by presburger
     then show ?thesis    
       by (metis p(3,4) evalDet xv yv)
   qed
@@ -832,6 +833,120 @@ optimization XorIsEqual_64_4: "exp[BinaryExpr BinIntegerEquals (y \<oplus> x) (z
                              (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and> 
                              (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
   by (meson dual_order.trans mono_binary exp_xor_commutative expXorIsEqual_64) 
+
+(*
+XorEqZero
+  (x ^ y) == 0 \<mapsto> (x == y)
+ *)
+
+lemma unwrap_bool_to_val:
+  shows "(bool_to_val a = bool_to_val b) = (a = b)"
+  apply auto using bool_to_val.elims by fastforce+
+
+lemma take_bit_size_eq:
+  shows "take_bit 64 a = take_bit LENGTH(64) (a::64 word)"
+  by auto
+
+lemma xorZeroIsEq:
+  "bin[(xor xv yv) = 0] = bin[xv = yv]"
+  by (metis binXorIsEqual xor_self_eq)
+
+lemma valXorEqZero_64:
+  assumes "val[(x \<oplus> y)] \<noteq> UndefVal"
+  assumes "x = IntVal 64 xv"
+  assumes "y = IntVal 64 yv"
+  shows "val[intval_equals (x \<oplus> y) ((IntVal 64 0))] = val[intval_equals (x) (y)]"
+  using assms apply (cases x; cases y; auto)
+  unfolding unwrap_bool_to_val take_bit_size_eq Word.take_bit_length_eq by (simp add: xorZeroIsEq)
+
+lemma expXorEqZero_64:
+  assumes "stamp_expr x = IntegerStamp 64 xl xh"
+  assumes "stamp_expr y = IntegerStamp 64 yl yh"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+    shows "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (const (IntVal 64 0))] \<ge>
+           exp[BinaryExpr BinIntegerEquals (x) (y)]"
+  using assms apply auto
+  subgoal premises p for m p x1 y1
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p by blast
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p by fast
+    obtain xvv where xvv: "xv = IntVal 64 xvv"
+      by (metis p(1,3) wf_stamp_def xv ExpIntBecomesIntVal_64)
+    obtain yvv where yvv: "yv = IntVal 64 yvv"
+      by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal_64)
+    have rhs: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals (x) (y)] \<mapsto> val[intval_equals xv yv]"
+      by (smt (z3) BinaryExpr ValEqAssoc ValXorSelfIsZero Value.distinct(1) bin_eval.simps(11) xvv
+          evalDet p(5,6,7,8) valXorIsEqual_64 xv yv)
+    then show ?thesis
+      by (metis evalDet p(6,7,8) valXorEqZero_64 xv xvv yv yvv)
+  qed
+  done
+
+optimization XorEqZero_64: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (const (IntVal 64 0))] \<longmapsto>
+                            exp[BinaryExpr BinIntegerEquals (x) (y)]
+                      when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
+                           (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y)"
+  using expXorEqZero_64 by fast
+
+(*
+XorEqNeg1
+  (x ^ y) == -1 \<mapsto> (x == \<not>y)
+ *)
+
+lemma xorNeg1IsEq:
+  "bin[(xor xv yv) = (not 0)] = bin[xv = not yv]"
+  using xorZeroIsEq by fastforce
+
+lemma valXorEqNeg1_64:
+  assumes "val[(x \<oplus> y)] \<noteq> UndefVal"
+  assumes "x = IntVal 64 xv"
+  assumes "y = IntVal 64 yv"
+  shows "val[intval_equals (x \<oplus> y) (IntVal 64 (not 0))] = val[intval_equals (x) (\<not>y)]"
+  using assms apply (cases x; cases y; auto)
+  unfolding unwrap_bool_to_val take_bit_size_eq Word.take_bit_length_eq using xorNeg1IsEq by auto
+
+lemma expXorEqNeg1_64:
+  assumes "stamp_expr x = IntegerStamp 64 xl xh"
+  assumes "stamp_expr y = IntegerStamp 64 yl yh"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+    shows "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (const (IntVal 64 (not 0)))] \<ge>
+           exp[BinaryExpr BinIntegerEquals (x) (\<not>y)]"
+  using assms apply auto
+  subgoal premises p for m p x1 y1
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p by blast
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using p by fast
+    obtain xvv where xvv: "xv = IntVal 64 xvv"
+      by (metis p(1,3) wf_stamp_def xv ExpIntBecomesIntVal_64)
+    obtain yvv where yvv: "yv = IntVal 64 yvv"
+      by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal_64)
+    obtain nyv where nyv: "[m,p] \<turnstile> exp[(\<not>y)] \<mapsto> nyv"
+      by (metis ValXorSelfIsZero2 Value.distinct(1) intval_not.simps(1) yv yvv intval_xor.simps(2)
+          UnaryExpr unary_eval.simps(3))
+    then have nyvEq: "val[\<not>yv] = nyv"
+      using evalDet yv by fastforce
+    obtain nyvv where nyvv: "nyv = IntVal 64 nyvv"
+      using nyvEq intval_not.simps yvv by force
+    have notUndef: "val[intval_equals xv (\<not>yv)] \<noteq> UndefVal"
+      using bool_to_val.elims nyvEq nyvv xvv by auto
+    have rhs: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals (x) (\<not>y)] \<mapsto> val[intval_equals xv (\<not>yv)]"
+      by (metis BinaryExpr bin_eval.simps(11) notUndef nyv nyvEq xv)
+    then show ?thesis
+      by (metis bit.compl_zero evalDet p(6,7,8) rhs valXorEqNeg1_64 xvv yvv xv yv)
+  qed
+  done
+
+optimization XorEqNeg1_64: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (const (IntVal 64 (not 0)))] \<longmapsto>
+                            exp[BinaryExpr BinIntegerEquals (x) (\<not>y)]
+                      when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
+                           (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y)"
+  using expXorEqNeg1_64 apply auto (* termination proof *) sorry
 
 end
 

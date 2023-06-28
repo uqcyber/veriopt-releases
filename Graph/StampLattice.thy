@@ -777,7 +777,8 @@ proof -
       by (simp add: ylessx xlessy bottom_antisym)
   next
     case False
-    then show ?thesis sorry
+    then show ?thesis
+      sorry
   qed
 qed
 
@@ -916,7 +917,7 @@ begin
 
 notation sup (infix "\<squnion>" 65)
 
-instance sorry
+instance apply standard sorry
 
 end
 
@@ -929,7 +930,7 @@ notation top ("\<top>" 50)
 definition "bot_intstamp = int_bottom"
 definition "top_intstamp = int_top"
 
-instance sorry
+instance apply standard sorry
 
 end
 
@@ -1027,7 +1028,10 @@ definition bot_Stamp :: "Stamp" where
   "bot_Stamp = BottomStamp"
 
 instance
-  apply standard apply (simp add: bot_Stamp_def) sorry
+  apply standard apply (simp add: bot_Stamp_def)
+  by (smt (verit, del_insts) less_eq_Stamp.simps(13) less_eq_Stamp.simps(2) sup.coboundedI1
+      sup_Stamp.simps(2))
+
 end
 
 lemma [code]: "Rep_intstamp (from_bounds (l, u)) = (l, u)"

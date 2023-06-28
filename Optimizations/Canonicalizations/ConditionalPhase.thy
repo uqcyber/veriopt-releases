@@ -304,20 +304,21 @@ optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
 (* todo not sure if this is done properly *)
 optimization normalizeX: "((x eq const (IntVal 32 0)) ? 
                                 (const (IntVal 32 0)) : (const (IntVal 32 1))) \<longmapsto> x
-                                when stamp_expr x = IntegerStamp 32 0 1 \<and> wf_stamp x" 
+                                when stamp_expr x = IntegerStamp 32 0 1 \<and> wf_stamp x \<and>
+                                     isBoolean x"
   apply auto
   subgoal premises p for m p v
     proof -
       obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
         using p by blast
-       have 3: "[m,p] \<turnstile> if val_to_bool (intval_equals xa (IntVal 32 0))
+       have eval: "[m,p] \<turnstile> if val_to_bool (intval_equals xa (IntVal 32 0))
                         then ConstantExpr (IntVal 32 0)
                         else ConstantExpr (IntVal 32 1) \<mapsto> v"
-         using evalDet p(3,4,5,6) xa by blast
-       then have 5: "xa = IntVal 32 0 | xa = IntVal 32 1"
-         sorry
-       then have 6: "v = xa"
-         sorry
+         using evalDet p(3,4,5,6,7) xa by blast
+       then have xaRange: "xa = IntVal 32 0 \<or> xa = IntVal 32 1"
+         using isBoolean_def p(3) xa by blast
+      then have 6: "v = xa"
+        using eval xaRange by auto
       then show ?thesis
         by (auto simp: xa)
     qed

@@ -76,8 +76,8 @@ lemma val_EliminateRHS:
       unfolding Word.take_bit_length_eq 1 
       apply (cases vx; simp) 
       sorry
-      then show ?thesis
-        by simp    
+    then show ?thesis
+       by simp
     qed
     subgoal (* 64-bit *)
     proof -

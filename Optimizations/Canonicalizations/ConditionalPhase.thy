@@ -293,11 +293,19 @@ optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
       by (metis Value.exhaust evalNotUndef intval_equals.simps(3,4,5) notUndef)
     obtain yb yvv where yvv: "yv = IntVal yb yvv"
       by (metis evalNotUndef intval_equals.simps(7,8,9) intval_logic_negation.cases notUndef)
-    have unfoldEqual: "(intval_equals xv yv) = bool_to_val (xvv = yvv)"
-      using evalNotUndef xvv yvv by auto
+    obtain vv where evalLHS: "[m,p] \<turnstile> if val_to_bool (intval_equals xv yv) then x else y \<mapsto> vv"
+      by (metis (full_types) p(4) yv)
+    obtain equ where equ: "equ = intval_equals xv yv"
+      by fastforce
+    have trueEval: "equ = IntVal 32 1 \<Longrightarrow> vv = xv"
+      using evalLHS by (simp add: evalDet xv equ)
+    have falseEval: "equ = IntVal 32 0 \<Longrightarrow> vv = yv"
+      using evalLHS by (simp add: evalDet yv equ)
+    then have "vv = v"
+      by (metis evalDet evalLHS p(2,8,9) xv yv)
     then show ?thesis
-      by (smt (z3) p Value.inject(1) bool_to_val.simps(2) bool_to_val_bin.simps intval_equals.elims
-          val_to_bool.elims(1) evalDet)
+      by (metis (full_types) bool_to_val.simps(1,2) bool_to_val_bin.simps equ evalNotUndef falseEval
+          intval_equals.simps(1) trueEval xvv yv yvv)
   qed
   done
 

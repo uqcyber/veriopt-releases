@@ -127,7 +127,7 @@ optimization ConditionalIntegerEquals_1: "exp[BinaryExpr BinIntegerEquals (c ? x
     then obtain yv where yVal: "[m,p] \<turnstile> y \<mapsto> yv"
       using p(15) by auto
     obtain xvv where xvv: "xv = IntVal b xvv"
-       by (metis p(1,2,7) valid_int wf_stamp_def)
+      by (metis p(1,2,7) valid_int wf_stamp_def)
     obtain yvv where yvv: "yv = IntVal b yvv"
       by (metis ExpIntBecomesIntVal p(3,4) wf_stamp_def yVal)
     have yxDiff: "xvv \<noteq> yvv"

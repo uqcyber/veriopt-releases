@@ -199,8 +199,9 @@ lemma int_signed_value_range:
   using assms apply auto
   apply (smt (verit, ccfv_threshold) sint_greater_eq diff_less len_gt_0 power_strict_increasing
          power_less_imp_less_exp signed_take_bit_range len_num1 One_nat_def)
-  by (smt (verit, del_insts) sint_greater_eq diff_less len_gt_0 sint_less power_strict_increasing
-      power_less_imp_less_exp signed_take_bit_range len_num1 One_nat_def)
+  by (smt (verit, ccfv_threshold) neg_equal_0_iff_equal power_0 signed_minus_1 sint_0 not_gr_zero
+      word_exp_length_eq_0 diff_less diff_zero len_gt_0 sint_less power_strict_increasing
+      signed_take_bit_range power_less_imp_less_exp)
 
 text \<open>Some lemmas to relate (int) bit bounds to bit-shifting values.\<close>
 

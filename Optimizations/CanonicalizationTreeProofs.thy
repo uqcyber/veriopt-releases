@@ -106,9 +106,24 @@ text \<open>As usual, the general case is harder to prove, because upper bits ar
 lemma mul_rewrite_helper32:
   shows "valid_value x (IntegerStamp b lo hi) \<Longrightarrow>
          intval_mul x (IntVal b (neg_one b)) = intval_negate x"
-  by (smt (verit, ccfv_threshold) intval_mul.simps(1) intval_negate.simps(1) mult_minus1_right
-      neg_one.simps new_int.simps new_int_bin.simps take_bit_minus_one_eq_mask take_bit_mult
-      take_bit_of_int unsigned_take_bit_eq word_mult_def valid_int_stamp_gives)
+  apply auto
+  subgoal premises p
+  proof -
+    obtain y where y: "y = IntVal b (neg_one b)"
+      by simp
+    obtain xvv where xvv: "x = IntVal b xvv"
+      using p valid_int by blast
+    have notUndef: "intval_mul x y \<noteq> UndefVal"
+      by (simp add: xvv y)
+    have unfoldMul: "intval_mul x y = (new_int b (mask b * xvv))"
+      by (simp add: mult.commute xvv y)
+    have unfoldNegate: "intval_negate x = new_int b (- xvv)"
+      using xvv by auto
+    then show ?thesis
+      by (metis (no_types, opaque_lifting) mask_eqs(5) take_bit_eq_mask mult.commute unfoldMul y
+          mult_minus1_right neg_one.simps new_int.simps take_bit_minus_one_eq_mask)
+  qed
+  done
 
 (* or a more manual proof:
 lemma mul_rewrite_helper32:
@@ -499,8 +514,28 @@ next
     case False
     then have "\<not>(val_to_bool(intval_equals xval yval))"
       apply (cases "intval_equals xval yval")
-      prefer 2 defer
-      using val_to_bool.simps apply presburger+ sorry
+      prefer 2 defer using val_to_bool.simps apply presburger+
+      subgoal premises p for b v
+      proof -
+        have notUndef: "intval_equals xval yval \<noteq> UndefVal"
+          by (simp add: p(2))
+        have notUndefImpliesIntVal: "intval_equals xval yval \<noteq> UndefVal
+                                                              \<Longrightarrow> (is_IntVal xval \<and> is_IntVal yval)"
+          by (metis bin_eval.simps(11) defined_eval_is_intval)
+        obtain xb xvv where xvv: "xval = IntVal xb xvv"
+          by (meson is_IntVal_def notUndef notUndefImpliesIntVal)
+        obtain yb yvv where yvv: "yval = IntVal yb yvv"
+          by (meson is_IntVal_def notUndef notUndefImpliesIntVal)
+        have sameWidth: "xb = yb"
+          by (metis bool_to_val_bin.elims intval_equals.simps(1) notUndef xvv yvv)
+        then have unfoldEquals: "intval_equals xval yval = (bool_to_val (xvv = yvv))"
+          by (simp add: xvv yvv)
+        then have notEqual: "(bool_to_val (xvv = yvv)) = bool_to_val False"
+          using False sameWidth xvv yvv by auto
+        then show ?thesis
+          by (simp add: unfoldEquals)
+      qed
+      done
     then have "res = yval"
       by (smt (verit, ccfv_threshold) BinaryExprE ConditionalExprE bin_eval.simps(11) evalDet yeval
           cond_eq.hyps(1) cond_eq.prems(1) xeval)

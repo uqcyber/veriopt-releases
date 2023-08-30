@@ -109,8 +109,8 @@ lemma just_goal2:
 
 optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
   using size_binary_rhs_a apply simp apply auto
-  by (metis bin_eval.simps(1,3) BinaryExpr RedundantSubAdd(1) binadd_commute le_expr_def
-      rewrite_preservation.simps(1))
+  by (smt (z3) NeutralLeftSubVal evalDet eval_unused_bits_zero intval_add_sym intval_sub.elims new_int.simps well_formed_equal_defn)
+
 
 (* Demonstration of our FOUR levels of expression rewrites:
    =======================================================

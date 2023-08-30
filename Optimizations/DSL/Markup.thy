@@ -36,8 +36,8 @@ struct
 fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.Sub = @{term BinaryExpr} $ @{term BinSub}
   | markup DSL_Tokens.Mul = @{term BinaryExpr} $ @{term BinMul}
-  | markup DSL_Tokens.Div = @{term BinaryExpr}
-  | markup DSL_Tokens.Rem = @{term BinaryExpr}
+  | markup DSL_Tokens.Div = @{term BinaryExpr} $ @{term BinDiv}
+  | markup DSL_Tokens.Rem = @{term BinaryExpr} $ @{term BinMod}
   | markup DSL_Tokens.And = @{term BinaryExpr} $ @{term BinAnd}
   | markup DSL_Tokens.Or = @{term BinaryExpr} $ @{term BinOr}
   | markup DSL_Tokens.Xor = @{term BinaryExpr} $ @{term BinXor}

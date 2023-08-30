@@ -110,6 +110,7 @@ session ConditionalElimination in "Optimizations/ConditionalElimination" = Proof
     "root.tex"
     "mathpartir.sty"
 
+(*
 session Optimizations in Optimizations = OptimizationDSL +
   description
     "(deprecated) Graph transformation optimizations"
@@ -118,6 +119,7 @@ session Optimizations in Optimizations = OptimizationDSL +
     CanonicalizationTree
     CanonicalizationTreeProofs
     CanonicalizationSyntax
+*)
 
 (*session Tests in Tests = Semantics +
   description

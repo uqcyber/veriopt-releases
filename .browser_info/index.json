@@ -8,8 +8,6 @@
      "description": "GraalVM Intermediate Representation encoding"},
     {"name": "OptimizationDSL",
      "description": "DSL for expressing optimizations"},
-    {"name": "Optimizations",
-     "description": "(deprecated) Graph transformation optimizations"},
     {"name": "Proofs",
      "description": "Supporting proof theories and definitions"},
     {"name": "Semantics", "description": "Semantics of the GraalVM IR"},

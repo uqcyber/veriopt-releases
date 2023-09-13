@@ -108,7 +108,7 @@ val _ =
 
 fun export_phases thy name =
   let
-    val state = Toplevel.theory_toplevel thy;
+    val state = Toplevel.make_state (SOME thy);
     val ctxt = Toplevel.context_of state;
     val content = Pretty.string_of (Pretty.chunks (print_phases false ctxt));
     val cleaned = YXML.content_of content;    

@@ -779,7 +779,7 @@ definition runConditionalElimination :: "IRGraph \<Rightarrow> IRGraph" where
   "runConditionalElimination g = 
     (Predicate.the (ConditionalEliminationPhase_i_i_o g (0, {}, ([], []))))"
 
-(*
+
 
 inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<close>
   :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> ID list \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> bool" where\<^marker>\<open>tag invisible\<close>
@@ -817,34 +817,33 @@ lemma IfNodeStepE: "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<
   (\<And>cond tb fb val.
         kind g nid = IfNode cond tb fb \<Longrightarrow>
         nid' = (if val_to_bool val then tb else fb) \<Longrightarrow> 
-        [g, m, p] \<turnstile> kind g cond \<mapsto> val \<Longrightarrow> m' = m)"
-  using StepE
+        [g, m, p] \<turnstile> cond \<mapsto> val \<Longrightarrow> m' = m)"
+  using StepE unfolding encodeeval_def
   by (smt (verit, best) IfNode Pair_inject stepDet)
 
 lemma ifNodeHasCondEvalStutter:
   assumes "(g m p h \<turnstile> nid \<leadsto> nid')"
   assumes "kind g nid = IfNode cond t f"
-  shows "\<exists> v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
-  using IfNodeStepE assms(1) assms(2)  stutter.cases
-  by (meson IfNodeCond)
+  shows "\<exists> v. ([g, m, p] \<turnstile> cond \<mapsto> v)"
+  using IfNodeStepE assms(1) assms(2)  stutter.cases unfolding encodeeval_def
+  by (smt (verit, ccfv_SIG) IfNodeCond)
 
 lemma ifNodeHasCondEval:
   assumes "(g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
   assumes "kind g nid = IfNode cond t f"
-  shows "\<exists> v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
-  using IfNodeStepE assms(1) assms(2)
-  by (smt (z3) IRNode.disc(932) IRNode.simps(938) IRNode.simps(958) IRNode.simps(972) IRNode.simps(974) IRNode.simps(978) Pair_inject StutterStep ifNodeHasCondEvalStutter is_AbstractEndNode.simps is_EndNode.simps(12) step.cases)
-
+  shows "\<exists> v. ([g, m, p] \<turnstile> cond \<mapsto> v)"
+  using IfNodeStepE assms(1) assms(2) apply auto[1]
+  by (smt (verit) IRNode.disc(1966) IRNode.distinct(1733) IRNode.distinct(1735) IRNode.distinct(1755) IRNode.distinct(1757) IRNode.distinct(1777) IRNode.distinct(1783) IRNode.distinct(1787) IRNode.distinct(1789) IRNode.distinct(401) IRNode.distinct(755) StutterStep fst_conv ifNodeHasCondEvalStutter is_AbstractEndNode.simps is_EndNode.simps(16) snd_conv step.cases)
 
 lemma replace_if_t:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> cond \<mapsto> bool"
   assumes "val_to_bool bool"
   assumes g': "g' = replace_usages nid tb g"
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
 proof -
   have g1step: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
-    by (meson IfNode assms(1) assms(2) assms(3))
+    by (meson IfNode assms(1) assms(2) assms(3) encodeeval_def)
   have g2step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using g' unfolding replace_usages.simps
     by (simp add: stepRefNode)
@@ -854,7 +853,7 @@ qed
 
 lemma replace_if_t_imp:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> cond \<mapsto> bool"
   assumes "val_to_bool bool"
   assumes g': "g' = replace_usages nid tb g"
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
@@ -862,13 +861,13 @@ lemma replace_if_t_imp:
 
 lemma replace_if_f:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> cond \<mapsto> bool"
   assumes "\<not>(val_to_bool bool)"
   assumes g': "g' = replace_usages nid fb g"
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
 proof -
   have g1step: "g, p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
-    by (meson IfNode assms(1) assms(2) assms(3))
+    by (meson IfNode assms(1) assms(2) assms(3) encodeeval_def)
   have g2step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     using g' unfolding replace_usages.simps
     by (simp add: stepRefNode)
@@ -885,7 +884,7 @@ lemma ConditionalEliminationStepProof:
   assumes ws: "wf_stamps g"
   assumes wv: "wf_values g"
   assumes nid: "nid \<in> ids g"
-  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([g, m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
+  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
 
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
@@ -894,12 +893,12 @@ proof (induct g nid g' rule: ConditionalEliminationStep.induct)
   case (impliesTrue g ifcond cid t f cond conds g')
   show ?case proof (cases "(g m p h \<turnstile> ifcond \<leadsto> nid')")
     case True
-    obtain condv where condv: "[g, m, p] \<turnstile> kind g cid \<mapsto> condv"
-      using implies.simps impliesTrue.hyps(3) impliesTrue.prems(4)
+    obtain condv where condv: "[g, m, p] \<turnstile> cid \<mapsto> condv"
+      using implys.simps impliesTrue.hyps(3) impliesTrue.prems(4)
       using impliesTrue.hyps(2) True
       by (metis ifNodeHasCondEvalStutter impliesTrue.hyps(1))
     have condvTrue: "val_to_bool condv"
-      by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(1) impliesTrue.prems(3) impliesTrue.prems(5) implies_true_valid)
+      by (metis condv encodeeval_def impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(5) implies_impliesnot_valid implies_valid.elims(2) repDet)
     then show ?thesis
       using constantConditionValid 
       using impliesTrue.hyps(1) condv impliesTrue.hyps(4)
@@ -913,11 +912,11 @@ next
   then show ?case 
   proof (cases "(g m p h \<turnstile> ifcond \<leadsto> nid')")
     case True
-    obtain condv where condv: "[g, m, p] \<turnstile> kind g cid \<mapsto> condv"
+    obtain condv where condv: "[g, m, p] \<turnstile> cid \<mapsto> condv"
       using ifNodeHasCondEvalStutter impliesFalse.hyps(1)
       using True by blast
     have condvFalse: "False = val_to_bool condv"
-      by (metis condition_implies.intros(2) condv impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(1) impliesFalse.prems(3) impliesFalse.prems(5) implies_false_valid)
+      by (metis condv encodeeval_def impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(5) implies_impliesnot_valid impliesnot_valid.elims(2) repDet)
     then show ?thesis
       using constantConditionValid 
       using impliesFalse.hyps(1) condv impliesFalse.hyps(4)
@@ -945,7 +944,7 @@ with respect to finding a bisimulation between the unoptimized and optimized gra
 lemma ConditionalEliminationStepProofBisimulation:
   assumes wf: "wf_graph g \<and> wf_stamp g stamps \<and> wf_values g"
   assumes nid: "nid \<in> ids g"
-  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([g, m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
+  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
   assumes gstep: "\<exists> h nid'. (g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))" (* we don't yet consider optimizations which produce a step that didn't already exist *)
 
@@ -954,7 +953,7 @@ lemma ConditionalEliminationStepProofBisimulation:
 proof (induct g nid g' rule: ConditionalEliminationStep.induct)
   case (impliesTrue g ifcond cid t f cond conds g' stamps)
   from impliesTrue(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    by (metis IfNode StutterStep condition_implies.intros(2) ifNodeHasCondEvalStutter impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(2) impliesTrue.prems(4) implies_true_valid)
+    by (metis (no_types, lifting) IfNode encodeeval_def ifNodeHasCondEval impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_impliesnot_valid implies_valid.simps repDet)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(4) by blast
   then show ?case using gstep
@@ -962,21 +961,21 @@ proof (induct g nid g' rule: ConditionalEliminationStep.induct)
 next
   case (impliesFalse g ifcond cid t f cond conds g' stamps)
   from impliesFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    by (metis IfNode condition_implies.intros(2) ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(2) impliesFalse.prems(4) implies_false_valid)
+    by (metis (no_types, lifting) IfNode encodeeval_def ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(4) implies_impliesnot_valid impliesnot_valid.simps repDet)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(4) by blast
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
 next
   case (tryFoldTrue g ifcond cid t f cond stamps g' conds)
-  from tryFoldTrue(5) obtain val where "[g, m, p] \<turnstile> kind g cid \<mapsto> val"
+  from tryFoldTrue(5) obtain val where "[g, m, p] \<turnstile> cid \<mapsto> val"
     using ifNodeHasCondEval tryFoldTrue.hyps(1) by blast
   then have "val_to_bool val"
     using tryFoldProofTrue tryFoldTrue.prems(2) tryFoldTrue(3) 
     by blast
   then obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using tryFoldTrue(5)
-    by (meson IfNode \<open>[g, m, p] \<turnstile> kind g cid \<mapsto> val\<close> tryFoldTrue.hyps(1))
+    by (meson IfNode \<open>[g::IRGraph,m::nat \<Rightarrow> Value,p::Value list] \<turnstile> cid::nat \<mapsto> val::Value\<close> encodeeval_def tryFoldTrue.hyps(1))
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using constantConditionTrue tryFoldTrue.hyps(1) tryFoldTrue.hyps(4) by presburger
   then show ?case using gstep
@@ -984,7 +983,7 @@ next
 next
   case (tryFoldFalse g ifcond cid t f cond stamps g' conds)
   from tryFoldFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    by (meson IfNode ifNodeHasCondEval tryFoldFalse.hyps(1) tryFoldFalse.hyps(3) tryFoldFalse.prems(2) tryFoldProofFalse)
+    by (meson IfNode StutterStep encodeeval_def ifNodeHasCondEvalStutter tryFoldFalse.hyps(1) tryFoldFalse.hyps(3) tryFoldFalse.prems(2) tryFoldProofFalse)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     using constantConditionFalse tryFoldFalse.hyps(1) tryFoldFalse.hyps(4) by blast
   then show ?case using gstep
@@ -992,6 +991,7 @@ next
 qed
 
 
+(*
 text \<open>Mostly experimental proofs from here on out.\<close>
 
 experiment begin

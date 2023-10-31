@@ -991,27 +991,184 @@ next
 qed
 
 
-(*
-text \<open>Mostly experimental proofs from here on out.\<close>
-
 experiment begin
-lemma if_step:
+(*lemma if_step:
   assumes "nid \<in> ids g"
   assumes "(kind g nid) \<in> control_nodes"
   shows "(g m p h \<turnstile> nid \<leadsto> nid')"
   using assms apply (cases "kind g nid") sorry
+*)
+
+lemma inverse_succ:
+  "\<forall>n' \<in> (succ g n). n \<in> ids g \<longrightarrow> n \<in> (predecessors g n')"
+  by simp
+
+lemma sequential_successors:
+  assumes "is_sequential_node n"
+  shows "successors_of n \<noteq> []"
+  using assms by (cases n; auto)
+
+lemma nid'_succ:
+  assumes "nid \<in> ids g"
+  assumes "\<not>(is_AbstractEndNode (kind g nid0))"
+  assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
+  shows "nid \<in> succ g nid0"
+  using assms(3) proof (induction "(nid0, m0, h0)" "(nid, m, h)" rule: step.induct)
+  case SequentialNode
+  then show ?case
+    by (metis length_greater_0_conv nth_mem sequential_successors succ.simps)
+next
+  case (FixedGuardNode cond before "next" condE val)
+  then have "{next} = succ g nid0"
+    using IRNodes.successors_of_FixedGuardNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    using FixedGuardNode.hyps(5) by blast
+next
+  case (BytecodeExceptionNode args st exceptionType ref)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_BytecodeExceptionNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (IfNode cond tb fb condE val)
+  then have "{tb, fb} = succ g nid0"
+    using IRNodes.successors_of_IfNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by (metis IfNode.hyps(1) IfNode.hyps(2) IfNode.hyps(3) IfNode.hyps(5) IfNode.hyps(6) IfNodeStepCases assms(3))
+next
+  case (EndNodes i phis inps inpsE vs)
+  then show ?case using assms(2) by blast
+next
+  case (NewArrayNode len st lenE length' arrayType h' ref refNo)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_NewArrayNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (ArrayLengthNode x xE ref arrayVal length')
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_ArrayLengthNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (LoadIndexedNode index guard array indexE indexVal arrayE ref arrayVal loaded)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_LoadIndexedNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (StoreIndexedNode check val st index guard array indexE indexVal arrayE ref valE "value" arrayVal updated)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_StoreIndexedNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (NewInstanceNode cname obj ref)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_NewInstanceNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (LoadFieldNode f obj objE ref v)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_LoadFieldNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (SignedDivNode x y zero sb xe ye v1 v2 v)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_SignedDivNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (SignedRemNode x y zero sb xe ye v1 v2 v)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_SignedRemNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (StaticLoadFieldNode f v)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_LoadFieldNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (StoreFieldNode f newval uu obj newvalE objE val ref)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_StoreFieldNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (StaticStoreFieldNode f newval uv newvalE val)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_StoreFieldNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+qed
+
+lemma nid'_pred:
+  assumes "nid \<in> ids g"
+  assumes "\<not>(is_AbstractEndNode (kind g nid0))"
+  assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
+  shows "nid0 \<in> predecessors g nid"
+  using assms
+  by (meson inverse_succ nid'_succ step_in_ids)
+
+definition wf_pred:
+  "wf_pred g = (\<forall>n \<in> ids g. card (predecessors g n) = 1)"
+
+lemma
+  assumes "\<not>(is_AbstractMergeNode (kind g n'))"
+  assumes "wf_pred g"
+  shows "predecessors g n = {v} \<and> pred g n' = Some v"
+  using assms unfolding pred.simps sorry
+
+lemma inverse_succ:
+  assumes "\<not>(is_AbstractEndNode (kind g n'))"
+  assumes "wf_pred g"
+  shows "\<forall>n' \<in> (succ g n). n \<in> ids g \<longrightarrow> Some n = (pred g n')"
+  using assms sorry
+
+lemma BeginNodeFlow:
+  assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
+  assumes "Some ifcond = pred g nid"
+  assumes "kind g ifcond = IfNode cond t f"
+  assumes "i = find_index nid (successors_of (kind g ifcond))"
+  shows "i = 0 \<equiv> ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+proof -
+  obtain tb fb where "[tb, fb] = successors_of (kind g ifcond)"
+    by (simp add: assms(3))
+  have "nid0 = ifcond"
+    using assms step.IfNode 
+qed
 
 lemma StepConditionsValid:
-  assumes "\<forall> cond \<in> set conds. ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+  assumes "\<forall> cond \<in> set conds. ([m, p] \<turnstile> cond \<mapsto> v) \<longrightarrow> val_to_bool v"
+  assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
   assumes "Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'))"
-  shows "\<forall> cond \<in> set conds'. ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
-  using assms(2) 
+  shows "\<forall> cond \<in> set conds'. ([m, p] \<turnstile> cond \<mapsto> v) \<longrightarrow> val_to_bool v"
+  using assms(3)
 proof (induction "(nid, seen, conds, flow)" "Some (nid', seen', conds', flow')" rule: Step.induct)
-  case (1 ifcond cond t f i c)
-  obtain cv where cv: "[g, m, p] \<turnstile> c \<mapsto> cv"
-    sorry
+  case (1 ifcond cond t f i c ce ce' flow')
+  assume "\<exists>cv. [m, p] \<turnstile> ce \<mapsto> cv"
+  then obtain cv where "[m, p] \<turnstile> ce \<mapsto> cv"
+    by blast
   have cvt: "val_to_bool cv"
-    sorry
+    using assms(2) sorry
   have "set conds' = {c} \<union> set conds"
     using "1.hyps"(8) by auto
   then show ?case using cv cvt assms(1) sorry

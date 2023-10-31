@@ -187,6 +187,8 @@ lemma eq_impliesnot_less_val:
     by (metis Value.distinct(1) val_to_bool.elims(2) unfoldEqualDefined)
 qed
 
+thm_oracles eq_impliesnot_less_val
+
 lemma eq_impliesnot_less_rev_val:
   "val_to_bool(intval_equals v1 v2) \<longrightarrow> \<not>val_to_bool(intval_less_than v2 v1)"
 proof -
@@ -427,10 +429,10 @@ next
       using eq_imp_less.prems(2) by blast
     have eqeval: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals x y) \<mapsto> intval_equals xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) eq_imp_less.prems(1) evalDet)
+      by (metis eval_negated)
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> intval_less_than xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(12) eq_imp_less.prems(2) evalDet)
+      by (metis eval_negated)
     have "val_to_bool (intval_equals xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than xval yval))"
       apply (cases xval; cases yval; auto)
       by (smt (verit, best) bool_to_val.simps(2) val_to_bool.simps(1))
@@ -447,10 +449,10 @@ next
       using eq_imp_less_rev.prems(2) by blast
     have eqeval: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals x y) \<mapsto> intval_equals xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) eq_imp_less_rev.prems(1) evalDet)
+      by (metis eval_negated)
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan y x) \<mapsto> intval_less_than yval xval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(12) eq_imp_less_rev.prems(2) evalDet)
+      by (metis eval_negated)
     have "val_to_bool (intval_equals xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than yval xval))"
       apply (cases xval; cases yval; auto)
       by (metis (full_types) bool_to_val.simps(2) less_irrefl val_to_bool.simps(1))
@@ -467,10 +469,10 @@ next
       using less_imp_rev_less.prems(2) by blast
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> intval_less_than xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_rev_less.prems(1))
+      by (metis BinaryExprE bin_eval.simps(14) evalDet less_imp_rev_less.prems(1))
     have revlesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan y x) \<mapsto> intval_less_than yval xval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_rev_less.prems(2))
+      by (metis eval_negated)
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_less_than yval xval))"
       apply (cases xval; cases yval; auto)
       by (smt (verit) bool_to_val.simps(2) val_to_bool.simps(1))
@@ -486,10 +488,10 @@ next
       using less_imp_not_eq.prems(1) by blast
     have eqeval: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals x y) \<mapsto> intval_equals xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) evalDet less_imp_not_eq.prems(2))
+      by (metis eval_negated)
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> intval_less_than xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_not_eq.prems(1))
+      by (metis eval_negated)
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_equals xval yval))"
       apply (cases xval; cases yval; auto)
       by (smt (verit, best) bool_to_val.simps(2) val_to_bool.simps(1))
@@ -505,10 +507,10 @@ next
       using less_imp_not_eq_rev.prems(1) by blast
     have eqeval: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals y x) \<mapsto> intval_equals yval xval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(11) evalDet less_imp_not_eq_rev.prems(2))
+      by (metis eval_negated)
     have lesseval: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan x y) \<mapsto> intval_less_than xval yval"
       using xval yval evaltree.BinaryExpr
-      by (metis BinaryExprE bin_eval.simps(12) evalDet less_imp_not_eq_rev.prems(1))
+      by (metis eval_negated)
     have "val_to_bool (intval_less_than xval yval) \<longrightarrow> \<not>(val_to_bool (intval_equals yval xval))"
       apply (cases xval; cases yval; auto)
       by (smt (verit, best) bool_to_val.simps(2) val_to_bool.simps(1))
@@ -577,18 +579,57 @@ Proofs that show that when the stamp lookup function is well-formed,
 the tryFold relation correctly predicts the output value with respect to
 our evaluation semantics.
 \<close>
-lemma
-  assumes "kind g nid = IntegerEqualsNode x y"
-  assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
-  assumes "([g, m, p] \<turnstile> x \<mapsto> xval) \<and> ([g, m, p] \<turnstile> y \<mapsto> yval)"
-  shows "val_to_bool (intval_equals xval yval) \<longleftrightarrow> v = IntVal 32 1"
+
+inductive_cases StepE:
+  "g, p \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
+
+
+lemma isStampEmpty:
+  assumes "is_stamp_empty s"
+  shows "\<not>(\<exists> val. valid_value val s)"
+  using assms is_stamp_empty.simps apply (cases s; auto)
+  by (metis linorder_not_le not_less_iff_gr_or_eq order.strict_trans valid_value.elims(2) valid_value.simps(1) valid_value.simps(5))
+
+lemma join_lhs:
+  assumes "is_IntegerStamp s1 \<and> is_IntegerStamp s2"
+  shows "(valid_value v s1 \<and> valid_value v s2) \<longrightarrow> valid_value v (join s1 s2)"
+  using assms apply (cases s1; cases s2; auto)
+   apply (metis Value.inject(1) valid_int)
+  by (smt (z3) valid_int valid_stamp.simps(1) valid_value.simps(1))
+
+lemma join_rhs:
+  assumes "is_IntegerStamp s1 \<and> is_IntegerStamp s2"
+  assumes "valid_stamp s1 \<and> valid_stamp s2"
+  assumes "valid_value v (join s1 s2)"
+  shows "(valid_value v s1 \<and> valid_value v s2)"
+  using assms apply (cases s1; cases s2; simp)
+  by (smt (verit, best) assms(2) valid_int valid_value.simps(1) valid_value.simps(22))
+
+lemma join:
+  assumes "is_IntegerStamp s1 \<and> is_IntegerStamp s2"
+  assumes "valid_stamp s1 \<and> valid_stamp s2"
+  shows "(valid_value v s1 \<and> valid_value v s2) = valid_value v (join s1 s2)"
+  using join_lhs join_rhs
+  by (metis assms(1) assms(2))
+
+lemma alwaysDistinct:
+  assumes "wf_stamp g stamps"
+  assumes "alwaysDistinct (stamps x) (stamps y)"
+  assumes "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y) \<and> valid_stamp (stamps x) \<and> valid_stamp (stamps y)"
+  shows "\<not>(\<exists> val . ([g, m, p] \<turnstile> x \<mapsto> val) \<and> ([g, m, p] \<turnstile> y \<mapsto> val))"
 proof -
-  have "v = intval_equals xval yval"
-    using assms(1, 2, 3) BinaryExprE IntegerEqualsNode bin_eval.simps(7)
-    by (smt (verit) bin_eval.simps(11) encodeeval_def evalDet repDet)
-  then show ?thesis using intval_equals.simps val_to_bool.simps
-    by (smt (verit) bool_to_val.simps(1) bool_to_val.simps(2) bool_to_val_bin.simps 
-        intval_equals.elims one_neq_zero)
+  obtain stampx stampy where stampdef: "stampx = stamps x \<and> stampy = stamps y"
+    by simp
+  then have xv: "\<forall> xv . ([g, m, p] \<turnstile> x \<mapsto> xv) \<longrightarrow> valid_value xv stampx"
+    by (meson assms(1) encodeeval_def eval_in_ids wf_stamp.elims(2))
+  from stampdef have yv: "\<forall> yv . ([g, m, p] \<turnstile> y \<mapsto> yv) \<longrightarrow> valid_value yv stampy"
+    by (meson assms(1) encodeeval_def eval_in_ids wf_stamp.elims(2))
+  have "\<forall>v. valid_value v (join stampx stampy) = (valid_value v stampx \<and> valid_value v stampy)"
+    using assms(3)
+    by (simp add: join stampdef)
+  then show ?thesis
+    using assms unfolding alwaysDistinct.simps
+    using isStampEmpty stampdef xv yv by blast
 qed
 
 lemma tryFoldIntegerEqualsAlwaysDistinct:
@@ -596,16 +637,71 @@ lemma tryFoldIntegerEqualsAlwaysDistinct:
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "alwaysDistinct (stamps x) (stamps y)"
-  shows "v = IntVal 32 0"
+  shows "\<not>(val_to_bool v)"
 proof -
   have "\<forall> val. \<not>(valid_value val (join (stamps x) (stamps y)))"
-    using assms(1,4) unfolding alwaysDistinct.simps
-    by (smt (verit, best) is_stamp_empty.elims(2) valid_int valid_value.simps(1))
-  obtain xv where "[g, m, p] \<turnstile> x \<mapsto> xv"
-    using assms using assms(2,3) unfolding encodeeval_def sorry
-  have "\<not>(\<exists> val . ([g, m, p] \<turnstile> x \<mapsto> val) \<and> ([g, m, p] \<turnstile> y \<mapsto> val))"
-    using assms(1,4) unfolding alwaysDistinct.simps wf_stamp.simps encodeeval_def sorry
-  then show ?thesis sorry
+    by (smt (verit, best) is_stamp_empty.elims(2) valid_int valid_value.simps(1) assms(1,4)
+        alwaysDistinct.simps)
+  obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerEquals xe ye)"
+    by (metis assms(2) assms(3) encodeeval_def rep_integer_equals)
+  moreover have evale: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals xe ye) \<mapsto> v"
+    by (metis assms(3) calculation encodeeval_def repDet)
+  moreover have repsub: "rep g x xe \<and> rep g y ye"
+    by (metis IRNode.distinct(1955) IRNode.distinct(1997) IRNode.inject(17) IntegerEqualsNodeE assms(2) calculation)
+  ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
+    by (meson BinaryExprE encodeeval_def)
+  have "valid_value xv (stamps x)"
+    using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
+  then have xint: "is_IntegerStamp (stamps x)"
+    using assms(4) valid_value.elims(2) by fastforce
+  have "valid_value yv (stamps y)"
+    using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
+  then have yint: "is_IntegerStamp (stamps y)"
+    using assms(4) valid_value.elims(2) by fastforce
+  have disjoint: "\<not>(\<exists> val . ([g, m, p] \<turnstile> x \<mapsto> val) \<and> ([g, m, p] \<turnstile> y \<mapsto> val))"
+    using alwaysDistinct
+    using assms(1) assms(4) xint yint
+    by (metis \<open>\<forall>val::Value. \<not> valid_value val (join ((stamps::nat \<Rightarrow> Stamp) (x::nat)) (stamps (y::nat)))\<close> \<open>valid_value (xv::Value) ((stamps::nat \<Rightarrow> Stamp) (x::nat))\<close> \<open>valid_value (yv::Value) ((stamps::nat \<Rightarrow> Stamp) (y::nat))\<close> evalsub graphDet join_lhs)
+  have "v = bin_eval BinIntegerEquals xv yv"
+    by (metis BinaryExprE encodeeval_def evale evalsub graphDet repsub)
+  also have "v \<noteq> UndefVal"
+    using evale by auto
+  ultimately have "\<exists>b1 b2. v =  bool_to_val_bin b1 b2 (xv = yv)"
+    unfolding bin_eval.simps
+    by (smt (z3) Value.inject(1) bool_to_val_bin.simps intval_equals.elims)
+  then show ?thesis
+    by (metis (mono_tags, lifting) \<open>(v::Value) \<noteq> UndefVal\<close> bool_to_val.elims bool_to_val_bin.simps disjoint evalsub val_to_bool.simps(1))
+qed
+thm_oracles tryFoldIntegerEqualsAlwaysDistinct
+
+lemma unwrap_valid:
+  assumes "0 < b \<and> b \<le> 64"
+  assumes "take_bit (b::nat) (vv::64 word) = vv"
+  shows "(vv::64 word) = take_bit b (word_of_int (int_signed_value (b::nat) (vv::64 word)))"
+  using assms apply auto[1]
+  by (simp add: take_bit_signed_take_bit)
+
+lemma asConstant:
+  assumes "asConstant s = val"
+  assumes "val \<noteq> UndefVal"
+  assumes "valid_value v s"
+  shows "v = val"
+proof -
+  obtain b l h where s: "s = IntegerStamp b l h"
+    using assms(1,2) by (cases s; auto)
+  obtain vv where vdef: "v = IntVal b vv"
+    using assms(3) s valid_int by blast
+  have "l \<le> int_signed_value b vv \<and> int_signed_value b vv \<le> h"
+    by (metis \<open>(v::Value) = IntVal (b::nat) (vv::64 word)\<close> assms(3) s valid_value.simps(1))
+  then have veq: "int_signed_value b vv = l"
+    by (smt (verit) asConstant.simps(1) assms(1) assms(2) s)
+  have valdef: "val = new_int b (word_of_int l)"
+    by (metis asConstant.simps(1) assms(1) assms(2) s)
+  have "take_bit b vv = vv"
+    by (metis \<open>(v::Value) = IntVal (b::nat) (vv::64 word)\<close> assms(3) s valid_value.simps(1))
+  then show ?thesis
+    using veq vdef valdef
+    using assms(3) s unwrap_valid by force
 qed
 
 lemma tryFoldIntegerEqualsNeverDistinct:
@@ -613,30 +709,86 @@ lemma tryFoldIntegerEqualsNeverDistinct:
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "neverDistinct (stamps x) (stamps y)"
-  shows "v = IntVal 32 1"
-  using assms IntegerEqualsNodeE sorry
+  shows "val_to_bool v"
+proof -
+  obtain val where constx: "asConstant (stamps x) = val"
+    by simp
+  moreover have "val \<noteq> UndefVal"
+    using assms(4) calculation by auto
+  then have constx: "val = asConstant (stamps y)"
+    using calculation assms(4) by force
+  obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerEquals xe ye)"
+    by (metis assms(2) assms(3) encodeeval_def rep_integer_equals)
+  moreover have evale: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals xe ye) \<mapsto> v"
+    by (metis assms(3) calculation encodeeval_def repDet)
+  moreover have repsub: "rep g x xe \<and> rep g y ye"
+    by (metis IRNode.distinct(1955) IRNode.distinct(1997) IRNode.inject(17) IntegerEqualsNodeE assms(2) calculation)
+  ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
+    by (meson BinaryExprE encodeeval_def)
+  have xvalid: "valid_value xv (stamps x)"
+    using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
+  then have xint: "is_IntegerStamp (stamps x)"
+    using assms(4) valid_value.elims(2) by fastforce
+  have yvalid: "valid_value yv (stamps y)"
+    using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
+  then have yint: "is_IntegerStamp (stamps y)"
+    using assms(4) valid_value.elims(2) by fastforce
+  have eq: "\<forall>v1 v2. (([g, m, p] \<turnstile> x \<mapsto> v1) \<and> ([g, m, p] \<turnstile> y \<mapsto> v2)) \<longrightarrow> v1 = v2"
+    by (metis asConstant assms(4) encodeEvalDet evalsub neverDistinct.elims(1) xvalid yvalid)
+  have "v = bin_eval BinIntegerEquals xv yv"
+    by (metis BinaryExprE encodeeval_def evale evalsub graphDet repsub)
+  also have "v \<noteq> UndefVal"
+    using evale by auto
+  ultimately have "\<exists>b1 b2. v =  bool_to_val_bin b1 b2 (xv = yv)"
+    unfolding bin_eval.simps
+    by (smt (z3) Value.inject(1) bool_to_val_bin.simps intval_equals.elims)
+  then show ?thesis
+    using \<open>(v::Value) \<noteq> UndefVal\<close> eq evalsub by fastforce
+qed
 
 lemma tryFoldIntegerLessThanTrue:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "stpi_upper (stamps x) < stpi_lower (stamps y)"
-  shows "v = IntVal 32 1"
+  shows "val_to_bool v"
 proof -
-  have stamp_type: "is_IntegerStamp (stamps x)"
-    using assms
-    sorry
-  obtain xval where xval: "[g, m, p] \<turnstile> x \<mapsto> xval"
-    using assms(2,3) sorry
-  obtain yval where yval: "[g, m, p] \<turnstile> y \<mapsto> yval"
-    using assms(2,3) sorry
-  have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
-    using assms(4)
-    sorry
-  then have "val_to_bool (intval_less_than xval yval)"
-    sorry
+  obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerLessThan xe ye)"
+    by (metis assms(2) assms(3) encodeeval_def rep_integer_less_than)
+  moreover have evale: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan xe ye) \<mapsto> v"
+    by (metis assms(3) calculation encodeeval_def repDet)
+  moreover have repsub: "rep g x xe \<and> rep g y ye"
+    by (metis IRNode.distinct(2047) IRNode.distinct(2089) IRNode.inject(18) IntegerLessThanNodeE assms(2) repr)
+  ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
+    by (meson BinaryExprE encodeeval_def)
+  have vval: "v = intval_less_than xv yv"
+    by (metis BinaryExprE bin_eval.simps(14) encodeEvalDet encodeeval_def evale evalsub repsub)
+  then obtain b xvv where "xv = IntVal b xvv"
+    by (metis bin_eval.simps(14) defined_eval_is_intval evale evaltree_not_undef is_IntVal_def)
+  also have xvalid: "valid_value xv (stamps x)"
+    by (meson assms(1) encodeeval_def eval_in_ids evalsub wf_stamp.elims(2))
+  then obtain xl xh where xstamp: "stamps x = IntegerStamp b xl xh"
+    using calculation valid_value.simps apply (cases "stamps x"; auto)
+    by presburger
+  from vval obtain yvv where yint: "yv = IntVal b yvv"
+    by (metis Value.collapse(1) bin_eval.simps(14) bool_to_val_bin.simps calculation defined_eval_is_intval evale evaltree_not_undef intval_less_than.simps(1))
+  then have yvalid: "valid_value yv (stamps y)"
+    using assms(1) encodeeval_def evalsub no_encoding wf_stamp.simps by blast
+  then obtain yl yh where ystamp: "stamps y = IntegerStamp b yl yh"
+    using calculation yint valid_value.simps apply (cases "stamps y"; auto)
+    by presburger
+  have "int_signed_value b xvv \<le> xh"
+    using calculation valid_value.simps(1) xstamp xvalid by presburger
+  moreover have "yl \<le> int_signed_value b yvv"
+    using valid_value.simps(1) yint ystamp yvalid by presburger
+  moreover have "xh < yl"
+    using assms(4) xstamp ystamp by auto
+  ultimately have "int_signed_value b xvv < int_signed_value b yvv"
+    by linarith
+  then have "val_to_bool (intval_less_than xv yv)"
+    by (simp add: \<open>(xv::Value) = IntVal (b::nat) (xvv::64 word)\<close> yint)
   then show ?thesis
-    sorry
+    by (simp add: vval)
 qed
 
 lemma tryFoldIntegerLessThanFalse:
@@ -644,22 +796,44 @@ lemma tryFoldIntegerLessThanFalse:
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "stpi_lower (stamps x) \<ge> stpi_upper (stamps y)"
-  shows "v = IntVal 32 0"
-  proof -
-  have stamp_type: "is_IntegerStamp (stamps x)"
-    using assms
-    sorry
-  obtain xval where xval: "[g, m, p] \<turnstile> x \<mapsto> xval"
-    using assms(2,3) sorry
-  obtain yval where yval: "[g, m, p] \<turnstile> y \<mapsto> yval"
-    using assms(2,3) sorry
-  have "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y)"
-    using assms(4)
-    sorry
-  then have "\<not>(val_to_bool (intval_less_than xval yval))"
-    sorry
+  shows "\<not>(val_to_bool v)"
+proof -
+  obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerLessThan xe ye)"
+    by (metis assms(2) assms(3) encodeeval_def rep_integer_less_than)
+  moreover have evale: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan xe ye) \<mapsto> v"
+    by (metis assms(3) calculation encodeeval_def repDet)
+  moreover have repsub: "rep g x xe \<and> rep g y ye"
+    by (metis IRNode.distinct(2047) IRNode.distinct(2089) IRNode.inject(18) IntegerLessThanNodeE assms(2) repr)
+  ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
+    by (meson BinaryExprE encodeeval_def)
+  have vval: "v = intval_less_than xv yv"
+    by (metis BinaryExprE bin_eval.simps(14) encodeEvalDet encodeeval_def evale evalsub repsub)
+  then obtain b xvv where "xv = IntVal b xvv"
+    by (metis bin_eval.simps(14) defined_eval_is_intval evale evaltree_not_undef is_IntVal_def)
+  also have xvalid: "valid_value xv (stamps x)"
+    by (meson assms(1) encodeeval_def eval_in_ids evalsub wf_stamp.elims(2))
+  then obtain xl xh where xstamp: "stamps x = IntegerStamp b xl xh"
+    using calculation valid_value.simps apply (cases "stamps x"; auto)
+    by presburger
+  from vval obtain yvv where yint: "yv = IntVal b yvv"
+    by (metis Value.collapse(1) bin_eval.simps(14) bool_to_val_bin.simps calculation defined_eval_is_intval evale evaltree_not_undef intval_less_than.simps(1))
+  then have yvalid: "valid_value yv (stamps y)"
+    using assms(1) encodeeval_def evalsub no_encoding wf_stamp.simps by blast
+  then obtain yl yh where ystamp: "stamps y = IntegerStamp b yl yh"
+    using calculation yint valid_value.simps apply (cases "stamps y"; auto)
+    by presburger
+  have "xl \<le> int_signed_value b xvv"
+    using calculation valid_value.simps(1) xstamp xvalid by presburger
+  moreover have "int_signed_value b yvv \<le> yh"
+    using valid_value.simps(1) yint ystamp yvalid by presburger
+  moreover have "xl \<ge> yh"
+    using assms(4) xstamp ystamp by auto
+  ultimately have "int_signed_value b xvv \<ge> int_signed_value b yvv"
+    by linarith
+  then have "\<not>(val_to_bool (intval_less_than xv yv))"
+    by (simp add: \<open>(xv::Value) = IntVal (b::nat) (xvv::64 word)\<close> yint)
   then show ?thesis
-    sorry
+    by (simp add: vval)
 qed
 
 theorem tryFoldProofTrue:
@@ -669,19 +843,22 @@ theorem tryFoldProofTrue:
   shows "val_to_bool v"
   using assms(2) proof (induction "kind g nid" stamps True rule: tryFold.induct)
 case (1 stamps x y)
-  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms
-    by force
+  then show ?case
+    using tryFoldIntegerEqualsAlwaysDistinct assms by force
 next
   case (2 stamps x y)
-  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms
-    by (smt (verit, best) one_neq_zero tryFold.cases tryFoldIntegerEqualsNeverDistinct tryFoldIntegerLessThanTrue val_to_bool.simps(1))
+  then show ?case
+    by (smt (verit, best) one_neq_zero tryFold.cases tryFoldIntegerEqualsNeverDistinct assms
+        tryFoldIntegerLessThanTrue val_to_bool.simps(1))
 next
   case (3 stamps x y)
-  then show ?case using tryFoldIntegerLessThanTrue assms
-    by (smt (verit, best) one_neq_zero tryFold.cases tryFoldIntegerEqualsNeverDistinct val_to_bool.simps(1))
+  then show ?case
+    by (smt (verit, best) one_neq_zero tryFold.cases tryFoldIntegerEqualsNeverDistinct assms
+        val_to_bool.simps(1) tryFoldIntegerLessThanTrue)
 next
 case (4 stamps x y)
-  then show ?case using tryFoldIntegerLessThanFalse assms sorry
+  then show ?case
+    by force
 qed
 
 theorem tryFoldProofFalse:
@@ -691,24 +868,23 @@ theorem tryFoldProofFalse:
   shows "\<not>(val_to_bool v)"
 using assms(2) proof (induction "kind g nid" stamps False rule: tryFold.induct)
 case (1 stamps x y)
-  then show ?case using tryFoldIntegerEqualsAlwaysDistinct assms sorry
+  then show ?case
+    by (smt (verit) tryFoldIntegerLessThanFalse tryFoldIntegerEqualsAlwaysDistinct tryFold.cases
+        tryFoldIntegerEqualsNeverDistinct val_to_bool.simps(1) assms)
 next
 case (2 stamps x y)
-  then show ?case using tryFoldIntegerEqualsNeverDistinct assms sorry
+  then show ?case
+    by blast
 next
   case (3 stamps x y)
-  then show ?case using tryFoldIntegerLessThanTrue assms sorry
+  then show ?case
+    by blast
 next
   case (4 stamps x y)
-  then show ?case using tryFoldIntegerLessThanFalse assms sorry
-
+  then show ?case
+    by (smt (verit, del_insts) tryFold.cases tryFoldIntegerEqualsAlwaysDistinct val_to_bool.simps(1)
+        tryFoldIntegerLessThanFalse assms)
 qed
-
-
-subsection \<open>Conditional Elimination Step\<close>
-
-inductive_cases StepE:
-  "g, p \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
 
 text \<open>
 Perform conditional elimination rewrites on the graph for a particular node.
@@ -768,10 +944,8 @@ inductive ConditionalEliminationStep ::
 
   notIfNode:
   "\<not>(is_IfNode (kind g ifcond)) \<Longrightarrow>
-    ConditionalEliminationStep conds stamps ifcond g g"
+    ConditionalEliminationStep conds stamps ifcond g g" |
 
-
-(*
   tryFoldTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     cond = kind g cid;
@@ -785,7 +959,7 @@ inductive ConditionalEliminationStep ::
     tryFold (kind g cid) stamps False;
     g' = constantCondition False ifcond (kind g ifcond) g
     \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps ifcond g g'"
-*)
+
 
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
@@ -1309,40 +1483,38 @@ inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<cl
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhaseWithTrace .
 
-(*
 
 lemma IfNodeStepE: "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Longrightarrow>
   (\<And>cond tb fb val.
         kind g nid = IfNode cond tb fb \<Longrightarrow>
         nid' = (if val_to_bool val then tb else fb) \<Longrightarrow> 
-        [g, m, p] \<turnstile> kind g cond \<mapsto> val \<Longrightarrow> m' = m)"
-  using StepE
+        [g, m, p] \<turnstile> cond \<mapsto> val \<Longrightarrow> m' = m)"
+  using StepE unfolding encodeeval_def
   by (smt (verit, best) IfNode Pair_inject stepDet)
 
 lemma ifNodeHasCondEvalStutter:
   assumes "(g m p h \<turnstile> nid \<leadsto> nid')"
   assumes "kind g nid = IfNode cond t f"
-  shows "\<exists> v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
-  using IfNodeStepE assms(1) assms(2)  stutter.cases
-  by (meson IfNodeCond)
+  shows "\<exists> v. ([g, m, p] \<turnstile> cond \<mapsto> v)"
+  using IfNodeStepE assms(1) assms(2)  stutter.cases unfolding encodeeval_def
+  by (smt (verit, ccfv_SIG) IfNodeCond)
 
 lemma ifNodeHasCondEval:
   assumes "(g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h'))"
   assumes "kind g nid = IfNode cond t f"
-  shows "\<exists> v. ([g, m, p] \<turnstile> kind g cond \<mapsto> v)"
-  using IfNodeStepE assms(1) assms(2)
-  by (smt (z3) IRNode.disc(932) IRNode.simps(938) IRNode.simps(958) IRNode.simps(972) IRNode.simps(974) IRNode.simps(978) Pair_inject StutterStep ifNodeHasCondEvalStutter is_AbstractEndNode.simps is_EndNode.simps(12) step.cases)
-
+  shows "\<exists> v. ([g, m, p] \<turnstile> cond \<mapsto> v)"
+  using IfNodeStepE assms(1) assms(2) apply auto[1]
+  by (smt (verit) IRNode.disc(1966) IRNode.distinct(1733) IRNode.distinct(1735) IRNode.distinct(1755) IRNode.distinct(1757) IRNode.distinct(1777) IRNode.distinct(1783) IRNode.distinct(1787) IRNode.distinct(1789) IRNode.distinct(401) IRNode.distinct(755) StutterStep fst_conv ifNodeHasCondEvalStutter is_AbstractEndNode.simps is_EndNode.simps(16) snd_conv step.cases)
 
 lemma replace_if_t:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> cond \<mapsto> bool"
   assumes "val_to_bool bool"
   assumes g': "g' = replace_usages nid tb g"
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
 proof -
   have g1step: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
-    by (meson IfNode assms(1) assms(2) assms(3))
+    by (meson IfNode assms(1) assms(2) assms(3) encodeeval_def)
   have g2step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using g' unfolding replace_usages.simps
     by (simp add: stepRefNode)
@@ -1352,7 +1524,7 @@ qed
 
 lemma replace_if_t_imp:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> cond \<mapsto> bool"
   assumes "val_to_bool bool"
   assumes g': "g' = replace_usages nid tb g"
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
@@ -1360,13 +1532,13 @@ lemma replace_if_t_imp:
 
 lemma replace_if_f:
   assumes "kind g nid = IfNode cond tb fb"
-  assumes "[g, m, p] \<turnstile> kind g cond \<mapsto> bool"
+  assumes "[g, m, p] \<turnstile> cond \<mapsto> bool"
   assumes "\<not>(val_to_bool bool)"
   assumes g': "g' = replace_usages nid fb g"
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
 proof -
   have g1step: "g, p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
-    by (meson IfNode assms(1) assms(2) assms(3))
+    by (meson IfNode assms(1) assms(2) assms(3) encodeeval_def)
   have g2step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     using g' unfolding replace_usages.simps
     by (simp add: stepRefNode)
@@ -1383,24 +1555,24 @@ lemma ConditionalEliminationStepProof:
   assumes ws: "wf_stamps g"
   assumes wv: "wf_values g"
   assumes nid: "nid \<in> ids g"
-  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([g, m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
-  assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
+  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
+  assumes ce: "ConditionalEliminationStep conds stamps nid g g'"
 
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
   using ce using assms
-proof (induct g nid g' rule: ConditionalEliminationStep.induct)
-  case (impliesTrue g ifcond cid t f cond conds g')
+proof (induct nid g g' rule: ConditionalEliminationStep.induct)
+  case (impliesConds g ifcond cid t f cond conds g')
   show ?case proof (cases "(g m p h \<turnstile> ifcond \<leadsto> nid')")
     case True
-    obtain condv where condv: "[g, m, p] \<turnstile> kind g cid \<mapsto> condv"
-      using implies.simps impliesTrue.hyps(3) impliesTrue.prems(4)
-      using impliesTrue.hyps(2) True
-      by (metis ifNodeHasCondEvalStutter impliesTrue.hyps(1))
+    obtain condv where condv: "[g, m, p] \<turnstile> cid \<mapsto> condv"
+      using impliesx.simps impliesConds.hyps(3) impliesConds.prems(4)
+      using impliesConds.hyps(2) True
+      by (metis ifNodeHasCondEvalStutter impliesConds.hyps(1))
     have condvTrue: "val_to_bool condv"
-      by (metis condition_implies.intros(2) condv impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(1) impliesTrue.prems(3) impliesTrue.prems(5) implies_true_valid)
+      using condv encodeeval_def eval_negated by blast
     then show ?thesis
       using constantConditionValid 
-      using impliesTrue.hyps(1) condv impliesTrue.hyps(4)
+      using impliesConds.hyps(1) condv impliesConds.hyps(5)
       by blast
   next
     case False
@@ -1411,14 +1583,14 @@ next
   then show ?case 
   proof (cases "(g m p h \<turnstile> ifcond \<leadsto> nid')")
     case True
-    obtain condv where condv: "[g, m, p] \<turnstile> kind g cid \<mapsto> condv"
+    obtain condv where condv: "[g, m, p] \<turnstile> cid \<mapsto> condv"
       using ifNodeHasCondEvalStutter impliesFalse.hyps(1)
       using True by blast
     have condvFalse: "False = val_to_bool condv"
-      by (metis condition_implies.intros(2) condv impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(1) impliesFalse.prems(3) impliesFalse.prems(5) implies_false_valid)
+      using condv encodeeval_def eval_negated by blast
     then show ?thesis
       using constantConditionValid 
-      using impliesFalse.hyps(1) condv impliesFalse.hyps(4)
+      using impliesFalse.hyps(1) condv impliesFalse.hyps(5)
       by blast
   next
     case False
@@ -1433,6 +1605,12 @@ next
   case (tryFoldFalse g ifcond cid t f cond g' conds)
   then show ?case using constantConditionValid tryFoldProofFalse
     using StutterStep constantConditionFalse by metis
+next
+  case (unknown g ifcond cid t f cond condNode conds stamps)
+  then show ?case sorry
+next
+  case (notIfNode g ifcond conds stamps)
+  then show ?case sorry
 qed
 
 
@@ -1443,38 +1621,46 @@ with respect to finding a bisimulation between the unoptimized and optimized gra
 lemma ConditionalEliminationStepProofBisimulation:
   assumes wf: "wf_graph g \<and> wf_stamp g stamps \<and> wf_values g"
   assumes nid: "nid \<in> ids g"
-  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([g, m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
-  assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
+  assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
+  assumes ce: "ConditionalEliminationStep conds stamps nid g g'"
   assumes gstep: "\<exists> h nid'. (g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))" (* we don't yet consider optimizations which produce a step that didn't already exist *)
 
   shows "nid | g \<sim> g'"
   using ce gstep using assms
-proof (induct g nid g' rule: ConditionalEliminationStep.induct)
-  case (impliesTrue g ifcond cid t f cond conds g' stamps)
-  from impliesTrue(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    by (metis IfNode StutterStep condition_implies.intros(2) ifNodeHasCondEvalStutter impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(2) impliesTrue.prems(4) implies_true_valid)
+proof (induct nid g g' rule: ConditionalEliminationStep.induct)
+  case (impliesConds g ifcond cid t f cond condNode conds stamps g')
+  from impliesConds(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
+    using IfNode encodeeval_def ifNodeHasCondEval impliesConds.hyps(1) impliesConds.hyps(2) impliesConds.hyps(3) impliesConds.prems(4) implies_impliesnot_valid implies_valid.simps repDet
+    by (metis eval_negated impliesConds.prems(1) logic_negation_relation_tree)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(4) by blast
+    using constantConditionTrue impliesConds.hyps(1) impliesConds.hyps(5) by blast
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
 next
-  case (impliesFalse g ifcond cid t f cond conds g' stamps)
+  case (impliesFalse g ifcond cid t f cond condNode conds stamps g')
   from impliesFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    by (metis IfNode condition_implies.intros(2) ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(2) impliesFalse.prems(4) implies_false_valid)
+    using IfNode encodeeval_def ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(4) implies_impliesnot_valid impliesnot_valid.simps repDet
+    by (metis eval_negated impliesFalse.prems(1) logic_negation_relation_tree)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(4) by blast
+    using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(5) by blast
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
+next
+  case (unknown g ifcond cid t f cond condNode conds stamps)
+  then show ?case sorry
+next
+  case (notIfNode g ifcond conds stamps)
+  then show ?case sorry
 next
   case (tryFoldTrue g ifcond cid t f cond stamps g' conds)
-  from tryFoldTrue(5) obtain val where "[g, m, p] \<turnstile> kind g cid \<mapsto> val"
+  from tryFoldTrue(5) obtain val where "[g, m, p] \<turnstile> cid \<mapsto> val"
     using ifNodeHasCondEval tryFoldTrue.hyps(1) by blast
   then have "val_to_bool val"
     using tryFoldProofTrue tryFoldTrue.prems(2) tryFoldTrue(3) 
     by blast
   then obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using tryFoldTrue(5)
-    by (meson IfNode \<open>[g, m, p] \<turnstile> kind g cid \<mapsto> val\<close> tryFoldTrue.hyps(1))
+    by (meson IfNode \<open>[g::IRGraph,m::nat \<Rightarrow> Value,p::Value list] \<turnstile> cid::nat \<mapsto> val::Value\<close> encodeeval_def tryFoldTrue.hyps(1))
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using constantConditionTrue tryFoldTrue.hyps(1) tryFoldTrue.hyps(4) by presburger
   then show ?case using gstep
@@ -1482,7 +1668,7 @@ next
 next
   case (tryFoldFalse g ifcond cid t f cond stamps g' conds)
   from tryFoldFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    by (meson IfNode ifNodeHasCondEval tryFoldFalse.hyps(1) tryFoldFalse.hyps(3) tryFoldFalse.prems(2) tryFoldProofFalse)
+    by (meson IfNode StutterStep encodeeval_def ifNodeHasCondEvalStutter tryFoldFalse.hyps(1) tryFoldFalse.hyps(3) tryFoldFalse.prems(2) tryFoldProofFalse)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     using constantConditionFalse tryFoldFalse.hyps(1) tryFoldFalse.hyps(4) by blast
   then show ?case using gstep
@@ -1490,26 +1676,186 @@ next
 qed
 
 
-text \<open>Mostly experimental proofs from here on out.\<close>
-
 experiment begin
-lemma if_step:
+(*lemma if_step:
   assumes "nid \<in> ids g"
   assumes "(kind g nid) \<in> control_nodes"
   shows "(g m p h \<turnstile> nid \<leadsto> nid')"
   using assms apply (cases "kind g nid") sorry
+*)
 
+lemma inverse_succ:
+  "\<forall>n' \<in> (succ g n). n \<in> ids g \<longrightarrow> n \<in> (predecessors g n')"
+  by simp
+
+lemma sequential_successors:
+  assumes "is_sequential_node n"
+  shows "successors_of n \<noteq> []"
+  using assms by (cases n; auto)
+
+lemma nid'_succ:
+  assumes "nid \<in> ids g"
+  assumes "\<not>(is_AbstractEndNode (kind g nid0))"
+  assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
+  shows "nid \<in> succ g nid0"
+  using assms(3) proof (induction "(nid0, m0, h0)" "(nid, m, h)" rule: step.induct)
+  case SequentialNode
+  then show ?case
+    by (metis length_greater_0_conv nth_mem sequential_successors succ.simps)
+next
+  case (FixedGuardNode cond before "next" condE val)
+  then have "{next} = succ g nid0"
+    using IRNodes.successors_of_FixedGuardNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    using FixedGuardNode.hyps(5) by blast
+next
+  case (BytecodeExceptionNode args st exceptionType ref)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_BytecodeExceptionNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (IfNode cond tb fb condE val)
+  then have "{tb, fb} = succ g nid0"
+    using IRNodes.successors_of_IfNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by (metis IfNode.hyps(1) IfNode.hyps(2) IfNode.hyps(3) IfNode.hyps(5) IfNode.hyps(6) IfNodeStepCases assms(3))
+next
+  case (EndNodes i phis inps inpsE vs)
+  then show ?case using assms(2) by blast
+next
+  case (NewArrayNode len st lenE length' arrayType h' ref refNo)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_NewArrayNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (ArrayLengthNode x xE ref arrayVal length')
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_ArrayLengthNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (LoadIndexedNode index guard array indexE indexVal arrayE ref arrayVal loaded)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_LoadIndexedNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (StoreIndexedNode check val st index guard array indexE indexVal arrayE ref valE "value" arrayVal updated)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_StoreIndexedNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (NewInstanceNode cname obj ref)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_NewInstanceNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (LoadFieldNode f obj objE ref v)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_LoadFieldNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (SignedDivNode x y zero sb xe ye v1 v2 v)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_SignedDivNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (SignedRemNode x y zero sb xe ye v1 v2 v)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_SignedRemNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (StaticLoadFieldNode f v)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_LoadFieldNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (StoreFieldNode f newval uu obj newvalE objE val ref)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_StoreFieldNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+next
+  case (StaticStoreFieldNode f newval uv newvalE val)
+  then have "{nid} = succ g nid0"
+    using IRNodes.successors_of_StoreFieldNode unfolding succ.simps
+    by (metis empty_set list.simps(15))
+  then show ?case
+    by blast
+qed
+
+lemma nid'_pred:
+  assumes "nid \<in> ids g"
+  assumes "\<not>(is_AbstractEndNode (kind g nid0))"
+  assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
+  shows "nid0 \<in> predecessors g nid"
+  using assms
+  by (meson inverse_succ nid'_succ step_in_ids)
+
+definition wf_pred:
+  "wf_pred g = (\<forall>n \<in> ids g. card (predecessors g n) = 1)"
+
+lemma
+  assumes "\<not>(is_AbstractMergeNode (kind g n'))"
+  assumes "wf_pred g"
+  shows "predecessors g n = {v} \<and> pred g n' = Some v"
+  using assms unfolding pred.simps sorry
+
+lemma inverse_succ1:
+  assumes "\<not>(is_AbstractEndNode (kind g n'))"
+  assumes "wf_pred g"
+  shows "\<forall>n' \<in> (succ g n). n \<in> ids g \<longrightarrow> Some n = (pred g n')"
+  using assms sorry
+
+lemma BeginNodeFlow:
+  assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
+  assumes "Some ifcond = pred g nid"
+  assumes "kind g ifcond = IfNode cond t f"
+  assumes "i = find_index nid (successors_of (kind g ifcond))"
+  shows "i = 0 \<longleftrightarrow> ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+proof -
+  obtain tb fb where "[tb, fb] = successors_of (kind g ifcond)"
+    by (simp add: assms(3))
+  have "nid0 = ifcond"
+    using assms step.IfNode sorry
+  show ?thesis sorry
+qed
+
+(*
 lemma StepConditionsValid:
-  assumes "\<forall> cond \<in> set conds. ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+  assumes "\<forall> cond \<in> set conds. ([m, p] \<turnstile> cond \<mapsto> v) \<longrightarrow> val_to_bool v"
+  assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
   assumes "Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'))"
-  shows "\<forall> cond \<in> set conds'. ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
-  using assms(2) 
+  shows "\<forall> cond \<in> set conds'. ([m, p] \<turnstile> cond \<mapsto> v) \<longrightarrow> val_to_bool v"
+  using assms(3)
 proof (induction "(nid, seen, conds, flow)" "Some (nid', seen', conds', flow')" rule: Step.induct)
-  case (1 ifcond cond t f i c)
-  obtain cv where cv: "[g, m, p] \<turnstile> c \<mapsto> cv"
-    sorry
+  case (1 ifcond cond t f i c ce ce' flow')
+  assume "\<exists>cv. [m, p] \<turnstile> ce \<mapsto> cv"
+  then obtain cv where "[m, p] \<turnstile> ce \<mapsto> cv"
+    by blast
   have cvt: "val_to_bool cv"
-    sorry
+    using assms(2) sorry
   have "set conds' = {c} \<union> set conds"
     using "1.hyps"(8) by auto
   then show ?case using cv cvt assms(1) sorry
@@ -1550,7 +1896,8 @@ next
   then show ?case sorry
 qed
 qed
-end
 *)
+
+end
 
 end

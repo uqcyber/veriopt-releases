@@ -1,44 +1,83 @@
 section \<open>Conditional Elimination Phase\<close>
 
+text \<open>
+This theory presents the specification of the \texttt{ConditionalElimination} phase
+within the GraalVM compiler.
+The \texttt{ConditionalElimination} phase simplifies any condition of an \textsl{if}
+statement that can be implied by the conditions that dominate it.
+Such that if condition A implies that condition B \textsl{must} be true,
+the condition B is simplified to \texttt{true}.
+
+\begin{lstlisting}[language=java]
+if (A) {
+  if (B) {
+    ...
+  }
+}
+\end{lstlisting}
+
+We begin by defining the individual implication rules used by the phase
+in \secref{sec:rules}.
+These rules are then lifted to the rewriting of a condition within an \textsl{if}
+statement in \secref{sec:lift}.
+The traversal algorithm used by the compiler is specified in \secref{sec:traversal}.
+\<close>
+
 theory ConditionalElimination
   imports
     Semantics.IRTreeEvalThms
     Proofs.Rewrites
     Proofs.Bisimulation
+    OptimizationDSL.Markup
 begin
 
-subsection \<open>Individual Elimination Rules\<close>
+declare [[show_types=false]]
 
-text \<open>The set of rules used for determining whether a condition @{term q1} implies
-    another condition @{term q2} or its negation.
-    These rules are used for conditional elimination.\<close>
+subsection \<open>Implication Rules \label{sec:rules}\<close>
 
-inductive
-  implys :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<Rrightarrow> _") and 
-  nimplys :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<Rrightarrow>\<not> _") where
-  q_imp_q: 
-  "q \<Rrightarrow> q" |
-  eq_impliesnot_less:
-  "(BinaryExpr BinIntegerEquals x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerLessThan x y)" |
-  eq_impliesnot_less_rev:
-  "(BinaryExpr BinIntegerEquals x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerLessThan y x)" |
-  less_impliesnot_rev_less:
-  "(BinaryExpr BinIntegerLessThan x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerLessThan y x)" |
-  less_impliesnot_eq:
-  "(BinaryExpr BinIntegerLessThan x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerEquals x y)" |
-  less_impliesnot_eq_rev:
-  "(BinaryExpr BinIntegerLessThan x y) \<Rrightarrow>\<not> (BinaryExpr BinIntegerEquals y x)" |
-  negate_true:
-  "\<lbrakk>x \<Rrightarrow>\<not> y\<rbrakk> \<Longrightarrow> x \<Rrightarrow> (UnaryExpr UnaryLogicNegation y)" |
-  negate_false:
-  "\<lbrakk>x \<Rrightarrow> y\<rbrakk> \<Longrightarrow> x \<Rrightarrow>\<not> (UnaryExpr UnaryLogicNegation y)"
+text \<open>
+The set of rules used for determining whether a condition, @{term q\<^sub>1},
+ implies another condition, @{term q\<^sub>2}, must be true or false.
+\<close>
 
-text \<open>The relation @{term "q1 \<Rrightarrow> q2"} indicates that the implication @{term "q1 \<longrightarrow> q2"}
-    is known true (i.e. universally valid), 
-    and the relation @{term "q1 \<Rrightarrow>\<not> q2"} indicates that the implication @{term "q1 \<longrightarrow> q2"}
-    is known false (i.e. @{term "q1 \<longrightarrow>\<not> q2"} is universally valid.
-    If neither @{term "q1 \<Rrightarrow> q2"} nor @{term "q1 \<Rrightarrow>\<not> q2"} then the status is unknown.
-    Only the known true and known false cases can be used for conditional elimination.\<close>
+subsubsection \<open>Structural Implication\<close>
+
+text \<open>
+The first method for determining if a condition can be implied by another condition,
+is structural implication.
+That is, by looking at the structure of the conditions, we can determine the truth value.
+For instance, @{term "x == y"} implies that @{term "x < y"} cannot be true.
+\<close>
+
+inductive 
+  impliesx :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<Rrightarrow> _") and 
+  impliesnot :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" ("_ \<Rrightarrow>\<not> _") where
+  same:          "q \<Rrightarrow> q" |
+  eq_not_less:   "exp[x eq y] \<Rrightarrow>\<not> exp[x < y]" |
+  eq_not_less':  "exp[x eq y] \<Rrightarrow>\<not> exp[y < x]" |
+  less_not_less: "exp[x < y] \<Rrightarrow>\<not> exp[y < x]" |
+  less_not_eq:   "exp[x < y] \<Rrightarrow>\<not> exp[x eq y]" |
+  less_not_eq':  "exp[x < y] \<Rrightarrow>\<not> exp[y eq x]" |
+  negate_true:   "\<lbrakk>x \<Rrightarrow>\<not> y\<rbrakk> \<Longrightarrow> x \<Rrightarrow> exp[!y]" |
+  negate_false:  "\<lbrakk>x \<Rrightarrow> y\<rbrakk> \<Longrightarrow> x \<Rrightarrow>\<not> exp[!y]"
+
+inductive implies_complete :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool option \<Rightarrow> bool" where
+  implies:
+  "x \<Rrightarrow> y \<Longrightarrow> implies_complete x y (Some True)" |
+  impliesnot:
+  "x \<Rrightarrow>\<not> y \<Longrightarrow> implies_complete x y (Some False)" |
+  fail:
+  "\<not>((x \<Rrightarrow> y) \<or> (x \<Rrightarrow>\<not> y)) \<Longrightarrow> implies_complete x y None"
+
+
+text \<open>
+The relation @{term "q\<^sub>1 \<Rrightarrow> q\<^sub>2"} requires that the implication @{term "q\<^sub>1 \<longrightarrow> q\<^sub>2"}
+is known true (i.e. universally valid).
+The relation @{term "q\<^sub>1 \<Rrightarrow>\<not> q\<^sub>2"} requires that the implication @{term "q\<^sub>1 \<longrightarrow> q\<^sub>2"}
+is known false (i.e. @{term "q1 \<longrightarrow>\<not> q2"} is universally valid).
+If neither @{term "q\<^sub>1 \<Rrightarrow> q\<^sub>2"} nor @{term "q\<^sub>1 \<Rrightarrow>\<not> q\<^sub>2"} then the status is unknown
+and the condition cannot be simplified.
+\<close>
 
 fun implies_valid :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" (infix "\<Zinj>" 50) where
   "implies_valid q1 q2 = 
@@ -50,16 +89,14 @@ fun impliesnot_valid :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" (infix 
     (\<forall>m p v1 v2. ([m, p] \<turnstile> q1 \<mapsto> v1) \<and> ([m,p] \<turnstile> q2 \<mapsto> v2) \<longrightarrow> 
             (val_to_bool v1 \<longrightarrow> \<not>val_to_bool v2))"
 
-text \<open>The relation @{term "q1 \<Zinj> q2"} means @{term "q1 \<longrightarrow> q2"} is universally valid, 
-      and the relation @{term "q1 \<Zpinj> q2"} means @{term "q1 \<longrightarrow> \<not>q2"} is universally valid.\<close>
+text \<open>
+The relation @{term "q\<^sub>1 \<Zinj> q\<^sub>2"} means @{term "q\<^sub>1 \<longrightarrow> q\<^sub>2"} is universally valid, 
+and the relation @{term "q\<^sub>1 \<Zpinj> q\<^sub>2"} means @{term "q\<^sub>1 \<longrightarrow> \<not>q\<^sub>2"} is universally valid.
+\<close>
 
-lemma eq_impliesnot_less_helper:
-  "v1 = v2 \<longrightarrow> \<not>(int_signed_value b v1 < int_signed_value b v2)" 
-  by force 
-
-lemma eq_impliesnot_less_val:
-  "val_to_bool(intval_equals v1 v2) \<longrightarrow> \<not>val_to_bool(intval_less_than v1 v2)"
-proof -
+lemma eq_not_less_val:
+  "val_to_bool(val[v1 eq v2]) \<longrightarrow> \<not>val_to_bool(val[v1 < v2])"
+  proof -
   have unfoldEqualDefined: "(intval_equals v1 v2 \<noteq> UndefVal) \<Longrightarrow>
         (val_to_bool(intval_equals v1 v2) \<longrightarrow> (\<not>(val_to_bool(intval_less_than v1 v2))))"
     subgoal premises p
@@ -88,10 +125,8 @@ proof -
     by (metis Value.distinct(1) val_to_bool.elims(2) unfoldEqualDefined)
 qed
 
-thm_oracles eq_impliesnot_less_val
-
-lemma eq_impliesnot_less_rev_val:
-  "val_to_bool(intval_equals v1 v2) \<longrightarrow> \<not>val_to_bool(intval_less_than v2 v1)"
+lemma eq_not_less'_val:
+  "val_to_bool(val[v1 eq v2]) \<longrightarrow> \<not>val_to_bool(val[v2 < v1])"
 proof -
   have a: "intval_equals v1 v2 = intval_equals v2 v1"
     apply (cases "intval_equals v1 v2 = UndefVal")
@@ -106,11 +141,11 @@ proof -
         by (smt (verit) bool_to_val_bin.simps intval_equals.simps(1) v1v)
     qed done
   show ?thesis
-    using a eq_impliesnot_less_val by presburger
+    using a eq_not_less_val by presburger
 qed
 
-lemma less_impliesnot_rev_less_val:
-  "val_to_bool(intval_less_than v1 v2) \<longrightarrow> \<not>val_to_bool(intval_less_than v2 v1)"
+lemma less_not_less_val:
+  "val_to_bool(val[v1 < v2]) \<longrightarrow> \<not>val_to_bool(val[v2 < v1])"
   apply (rule impI)
   subgoal premises p
   proof -
@@ -131,87 +166,86 @@ lemma less_impliesnot_rev_less_val:
       using p unfoldLessThanLHS unfoldLessThanRHS by fastforce
   qed done
 
-lemma less_impliesnot_eq_val:
-  "val_to_bool(intval_less_than v1 v2) \<longrightarrow> \<not>val_to_bool(intval_equals v1 v2)"
-  using eq_impliesnot_less_val by blast
+lemma less_not_eq_val:
+  "val_to_bool(val[v1 < v2]) \<longrightarrow> \<not>val_to_bool(val[v1 eq v2])"
+  using eq_not_less_val by blast 
 
 lemma logic_negate_type:
   assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation x \<mapsto> v"
   shows "\<exists>b v2. [m, p] \<turnstile> x \<mapsto> IntVal b v2"
-  by (metis assms UnaryExprE intval_logic_negation.elims unary_eval.simps(4))
+  using assms
+  by (metis UnaryExprE intval_logic_negation.elims unary_eval.simps(4))
 
 lemma intval_logic_negation_inverse:
   assumes "b > 0"
   assumes "x = IntVal b v"
   shows "val_to_bool (intval_logic_negation x) \<longleftrightarrow> \<not>(val_to_bool x)"
-  by (cases x; auto simp: logic_negate_def assms)
+  using assms by (cases x; auto simp: logic_negate_def) 
 
 lemma logic_negation_relation_tree:
   assumes "[m, p] \<turnstile> y \<mapsto> val"
   assumes "[m, p] \<turnstile> UnaryExpr UnaryLogicNegation y \<mapsto> invval"
   shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
-  by (metis UnaryExprE evalDet eval_bits_1_64 logic_negate_type unary_eval.simps(4) assms
-      intval_logic_negation_inverse)
+  using assms using intval_logic_negation_inverse
+  by (metis UnaryExprE evalDet eval_bits_1_64 logic_negate_type unary_eval.simps(4))
 
-text \<open>The following theorem shows that the known true/false rules are valid.\<close>
+text \<open>The following theorem show that the known true/false rules are valid.\<close>
 
 theorem implies_impliesnot_valid:
   shows "((q1 \<Rrightarrow> q2) \<longrightarrow> (q1 \<Zinj> q2)) \<and>
          ((q1 \<Rrightarrow>\<not> q2) \<longrightarrow> (q1 \<Zpinj> q2))"
           (is "(?imp \<longrightarrow> ?val) \<and> (?notimp \<longrightarrow> ?notval)")
-proof (induct q1 q2  rule: implys_nimplys.induct)
-  case (q_imp_q q)
+proof (induct q1 q2  rule: impliesx_impliesnot.induct)
+  case (same q)
   then show ?case 
     using evalDet by fastforce
 next
-  case (eq_impliesnot_less x y)
-  then show ?case
-    apply auto[1] using eq_impliesnot_less_val evalDet by blast
+  case (eq_not_less x y)
+  then show ?case apply auto[1] using eq_not_less_val evalDet by blast
 next
-  case (eq_impliesnot_less_rev x y)
-  then show ?case
-    apply auto[1] using eq_impliesnot_less_rev_val evalDet by blast
+  case (eq_not_less' x y)
+  then show ?case apply auto[1] using eq_not_less'_val evalDet by blast
 next
-  case (less_impliesnot_rev_less x y)
-  then show ?case
-    apply auto[1] using less_impliesnot_rev_less_val evalDet by blast
+  case (less_not_less x y)
+  then show ?case apply auto[1] using less_not_less_val evalDet by blast
 next
-  case (less_impliesnot_eq x y)
-  then show ?case
-    apply auto[1] using less_impliesnot_eq_val evalDet by blast
+  case (less_not_eq x y)
+  then show ?case apply auto[1] using less_not_eq_val evalDet by blast
 next
-  case (less_impliesnot_eq_rev x y)
-  then show ?case
-    apply auto[1] by (metis eq_impliesnot_less_rev_val evalDet)
+  case (less_not_eq' x y)
+  then show ?case apply auto[1] using eq_not_less'_val evalDet by metis
 next
   case (negate_true x y)
-  then show ?case
-    apply auto[1] by (metis logic_negation_relation_tree unary_eval.simps(4) unfold_unary)
+  then show ?case apply auto[1]
+    by (metis logic_negation_relation_tree unary_eval.simps(4) unfold_unary)
 next
   case (negate_false x y)
-  then show ?case
-    apply auto[1] by (metis UnaryExpr logic_negation_relation_tree unary_eval.simps(4))
+  then show ?case apply auto[1]
+    by (metis UnaryExpr logic_negation_relation_tree unary_eval.simps(4)) 
 qed
 
-thm_oracles implies_impliesnot_valid
 
-
-lemma logic_negation_relation:
-  assumes "[g, m, p] \<turnstile> y \<mapsto> val"
-  assumes "kind g neg = LogicNegationNode y"
-  assumes "[g, m, p] \<turnstile> neg \<mapsto> invval"
-  assumes "invval \<noteq> UndefVal"
-  shows "val_to_bool val \<longleftrightarrow> \<not>(val_to_bool invval)"
-  by (metis assms(1,2,3) LogicNegationNode encodeeval_def logic_negation_relation_tree repDet)
-
+subsubsection \<open>Type Implication\<close>
 
 text \<open>
-The following relation corresponds to the UnaryOpLogicNode.tryFold
-and BinaryOpLogicNode.tryFold methods and their associated concrete implementations.
-
-The relation determines if a logic operation can be shown true or false
-through the stamp typing information.
+The second mechanism to determine whether a condition implies another is
+to use the type information of the relevant nodes.
+For instance, @{term "x < 4"} implies @{term "x < 10"}.
+We can show this by strengthening the type, stamp,
+of the node @{term x} such that the upper bound is @{term 4}.
+Then we the second condition is reached,
+we know that the condition must be true by the upperbound.
 \<close>
+
+text \<open>
+The following relation corresponds to the \texttt{UnaryOpLogicNode.tryFold}
+and \texttt{BinaryOpLogicNode.tryFold} methods and their associated
+concrete implementations.
+
+We track the refined stamps by mapping nodes to Stamps,
+the second parameter to @{term tryFold}.
+\<close>
+
 inductive tryFold :: "IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> bool \<Rightarrow> bool"
   where
   "\<lbrakk>alwaysDistinct (stamps x) (stamps y)\<rbrakk> 
@@ -227,9 +261,11 @@ inductive tryFold :: "IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow
     stpi_lower (stamps x) \<ge> stpi_upper (stamps y)\<rbrakk> 
     \<Longrightarrow> tryFold (IntegerLessThanNode x y) stamps False"
 
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool) tryFold .
+
 text \<open>
-Proofs that show that when the stamp lookup function is well-formed,
-the tryFold relation correctly predicts the output value with respect to
+Prove that, when the stamp map is valid,
+the @{term tryFold} relation correctly predicts the output value with respect to
 our evaluation semantics.
 \<close>
 
@@ -237,35 +273,30 @@ inductive_cases StepE:
   "g, p \<turnstile> (nid,m,h) \<rightarrow> (nid',m',h)"
 
 
-lemma isStampEmpty:
+lemma is_stamp_empty_valid:
   assumes "is_stamp_empty s"
   shows "\<not>(\<exists> val. valid_value val s)"
   using assms is_stamp_empty.simps apply (cases s; auto)
   by (metis linorder_not_le not_less_iff_gr_or_eq order.strict_trans valid_value.elims(2) valid_value.simps(1) valid_value.simps(5))
 
-lemma join_lhs:
+lemma join_valid:
   assumes "is_IntegerStamp s1 \<and> is_IntegerStamp s2"
-  shows "(valid_value v s1 \<and> valid_value v s2) \<longrightarrow> valid_value v (join s1 s2)"
-  using assms apply (cases s1; cases s2; auto)
+  assumes "valid_stamp s1 \<and> valid_stamp s2"
+  shows "(valid_value v s1 \<and> valid_value v s2) = valid_value v (join s1 s2)" (is "?lhs = ?rhs")
+proof
+  assume ?lhs
+  then show ?rhs 
+   using assms(1) apply (cases s1; cases s2; auto)
    apply (metis Value.inject(1) valid_int)
   by (smt (z3) valid_int valid_stamp.simps(1) valid_value.simps(1))
-
-lemma join_rhs:
-  assumes "is_IntegerStamp s1 \<and> is_IntegerStamp s2"
-  assumes "valid_stamp s1 \<and> valid_stamp s2"
-  assumes "valid_value v (join s1 s2)"
-  shows "(valid_value v s1 \<and> valid_value v s2)"
-  using assms apply (cases s1; cases s2; simp)
+  next
+  assume ?rhs
+  then show ?lhs
+    using assms apply (cases s1; cases s2; simp)
   by (smt (verit, best) assms(2) valid_int valid_value.simps(1) valid_value.simps(22))
+qed
 
-lemma join:
-  assumes "is_IntegerStamp s1 \<and> is_IntegerStamp s2"
-  assumes "valid_stamp s1 \<and> valid_stamp s2"
-  shows "(valid_value v s1 \<and> valid_value v s2) = valid_value v (join s1 s2)"
-  using join_lhs join_rhs
-  by (metis assms(1) assms(2))
-
-lemma alwaysDistinct:
+lemma alwaysDistinct_evaluate:
   assumes "wf_stamp g stamps"
   assumes "alwaysDistinct (stamps x) (stamps y)"
   assumes "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y) \<and> valid_stamp (stamps x) \<and> valid_stamp (stamps y)"
@@ -279,20 +310,20 @@ proof -
     by (meson assms(1) encodeeval_def eval_in_ids wf_stamp.elims(2))
   have "\<forall>v. valid_value v (join stampx stampy) = (valid_value v stampx \<and> valid_value v stampy)"
     using assms(3)
-    by (simp add: join stampdef)
+    by (simp add: join_valid stampdef)
   then show ?thesis
     using assms unfolding alwaysDistinct.simps
-    using isStampEmpty stampdef xv yv by blast
+    using is_stamp_empty_valid stampdef xv yv by blast
 qed
 
-lemma tryFoldIntegerEqualsAlwaysDistinct:
+lemma alwaysDistinct_valid:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "alwaysDistinct (stamps x) (stamps y)"
   shows "\<not>(val_to_bool v)"
 proof -
-  have "\<forall> val. \<not>(valid_value val (join (stamps x) (stamps y)))"
+  have no_valid: "\<forall> val. \<not>(valid_value val (join (stamps x) (stamps y)))"
     by (smt (verit, best) is_stamp_empty.elims(2) valid_int valid_value.simps(1) assms(1,4)
         alwaysDistinct.simps)
   obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerEquals xe ye)"
@@ -303,18 +334,25 @@ proof -
     by (metis IRNode.distinct(1955) IRNode.distinct(1997) IRNode.inject(17) IntegerEqualsNodeE assms(2) calculation)
   ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
     by (meson BinaryExprE encodeeval_def)
-  have "valid_value xv (stamps x)"
+  have xvalid: "valid_value xv (stamps x)"
     using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
   then have xint: "is_IntegerStamp (stamps x)"
     using assms(4) valid_value.elims(2) by fastforce
-  have "valid_value yv (stamps y)"
+  then have xstamp: "valid_stamp (stamps x)"
+    using xvalid apply (cases xv; auto) 
+    apply (smt (z3) valid_stamp.simps(6) valid_value.elims(1))
+    using is_IntegerStamp_def by fastforce
+  have yvalid: "valid_value yv (stamps y)"
     using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
   then have yint: "is_IntegerStamp (stamps y)"
     using assms(4) valid_value.elims(2) by fastforce
+  then have ystamp: "valid_stamp (stamps y)"
+    using yvalid apply (cases yv; auto) 
+    apply (smt (z3) valid_stamp.simps(6) valid_value.elims(1))
+    using is_IntegerStamp_def by fastforce
   have disjoint: "\<not>(\<exists> val . ([g, m, p] \<turnstile> x \<mapsto> val) \<and> ([g, m, p] \<turnstile> y \<mapsto> val))"
-    using alwaysDistinct
-    using assms(1) assms(4) xint yint
-    by (metis \<open>\<forall>val::Value. \<not> valid_value val (join ((stamps::nat \<Rightarrow> Stamp) (x::nat)) (stamps (y::nat)))\<close> \<open>valid_value (xv::Value) ((stamps::nat \<Rightarrow> Stamp) (x::nat))\<close> \<open>valid_value (yv::Value) ((stamps::nat \<Rightarrow> Stamp) (y::nat))\<close> evalsub graphDet join_lhs)
+    using alwaysDistinct_evaluate
+    using assms(1) assms(4) xint yint xvalid yvalid xstamp ystamp by simp
   have "v = bin_eval BinIntegerEquals xv yv"
     by (metis BinaryExprE encodeeval_def evale evalsub graphDet repsub)
   also have "v \<noteq> UndefVal"
@@ -325,7 +363,7 @@ proof -
   then show ?thesis
     by (metis (mono_tags, lifting) \<open>(v::Value) \<noteq> UndefVal\<close> bool_to_val.elims bool_to_val_bin.simps disjoint evalsub val_to_bool.simps(1))
 qed
-thm_oracles tryFoldIntegerEqualsAlwaysDistinct
+thm_oracles alwaysDistinct_valid
 
 lemma unwrap_valid:
   assumes "0 < b \<and> b \<le> 64"
@@ -334,7 +372,7 @@ lemma unwrap_valid:
   using assms apply auto[1]
   by (simp add: take_bit_signed_take_bit)
 
-lemma asConstant:
+lemma asConstant_valid:
   assumes "asConstant s = val"
   assumes "val \<noteq> UndefVal"
   assumes "valid_value v s"
@@ -357,7 +395,7 @@ proof -
     using assms(3) s unwrap_valid by force
 qed
 
-lemma tryFoldIntegerEqualsNeverDistinct:
+lemma neverDistinct_valid:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
@@ -387,7 +425,7 @@ proof -
   then have yint: "is_IntegerStamp (stamps y)"
     using assms(4) valid_value.elims(2) by fastforce
   have eq: "\<forall>v1 v2. (([g, m, p] \<turnstile> x \<mapsto> v1) \<and> ([g, m, p] \<turnstile> y \<mapsto> v2)) \<longrightarrow> v1 = v2"
-    by (metis asConstant assms(4) encodeEvalDet evalsub neverDistinct.elims(1) xvalid yvalid)
+    by (metis asConstant_valid assms(4) encodeEvalDet evalsub neverDistinct.elims(1) xvalid yvalid)
   have "v = bin_eval BinIntegerEquals xv yv"
     by (metis BinaryExprE encodeeval_def evale evalsub graphDet repsub)
   also have "v \<noteq> UndefVal"
@@ -399,7 +437,7 @@ proof -
     using \<open>(v::Value) \<noteq> UndefVal\<close> eq evalsub by fastforce
 qed
 
-lemma tryFoldIntegerLessThanTrue:
+lemma stampUnder_valid:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
@@ -444,7 +482,7 @@ proof -
     by (simp add: vval)
 qed
 
-lemma tryFoldIntegerLessThanFalse:
+lemma stampOver_valid:
   assumes "wf_stamp g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
@@ -489,7 +527,7 @@ proof -
     by (simp add: vval)
 qed
 
-theorem tryFoldProofTrue:
+theorem tryFoldTrue_valid:
   assumes "wf_stamp g stamps"
   assumes "tryFold (kind g nid) stamps True"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
@@ -497,24 +535,24 @@ theorem tryFoldProofTrue:
   using assms(2) proof (induction "kind g nid" stamps True rule: tryFold.induct)
 case (1 stamps x y)
   then show ?case
-    using tryFoldIntegerEqualsAlwaysDistinct assms by force
+    using alwaysDistinct_valid assms by force
 next
   case (2 stamps x y)
   then show ?case
-    by (smt (verit, best) one_neq_zero tryFold.cases tryFoldIntegerEqualsNeverDistinct assms
-        tryFoldIntegerLessThanTrue val_to_bool.simps(1))
+    by (smt (verit, best) one_neq_zero tryFold.cases neverDistinct_valid assms
+        stampUnder_valid val_to_bool.simps(1))
 next
   case (3 stamps x y)
   then show ?case
-    by (smt (verit, best) one_neq_zero tryFold.cases tryFoldIntegerEqualsNeverDistinct assms
-        val_to_bool.simps(1) tryFoldIntegerLessThanTrue)
+    by (smt (verit, best) one_neq_zero tryFold.cases neverDistinct_valid assms
+        val_to_bool.simps(1) stampUnder_valid)
 next
 case (4 stamps x y)
   then show ?case
     by force
 qed
 
-theorem tryFoldProofFalse:
+theorem tryFoldFalse_valid:
   assumes "wf_stamp g stamps"
   assumes "tryFold (kind g nid) stamps False"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
@@ -522,8 +560,8 @@ theorem tryFoldProofFalse:
 using assms(2) proof (induction "kind g nid" stamps False rule: tryFold.induct)
 case (1 stamps x y)
   then show ?case
-    by (smt (verit) tryFoldIntegerLessThanFalse tryFoldIntegerEqualsAlwaysDistinct tryFold.cases
-        tryFoldIntegerEqualsNeverDistinct val_to_bool.simps(1) assms)
+    by (smt (verit) stampOver_valid alwaysDistinct_valid tryFold.cases
+        neverDistinct_valid val_to_bool.simps(1) assms)
 next
 case (2 stamps x y)
   then show ?case
@@ -535,56 +573,82 @@ next
 next
   case (4 stamps x y)
   then show ?case
-    by (smt (verit, del_insts) tryFold.cases tryFoldIntegerEqualsAlwaysDistinct val_to_bool.simps(1)
-        tryFoldIntegerLessThanFalse assms)
+    by (smt (verit, del_insts) tryFold.cases alwaysDistinct_valid val_to_bool.simps(1)
+        stampOver_valid assms)
 qed
 
+
+subsection \<open>Lift rules\<close>
+
+inductive condset_implies :: "IRExpr set \<Rightarrow> IRExpr \<Rightarrow> bool \<Rightarrow> bool" where
+  impliesTrue:
+  "(\<exists>ce \<in> conds . (ce \<Rrightarrow> cond)) \<Longrightarrow> condset_implies conds cond True" |
+  impliesFalse:
+  "(\<exists>ce \<in> conds . (ce \<Rrightarrow>\<not> cond)) \<Longrightarrow> condset_implies conds cond False"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> bool) condset_implies .
+
 text \<open>
-Perform conditional elimination rewrites on the graph for a particular node.
+The @{term cond_implies} function lifts the structural and type implication
+rules to the one relation.
+\<close>
+
+fun conds_implies :: "IRExpr set \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> IRNode \<Rightarrow> IRExpr \<Rightarrow> bool option" where
+  "conds_implies conds stamps condNode cond = 
+    (if condset_implies conds cond True \<or> tryFold condNode stamps True 
+      then Some True
+    else if condset_implies conds cond False \<or> tryFold condNode stamps False
+      then Some False
+    else None)"
+
+text \<open>
+Perform conditional elimination rewrites on the graph for a particular node
+by lifting the individual implication rules to a relation that rewrites the
+condition of \textsl{if} statements to constant values.
 
 In order to determine conditional eliminations appropriately the rule needs two
 data structures produced by static analysis.
 The first parameter is the set of IRNodes that we know result in a true value
 when evaluated.
 The second parameter is a mapping from node identifiers to the flow-sensitive stamp.
-
-The relation transforms the third parameter to the fifth parameter for a node identifier
-which represents the fourth parameter.
 \<close>
+
 inductive ConditionalEliminationStep :: 
-  "IRExpr set \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> IRGraph \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  "IRExpr set \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
+  where
   impliesTrue:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
-    g \<turnstile> cid \<simeq> cond;
-    \<exists> ce \<in> conds . (ce \<Rrightarrow> cond);
+    g \<turnstile> cid \<simeq> cond; 
+    condNode = kind g cid;
+    conds_implies conds stamps condNode cond = (Some True);
     g' = constantCondition True ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps ifcond g g'" |
 
   impliesFalse:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
     g \<turnstile> cid \<simeq> cond;
-    \<exists> ce \<in> conds . (ce \<Rrightarrow>\<not> cond);
+    condNode = kind g cid;
+    conds_implies conds stamps condNode cond = (Some False);
     g' = constantCondition False ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps ifcond g g'" |
 
-  tryFoldTrue:
+  unknown:
   "\<lbrakk>kind g ifcond = (IfNode cid t f);
-    cond = kind g cid;
-    tryFold (kind g cid) stamps True;
-    g' = constantCondition True ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'" |
+    g \<turnstile> cid \<simeq> cond; 
+    condNode = kind g cid;
+    conds_implies conds stamps condNode cond = None
+    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps ifcond g g" |
 
-  tryFoldFalse:
-  "\<lbrakk>kind g ifcond = (IfNode cid t f);
-    cond = kind g cid;
-    tryFold (kind g cid) stamps False;
-    g' = constantCondition False ifcond (kind g ifcond) g
-    \<rbrakk> \<Longrightarrow> ConditionalEliminationStep conds stamps g ifcond g'"
+  notIfNode:
+  "\<not>(is_IfNode (kind g ifcond)) \<Longrightarrow>
+    ConditionalEliminationStep conds stamps ifcond g g"
 
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationStep .
 
 thm ConditionalEliminationStep.equation
+
+
 
 subsection \<open>Control-flow Graph Traversal\<close>
 
@@ -592,10 +656,12 @@ type_synonym Seen = "ID set"
 type_synonym Condition = "IRExpr"
 type_synonym Conditions = "Condition list"
 type_synonym StampFlow = "(ID \<Rightarrow> Stamp) list"
+type_synonym ToVisit = "ID list"
+
 
 text \<open>
-nextEdge helps determine which node to traverse next by returning the first successor
-edge that isn't in the set of already visited nodes.
+@{term "nextEdge"} helps determine which node to traverse next 
+by returning the first successor edge that isn't in the set of already visited nodes.
 If there is not an appropriate successor, None is returned instead.
 \<close>
 fun nextEdge :: "Seen \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> ID option" where
@@ -604,57 +670,252 @@ fun nextEdge :: "Seen \<Rightarrow> ID \<Rightarrow> IRGraph \<Rightarrow> ID op
      (if length nids > 0 then Some (hd nids) else None))"
 
 text \<open>
-pred determines which node, if any, acts as the predecessor of another.
+@{term "pred"} determines which node, if any, acts as the predecessor of another.
 
-Merge nodes represent a special case where-in the predecessor exists as
+Merge nodes represent a special case wherein the predecessor exists as
 an input edge of the merge node, to simplify the traversal we treat only
 the first input end node as the predecessor, ignoring that multiple nodes
 may act as a successor.
 
 For all other nodes, the predecessor is the first element of the predecessors set.
-Note that in a well-formed graph there should only be one element in the predecessor set.\<close>
-fun pred :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
-  "pred g nid = (case kind g nid of
-    (MergeNode ends _ _) \<Rightarrow> Some (hd ends) |
+Note that in a well-formed graph there should only be one element in the predecessor set.
+\<close>
+fun preds :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "preds g nid = (case kind g nid of
+    (MergeNode ends _ _) \<Rightarrow> ends |
     _ \<Rightarrow> 
-      (if IRGraph.predecessors g nid = {} 
-        then None else
-        Some (hd (sorted_list_of_set (IRGraph.predecessors g nid)))
-      )
+      sorted_list_of_set (IRGraph.predecessors g nid)
   )"
+
+fun pred :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
+  "pred g nid = (case preds g nid of [] \<Rightarrow> None | x # xs \<Rightarrow> Some x)"
 
 
 text \<open>
 When the basic block of an if statement is entered, we know that the condition of the
 preceding if statement must be true.
-As in the GraalVM compiler, we introduce the registerNewCondition funciton which roughly
-corresponds to the ConditionalEliminationPhase.registerNewCondition.
+As in the GraalVM compiler, we introduce the \texttt{registerNewCondition} function
+which roughly corresponds to \texttt{ConditionalEliminationPhase.registerNewCondition}.
 This method updates the flow-sensitive stamp information based on the condition which
 we know must be true. 
 \<close>
 fun clip_upper :: "Stamp \<Rightarrow> int \<Rightarrow> Stamp" where
-  "clip_upper (IntegerStamp b l h) c = (IntegerStamp b l c)" |
+  "clip_upper (IntegerStamp b l h) c = 
+          (if c < h then (IntegerStamp b l c) else (IntegerStamp b l h))" |
   "clip_upper s c = s"
 fun clip_lower :: "Stamp \<Rightarrow> int \<Rightarrow> Stamp" where
-  "clip_lower (IntegerStamp b l h) c = (IntegerStamp b c h)" |
+  "clip_lower (IntegerStamp b l h) c = 
+          (if l < c then (IntegerStamp b c h) else (IntegerStamp b l c))" |
   "clip_lower s c = s"
 
 fun registerNewCondition :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> (ID \<Rightarrow> Stamp)" where
-  (* constrain equality by joining the stamps *)
+  \<comment> \<open>constrain equality by joining the stamps\<close>
   "registerNewCondition g (IntegerEqualsNode x y) stamps =
     (stamps
       (x := join (stamps x) (stamps y)))
       (y := join (stamps x) (stamps y))" |
-  (* constrain less than by removing overlapping stamps *)
+  \<comment> \<open>constrain less than by removing overlapping stamps\<close>
   "registerNewCondition g (IntegerLessThanNode x y) stamps =
     (stamps
-      (x := clip_upper (stamps x) (stpi_lower (stamps y))))
-      (y := clip_lower (stamps y) (stpi_upper (stamps x)))" |
+      (x := clip_upper (stamps x) ((stpi_lower (stamps y)) - 1)))
+      (y := clip_lower (stamps y) ((stpi_upper (stamps x)) + 1))" |
+  "registerNewCondition g (LogicNegationNode c) stamps =
+    (case (kind g c) of
+      (IntegerLessThanNode x y) \<Rightarrow>
+        (stamps
+          (x := clip_lower (stamps x) ((stpi_upper (stamps y)))))
+          (y := clip_upper (stamps y) ((stpi_lower (stamps x))))
+       | _ \<Rightarrow> stamps)" |
   "registerNewCondition g _ stamps = stamps"
 
 fun hdOr :: "'a list \<Rightarrow> 'a \<Rightarrow> 'a" where
   "hdOr (x # xs) de = x" |
   "hdOr [] de = de"
+
+(*
+fun isCFGNode :: "IRNode \<Rightarrow> bool" where
+  "isCFGNode (BeginNode _) = True" |
+  "isCFGNode (EndNode) = True" |
+  "isCFGNode _ = False"
+
+inductive CFGSuccessor ::
+  "IRGraph \<Rightarrow> (ID \<times> Seen \<times> ToVisit) \<Rightarrow> (ID \<times> Seen \<times> ToVisit) \<Rightarrow> bool"
+  for g where
+  \<comment> \<open>
+  Forward traversal transitively through successors until
+  a CFG node is reached.\<close>
+  "\<lbrakk>Some nid' = nextEdge seen nid g;
+    \<not>(isCFGNode (kind g nid'));
+    CFGSuccessor g (nid', {nid} \<union> seen, nid # toVisit) (nid'', seen', toVisit')\<rbrakk> 
+    \<Longrightarrow> CFGSuccessor g (nid, seen, toVisit) (nid'', seen', toVisit')" |
+  "\<lbrakk>Some nid' = nextEdge seen nid g;
+    isCFGNode (kind g nid')\<rbrakk>
+    \<Longrightarrow> CFGSuccessor g (nid, seen, toVisit) (nid', {nid} \<union> seen, nid # toVisit)" |
+
+  \<comment> \<open>
+  Backwards traversal transitively through toVisit stack until
+  a CFG node is reached.\<close>
+  "\<lbrakk>toVisit = nid' # toVisit';
+    CFGSuccessor g (nid', {nid} \<union> seen, nid # toVisit) (nid'', seen', toVisit')\<rbrakk> 
+    \<Longrightarrow> CFGSuccessor g (nid, seen, toVisit) (nid'', seen', toVisit')"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) CFGSuccessor .
+*)
+
+type_synonym DominatorCache = "(ID, ID set) map"
+
+inductive 
+  dominators_all :: "IRGraph \<Rightarrow> DominatorCache \<Rightarrow> ID \<Rightarrow> ID set set \<Rightarrow> ID list \<Rightarrow> DominatorCache \<Rightarrow> ID set set \<Rightarrow> ID list \<Rightarrow> bool" and
+  dominators :: "IRGraph \<Rightarrow> DominatorCache \<Rightarrow> ID \<Rightarrow> (ID set \<times> DominatorCache) \<Rightarrow> bool" where
+
+  "\<lbrakk>pre = []\<rbrakk>
+    \<Longrightarrow> dominators_all g c nid doms pre c doms pre" |
+
+  "\<lbrakk>pre = pr # xs;
+    (dominators g c pr (doms', c'));
+    dominators_all g c' pr (doms \<union> {doms'}) xs c'' doms'' pre'\<rbrakk>
+    \<Longrightarrow> dominators_all g c nid doms pre c'' doms'' pre'" |
+
+  "\<lbrakk>preds g nid = []\<rbrakk>
+    \<Longrightarrow> dominators g c nid ({nid}, c)" |
+  
+  "\<lbrakk>c nid = None;
+    preds g nid = x # xs;
+    dominators_all g c nid {} (preds g nid) c' doms pre';
+    c'' = c'(nid \<mapsto> ({nid} \<union> (\<Inter>doms)))\<rbrakk>
+    \<Longrightarrow> dominators g c nid (({nid} \<union> (\<Inter>doms)), c'')" |
+
+  "\<lbrakk>c nid = Some doms\<rbrakk>
+    \<Longrightarrow> dominators g c nid (doms, c)"
+
+\<comment> \<open>
+Trying to simplify by removing the 3rd case won't work.
+A base case for root nodes is required as @{term "\<Inter>{} = coset []"}
+which swallows anything unioned with it.
+\<close>
+value "\<Inter>({}::nat set set)"
+value "- \<Inter>({}::nat set set)"
+value "\<Inter>({{}, {0}}::nat set set)"
+value "{0::nat} \<union> (\<Inter>{})"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) dominators_all .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) dominators .
+
+(* initial: ConditionalEliminationTest13_testSnippet2 *)
+definition ConditionalEliminationTest13_testSnippet2_initial :: IRGraph where
+  "ConditionalEliminationTest13_testSnippet2_initial = irgraph [
+  (0, (StartNode (Some 2) 8), VoidStamp),
+  (1, (ParameterNode 0), IntegerStamp 32 (-2147483648) (2147483647)),
+  (2, (FrameState [] None None None), IllegalStamp),
+  (3, (ConstantNode (new_int 32 (0))), IntegerStamp 32 (0) (0)),
+  (4, (ConstantNode (new_int 32 (1))), IntegerStamp 32 (1) (1)),
+  (5, (IntegerLessThanNode 1 4), VoidStamp),
+  (6, (BeginNode 13), VoidStamp),
+  (7, (BeginNode 23), VoidStamp),
+  (8, (IfNode 5 7 6), VoidStamp),
+  (9, (ConstantNode (new_int 32 (-1))), IntegerStamp 32 (-1) (-1)),
+  (10, (IntegerEqualsNode 1 9), VoidStamp),
+  (11, (BeginNode 17), VoidStamp),
+  (12, (BeginNode 15), VoidStamp),
+  (13, (IfNode 10 12 11), VoidStamp),
+  (14, (ConstantNode (new_int 32 (-2))), IntegerStamp 32 (-2) (-2)),
+  (15, (StoreFieldNode 15 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink2'' 14 (Some 16) None 19), VoidStamp),
+  (16, (FrameState [] None None None), IllegalStamp),
+  (17, (EndNode), VoidStamp),
+  (18, (MergeNode [17, 19] (Some 20) 21), VoidStamp),
+  (19, (EndNode), VoidStamp),
+  (20, (FrameState [] None None None), IllegalStamp),
+  (21, (StoreFieldNode 21 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink1'' 3 (Some 22) None 25), VoidStamp),
+  (22, (FrameState [] None None None), IllegalStamp),
+  (23, (EndNode), VoidStamp),
+  (24, (MergeNode [23, 25] (Some 26) 27), VoidStamp),
+  (25, (EndNode), VoidStamp),
+  (26, (FrameState [] None None None), IllegalStamp),
+  (27, (StoreFieldNode 27 ''org.graalvm.compiler.core.test.ConditionalEliminationTestBase::sink0'' 9 (Some 28) None 29), VoidStamp),
+  (28, (FrameState [] None None None), IllegalStamp),
+  (29, (ReturnNode None None), VoidStamp)
+  ]"
+
+(* :(
+fun dominators :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID set" where
+  "dominators g nid = {nid} \<union> (\<Inter> y \<in> preds g nid. dominators g y)"
+*)
+
+values "{(snd x) 13| x. dominators ConditionalEliminationTest13_testSnippet2_initial Map.empty 25 x}"
+
+(*fun condition_of :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID option" where
+  "condition_of g nid = (case (kind g nid) of
+    (IfNode c t f) \<Rightarrow> Some c |
+    _ \<Rightarrow> None)"*)
+
+inductive
+  condition_of :: "IRGraph \<Rightarrow> ID \<Rightarrow> (IRExpr \<times> IRNode) option \<Rightarrow> bool" where
+  "\<lbrakk>Some ifcond = pred g nid;
+    kind g ifcond = IfNode cond t f;
+
+    i = find_index nid (successors_of (kind g ifcond));
+    c = (if i = 0 then kind g cond else LogicNegationNode cond);
+    rep g cond ce;
+    ce' = (if i = 0 then ce else UnaryExpr UnaryLogicNegation ce)\<rbrakk>
+  \<Longrightarrow> condition_of g nid (Some (ce', c))" |
+
+  "\<lbrakk>pred g nid = None\<rbrakk> \<Longrightarrow> condition_of g nid None" |
+  "\<lbrakk>pred g nid = Some nid';
+    \<not>(is_IfNode (kind g nid'))\<rbrakk> \<Longrightarrow> condition_of g nid None"
+
+inductive
+  conditions_of_dominators :: "IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> Conditions \<Rightarrow> bool" where
+  "\<lbrakk>nids = []\<rbrakk>
+    \<Longrightarrow> conditions_of_dominators g nids conditions conditions" |
+
+  "\<lbrakk>nids = nid # nids';
+    condition_of g nid (Some (expr, _));
+    conditions_of_dominators g nids' (expr # conditions) conditions'\<rbrakk>
+    \<Longrightarrow> conditions_of_dominators g nids conditions conditions'" |
+
+  "\<lbrakk>nids = nid # nids';
+    condition_of g nid None;
+    conditions_of_dominators g nids' conditions conditions'\<rbrakk>
+    \<Longrightarrow> conditions_of_dominators g nids conditions conditions'"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) conditions_of_dominators .
+
+inductive
+  stamps_of_dominators :: "IRGraph \<Rightarrow> ID list \<Rightarrow> StampFlow \<Rightarrow> StampFlow \<Rightarrow> bool" where
+  "\<lbrakk>nids = []\<rbrakk>
+    \<Longrightarrow> stamps_of_dominators g nids stamps stamps" |
+
+  "\<lbrakk>nids = nid # nids';
+    condition_of g nid (Some (_, node));
+    he = registerNewCondition g node (hd stamps);
+    stamps_of_dominators g nids' (he # stamps) stamps'\<rbrakk>
+    \<Longrightarrow> stamps_of_dominators g nids stamps stamps'" |
+
+  "\<lbrakk>nids = nid # nids';
+    condition_of g nid None;
+    stamps_of_dominators g nids' stamps stamps'\<rbrakk>
+    \<Longrightarrow> stamps_of_dominators g nids stamps stamps'"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) stamps_of_dominators .
+
+inductive
+  analyse :: "IRGraph \<Rightarrow> DominatorCache \<Rightarrow> ID \<Rightarrow> (Conditions \<times> StampFlow \<times> DominatorCache) \<Rightarrow> bool" where
+  "\<lbrakk>dominators g c nid (doms, c');
+    conditions_of_dominators g (sorted_list_of_set doms) [] conds;
+    stamps_of_dominators g (sorted_list_of_set doms) [stamp g] stamps\<rbrakk>
+    \<Longrightarrow> analyse g c nid (conds, stamps, c')"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) analyse .
+
+values "{x. dominators ConditionalEliminationTest13_testSnippet2_initial Map.empty 13 x}"
+values "{(conds, stamps, c). 
+analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 13 (conds, stamps, c)}"
+values "{(hd stamps) 1| conds stamps c .
+analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 13 (conds, stamps, c)}"
+values "{(hd stamps) 1| conds stamps c .
+analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 27 (conds, stamps, c)}"
+
+
 
 text \<open>
 The Step relation is a small-step traversal of the graph which handles transitions between
@@ -713,13 +974,14 @@ inductive Step
    \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'))" |
 
   \<comment> \<open>We can find a successor edge that is not in seen, go there\<close>
+(*nid \<notin> seen;*)
   "\<lbrakk>\<not>(is_EndNode (kind g nid));
     \<not>(is_BeginNode (kind g nid));
 
-    nid \<notin> seen;
     seen' = {nid} \<union> seen;
 
-    Some nid' = nextEdge seen' nid g\<rbrakk>
+    Some nid' = nextEdge seen' nid g;
+    nid' \<notin> seen'\<rbrakk>
    \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds, flow))" |
 
   \<comment> \<open>We can cannot find a successor edge that is not in seen, give back None\<close>
@@ -737,56 +999,141 @@ inductive Step
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Step .
 
+
+fun next_nid :: "IRGraph \<Rightarrow> ID set \<Rightarrow> ID \<Rightarrow> ID option" where
+  "next_nid g seen nid = (case (kind g nid) of
+    (EndNode) \<Rightarrow> Some (any_usage g nid) |
+    _ \<Rightarrow> nextEdge seen nid g)"
+
+inductive Step'
+  :: "IRGraph \<Rightarrow> (ID \<times> Seen) \<Rightarrow> (ID \<times> Seen) option \<Rightarrow> bool"
+  for g where
+  \<comment> \<open>We can find a successor edge that is not in seen, go there\<close>
+  "\<lbrakk>seen' = {nid} \<union> seen;
+
+    Some nid' = next_nid g seen' nid;
+    nid' \<notin> seen'\<rbrakk>
+   \<Longrightarrow> Step' g (nid, seen) (Some (nid', seen'))" |
+
+  \<comment> \<open>We can cannot find a successor edge that is not in seen, give back None\<close>
+  "\<lbrakk>seen' = {nid} \<union> seen;
+
+    None = next_nid g seen' nid\<rbrakk>
+    \<Longrightarrow> Step' g (nid, seen) None" |
+
+  \<comment> \<open>We've already seen this node, give back None\<close>
+  "\<lbrakk>seen' = {nid} \<union> seen;
+
+    Some nid' = next_nid g seen' nid;
+    nid' \<in> seen'\<rbrakk> \<Longrightarrow> Step' g (nid, seen) None"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Step' .
+
+values "{x. Step' ConditionalEliminationTest13_testSnippet2_initial (17, {17,11,25,21,18,19,15,12,13,6,29,27,24,23,7,8,0}) x}"
+
+
 text \<open>
-The ConditionalEliminationPhase relation is responsible for combining
-the individual traversal steps from the Step relation and the optimizations
-from the ConditionalEliminationStep relation to perform a transformation of the
+The @{text "ConditionalEliminationPhase"} relation is responsible for combining
+the individual traversal steps from the @{text "Step"} relation and the optimizations
+from the @{text "ConditionalEliminationStep"} relation to perform a transformation of the
 whole graph.
 \<close>
 
+
 inductive ConditionalEliminationPhase 
-  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> IRGraph \<Rightarrow> bool" where
+  :: "(ID \<times> Seen \<times> Conditions \<times> StampFlow \<times> ToVisit) \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
+  where
 
   \<comment> \<open>Can do a step and optimise for the current node\<close>
   "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
-    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) g nid g';
-    
-    ConditionalEliminationPhase g' (nid', seen', conds', flow') g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g''" |
+    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) nid g g';
+    toVisit' = nid # toVisit;
+
+    ConditionalEliminationPhase (nid', seen', conds', flow', toVisit') g' g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase (nid, seen, conds, flow, toVisit) g g''" |
 
   \<comment> \<open>Can do a step, matches whether optimised or not causing non-determinism
       We need to find a way to negate ConditionalEliminationStep\<close>
   "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
-    
-    ConditionalEliminationPhase g (nid', seen', conds', flow') g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g'" |
+    kind g nid = IfNode cid t f;
+    g \<turnstile> cid \<simeq> cond;
+    condNode = kind g cid;
+    conds_implies (set conds) (hdOr flow (stamp g)) condNode cond = None;
+    toVisit' = nid # toVisit;
+    ConditionalEliminationPhase (nid', seen', conds', flow', toVisit') g g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase (nid, seen, conds, flow, toVisit) g g'" |
 
-  \<comment> \<open>Can't do a step but there is a predecessor we can backtrace to\<close>
+  \<comment> \<open>Can't do a step but there is a predecessor we can backtrack to\<close>
+(*Some nid' = pred g nid;*)
   "\<lbrakk>Step g (nid, seen, conds, flow) None;
-    Some nid' = pred g nid;
+    
     seen' = {nid} \<union> seen;
-    ConditionalEliminationPhase g (nid', seen', conds, flow) g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g'" |
+    toVisit \<noteq> [];
+    nid' = hd toVisit;
+    toVisit' = tl toVisit;
+    ConditionalEliminationPhase (nid', seen', conds, flow, toVisit') g g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase (nid, seen, conds, flow, toVisit) g g'" |
 
   \<comment> \<open>Can't do a step and have no predecessors so terminate\<close>
+(*None = pred g nid*)
   "\<lbrakk>Step g (nid, seen, conds, flow) None;
-    None = pred g nid\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase g (nid, seen, conds, flow) g"
+    toVisit = []\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase (nid, seen, conds, flow, toVisit) g g"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase . 
+
+inductive ConditionalEliminationPhase' 
+  :: "(ID \<times> Seen \<times> ToVisit \<times> DominatorCache) \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
+  where
+
+  \<comment> \<open>Can do a step and optimise for the current node\<close>
+  "\<lbrakk>Step' g (nid, seen) (Some (nid', seen'));
+    analyse g c nid (conds, flow, c');
+    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) nid g g';
+    toVisit' = nid # toVisit;
+
+    ConditionalEliminationPhase' (nid', seen', toVisit', c') g' g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g''" |
+
+  \<comment> \<open>Can do a step, matches whether optimised or not causing non-determinism
+      We need to find a way to negate ConditionalEliminationStep\<close>
+  "\<lbrakk>Step' g (nid, seen) (Some (nid', seen'));
+    analyse g c nid (conds, flow, c');
+    kind g nid = IfNode cid t f;
+    g \<turnstile> cid \<simeq> cond;
+    condNode = kind g cid;
+    conds_implies (set conds) (hdOr flow (stamp g)) condNode cond = None;
+    toVisit' = nid # toVisit;
+    ConditionalEliminationPhase' (nid', seen', toVisit', c') g g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g'" |
+
+  \<comment> \<open>Can't do a step but there is a predecessor we can backtrack to\<close>
+(*Some nid' = pred g nid;*)
+  "\<lbrakk>Step' g (nid, seen) None;
+    
+    seen' = {nid} \<union> seen;
+    toVisit = nid' # toVisit';
+    ConditionalEliminationPhase' (nid', seen', toVisit', c) g g'\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g'" |
+
+  \<comment> \<open>Can't do a step and have no predecessors so terminate\<close>
+(*None = pred g nid*)
+  "\<lbrakk>Step' g (nid, seen) None;
+    toVisit = []\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase' . 
 
 definition runConditionalElimination :: "IRGraph \<Rightarrow> IRGraph" where
   "runConditionalElimination g = 
-    (Predicate.the (ConditionalEliminationPhase_i_i_o g (0, {}, ([], []))))"
-
-
+    (Predicate.the (ConditionalEliminationPhase'_i_i_o (0, {}, ([], Map.empty)) g))"
 
 inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<close>
   :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> ID list \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> bool" where\<^marker>\<open>tag invisible\<close>
 
   (* Can do a step and optimise for the current nid *)
   "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
-    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) g nid g';
+    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) nid g g';
     
     ConditionalEliminationPhaseWithTrace g' (nid', seen', conds', flow') (nid # t) g'' t' conds''\<rbrakk>
     \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds, flow) t g'' t' conds''" |
@@ -885,24 +1232,16 @@ lemma ConditionalEliminationStepProof:
   assumes wv: "wf_values g"
   assumes nid: "nid \<in> ids g"
   assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
-  assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
+  assumes ce: "ConditionalEliminationStep conds stamps nid g g'"
 
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
   using ce using assms
-proof (induct g nid g' rule: ConditionalEliminationStep.induct)
+proof (induct nid g g' rule: ConditionalEliminationStep.induct)
   case (impliesTrue g ifcond cid t f cond conds g')
-  show ?case proof (cases "(g m p h \<turnstile> ifcond \<leadsto> nid')")
+  show ?case proof (cases "\<exists>nid'. (g m p h \<turnstile> ifcond \<leadsto> nid')")
     case True
-    obtain condv where condv: "[g, m, p] \<turnstile> cid \<mapsto> condv"
-      using implys.simps impliesTrue.hyps(3) impliesTrue.prems(4)
-      using impliesTrue.hyps(2) True
-      by (metis ifNodeHasCondEvalStutter impliesTrue.hyps(1))
-    have condvTrue: "val_to_bool condv"
-      by (metis condv encodeeval_def impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(5) implies_impliesnot_valid implies_valid.elims(2) repDet)
-    then show ?thesis
-      using constantConditionValid 
-      using impliesTrue.hyps(1) condv impliesTrue.hyps(4)
-      by blast
+    show ?thesis
+      by (metis StutterStep constantConditionNoIf constantConditionTrue impliesTrue.hyps(5))
   next
     case False
     then show ?thesis by auto
@@ -910,30 +1249,23 @@ proof (induct g nid g' rule: ConditionalEliminationStep.induct)
 next
   case (impliesFalse g ifcond cid t f cond conds g')
   then show ?case 
-  proof (cases "(g m p h \<turnstile> ifcond \<leadsto> nid')")
+  proof (cases "\<exists>nid'. (g m p h \<turnstile> ifcond \<leadsto> nid')")
     case True
-    obtain condv where condv: "[g, m, p] \<turnstile> cid \<mapsto> condv"
-      using ifNodeHasCondEvalStutter impliesFalse.hyps(1)
-      using True by blast
-    have condvFalse: "False = val_to_bool condv"
-      by (metis condv encodeeval_def impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(5) implies_impliesnot_valid impliesnot_valid.elims(2) repDet)
     then show ?thesis
-      using constantConditionValid 
-      using impliesFalse.hyps(1) condv impliesFalse.hyps(4)
-      by blast
+      by (metis StutterStep constantConditionFalse constantConditionNoIf impliesFalse.hyps(5))
   next
     case False
     then show ?thesis
       by auto
   qed
 next
-  case (tryFoldTrue g ifcond cid t f cond g' conds)
-  then show ?case using constantConditionValid tryFoldProofTrue
-    using StutterStep constantConditionTrue by metis
+  case (unknown g ifcond cid t f cond condNode conds stamps)
+  then show ?case
+    by blast
 next
-  case (tryFoldFalse g ifcond cid t f cond g' conds)
-  then show ?case using constantConditionValid tryFoldProofFalse
-    using StutterStep constantConditionFalse by metis
+  case (notIfNode g ifcond conds stamps)
+  then show ?case
+    by blast
 qed
 
 
@@ -945,49 +1277,37 @@ lemma ConditionalEliminationStepProofBisimulation:
   assumes wf: "wf_graph g \<and> wf_stamp g stamps \<and> wf_values g"
   assumes nid: "nid \<in> ids g"
   assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
-  assumes ce: "ConditionalEliminationStep conds stamps g nid g'"
+  assumes ce: "ConditionalEliminationStep conds stamps nid g g'"
   assumes gstep: "\<exists> h nid'. (g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h))" (* we don't yet consider optimizations which produce a step that didn't already exist *)
 
   shows "nid | g \<sim> g'"
   using ce gstep using assms
-proof (induct g nid g' rule: ConditionalEliminationStep.induct)
-  case (impliesTrue g ifcond cid t f cond conds g' stamps)
+proof (induct nid g g' rule: ConditionalEliminationStep.induct)
+  case (impliesTrue g ifcond cid t f cond condNode conds stamps g')
   from impliesTrue(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    by (metis (no_types, lifting) IfNode encodeeval_def ifNodeHasCondEval impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_impliesnot_valid implies_valid.simps repDet)
+    using IfNode encodeeval_def ifNodeHasCondEval impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_impliesnot_valid implies_valid.simps repDet
+    by (smt (verit) conds_implies.elims condset_implies.simps impliesTrue.hyps(4) impliesTrue.prems(1) impliesTrue.prems(2) option.distinct(1) option.inject tryFoldTrue_valid)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(4) by blast
+    using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(5) by blast
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
 next
-  case (impliesFalse g ifcond cid t f cond conds g' stamps)
+  case (impliesFalse g ifcond cid t f cond condNode conds stamps g')
   from impliesFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    by (metis (no_types, lifting) IfNode encodeeval_def ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(4) implies_impliesnot_valid impliesnot_valid.simps repDet)
+    using IfNode encodeeval_def ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(4) implies_impliesnot_valid impliesnot_valid.simps repDet
+    by (smt (verit) conds_implies.elims condset_implies.simps impliesFalse.hyps(4) impliesFalse.prems(1) impliesFalse.prems(2) option.distinct(1) option.inject tryFoldFalse_valid)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(4) by blast
+    using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(5) by blast
   then show ?case using gstep
     by (metis stepDet strong_noop_bisimilar.intros)
 next
-  case (tryFoldTrue g ifcond cid t f cond stamps g' conds)
-  from tryFoldTrue(5) obtain val where "[g, m, p] \<turnstile> cid \<mapsto> val"
-    using ifNodeHasCondEval tryFoldTrue.hyps(1) by blast
-  then have "val_to_bool val"
-    using tryFoldProofTrue tryFoldTrue.prems(2) tryFoldTrue(3) 
-    by blast
-  then obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    using tryFoldTrue(5)
-    by (meson IfNode \<open>[g::IRGraph,m::nat \<Rightarrow> Value,p::Value list] \<turnstile> cid::nat \<mapsto> val::Value\<close> encodeeval_def tryFoldTrue.hyps(1))
-  have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    using constantConditionTrue tryFoldTrue.hyps(1) tryFoldTrue.hyps(4) by presburger
-  then show ?case using gstep
-    by (metis stepDet strong_noop_bisimilar.intros)
+  case (unknown g ifcond cid t f cond condNode conds stamps)
+  then show ?case
+    using strong_noop_bisimilar.simps by presburger
 next
-  case (tryFoldFalse g ifcond cid t f cond stamps g' conds)
-  from tryFoldFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    by (meson IfNode StutterStep encodeeval_def ifNodeHasCondEvalStutter tryFoldFalse.hyps(1) tryFoldFalse.hyps(3) tryFoldFalse.prems(2) tryFoldProofFalse)
-  have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    using constantConditionFalse tryFoldFalse.hyps(1) tryFoldFalse.hyps(4) by blast
-  then show ?case using gstep
-    by (metis stepDet strong_noop_bisimilar.intros)
+  case (notIfNode g ifcond conds stamps)
+  then show ?case
+    using strong_noop_bisimilar.simps by presburger
 qed
 
 
@@ -997,6 +1317,13 @@ experiment begin
   assumes "(kind g nid) \<in> control_nodes"
   shows "(g m p h \<turnstile> nid \<leadsto> nid')"
   using assms apply (cases "kind g nid") sorry
+*)
+(*
+definition blockNodes :: "IRGraph \<Rightarrow> Block \<Rightarrow> ID set" where
+  "blockNodes g b = {n \<in> ids g. blockOf g n = b}"
+
+lemma phiInCFG:
+  "\<forall>n \<in> blockNodes g nid. (g, p \<turnstile> (n, m, h) \<rightarrow> (n', m', h'))"
 *)
 
 lemma inverse_succ:
@@ -1137,7 +1464,7 @@ lemma
   shows "predecessors g n = {v} \<and> pred g n' = Some v"
   using assms unfolding pred.simps sorry
 
-lemma inverse_succ:
+lemma inverse_succ1:
   assumes "\<not>(is_AbstractEndNode (kind g n'))"
   assumes "wf_pred g"
   shows "\<forall>n' \<in> (succ g n). n \<in> ids g \<longrightarrow> Some n = (pred g n')"
@@ -1148,14 +1475,16 @@ lemma BeginNodeFlow:
   assumes "Some ifcond = pred g nid"
   assumes "kind g ifcond = IfNode cond t f"
   assumes "i = find_index nid (successors_of (kind g ifcond))"
-  shows "i = 0 \<equiv> ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
+  shows "i = 0 \<longleftrightarrow> ([g, m, p] \<turnstile> cond \<mapsto> v) \<and> val_to_bool v"
 proof -
   obtain tb fb where "[tb, fb] = successors_of (kind g ifcond)"
     by (simp add: assms(3))
   have "nid0 = ifcond"
-    using assms step.IfNode 
+    using assms step.IfNode sorry
+  show ?thesis sorry
 qed
 
+(*
 lemma StepConditionsValid:
   assumes "\<forall> cond \<in> set conds. ([m, p] \<turnstile> cond \<mapsto> v) \<longrightarrow> val_to_bool v"
   assumes "g, p \<turnstile> (nid0, m0, h0) \<rightarrow> (nid, m, h)"
@@ -1209,7 +1538,8 @@ next
   then show ?case sorry
 qed
 qed
-end
 *)
+
+end
 
 end

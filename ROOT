@@ -101,9 +101,11 @@ session ConditionalElimination in "Optimizations/ConditionalElimination" = Proof
     "(experimental) Conditional elimination phase"
   options [quick_and_dirty,
            document = pdf, document_output = "output",
-           show_question_marks = false]
+           show_question_marks = false,
+           document_variants="document:outline=/proof"]
   theories
     ConditionalElimination
+    CFG
   document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"

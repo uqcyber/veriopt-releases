@@ -708,6 +708,15 @@ fun clip_lower :: "Stamp \<Rightarrow> int \<Rightarrow> Stamp" where
           (if l < c then (IntegerStamp b c h) else (IntegerStamp b l c))" |
   "clip_lower s c = s"
 
+fun max_lower :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
+  "max_lower (IntegerStamp b1 xl xh) (IntegerStamp b2 yl yh) =
+        (IntegerStamp b1 (max xl yl) xh)" |
+  "max_lower xs ys = xs"
+fun min_higher :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
+  "min_higher (IntegerStamp b1 xl xh) (IntegerStamp b2 yl yh) =
+        (IntegerStamp b1 yl (min xh yh))" |
+  "min_higher xs ys = ys"
+
 fun registerNewCondition :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> (ID \<Rightarrow> Stamp)" where
   \<comment> \<open>constrain equality by joining the stamps\<close>
   "registerNewCondition g (IntegerEqualsNode x y) stamps =
@@ -723,8 +732,8 @@ fun registerNewCondition :: "IRGraph \<Rightarrow> IRNode \<Rightarrow> (ID \<Ri
     (case (kind g c) of
       (IntegerLessThanNode x y) \<Rightarrow>
         (stamps
-          (x := clip_lower (stamps x) ((stpi_upper (stamps y)))))
-          (y := clip_upper (stamps y) ((stpi_lower (stamps x))))
+          (x := max_lower (stamps x) (stamps y)))
+          (y := min_higher (stamps x) (stamps y))
        | _ \<Rightarrow> stamps)" |
   "registerNewCondition g _ stamps = stamps"
 
@@ -863,7 +872,9 @@ inductive
   "\<lbrakk>pred g nid = Some nid';
     \<not>(is_IfNode (kind g nid'))\<rbrakk> \<Longrightarrow> condition_of g nid None"
 
-inductive
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) condition_of .
+
+(*inductive
   conditions_of_dominators :: "IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> Conditions \<Rightarrow> bool" where
   "\<lbrakk>nids = []\<rbrakk>
     \<Longrightarrow> conditions_of_dominators g nids conditions conditions" |
@@ -876,10 +887,18 @@ inductive
   "\<lbrakk>nids = nid # nids';
     condition_of g nid None;
     conditions_of_dominators g nids' conditions conditions'\<rbrakk>
-    \<Longrightarrow> conditions_of_dominators g nids conditions conditions'"
+    \<Longrightarrow> conditions_of_dominators g nids conditions conditions'"*)
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) conditions_of_dominators .
+fun conditions_of_dominators :: "IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> Conditions" where
+  "conditions_of_dominators g [] cds = cds" |
+  "conditions_of_dominators g (nid # nids) cds = 
+    (case (Predicate.the (condition_of_i_i_o g nid)) of 
+      None \<Rightarrow> conditions_of_dominators g nids cds |
+      Some (expr, _) \<Rightarrow> conditions_of_dominators g nids (expr # cds))"
 
+(*code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) conditions_of_dominators .*)
+
+(*
 inductive
   stamps_of_dominators :: "IRGraph \<Rightarrow> ID list \<Rightarrow> StampFlow \<Rightarrow> StampFlow \<Rightarrow> bool" where
   "\<lbrakk>nids = []\<rbrakk>
@@ -895,14 +914,23 @@ inductive
     condition_of g nid None;
     stamps_of_dominators g nids' stamps stamps'\<rbrakk>
     \<Longrightarrow> stamps_of_dominators g nids stamps stamps'"
+*)
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) stamps_of_dominators .
+fun stamps_of_dominators :: "IRGraph \<Rightarrow> ID list \<Rightarrow> StampFlow \<Rightarrow> StampFlow" where
+  "stamps_of_dominators g [] stamps = stamps" |
+  "stamps_of_dominators g (nid # nids) stamps = 
+    (case (Predicate.the (condition_of_i_i_o g nid)) of 
+      None \<Rightarrow> stamps_of_dominators g nids stamps |
+      Some (_, node) \<Rightarrow> stamps_of_dominators g nids 
+        ((registerNewCondition g node (hd stamps)) # stamps))"
+
+(*code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) stamps_of_dominators .*)
 
 inductive
   analyse :: "IRGraph \<Rightarrow> DominatorCache \<Rightarrow> ID \<Rightarrow> (Conditions \<times> StampFlow \<times> DominatorCache) \<Rightarrow> bool" where
   "\<lbrakk>dominators g c nid (doms, c');
-    conditions_of_dominators g (sorted_list_of_set doms) [] conds;
-    stamps_of_dominators g (sorted_list_of_set doms) [stamp g] stamps\<rbrakk>
+    conditions_of_dominators g (sorted_list_of_set doms) [] = conds;
+    stamps_of_dominators g (sorted_list_of_set doms) [stamp g] = stamps\<rbrakk>
     \<Longrightarrow> analyse g c nid (conds, stamps, c')"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) analyse .
@@ -915,97 +943,12 @@ analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 13 (conds, s
 values "{(hd stamps) 1| conds stamps c .
 analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 27 (conds, stamps, c)}"
 
-
-
-text \<open>
-The Step relation is a small-step traversal of the graph which handles transitions between
-individual nodes of the graph.
-
-It relates a pairs of tuple of the current node, the set of seen nodes, 
-the always true stack of IfNode conditions, and the flow-sensitive stamp information.
-\<close>
-inductive Step 
-  :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) option \<Rightarrow> bool"
-  for g where
-  \<comment> \<open>
-  Hit a BeginNode with an IfNode predecessor which represents
-  the start of a basic block for the IfNode.
-     1. nid' will be the successor of the begin node.
-     2. Find the first and only predecessor.
-     3. Extract condition from the preceding IfNode.
-     4. Negate condition if the begin node is second branch
-        (we've taken the else branch of the condition)
-     5. Add the condition or the negated condition to stack
-     6. Perform any stamp updates based on the condition using
-        the registerNewCondition function and place them on the
-        top of the stack of stamp information
-  \<close>
-  "\<lbrakk>kind g nid = BeginNode nid';
-
-    nid \<notin> seen;
-    seen' = {nid} \<union> seen;
-
-    Some ifcond = pred g nid;
-    kind g ifcond = IfNode cond t f;
-
-    i = find_index nid (successors_of (kind g ifcond));
-    c = (if i = 0 then kind g cond else LogicNegationNode cond);
-    rep g cond ce;
-    ce' = (if i = 0 then ce else UnaryExpr UnaryLogicNegation ce);
-    conds' = ce' # conds;
-
-    flow' = registerNewCondition g c (hdOr flow (stamp g))\<rbrakk>
-   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow' # flow))" |
-
-  \<comment> \<open>
-  Hit an EndNode
-     1. nid' will be the usage of EndNode
-     2. pop the conditions and stamp stack
-  \<close>
-  "\<lbrakk>kind g nid = EndNode;
-
-    nid \<notin> seen;
-    seen' = {nid} \<union> seen;
-
-    nid' = any_usage g nid;
-
-    conds' = tl conds;
-    flow' = tl flow\<rbrakk>
-   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'))" |
-
-  \<comment> \<open>We can find a successor edge that is not in seen, go there\<close>
-(*nid \<notin> seen;*)
-  "\<lbrakk>\<not>(is_EndNode (kind g nid));
-    \<not>(is_BeginNode (kind g nid));
-
-    seen' = {nid} \<union> seen;
-
-    Some nid' = nextEdge seen' nid g;
-    nid' \<notin> seen'\<rbrakk>
-   \<Longrightarrow> Step g (nid, seen, conds, flow) (Some (nid', seen', conds, flow))" |
-
-  \<comment> \<open>We can cannot find a successor edge that is not in seen, give back None\<close>
-  "\<lbrakk>\<not>(is_EndNode (kind g nid));
-    \<not>(is_BeginNode (kind g nid));
-
-    nid \<notin> seen;
-    seen' = {nid} \<union> seen;
-
-    None = nextEdge seen' nid g\<rbrakk>
-    \<Longrightarrow> Step g (nid, seen, conds, flow) None" |
-
-  \<comment> \<open>We've already seen this node, give back None\<close>
-  "\<lbrakk>nid \<in> seen\<rbrakk> \<Longrightarrow> Step g (nid, seen, conds, flow) None"
-
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Step .
-
-
 fun next_nid :: "IRGraph \<Rightarrow> ID set \<Rightarrow> ID \<Rightarrow> ID option" where
   "next_nid g seen nid = (case (kind g nid) of
     (EndNode) \<Rightarrow> Some (any_usage g nid) |
     _ \<Rightarrow> nextEdge seen nid g)"
 
-inductive Step'
+inductive Step
   :: "IRGraph \<Rightarrow> (ID \<times> Seen) \<Rightarrow> (ID \<times> Seen) option \<Rightarrow> bool"
   for g where
   \<comment> \<open>We can find a successor edge that is not in seen, go there\<close>
@@ -1013,23 +956,28 @@ inductive Step'
 
     Some nid' = next_nid g seen' nid;
     nid' \<notin> seen'\<rbrakk>
-   \<Longrightarrow> Step' g (nid, seen) (Some (nid', seen'))" |
+   \<Longrightarrow> Step g (nid, seen) (Some (nid', seen'))" |
 
   \<comment> \<open>We can cannot find a successor edge that is not in seen, give back None\<close>
   "\<lbrakk>seen' = {nid} \<union> seen;
 
     None = next_nid g seen' nid\<rbrakk>
-    \<Longrightarrow> Step' g (nid, seen) None" |
+    \<Longrightarrow> Step g (nid, seen) None" |
 
   \<comment> \<open>We've already seen this node, give back None\<close>
   "\<lbrakk>seen' = {nid} \<union> seen;
 
     Some nid' = next_nid g seen' nid;
-    nid' \<in> seen'\<rbrakk> \<Longrightarrow> Step' g (nid, seen) None"
+    nid' \<in> seen'\<rbrakk> \<Longrightarrow> Step g (nid, seen) None"
 
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Step' .
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) Step .
 
-values "{x. Step' ConditionalEliminationTest13_testSnippet2_initial (17, {17,11,25,21,18,19,15,12,13,6,29,27,24,23,7,8,0}) x}"
+fun nextNode :: "IRGraph \<Rightarrow> Seen \<Rightarrow> (ID \<times> Seen) option" where
+  "nextNode g seen = 
+    (let toSee = sorted_list_of_set {n \<in> ids g. n \<notin> seen} in
+      case toSee of [] \<Rightarrow> None | (x # xs) \<Rightarrow> Some (x, seen \<union> {x}))"
+
+values "{x. Step ConditionalEliminationTest13_testSnippet2_initial (17, {17,11,25,21,18,19,15,12,13,6,29,27,24,23,7,8,0}) x}"
 
 
 text \<open>
@@ -1039,95 +987,40 @@ from the @{text "ConditionalEliminationStep"} relation to perform a transformati
 whole graph.
 \<close>
 
-
 inductive ConditionalEliminationPhase 
-  :: "(ID \<times> Seen \<times> Conditions \<times> StampFlow \<times> ToVisit) \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
+  :: "(Seen \<times> DominatorCache) \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
   where
 
   \<comment> \<open>Can do a step and optimise for the current node\<close>
-  "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
-    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) nid g g';
-    toVisit' = nid # toVisit;
-
-    ConditionalEliminationPhase (nid', seen', conds', flow', toVisit') g' g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase (nid, seen, conds, flow, toVisit) g g''" |
-
-  \<comment> \<open>Can do a step, matches whether optimised or not causing non-determinism
-      We need to find a way to negate ConditionalEliminationStep\<close>
-  "\<lbrakk>Step g (nid, seen, conds, flow) (Some (nid', seen', conds', flow'));
-    kind g nid = IfNode cid t f;
-    g \<turnstile> cid \<simeq> cond;
-    condNode = kind g cid;
-    conds_implies (set conds) (hdOr flow (stamp g)) condNode cond = None;
-    toVisit' = nid # toVisit;
-    ConditionalEliminationPhase (nid', seen', conds', flow', toVisit') g g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase (nid, seen, conds, flow, toVisit) g g'" |
-
-  \<comment> \<open>Can't do a step but there is a predecessor we can backtrack to\<close>
-(*Some nid' = pred g nid;*)
-  "\<lbrakk>Step g (nid, seen, conds, flow) None;
+  "\<lbrakk>nextNode g seen = Some (nid, seen');
     
-    seen' = {nid} \<union> seen;
-    toVisit \<noteq> [];
-    nid' = hd toVisit;
-    toVisit' = tl toVisit;
-    ConditionalEliminationPhase (nid', seen', conds, flow, toVisit') g g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase (nid, seen, conds, flow, toVisit) g g'" |
+    analyse g c nid (conds, flow, c');
+    ConditionalEliminationStep (set conds) (hd flow) nid g g';
 
-  \<comment> \<open>Can't do a step and have no predecessors so terminate\<close>
-(*None = pred g nid*)
-  "\<lbrakk>Step g (nid, seen, conds, flow) None;
-    toVisit = []\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase (nid, seen, conds, flow, toVisit) g g"
+    ConditionalEliminationPhase (seen', c') g' g''\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase (seen, c) g g''" |
+
+  "\<lbrakk>nextNode g seen = None\<rbrakk>
+    \<Longrightarrow> ConditionalEliminationPhase (seen, c) g g"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase . 
 
-inductive ConditionalEliminationPhase' 
-  :: "(ID \<times> Seen \<times> ToVisit \<times> DominatorCache) \<Rightarrow> IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool"
-  where
-
-  \<comment> \<open>Can do a step and optimise for the current node\<close>
-  "\<lbrakk>Step' g (nid, seen) (Some (nid', seen'));
-    analyse g c nid (conds, flow, c');
-    ConditionalEliminationStep (set conds) (hdOr flow (stamp g)) nid g g';
-    toVisit' = nid # toVisit;
-
-    ConditionalEliminationPhase' (nid', seen', toVisit', c') g' g''\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g''" |
-
-  \<comment> \<open>Can do a step, matches whether optimised or not causing non-determinism
-      We need to find a way to negate ConditionalEliminationStep\<close>
-  "\<lbrakk>Step' g (nid, seen) (Some (nid', seen'));
-    analyse g c nid (conds, flow, c');
-    kind g nid = IfNode cid t f;
-    g \<turnstile> cid \<simeq> cond;
-    condNode = kind g cid;
-    conds_implies (set conds) (hdOr flow (stamp g)) condNode cond = None;
-    toVisit' = nid # toVisit;
-    ConditionalEliminationPhase' (nid', seen', toVisit', c') g g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g'" |
-
-  \<comment> \<open>Can't do a step but there is a predecessor we can backtrack to\<close>
-(*Some nid' = pred g nid;*)
-  "\<lbrakk>Step' g (nid, seen) None;
-    
-    seen' = {nid} \<union> seen;
-    toVisit = nid' # toVisit';
-    ConditionalEliminationPhase' (nid', seen', toVisit', c) g g'\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g'" |
-
-  \<comment> \<open>Can't do a step and have no predecessors so terminate\<close>
-(*None = pred g nid*)
-  "\<lbrakk>Step' g (nid, seen) None;
-    toVisit = []\<rbrakk>
-    \<Longrightarrow> ConditionalEliminationPhase' (nid, seen, toVisit, c) g g"
-
-code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhase' . 
-
 definition runConditionalElimination :: "IRGraph \<Rightarrow> IRGraph" where
   "runConditionalElimination g = 
-    (Predicate.the (ConditionalEliminationPhase'_i_i_o (0, {}, ([], Map.empty)) g))"
+    (Predicate.the (ConditionalEliminationPhase_i_i_o ({}, Map.empty) g))"
 
+
+values "{(doms, c')| doms c'.
+dominators ConditionalEliminationTest13_testSnippet2_initial Map.empty 6 (doms, c')}"
+
+values "{(conds, stamps, c)| conds stamps c .
+analyse ConditionalEliminationTest13_testSnippet2_initial Map.empty 6 (conds, stamps, c)}"
+value "
+  (nextNode
+      ConditionalEliminationTest13_testSnippet2_initial {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29})
+"
+values "{g|g. (ConditionalEliminationPhase ({}, Map.empty) ConditionalEliminationTest13_testSnippet2_initial g)}"
+(*
 inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<close>
   :: "IRGraph \<Rightarrow> (ID \<times> Seen \<times> Conditions \<times> StampFlow) \<Rightarrow> ID list \<Rightarrow> IRGraph \<Rightarrow> ID list \<Rightarrow> Conditions \<Rightarrow> bool" where\<^marker>\<open>tag invisible\<close>
 
@@ -1158,7 +1051,7 @@ inductive ConditionalEliminationPhaseWithTrace\<^marker>\<open>tag invisible\<cl
     \<Longrightarrow> ConditionalEliminationPhaseWithTrace g (nid, seen, conds, flow) t g (nid # t) conds"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> o \<Rightarrow> o \<Rightarrow> bool) ConditionalEliminationPhaseWithTrace .
-
+*)
 
 lemma IfNodeStepE: "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<Longrightarrow>
   (\<And>cond tb fb val.

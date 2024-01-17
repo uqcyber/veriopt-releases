@@ -457,18 +457,18 @@ inductive
     \<Longrightarrow> g \<oplus> (ConditionalExpr ce te fe) \<leadsto> (g', n)" |
 
   UnaryNodeSame:
-  "\<lbrakk>find_node_and_stamp g2 (unary_node op x, s') = Some n;
-    g \<oplus> xe \<leadsto> (g2, x);
-    s' = stamp_unary op (stamp g2 x)\<rbrakk>
-    \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g2, n)" |
+  "\<lbrakk>find_node_and_stamp g' (unary_node op x, s') = Some n;
+    g \<oplus> xe \<leadsto> (g', x);
+    s' = stamp_unary op (stamp g' x)\<rbrakk>
+    \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g', n)" |
 
   UnaryNodeNew:
-  "\<lbrakk>find_node_and_stamp g2 (unary_node op x, s') = None;
-    g \<oplus> xe \<leadsto> (g2, x);
-    s' = stamp_unary op (stamp g2 x);
-    n = get_fresh_id g2;
-    g' = add_node n (unary_node op x, s') g2\<rbrakk>
-    \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g', n)" |
+  "\<lbrakk>find_node_and_stamp g' (unary_node op x, s') = None;
+    g \<oplus> xe \<leadsto> (g', x);
+    s' = stamp_unary op (stamp g' x);
+    n = get_fresh_id g';
+    g'' = add_node n (unary_node op x, s') g'\<rbrakk>
+    \<Longrightarrow> g \<oplus> (UnaryExpr op xe) \<leadsto> (g'', n)" |
 
   BinaryNodeSame:
   "\<lbrakk>find_node_and_stamp g3 (bin_node op x y, s') = Some n;

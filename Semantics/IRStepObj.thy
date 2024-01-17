@@ -44,13 +44,23 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
   "find_index _ [] = 0" |
   "find_index v (x # xs) = (if (x=v) then 0 else find_index v xs + 1)"
 
+inductive indexof :: "'a list \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> bool" where
+  "find_index x xs = i \<Longrightarrow> indexof xs i x"
+
+lemma indexof_det:
+  "indexof xs i x \<Longrightarrow> indexof xs i' x \<Longrightarrow> i = i'"
+  apply (induction rule: indexof.induct)
+  by (simp add: indexof.simps)
+
+code_pred (modes: i \<Rightarrow> o \<Rightarrow> i \<Rightarrow> bool) indexof .
+
+notation (latex output)
+  indexof ("_!_ = _")
+
 fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
   "phi_list g n = 
     (filter (\<lambda>x.(is_PhiNode (kind g x)))
       (sorted_list_of_set (usages g n)))"
-
-fun input_index :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID \<Rightarrow> nat" where
-  "input_index g n n' = find_index n' (inputs_of (kind g n))"
 
 (* TODO this produces two parse trees after importing Class *)
 fun phi_inputs :: "IRGraph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
@@ -58,9 +68,52 @@ fun phi_inputs :: "IRGraph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow>
 
 fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
   "set_phis [] [] m = m" |
-  "set_phis (n # xs) (v # vs) m = (set_phis xs vs (m(n := v)))" |
+  "set_phis (n # ns) (v # vs) m = (set_phis ns vs (m(n := v)))" |
   "set_phis [] (v # vs) m = m" |
-  "set_phis (x # xs) [] m = m"
+  "set_phis (x # ns) [] m = m"
+
+definition
+  fun_add :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a \<rightharpoonup> 'b) \<Rightarrow> ('a \<Rightarrow> 'b)" (infixl "++\<^sub>f" 100) where
+  "f1 ++\<^sub>f f2 = (\<lambda>x. case f2 x of None \<Rightarrow> f1 x | Some y \<Rightarrow> y)"
+
+fun upds :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> ('a \<Rightarrow> 'b)" ("_/'(_ [\<rightarrow>] _/')" 900) where
+  "upds m ns vs = m ++\<^sub>f (map_of (rev (zip ns vs)))"
+
+lemma fun_add_empty:
+  "xs ++\<^sub>f (map_of []) = xs"
+  unfolding fun_add_def by simp
+
+lemma upds_compose:
+  "a ++\<^sub>f map_of (rev (zip (n # ns) (v # vs))) = a(n := v) ++\<^sub>f map_of (rev (zip ns vs))"
+  unfolding fun_add_def 
+  apply (induction ns)
+   apply auto[1]
+  apply auto[1]
+  using fun_upd_other fun_upd_same map_add_Some_iff option.distinct(1) option.exhaust option.simps(4) option.simps(5)
+  sorry
+
+
+lemma "set_phis ns vs = (\<lambda>m. upds m ns vs)"
+proof (induction rule: set_phis.induct)
+  case (1 m)
+  then show ?case unfolding set_phis.simps upds.simps
+    by (metis Nil_eq_zip_iff Nil_is_rev_conv fun_add_empty)
+next
+  case (2 n xs v vs m)
+  then show ?case unfolding set_phis.simps upds.simps
+    by (metis upds_compose)
+next
+  case (3 v vs m)
+  then show ?case 
+    by (metis fun_add_empty rev.simps(1) upds.elims set_phis.simps(3) zip_Nil)
+next
+  case (4 x xs m)
+  then show ?case
+    by (metis Nil_eq_zip_iff fun_add_empty rev.simps(1) upds.simps set_phis.simps(4))
+qed
+
+fun is_PhiKind :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
+  "is_PhiKind g nid = is_PhiNode (kind g nid)"
 
 text \<open>
 Intraprocedural semantics are given as a small-step semantics.
@@ -110,13 +163,13 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     merge = any_usage g nid;
     is_AbstractMergeNode (kind g merge);
 
-    i = find_index nid (inputs_of (kind g merge));
-    phis = (phi_list g merge);
-    inps = (phi_inputs g i phis);
+    indexof (inputs_of (kind g merge)) i nid;
+    phis = (filter (is_PhiKind g) (sorted_list_of_set (usages g merge)));
+    inps = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) phis);
     g \<turnstile> inps \<simeq>\<^sub>L inpsE;
     [m, p] \<turnstile> inpsE \<mapsto>\<^sub>L vs;
 
-    m' = set_phis phis vs m\<rbrakk>
+    m' = (m(phis[\<rightarrow>]vs))\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
 
   NewArrayNode:

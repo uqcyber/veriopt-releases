@@ -542,10 +542,20 @@ values "{(n, g) . (eg2_sq \<oplus> sq_param0 \<leadsto> (g, n))}"
 
 subsection \<open>Lift Data-flow Tree Semantics\<close>
 
-definition encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" 
+inductive encodeeval :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID \<Rightarrow> Value \<Rightarrow> bool" 
   ("[_,_,_] \<turnstile> _ \<mapsto> _" 50)
   where
-  "encodeeval g m p n v = (\<exists> e. (g \<turnstile> n \<simeq> e) \<and> ([m,p] \<turnstile> e \<mapsto> v))"
+  "(g \<turnstile> n \<simeq> e) \<and> ([m,p] \<turnstile> e \<mapsto> v) \<Longrightarrow> [g, m, p] \<turnstile> n \<mapsto> v"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) encodeeval .
+
+
+inductive encodeEvalAll :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID list \<Rightarrow> Value list \<Rightarrow> bool"
+  ("[_,_,_] \<turnstile> _ \<longmapsto> _" 60) where
+  "(g \<turnstile> nids \<simeq>\<^sub>L es) \<and> ([m, p] \<turnstile> es  \<mapsto>\<^sub>L vs) \<Longrightarrow> ([g, m, p] \<turnstile> nids \<longmapsto> vs)"
+
+code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) encodeEvalAll .
+
 
 subsection \<open>Graph Refinement\<close>
 
@@ -562,7 +572,7 @@ definition graph_refinement :: "IRGraph \<Rightarrow> IRGraph \<Rightarrow> bool
 lemma graph_refinement:
   "graph_refinement g1 g2 \<Longrightarrow> 
    (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
-  by (meson encodeeval_def graph_refinement_def graph_represents_expression_def le_expr_def)
+  by (meson encodeeval.simps graph_refinement_def graph_represents_expression_def le_expr_def)
 
 subsection \<open>Maximal Sharing\<close>
 

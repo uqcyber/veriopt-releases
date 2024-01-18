@@ -446,10 +446,15 @@ lemma encodeEvalDet:
   "[g,m,p] \<turnstile> e \<mapsto> v1 \<Longrightarrow> 
    [g,m,p] \<turnstile> e \<mapsto> v2 \<Longrightarrow>
    v1 = v2"
-  by (metis encodeeval_def evalDet repDet)
+  by (metis encodeeval.simps evalDet repDet)
 
 lemma graphDet: "([g,m,p] \<turnstile> n \<mapsto> v\<^sub>1) \<and> ([g,m,p] \<turnstile> n \<mapsto> v\<^sub>2) \<Longrightarrow> v\<^sub>1 = v\<^sub>2"
   by (auto simp add: encodeEvalDet)
+
+lemma encodeEvalAllDet:
+  "[g, m, p] \<turnstile> nids \<longmapsto> vs \<Longrightarrow> [g, m, p] \<turnstile> nids \<longmapsto> vs' \<Longrightarrow> vs = vs'"
+  using repAllDet evalAllDet
+  by (metis encodeEvalAll.simps)
 
 subsubsection \<open>Monotonicity of Graph Refinement\<close>
 
@@ -562,7 +567,7 @@ lemma mono_mod:
 
 lemma term_graph_evaluation:
   "(g \<turnstile> n \<unlhd> e) \<Longrightarrow> (\<forall> m p v . ([m,p] \<turnstile> e \<mapsto> v) \<longrightarrow> ([g,m,p] \<turnstile> n \<mapsto> v))"
-  using graph_represents_expression_def encodeeval_def by (auto; meson)
+  using graph_represents_expression_def encodeeval.simps by (auto; meson)
 
 lemma encodes_contains:
   "g \<turnstile> n \<simeq> e \<Longrightarrow>
@@ -1621,7 +1626,7 @@ lemma graph_construction:
   \<and> as_set g\<^sub>1 \<subseteq> as_set g\<^sub>2
   \<and> (g\<^sub>2 \<turnstile> n \<simeq> e\<^sub>2)
   \<Longrightarrow> (g\<^sub>2 \<turnstile> n \<unlhd> e\<^sub>1) \<and> graph_refinement g\<^sub>1 g\<^sub>2"
-  by (meson encodeeval_def graph_represents_expression_def le_expr_def subset_refines)
+  by (meson encodeeval.simps graph_represents_expression_def le_expr_def subset_refines)
 
 subsubsection \<open>Term Graph Reconstruction\<close>
 

@@ -63,8 +63,6 @@ fun phi_list :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
       (sorted_list_of_set (usages g n)))"
 
 (* TODO this produces two parse trees after importing Class *)
-fun phi_inputs :: "IRGraph \<Rightarrow> nat \<Rightarrow> ID list \<Rightarrow> ID list" where
-  "phi_inputs g i nodes = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) nodes)"
 
 fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Rightarrow> MapState" where
   "set_phis [] [] m = m" |
@@ -76,44 +74,50 @@ definition
   fun_add :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a \<rightharpoonup> 'b) \<Rightarrow> ('a \<Rightarrow> 'b)" (infixl "++\<^sub>f" 100) where
   "f1 ++\<^sub>f f2 = (\<lambda>x. case f2 x of None \<Rightarrow> f1 x | Some y \<Rightarrow> y)"
 
-fun upds :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> ('a \<Rightarrow> 'b)" ("_/'(_ [\<rightarrow>] _/')" 900) where
+definition upds :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> ('a \<Rightarrow> 'b)" ("_/'(_ [\<rightarrow>] _/')" 900) where
   "upds m ns vs = m ++\<^sub>f (map_of (rev (zip ns vs)))"
 
 lemma fun_add_empty:
   "xs ++\<^sub>f (map_of []) = xs"
   unfolding fun_add_def by simp
 
+lemma upds_inc:
+  "m(a#as [\<rightarrow>] b#bs) = (m(a:=b))(as[\<rightarrow>]bs)"
+  unfolding upds_def fun_add_def apply simp sorry
+
 lemma upds_compose:
   "a ++\<^sub>f map_of (rev (zip (n # ns) (v # vs))) = a(n := v) ++\<^sub>f map_of (rev (zip ns vs))"
-  unfolding fun_add_def 
-  apply (induction ns)
-   apply auto[1]
-  apply auto[1]
-  using fun_upd_other fun_upd_same map_add_Some_iff option.distinct(1) option.exhaust option.simps(4) option.simps(5)
-  sorry
-
+  using upds_inc
+  by (metis upds_def)
 
 lemma "set_phis ns vs = (\<lambda>m. upds m ns vs)"
 proof (induction rule: set_phis.induct)
   case (1 m)
-  then show ?case unfolding set_phis.simps upds.simps
+  then show ?case unfolding set_phis.simps upds_def
     by (metis Nil_eq_zip_iff Nil_is_rev_conv fun_add_empty)
 next
   case (2 n xs v vs m)
-  then show ?case unfolding set_phis.simps upds.simps
+  then show ?case unfolding set_phis.simps upds_def
     by (metis upds_compose)
 next
   case (3 v vs m)
-  then show ?case 
-    by (metis fun_add_empty rev.simps(1) upds.elims set_phis.simps(3) zip_Nil)
+  then show ?case
+    by (metis fun_add_empty rev.simps(1) upds_def set_phis.simps(3) zip_Nil)
 next
   case (4 x xs m)
   then show ?case
-    by (metis Nil_eq_zip_iff fun_add_empty rev.simps(1) upds.simps set_phis.simps(4))
+    by (metis Nil_eq_zip_iff fun_add_empty rev.simps(1) upds_def set_phis.simps(4))
 qed
 
 fun is_PhiKind :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
   "is_PhiKind g nid = is_PhiNode (kind g nid)"
+
+definition filter_phis :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
+  "filter_phis g merge = (filter (is_PhiKind g) (sorted_list_of_set (usages g merge)))"
+
+definition phi_inputs :: "IRGraph \<Rightarrow> ID list \<Rightarrow> nat \<Rightarrow> ID list" where
+  "phi_inputs g phis i = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) phis)"
+
 
 text \<open>
 Intraprocedural semantics are given as a small-step semantics.
@@ -136,8 +140,7 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
         implementation won't work *)
   FixedGuardNode:
    "\<lbrakk>(kind g nid) = (FixedGuardNode cond before next);
-     g \<turnstile> cond \<simeq> condE; 
-     [m, p] \<turnstile> condE \<mapsto> val;
+     [g, m, p] \<turnstile> cond \<mapsto> val;
 
      \<not>(val_to_bool val);
 
@@ -153,8 +156,7 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
 
   IfNode:
   "\<lbrakk>kind g nid = (IfNode cond tb fb);
-    g \<turnstile> cond \<simeq> condE; 
-    [m, p] \<turnstile> condE \<mapsto> val;
+    [g, m, p] \<turnstile> cond \<mapsto> val;
     nid' = (if val_to_bool val then tb else fb)\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |  
 
@@ -164,18 +166,16 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     is_AbstractMergeNode (kind g merge);
 
     indexof (inputs_of (kind g merge)) i nid;
-    phis = (filter (is_PhiKind g) (sorted_list_of_set (usages g merge)));
-    inps = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) phis);
-    g \<turnstile> inps \<simeq>\<^sub>L inpsE;
-    [m, p] \<turnstile> inpsE \<mapsto>\<^sub>L vs;
+    phis = filter_phis g merge;
+    inps = phi_inputs g phis i;
+    [g, m, p] \<turnstile> inps \<longmapsto> vs;
 
     m' = (m(phis[\<rightarrow>]vs))\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
 
   NewArrayNode:
     "\<lbrakk>kind g nid = (NewArrayNode len st nid');
-      g \<turnstile> len \<simeq> lenE;
-      [m, p] \<turnstile> lenE \<mapsto> length';
+      [g, m, p] \<turnstile> len \<mapsto> length';
 
       arrayType = stp_type (stamp g nid);
       (h', ref) = h_new_inst h arrayType;
@@ -187,8 +187,7 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
 
   ArrayLengthNode:
     "\<lbrakk>kind g nid = (ArrayLengthNode x nid');
-      g \<turnstile> x \<simeq> xE;
-      [m, p] \<turnstile> xE \<mapsto> ObjRef ref;
+      [g, m, p] \<turnstile> x \<mapsto> ObjRef ref;
 
       h_load_field '''' ref h = arrayVal;
       length' = array_length (arrayVal);
@@ -198,11 +197,8 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
 
   LoadIndexedNode:
     "\<lbrakk>kind g nid = (LoadIndexedNode index guard array nid');
-      g \<turnstile> index \<simeq> indexE;
-      [m, p] \<turnstile> indexE \<mapsto> indexVal;
-
-      g \<turnstile> array \<simeq> arrayE;
-      [m, p] \<turnstile> arrayE \<mapsto> ObjRef ref;
+      [g, m, p] \<turnstile> index \<mapsto> indexVal;
+      [g, m, p] \<turnstile> array \<mapsto> ObjRef ref;
 
       h_load_field '''' ref h = arrayVal;
       loaded = intval_load_index arrayVal indexVal;
@@ -212,14 +208,9 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
 
   StoreIndexedNode:
     "\<lbrakk>kind g nid = (StoreIndexedNode check val st index guard array nid');
-      g \<turnstile> index \<simeq> indexE;
-      [m, p] \<turnstile> indexE \<mapsto> indexVal;
-
-      g \<turnstile> array \<simeq> arrayE;
-      [m, p] \<turnstile> arrayE \<mapsto> ObjRef ref;
-
-      g \<turnstile> val \<simeq> valE;
-      [m, p] \<turnstile> valE \<mapsto> value;
+      [g, m, p] \<turnstile> index \<mapsto> indexVal;
+      [g, m, p] \<turnstile> array \<mapsto> ObjRef ref;
+      [g, m, p] \<turnstile> val \<mapsto> value;
 
       h_load_field '''' ref h = arrayVal;
       updated = intval_store_index arrayVal indexVal value;
@@ -235,28 +226,23 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
 
   LoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nid');
-      g \<turnstile> obj \<simeq> objE; 
-      [m, p] \<turnstile> objE \<mapsto> ObjRef ref;
+      [g, m, p] \<turnstile> obj \<mapsto> ObjRef ref;
       h_load_field f ref h = v;
       m' = m(nid := v)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
   SignedDivNode:
     "\<lbrakk>kind g nid = (SignedDivNode nid x y zero sb nxt);
-      g \<turnstile> x \<simeq> xe; 
-      g \<turnstile> y \<simeq> ye; 
-      [m, p] \<turnstile> xe \<mapsto> v1;
-      [m, p] \<turnstile> ye \<mapsto> v2;
+      [g, m, p] \<turnstile> x \<mapsto> v1;
+      [g, m, p] \<turnstile> y \<mapsto> v2;
       v = (intval_div v1 v2);
       m' =  m(nid := v)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
 
   SignedRemNode:
     "\<lbrakk>kind g nid = (SignedRemNode nid x y zero sb nxt);
-      g \<turnstile> x \<simeq> xe; 
-      g \<turnstile> y \<simeq> ye; 
-      [m, p] \<turnstile> xe \<mapsto> v1;
-      [m, p] \<turnstile> ye \<mapsto> v2;
+      [g, m, p] \<turnstile> x \<mapsto> v1;
+      [g, m, p] \<turnstile> y \<mapsto> v2;
       v = (intval_mod v1 v2);
       m' =  m(nid := v)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
@@ -269,18 +255,15 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
 
   StoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ (Some obj) nid');
-      g \<turnstile> newval \<simeq> newvalE;
-      g \<turnstile> obj \<simeq> objE; 
-      [m, p] \<turnstile> newvalE \<mapsto> val;
-      [m, p] \<turnstile> objE \<mapsto> ObjRef ref;
+      [g, m, p] \<turnstile> newval \<mapsto> val;
+      [g, m, p] \<turnstile> obj \<mapsto> ObjRef ref;
       h' = h_store_field f ref val h;
       m' =  m(nid := val)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')" |
 
   StaticStoreFieldNode:
     "\<lbrakk>kind g nid = (StoreFieldNode nid f newval _ None nid');
-      g \<turnstile> newval \<simeq> newvalE; 
-      [m, p] \<turnstile> newvalE \<mapsto> val;
+      [g, m, p] \<turnstile> newval \<mapsto> val;
       h' = h_store_field f None val h;
       m' =  m(nid := val)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h')"
@@ -330,27 +313,25 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
  InvokeNodeStepStatic:
   "\<lbrakk>is_Invoke (kind g nid);
     callTarget = ir_callTarget (kind g nid);
-    kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
+    kind g callTarget = (MethodCallTargetNode targetMethod actuals invoke_kind);
     \<not>(hasReceiver invoke_kind);
     Some targetGraph = (dynamic_lookup S ''None'' targetMethod []);
-    m' = new_map_state;
-    g \<turnstile> arguments \<simeq>\<^sub>L argsE;
+    g \<turnstile> actuals \<simeq>\<^sub>L argsE;
     [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p'\<rbrakk>
-    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,new_map_state,p')#(g,nid,m,p)#stk, h)" |
 
   InvokeNodeStep:
   "\<lbrakk>is_Invoke (kind g nid);
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
     hasReceiver invoke_kind; 
-    m' = new_map_state;
     g \<turnstile> arguments \<simeq>\<^sub>L argsE;
     [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p';
     ObjRef self = hd p';
     ObjStr cname = (h_load_field ''class'' self h);
     S = (P,cl);
     Some targetGraph = dynamic_lookup S cname targetMethod (class_parents (CLget_JVMClass cname cl))\<rbrakk>
-    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,m',p')#(g,nid,m,p)#stk, h)" |
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,new_map_state,p')#(g,nid,m,p)#stk, h)" |
 
 (* TODO this produces two parse trees after importing Class *)
   ReturnNode:

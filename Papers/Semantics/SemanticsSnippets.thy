@@ -198,6 +198,8 @@ text \<open>
 \induct{@{thm[mode=Rule] step.NewInstanceNode [no_vars]}}{step:newinst}
 \induct{@{thm[mode=Rule] step.LoadFieldNode [no_vars]}}{step:load}
 \induct{@{thm[mode=Rule] step.StoreFieldNode [no_vars]}}{step:store}
+\induct{@{thm[mode=Rule] step.StaticLoadFieldNode [no_vars]}}{step:load-static}
+\induct{@{thm[mode=Rule] step.StaticStoreFieldNode [no_vars]}}{step:store-static}
 \end{center}
 \<close>
 snipend -
@@ -208,6 +210,7 @@ text \<open>
 \induct{@{thm[mode=Rule] step_top.Lift [no_vars]}}{top:lift}
 \induct{@{thm[mode=Rule] step_top.InvokeNodeStep [no_vars]}}{top:invoke}
 \induct{@{thm[mode=Rule] step_top.ReturnNode [no_vars]}}{top:return}
+\induct{@{thm[mode=Rule] step_top.ReturnNodeVoid [no_vars]}}{top:return-void}
 \induct{@{thm[mode=Rule] step_top.UnwindNode [no_vars]}}{top:unwind}
 \end{center}
 \<close>

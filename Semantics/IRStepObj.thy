@@ -339,17 +339,17 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     g \<turnstile> expr \<simeq> e;
     [m, p] \<turnstile> e \<mapsto> v;
 
-    cm' = cm(cnid := v);
-    cnid' = (successors_of (kind cg cnid))!0\<rbrakk> 
-    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
+    m'\<^sub>c = m\<^sub>c(nid\<^sub>c := v);
+    nid'\<^sub>c = (successors_of (kind g\<^sub>c nid\<^sub>c))!0\<rbrakk> 
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(g\<^sub>c,nid\<^sub>c,m\<^sub>c,p\<^sub>c)#stk, h) \<longrightarrow> ((g\<^sub>c,nid'\<^sub>c,m'\<^sub>c,p\<^sub>c)#stk, h)" |
 
 (* TODO this produces two parse trees after importing Class *)
   ReturnNodeVoid:
   "\<lbrakk>kind g nid = (ReturnNode None _);
-    cm' = cm(cnid := (ObjRef (Some (2048))));
+    m'\<^sub>c = m\<^sub>c(nid\<^sub>c := (ObjRef (Some (2048))));
     
-    cnid' = (successors_of (kind cg cnid))!0\<rbrakk> 
-    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,cnid',cm',cp)#stk, h)" |
+    nid'\<^sub>c = (successors_of (kind g\<^sub>c nid\<^sub>c))!0\<rbrakk> 
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(g\<^sub>c,nid\<^sub>c,m\<^sub>c,p\<^sub>c)#stk, h) \<longrightarrow> ((g\<^sub>c,nid'\<^sub>c,m'\<^sub>c,p\<^sub>c)#stk, h)" |
 
   UnwindNode:
   "\<lbrakk>kind g nid = (UnwindNode exception);
@@ -357,10 +357,10 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     g \<turnstile> exception \<simeq> exceptionE;
     [m, p] \<turnstile> exceptionE \<mapsto> e;
      
-    kind cg cnid = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
+    kind g\<^sub>c nid\<^sub>c = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 
-    cm' = cm(cnid := e)\<rbrakk>
-  \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(cg,cnid,cm,cp)#stk, h) \<longrightarrow> ((cg,exEdge,cm',cp)#stk, h)"
+    m'\<^sub>c = m\<^sub>c(nid\<^sub>c := e)\<rbrakk>
+  \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(g\<^sub>c,nid\<^sub>c,m\<^sub>c,p\<^sub>c)#stk, h) \<longrightarrow> ((g\<^sub>c,exEdge,m'\<^sub>c,p\<^sub>c)#stk, h)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) step_top .
 

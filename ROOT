@@ -25,7 +25,7 @@ session Semantics in Semantics = Graph +
   description
     "Semantics of the GraalVM IR"
   options [document = pdf, document_output = "output",
-           show_question_marks = false]
+           show_question_marks = false, quick_and_dirty]
   sessions
     "HOL-Eisbach"
   theories
@@ -220,18 +220,18 @@ session Document in "Papers/Main" = Canonicalizations +
 
 \<comment>\<open>Snippets for papers\<close>
 
-(* Currently preserved in atva branch 
-session SemanticsPaper in "Papers/Semantics" = Optimizations +
+session SemanticsPaper in "Papers/Semantics" = Semantics +
   description
     "Content for IR semantics description paper"
   options [document = pdf, document_output = "output",
            show_question_marks = false]
+  sessions
+    Proofs
   theories
     SemanticsSnippets
   document_files (in "../../latex")
     "root.tex"
     "mathpartir.sty"
-*)
 
 
 session StampLattice in "Papers/Stamps" = Graph +

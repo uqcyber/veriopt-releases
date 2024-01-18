@@ -1,6 +1,6 @@
 theory SemanticsSnippets
   imports
-    Optimizations.CanonicalizationProofs
+    Semantics.IRStepObj Semantics.Form Proofs.Stuttering
 begin
 
 (*notation (latex)
@@ -146,6 +146,8 @@ text_raw \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
+(* Deprecated expression semantics *)
+(*
 text_raw \<open>\Snip{ExpressionSemantics}%\<close>
 text \<open>
 \begin{center}
@@ -168,6 +170,7 @@ text \<open>
 \end{center}
 \<close>
 text_raw \<open>\EndSnip\<close>
+*)
 
 
 text_raw \<open>\Snip{StepSemantics}%\<close>
@@ -195,6 +198,8 @@ text \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
+(* Deprecated canonicalization rules *)
+(*
 text_raw \<open>\Snip{AddNodeRules}%
 \begin{center}
 @{thm[mode=Rule] CanonicalizeAdd.add_both_const [no_vars]}\\[8px]
@@ -206,6 +211,7 @@ text_raw \<open>\Snip{AddNodeRules}%
 text_raw \<open>\Snip{AddNodeProof}%
 @{thm CanonicalizeAddProof}
 \EndSnip\<close>
+*)
 
 text_raw \<open>\Snip{Stutter}%\<close>
 text \<open>
@@ -216,6 +222,7 @@ text \<open>
 \<close>
 text_raw \<open>\EndSnip\<close>
 
+(*
 text_raw \<open>\Snip{CanonicalizeIfNodeRules}%
 \begin{center}
 @{thm[mode=Rule] CanonicalizeIf.trueConst}\\[8px]
@@ -239,6 +246,7 @@ text_raw \<open>\Snip{CanonicalizeIfNodeProof}%
 @{thm[display] CanonicalizeIfProof_fake}
 \end{center}
 \EndSnip\<close>
+*)
 
 (* EXPERIMENTAL *)
 notation (latex output)

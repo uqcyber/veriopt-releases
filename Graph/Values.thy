@@ -68,6 +68,9 @@ fun val_to_bool :: "Value \<Rightarrow> bool" where
   "val_to_bool (IntVal b val) = (if val = 0 then False else True)" |
   "val_to_bool val = False"
 
+notation (latex output)
+  val_to_bool ("_\<^sub>b")
+
 fun bool_to_val :: "bool \<Rightarrow> Value" where
   "bool_to_val True = (IntVal 32 1)" |
   "bool_to_val False = (IntVal 32 0)"

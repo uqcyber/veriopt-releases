@@ -3,6 +3,8 @@ theory SemanticsSnippets
     Semantics.IRStepObj Semantics.Form Proofs.Stuttering Snippets.Snipping
 begin
 
+declare [[show_types=false]]
+
 (*notation (latex)
   NoNode ("\<epsilon>")
 *)

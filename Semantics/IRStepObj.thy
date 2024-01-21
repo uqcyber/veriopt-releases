@@ -142,10 +142,8 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
    "\<lbrakk>(kind g nid) = (FixedGuardNode cond before next);
      [g, m, p] \<turnstile> cond \<mapsto> val;
 
-     \<not>(val_to_bool val);
-
-     nid' = next\<rbrakk> 
-     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m, h)" |
+     \<not>(val_to_bool val)\<rbrakk> 
+     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (next, m, h)" |
 
    BytecodeExceptionNode:
   "\<lbrakk>(kind g nid) = (BytecodeExceptionNode args st nid');
@@ -227,30 +225,26 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
   LoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f (Some obj) nid');
       [g, m, p] \<turnstile> obj \<mapsto> ObjRef ref;
-      h_load_field f ref h = v;
-      m' = m(nid := v)\<rbrakk> 
+      m' = m(nid := h_load_field f ref h)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
   SignedDivNode:
-    "\<lbrakk>kind g nid = (SignedDivNode nid x y zero sb nxt);
+    "\<lbrakk>kind g nid = (SignedDivNode nid x y zero sb next);
       [g, m, p] \<turnstile> x \<mapsto> v1;
       [g, m, p] \<turnstile> y \<mapsto> v2;
-      v = (intval_div v1 v2);
-      m' =  m(nid := v)\<rbrakk> 
-    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+      m' =  m(nid := intval_div v1 v2)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (next, m', h)" |
 
   SignedRemNode:
-    "\<lbrakk>kind g nid = (SignedRemNode nid x y zero sb nxt);
+    "\<lbrakk>kind g nid = (SignedRemNode nid x y zero sb next);
       [g, m, p] \<turnstile> x \<mapsto> v1;
       [g, m, p] \<turnstile> y \<mapsto> v2;
-      v = (intval_mod v1 v2);
-      m' =  m(nid := v)\<rbrakk> 
-    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nxt, m', h)" |
+      m' =  m(nid := intval_mod v1 v2)\<rbrakk> 
+    \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (next, m', h)" |
 
   StaticLoadFieldNode:
     "\<lbrakk>kind g nid = (LoadFieldNode nid f None nid');
-      h_load_field f None h = v;
-      m' =  m(nid := v)\<rbrakk> 
+      m' =  m(nid := h_load_field f None h)\<rbrakk> 
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h)" |
 
   StoreFieldNode:
@@ -316,8 +310,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     kind g callTarget = (MethodCallTargetNode targetMethod actuals invoke_kind);
     \<not>(hasReceiver invoke_kind);
     Some targetGraph = (dynamic_lookup S ''None'' targetMethod []);
-    g \<turnstile> actuals \<simeq>\<^sub>L argsE;
-    [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p'\<rbrakk>
+    [g, m, p] \<turnstile> actuals \<longmapsto> p'\<rbrakk>
     \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,new_map_state,p')#(g,nid,m,p)#stk, h)" |
 
   InvokeNodeStep:
@@ -325,8 +318,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
     hasReceiver invoke_kind; 
-    g \<turnstile> arguments \<simeq>\<^sub>L argsE;
-    [m, p] \<turnstile> argsE  \<mapsto>\<^sub>L p';
+    [g, m, p] \<turnstile> arguments \<longmapsto> p';
     ObjRef self = hd p';
     ObjStr cname = (h_load_field ''class'' self h);
     S = (P,cl);
@@ -336,8 +328,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
 (* TODO this produces two parse trees after importing Class *)
   ReturnNode:
   "\<lbrakk>kind g nid = (ReturnNode (Some expr) _);
-    g \<turnstile> expr \<simeq> e;
-    [m, p] \<turnstile> e \<mapsto> v;
+    [g, m, p] \<turnstile> expr \<mapsto> v;
 
     m'\<^sub>c = m\<^sub>c(nid\<^sub>c := v);
     nid'\<^sub>c = (successors_of (kind g\<^sub>c nid\<^sub>c))!0\<rbrakk> 
@@ -354,8 +345,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
   UnwindNode:
   "\<lbrakk>kind g nid = (UnwindNode exception);
 
-    g \<turnstile> exception \<simeq> exceptionE;
-    [m, p] \<turnstile> exceptionE \<mapsto> e;
+    [g, m, p] \<turnstile> exception \<mapsto> e;
      
     kind g\<^sub>c nid\<^sub>c = (InvokeWithExceptionNode _ _ _ _ _ _ exEdge);
 

@@ -28,6 +28,7 @@ session Semantics in Semantics = Graph +
            show_question_marks = false, quick_and_dirty]
   sessions
     "HOL-Eisbach"
+    Snippets
   theories
     Form
     IRGraphFrames

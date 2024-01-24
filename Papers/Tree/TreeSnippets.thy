@@ -427,13 +427,19 @@ text \<open>
 \<close>
 snipend -
 
+snipbegin \<open>unique\<close>
+text \<open>
+\induct{@{thm[mode=Rule] unique.Exists [no_vars]}}{unique:exists}
+\induct{@{thm[mode=Rule] unique.New [no_vars]}}{unique:new}
+\<close>
+snipend -
+
 snipbegin \<open>tree2graph\<close>
 text \<open>
-\induct{@{thm[mode=Rule] unrep.UnaryNodeSame [no_vars]}}{unrep:unarysame}
-\induct{@{thm[mode=Rule] unrep.ConstantNodeNew [no_vars]}}{unrep:constantnew}
-\induct{@{thm[mode=Rule] unrep.ParameterNodeNew [no_vars]}}{unrep:parameternew}
-\induct{@{thm[mode=Rule] unrep.UnaryNodeNew [no_vars]}}{unrep:unarynew}
-\induct{@{thm[mode=Rule] unrep.BinaryNodeNew [no_vars]}}{unrep:binarynew}
+\induct{@{thm[mode=Rule] unrep.UnrepConstantNode [no_vars]}}{unrep:constantnew}
+\induct{@{thm[mode=Rule] unrep.UnrepParameterNode [no_vars]}}{unrep:parameternew}
+\induct{@{thm[mode=Rule] unrep.UnrepUnaryNode [no_vars]}}{unrep:unarynew}
+\induct{@{thm[mode=Rule] unrep.UnrepBinaryNode [no_vars]}}{unrep:binarynew}
 \induct{@{thm[mode=Rule] unrep.AllLeafNodes [no_vars]}}{unrep:leaf}
 \<close>
 snipend -
@@ -459,7 +465,7 @@ snipend -
 (* definition 9 (well-formed graph) no? *)
 
 snipbegin \<open>graph-semantics\<close>
-text \<open>@{thm encodeeval_def}\<close>
+text \<open>@{thm encodeeval.intros}\<close>
 snipend -
 
 snipbegin \<open>graph-semantics-deterministic\<close>

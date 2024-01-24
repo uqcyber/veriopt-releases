@@ -4,6 +4,7 @@ theory TreeToGraph
   imports 
     Semantics.IRTreeEval
     Graph.IRGraph
+    Snippets.Snipping
 begin
 
 subsection \<open>Subgraph to Data-flow Tree\<close>
@@ -480,14 +481,17 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as unrepE
   [show_steps,show_mode_inference,show_intermediate_results] 
 *)  unrep .
 
-text_raw \<open>\Snip{unique}%
+snipbegin \<open>uniqueRules\<close>
+text \<open>
 \begin{center}
 @{thm[mode=Rule] unique.Exists [no_vars]}\\[8px]
 @{thm[mode=Rule] unique.New [no_vars]}\\[8px]
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
-text_raw \<open>\Snip{unrepRules}%
+snipbegin \<open>unrepRules\<close>
+text \<open>
 \begin{center}
 @{thm[mode=Rule] unrep.UnrepConstantNode [no_vars]}\\[8px]
 @{thm[mode=Rule] unrep.UnrepParameterNode [no_vars]}\\[8px]
@@ -496,7 +500,8 @@ text_raw \<open>\Snip{unrepRules}%
 @{thm[mode=Rule] unrep.UnrepUnaryNode [no_vars]}\\[8px]
 @{thm[mode=Rule] unrep.AllLeafNodes [no_vars]}\\[8px]
 \end{center}
-\EndSnip\<close>
+\<close>
+snipend -
 
 (*
 instantiation IRGraph :: equal begin
@@ -513,7 +518,7 @@ qed
 end
 *)
 
-values "{(n, g) . (eg2_sq \<oplus> sq_param0 \<leadsto> (g, n))}"
+(*values "{(n, g) . (eg2_sq \<oplus> sq_param0 \<leadsto> (g, n))}"*)
 
 subsection \<open>Lift Data-flow Tree Semantics\<close>
 

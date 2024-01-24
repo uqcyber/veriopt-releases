@@ -69,46 +69,50 @@ inductive_cases unrepVariableE:
 inductive_cases unrepConstVarE:
   "unrep g (ConstantVar c) (g', nid)"
 
+lemma uniqueDet:
+  assumes "unique g e (g'\<^sub>1, nid\<^sub>1)"
+  assumes "unique g e (g'\<^sub>2, nid\<^sub>2)"
+  shows "g'\<^sub>1 = g'\<^sub>2 \<and> nid\<^sub>1 = nid\<^sub>2"
+  using assms apply (induction)
+   apply (metis Pair_inject assms(1) assms(2) option.distinct(1) option.inject unique.cases)
+  by (metis Pair_inject assms(1) assms(2) option.discI option.inject unique.cases)
+
 lemma unrepDet:
   assumes "unrep g e (g'\<^sub>1, nid\<^sub>1)"
   assumes "unrep g e (g'\<^sub>2, nid\<^sub>2)"
   shows "g'\<^sub>1 = g'\<^sub>2 \<and> nid\<^sub>1 = nid\<^sub>2"
   using assms proof (induction e arbitrary: g g'\<^sub>1 nid\<^sub>1 g'\<^sub>2 nid\<^sub>2)
-  case (UnaryExpr op e)
-  then obtain g' x where "g \<oplus> e \<leadsto> (g', x)"
-    by (meson unrepUnaryE)
-  then have "\<forall>gg xx. g \<oplus> e \<leadsto> (gg, xx) \<longrightarrow> g' = gg \<and> x = xx"
-    by (simp add: UnaryExpr.IH)
+case (UnaryExpr op e)
   then show ?case
-    by (smt (verit, best) UnaryExpr.prems(1) UnaryExpr.prems(2) option.discI option.inject unrepUnaryE)
+    by (smt (verit, best) uniqueDet unrepUnaryE)
 next
   case (BinaryExpr x1 e1 e2)
   then show ?case
-    by (smt (verit) option.distinct(1) option.inject unrepBinaryE)
+    by (smt (verit, best) uniqueDet unrepBinaryE)
 next
   case (ConditionalExpr e1 e2 e3)
   then show ?case 
-    by (smt (verit) option.distinct(1) option.inject unrepConditionalE)
+   by (smt (verit, best) uniqueDet unrepConditionalE)
 next
   case (ParameterExpr x1 x2)
   then show ?case
-    by (smt (verit) option.distinct(1) option.inject unrepParamE)
+    by (smt (verit, best) uniqueDet unrepParamE)
 next
   case (LeafExpr x1 x2)
   then show ?case 
-    by (smt (verit) option.distinct(1) option.inject unrepLeafE)
+    by (smt (verit, best) uniqueDet unrepLeafE)
 next
   case (ConstantExpr x)
   then show ?case
-    by (smt (verit) option.distinct(1) option.inject unrepConstE)
+    by (smt (verit, best) uniqueDet unrepConstE)
 next
   case (ConstantVar x)
   then show ?case
-    by (smt (verit) option.distinct(1) option.inject unrepConstVarE)
+    by (smt (verit, best) uniqueDet unrepConstVarE)
 next
   case (VariableExpr x1 x2)
   then show ?case
-    by (smt (verit) option.distinct(1) option.inject unrepVariableE)
+    by (smt (verit, best) uniqueDet unrepVariableE)
 qed
 
 
@@ -183,9 +187,13 @@ lemma
   qed
 *)
 
+lemma insertConstUnique:
+  "\<exists>g' nid'. unique g (ConstantNode c, s) (g', nid')"
+  by (meson not_None_eq unique.simps)
+
 lemma insertConst:
   "\<exists>g' nid'. unrep g (ConstantExpr c) (g', nid')"
-  by (meson not_None_eq unrep.intros(1) unrep.intros(2))
+  using UnrepConstantNode insertConstUnique by blast
 
 lemma constantConditionTrue:
   assumes "kind g ifcond = IfNode cond t f"
@@ -197,9 +205,9 @@ proof -
   obtain g'' nid' where unrep: "unrep g (ConstantExpr (bool_to_val_width1 True)) (g'', nid')"
     using insertConst by blast
   then have "kind g'' nid' = ConstantNode (bool_to_val_width1 True)"
-    by (smt (verit) ConstUnrepE IRExpr.simps(18) IRExpr.simps(30) IRExpr.simps(40) IRExpr.simps(48) IRExpr.simps(54) IRExpr.simps(6) IRNode.simps(1141) find_exists_kind find_new_kind option.distinct(1) option.inject unrep.simps)
+    by (meson ConstUnrepE IRNode.distinct(1077) unique_kind)
   also have "nid' \<noteq> ifcond"
-    by (smt (verit) IRExpr.simps(18) IRExpr.simps(30) IRExpr.simps(40) IRNode.distinct(981) \<open>g::IRGraph \<oplus> ConstantExpr (bool_to_val_width1 True) \<leadsto> (g''::IRGraph, nid'::nat)\<close> assms(1) calculation fresh_ids ifn not_in_g prod.inject unrep.simps)
+    by (metis ConstUnrepE IRNode.distinct(981) assms(1) calculation fresh_ids ids_some ifn unique.cases unrep unrepDet)
   moreover have "g' = replace_node ifcond (IfNode nid' t f, stamp g ifcond) g''"
     using assms constantCondition_sem unrep by presburger
   moreover have "kind g' nid' = ConstantNode (bool_to_val_width1 True)"
@@ -223,10 +231,10 @@ proof -
     by fastforce
   then have "[g', m, p] \<turnstile> nid' \<mapsto> IntVal 1 1"
     using Value.distinct(1) \<open>kind g' nid' = ConstantNode (bool_to_val_width1 True)\<close>
-    by (metis bool_to_val_width1.simps(1) wf_value_def encodeeval_def ConstantExpr ConstantNode)
+    by (metis bool_to_val_width1.simps(1) wf_value_def encodeeval.simps ConstantExpr ConstantNode)
   from if' c' show ?thesis
     by (metis (no_types, opaque_lifting) val_to_bool.simps(1) \<open>[g',m,p] \<turnstile> nid' \<mapsto> IntVal 1 1\<close>
-        encodeeval_def zero_neq_one IfNode)
+        zero_neq_one IfNode)
 qed
 
 lemma constantConditionFalse:
@@ -239,11 +247,11 @@ proof -
   obtain g'' nid' where unrep: "unrep g (ConstantExpr (bool_to_val_width1 False)) (g'', nid')"
     using insertConst by blast
   also have "kind g'' nid' = ConstantNode (bool_to_val_width1 False)"
-    by (smt (verit) IRExpr.sel(14) IRExpr.simps(18) IRExpr.simps(30) IRExpr.simps(40) IRExpr.simps(48) IRExpr.simps(54) IRNode.distinct(1077) find_exists_kind find_new_kind unrep unrep.simps unrepDet)
+    by (meson ConstUnrepE IRNode.distinct(1077) unique_kind unrep)
   moreover have "nid' \<noteq> ifcond"
-    by (smt (verit) IRExpr.simps(18) IRExpr.simps(30) IRExpr.simps(40) IRNode.distinct(981) assms(1) calculation fresh_ids ifn not_in_g prod.inject unrep.simps)
+    by (metis ConstUnrepE IRNode.distinct(981) assms(1) calculation(2) fresh_ids ids_some ifn unique.cases unrep unrepDet)
   moreover have "g' = replace_node ifcond (IfNode nid' t f, stamp g ifcond) g''"
-    using assms constantCondition_sem unrep by presburger
+    using assms(1) assms(2) constantCondition_sem unrep by presburger
   moreover have "kind g' nid' = ConstantNode (bool_to_val_width1 False)"
     using assms constantCondition.simps(1) replace_node_unchanged 
     by (metis DiffI calculation(2) calculation(3) calculation(4) emptyE insert_iff unrep unrep_contains)
@@ -257,9 +265,9 @@ proof -
   have "valid_value (IntVal 1 0) (constantAsStamp (IntVal 1 0))"
     by auto
   then have "[g', m, p] \<turnstile> nid' \<mapsto> IntVal 1 0"
-    by (meson ConstantExpr ConstantNode c' encodeeval_def wf_value_def)
+    by (meson ConstantExpr ConstantNode c' encodeeval.simps wf_value_def)
   from if' c' show ?thesis
-    by (meson IfNode \<open>[g'::IRGraph,m::nat \<Rightarrow> Value,p::Value list] \<turnstile> nid'::nat \<mapsto> IntVal (1::nat) (0::64 word)\<close> encodeeval_def val_to_bool.simps(1))
+    by (meson IfNode \<open>[g'::IRGraph,m::nat \<Rightarrow> Value,p::Value list] \<turnstile> nid'::nat \<mapsto> IntVal (1::nat) (0::64 word)\<close> encodeeval.simps val_to_bool.simps(1))
 qed
 
 lemma diff_forall:
@@ -299,8 +307,9 @@ lemma changeonly_ConstantExpr:
   shows "changeonly {} g g'"
   using assms 
   apply (cases "find_node_and_stamp g (ConstantNode c, constantAsStamp c) = None")
-  apply (smt (verit, del_insts) ConstantNodeNew add_changed changeonly.simps fresh_ids insertE unrepDet)
-  by (smt (verit) IRExpr.sel(14) IRExpr.simps(18) IRExpr.simps(30) IRExpr.simps(40) IRExpr.simps(48) changeonly.simps unrep.simps unrepDet)
+  apply (smt (verit, ccfv_threshold) New add_node_as_set_eq changeonly.simps fresh_ids new_def not_excluded_keep_type order.refl uniqueDet unrepConstE unrep_preserves_contains)
+  by (metis changeonly.simps unique.cases unrepConstE unrepDet)
+
 
 lemma constantCondition_changeonly:
   assumes "nid \<in> ids g"
@@ -346,7 +355,7 @@ lemma constantConditionValid:
 proof (cases "const")
   case True
   have ifstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    by (meson IfNode True assms(1,2,3) encodeeval_def)
+    by (meson IfNode True assms(1,2,3) encodeeval.simps)
   have ifstep': "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using constantConditionTrue True assms(1,4) by presburger
   from ifstep ifstep' show ?thesis
@@ -354,7 +363,7 @@ proof (cases "const")
 next
   case False
   have ifstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    by (meson IfNode False assms(1,2,3) encodeeval_def)
+    by (meson IfNode False assms(1,2,3) encodeeval.simps)
   have ifstep': "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     using constantConditionFalse False assms(1,4) by presburger
   from ifstep ifstep' show ?thesis

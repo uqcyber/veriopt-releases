@@ -11,6 +11,13 @@ declare [[show_types=false]]
 notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 
+notation (latex)
+  stamp_expr ("\<^latex>\<open>\\pitchfork\<close> _")
+
+notation (latex)
+  val_to_bool ("_\<^latex>\<open>\\ensuremath{_{\\mathit{\<close>bool\<^latex>\<open>}}}\<close>")
+
+
 syntax (spaced_type_def output)
   "_constrain" :: "logic => type => logic" ("_ :: _" [4, 0] 3)
 

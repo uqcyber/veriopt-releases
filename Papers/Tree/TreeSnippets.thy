@@ -26,10 +26,13 @@ notation (latex)
   kind ("_\<llangle>_\<rrangle>")
 
 notation (latex)
+  stamp_expr ("\<^latex>\<open>\\pitchfork\<close> _")
+
+notation (latex)
   valid_value ("_ \<in> _")
 
 notation (latex)
-  val_to_bool ("\<^latex>\<open>bool-of\<close> _")
+  val_to_bool ("_\<^latex>\<open>\\ensuremath{_{\\mathit{\<close>bool\<^latex>\<open>}}}\<close>")
 
 notation (latex)
   constantAsStamp ("\<^latex>\<open>stamp-from-value\<close> _")

@@ -429,8 +429,8 @@ next
 qed
 
 lemma repAllDet:
-  "g \<turnstile> xs \<simeq>\<^sub>L e1 \<Longrightarrow>
-   g \<turnstile> xs \<simeq>\<^sub>L e2 \<Longrightarrow>
+  "g \<turnstile> xs [\<simeq>] e1 \<Longrightarrow>
+   g \<turnstile> xs [\<simeq>] e2 \<Longrightarrow>
    e1 = e2"
 proof (induction arbitrary: e2 rule: "replist.induct")
   case RepNil
@@ -452,7 +452,7 @@ lemma graphDet: "([g,m,p] \<turnstile> n \<mapsto> v\<^sub>1) \<and> ([g,m,p] \<
   by (auto simp add: encodeEvalDet)
 
 lemma encodeEvalAllDet:
-  "[g, m, p] \<turnstile> nids \<longmapsto> vs \<Longrightarrow> [g, m, p] \<turnstile> nids \<longmapsto> vs' \<Longrightarrow> vs = vs'"
+  "[g, m, p] \<turnstile> nids [\<mapsto>] vs \<Longrightarrow> [g, m, p] \<turnstile> nids [\<mapsto>] vs' \<Longrightarrow> vs = vs'"
   using repAllDet evalAllDet
   by (metis encodeEvalAll.simps)
 

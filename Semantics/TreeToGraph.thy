@@ -236,16 +236,16 @@ inductive
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprE) rep .
 
 inductive
-  replist :: "IRGraph \<Rightarrow> ID list \<Rightarrow> IRExpr list \<Rightarrow> bool" ("_ \<turnstile> _ \<simeq>\<^sub>L _" 55)
+  replist :: "IRGraph \<Rightarrow> ID list \<Rightarrow> IRExpr list \<Rightarrow> bool" ("_ \<turnstile> _ [\<simeq>] _" 55)
   for g where
 
   RepNil:
-  "g \<turnstile> [] \<simeq>\<^sub>L []" |
+  "g \<turnstile> [] [\<simeq>] []" |
 
   RepCons:
   "\<lbrakk>g \<turnstile> x \<simeq> xe;
-    g \<turnstile> xs \<simeq>\<^sub>L xse\<rbrakk>
-    \<Longrightarrow> g \<turnstile> x#xs \<simeq>\<^sub>L xe#xse"
+    g \<turnstile> xs [\<simeq>] xse\<rbrakk>
+    \<Longrightarrow> g \<turnstile> x#xs [\<simeq>] xe#xse"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool as exprListE) replist .
 
@@ -531,8 +531,8 @@ code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow
 
 
 inductive encodeEvalAll :: "IRGraph \<Rightarrow> MapState \<Rightarrow> Params \<Rightarrow> ID list \<Rightarrow> Value list \<Rightarrow> bool"
-  ("[_,_,_] \<turnstile> _ \<longmapsto> _" 60) where
-  "(g \<turnstile> nids \<simeq>\<^sub>L es) \<and> ([m, p] \<turnstile> es  \<mapsto>\<^sub>L vs) \<Longrightarrow> ([g, m, p] \<turnstile> nids \<longmapsto> vs)"
+  ("[_,_,_] \<turnstile> _ [\<mapsto>] _" 60) where
+  "(g \<turnstile> nids [\<simeq>] es) \<and> ([m, p] \<turnstile> es [\<mapsto>] vs) \<Longrightarrow> ([g, m, p] \<turnstile> nids [\<mapsto>] vs)"
 
 code_pred (modes: i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> i \<Rightarrow> o \<Rightarrow> bool) encodeEvalAll .
 

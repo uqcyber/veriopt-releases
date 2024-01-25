@@ -166,7 +166,7 @@ inductive step :: "IRGraph \<Rightarrow> Params \<Rightarrow> (ID \<times> MapSt
     indexof (inputs_of (kind g merge)) i nid;
     phis = filter_phis g merge;
     inps = phi_inputs g phis i;
-    [g, m, p] \<turnstile> inps \<longmapsto> vs;
+    [g, m, p] \<turnstile> inps [\<mapsto>] vs;
 
     m' = (m(phis[\<rightarrow>]vs))\<rbrakk>
     \<Longrightarrow> g, p \<turnstile> (nid, m, h) \<rightarrow> (merge, m', h)" |
@@ -310,7 +310,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     kind g callTarget = (MethodCallTargetNode targetMethod actuals invoke_kind);
     \<not>(hasReceiver invoke_kind);
     Some targetGraph = (dynamic_lookup S ''None'' targetMethod []);
-    [g, m, p] \<turnstile> actuals \<longmapsto> p'\<rbrakk>
+    [g, m, p] \<turnstile> actuals [\<mapsto>] p'\<rbrakk>
     \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#stk, h) \<longrightarrow> ((targetGraph,0,new_map_state,p')#(g,nid,m,p)#stk, h)" |
 
   InvokeNodeStep:
@@ -318,7 +318,7 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
     callTarget = ir_callTarget (kind g nid);
     kind g callTarget = (MethodCallTargetNode targetMethod arguments invoke_kind);
     hasReceiver invoke_kind; 
-    [g, m, p] \<turnstile> arguments \<longmapsto> p';
+    [g, m, p] \<turnstile> arguments [\<mapsto>] p';
     ObjRef self = hd p';
     ObjStr cname = (h_load_field ''class'' self h);
     S = (P,cl);
@@ -337,10 +337,9 @@ inductive step_top :: "System \<Rightarrow> (IRGraph \<times> ID \<times> MapSta
 (* TODO this produces two parse trees after importing Class *)
   ReturnNodeVoid:
   "\<lbrakk>kind g nid = (ReturnNode None _);
-    m'\<^sub>c = m\<^sub>c(nid\<^sub>c := (ObjRef (Some (2048))));
     
     nid'\<^sub>c = (successors_of (kind g\<^sub>c nid\<^sub>c))!0\<rbrakk> 
-    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(g\<^sub>c,nid\<^sub>c,m\<^sub>c,p\<^sub>c)#stk, h) \<longrightarrow> ((g\<^sub>c,nid'\<^sub>c,m'\<^sub>c,p\<^sub>c)#stk, h)" |
+    \<Longrightarrow> (S) \<turnstile> ((g,nid,m,p)#(g\<^sub>c,nid\<^sub>c,m\<^sub>c,p\<^sub>c)#stk, h) \<longrightarrow> ((g\<^sub>c,nid'\<^sub>c,m\<^sub>c,p\<^sub>c)#stk, h)" |
 
   UnwindNode:
   "\<lbrakk>kind g nid = (UnwindNode exception);

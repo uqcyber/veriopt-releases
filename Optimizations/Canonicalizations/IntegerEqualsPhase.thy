@@ -44,6 +44,16 @@ lemma exp_equals_commute:
   shows "exp[BinaryExpr BinIntegerEquals x y] \<ge> exp[BinaryExpr BinIntegerEquals y x]"
   apply auto by (simp add: BinaryExpr evaltree_not_undef val_equals_commute)
 
+lemma val_xor_commute:
+  assumes "x \<noteq> UndefVal"
+  assumes "y \<noteq> UndefVal"
+  shows "val[x \<oplus> y] = val[y \<oplus> x]"
+  using assms apply (cases x; cases y; auto) by (simp add: word_bw_comms(3))
+
+lemma exp_xor_commute:
+  shows "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
+  apply auto by (simp add: BinaryExpr evaltree_not_undef val_xor_commute)
+
 (* AndOrEquals
   (x & y) == (x | y) \<mapsto> (x == y) 
 *)
@@ -139,68 +149,57 @@ optimization AndOrEquals1: "exp[BinaryExpr BinIntegerEquals (x & y) (x | y)] \<l
                             exp[BinaryExpr BinIntegerEquals x y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
-   using exp_and_or_eq_64 by blast
+  apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
+  using exp_and_or_eq_64 by blast
 
 optimization AndOrEquals2: "exp[BinaryExpr BinIntegerEquals (x & y) (y | x)] \<longmapsto>
                             exp[BinaryExpr BinIntegerEquals x y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
-   using AndOrEquals1 apply simp by (meson exp_or_commute le_expr_def mono_binary)
+  apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
+  using AndOrEquals1 apply simp by (meson exp_or_commute le_expr_def mono_binary)
 
-optimization AndOrEquals3: "exp[BinaryExpr BinIntegerEquals (y & x) (x | y)] \<longmapsto>
+optimization AndOrEquals3: "exp[BinaryExpr BinIntegerEquals (x | y) (x & y)] \<longmapsto>
                             exp[BinaryExpr BinIntegerEquals x y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-   apply (metis less_SucI less_add_Suc2 size_binary_const size_non_add)
-   by (meson dual_order.refl dual_order.trans exp_and_commute mono_binary exp_and_or_eq_64)
+  apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
+  by (meson exp_equals_commute order.trans exp_and_or_eq_64)
 
-optimization AndOrEquals4: "exp[BinaryExpr BinIntegerEquals (y & x) (y | x)] \<longmapsto>
+optimization AndOrEquals4: "exp[BinaryExpr BinIntegerEquals (x | y) (y & x)] \<longmapsto>
                             exp[BinaryExpr BinIntegerEquals x y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-   apply (smt (verit, del_insts) ab_semigroup_add_class.add_ac(1) add_2_eq_Suc' add_less_mono
-          add_mono_thms_linordered_field(3) size_binary_lhs size_binary_rhs verit_comp_simplify1(2)
-          size_non_add size_binary_const less_add_Suc2)
-   by (meson dual_order.trans exp_and_commute exp_or_commute mono_binary exp_and_or_eq_64)
+  apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
+  using AndOrEquals3 apply simp by (meson exp_and_commute le_expr_def mono_binary)
 
-optimization AndOrEquals5: "exp[BinaryExpr BinIntegerEquals (x | y) (x & y)] \<longmapsto>
-                            exp[BinaryExpr BinIntegerEquals x y]
-                        when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
-   by (meson exp_equals_commute order.trans exp_and_or_eq_64)
-
-optimization AndOrEquals6: "exp[BinaryExpr BinIntegerEquals (x | y) (y & x)] \<longmapsto>
-                            exp[BinaryExpr BinIntegerEquals x y]
-                        when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
-   using AndOrEquals5 apply simp by (meson exp_and_commute le_expr_def mono_binary)
-
-optimization AndOrEquals7: "exp[BinaryExpr BinIntegerEquals (y | x) (x & y)] \<longmapsto>
-                            exp[BinaryExpr BinIntegerEquals x y]
-                        when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-   apply (metis add_Suc_right lessI less_SucI size_binary_const size_non_add trans_less_add2)
-   using AndOrEquals6 apply simp by (meson exp_equals_commute le_expr_def)
-
-optimization AndOrEquals8: "exp[BinaryExpr BinIntegerEquals (y | x) (y & x)] \<longmapsto>
-                            exp[BinaryExpr BinIntegerEquals x y]
-                        when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-   apply (smt (verit, ccfv_SIG) not_less_eq trans_less_add2 Canonicalization.const_size add.commute
-          ab_semigroup_add_class.add_ac(1) is_ConstantExpr_def size_non_add Suc_eq_plus1
-          size_binary_const)
-   by (meson exp_and_or_eq_64 order.trans exp_equals_commute)
-
-optimization XorNotFallThrough: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (\<not>x)] \<longmapsto>
-                                 exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
+optimization XorNotFallThrough1: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (\<not>x)] \<longmapsto>
+                                  exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
-   apply (simp add: less_SucI size_binary_rhs trans_less_add1)
-   using exp_xor_not_fall_through by force
+  apply (simp add: less_SucI size_binary_rhs trans_less_add1)
+  using exp_xor_not_fall_through by force
+
+optimization XorNotFallThrough2: "exp[BinaryExpr BinIntegerEquals (y \<oplus> x) (\<not>x)] \<longmapsto>
+                                  exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
+                        when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  apply (simp add: add.commute less_SucI pos_add_strict size_binary_lhs size_pos)
+  using XorNotFallThrough1 apply simp by (meson exp_xor_commute le_expr_def mono_binary)
+
+optimization XorNotFallThrough3: "exp[BinaryExpr BinIntegerEquals (\<not>x) (x \<oplus> y)] \<longmapsto>
+                                  exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
+                        when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  apply (simp add: less_SucI size_binary_rhs trans_less_add2)
+  using exp_xor_not_fall_through exp_equals_commute by force
+
+optimization XorNotFallThrough4: "exp[BinaryExpr BinIntegerEquals (\<not>x) (y \<oplus> x)] \<longmapsto>
+                                  exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
+                        when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  apply (simp add: less_SucI size_binary_lhs trans_less_add2)
+  using XorNotFallThrough2 apply simp by (meson le_expr_def exp_equals_commute)
 
 end (* End of IntegerEqualsPhase *)
 

@@ -81,7 +81,7 @@ lemma exp_and_or_eq_64:
   assumes "stamp_expr y = IntegerStamp 64 yl yh"
   assumes "wf_stamp x"
   assumes "wf_stamp y"
-  shows "exp[BinaryExpr BinIntegerEquals (x & y) (x | y)] \<ge> 
+  shows "exp[BinaryExpr BinIntegerEquals (x & y) (x | y)] \<ge>
          exp[BinaryExpr BinIntegerEquals x y]"
   apply auto
   subgoal premises p for m p x1 y1 x2 y2
@@ -107,7 +107,7 @@ lemma val_xor_not_fall_through:
   assumes "x = new_int b xv"
   assumes "y = new_int b yv"
   shows "val[intval_equals (x \<oplus> y) (\<not>x)] = val[intval_equals y (new_int b (not 0))]"
-  using assms apply auto 
+  using assms apply auto
   by (smt (verit, ccfv_SIG) bit.xor_cancel_right bit.xor_left_self mask_eq_take_bit_minus_one
       take_bit_not_take_bit take_bit_xor)
 

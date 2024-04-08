@@ -97,7 +97,7 @@ session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL
     "root.tex"
     "mathpartir.sty"
 
-session ConditionalElimination in "Optimizations/ConditionalElimination" = Proofs +
+session ConditionalElimination in "Optimizations/ConditionalElimination" = OptimizationDSL +
   description
     "(experimental) Conditional elimination phase"
   options [quick_and_dirty,

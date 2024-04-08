@@ -305,9 +305,9 @@ proof -
   obtain stampx stampy where stampdef: "stampx = stamps x \<and> stampy = stamps y"
     by simp
   then have xv: "\<forall> xv . ([g, m, p] \<turnstile> x \<mapsto> xv) \<longrightarrow> valid_value xv stampx"
-    by (meson assms(1) encodeeval_def eval_in_ids wf_stamp.elims(2))
+    by (meson assms(1) encodeeval.simps eval_in_ids wf_stamp.elims(2))
   from stampdef have yv: "\<forall> yv . ([g, m, p] \<turnstile> y \<mapsto> yv) \<longrightarrow> valid_value yv stampy"
-    by (meson assms(1) encodeeval_def eval_in_ids wf_stamp.elims(2))
+    by (meson assms(1) encodeeval.simps eval_in_ids wf_stamp.elims(2))
   have "\<forall>v. valid_value v (join stampx stampy) = (valid_value v stampx \<and> valid_value v stampy)"
     using assms(3)
     by (simp add: join_valid stampdef)
@@ -327,15 +327,15 @@ proof -
     by (smt (verit, best) is_stamp_empty.elims(2) valid_int valid_value.simps(1) assms(1,4)
         alwaysDistinct.simps)
   obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerEquals xe ye)"
-    by (metis assms(2) assms(3) encodeeval_def rep_integer_equals)
+    by (metis assms(2) assms(3) encodeeval.simps rep_integer_equals)
   moreover have evale: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals xe ye) \<mapsto> v"
-    by (metis assms(3) calculation encodeeval_def repDet)
+    by (metis assms(3) calculation encodeeval.simps repDet)
   moreover have repsub: "rep g x xe \<and> rep g y ye"
     by (metis IRNode.distinct(1955) IRNode.distinct(1997) IRNode.inject(17) IntegerEqualsNodeE assms(2) calculation)
   ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
-    by (meson BinaryExprE encodeeval_def)
+    by (meson BinaryExprE encodeeval.simps)
   have xvalid: "valid_value xv (stamps x)"
-    using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
+    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp.simps by blast
   then have xint: "is_IntegerStamp (stamps x)"
     using assms(4) valid_value.elims(2) by fastforce
   then have xstamp: "valid_stamp (stamps x)"
@@ -343,7 +343,7 @@ proof -
     apply (smt (z3) valid_stamp.simps(6) valid_value.elims(1))
     using is_IntegerStamp_def by fastforce
   have yvalid: "valid_value yv (stamps y)"
-    using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
+    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp.simps by blast
   then have yint: "is_IntegerStamp (stamps y)"
     using assms(4) valid_value.elims(2) by fastforce
   then have ystamp: "valid_stamp (stamps y)"
@@ -354,7 +354,7 @@ proof -
     using alwaysDistinct_evaluate
     using assms(1) assms(4) xint yint xvalid yvalid xstamp ystamp by simp
   have "v = bin_eval BinIntegerEquals xv yv"
-    by (metis BinaryExprE encodeeval_def evale evalsub graphDet repsub)
+    by (metis BinaryExprE encodeeval.simps evale evalsub graphDet repsub)
   also have "v \<noteq> UndefVal"
     using evale by auto
   ultimately have "\<exists>b1 b2. v =  bool_to_val_bin b1 b2 (xv = yv)"
@@ -409,25 +409,25 @@ proof -
   then have constx: "val = asConstant (stamps y)"
     using calculation assms(4) by force
   obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerEquals xe ye)"
-    by (metis assms(2) assms(3) encodeeval_def rep_integer_equals)
+    by (metis assms(2) assms(3) encodeeval.simps rep_integer_equals)
   moreover have evale: "[m, p] \<turnstile> (BinaryExpr BinIntegerEquals xe ye) \<mapsto> v"
-    by (metis assms(3) calculation encodeeval_def repDet)
+    by (metis assms(3) calculation encodeeval.simps repDet)
   moreover have repsub: "rep g x xe \<and> rep g y ye"
     by (metis IRNode.distinct(1955) IRNode.distinct(1997) IRNode.inject(17) IntegerEqualsNodeE assms(2) calculation)
   ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
-    by (meson BinaryExprE encodeeval_def)
+    by (meson BinaryExprE encodeeval.simps)
   have xvalid: "valid_value xv (stamps x)"
-    using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
+    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp.simps by blast
   then have xint: "is_IntegerStamp (stamps x)"
     using assms(4) valid_value.elims(2) by fastforce
   have yvalid: "valid_value yv (stamps y)"
-    using assms(1) encode_in_ids encodeeval_def evalsub wf_stamp.simps by blast
+    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp.simps by blast
   then have yint: "is_IntegerStamp (stamps y)"
     using assms(4) valid_value.elims(2) by fastforce
   have eq: "\<forall>v1 v2. (([g, m, p] \<turnstile> x \<mapsto> v1) \<and> ([g, m, p] \<turnstile> y \<mapsto> v2)) \<longrightarrow> v1 = v2"
     by (metis asConstant_valid assms(4) encodeEvalDet evalsub neverDistinct.elims(1) xvalid yvalid)
   have "v = bin_eval BinIntegerEquals xv yv"
-    by (metis BinaryExprE encodeeval_def evale evalsub graphDet repsub)
+    by (metis BinaryExprE encodeeval.simps evale evalsub graphDet repsub)
   also have "v \<noteq> UndefVal"
     using evale by auto
   ultimately have "\<exists>b1 b2. v =  bool_to_val_bin b1 b2 (xv = yv)"
@@ -445,26 +445,26 @@ lemma stampUnder_valid:
   shows "val_to_bool v"
 proof -
   obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerLessThan xe ye)"
-    by (metis assms(2) assms(3) encodeeval_def rep_integer_less_than)
+    by (metis assms(2) assms(3) encodeeval.simps rep_integer_less_than)
   moreover have evale: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan xe ye) \<mapsto> v"
-    by (metis assms(3) calculation encodeeval_def repDet)
+    by (metis assms(3) calculation encodeeval.simps repDet)
   moreover have repsub: "rep g x xe \<and> rep g y ye"
     by (metis IRNode.distinct(2047) IRNode.distinct(2089) IRNode.inject(18) IntegerLessThanNodeE assms(2) repr)
   ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
-    by (meson BinaryExprE encodeeval_def)
+    by (meson BinaryExprE encodeeval.simps)
   have vval: "v = intval_less_than xv yv"
-    by (metis BinaryExprE bin_eval.simps(14) encodeEvalDet encodeeval_def evale evalsub repsub)
+    by (metis BinaryExprE bin_eval.simps(14) encodeEvalDet encodeeval.simps evale evalsub repsub)
   then obtain b xvv where "xv = IntVal b xvv"
     by (metis bin_eval.simps(14) defined_eval_is_intval evale evaltree_not_undef is_IntVal_def)
   also have xvalid: "valid_value xv (stamps x)"
-    by (meson assms(1) encodeeval_def eval_in_ids evalsub wf_stamp.elims(2))
+    by (meson assms(1) encodeeval.simps eval_in_ids evalsub wf_stamp.elims(2))
   then obtain xl xh where xstamp: "stamps x = IntegerStamp b xl xh"
     using calculation valid_value.simps apply (cases "stamps x"; auto)
     by presburger
   from vval obtain yvv where yint: "yv = IntVal b yvv"
     by (metis Value.collapse(1) bin_eval.simps(14) bool_to_val_bin.simps calculation defined_eval_is_intval evale evaltree_not_undef intval_less_than.simps(1))
   then have yvalid: "valid_value yv (stamps y)"
-    using assms(1) encodeeval_def evalsub no_encoding wf_stamp.simps by blast
+    using assms(1) encodeeval.simps evalsub no_encoding wf_stamp.simps by blast
   then obtain yl yh where ystamp: "stamps y = IntegerStamp b yl yh"
     using calculation yint valid_value.simps apply (cases "stamps y"; auto)
     by presburger
@@ -490,26 +490,26 @@ lemma stampOver_valid:
   shows "\<not>(val_to_bool v)"
 proof -
   obtain xe ye where repr: "rep g nid (BinaryExpr BinIntegerLessThan xe ye)"
-    by (metis assms(2) assms(3) encodeeval_def rep_integer_less_than)
+    by (metis assms(2) assms(3) encodeeval.simps rep_integer_less_than)
   moreover have evale: "[m, p] \<turnstile> (BinaryExpr BinIntegerLessThan xe ye) \<mapsto> v"
-    by (metis assms(3) calculation encodeeval_def repDet)
+    by (metis assms(3) calculation encodeeval.simps repDet)
   moreover have repsub: "rep g x xe \<and> rep g y ye"
     by (metis IRNode.distinct(2047) IRNode.distinct(2089) IRNode.inject(18) IntegerLessThanNodeE assms(2) repr)
   ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
-    by (meson BinaryExprE encodeeval_def)
+    by (meson BinaryExprE encodeeval.simps)
   have vval: "v = intval_less_than xv yv"
-    by (metis BinaryExprE bin_eval.simps(14) encodeEvalDet encodeeval_def evale evalsub repsub)
+    by (metis BinaryExprE bin_eval.simps(14) encodeEvalDet encodeeval.simps evale evalsub repsub)
   then obtain b xvv where "xv = IntVal b xvv"
     by (metis bin_eval.simps(14) defined_eval_is_intval evale evaltree_not_undef is_IntVal_def)
   also have xvalid: "valid_value xv (stamps x)"
-    by (meson assms(1) encodeeval_def eval_in_ids evalsub wf_stamp.elims(2))
+    by (meson assms(1) encodeeval.simps eval_in_ids evalsub wf_stamp.elims(2))
   then obtain xl xh where xstamp: "stamps x = IntegerStamp b xl xh"
     using calculation valid_value.simps apply (cases "stamps x"; auto)
     by presburger
   from vval obtain yvv where yint: "yv = IntVal b yvv"
     by (metis Value.collapse(1) bin_eval.simps(14) bool_to_val_bin.simps calculation defined_eval_is_intval evale evaltree_not_undef intval_less_than.simps(1))
   then have yvalid: "valid_value yv (stamps y)"
-    using assms(1) encodeeval_def evalsub no_encoding wf_stamp.simps by blast
+    using assms(1) encodeeval.simps evalsub no_encoding wf_stamp.simps by blast
   then obtain yl yh where ystamp: "stamps y = IntegerStamp b yl yh"
     using calculation yint valid_value.simps apply (cases "stamps y"; auto)
     by presburger
@@ -1060,14 +1060,14 @@ lemma IfNodeStepE: "g, p \<turnstile> (nid, m, h) \<rightarrow> (nid', m', h) \<
         kind g nid = IfNode cond tb fb \<Longrightarrow>
         nid' = (if val_to_bool val then tb else fb) \<Longrightarrow> 
         [g, m, p] \<turnstile> cond \<mapsto> val \<Longrightarrow> m' = m)"
-  using StepE unfolding encodeeval_def
+  using StepE
   by (smt (verit, best) IfNode Pair_inject stepDet)
 
 lemma ifNodeHasCondEvalStutter:
   assumes "(g m p h \<turnstile> nid \<leadsto> nid')"
   assumes "kind g nid = IfNode cond t f"
   shows "\<exists> v. ([g, m, p] \<turnstile> cond \<mapsto> v)"
-  using IfNodeStepE assms(1) assms(2)  stutter.cases unfolding encodeeval_def
+  using IfNodeStepE assms(1) assms(2)  stutter.cases unfolding encodeeval.simps
   by (smt (verit, ccfv_SIG) IfNodeCond)
 
 lemma ifNodeHasCondEval:
@@ -1085,7 +1085,7 @@ lemma replace_if_t:
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
 proof -
   have g1step: "g, p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
-    by (meson IfNode assms(1) assms(2) assms(3) encodeeval_def)
+    by (meson IfNode assms(1) assms(2) assms(3) encodeeval.simps)
   have g2step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (tb, m, h)"
     using g' unfolding replace_usages.simps
     by (simp add: stepRefNode)
@@ -1109,7 +1109,7 @@ lemma replace_if_f:
   shows "\<exists>nid' .(g m p h \<turnstile> nid \<leadsto> nid') \<longleftrightarrow> (g' m p h \<turnstile> nid \<leadsto> nid')"
 proof -
   have g1step: "g, p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
-    by (meson IfNode assms(1) assms(2) assms(3) encodeeval_def)
+    by (meson IfNode assms(1) assms(2) assms(3) encodeeval.simps)
   have g2step: "g', p \<turnstile> (nid, m, h) \<rightarrow> (fb, m, h)"
     using g' unfolding replace_usages.simps
     by (simp add: stepRefNode)
@@ -1180,7 +1180,7 @@ lemma ConditionalEliminationStepProofBisimulation:
 proof (induct nid g g' rule: ConditionalEliminationStep.induct)
   case (impliesTrue g ifcond cid t f cond condNode conds stamps g')
   from impliesTrue(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
-    using IfNode encodeeval_def ifNodeHasCondEval impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_impliesnot_valid implies_valid.simps repDet
+    using IfNode encodeeval.simps ifNodeHasCondEval impliesTrue.hyps(1) impliesTrue.hyps(2) impliesTrue.hyps(3) impliesTrue.prems(4) implies_impliesnot_valid implies_valid.simps repDet
     by (smt (verit) conds_implies.elims condset_implies.simps impliesTrue.hyps(4) impliesTrue.prems(1) impliesTrue.prems(2) option.distinct(1) option.inject tryFoldTrue_valid)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (t, m, h)"
     using constantConditionTrue impliesTrue.hyps(1) impliesTrue.hyps(5) by blast
@@ -1189,7 +1189,7 @@ proof (induct nid g g' rule: ConditionalEliminationStep.induct)
 next
   case (impliesFalse g ifcond cid t f cond condNode conds stamps g')
   from impliesFalse(5) obtain h where gstep: "g, p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
-    using IfNode encodeeval_def ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(4) implies_impliesnot_valid impliesnot_valid.simps repDet
+    using IfNode encodeeval.simps ifNodeHasCondEval impliesFalse.hyps(1) impliesFalse.hyps(2) impliesFalse.hyps(3) impliesFalse.prems(4) implies_impliesnot_valid impliesnot_valid.simps repDet
     by (smt (verit) conds_implies.elims condset_implies.simps impliesFalse.hyps(4) impliesFalse.prems(1) impliesFalse.prems(2) option.distinct(1) option.inject tryFoldFalse_valid)
   have "g', p \<turnstile> (ifcond, m, h) \<rightarrow> (f, m, h)"
     using constantConditionFalse impliesFalse.hyps(1) impliesFalse.hyps(5) by blast
@@ -1240,8 +1240,8 @@ lemma nid'_succ:
   then show ?case
     by (metis length_greater_0_conv nth_mem sequential_successors succ.simps)
 next
-  case (FixedGuardNode cond before "next" condE val)
-  then have "{next} = succ g nid0"
+  case (FixedGuardNode cond before val)
+  then have "{nid} = succ g nid0"
     using IRNodes.successors_of_FixedGuardNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
@@ -1254,38 +1254,38 @@ next
   then show ?case
     by blast
 next
-  case (IfNode cond tb fb condE val)
+  case (IfNode cond tb fb val)
   then have "{tb, fb} = succ g nid0"
     using IRNodes.successors_of_IfNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
-    by (metis IfNode.hyps(1) IfNode.hyps(2) IfNode.hyps(3) IfNode.hyps(5) IfNode.hyps(6) IfNodeStepCases assms(3))
+    by (metis IfNode.hyps(3) insert_iff)
 next
-  case (EndNodes i phis inps inpsE vs)
+  case (EndNodes i phis inps vs)
   then show ?case using assms(2) by blast
 next
-  case (NewArrayNode len st lenE length' arrayType h' ref refNo)
+  case (NewArrayNode len st length' arrayType h' ref refNo)
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_NewArrayNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
     by blast
 next
-  case (ArrayLengthNode x xE ref arrayVal length')
+  case (ArrayLengthNode x ref arrayVal length')
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_ArrayLengthNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
     by blast
 next
-  case (LoadIndexedNode index guard array indexE indexVal arrayE ref arrayVal loaded)
+  case (LoadIndexedNode index guard array indexVal ref arrayVal loaded)
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_LoadIndexedNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
     by blast
 next
-  case (StoreIndexedNode check val st index guard array indexE indexVal arrayE ref valE "value" arrayVal updated)
+  case (StoreIndexedNode check val st index guard array indexVal ref "value" arrayVal updated)
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_StoreIndexedNode unfolding succ.simps
     by (metis empty_set list.simps(15))
@@ -1299,42 +1299,42 @@ next
   then show ?case
     by blast
 next
-  case (LoadFieldNode f obj objE ref v)
+  case (LoadFieldNode f obj ref)
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_LoadFieldNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
     by blast
 next
-  case (SignedDivNode x y zero sb xe ye v1 v2 v)
+  case (SignedDivNode x y zero sb v1 v2)
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_SignedDivNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
     by blast
 next
-  case (SignedRemNode x y zero sb xe ye v1 v2 v)
+  case (SignedRemNode x y zero sb v1 v2)
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_SignedRemNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
     by blast
 next
-  case (StaticLoadFieldNode f v)
+  case (StaticLoadFieldNode f)
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_LoadFieldNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
     by blast
-next
-  case (StoreFieldNode f newval uu obj newvalE objE val ref)
+next 
+  case (StoreFieldNode _ _ _ _ _ _) 
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_StoreFieldNode unfolding succ.simps
     by (metis empty_set list.simps(15))
   then show ?case
     by blast
 next
-  case (StaticStoreFieldNode f newval uv newvalE val)
+  case (StaticStoreFieldNode _ _ _ _)
   then have "{nid} = succ g nid0"
     using IRNodes.successors_of_StoreFieldNode unfolding succ.simps
     by (metis empty_set list.simps(15))
@@ -1356,7 +1356,7 @@ definition wf_pred:
 lemma
   assumes "\<not>(is_AbstractMergeNode (kind g n'))"
   assumes "wf_pred g"
-  shows "predecessors g n = {v} \<and> pred g n' = Some v"
+  shows "\<exists>v. predecessors g n = {v} \<and> pred g n' = Some v"
   using assms unfolding pred.simps sorry
 
 lemma inverse_succ1:

@@ -17,10 +17,10 @@ if (A) {
 \end{lstlisting}
 
 We begin by defining the individual implication rules used by the phase
-in \secref{sec:rules}.
+in \ref{sec:rules}.
 These rules are then lifted to the rewriting of a condition within an \textsl{if}
-statement in \secref{sec:lift}.
-The traversal algorithm used by the compiler is specified in \secref{sec:traversal}.
+statement in \ref{sec:lift}.
+The traversal algorithm used by the compiler is specified in \ref{sec:traversal}.
 \<close>
 
 theory ConditionalElimination

@@ -11,6 +11,8 @@
     {"name": "Proofs",
      "description": "Supporting proof theories and definitions"},
     {"name": "Semantics", "description": "Semantics of the GraalVM IR"},
+    {"name": "SemanticsPaper",
+     "description": "Content for IR semantics description paper"},
     {"name": "Snippets",
      "description":
        "Additional commands to enable the generation of LaTeX snippets of theories"},

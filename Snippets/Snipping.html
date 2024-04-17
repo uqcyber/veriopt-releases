@@ -17,13 +17,13 @@
 </span><span class="keyword1"><span class="command"><span>theory</span></span></span><span> </span><a href="Snipping.html"><span>Snipping</span></a><span>
   </span><span class="keyword2"><span class="keyword"><span>imports</span></span></span><span> </span><a href="../../HOL/HOL/Main.html"><span>Main</span></a><span>
   </span><span class="keyword2"><span class="keyword"><span>keywords</span></span></span><span>
-    </span><span class="quoted"><span>"</span><span>snipbegin</span><span>"</span></span><span> </span><span class="main"><span>::</span></span><span> document_heading </span><span class="keyword2"><span class="keyword"><span>and</span></span></span><span>
-    </span><span class="quoted"><span>"</span><span>snipend</span><span>"</span></span><span> </span><span class="main"><span>::</span></span><span> document_heading
+    </span><span class="quoted"><span>"snipbegin"</span></span><span> </span><span class="main"><span>::</span></span><span> document_heading </span><span class="keyword2"><span class="keyword"><span>and</span></span></span><span>
+    </span><span class="quoted"><span>"snipend"</span></span><span> </span><span class="main"><span>::</span></span><span> document_heading
 </span><span class="keyword2"><span class="keyword"><span>begin</span></span></span><span>
 
-</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>Snippets allow specific components of the LaTeX document preparation to be included in other documents.</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹Snippets allow specific components of the LaTeX document preparation to be included in other documents.›</span></span></span><span>
 
-</span><span class="keyword1"><span class="command"><span>ML</span></span></span><span> </span><span class="quoted"><span>‹</span><span>
+</span><span class="keyword1"><span class="command"><span>ML</span></span></span><span> </span><span class="quoted"><span>‹
 </span><span class="comment1"><span>(*
 I thought the document_command was what generated the LaTeX output,
 however, it appears to be hard-coded which makes this a bit of a hack.
@@ -38,8 +38,8 @@ however, it appears to be hard-coded which makes this a bit of a hack.
     </span><span class="keyword1"><span class="keyword"><span>val</span></span></span><span> </span><span class="main"><span>_</span></span><span> </span><span class="main"><span>=</span></span><span> </span><span class="antiquoted"><span class="entity"><span class="entity"><span class="entity"><span class="entity"><span class="entity"><span class="entity"><span class="antiquote"><span>@{</span></span><span class="operator"><span>print</span></span><span class="antiquote"><span>}</span></span></span></span></span></span></span></span></span><span> </span><span class="entity"><span>latex</span></span><span class="main"><span>;</span></span><span>
   </span><span class="keyword2"><span class="keyword"><span>in</span></span></span><span>
     </span><span class="entity"><span>Document_Output.document_output</span></span><span>
-        </span><span class="main"><span>{</span></span><span>markdown</span><span> </span><span class="main"><span>=</span></span><span> </span><span>false</span><span class="main"><span>,</span></span><span>            
-         </span><span>markup</span><span> </span><span class="main"><span>=</span></span><span> </span><span class="keyword1"><span class="keyword"><span>fn</span></span></span><span> </span><span class="main"><span>_</span></span><span> </span><span class="main"><span>=&gt;</span></span><span> </span><span>XML.enclose</span><span> </span><span class="inner_quoted"><span>"%\n"</span></span><span> </span><span class="inner_quoted"><span>"\n"</span></span><span> </span><span class="main"><span>(</span></span><span>Latex.string</span><span> </span><span class="entity"><span>latex</span></span><span class="main"><span>)</span></span><span class="main"><span>}</span></span><span>
+        </span><span class="main"><span>{</span></span><span>markdown </span><span class="main"><span>=</span></span><span> </span><span>false</span><span class="main"><span>,</span></span><span>            
+         markup </span><span class="main"><span>=</span></span><span> </span><span class="keyword1"><span class="keyword"><span>fn</span></span></span><span> </span><span class="main"><span>_</span></span><span> </span><span class="main"><span>=&gt;</span></span><span> </span><span>XML.enclose</span><span> </span><span class="inner_quoted"><span>"%\n"</span></span><span> </span><span class="inner_quoted"><span>"\n"</span></span><span> </span><span class="main"><span>(</span></span><span>Latex.string</span><span> </span><span class="entity"><span>latex</span></span><span class="main"><span>)</span></span><span class="main"><span>}</span></span><span>
     </span><span class="comment1"><span>(*(Pure_Syn.document_command {markdown = false} (NONE, doc))*)</span></span><span>
   </span><span class="keyword2"><span class="keyword"><span>end</span></span></span><span>
 
@@ -54,9 +54,9 @@ however, it appears to be hard-coded which makes this a bit of a hack.
     </span><span class="main"><span>(</span></span><span>Parse.opt_target</span><span> </span><span>--</span><span> </span><span>Parse.document_source</span><span> </span><span>&gt;&gt;</span><span>
       </span><span class="main"><span>(</span></span><span class="keyword1"><span class="keyword"><span>fn</span></span></span><span> </span><span class="main"><span>(</span></span><span class="entity"><span>opt</span></span><span class="main"><span>,</span></span><span> </span><span class="entity"><span>n</span></span><span class="main"><span>)</span></span><span> </span><span class="main"><span>=&gt;</span></span><span>
         </span><span class="entity"><span>wrapped_command</span></span><span> </span><span class="inner_quoted"><span>"isamarkupsnipend"</span></span><span> </span><span class="main"><span>(</span></span><span>NONE</span><span class="main"><span>)</span></span><span> </span><span class="main"><span>(</span></span><span class="entity"><span>opt</span></span><span class="main"><span>,</span></span><span> </span><span class="entity"><span>n</span></span><span class="main"><span>)</span></span><span class="main"><span>)</span></span><span class="main"><span>)</span></span><span class="main"><span>;</span></span><span>
-</span><span>›</span></span><span>
+›</span></span><span>
 
-</span><span class="comment1"><span>(</span><span>*</span><span>
+</span><span class="comment1"><span>(*
 text ‹
 To use snippets, in your LaTeX preamble,
 replace the command \verb|\isamarkupsnipbegin| with the start of a snippet,
@@ -71,31 +71,31 @@ text_raw ‹
 \newcommand{\isamarkupsnipend}[1]{\end{tcolorbox}}
 \end{verbatim}
 ›
-</span><span>*</span><span>)</span></span><span>
+*)</span></span><span>
 
-</span><span class="comment1"><span>(</span><span>*</span><span>text_raw ‹
+</span><span class="comment1"><span>(*text_raw ‹
 \newcommand{\isamarkupsnipbegin}[1]{\begin{tcolorbox}[title=#1]}
 \newcommand{\isamarkupsnipend}[1]{\end{tcolorbox}}
-›</span><span>*</span><span>)</span></span><span>
+›*)</span></span><span>
 
 
-</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
-</span><span>Snippets should be enclosed within the </span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>command</span></span><span> </span><span>snipbegin</span><span class="antiquote"><span>}</span></span></span><span> and </span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>command</span></span><span> </span><span>snipend</span><span class="antiquote"><span>}</span></span></span><span> commands.
-</span><span>
-</span><span>For example, the box below is produced by the following:</span><span>
-</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹
+Snippets should be enclosed within the </span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>command</span></span><span> </span><span>snipbegin</span><span class="antiquote"><span>}</span></span></span><span> and </span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>command</span></span><span> </span><span>snipend</span><span class="antiquote"><span>}</span></span></span><span> commands.
 
-</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>
+For example, the box below is produced by the following:
+›</span></span></span><span>
+
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹
 </span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>command</span></span><span> </span><span>snipbegin</span><span class="antiquote"><span>}</span></span></span><span> ``snip-example''
-</span><span>
+
 </span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>command</span></span><span> </span><span>text</span><span class="antiquote"><span>}</span></span></span><span> ``Hello world!''
-</span><span>
+
 </span><span class="antiquoted"><span class="antiquote"><span>@{</span></span><span class="operator"><span>command</span></span><span> </span><span>snipend</span><span class="antiquote"><span>}</span></span></span><span>
-</span><span>›</span></span></span><span>
+›</span></span></span><span>
 
-</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>snip-example</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>snipbegin</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹snip-example›</span></span></span><span>
 
-</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹</span><span>Hello world!</span><span>›</span></span></span><span>
+</span><span class="keyword1"><span class="command"><span>text</span></span></span><span> </span><span class="quoted"><span class="plain_text"><span>‹Hello world!›</span></span></span><span>
 
 </span><span class="keyword1"><span class="command"><span>snipend</span></span></span><span> </span><span class="plain_text"><span>-</span></span><span>
 

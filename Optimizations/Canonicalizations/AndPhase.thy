@@ -55,6 +55,10 @@ phase AndNode
 begin
 
 (* Word level proofs *)
+lemma bin_and_equal_not:
+ "(x & ~x) = False"
+  by simp
+
 lemma bin_and_nots:
  "(~x & ~y) = (~(x | y))"
   by simp
@@ -74,6 +78,14 @@ lemma val_and_nots:
   "val[~x & ~y] = val[~(x | y)]"
   by (cases x; cases y; auto simp: take_bit_not_take_bit)
 
+(* Word level proofs *)
+lemma val_and_equal_not:
+  assumes "x = new_int b v"
+  and "val[x & ~x] \<noteq> UndefVal"
+shows "val[x & ~x] = new_int b 0"
+  using assms apply auto
+  by (metis assms(1) new_int_unused_bits_zero take_bit_and take_bit_of_0 word_and_not)
+
 lemma val_and_neutral:
   assumes "x = new_int b v"
   and     "val[x & ~(new_int b' 0)] \<noteq> UndefVal"
@@ -81,7 +93,7 @@ lemma val_and_neutral:
   using assms apply (simp add: take_bit_eq_mask) by presburger
 
 (* Not sure if this one is written correctly *)
-(*
+
 lemma val_and_sign_extend:
   assumes "e = (1 << In)-1"
   shows "val[(intval_sign_extend In Out x) & (IntVal b e)] = intval_zero_extend In Out x"
@@ -92,7 +104,7 @@ lemma val_and_sign_extend_2:
   assumes "e = (1 << In)-1 \<and> intval_and (intval_sign_extend In Out x) (IntVal 32 e) \<noteq> UndefVal"
   shows "val[(intval_sign_extend In Out x) &  (IntVal 32 e)] = intval_zero_extend In Out x"
   using assms apply (cases x;  auto) 
-  sorry*)
+  sorry
 
 (* Extras which were missing *)
 lemma val_and_zero:
@@ -134,6 +146,54 @@ lemma exp_and_equal:
 lemma exp_and_nots:
   "exp[~x & ~y] \<ge> exp[~(x | y)]"
    using val_and_nots by force
+
+ value "wf_value (IntVal 64 0)"
+
+(* Assuming that the constant 0 is well formed, not sure if right *)
+lemma exp_and_equal_not:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp b lo hi"
+  (* assumes "wf_value (IntVal b 0)" *)
+  shows "exp[~x & x] \<ge> exp[const (IntVal b 0)]"
+  using val_and_equal_not apply auto
+  subgoal premises prems for m p y xa
+  proof - 
+    obtain y where y: "[m,p] \<turnstile> x \<mapsto> y"
+      using prems by auto
+    then have "val[(~xa) & y] \<noteq> UndefVal"
+      using evalDet prems by blast
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using prems by auto
+    then have "val[~xa] \<noteq> UndefVal"
+      using evalDet prems by blast
+    then have eqa: "xa = y"
+      using evalDet xa y by blast
+    obtain xb xvv where xy: "y = IntVal xb xvv"
+      by (metis evalDet intval_not.elims prems y)
+    obtain xc xva where xa: "xa = IntVal xc xva"
+      by (simp add: \<open>(xa::Value) = (y::Value)\<close> xy)
+    then have eqBitX: "xb = xc"
+      by (simp add: eqa xy)
+    then have unfoldEq: "val[(~xa) & y] = new_int xb (and (not xva) xvv)"
+      by (metis (no_types, lifting) Value.inject(1) bit.conj_cancel_left eqa evalDet
+          eval_unused_bits_zero new_int.elims prems 
+          simple_mask.AndCommute_Val val_and_equal_not xa xy y)
+    then have rzero: "new_int xb (and (not xva) xvv) = new_int xb (0)"
+      using eqa xa xy by auto
+    then have evalSame: "val[(~xa) & y] = new_int xb (0)"
+      using unfoldEq and rzero by auto
+    then have bitEq: "b = xb"
+      by (metis assms(1) assms(2) valid_int_same_bits wf_stamp_def xy y)
+    then have wfZero: "wf_value (IntVal b 0)"
+      sorry
+    then have "[m,p] \<turnstile> exp[const (IntVal b 0)] \<mapsto> val[new_int xb 0]"
+      by (simp add: ConstantExpr bitEq)
+      (* using assms by (simp add: unfold_const bitEq) *)
+    then show ?thesis
+      by (metis eqa evalDet evalSame prems(2) prems(4) y)
+      
+  qed
+  done
 
 lemma exp_sign_extend:
   assumes "e = (1 << In) - 1"
@@ -214,6 +274,10 @@ text \<open>Optimisations\<close>
 
 optimization AndEqual: "x & x \<longmapsto> x"
   using exp_and_equal by blast
+
+(* Not sure if the extra condition is correct *)
+optimization AndEqualNot: "x & (~x) \<longmapsto> const (IntVal b 0) when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+  by (metis dual_order.trans exp_and_equal_not simple_mask.AndCommute_Exp)
 
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x) 
                                          when \<not>(is_ConstantExpr y)"

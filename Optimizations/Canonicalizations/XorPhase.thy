@@ -16,7 +16,9 @@ lemma bin_xor_self_is_false:
   by simp
 
 lemma bin_xor_commute:
- "bin[x \<oplus> y] = bin[y \<oplus> x]"
+  fixes y::int64
+  fixes x::int64
+  shows "xor (not x) (not y) = xor y x"
   by (simp add: xor.commute)
 
 lemma bin_eliminate_redundant_false:
@@ -86,7 +88,7 @@ lemma exp_eliminate_redundant_false:
         using p(2) by blast
       then have "val[xa \<oplus> (IntVal 32 0)] \<noteq> UndefVal"
         using evalDet p(2,3) by blast
-      then have "[m, p] \<turnstile> x \<mapsto> val[xa \<oplus> (IntVal 32 0)]"
+      then have "[m, p] \<turnstile> val[x] \<mapsto> val[xa \<oplus> (IntVal 32 0)]"
         using eval_unused_bits_zero xa by (cases xa; auto)
       then show ?thesis
         using evalDet p(2) xa by blast
@@ -115,6 +117,73 @@ optimization MaskOutRHS: "(x \<oplus> y) \<longmapsto> ~x
                                                    = ConstantExpr (new_int stampBits (not 0))))"
   sorry
 *)
+
+  value"val[IntVal 64 1 \<oplus> ~IntVal 64 1]"
+  value"IntVal 64 (-1)"
+  value"bin[IntVal 64 4]"
+
+(* lemma word_xor_inverse_self: "bin[(~x)] = 1" *)
+
+lemma val_xor_inverse_self:
+  assumes "x = IntVal 64 v"
+  assumes "val[x \<oplus> \<not>x] \<noteq> UndefVal" 
+  assumes "val[\<not>x] \<noteq> UndefVal" 
+  shows "val[x \<oplus> \<not>x] = IntVal 64 (-1)"
+  oops
+  (* by (auto simp:assms) *)
+
+value"val[(\<not>IntVal 64 2) \<oplus> \<not>IntVal 64 1]"
+
+lemma bin_xor_cancel: 
+  shows "bin[xor (~x) (~y)] = bin[xor x y]"
+  by simp
+
+lemma val_xor_cancel:
+  assumes "x = IntVal 64 v"
+  assumes "y = IntVal 64 e"
+  assumes "val[\<not>x] \<noteq> UndefVal" 
+  assumes "val[\<not>y] \<noteq> UndefVal" 
+  shows "val[(\<not>x) \<oplus> \<not>y] = val[x \<oplus> y]"
+  apply (auto simp: assms algebra_simps)
+  by (metis bin_xor_cancel take_bit_xor)
+
+lemma exp_xor_cancel:
+  shows "exp[(\<not>x) \<oplus> \<not>y] \<ge> exp[x \<oplus> y]"
+  using val_xor_cancel apply simp
+  using bin_xor_cancel apply auto
+  subgoal premises prems for m p xa xb
+  proof-
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using prems(3) by auto
+    obtain tb tv where ghe: "xa = IntVal tb tv"
+      by (metis evalDet intval_not.elims prems(3) prems(4) xa)
+    obtain xb where xb: "[m,p] \<turnstile> y \<mapsto> xb"
+      using prems(5) by auto
+    obtain tb tf where ghe1: "xb = IntVal tb tf"
+      by (metis evalDet intval_not.elims prems(5) prems(6) xb)
+    then have "val[(\<not>xa) \<oplus> \<not>xb] \<noteq> UndefVal"
+      by (metis evalDet prems(2) prems(3) prems(5) xa xb)
+    then have unfoldXOR: "val[(\<not>xa) \<oplus> \<not>xb] = new_int tb (xor tv tf)"
+      using ghe and ghe1 apply simp
+      by (metis bin_xor_cancel take_bit_xor)
+    then have "[m,p] \<turnstile> exp[x \<oplus> y] \<mapsto> new_int tb (xor tv tf)"
+      by (metis BinaryExpr Value.distinct(1) bin_eval.simps(8) ghe ghe1 intval_not.simps(1) 
+          intval_xor.simps(1) new_int.simps new_int_bin.simps xa xb)
+    then show ?thesis
+      by (metis evalDet prems(3) prems(5) unfoldXOR xa xb)
+  qed
+  done
+
+lemma yConst:
+  assumes "\<not> (is_ConstantExpr y)"
+  shows "Canonicalization.size (BinaryExpr BinXor x y) 
+          = (Canonicalization.size x) + (Canonicalization.size y) + 2"
+  apply(cases y)
+  using assms by auto
+
+optimization XorNot: "((~x)\<oplus>(~y)) \<longmapsto> (x \<oplus> y) when  \<not>(is_ConstantExpr y)"
+  using yConst apply(simp)
+  using exp_xor_cancel by simp
 
 end (* End of XorPhase *)
 

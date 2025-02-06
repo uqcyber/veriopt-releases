@@ -1,6 +1,6 @@
 (* x |<| (n |<| C ? 0 : n - C) \<mapsto> (x < n-c)*)
 theory IntegerBelowPhase
-  imports Common Proofs.StampEvalThms
+  imports Common Proofs.StampEvalThms SubPhase
 begin
 
 phase IntegerBelowPhase
@@ -41,7 +41,7 @@ qed
 lemma below_transitive: "x < y \<and> y < z \<Longrightarrow> x < z" for x y z::int64
   by auto
 
-lemma bin_below_zero: "x < 0 \<and> 0 < y \<Longrightarrow> ~(y < z)" for x y z::int64
+lemma bin_below_zero: "x < 0 \<and> 0 \<le> y \<Longrightarrow> ~(y < z)" for x y z::int64
   using word_not_simps(1) by blast
 
 lemma bin_negate_below: "x \<noteq> y \<and> \<not>(x < y) \<Longrightarrow> y < x" for x y::int64
@@ -54,17 +54,28 @@ lemma bin_inverse_negate_less: "x \<noteq> y \<and> (x <s y) \<Longrightarrow> \
   by auto
 
 lemma bin_below_sub: "x < y \<Longrightarrow> (x - y) <s 0" for x y::int64
-  sorry
+  apply transfer
 
 (* Value level *)
 
 fun isIntValWf:: "Value \<Rightarrow> bool" where
-"isIntValWf (IntVal n v) = (take_bit n v = v)" |
+"isIntValWf (IntVal n v) = ((take_bit n v = v) \<and> (1 < n) \<and> (n \<le> 64))" |
 "isIntValWf _ = False"
 (* "isValPositive (IntVal n v) = ((sint (signed_take_bit (n-Suc 0) v) \<ge> 0)\<and>(take_bit (n-1) v = v))" *)
 
 fun isValPositive:: "Value \<Rightarrow> bool" where
 "isValPositive (IntVal n v) = (\<not>bit v (n-Suc(0)))"
+
+lemma newint_intval: 
+  assumes "x = IntVal n v"
+  assumes "isIntValWf x"
+  shows "x = new_int n v"
+proof -
+  have "(take_bit n v) = v" 
+    using assms by auto
+  then show ?thesis
+    by (simp add: assms(1))
+qed
 
 lemma tb_n1:
   assumes "x = IntVal n v"
@@ -76,7 +87,7 @@ proof -
   have c2: "take_bit (n-1) v = (\<Sum>k::nat = 0::nat..<(n-1). push_bit k (of_bool (bit v k)))"
     using take_bit_sum by auto
   then have "(take_bit n v - take_bit (n-1) v) = push_bit (n-1) (of_bool (bit v (n-1)))"
-    by (metis (no_types, lifting) One_nat_def Suc_diff_1 add_cancel_right_right assms(1) assms(2) assms(3) bit_take_bit_iff c1 cancel_comm_monoid_add_class.diff_cancel isIntValWf.simps isValPositive.simps less_imp_diff_less of_bool_def push_bit_of_0 sum.atLeast0_lessThan_Suc sum.neutral)
+    by (smt (verit) One_nat_def assms(1) assms(3) bit_take_bit_iff eq_iff_diff_eq_0 isValPositive.simps less_Suc_eq less_nat_zero_code linordered_semidom_class.add_diff_inverse not_gr_zero of_bool_eq(1) plus_1_eq_Suc push_bit_of_0 signed_take_bit_code signed_take_bit_eq_if_positive zero_less_diff)
   then have "... = 0"
     by (metis One_nat_def assms(1) assms(3) isValPositive.simps of_bool_eq(1) push_bit_of_0)
   then show ?thesis
@@ -88,41 +99,53 @@ lemma neg_sub:
   oops
 
 lemma val_pos_def:
-  (* assumes "n>1" and "n \<le> 64" *)
-  assumes "n = 64"
+  assumes "n>1" and "n \<le> 64"
   fixes v::int64
-  assumes " v \<noteq> 0"
   assumes "\<not> bit v (n-1)"
   assumes "take_bit n v = v"
-  shows "0 < sint (signed_take_bit (n-1) v)"
+  shows "0 \<le> sint (signed_take_bit (n-1) v)"
 proof -
- (* have "signed_take_bit (n-1) v = take_bit (n-1) v"
-    using assms(4) signed_take_bit_eq_if_positive by auto
-  then have "0 \<le> sint (signed_take_bit (n-1) v) = (0 \<le> sint (v))"
-    using assms(5) by auto*)
   have last_bit: "\<not> bit v (64-1)"
-    by (metis assms bit_take_bit_iff less_diff_iff less_or_eq_imp_le one_le_numeral verit_comp_simplify1(3))
-  (*then have "signed_take_bit (64-1) v = take_bit (64-1) v"
-    by (simp add: signed_take_bit_eq_if_positive)*)
+    by (metis Suc_mono add_diff_inverse_nat assms(2) assms(3) assms(4) bit_take_bit_iff 
+        le_less_Suc_eq not_numeral_less_one plus_1_eq_Suc)
   show ?thesis using assms last_bit apply transfer using signed_take_bit_nonnegative_iff apply auto
-    by (smt (verit) Suc_numeral bit_take_bit_iff not_take_bit_negative semiring_norm(2) semiring_norm(8) signed_take_bit_int_less_eq signed_take_bit_int_less_self_iff signed_take_bit_negative_iff take_bit_int_less_exp)
+    by (smt (verit) Suc_lessD Suc_pred signed_take_bit_int_eq_self_iff signed_take_bit_int_less_eq 
+        signed_take_bit_negative_iff signed_take_bit_take_bit 
+        take_bit_int_less_exp take_bit_nonnegative)
 qed
+
+lemma val_pos_bit:
+  assumes "n>1" and "n \<le> 64"
+  fixes v::int64
+  assumes "take_bit n v = v"
+  assumes "0 \<le> sint (signed_take_bit (n-1) v)"
+  shows "\<not> bit v (n-1)" using assms apply transfer
+  by (smt (verit, del_insts) One_nat_def Suc_leI bit_take_bit_iff diff_Suc_1 min.absorb2 min_diff signed_take_bit_nonnegative_iff signed_take_bit_signed_take_bit)
+
+lemma val_bit_stake_eq:
+  assumes "n>1" and "n \<le> 64"
+  fixes v::int64
+  assumes "take_bit n v = v"
+  shows "(0 \<le> sint (signed_take_bit (n-1) v)) = (\<not> bit v (n-1))"
+  by (metis assms(1) assms(2) assms(3) dual_order.refl order.strict_iff_not 
+      signed_take_bit_eq_if_positive sint_0 take_bit_of_0 val_pos_bit val_pos_def)
 
 lemma pos_greater_zero:
   assumes "x = IntVal n v"
-  (* assumes "n > 1" and "n \<le> 64" *)
   assumes "isIntValWf x"
-  assumes "n = 64"
   assumes "isValPositive x"
-  assumes "v \<noteq> 0"
-  shows "val[(IntVal n 0) < x] = IntVal 32 1"
-  using assms val_pos_def by auto
+  shows "val[x < (IntVal n 0)] = IntVal 32 0"
+proof -
+  have "0 \<le> sint (signed_take_bit (n-1) v)"
+    using assms(1) assms(2) assms(3) val_pos_def by auto
+  then have "\<not>(sint (signed_take_bit (n-1) v) < 0)"
+    by auto
+  then show ?thesis using assms val_pos_def by auto
+qed
 
 lemma val_neg_def:
-  (* assumes "n>1" and "n \<le> 64" *)
-  assumes "n=64"
+  assumes "n>1" and "n \<le> 64"
   fixes v::int64
-  assumes "v \<noteq> 0"
   assumes "bit v (n-1)"
   shows "sint (signed_take_bit (n-1) v) < 0"
 proof -
@@ -134,10 +157,8 @@ qed
 
 lemma neg_less_zero:
   assumes "x = IntVal n v"
-  (* assumes "n > 1" and "n \<le> 64" *)
-  assumes "n = 64"
+  assumes "isIntValWf x"
   assumes "\<not>isValPositive x"
-  assumes "v \<noteq> 0"
   shows "val[x < (IntVal n 0)] = IntVal 32 1"
 proof -
   have "sint (signed_take_bit (n-1) v) < 0"
@@ -150,11 +171,7 @@ qed
 (* Should be move to Less than phase *)
 lemma pos_less_neg: 
   assumes "x = IntVal n vx" and "y = IntVal n vy"
-  (* assumes "n > 1" and "n \<le> 64" *)
   assumes "isIntValWf x" and "isIntValWf y"
-  assumes "n = 64"
-  assumes "vx \<noteq> 0" and "vy \<noteq> 0"
-  assumes "vx \<noteq> vy"
   assumes "isValPositive x"
   assumes "\<not>isValPositive y"
   shows "val[x < y] = IntVal 32 0"
@@ -164,9 +181,9 @@ proof -
   then have sint1: "sint (signed_take_bit (n - 1) vy) < sint (signed_take_bit (n - 1) 0)"
     using assms apply simp
     by (smt (verit, del_insts) Value.inject(1) bool_to_val.simps(2) zero_neq_one)
-  have "val[(IntVal n 0) < x] = IntVal 32 1"
-    using assms pos_greater_zero by blast
-  then have sint2: "sint (signed_take_bit (n - 1) 0) < sint (signed_take_bit (n - 1) vx)"
+  have "val[x < IntVal n 0] = IntVal 32 0"
+    using assms(1) assms(3) assms(5) pos_greater_zero by blast
+  then have sint2: "sint (signed_take_bit (n - 1) 0) \<le> sint (signed_take_bit (n - 1) vx)"
     using assms apply simp
     using Value.inject(1) by fastforce
   have "sint (signed_take_bit (n - 1) vy) < sint (signed_take_bit (n - 1) vx)"
@@ -186,39 +203,91 @@ qed
 lemma verify_isValPositive:
   assumes "x = IntVal n v"
   assumes "isIntValWf x"
-  assumes "n = 64"
   assumes "isValPositive x"
-  assumes "v \<noteq> 0"
   shows "sint(v) \<ge> 0"
   using assms pos_greater_zero apply auto
   using signed_take_bit_eq_if_positive tb_n1 val_pos_def by fastforce
 
-lemma below_sub:
-  assumes "isValPositive y"
-  assumes "isValPositive z"
-  shows "(\<not>val_to_bool (val[y |<| z])) \<Longrightarrow> isValPositive(val[y-z])"
-  using assms bin_below_sub
-  sorry
-
 lemma below_sub_inv:
+  assumes "y = IntVal n vy"
+  assumes "z = IntVal n vz"
   assumes "isValPositive y"
   assumes "isValPositive z"
   assumes "isIntValWf y"
   assumes "isIntValWf z"
-  assumes "y \<noteq> z"
   assumes "val_to_bool(val[y |<| z])"
   shows "\<not>isValPositive(val[y-z])"
-  using assms bin_below_sub apply auto
-  sorry
+proof -
+  have "vy < vz" using assms
+    using val_to_bool.elims(2) by fastforce
+  then have "(vy - vz) <s 0" 
+    using bin_below_sub by auto
+  then have "sint(vy - vz) < 0"
+    by (simp add: word_sless_alt)
+  then show ?thesis using verify_isValPositive
+    by (smt (verit, best) \<open>(vy::64 word) < (vz::64 word)\<close> add_diff_cancel_left' assms(2) assms(4) 
+        assms(6) bin_below_sub diff_add_cancel sint_0 word_sless_alt word_sub_less_iff)
+qed
+
+lemma below_sub:
+  assumes "y = IntVal n vy"
+  assumes "z = IntVal n vz"
+  assumes "isValPositive y"
+  assumes "isValPositive z"
+  assumes "isIntValWf y"
+  assumes "isIntValWf z"
+  assumes "val[y-z] \<noteq> UndefVal"
+  assumes "\<not>val_to_bool(val[y |<| z])"
+  shows "isValPositive(val[y-z])"
+proof (cases "y = z")
+  case True
+  then have "val[y-z] = new_int n 0"
+    using assms(1) by auto
+  then have "val[y-z] = IntVal n (take_bit n 0)"
+    by auto
+  then have "val[y-z] = IntVal n 0"
+    by simp
+  then show ?thesis
+    by (simp add: \<open>intval_sub (y::Value) (z::Value) = IntVal (n::nat) (0::64 word)\<close>)
+next
+  case False
+  have "vz \<noteq> vy"
+    using False assms(1) assms(2) by auto
+  then have "\<not>(vy < vz)"
+    using False assms by auto
+  then have "vz < vy"
+    using \<open>(vz::64 word) \<noteq> (vy::64 word)\<close> bin_negate_below by blast
+  then have "\<not>((vy - vz) <s 0)"
+    using bin_below_sub
+    by (smt (verit, best) \<open>(vz::64 word) < (vy::64 word)\<close> assms(1) assms(3) assms(5) 
+        bin_below_eq_less diff_add_cancel minus_diff_eq sint_0 uminus_add_conv_diff 
+        verify_isValPositive word_coorder.extremum_strict word_sub_less_iff)
+  then have "\<not>(\<not>isValPositive(val[y-z]))"
+    by (metis (mono_tags, opaque_lifting) \<open>(vz::64 word) < (vy::64 word)\<close> 
+        add_0 bin_below_sub diff_diff_eq2 word_gt_0)
+  then show ?thesis
+    by simp 
+qed
+
+lemma val_below_eq_less_self:
+  assumes "x = IntVal n vx"
+  assumes "isIntValWf x"
+  assumes "isValPositive x" 
+  shows "val[x |<| x] = val[x < x]"
+proof -
+  have "val[x |<| x] = IntVal 32 0" 
+    using assms by auto
+  moreover have "val[x < x] = IntVal 32 0"
+    using assms by auto
+  ultimately show ?thesis by auto
+qed
 
 lemma val_below_eq_less: 
   assumes "x = IntVal n vx" and "y = IntVal n vy"
-  (* assumes "n > 1" and "n \<le> 64" *)
   assumes "isIntValWf x" and "isIntValWf y"
-  assumes "n = 64"
-  assumes "vx \<noteq> 0" and "vy \<noteq> 0" and "vx \<noteq> vy"
   assumes "isValPositive x" 
   assumes "isValPositive y" 
+  assumes "x \<noteq> y"
   assumes "val[x |<| y] \<noteq> UndefVal" and "val[x < y] \<noteq> UndefVal"
   shows "val[x |<| y] = val[x < y]"
 proof (cases "val_to_bool(val[x |<| y])")
@@ -291,67 +360,73 @@ lemma below_zero:
 
 lemma val_below_less:
   assumes "x = IntVal n vx" and "y = IntVal n vy" and "z = IntVal n vz"
-  assumes "n = 64"
   assumes "isIntValWf x" and "isIntValWf y" and  "isIntValWf z" and "isIntValWf val[(y-z)]"
-  assumes "vx \<noteq> vy"
   assumes "isValPositive x"
   assumes "isValPositive y"
   assumes "isValPositive z"
   assumes "val[y-z] \<noteq> UndefVal"
-  assumes "vx \<noteq> (vy - vz)"
-  assumes "vx \<noteq> 0" and "vy \<noteq> 0" and "vz \<noteq> 0"
-  assumes "vy \<noteq> vz"
   assumes "val[x |<| (y - z)] \<noteq> UndefVal"
   assumes "val[x < (y - z)] \<noteq> UndefVal"
-  shows "val[(x |<| ((y |<| z)? (IntVal 64 0) : (y - z)))] = val[x < (y-z)]"
+  shows "val[(x |<| ((y |<| z)? (IntVal n 0) : (y - z)))] = val[x < (y-z)]"
 proof(cases "val_to_bool (val[y |<| z])")
   case True
   then have unfoldCond: "val[(x |<| ((y |<| z)? 
-                         (IntVal 64 0) : (y - z)))] = val[x |<| (IntVal 64 0)]"
+                         (IntVal n 0) : (y - z)))] = val[x |<| (IntVal n 0)]"
     by simp
-  then have t1: "val[x |<| (IntVal 64 0)] = IntVal 32 0"
+  then have t1: "val[x |<| (IntVal n 0)] = IntVal 32 0"
     using below_zero assms by auto  
   then have "\<not>isValPositive(val[y-z])"
-    by (simp add: True assms(11) assms(12) below_sub_inv)
+    using True assms(10) assms(13) assms(2) assms(3) assms(5) assms(6) assms(9) below_sub_inv by auto
   then have "val[x < (y-z)] = IntVal 32 0"
-    using assms pos_less_neg apply simp
-    by (metis (no_types, opaque_lifting) ValueThms.take_bit_dist_subL bit_take_bit_iff diff_zero take_bit_0)
+    using assms pos_less_neg by simp
   then show ?thesis
     by (simp add: True t1)
 next
   case False
-  then have unfoldCond: "val[(x |<| ((y |<| z)? (IntVal 64 0) : (y - z)))] = val[x |<| (y - z)]"
+  then have unfoldCond: "val[(x |<| ((y |<| z)? (IntVal n 0) : (y - z)))] = val[x |<| (y - z)]"
     by simp
   then have l2_1: "isValPositive(val[y-z])"
-    by (simp add: False assms(12) assms(11) below_sub)
+    using False assms(10) assms(13) assms(2) assms(3) assms(5) assms(6) assms(9) below_sub by auto
   obtain vyz where yz: "val[y-z] = new_int n vyz"
-    using assms by (simp add: yz)
-  obtain yz where yz: "yz = new_int n vyz"
-    by auto
-  have "isIntValWf yz"
-    by (simp add: yz)
-  moreover have "isValPositive(yz)"
-    using yz l2_1
-  moreover have "val[x |<| yz] \<noteq> UndefVal"
-    sorry
-  moreover have "val[x < yz] \<noteq> UndefVal"
-    sorry
-  moreover have "vyz \<noteq> 0"
-    sorry
-  ultimately have "val[x |<| yz] = val[x < yz]"
-    (* using assms val_below_eq_less yz by blast *)
-    sorry
+    using assms(2) assms(3) by auto
+  then have "val[x |<| (y-z)] = val[x < (y-z)]" using bin_below_eq_less apply simp
+    by (smt (verit, del_insts) assms(1) assms(12) assms(13) assms(4) assms(7) assms(8) l2_1 
+        val_below_eq_less val_below_eq_less_self)
   then show ?thesis
-    (* using unfoldCond by auto *)
-    sorry
+    using unfoldCond by auto
 qed
 
 (* Exp level *)
 
 (* Function to check is an integer stamp is not negative *)
 fun isStampPos :: "Stamp \<Rightarrow> bool" where
-  "isStampPos (IntegerStamp b lo hi) = ((lo \<ge> 0) \<and> (b = 64))" |
+  "isStampPos (IntegerStamp b lo hi) = ((lo \<ge> 0) \<and> (b \<le> 64) \<and> (1 < b))" |
   "isStampPos _ = False"
+
+lemma lower_stamp2:
+  assumes "isStampPos (stamp_expr x)" 
+  assumes "wf_stamp x"
+  assumes "[m,p] \<turnstile> x \<mapsto> xv"
+  shows "\<exists>v n. xv = IntVal n v \<and> isIntValWf(xv)"
+proof -
+  obtain xVal where o1: "valid_value xVal (stamp_expr x)"
+    using assms(2) assms(3) wf_stamp_def by auto
+  obtain xValb xValv where o2: "xVal = IntVal xValb xValv"
+    by (metis Value.exhaust \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> assms(1) 
+        isStampPos.elims(2) valid_value.simps(11) valid_value.simps(12) valid_value.simps(3) 
+        valid_value.simps(5))
+  obtain sB sLo sHi where o3:"(IntegerStamp sB sLo sHi) = (stamp_expr x)"
+    by (metis \<open>(xVal::Value) = IntVal (xValb::nat) (xValv::64 word)\<close> 
+        \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> valid_int_gives)
+  have bitEqual: "xValb = sB"
+    by (metis \<open>(xVal::Value) = IntVal (xValb::nat) (xValv::64 word)\<close> 
+        \<open>IntegerStamp (sB::nat) (sLo::int) (sHi::int) = stamp_expr (x::IRExpr)\<close> 
+        \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> valid_value.simps(1))
+  then show ?thesis
+    using assms bitEqual by (smt (verit, ccfv_SIG) eval_unused_bits_zero evaltree_not_undef 
+          isIntValWf.elims(1) isStampPos.simps(1) o3 valid_int_same_bits 
+          valid_value.simps(11) valid_value.simps(12) valid_value.simps(5) wf_stamp_def)
+qed
 
 lemma lower_stamp:
   assumes "isStampPos (stamp_expr x)" 
@@ -359,63 +434,43 @@ lemma lower_stamp:
   assumes "[m,p] \<turnstile> x \<mapsto> xv"
   shows "isValPositive xv"
 proof -
-  obtain xVal where "valid_value xVal (stamp_expr x)"
+  obtain tb tv where "xv = IntVal tb tv"
+    using assms(1) assms(2) assms(3) lower_stamp2 by blast
+  then have "valid_value xv (stamp_expr x)"
     using assms(2) assms(3) wf_stamp_def by auto
-  obtain xValb xValv where "xVal = IntVal xValb xValv"
-    by (metis Value.exhaust \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> assms(1) 
-        isStampPos.elims(2) valid_value.simps(11) valid_value.simps(12) valid_value.simps(3) 
-        valid_value.simps(5))
   obtain sB sLo sHi where hi:"(IntegerStamp sB sLo sHi) = (stamp_expr x)"
-    by (metis \<open>(xVal::Value) = IntVal (xValb::nat) (xValv::64 word)\<close> 
-        \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> valid_int_gives)
-  have "xValb = sB"
-    by (metis \<open>(xVal::Value) = IntVal (xValb::nat) (xValv::64 word)\<close> 
-        \<open>IntegerStamp (sB::nat) (sLo::int) (sHi::int) = stamp_expr (x::IRExpr)\<close> 
-        \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> valid_value.simps(1))
-  then have "sLo \<le> int_signed_value xValb xValv"
-    by (metis \<open>(xVal::Value) = IntVal (xValb::nat) (xValv::64 word)\<close> \<open>IntegerStamp (sB::nat) (sLo::int) (sHi::int) = stamp_expr (x::IRExpr)\<close> \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> valid_value.simps(1))
+    by (metis \<open>(xv::Value) = IntVal (tb::nat) (tv::64 word)\<close> 
+        \<open>valid_value (xv::Value) (stamp_expr (x::IRExpr))\<close> valid_int_gives)
+  have "tb = sB"
+    by (metis \<open>(xv::Value) = IntVal (tb::nat) (tv::64 word)\<close> \<open>valid_value (xv::Value) 
+        (stamp_expr (x::IRExpr))\<close> hi valid_value.simps(1))
+  then have "sLo \<le> int_signed_value tb tv"
+    by (metis \<open>(xv::Value) = IntVal (tb::nat) (tv::64 word)\<close> 
+              \<open>valid_value (xv::Value) (stamp_expr (x::IRExpr))\<close> hi valid_value.simps(1))
   have "isStampPos (IntegerStamp sB sLo sHi)"
     by (simp add: assms(1) hi)
   then have "sLo \<ge> 0"
     using assms hi apply simp
     by (metis isStampPos.simps(1))
-  then have "0 \<le> sint (signed_take_bit (xValb-1) xValv)"
-    using assms
-    using \<open>(sLo::int) \<sqsubseteq> int_signed_value (xValb::nat) (xValv::64 word)\<close> by auto
-  then have "sint (signed_take_bit (xValb-1) 0) \<le> sint (signed_take_bit (xValb-1) xValv)"
+  then have "0 \<le> sint (signed_take_bit (tb-1) tv)"
+    using \<open>(sLo::int) \<sqsubseteq> int_signed_value (tb::nat) (tv::64 word)\<close> by auto
+  then have "sint (signed_take_bit (tb-1) 0) \<le> sint (signed_take_bit (tb-1) tv)"
     by simp
-  then have "\<not> (bit xValv (xValb-1))"
+  then have "\<not> (bit tv (tb-1))"
     using assms signed_take_bit_nonnegative_iff apply simp
-
-lemma lower_stamp2:
-  assumes "isStampPos (stamp_expr x)" 
-  assumes "wf_stamp x"
-  assumes "[m,p] \<turnstile> x \<mapsto> xv"
-  shows "\<exists>v. xv = IntVal 64 v"
-proof -
-  obtain xVal where "valid_value xVal (stamp_expr x)"
-    using assms(2) assms(3) wf_stamp_def by auto
-  obtain xValb xValv where "xVal = IntVal xValb xValv"
-    by (metis Value.exhaust \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> assms(1) 
-        isStampPos.elims(2) valid_value.simps(11) valid_value.simps(12) valid_value.simps(3) 
-        valid_value.simps(5))
-  obtain sB sLo sHi where "(IntegerStamp sB sLo sHi) = (stamp_expr x)"
-    by (metis \<open>(xVal::Value) = IntVal (xValb::nat) (xValv::64 word)\<close> 
-        \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> valid_int_gives)
-  have "xValb = sB"
-    by (metis \<open>(xVal::Value) = IntVal (xValb::nat) (xValv::64 word)\<close> 
-        \<open>IntegerStamp (sB::nat) (sLo::int) (sHi::int) = stamp_expr (x::IRExpr)\<close> 
-        \<open>valid_value (xVal::Value) (stamp_expr (x::IRExpr))\<close> valid_value.simps(1))
+    by (metis (mono_tags, lifting) One_nat_def Suc_eq_plus1 \<open>(tb::nat) = (sB::nat)\<close> 
+        \<open>isStampPos (IntegerStamp (sB::nat) (sLo::int) (sHi::int))\<close> bit_take_bit_iff 
+        isStampPos.simps(1) less_diff_conv less_numeral_extra(3) linorder_not_less nat_diff_split 
+        plus_1_eq_Suc take_bit_0 val_neg_def)
   then show ?thesis
-    by (metis assms(1) assms(2) assms(3) isStampPos.elims(2) valid_int wf_stamp_def)
+    by (simp add: \<open>(xv::Value) = IntVal (tb::nat) (tv::64 word)\<close>)
 qed
 
 lemma exp_below_less: 
   assumes "isStampPos (stamp_expr x)" and "wf_stamp x"
   assumes "isStampPos (stamp_expr y)" and "wf_stamp y"
   assumes "isStampPos (stamp_expr z)" and "wf_stamp z"
-  assumes "b = 64"
-  assumes "exp[x] \<noteq> exp[(y-z)]"
+  assumes "stamp_expr y = IntegerStamp b lo hi"
   shows "exp[(x |<| ((y |<| z)? const (IntVal b 0) : (y - z)))] \<ge> exp[x < (y-z)]"
   apply auto
   subgoal premises prems for m p xa ya xaa yaa xb yb
@@ -428,39 +483,53 @@ lemma exp_below_less:
       using xa evalDet prems(1) prems(2) by blast
     then have "val[xaa |<| yaa] \<noteq> UndefVal"
       by (simp add: prems(3))
-    then have "[m,p] \<turnstile> (if (val_to_bool(val[xaa |<| yaa])) 
+    then have wfCond: "[m,p] \<turnstile> (if (val_to_bool(val[xaa |<| yaa])) 
                         then exp[const (IntVal b 0)] else exp[(y - z)]) \<mapsto> ya"
       by (simp add: prems(4))
     then have "val[ya] \<noteq> UndefVal"
       by (simp add: prems(5))
-    then have "val[xb - yb] \<noteq> UndefVal"
+    obtain yab yav where ya: "ya = IntVal yab yav"
+      by (metis Value.collapse(1) bin_eval.simps(15) defined_eval_is_intval lhsDef)
+    have "val[xb - yb] \<noteq> UndefVal"
       by (simp add: prems)
-    then have yValue: "[m,p] \<turnstile> y \<mapsto> xaa"
+    have yValue: "[m,p] \<turnstile> y \<mapsto> xaa"
       by (simp add: prems)
-    then have zValue: "[m,p] \<turnstile> z \<mapsto> yaa"
+    then have xaaPos: "isValPositive xaa"
+      using assms(3) assms(4) lower_stamp by auto
+    have zValue: "[m,p] \<turnstile> z \<mapsto> yaa"
       by (simp add: prems)
-    then have "[m,p] \<turnstile> y \<mapsto> xb"
+    then have yaaPos: "isValPositive yaa"
+      using assms(5) assms(6) lower_stamp by auto
+    have "[m,p] \<turnstile> y \<mapsto> xb"
       by (simp add: prems)
-    then have "[m,p] \<turnstile> z \<mapsto> yb"
+    have "[m,p] \<turnstile> z \<mapsto> yb"
       by (simp add: prems)
-    then have "wf_value (IntVal b 0)"
+    have "wf_value (IntVal b 0)"
       by (simp add: prems(11))
-    obtain vx where xa: "xa = IntVal 64 vx"
+    obtain vxb vx where xa: "xa = IntVal vxb vx"
       using assms(1) assms(2) lower_stamp2 xa by blast
-      (* by (metis Value.collapse(1) bin_eval.simps(15) defined_eval_is_intval evalDet prems(1) prems(2) xa) *)
-    obtain vy where hello1: "xaa = IntVal 64 vy"
+    have "vxb = yab" using ya
+      by (metis bool_to_val_bin.simps intval_below.simps(1) lhsDef xa)
+    obtain vyb vy where hello1: "xaa = IntVal vyb vy"
       by (meson assms(3) assms(4) lower_stamp2 yValue)
-    obtain vz where hello2: "yaa = IntVal 64 vz"
+    obtain vzb vz where hello2: "yaa = IntVal vzb vz"
       using assms(5) assms(6) lower_stamp2 zValue by blast
+    have "vyb = vzb"
+      using bool_to_val_bin.simps hello1 hello2 intval_below.simps(1) prems(3) by presburger
     have wf_rhs1:"[m,p] \<turnstile> exp[y-z] \<mapsto> val[xaa - yaa]"
       using yValue zValue
       by (metis bin_eval.simps(2) evalDet prems(10) prems(6) prems(9) unfold_binary)
-    then have "val[xaa - yaa] = new_int 64 (vy - vz)"
-      using hello1 hello2 prems by auto
-    then obtain vdiff where hello3: "val[xaa-yaa] = IntVal 64 vdiff"
+    then have sub_iv: "val[xaa - yaa] = new_int b (vy - vz)"
+      using hello1 hello2 prems
+      by (metis \<open>(vyb::nat) = (vzb::nat)\<close> assms(4) assms(7) intval_sub.simps(1) 
+          new_int_bin.simps valid_int_same_bits wf_stamp_def)
+    then obtain vdiff where hello3: "val[xaa-yaa] = IntVal b vdiff"
       by simp
+    have "vxb = b" using hello3
+      by (smt (verit) ConstantExprE Value.inject(1) \<open>(vxb::nat) = (yab::nat)\<close> 
+          evalDet wfCond wf_rhs1 ya)
     then have "val[xa < (xaa - yaa)] \<noteq> UndefVal"
-      using xa apply auto
+      using xa hello3 apply auto
       by (metis Value.distinct(1) bool_to_val.simps(1) bool_to_val.simps(2))
     then have wf_rhs:"[m,p] \<turnstile> exp[x < (y-z)] \<mapsto> val[xa < (xaa - yaa)]"
       apply (auto simp add: unfold_binary)
@@ -468,28 +537,37 @@ lemma exp_below_less:
     then have "[m,p] \<turnstile> exp[x < (y-z)] \<mapsto> val[xa |<| ya]"
     proof (cases "val_to_bool(val[xaa |<| yaa])")
       case True
+      have "isIntValWf(val[xaa - yaa])"
+        using \<open>intval_sub (xaa::Value) (yaa::Value) = new_int (b::nat) ((vy::64 word) - (vz::64 word))\<close> assms(3) assms(7) by auto
       then have "\<not>isValPositive(val[xaa - yaa])"
-        using lower_stamp and below_sub_inv apply auto
-        using assms(3) assms(4) assms(5) assms(6) prems(7) prems(8) by auto
+        using lower_stamp below_sub_inv sub_iv xaaPos yaaPos
+        by (smt (verit) True \<open>(vyb::nat) = (vzb::nat)\<close> assms(3) assms(4) assms(5) assms(6) 
+            below_zero cancel_comm_monoid_add_class.diff_cancel hello1 hello2 intval_below.simps(1) 
+            lower_stamp2 val_to_bool.simps(1) word_sub_less_iff yValue zValue)
       then have "val_to_bool(val[xa |<| ya]) = False"
-        using True assms(7) prems(4) xa by auto
-      then have "val_to_bool(val[xa < (xaa - yaa)]) = False"
-        by (simp add: \<open>\<not> isValPositive (intval_sub (xaa::Value) (yaa::Value))\<close> pos_less_neg xaPos)
+        using True assms(7) prems(4) xa \<open>(vxb::nat) = (b::nat)\<close> by auto
       then have "val[xa < (xaa - yaa)] = IntVal 32 0"
-        by (simp add: \<open>\<not> isValPositive (intval_sub (xaa::Value) (yaa::Value))\<close> pos_less_neg xaPos)
+        using wf_rhs assms pos_less_neg \<open>\<not> isValPositive (intval_sub (xaa::Value) (yaa::Value))\<close> xaPos apply simp
+        by (metis \<open>(vxb::nat) = (b::nat)\<close> \<open>isIntValWf (intval_sub (xaa::Value) (yaa::Value))\<close> hello3 lower_stamp2 pos_less_neg prems(1) xa)
       then have "val[xa |<| ya] = IntVal 32 0"
-        using True assms(7) prems(4) xa by force
+        using True \<open>(vxb::nat) = (b::nat)\<close> wfCond xa by auto
       then show ?thesis
         using \<open>intval_less_than (xa::Value) (intval_sub (xaa::Value) (yaa::Value)) = IntVal (32::nat) (0::64 word)\<close> wf_rhs by auto 
     next
       case False
       then have "isValPositive(val[xaa-yaa])"
-        using assms(3) assms(4) assms(5) assms(6) below_sub lower_stamp yValue zValue by blast
+        using assms below_sub lower_stamp
+        by (metis Value.distinct(1) \<open>(vyb::nat) = (vzb::nat)\<close> hello1 hello2 hello3 
+            lower_stamp2 yValue zValue)
       then have "val[xa |<| ya] = val[xa |<| (xaa-yaa)]"
         by (metis False evalDet prems(4) wf_rhs1)
       then have "val[xa |<| (xaa - yaa)] = val[xa < (xaa - yaa)]"
-        using assms val_below_eq_less xaPos
-        using \<open>isValPositive (intval_sub (xaa::Value) (yaa::Value))\<close> by blast
+        using assms val_below_eq_less xaPos wf_rhs
+        by (smt (verit, del_insts) False \<open>(vxb::nat) = (b::nat)\<close> \<open>(vxb::nat) = (yab::nat)\<close> 
+            \<open>intval_less_than (xa::Value) (intval_sub (xaa::Value) (yaa::Value)) \<noteq> UndefVal\<close> 
+            \<open>isValPositive (intval_sub (xaa::Value) (yaa::Value))\<close> evalDet isIntValWf.simps(1) 
+            lhsDef lower_stamp2 new_int_unused_bits_zero prems(1) sub_iv val_below_eq_less_self 
+            wfCond wf_rhs1 xa ya)
       then show ?thesis
         by (simp add: \<open>intval_below (xa::Value) (ya::Value) = intval_below xa (intval_sub (xaa::Value) (yaa::Value))\<close> wf_rhs)
     qed
@@ -498,12 +576,9 @@ lemma exp_below_less:
   qed
   done
 
-value"exp[False]"
-
-(* optimization test1: "(x |<| ((y |<| z)? const (IntVal 32 0) : (y - z))) \<longmapsto> x < (y-z) *)
-                     (* when ((isStampPos (stamp_expr x)) \<and> (wf_stamp x) \<and> *)
-                            (* (isStampPos (stamp_expr y)) \<and> (wf_stamp y) \<and> *)
-                            (* (isStampPos (stamp_expr z)) \<and> (wf_stamp z))" *)
-  (* apply auto *)
-  (* (* by (metis Value.distinct(1) below_zero intval_below.simps(2)) *) *)
-  (* sorry *)
+optimization test1: "(x |<| ((y |<| z)? const (IntVal b 0) : (y - z))) \<longmapsto> x < (y-z)
+                      when ((isStampPos (stamp_expr x)) \<and> (wf_stamp x) \<and>
+                             (isStampPos (stamp_expr y)) \<and> (wf_stamp y) \<and>
+                             (isStampPos (stamp_expr z)) \<and> (wf_stamp z)) \<and>
+                               stamp_expr y = IntegerStamp b lo hi"
+  using exp_below_less by blast

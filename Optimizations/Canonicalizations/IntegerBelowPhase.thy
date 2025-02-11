@@ -11,8 +11,6 @@ begin
 lemma "uint(x) < uint(y) = (x < y)"
   by (simp add: word_less_def)
 
-value"sint(3::int64) - sint(4::int64)"
-
 lemma pos_signed_unsigned:
   assumes "sint (x) \<ge> 0"
   shows "sint(x) = uint(x)"
@@ -38,12 +36,6 @@ proof -
     by (simp add: word_less_iff_unsigned word_sless_alt)
 qed
 
-lemma below_transitive: "x < y \<and> y < z \<Longrightarrow> x < z" for x y z::int64
-  by auto
-
-lemma bin_below_zero: "x < 0 \<and> 0 \<le> y \<Longrightarrow> ~(y < z)" for x y z::int64
-  using word_not_simps(1) by blast
-
 lemma bin_negate_below: "x \<noteq> y \<and> \<not>(x < y) \<Longrightarrow> y < x" for x y::int64
   by auto
 
@@ -53,8 +45,32 @@ lemma bin_negate_less: "x \<noteq> y \<and> \<not>(x <s y) \<Longrightarrow> y <
 lemma bin_inverse_negate_less: "x \<noteq> y \<and> (x <s y) \<Longrightarrow> \<not>(y <s x)" for x y::int64
   by auto
 
-lemma bin_below_sub: "x < y \<Longrightarrow> (x - y) <s 0" for x y::int64
-  apply transfer
+lemma bin_below_sub: "x <s y \<longleftrightarrow> (x - y) <s 0" for x y::int64
+proof (cases "x <s 0")
+  case xPos: True
+  then show ?thesis
+  proof (cases "y <s 0")
+    case True
+    then show ?thesis sorry
+  next
+    case False
+    then show ?thesis sorry
+  qed
+next
+  case False
+  then show ?thesis
+  proof (cases "y <s 0")
+    case True
+    then show ?thesis sorry
+  next
+    case False
+    then show ?thesis sorry
+  qed
+qed
+  sorry
+
+lemma bin_below_sub: "x <s y \<longleftrightarrow> (x - y) <s 0" for x y::int8
+  nitpick
 
 (* Value level *)
 
@@ -93,10 +109,6 @@ proof -
   then show ?thesis
     using \<open>take_bit (n::nat) (v::64 word) - take_bit (n - (1::nat)) v = push_bit (n - (1::nat)) (of_bool (bit v (n - (1::nat))))\<close> assms(1) assms(2) by force 
 qed
-
-lemma neg_sub:
-  shows "(val_to_bool val[y < z]) \<Longrightarrow> val[y-z] = IntVal 32 0"
-  oops
 
 lemma val_pos_def:
   assumes "n>1" and "n \<le> 64"
@@ -198,7 +210,6 @@ proof -
     using assms bin_negate_less apply simp
     by (metis (full_types) bool_to_val.simps(1) bool_to_val.simps(2) val_to_bool.simps(1))
 qed
-  
 
 lemma verify_isValPositive:
   assumes "x = IntVal n v"
@@ -207,6 +218,16 @@ lemma verify_isValPositive:
   shows "sint(v) \<ge> 0"
   using assms pos_greater_zero apply auto
   using signed_take_bit_eq_if_positive tb_n1 val_pos_def by fastforce
+
+lemma prot2:
+  assumes "x = IntVal n vx"
+  assumes "y = IntVal n vy"
+  assumes "isValPositive x"
+  assumes "isValPositive y"
+  assumes "isIntValWf x"
+  assumes "isIntValWf y"
+  shows "(vx - vy) <s 0 \<longleftrightarrow> signed_take_bit (n-1) (take_bit n (vx - vy)) <s 0"
+  sorry
 
 lemma below_sub_inv:
   assumes "y = IntVal n vy"
@@ -218,15 +239,27 @@ lemma below_sub_inv:
   assumes "val_to_bool(val[y |<| z])"
   shows "\<not>isValPositive(val[y-z])"
 proof -
-  have "vy < vz" using assms
-    using val_to_bool.elims(2) by fastforce
-  then have "(vy - vz) <s 0" 
+  obtain tv where o1: "val[y-z] = IntVal n (take_bit n tv)"
+    using assms(1) assms(2) by auto
+  have "take_bit n (take_bit n tv) = take_bit n tv"
+    by auto
+  then have subIsWf: "isIntValWf (IntVal n (take_bit n tv))" 
+    using assms by auto
+  have subUnfold: "val[y-z] = IntVal n (take_bit n (vy - vz))"
+    by (simp add: assms(1) assms(2))
+  have "vy < vz" 
+    using assms val_to_bool.elims(2) by fastforce 
+  then have "vy <s vz"
+    using assms bin_below_eq_less
+    using verify_isValPositive by blast 
+  then have "(vy - vz) <s 0"
     using bin_below_sub by auto
-  then have "sint(vy - vz) < 0"
+  then have "signed_take_bit (n-1) (take_bit n (vy - vz)) <s 0"
+    using assms(1) assms(2) assms(3) assms(4) assms(5) assms(6) prot2 by blast
+  then have subNotNeg: "\<not>(0 \<le> sint(signed_take_bit (n-1) (take_bit n (vy - vz))))"
     by (simp add: word_sless_alt)
-  then show ?thesis using verify_isValPositive
-    by (smt (verit, best) \<open>(vy::64 word) < (vz::64 word)\<close> add_diff_cancel_left' assms(2) assms(4) 
-        assms(6) bin_below_sub diff_add_cancel sint_0 word_sless_alt word_sub_less_iff)
+  show ?thesis
+    using subUnfold subIsWf subNotNeg val_pos_def by force
 qed
 
 lemma below_sub:
@@ -257,16 +290,33 @@ next
     using False assms by auto
   then have "vz < vy"
     using \<open>(vz::64 word) \<noteq> (vy::64 word)\<close> bin_negate_below by blast
+  moreover have "sint(vz) \<ge> 0" 
+    using assms verify_isValPositive by auto
+  moreover have "sint(vy) \<ge> 0"
+    using assms verify_isValPositive by auto
+  ultimately have "vz <s vy" 
+    using assms bin_below_eq_less by auto
+  then have "\<not>(vy <s vz)"
+    using \<open>vz \<noteq> vy\<close> bin_negate_less by auto
   then have "\<not>((vy - vz) <s 0)"
-    using bin_below_sub
-    by (smt (verit, best) \<open>(vz::64 word) < (vy::64 word)\<close> assms(1) assms(3) assms(5) 
-        bin_below_eq_less diff_add_cancel minus_diff_eq sint_0 uminus_add_conv_diff 
-        verify_isValPositive word_coorder.extremum_strict word_sub_less_iff)
-  then have "\<not>(\<not>isValPositive(val[y-z]))"
-    by (metis (mono_tags, opaque_lifting) \<open>(vz::64 word) < (vy::64 word)\<close> 
-        add_0 bin_below_sub diff_diff_eq2 word_gt_0)
-  then show ?thesis
-    by simp 
+    using bin_below_sub by auto
+  then have subPositive: "0 <s (vy-vz)"
+    by (metis \<open>(vz::64 word) \<noteq> (vy::64 word)\<close> bin_negate_less eq_iff_diff_eq_0)
+  obtain tv where o1: "val[y-z] = IntVal n (take_bit n tv)"
+    using assms(1) assms(2) by auto
+  have "take_bit n (take_bit n tv) = take_bit n tv"
+    by auto
+  then have subIsWf: "isIntValWf (IntVal n (take_bit n tv))" 
+    using assms by auto
+  have subUnfold: "val[y-z] = IntVal n (take_bit n (vy - vz))"
+    by (simp add: assms(1) assms(2))
+  have "\<not>(signed_take_bit (n-1) (take_bit n (vy - vz)) <s 0)"
+    using \<open>\<not>((vy - vz) <s 0)\<close> prot2
+    using assms(1) assms(2) assms(3) assms(4) assms(5) assms(6) by blast
+  then have subNotNeg: "0 \<le> sint(signed_take_bit (n-1) (take_bit n (vy - vz)))"
+    by (simp add: word_sless_alt)
+  show ?thesis
+    using subIsWf subNotNeg subUnfold val_neg_def by fastforce
 qed
 
 lemma val_below_eq_less_self:

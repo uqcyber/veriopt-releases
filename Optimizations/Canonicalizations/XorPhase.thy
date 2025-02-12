@@ -25,6 +25,10 @@ lemma bin_eliminate_redundant_false:
  "bin[x \<oplus> 0] = bin[x]"
   by simp
 
+lemma bin_xor_cancel: 
+  shows "bin[xor (~x) (~y)] = bin[xor x y]"
+  by simp
+
 (* Value level proofs *)
 lemma val_xor_self_is_false:
   assumes "val[x \<oplus> x] \<noteq> UndefVal"
@@ -52,6 +56,15 @@ lemma val_eliminate_redundant_false:
   assumes "val[x \<oplus> (bool_to_val False)] \<noteq> UndefVal"
   shows   "val[x \<oplus> (bool_to_val False)] = x"
   using assms by (auto; meson)
+
+lemma val_xor_cancel:
+  assumes "x = IntVal 64 v"
+  assumes "y = IntVal 64 e"
+  assumes "val[\<not>x] \<noteq> UndefVal" 
+  assumes "val[\<not>y] \<noteq> UndefVal" 
+  shows "val[(\<not>x) \<oplus> \<not>y] = val[x \<oplus> y]"
+  apply (auto simp: assms algebra_simps)
+  by (metis bin_xor_cancel take_bit_xor)
 
 (* Exp level proofs *)
 lemma exp_xor_self_is_false:
@@ -93,59 +106,7 @@ lemma exp_eliminate_redundant_false:
       then show ?thesis
         using evalDet p(2) xa by blast
     qed
-  done
-
-text \<open>Optimisations\<close>
-
-optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when 
-                      (wf_stamp x \<and> stamp_expr x = default_stamp)"
-  using size_non_const exp_xor_self_is_false by auto 
-
-optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
-  using size_flip_binary val_xor_commute by auto
-
-optimization EliminateRedundantFalse: "(x \<oplus> false) \<longmapsto> x"
-    using exp_eliminate_redundant_false by auto 
-
-(* BW: this doesn't seem right *)
-(* Doesn't have any subgoals *)
-(*
-optimization MaskOutRHS: "(x \<oplus> y) \<longmapsto> ~x
-                          when (is_ConstantExpr y
-                             \<and> (stamp_expr (BinaryExpr BinXor x y) = IntegerStamp stampBits l h) 
-                             \<and> (BinaryExpr BinAnd y (ConstantExpr (new_int stampBits (not 0))) 
-                                                   = ConstantExpr (new_int stampBits (not 0))))"
-  sorry
-*)
-
-  value"val[IntVal 64 1 \<oplus> ~IntVal 64 1]"
-  value"IntVal 64 (-1)"
-  value"bin[IntVal 64 4]"
-
-(* lemma word_xor_inverse_self: "bin[(~x)] = 1" *)
-
-lemma val_xor_inverse_self:
-  assumes "x = IntVal 64 v"
-  assumes "val[x \<oplus> \<not>x] \<noteq> UndefVal" 
-  assumes "val[\<not>x] \<noteq> UndefVal" 
-  shows "val[x \<oplus> \<not>x] = IntVal 64 (-1)"
-  oops
-  (* by (auto simp:assms) *)
-
-value"val[(\<not>IntVal 64 2) \<oplus> \<not>IntVal 64 1]"
-
-lemma bin_xor_cancel: 
-  shows "bin[xor (~x) (~y)] = bin[xor x y]"
-  by simp
-
-lemma val_xor_cancel:
-  assumes "x = IntVal 64 v"
-  assumes "y = IntVal 64 e"
-  assumes "val[\<not>x] \<noteq> UndefVal" 
-  assumes "val[\<not>y] \<noteq> UndefVal" 
-  shows "val[(\<not>x) \<oplus> \<not>y] = val[x \<oplus> y]"
-  apply (auto simp: assms algebra_simps)
-  by (metis bin_xor_cancel take_bit_xor)
+    done
 
 lemma exp_xor_cancel:
   shows "exp[(\<not>x) \<oplus> \<not>y] \<ge> exp[x \<oplus> y]"
@@ -173,6 +134,29 @@ lemma exp_xor_cancel:
       by (metis evalDet prems(3) prems(5) unfoldXOR xa xb)
   qed
   done
+
+text \<open>Optimisations\<close>
+
+optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when 
+                      (wf_stamp x \<and> stamp_expr x = default_stamp)"
+  using size_non_const exp_xor_self_is_false by auto 
+
+optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
+  using size_flip_binary val_xor_commute by auto
+
+optimization EliminateRedundantFalse: "(x \<oplus> false) \<longmapsto> x"
+    using exp_eliminate_redundant_false by auto 
+
+(* BW: this doesn't seem right *)
+(* Doesn't have any subgoals *)
+(*
+optimization MaskOutRHS: "(x \<oplus> y) \<longmapsto> ~x
+                          when (is_ConstantExpr y
+                             \<and> (stamp_expr (BinaryExpr BinXor x y) = IntegerStamp stampBits l h) 
+                             \<and> (BinaryExpr BinAnd y (ConstantExpr (new_int stampBits (not 0))) 
+                                                   = ConstantExpr (new_int stampBits (not 0))))"
+  sorry
+*)
 
 lemma yConst:
   assumes "\<not> (is_ConstantExpr y)"

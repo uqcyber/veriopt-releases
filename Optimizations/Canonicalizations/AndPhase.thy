@@ -148,6 +148,21 @@ lemma exp_and_nots:
    using val_and_nots by force
 
  value "wf_value (IntVal 64 0)"
+lemma new_intZero [simp]: 
+  assumes "1 \<le> b"
+  assumes "b \<le> 64"
+  shows "new_int b 0 = IntVal b 0"
+  unfolding new_int.simps by simp
+
+lemma wfZero [simp]: 
+  assumes "1 \<le> b"
+  assumes "b \<le> 64"
+  shows "wf_value (IntVal b 0)"
+  unfolding wf_value_def stamp_expr.simps(3) valid_value.simps apply auto
+  using assms(1) apply auto[1]
+  apply (simp add: assms(2))
+  by (metis ValueThms.upper_bounds_equiv assms(1) gr0I less_numeral_extra(1) 
+      linorder_not_less not_exp_less_eq_0_int)
 
 (* Assuming that the constant 0 is well formed, not sure if right *)
 lemma exp_and_equal_not:
@@ -184,10 +199,9 @@ lemma exp_and_equal_not:
       using unfoldEq and rzero by auto
     then have bitEq: "b = xb"
       by (metis assms(1) assms(2) valid_int_same_bits wf_stamp_def xy y)
-    then have wfZero: "wf_value (IntVal b 0)"
-      sorry
     then have "[m,p] \<turnstile> exp[const (IntVal b 0)] \<mapsto> val[new_int xb 0]"
-      by (simp add: ConstantExpr bitEq)
+      using wfZero
+      by (metis ConstantExpr eqBitX eqa eval_bits_1_64 eval_unused_bits_zero less_one linorder_le_less_linear new_int.simps verit_comp_simplify1(1) xa y)
       (* using assms by (simp add: unfold_const bitEq) *)
     then show ?thesis
       by (metis eqa evalDet evalSame prems(2) prems(4) y)

@@ -11,6 +11,9 @@ begin
 lemma bin_addition_equality: "((x+y) = (x+z)) \<longleftrightarrow> (y = z)" for x y z::int64
   by simp
 
+lemma bin_xor_equality: "((xor x y) = (xor x z)) \<longleftrightarrow> (y = z)" for x y z::int64
+  by (metis bit.xor_left_self) 
+
 lemma bin_subtraction_equality: "((x-y) = (x-z)) \<longleftrightarrow> (y = z)" for x y z::int64
   by auto
 
@@ -20,6 +23,9 @@ lemma bin_subtraction_equality_swapped: "((y-x) = (z-x)) \<longleftrightarrow> (
 lemma bin_add_zero_equality: "(x = (x + y)) \<longleftrightarrow> y = 0" for x y::int64
   by simp
 
+lemma bin_xor_zero_equality: "(x = (xor x y)) \<longleftrightarrow> y = 0" for x y::int64
+  by (metis bin_xor_equality xor.right_neutral)
+
 lemma bin_sub_zero_equality: "(x = (x-y)) \<longleftrightarrow> y = 0" for x y::int64
   by simp
 
@@ -27,17 +33,27 @@ lemma bin_not_self_equality: "(x = (not x)) \<longleftrightarrow> False" for x::
   by (metis bit.compl_one bit.disj_cancel_left bit.xor_cancel_right 
       disjunctive_and_not_eq_xor neg_equal_0_iff_equal word_not_dist(1) zero_neq_one)
 
-lemma bin_add_commulative: "(x+y) = (y+x)" for x y z::int64
+lemma bin_add_commutative: "(x+y) = (y+x)" for x y z::int64
   by simp
+
+lemma bin_xor_commutative: "(xor x y) = (xor y x)" for x y::int64
+  by (simp add: word_bw_comms(3))
 
 (* ----------------Value level---------------- *)
 
-lemma val_add_commulative:
+lemma val_add_commutative:
   assumes "x = new_int n vx"
   assumes "y = new_int n vy"
   assumes "val[x + y] \<noteq> UndefVal"
   shows "val[x + y] = val[y + x]"
   by (simp add: intval_add_sym)
+
+lemma val_xor_commutative:
+  assumes "x = new_int n vx"
+  assumes "y = new_int n vy"
+  assumes "val[x \<oplus> y] \<noteq> UndefVal"
+  shows "val[x \<oplus> y] = val[y \<oplus> x]"
+  by (simp add: assms(1) assms(2) bin_xor_commutative)
 
 lemma val_addition_equality: 
   assumes "x = new_int n vx"
@@ -69,6 +85,38 @@ proof -
         by (simp add: noneq_sumword assms(1) assms(2) assms(3)) 
     qed
   qed
+
+lemma val_xor_equality: 
+  assumes "x = new_int n vx"
+  assumes "y = new_int n vy"
+  assumes "z = new_int n vz"
+  assumes "val[(x \<oplus> y) eq (x \<oplus> z)] \<noteq> UndefVal"
+  shows "val[(x \<oplus> y) eq (x \<oplus> z)] = val[y eq z]"
+proof -
+  have unfold_llhs: "val[x \<oplus> y] = new_int n (xor vx vy)"
+    by (simp add: assms(1) assms(2))
+  have unfold_lrhs: "val[x \<oplus> z] = new_int n (xor vx vz)"
+    by (simp add: assms(1) assms(3))
+  then show ?thesis 
+  proof (cases "val_to_bool val[(x \<oplus> y) eq (x \<oplus> z)]")
+    case True
+    have "new_int n (xor vx vy) = new_int n (xor vx vz)"
+      using assms True apply auto
+      using bool_to_val.elims by fastforce
+    then have "new_int n vy = new_int n vz"
+      using bin_xor_equality by auto
+    then show ?thesis 
+      using True assms by auto
+  next
+    case False
+    have "new_int n (xor vx vy) \<noteq> new_int n (xor vx vz)"
+      using assms False by auto
+    then have "new_int n vy \<noteq> new_int n vz"
+      by auto
+    then show ?thesis 
+      using False assms by (simp add: bin_xor_equality)
+  qed
+qed
 
 lemma val_subtraction_equality:
   assumes "x = new_int n vx"
@@ -109,6 +157,13 @@ lemma val_add_zero_equality:
   using assms bin_add_zero_equality apply auto
   by (smt (verit, ccfv_threshold) ValueThms.take_bit_dist_addR bin_add_zero_equality 
       minus_add_cancel take_bit_of_0)
+
+lemma val_xor_zero_equality:
+  assumes "x = new_int n vx"
+  assumes "y = new_int n vy"
+  assumes "val[x eq (x \<oplus> y)] \<noteq> UndefVal"
+  shows "val[x eq (x \<oplus> y)] = val[y eq (new_int n 0)]" 
+  using assms bin_xor_zero_equality by auto
 
 lemma val_sub_zero_equality:
   assumes "x = new_int n vx"
@@ -179,7 +234,7 @@ lemma wfZero [simp]:
   by (metis ValueThms.upper_bounds_equiv assms(1) gr0I less_numeral_extra(1) 
       linorder_not_less not_exp_less_eq_0_int)
 
-lemma exp_cumulative_addition: 
+lemma exp_commutative_addition: 
   assumes "wf_stamp x" 
   assumes "wf_stamp y"
   shows "exp[x + y] \<ge> exp[y + x]"
@@ -199,7 +254,33 @@ lemma exp_cumulative_addition:
   qed
   done
 
-lemma exp_cumulative_equal:
+lemma exp_commutative_xor:
+  assumes "wf_stamp x" 
+  assumes "wf_stamp y"
+  shows "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]" 
+  apply auto
+  subgoal premises prems for m p xa ya
+  proof -
+    obtain xa where x: "[m,p] \<turnstile> x \<mapsto> xa"
+      using prems(1) by auto
+    obtain ya where y: "[m,p] \<turnstile> y \<mapsto> ya"
+      using prems(2) by auto
+    have "val[xa \<oplus> ya] \<noteq> UndefVal"
+      by (metis evalDet prems(1) prems(2) prems(3) x y)
+    moreover have "val[xa \<oplus> ya] = val[ya \<oplus> xa]"
+      using val_xor_commutative
+      by (smt (z3) Value.distinct(11) Value.distinct(9) Value.inject(1) bin_xor_commutative 
+          evaltree_not_undef intval_xor.elims intval_xor.simps(5) intval_xor.simps(9) 
+          new_int_bin.simps x y)
+    ultimately have "[m,p] \<turnstile> exp[y \<oplus> x] \<mapsto> val[xa \<oplus> ya]"
+      using x y by auto
+    then show ?thesis
+      by (metis evalDet prems(1) prems(2) x y)
+  qed
+  done
+      
+
+lemma exp_commutative_equal:
   shows "exp[x eq y] \<ge> exp[y eq x]"
   apply auto
   subgoal premises prems for m p xa ya
@@ -283,6 +364,63 @@ lemma exp_addition_equality:
 qed
   done
 
+lemma exp_xor_equality:
+  shows "exp[(x \<oplus> y) eq (x \<oplus> z)] \<ge> exp[(y eq z)]"
+  apply auto
+  subgoal premises prems for m p xa ya xb yb
+  proof -
+    have "val[(xa \<oplus> ya) eq (xb \<oplus> yb)] \<noteq> UndefVal"
+      using prems(1) by auto
+    obtain xa where x: "[m,p] \<turnstile> x \<mapsto> xa"
+      using prems(2) by auto
+    obtain ya where y: "[m,p] \<turnstile> y \<mapsto> ya"
+      using prems(3) by auto
+    have "val[xa \<oplus> ya] \<noteq> UndefVal"
+      by (metis evalDet prems(2) prems(3) prems(4) x y)
+    obtain xb where x2: "[m,p] \<turnstile> x \<mapsto> xb"
+      using prems(5) by auto
+    obtain yb where y2: "[m,p] \<turnstile> z \<mapsto> yb"
+      using prems(6) by auto
+    have "val[xb \<oplus> yb] \<noteq> UndefVal"
+      by (metis evalDet prems(5) prems(6) prems(7) x2 y2)
+    have "xa = xb"
+      using x x2 by (simp add: evalDet)
+    obtain xn xv where xa: "xa = IntVal xn xv"
+      by (metis \<open>(xa::Value) = (xb::Value)\<close> \<open>intval_xor (xb::Value) (yb::Value) \<noteq> UndefVal\<close> 
+          evaltree_not_undef intval_logic_negation.cases intval_xor.simps(3) intval_xor.simps(4) 
+          intval_xor.simps(5) x2)
+    then have "xa = new_int xn xv"
+      using eval_unused_bits_zero x by auto
+    obtain yn yv where ya: "ya = IntVal yn yv"
+      by (metis \<open>intval_xor (xa::Value) (ya::Value) \<noteq> UndefVal\<close> intval_logic_negation.cases 
+          intval_xor.simps(6) intval_xor.simps(7) intval_xor.simps(8) intval_xor.simps(9))
+    then have "ya = new_int yn yv"
+      using eval_unused_bits_zero y by auto
+    obtain zn zv where yb: "yb = IntVal zn zv"
+      by (smt (z3) evalDet intval_equals.simps(6) intval_xor.elims prems(1) prems(6) y2)
+    then have "yb = new_int zn zv"
+      using eval_unused_bits_zero y2 by auto
+    have "xn = yn"
+      by (metis \<open>intval_xor (xa::Value) (ya::Value) \<noteq> UndefVal\<close> 
+          intval_xor.simps(1) new_int_bin.elims xa ya)
+    have "xn = zn"
+      by (metis \<open>(xa::Value) = (xb::Value)\<close> evalDet intval_xor.simps(1) 
+          new_int_bin.elims prems(5) prems(6) prems(7) x2 xa y2 yb)
+    have eq_value_level: "val[(xa \<oplus> ya) eq (xb \<oplus> yb)] = val[ya eq yb]"
+      using x y x2 y2 \<open>xa = xb\<close> \<open>xa = new_int xn xv\<close> \<open>ya = new_int yn yv\<close> 
+        \<open>yb = new_int zn zv\<close> val_xor_equality
+      by (metis \<open>(xn::nat) = (yn::nat)\<close> \<open>(xn::nat) = (zn::nat)\<close> evalDet prems(1) prems(2) prems(3) prems(5) prems(6))
+    have "[m,p] \<turnstile> exp[y eq z] \<mapsto> val[ya eq yb]"
+      by (metis BinaryExpr \<open>(xa::Value) = (xb::Value)\<close> \<open>intval_equals (intval_xor (xa::Value) 
+          (ya::Value)) (intval_xor (xb::Value) (yb::Value)) = intval_equals ya yb\<close> 
+          bin_eval.simps(13) evalDet prems(1) prems(2) prems(3) prems(5) prems(6) x2 y y2)
+    then have "[m,p] \<turnstile> exp[y eq z] \<mapsto> val[(xa \<oplus> ya) eq (xb \<oplus> yb)]"
+      by (simp add: eq_value_level)
+    then show ?thesis
+      by (metis \<open>(xa::Value) = (xb::Value)\<close> evalDet prems(2) prems(3) prems(5) prems(6) x2 y y2)
+  qed
+  done
+  
 lemma exp_subtraction_equality:
   shows "exp[(x-y) eq (x-z)] \<ge> exp[(y eq z)]"
   apply auto
@@ -460,7 +598,7 @@ lemma exp_add_zero_equality_swapped:
   shows "exp[y eq (x+y)] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
   have "exp[x+y] \<ge> exp[y+x]"
-    using exp_cumulative_addition assms by auto
+    using exp_commutative_addition assms by auto
   then have "exp[y eq (x+y)] \<ge> exp[y eq (y+x)]"
     using mono_binary by blast
   moreover have "exp[y eq (y+x)] \<ge> exp[x eq const (IntVal b 0)]"
@@ -476,11 +614,11 @@ lemma exp_add_zero_equality_flipped:
   shows "exp[(x+y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
 proof -
   have "exp[x eq (x+y)] \<ge> exp[(x+y) eq x]"
-    using exp_cumulative_equal by auto
+    using exp_commutative_equal by auto
   then have "exp[x eq (x+y)] \<ge> exp[y eq const (IntVal b 0)]"
     using assms(1) assms(2) assms(3) assms(4) exp_add_zero_equality by blast
   then show ?thesis
-    using exp_cumulative_equal order.trans by blast
+    using exp_commutative_equal order.trans by blast
 qed
 
 lemma exp_add_zero_equality_flipped_swapped:
@@ -491,11 +629,118 @@ lemma exp_add_zero_equality_flipped_swapped:
   shows "exp[(x+y) eq y] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
   have "exp[x+y] \<ge> exp[y+x]"
-    using exp_cumulative_addition assms by auto
+    using exp_commutative_addition assms by auto
   then have "exp[(x+y) eq y] \<ge> exp[(y+x) eq y]"
     using mono_binary by blast
   moreover have "exp[(y+x) eq y] \<ge> exp[x eq const (IntVal b 0)]"
     using assms(1) assms(2) assms(4) assms(5) exp_add_zero_equality_flipped by blast
+  ultimately show ?thesis
+    by auto 
+qed
+
+lemma exp_xor_zero_equality:
+  assumes "stamp_expr y = IntegerStamp b lo hi"
+  assumes "wf_stamp y"
+  assumes "1 \<le> b" and "b \<le> 64"
+  shows "exp[x eq (x\<oplus>y)] \<ge> exp[y eq const (IntVal b 0)]"
+  apply auto
+  subgoal premises prems for m p xa xaa ya
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using prems(1) by auto
+    have "val[xa eq (xaa \<oplus> ya)] \<noteq> UndefVal"
+      using evalDet prems(1) prems(2) xa by blast
+    have "xa = xaa"
+      using evalDet prems(3) xa by auto
+    obtain ya where y: "[m,p] \<turnstile> y \<mapsto> ya"
+      using prems(4) by auto
+    have "val[xaa \<oplus> ya] \<noteq> UndefVal"
+      using evalDet prems(4) prems(5) y by blast
+    obtain xn xv where "xa = IntVal xn xv"
+      by (metis \<open>(xa::Value) = (xaa::Value)\<close> evalDet intval_equals.simps(2) intval_equals.simps(6) 
+          intval_word.elims intval_xor.simps(3) intval_xor.simps(4) 
+          intval_xor.simps(5) prems(1) prems(2) xa)
+    then have "xa = new_int xn xv"
+      using eval_unused_bits_zero xa by auto
+    obtain yn yv where ya:"ya = IntVal yn yv"
+      by (metis evalDet intval_logic_negation.cases intval_xor.simps(6) intval_xor.simps(7) 
+          intval_xor.simps(8) intval_xor.simps(9) prems(4) prems(5) y)
+    then have "ya = new_int yn yv"
+      using eval_unused_bits_zero y by auto
+    have "xn = yn"
+      using \<open>(xa::Value) = (xaa::Value)\<close> \<open>(xa::Value) = IntVal (xn::nat) (xv::64 word)\<close> 
+          \<open>(ya::Value) = IntVal (yn::nat) (yv::64 word)\<close> 
+          \<open>intval_xor (xaa::Value) (ya::Value) \<noteq> UndefVal\<close> apply auto by meson
+    have "wf_value (IntVal b 0)" 
+      using wfZero assms(3) assms(4) by auto
+    moreover have "yn = b" using calculation y ya assms
+      by (metis valid_int_same_bits wf_stamp_def) 
+    ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
+      using y ya assms apply (auto)
+      by (metis Value.distinct(1) bool_to_val.simps(1) bool_to_val.simps(2))
+    then have "val[ya eq (new_int b 0)] \<noteq> UndefVal"
+      using new_intZero by auto
+    then have "val[xa eq (xaa \<oplus> ya)] = val[ya eq (new_int b 0)]"
+      using val_xor_zero_equality xa y
+      by (metis \<open>(xa::Value) = (xaa::Value)\<close> \<open>(xa::Value) = new_int (xn::nat) (xv::64 word)\<close> 
+          \<open>(xn::nat) = (yn::nat)\<close> \<open>(ya::Value) = new_int (yn::nat) (yv::64 word)\<close> 
+          \<open>(yn::nat) = (b::nat)\<close> evalDet prems(1) prems(2) prems(4))
+    then have eq_value_level: "val[xa eq (xaa \<oplus> ya)] = val[ya eq (IntVal b 0)]"
+      using new_intZero y ya by auto
+    have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[ya eq (IntVal b 0)]"
+      using \<open>intval_equals (ya::Value) (IntVal (b::nat) (0::64 word)) \<noteq> UndefVal\<close> 
+            \<open>wf_value (IntVal (b::nat) (0::64 word))\<close> y by auto
+    then have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[xa eq (xaa \<oplus> ya)]"
+      using eq_value_level by auto
+    then show ?thesis
+      by (metis \<open>(xa::Value) = (xaa::Value)\<close> evalDet prems(1) prems(3) prems(4) y)
+  qed
+  done
+
+lemma exp_xor_zero_equality_swapped:
+  assumes "stamp_expr x = IntegerStamp b lo hi"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "1 \<le> b" and "b \<le> 64"
+  shows "exp[y eq (x\<oplus>y)] \<ge> exp[x eq const (IntVal b 0)]"
+proof -
+  have "exp[x\<oplus>y] \<ge> exp[y\<oplus>x]"
+    using exp_commutative_xor assms by auto
+  then have "exp[y eq (x\<oplus>y)] \<ge> exp[y eq (y\<oplus>x)]"
+    using mono_binary by blast
+  moreover have "exp[y eq (y\<oplus>x)] \<ge> exp[x eq const (IntVal b 0)]"
+    using exp_xor_zero_equality assms(1) assms(2) assms(4) assms(5) by auto
+  ultimately show ?thesis
+    by auto 
+qed
+
+lemma exp_xor_zero_equality_flipped:
+  assumes "stamp_expr y = IntegerStamp b lo hi"
+  assumes "wf_stamp y"
+  assumes "1 \<le> b" and "b \<le> 64"
+  shows "exp[(x\<oplus>y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
+proof -
+  have "exp[x eq (x\<oplus>y)] \<ge> exp[(x\<oplus>y) eq x]"
+    using exp_commutative_equal by auto
+  then have "exp[x eq (x\<oplus>y)] \<ge> exp[y eq const (IntVal b 0)]"
+    using assms(1) assms(2) assms(3) assms(4) exp_xor_zero_equality by blast
+  then show ?thesis
+    using exp_commutative_equal order.trans by blast
+qed
+
+lemma exp_xor_zero_equality_flipped_swapped:
+  assumes "stamp_expr x = IntegerStamp b lo hi"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "1 \<le> b" and "b \<le> 64"
+  shows "exp[(x\<oplus>y) eq y] \<ge> exp[x eq const (IntVal b 0)]"
+proof -
+  have "exp[x\<oplus>y] \<ge> exp[y\<oplus>x]"
+    using exp_commutative_xor assms by auto
+  then have "exp[(x\<oplus>y) eq y] \<ge> exp[(y\<oplus>x) eq y]"
+    using mono_binary by blast
+  moreover have "exp[(y\<oplus>x) eq y] \<ge> exp[x eq const (IntVal b 0)]"
+    using assms(1) assms(2) assms(4) assms(5) exp_xor_zero_equality_flipped by blast
   ultimately show ?thesis
     by auto 
 qed
@@ -560,7 +805,7 @@ lemma exp_sub_zero_equality_flipped:
   assumes "wf_stamp y"
   assumes "1 \<le> b" and "b \<le> 64"
   shows "exp[(x-y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
-  using exp_cumulative_equal
+  using exp_commutative_equal
   by (meson assms(1) assms(2) assms(3) assms(4) exp_sub_zero_equality le_expr_def)
 
 lemma exp_not_self_equality:
@@ -610,23 +855,23 @@ lemma canonical_size_binop_equality_2 [simp]: "Canonicalization.size (BinaryExpr
   by (cases z; cases y; cases x; auto)
 
 lemma canonical_size_binop_equality_3 [simp]: " Canonicalization.size (BinaryExpr BinIntegerEquals y z)
-    < Suc (Suc (Canonicalization.size (BinaryExpr BinAdd y x)+Canonicalization.size (BinaryExpr BinAdd x z)))"
+    < Suc (Suc (Canonicalization.size (BinaryExpr op y x)+Canonicalization.size (BinaryExpr op x z)))"
   by (cases z; cases y; cases x; auto)
 
 lemma canonical_size_binop_equality_4 [simp]: " Canonicalization.size (BinaryExpr BinIntegerEquals y z)
-    < Suc (Suc (Canonicalization.size (BinaryExpr BinAdd y x)+Canonicalization.size (BinaryExpr BinAdd z x)))"
+    < Suc (Suc (Canonicalization.size (BinaryExpr op y x)+Canonicalization.size (BinaryExpr op z x)))"
   by (cases z; cases y; cases x; auto)
 
 lemma canonical_size_substraction_equality_flipped [simp]: "Canonicalization.size (BinaryExpr BinIntegerEquals y z)
     < Suc (Suc (Canonicalization.size (BinaryExpr BinSub y x)+Canonicalization.size(BinaryExpr BinSub z x)))"
   by (cases z; cases x; auto)
 
-lemma canonical_size_add_zero_equality_flipped [simp]: "Suc (Suc (Canonicalization.size y))
-    < Canonicalization.size (BinaryExpr BinIntegerEquals (BinaryExpr BinAdd x y) x)"
+lemma canonical_size_binop_zero_equality_flipped [simp]: "Suc (Suc (Canonicalization.size y))
+    < Canonicalization.size (BinaryExpr BinIntegerEquals (BinaryExpr op x y) x)"
   by (cases x; cases y; auto)
 
-lemma canonical_size_add_zero_equality_flipped_swapped [simp]: "Suc (Suc (Canonicalization.size x)) 
-    < Canonicalization.size (BinaryExpr BinIntegerEquals (BinaryExpr BinAdd x y) y)"
+lemma canonical_size_binop_zero_equality_flipped_swapped [simp]: "Suc (Suc (Canonicalization.size x)) 
+    < Canonicalization.size (BinaryExpr BinIntegerEquals (BinaryExpr op x y) y)"
   by (cases y; auto)
 
 lemma canonical_size_sub_zero_equality_flipped [simp]:"Suc (Suc (Canonicalization.size y)) < Canonicalization.size
@@ -641,19 +886,41 @@ optimization AdditionEquality: "exp[(x+y) eq (x+z)] \<longmapsto> exp[(y eq z)]"
 optimization AdditionEquality2: "exp[(x+y) eq (z+x)] \<longmapsto> exp[(y eq z)] 
                                                 when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
   apply simp
-  using exp_addition_equality exp_cumulative_addition
+  using exp_addition_equality exp_commutative_addition
   by (meson le_expr_def mono_binary)
 
 optimization AdditionEquality3: "exp[(y+x) eq (x+z)] \<longmapsto> exp[(y eq z)] 
                                                 when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
   apply simp
-  using exp_addition_equality exp_cumulative_addition
+  using exp_addition_equality exp_commutative_addition
   by (meson le_expr_def mono_binary)
 
 optimization AdditionEquality4: "exp[(y+x) eq (z+x)] \<longmapsto> exp[(y eq z)] 
                                                 when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
   apply simp
-  using exp_addition_equality exp_cumulative_addition
+  using exp_addition_equality exp_commutative_addition
+  by (meson le_expr_def mono_binary)
+
+optimization XorEquality: "exp[(x\<oplus>y) eq (x\<oplus>z)] \<longmapsto> exp[(y eq z)]"
+  apply simp
+  by (meson exp_xor_equality le_expr_def)
+
+optimization XorEquality2: "exp[(x\<oplus>y) eq (z\<oplus>x)] \<longmapsto> exp[(y eq z)] 
+                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+  apply simp
+  using exp_xor_equality exp_commutative_xor
+  by (meson le_expr_def mono_binary)
+
+optimization XorEquality3: "exp[(y\<oplus>x) eq (x\<oplus>z)] \<longmapsto> exp[(y eq z)] 
+                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+  apply simp
+  using exp_xor_equality exp_commutative_xor
+  by (meson le_expr_def mono_binary)
+
+optimization XorEquality4: "exp[(y\<oplus>x) eq (z\<oplus>x)] \<longmapsto> exp[(y eq z)] 
+                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+  apply simp
+  using exp_xor_equality exp_commutative_xor
   by (meson le_expr_def mono_binary)
 
 optimization SubtractionEquality: "exp[(x-y) eq (x-z)] \<longmapsto> exp[(y eq z)]"
@@ -682,6 +949,26 @@ optimization EqualAddZero_FlippedSwapped: "exp[(x + y) eq y] \<longmapsto> exp[x
                           when wf_stamp x \<and> wf_stamp y \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   apply simp
   using exp_add_zero_equality_flipped_swapped
+  by (metis One_nat_def le_expr_def)
+
+optimization EqualXorZero: "exp[x eq (x \<oplus> y)] \<longmapsto> exp[y eq (const (IntVal b 0))] 
+                          when wf_stamp x \<and> wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+  using exp_xor_zero_equality by simp
+
+optimization EqualXorZero_Swapped: "exp[y eq (x \<oplus> y)] \<longmapsto> exp[x eq (const (IntVal b 0))] 
+                          when wf_stamp y \<and> wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+  apply simp
+  using exp_xor_zero_equality_swapped by (metis One_nat_def le_expr_def)
+
+optimization EqualXorZero_Flipped: "exp[(x \<oplus> y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))] 
+                          when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+  apply simp
+  using exp_xor_zero_equality_flipped by simp
+
+optimization EqualXorZero_FlippedSwapped: "exp[(x \<oplus> y) eq y] \<longmapsto> exp[x eq (const (IntVal b 0))] 
+                          when wf_stamp x \<and> wf_stamp y \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+  apply simp
+  using exp_xor_zero_equality_flipped_swapped
   by (metis One_nat_def le_expr_def)
 
 optimization EqualSubZero: "exp[x eq (x - y)] \<longmapsto> exp[y eq (const (IntVal b 0))] 

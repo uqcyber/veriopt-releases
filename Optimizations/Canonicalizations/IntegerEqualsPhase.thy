@@ -8,6 +8,12 @@ begin
 
 (* ----------------Word level---------------- *)
 
+lemma bin_add_commutative: "(x+y) = (y+x)" for x y z::int64
+  by simp
+
+lemma bin_xor_commutative: "(xor x y) = (xor y x)" for x y::int64
+  by (simp add: word_bw_comms(3))
+
 lemma bin_addition_equality: "((x+y) = (x+z)) \<longleftrightarrow> (y = z)" for x y z::int64
   by simp
 
@@ -33,11 +39,8 @@ lemma bin_not_self_equality: "(x = (not x)) \<longleftrightarrow> False" for x::
   by (metis bit.compl_one bit.disj_cancel_left bit.xor_cancel_right 
       disjunctive_and_not_eq_xor neg_equal_0_iff_equal word_not_dist(1) zero_neq_one)
 
-lemma bin_add_commutative: "(x+y) = (y+x)" for x y z::int64
+lemma bin_equal_substraction: "(x - y) = 0 \<longleftrightarrow> x = y" for x y::int64
   by simp
-
-lemma bin_xor_commutative: "(xor x y) = (xor y x)" for x y::int64
-  by (simp add: word_bw_comms(3))
 
 (* ----------------Value level---------------- *)
 
@@ -215,6 +218,15 @@ proof -
     by (simp add: take_bit_not_take_bit)
 qed
 
+lemma val_equal_substraction:
+  assumes "x = new_int n vx"
+  assumes "y = new_int n vy"
+  assumes "1 \<le> n" and "n \<le> 64"
+  assumes "val[(x-y) eq (new_int n 0)] \<noteq> UndefVal"
+  shows "val[(x-y) eq (new_int n 0)] = val[x eq y]"
+  using assms bin_equal_substraction apply auto
+  by (smt (verit, del_insts) ValueThms.take_bit_dist_subR bin_equal_substraction diff_0
+      diff_right_commute minus_diff_eq take_bit_of_0)
 
 (* ----------------Expression level ---------------- *)
 
@@ -843,6 +855,57 @@ lemma exp_not_self_equality:
   qed
   done
 
+lemma exp_equal_substraction:
+  assumes "stamp_expr x = IntegerStamp b lo hi"
+  assumes "wf_stamp x"
+  assumes "1 \<le> b" and "b \<le> 64"
+  shows "exp[(x-y) eq const (IntVal b 0)] \<ge> exp[x eq y]"
+  apply auto
+  subgoal premises prems for m p xa ya
+  proof -
+    have h1: "val[(xa - ya) eq (IntVal b 0)] \<noteq> UndefVal"
+      by (simp add: prems(1))
+    obtain xa where x: "[m,p] \<turnstile> x \<mapsto> xa"
+      using prems(2) by auto
+    obtain ya where y: "[m,p] \<turnstile> y \<mapsto> ya"
+      using prems(3) by auto
+    have "val[xa - ya] \<noteq> UndefVal"
+      by (metis evalDet prems(2) prems(3) prems(4) x y)
+    have "wf_value (IntVal b 0)"
+      using assms by simp
+    then have "IntVal b 0 = new_int b 0"
+      by simp
+    obtain xn xv where xa: "xa = IntVal xn xv"
+      using x assms apply auto
+      by (metis valid_int wf_stamp_def)
+    then have "xa = new_int xn xv"
+      using eval_unused_bits_zero x by auto
+    obtain yn yv where ya: "ya = IntVal yn yv"
+      using xa \<open>val[xa - ya] \<noteq> UndefVal\<close>
+      by (metis Value.exhaust intval_sub.simps(6) intval_sub.simps(7) 
+          intval_sub.simps(8) intval_sub.simps(9))
+    then have "ya = new_int yn yv"
+      using eval_unused_bits_zero y by auto
+    have "xn = yn"
+      using xa ya \<open>val[xa - ya] \<noteq> UndefVal\<close> apply auto
+      by metis
+    then have "yn = b"
+      using assms y apply auto
+      by (metis valid_int_same_bits wf_stamp_def x xa)
+    then have eq_value_level: "val[(xa - ya) eq (new_int b 0)] = val[xa eq ya]"
+      using val_equal_substraction h1
+            \<open>xa = new_int xn xv\<close> \<open>ya = new_int yn yv\<close> apply auto
+      by (smt (z3) ValueThms.take_bit_dist_subR bin_equal_substraction diff_right_commute take_bit_of_0)
+    have "[m,p] \<turnstile> exp[x eq y] \<mapsto> val[(xa - ya) eq (new_int b 0)]"
+      by (metis \<open>IntVal (b::nat) (0::64 word) = new_int b (0::64 word)\<close> bin_eval.simps(13) 
+          eq_value_level evalDet h1 prems(2) prems(3) unfold_binary x y)
+    then show ?thesis
+      by (metis \<open>IntVal (b::nat) (0::64 word) = new_int b (0::64 word)\<close> evalDet prems(2) 
+          prems(3) x y) 
+  qed
+  done
+
+
 (* ----------------Optimizations ---------------- *)
 
 (* Auxiliary lemmas to help prove size *)
@@ -878,6 +941,9 @@ lemma canonical_size_sub_zero_equality_flipped [simp]:"Suc (Suc (Canonicalizatio
        (BinaryExpr BinIntegerEquals (BinaryExpr BinSub x y) x)"
   by (cases x; cases y; auto)
 
+lemma canonical_size_equal_subtraction [simp]: "Canonicalization.size (BinaryExpr BinIntegerEquals x y) 
+        < Suc (Suc (Canonicalization.size (BinaryExpr BinSub x y)))"
+  by (cases y; auto)
 
 optimization AdditionEquality: "exp[(x+y) eq (x+z)] \<longmapsto> exp[(y eq z)]"
   using canonical_size_binop_equality apply simp
@@ -983,7 +1049,10 @@ optimization EqualNotSelf: "exp[x eq (~x)] \<longmapsto> exp[const (IntVal 32 0)
   using exp_not_self_equality by force
 
 
-
+optimization EqualSubtraction: "exp[(x-y) eq const (IntVal b 0)] \<longmapsto> exp[x eq y] 
+          when wf_stamp x \<and> wf_stamp y \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+  apply simp
+  using exp_equal_substraction by auto
 
 
 

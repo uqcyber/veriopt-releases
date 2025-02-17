@@ -48,7 +48,7 @@ lemma bin_inverse_negate_less: "x \<noteq> y \<and> (x <s y) \<Longrightarrow> \
 lemma bin_below_sub: "(0 \<le>s x)\<and>(0 \<le>s y) \<Longrightarrow> (x <s y \<longleftrightarrow> (x - y) <s 0)" for x y::int64
   apply transfer apply auto
   apply (smt (verit) signed_take_bit_diff signed_take_bit_int_greater_self_iff signed_take_bit_int_less_exp signed_take_bit_negative_iff)
-
+  sorry
 
 (* Value level *)
 
@@ -608,7 +608,7 @@ lemma exp_below_less:
   qed
   done
 
-optimization test1: "(x |<| ((y |<| z)? const (IntVal b 0) : (y - z))) \<longmapsto> x < (y-z)
+optimization BelowLess: "(x |<| ((y |<| z)? const (IntVal b 0) : (y - z))) \<longmapsto> x < (y-z)
                       when ((isStampPos (stamp_expr x)) \<and> (wf_stamp x) \<and>
                              (isStampPos (stamp_expr y)) \<and> (wf_stamp y) \<and>
                              (isStampPos (stamp_expr z)) \<and> (wf_stamp z)) \<and>

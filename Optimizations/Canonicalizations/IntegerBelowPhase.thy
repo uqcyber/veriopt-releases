@@ -45,32 +45,10 @@ lemma bin_negate_less: "x \<noteq> y \<and> \<not>(x <s y) \<Longrightarrow> y <
 lemma bin_inverse_negate_less: "x \<noteq> y \<and> (x <s y) \<Longrightarrow> \<not>(y <s x)" for x y::int64
   by auto
 
-lemma bin_below_sub: "x <s y \<longleftrightarrow> (x - y) <s 0" for x y::int64
-proof (cases "x <s 0")
-  case xPos: True
-  then show ?thesis
-  proof (cases "y <s 0")
-    case True
-    then show ?thesis sorry
-  next
-    case False
-    then show ?thesis sorry
-  qed
-next
-  case False
-  then show ?thesis
-  proof (cases "y <s 0")
-    case True
-    then show ?thesis sorry
-  next
-    case False
-    then show ?thesis sorry
-  qed
-qed
-  sorry
+lemma bin_below_sub: "(0 \<le>s x)\<and>(0 \<le>s y) \<Longrightarrow> (x <s y \<longleftrightarrow> (x - y) <s 0)" for x y::int64
+  apply transfer apply auto
+  apply (smt (verit) signed_take_bit_diff signed_take_bit_int_greater_self_iff signed_take_bit_int_less_exp signed_take_bit_negative_iff)
 
-lemma bin_below_sub: "x <s y \<longleftrightarrow> (x - y) <s 0" for x y::int8
-  nitpick
 
 (* Value level *)
 
@@ -241,6 +219,10 @@ lemma below_sub_inv:
 proof -
   obtain tv where o1: "val[y-z] = IntVal n (take_bit n tv)"
     using assms(1) assms(2) by auto
+  have "0 \<le>s vy"
+    by (metis assms(1) assms(3) assms(5) signed_0 verify_isValPositive word_sle_eq)
+  have "0 \<le>s vz"
+    by (metis assms(2) assms(4) assms(6) signed_0 verify_isValPositive word_sle_eq)
   have "take_bit n (take_bit n tv) = take_bit n tv"
     by auto
   then have subIsWf: "isIntValWf (IntVal n (take_bit n tv))" 
@@ -253,7 +235,7 @@ proof -
     using assms bin_below_eq_less
     using verify_isValPositive by blast 
   then have "(vy - vz) <s 0"
-    using bin_below_sub by auto
+    using bin_below_sub \<open>0 \<le>s vy\<close> \<open>0 \<le>s vz\<close> by auto
   then have "signed_take_bit (n-1) (take_bit n (vy - vz)) <s 0"
     using assms(1) assms(2) assms(3) assms(4) assms(5) assms(6) prot2 by blast
   then have subNotNeg: "\<not>(0 \<le> sint(signed_take_bit (n-1) (take_bit n (vy - vz))))"

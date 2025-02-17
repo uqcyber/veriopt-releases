@@ -18,6 +18,7 @@ datatype Tokens =
   | Xor
   | ShortCircuitOr
   | Less
+  | Below
   | Abs
   | Equals
   | Not
@@ -97,6 +98,8 @@ fun markup_constant (str, typ) =
     | ("Markup.ExtraNotation.ShortCircuitOr", _) => Translator.markup DSL_Tokens.ShortCircuitOr
     | ("\<^const>Markup.ExtraNotation.ExclusiveOr", _) => Translator.markup DSL_Tokens.Xor
     | ("Markup.ExtraNotation.ExclusiveOr", _) => Translator.markup DSL_Tokens.Xor
+    | ("\<^const>Markup.ExtraNotation.BelowNotation", _) => Translator.markup DSL_Tokens.Below
+    | ("Markup.ExtraNotation.BelowNotation", _) => Translator.markup DSL_Tokens.Below
     | ("\<^const>Groups.uminus_class.uminus", _) => Translator.markup DSL_Tokens.Negate
     | ("Groups.uminus_class.uminus", _) => Translator.markup DSL_Tokens.Negate
     | ("\<^const>HOL.Not", _) => Translator.markup DSL_Tokens.Not

@@ -6,7 +6,7 @@ phase IntegerEqualsPhase
   terminating size
 begin
 
-(* ----------------Word level---------------- *)
+(* Word level *)
 
 lemma bin_add_commutative: "(x+y) = (y+x)" for x y z::int64
   by simp
@@ -42,7 +42,7 @@ lemma bin_not_self_equality: "(x = (not x)) \<longleftrightarrow> False" for x::
 lemma bin_equal_substraction: "(x - y) = 0 \<longleftrightarrow> x = y" for x y::int64
   by simp
 
-(* ----------------Value level---------------- *)
+(* Value level *)
 
 lemma val_add_commutative:
   assumes "x = new_int n vx"
@@ -228,7 +228,7 @@ lemma val_equal_substraction:
   by (smt (verit, del_insts) ValueThms.take_bit_dist_subR bin_equal_substraction diff_0
       diff_right_commute minus_diff_eq take_bit_of_0)
 
-(* ----------------Expression level ---------------- *)
+(* Expression level *)
 
 lemma new_intZero [simp]: 
   assumes "1 \<le> b"
@@ -906,7 +906,7 @@ lemma exp_equal_substraction:
   done
 
 
-(* ----------------Optimizations ---------------- *)
+(* Optimizations *)
 
 (* Auxiliary lemmas to help prove size *)
 lemma canonical_size_binop_equality [simp]: "Canonicalization.size (BinaryExpr BinIntegerEquals y z)
@@ -919,11 +919,11 @@ lemma canonical_size_binop_equality_2 [simp]: "Canonicalization.size (BinaryExpr
 
 lemma canonical_size_binop_equality_3 [simp]: " Canonicalization.size (BinaryExpr BinIntegerEquals y z)
     < Suc (Suc (Canonicalization.size (BinaryExpr op y x)+Canonicalization.size (BinaryExpr op x z)))"
-  by (cases z; cases y; cases x; auto)
+  by (cases z; cases x; auto)
 
 lemma canonical_size_binop_equality_4 [simp]: " Canonicalization.size (BinaryExpr BinIntegerEquals y z)
     < Suc (Suc (Canonicalization.size (BinaryExpr op y x)+Canonicalization.size (BinaryExpr op z x)))"
-  by (cases z; cases y; cases x; auto)
+  by (cases z; cases x; auto)
 
 lemma canonical_size_substraction_equality_flipped [simp]: "Canonicalization.size (BinaryExpr BinIntegerEquals y z)
     < Suc (Suc (Canonicalization.size (BinaryExpr BinSub y x)+Canonicalization.size(BinaryExpr BinSub z x)))"
@@ -944,6 +944,8 @@ lemma canonical_size_sub_zero_equality_flipped [simp]:"Suc (Suc (Canonicalizatio
 lemma canonical_size_equal_subtraction [simp]: "Canonicalization.size (BinaryExpr BinIntegerEquals x y) 
         < Suc (Suc (Canonicalization.size (BinaryExpr BinSub x y)))"
   by (cases y; auto)
+
+text \<open>Optimisations\<close>
 
 optimization AdditionEquality: "exp[(x+y) eq (x+z)] \<longmapsto> exp[(y eq z)]"
   using canonical_size_binop_equality apply simp
@@ -1054,10 +1056,9 @@ optimization EqualSubtraction: "exp[(x-y) eq const (IntVal b 0)] \<longmapsto> e
   apply simp
   using exp_equal_substraction by auto
 
+end (* End of IntegerEqualsPhase *)
 
-
-
-
+end (* End of file *)
 
 
 

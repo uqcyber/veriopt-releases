@@ -247,8 +247,6 @@ lemma wfZero [simp]:
       linorder_not_less not_exp_less_eq_0_int)
 
 lemma exp_commutative_addition: 
-  assumes "wf_stamp x" 
-  assumes "wf_stamp y"
   shows "exp[x + y] \<ge> exp[y + x]"
   apply auto
   subgoal premises prems for m p xa ya
@@ -267,8 +265,6 @@ lemma exp_commutative_addition:
   done
 
 lemma exp_commutative_xor:
-  assumes "wf_stamp x" 
-  assumes "wf_stamp y"
   shows "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]" 
   apply auto
   subgoal premises prems for m p xa ya
@@ -605,7 +601,6 @@ lemma exp_add_zero_equality:
 lemma exp_add_zero_equality_swapped:
   assumes "stamp_expr x = IntegerStamp b lo hi"
   assumes "wf_stamp x"
-  assumes "wf_stamp y"
   assumes "1 \<le> b" and "b \<le> 64"
   shows "exp[y eq (x+y)] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
@@ -614,7 +609,7 @@ proof -
   then have "exp[y eq (x+y)] \<ge> exp[y eq (y+x)]"
     using mono_binary by blast
   moreover have "exp[y eq (y+x)] \<ge> exp[x eq const (IntVal b 0)]"
-    using exp_add_zero_equality assms(1) assms(2) assms(4) assms(5) by auto
+    using exp_add_zero_equality assms(1) assms(2) assms(4) assms(3) by auto
   ultimately show ?thesis
     by auto 
 qed
@@ -636,7 +631,6 @@ qed
 lemma exp_add_zero_equality_flipped_swapped:
   assumes "stamp_expr x = IntegerStamp b lo hi"
   assumes "wf_stamp x"
-  assumes "wf_stamp y"
   assumes "1 \<le> b" and "b \<le> 64"
   shows "exp[(x+y) eq y] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
@@ -645,7 +639,7 @@ proof -
   then have "exp[(x+y) eq y] \<ge> exp[(y+x) eq y]"
     using mono_binary by blast
   moreover have "exp[(y+x) eq y] \<ge> exp[x eq const (IntVal b 0)]"
-    using assms(1) assms(2) assms(4) assms(5) exp_add_zero_equality_flipped by blast
+    using assms(1) assms(2) assms(3) assms(4) exp_add_zero_equality_flipped by blast
   ultimately show ?thesis
     by auto 
 qed
@@ -712,7 +706,6 @@ lemma exp_xor_zero_equality:
 lemma exp_xor_zero_equality_swapped:
   assumes "stamp_expr x = IntegerStamp b lo hi"
   assumes "wf_stamp x"
-  assumes "wf_stamp y"
   assumes "1 \<le> b" and "b \<le> 64"
   shows "exp[y eq (x\<oplus>y)] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
@@ -721,7 +714,7 @@ proof -
   then have "exp[y eq (x\<oplus>y)] \<ge> exp[y eq (y\<oplus>x)]"
     using mono_binary by blast
   moreover have "exp[y eq (y\<oplus>x)] \<ge> exp[x eq const (IntVal b 0)]"
-    using exp_xor_zero_equality assms(1) assms(2) assms(4) assms(5) by auto
+    using assms(1) assms(2) assms(3) assms(4) exp_xor_zero_equality by auto
   ultimately show ?thesis
     by auto 
 qed
@@ -743,7 +736,6 @@ qed
 lemma exp_xor_zero_equality_flipped_swapped:
   assumes "stamp_expr x = IntegerStamp b lo hi"
   assumes "wf_stamp x"
-  assumes "wf_stamp y"
   assumes "1 \<le> b" and "b \<le> 64"
   shows "exp[(x\<oplus>y) eq y] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
@@ -752,7 +744,7 @@ proof -
   then have "exp[(x\<oplus>y) eq y] \<ge> exp[(y\<oplus>x) eq y]"
     using mono_binary by blast
   moreover have "exp[(y\<oplus>x) eq y] \<ge> exp[x eq const (IntVal b 0)]"
-    using assms(1) assms(2) assms(4) assms(5) exp_xor_zero_equality_flipped by blast
+    using assms(1) assms(2) assms(3) assms(4) exp_xor_zero_equality_flipped by auto
   ultimately show ?thesis
     by auto 
 qed
@@ -951,20 +943,17 @@ optimization AdditionEquality: "exp[(x+y) eq (x+z)] \<longmapsto> exp[(y eq z)]"
   using canonical_size_binop_equality apply simp
   using exp_addition_equality by (meson le_expr_def)
 
-optimization AdditionEquality2: "exp[(x+y) eq (z+x)] \<longmapsto> exp[(y eq z)] 
-                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+optimization AdditionEquality2: "exp[(x+y) eq (z+x)] \<longmapsto> exp[(y eq z)]"
   apply simp
   using exp_addition_equality exp_commutative_addition
   by (meson le_expr_def mono_binary)
 
-optimization AdditionEquality3: "exp[(y+x) eq (x+z)] \<longmapsto> exp[(y eq z)] 
-                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+optimization AdditionEquality3: "exp[(y+x) eq (x+z)] \<longmapsto> exp[(y eq z)]"
   apply simp
   using exp_addition_equality exp_commutative_addition
   by (meson le_expr_def mono_binary)
 
-optimization AdditionEquality4: "exp[(y+x) eq (z+x)] \<longmapsto> exp[(y eq z)] 
-                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+optimization AdditionEquality4: "exp[(y+x) eq (z+x)] \<longmapsto> exp[(y eq z)]"
   apply simp
   using exp_addition_equality exp_commutative_addition
   by (meson le_expr_def mono_binary)
@@ -973,20 +962,17 @@ optimization XorEquality: "exp[(x\<oplus>y) eq (x\<oplus>z)] \<longmapsto> exp[(
   apply simp
   by (meson exp_xor_equality le_expr_def)
 
-optimization XorEquality2: "exp[(x\<oplus>y) eq (z\<oplus>x)] \<longmapsto> exp[(y eq z)] 
-                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+optimization XorEquality2: "exp[(x\<oplus>y) eq (z\<oplus>x)] \<longmapsto> exp[(y eq z)]"
   apply simp
   using exp_xor_equality exp_commutative_xor
   by (meson le_expr_def mono_binary)
 
-optimization XorEquality3: "exp[(y\<oplus>x) eq (x\<oplus>z)] \<longmapsto> exp[(y eq z)] 
-                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+optimization XorEquality3: "exp[(y\<oplus>x) eq (x\<oplus>z)] \<longmapsto> exp[(y eq z)]"
   apply simp
   using exp_xor_equality exp_commutative_xor
   by (meson le_expr_def mono_binary)
 
-optimization XorEquality4: "exp[(y\<oplus>x) eq (z\<oplus>x)] \<longmapsto> exp[(y eq z)] 
-                                                when wf_stamp x \<and> wf_stamp y \<and> wf_stamp z"
+optimization XorEquality4: "exp[(y\<oplus>x) eq (z\<oplus>x)] \<longmapsto> exp[(y eq z)]"
   apply simp
   using exp_xor_equality exp_commutative_xor
   by (meson le_expr_def mono_binary)
@@ -1000,59 +986,59 @@ optimization SubtractionEqualityFlipped: "exp[(y-x) eq (z-x)] \<longmapsto> exp[
   using exp_subtraction_equality_swapped by (meson le_expr_def)
 
 optimization EqualAddZero: "exp[x eq (x + y)] \<longmapsto> exp[y eq (const (IntVal b 0))] 
-                          when wf_stamp x \<and> wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                 when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   using exp_add_zero_equality by simp
 
 optimization EqualAddZero_Swapped: "exp[y eq (x + y)] \<longmapsto> exp[x eq (const (IntVal b 0))] 
-                          when wf_stamp y \<and> wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                 when wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   apply simp
   using exp_add_zero_equality_swapped by (metis One_nat_def le_expr_def)
 
 optimization EqualAddZero_Flipped: "exp[(x + y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))] 
-                          when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                 when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   apply simp
   using exp_add_zero_equality_flipped by simp
 
 optimization EqualAddZero_FlippedSwapped: "exp[(x + y) eq y] \<longmapsto> exp[x eq (const (IntVal b 0))] 
-                          when wf_stamp x \<and> wf_stamp y \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                 when wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   apply simp
   using exp_add_zero_equality_flipped_swapped
   by (metis One_nat_def le_expr_def)
 
 optimization EqualXorZero: "exp[x eq (x \<oplus> y)] \<longmapsto> exp[y eq (const (IntVal b 0))] 
-                          when wf_stamp x \<and> wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                 when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   using exp_xor_zero_equality by simp
 
 optimization EqualXorZero_Swapped: "exp[y eq (x \<oplus> y)] \<longmapsto> exp[x eq (const (IntVal b 0))] 
-                          when wf_stamp y \<and> wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                 when wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   apply simp
   using exp_xor_zero_equality_swapped by (metis One_nat_def le_expr_def)
 
 optimization EqualXorZero_Flipped: "exp[(x \<oplus> y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))] 
-                          when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                  when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   apply simp
   using exp_xor_zero_equality_flipped by simp
 
 optimization EqualXorZero_FlippedSwapped: "exp[(x \<oplus> y) eq y] \<longmapsto> exp[x eq (const (IntVal b 0))] 
-                          when wf_stamp x \<and> wf_stamp y \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                  when wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   apply simp
   using exp_xor_zero_equality_flipped_swapped
   by (metis One_nat_def le_expr_def)
 
 optimization EqualSubZero: "exp[x eq (x - y)] \<longmapsto> exp[y eq (const (IntVal b 0))] 
-                          when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                  when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   using exp_sub_zero_equality by simp
 
 optimization EqualSubZeroFlipped: "exp[(x - y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))] 
-                          when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                  when wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   using exp_sub_zero_equality_flipped by simp
 
-optimization EqualNotSelf: "exp[x eq (~x)] \<longmapsto> exp[const (IntVal 32 0)] when wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+optimization EqualNotSelf: "exp[x eq (~x)] \<longmapsto> exp[const (IntVal 32 0)] 
+                  when wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   using exp_not_self_equality by force
 
-
 optimization EqualSubtraction: "exp[(x-y) eq const (IntVal b 0)] \<longmapsto> exp[x eq y] 
-          when wf_stamp x \<and> wf_stamp y \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
+                  when wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> (1 \<le> b) \<and> (b \<le> 64)"
   apply simp
   using exp_equal_substraction by auto
 

@@ -1,8 +1,12 @@
+subsection \<open>IntegerEqualsNode Phase\<close>
+
 theory IntegerEqualsPhase
-  imports Common Proofs.StampEvalThms
+  imports 
+    Common 
+    Proofs.StampEvalThms
 begin
 
-phase IntegerEqualsPhase
+phase IntegerEqualsNode
   terminating size
 begin
 

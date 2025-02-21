@@ -1,9 +1,13 @@
-(* x |<| (n |<| C ? 0 : n - C) \<mapsto> (x < n-c)*)
+subsection \<open>IntegerBelowNode Phase\<close>
+
 theory IntegerBelowPhase
-  imports Common Proofs.StampEvalThms SubPhase
+  imports 
+    Common 
+    Proofs.StampEvalThms 
+    SubPhase
 begin
 
-phase IntegerBelowPhase
+phase IntegerBelowNode
   terminating size
 begin
 
@@ -45,10 +49,16 @@ lemma bin_negate_less: "x \<noteq> y \<and> \<not>(x <s y) \<Longrightarrow> y <
 lemma bin_inverse_negate_less: "x \<noteq> y \<and> (x <s y) \<Longrightarrow> \<not>(y <s x)" for x y::int64
   by auto
 
-lemma bin_below_sub: "(0 \<le>s x)\<and>(0 \<le>s y) \<Longrightarrow> (x <s y \<longleftrightarrow> (x - y) <s 0)" for x y::int64
-  apply transfer apply auto
-  apply (smt (verit) signed_take_bit_diff signed_take_bit_int_greater_self_iff signed_take_bit_int_less_exp signed_take_bit_negative_iff)
-  sorry
+lemma bin_below_sub: 
+  fixes x y::int64
+  assumes "0 \<le>s x"
+  assumes "0 \<le>s y"
+  shows "x <s y \<longleftrightarrow> (x - y) <s 0"
+  using assms apply transfer apply auto
+  apply (smt (verit, del_insts) signed_take_bit_diff signed_take_bit_int_greater_self_iff 
+      signed_take_bit_int_less_exp signed_take_bit_negative_iff)
+  by (smt (verit) signed_take_bit_diff signed_take_bit_int_less_exp 
+      signed_take_bit_int_less_self_iff signed_take_bit_negative_iff)
 
 (* Value level *)
 
@@ -197,6 +207,7 @@ lemma verify_isValPositive:
   using assms pos_greater_zero apply auto
   using signed_take_bit_eq_if_positive tb_n1 val_pos_def by fastforce
 
+(* This is here mainly so that the word level can be lifted into the value level *)
 lemma prot2:
   assumes "x = IntVal n vx"
   assumes "y = IntVal n vy"
@@ -205,6 +216,7 @@ lemma prot2:
   assumes "isIntValWf x"
   assumes "isIntValWf y"
   shows "(vx - vy) <s 0 \<longleftrightarrow> signed_take_bit (n-1) (take_bit n (vx - vy)) <s 0"
+  using assms apply auto
   sorry
 
 lemma below_sub_inv:
@@ -235,7 +247,7 @@ proof -
     using assms bin_below_eq_less
     using verify_isValPositive by blast 
   then have "(vy - vz) <s 0"
-    using bin_below_sub \<open>0 \<le>s vy\<close> \<open>0 \<le>s vz\<close> by auto
+    using bin_below_sub \<open>0 \<le>s vy\<close> \<open>0 \<le>s vz\<close> by simp
   then have "signed_take_bit (n-1) (take_bit n (vy - vz)) <s 0"
     using assms(1) assms(2) assms(3) assms(4) assms(5) assms(6) prot2 by blast
   then have subNotNeg: "\<not>(0 \<le> sint(signed_take_bit (n-1) (take_bit n (vy - vz))))"
@@ -281,7 +293,8 @@ next
   then have "\<not>(vy <s vz)"
     using \<open>vz \<noteq> vy\<close> bin_negate_less by auto
   then have "\<not>((vy - vz) <s 0)"
-    using bin_below_sub by auto
+    using bin_below_sub
+    by (simp add: \<open>(0::int) \<sqsubseteq> sint (vy::64 word)\<close> \<open>(0::int) \<sqsubseteq> sint (vz::64 word)\<close> word_sle_eq)
   then have subPositive: "0 <s (vy-vz)"
     by (metis \<open>(vz::64 word) \<noteq> (vy::64 word)\<close> bin_negate_less eq_iff_diff_eq_0)
   obtain tv where o1: "val[y-z] = IntVal n (take_bit n tv)"
@@ -608,9 +621,14 @@ lemma exp_below_less:
   qed
   done
 
+(* x |<| (n |<| C ? 0 : n - C) \<mapsto> (x < n-c)*)
 optimization BelowLess: "(x |<| ((y |<| z)? const (IntVal b 0) : (y - z))) \<longmapsto> x < (y-z)
                       when ((isStampPos (stamp_expr x)) \<and> (wf_stamp x) \<and>
                              (isStampPos (stamp_expr y)) \<and> (wf_stamp y) \<and>
                              (isStampPos (stamp_expr z)) \<and> (wf_stamp z)) \<and>
                                stamp_expr y = IntegerStamp b lo hi"
   using exp_below_less by blast
+
+end
+
+end

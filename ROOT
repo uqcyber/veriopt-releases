@@ -82,6 +82,9 @@ session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL
     AndPhase
     BinaryNode
     ConditionalPhase
+    IntegerBelowPhase
+    IntegerEqualsPhase
+    LeftShiftPhase
     MulPhase
     NewAnd
     NotPhase
@@ -200,6 +203,9 @@ session Document in "Papers/Main" = Canonicalizations +
     Canonicalizations.AndPhase
     Canonicalizations.BinaryNode
     Canonicalizations.ConditionalPhase
+    Canonicalizations.IntegerBelowPhase
+    Canonicalizations.IntegerEqualsPhase
+    Canonicalizations.LeftShiftPhase
     Canonicalizations.MulPhase
     Canonicalizations.NewAnd
     Canonicalizations.NotPhase

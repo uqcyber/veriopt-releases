@@ -6,6 +6,9 @@ theory ProofStatus
     ConditionalPhase
     MulPhase
     (*NarrowPhase*)
+    IntegerBelowPhase    
+    IntegerEqualsPhase
+    LeftShiftPhase
     NegatePhase
     NewAnd
     NotPhase

@@ -370,7 +370,6 @@ lemma exp_commutative_xor:
       by (metis evalDet prems(1) prems(2) x y)
   qed
   done
-      
 
 lemma exp_commutative_equal:
   shows "exp[x eq y] \<ge> exp[y eq x]"

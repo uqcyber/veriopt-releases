@@ -38,11 +38,11 @@ lemma exp_or_commute:
 lemma val_equals_commute:
   assumes "x \<noteq> UndefVal"
   assumes "y \<noteq> UndefVal"
-  shows "val[intval_equals x y] = val[intval_equals y x]"
+  shows "val[x eq y] = val[y eq x]"
   using assms apply (cases x; cases y; auto) by (smt (verit, best))
 
 lemma exp_equals_commute:
-  shows "exp[BinaryExpr BinIntegerEquals x y] \<ge> exp[BinaryExpr BinIntegerEquals y x]"
+  shows "exp[x eq y] \<ge> exp[y eq x]"
   apply auto by (simp add: BinaryExpr evaltree_not_undef val_equals_commute)
 
 lemma val_xor_commute:
@@ -289,16 +289,16 @@ lemma val_equal_substraction:
 lemma val_xor_not_fall_through:
   assumes "x = new_int b xv"
   assumes "y = new_int b yv"
-  shows "val[intval_equals (x \<oplus> y) (\<not>x)] = val[intval_equals y (new_int b (not 0))]"
+  shows "val[(x \<oplus> y) eq (\<not>x)] = val[y eq (new_int b (not 0))]"
   using assms apply auto
   by (smt (verit, ccfv_SIG) bit.xor_cancel_right bit.xor_left_self mask_eq_take_bit_minus_one
       take_bit_not_take_bit take_bit_xor)
 
 lemma val_and_or_eq_64:
-  assumes "val[intval_equals (x & y) (x | y)] \<noteq> UndefVal"
+  assumes "val[(x & y) eq (x | y)] \<noteq> UndefVal"
   assumes "x = IntVal 64 xv"
   assumes "y = IntVal 64 yv"
-  shows "val[intval_equals (x & y) (x | y)] = val[intval_equals x y]"
+  shows "val[(x & y) eq (x | y)] = val[x eq y]"
   using assms apply (cases x; cases y; auto)
   subgoal premises p
     proof -
@@ -995,8 +995,7 @@ lemma exp_and_or_eq_64:
   assumes "stamp_expr y = IntegerStamp 64 yl yh"
   assumes "wf_stamp x"
   assumes "wf_stamp y"
-  shows "exp[BinaryExpr BinIntegerEquals (x & y) (x | y)] \<ge>
-         exp[BinaryExpr BinIntegerEquals x y]"
+  shows "exp[(x & y) eq (x | y)] \<ge> exp[x eq y]"
   apply auto
   subgoal premises p for m p x1 y1 x2 y2
     proof -
@@ -1018,8 +1017,7 @@ lemma exp_xor_not_fall_through:
   assumes "stamp_expr y = IntegerStamp b yl yh"
   assumes "wf_stamp x"
   assumes "wf_stamp y"
-  shows "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (\<not>x)] \<ge>
-         exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]"
+  shows "exp[(x \<oplus> y) eq (\<not>x)] \<ge> exp[y eq (const (new_int b (not 0)))]"
   using assms apply auto
   subgoal premises p for m p xa ya xaa
   proof -
@@ -1190,57 +1188,49 @@ optimization EqualSubtraction: "exp[(x-y) eq const (IntVal b 0)] \<longmapsto> e
   using exp_equal_substraction by auto
 
 (* New Optimisations - Not in Graal yet *)
-optimization AndOrEquals1: "exp[BinaryExpr BinIntegerEquals (x & y) (x | y)] \<longmapsto>
-                            exp[BinaryExpr BinIntegerEquals x y]
+optimization AndOrEquals1: "exp[(x & y) eq (x | y)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
   using exp_and_or_eq_64 by blast
 
-optimization AndOrEquals2: "exp[BinaryExpr BinIntegerEquals (x & y) (y | x)] \<longmapsto>
-                            exp[BinaryExpr BinIntegerEquals x y]
+optimization AndOrEquals2: "exp[(x & y) eq (y | x)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
   using AndOrEquals1 apply simp by (meson exp_or_commute le_expr_def mono_binary)
 
-optimization AndOrEquals3: "exp[BinaryExpr BinIntegerEquals (x | y) (x & y)] \<longmapsto>
-                            exp[BinaryExpr BinIntegerEquals x y]
+optimization AndOrEquals3: "exp[(x | y) eq (x & y)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
   by (meson exp_equals_commute order.trans exp_and_or_eq_64)
 
-optimization AndOrEquals4: "exp[BinaryExpr BinIntegerEquals (x | y) (y & x)] \<longmapsto>
-                            exp[BinaryExpr BinIntegerEquals x y]
+optimization AndOrEquals4: "exp[(x | y) eq (y & x)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
   using AndOrEquals3 apply simp by (meson exp_and_commute le_expr_def mono_binary)
 
-optimization XorNotFallThrough1: "exp[BinaryExpr BinIntegerEquals (x \<oplus> y) (\<not>x)] \<longmapsto>
-                                  exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
+optimization XorNotFallThrough1: "exp[(x \<oplus> y) eq (\<not>x)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_binary_rhs trans_less_add1)
   using exp_xor_not_fall_through by force
 
-optimization XorNotFallThrough2: "exp[BinaryExpr BinIntegerEquals (y \<oplus> x) (\<not>x)] \<longmapsto>
-                                  exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
+optimization XorNotFallThrough2: "exp[(y \<oplus> x) eq (\<not>x)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: add.commute less_SucI pos_add_strict size_binary_lhs size_pos)
   using XorNotFallThrough1 apply simp by (meson exp_xor_commute le_expr_def mono_binary)
 
-optimization XorNotFallThrough3: "exp[BinaryExpr BinIntegerEquals (\<not>x) (x \<oplus> y)] \<longmapsto>
-                                  exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
+optimization XorNotFallThrough3: "exp[(\<not>x) eq (x \<oplus> y)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_binary_rhs trans_less_add2)
   using exp_xor_not_fall_through exp_equals_commute by force
 
-optimization XorNotFallThrough4: "exp[BinaryExpr BinIntegerEquals (\<not>x) (y \<oplus> x)] \<longmapsto>
-                                  exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))]
+optimization XorNotFallThrough4: "exp[(\<not>x) eq (y \<oplus> x)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_binary_lhs trans_less_add2)

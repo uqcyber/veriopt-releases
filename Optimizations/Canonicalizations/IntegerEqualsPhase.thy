@@ -662,7 +662,7 @@ lemma exp_add_zero_equality:
       by (metis valid_int_same_bits wf_stamp_def) 
     ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
       using y ya assms apply (auto)
-      by (metis Value.distinct(1) bool_to_val.simps(1) bool_to_val.simps(2))
+      by (metis(full_types) Value.distinct(1) bool_to_val.simps(1,2))
     then have "val[ya eq (new_int b 0)] \<noteq> UndefVal"
       using new_intZero by auto
     then have "val[xa eq (xaa + ya)] = val[ya eq (new_int b 0)]"
@@ -766,7 +766,7 @@ lemma exp_xor_zero_equality:
       by (metis valid_int_same_bits wf_stamp_def) 
     ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
       using y ya assms apply (auto)
-      by (metis Value.distinct(1) bool_to_val.simps(1) bool_to_val.simps(2))
+      by (metis(full_types) Value.distinct(1) bool_to_val.simps(1,2))
     then have "val[ya eq (new_int b 0)] \<noteq> UndefVal"
       using new_intZero by auto
     then have "val[xa eq (xaa \<oplus> ya)] = val[ya eq (new_int b 0)]"
@@ -848,7 +848,7 @@ lemma exp_sub_zero_equality:
       using evalDet prems(3) x by auto
     obtain ya where y: "[m,p] \<turnstile> y \<mapsto> ya"
       using prems(4) by auto
-    then have "val[xaa - ya] \<noteq> UndefVal"
+    then have subNotUndef: "val[xaa - ya] \<noteq> UndefVal"
       using evalDet prems(4) prems(5) by blast
     obtain xn xv where xa: "xa = IntVal xn xv"
       by (metis \<open>(xaa::Value) = (xa::Value)\<close> intval_logic_negation.elims intval_sub.simps(2) 
@@ -862,19 +862,18 @@ lemma exp_sub_zero_equality:
       using eval_unused_bits_zero y by auto
     have "wf_value (IntVal b 0)"
       using wfZero assms by auto
-    moreover have "yn = b"
+    moreover have yBits: "yn = b"
       using calculation assms y
       by (metis valid_int_same_bits wf_stamp_def ya)
     ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
       using assms ya apply auto
-      by (metis Value.distinct(1) bool_to_val.simps(1) bool_to_val.simps(2))
+      by (metis(full_types) Value.distinct(1) bool_to_val.simps(1,2))
     then have "val[ya eq (new_int b 0)] \<noteq> UndefVal"
       using new_intZero by auto
     then have "val[xa eq (xaa - ya)] = val[ya eq (new_int b 0)]"
       by (metis \<open>xa = new_int xn xv\<close> \<open>xaa = xa\<close> \<open>(ya::Value) = new_int (yn::nat) (yv::64 word)\<close> 
-          \<open>(yn::nat) = (b::nat)\<close> \<open>intval_sub (xaa::Value) (ya::Value) \<noteq> UndefVal\<close> evalDet 
-          intval_sub.simps(1) new_int.simps new_int_bin.elims prems(1) prems(2) prems(3) prems(4) 
-          take_bit_of_0 val_sub_zero_equality y)
+          yBits subNotUndef evalDet y intval_sub.simps(1) new_int.simps new_int_bin.elims
+          prems(1,2,3,4) val_sub_zero_equality)
     then have eq_value_level: "val[xa eq (xaa - ya)] = val[ya eq (new_int b 0)]"
       by auto
     have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[ya eq (IntVal b 0)]"

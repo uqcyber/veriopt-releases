@@ -467,7 +467,7 @@ lemma ValXorFallThrough:
 
 lemma ValEqAssoc:
   "val[intval_equals x y] = val[intval_equals y x]"
-  apply (cases x; cases y; auto) by (metis (full_types) bool_to_val.simps)
+  apply (cases x; cases y; auto) by (smt (verit, del_insts))
 
 lemma ExpEqAssoc:
   "exp[BinaryExpr BinIntegerEquals x y] \<ge> exp[BinaryExpr BinIntegerEquals y x]"

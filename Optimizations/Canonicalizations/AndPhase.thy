@@ -184,15 +184,15 @@ lemma exp_and_equal_not:
     then have eqa: "xa = y"
       using evalDet xa y by blast
     obtain xb xvv where xy: "y = IntVal xb xvv"
-      by (metis evalDet intval_not.elims prems y)
+      by (metis evalDet intval_not.elims prems(4,5) y)
     obtain xc xva where xa: "xa = IntVal xc xva"
       by (simp add: \<open>(xa::Value) = (y::Value)\<close> xy)
     then have eqBitX: "xb = xc"
       by (simp add: eqa xy)
     then have unfoldEq: "val[(~xa) & y] = new_int xb (and (not xva) xvv)"
       by (metis (no_types, lifting) Value.inject(1) bit.conj_cancel_left eqa evalDet
-          eval_unused_bits_zero new_int.elims prems 
-          simple_mask.AndCommute_Val val_and_equal_not xa xy y)
+          eval_unused_bits_zero new_int.elims prems(2,3,4) simple_mask.AndCommute_Val xa xy y
+          val_and_equal_not)
     then have rzero: "new_int xb (and (not xva) xvv) = new_int xb (0)"
       using eqa xa xy by auto
     then have evalSame: "val[(~xa) & y] = new_int xb (0)"

@@ -71,16 +71,16 @@ lemma bin_eval_int:
   shows "is_IntVal (bin_eval op x y)" 
   using assms
   apply (cases op; cases x; cases y; auto simp add: is_IntVal_def)
-  prefer 10
+  prefer 10 prefer 7 prefer 8
   apply presburger+ (* prove 6 more easy cases *)
-  prefer 3 prefer 4
-  apply (smt (verit, del_insts) new_int.simps)
-  apply (smt (verit, del_insts) new_int.simps)
   apply (meson new_int_bin.simps)+
   apply (meson bool_to_val.elims)
-  sorry
-                     (* apply (smt (verit, del_insts) new_int.simps)+ *)
-  (* by (metis bool_to_val.elims)+ *)
+  apply (smt (verit, del_insts) new_int.elims)
+  apply (smt (verit, del_insts) new_int.elims)
+  prefer 7
+  using bool_to_val.elims apply meson
+  using bool_to_val.elims apply metis+
+  done
 
 lemma IntVal0:
   "(IntVal 32 0) = (new_int 32 0)"

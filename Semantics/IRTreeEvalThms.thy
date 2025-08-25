@@ -79,8 +79,7 @@ lemma bin_eval_int:
   apply (smt (verit, del_insts) new_int.elims)
   prefer 7
   using bool_to_val.elims apply meson
-  using bool_to_val.elims apply metis+
-  done
+  using bool_to_val.elims by metis+
 
 lemma IntVal0:
   "(IntVal 32 0) = (new_int 32 0)"

@@ -19,6 +19,7 @@ datatype 'a ExtraNotation =
   TrueNotation ("true") |
   FalseNotation ("false") |
   ExclusiveOr 'a 'a ("_ \<oplus> _") |
+  BelowNotation 'a 'a ("_ |<| _") |
   LogicNegationNotation 'a ("!_") |
   ShortCircuitOr 'a 'a ("_ || _") |
   Remainder 'a 'a ("_ % _")
@@ -44,6 +45,7 @@ fun markup DSL_Tokens.Add = @{term BinaryExpr} $ @{term BinAdd}
   | markup DSL_Tokens.ShortCircuitOr = @{term BinaryExpr} $ @{term BinShortCircuitOr}
   | markup DSL_Tokens.Abs = @{term UnaryExpr} $ @{term UnaryAbs}
   | markup DSL_Tokens.Less = @{term BinaryExpr} $ @{term BinIntegerLessThan}
+  | markup DSL_Tokens.Below = @{term BinaryExpr} $ @{term BinIntegerBelow}
   | markup DSL_Tokens.Equals = @{term BinaryExpr} $ @{term BinIntegerEquals}
   | markup DSL_Tokens.Not = @{term UnaryExpr} $ @{term UnaryNot}
   | markup DSL_Tokens.Negate = @{term UnaryExpr} $ @{term UnaryNeg}
@@ -84,6 +86,7 @@ fun markup DSL_Tokens.Add = @{term intval_add}
   | markup DSL_Tokens.Xor = @{term intval_xor}
   | markup DSL_Tokens.Abs = @{term intval_abs}
   | markup DSL_Tokens.Less = @{term intval_less_than}
+  | markup DSL_Tokens.Below = @{term intval_below}
   | markup DSL_Tokens.Equals = @{term intval_equals}
   | markup DSL_Tokens.Not = @{term intval_not}
   | markup DSL_Tokens.Negate = @{term intval_negate}
@@ -122,7 +125,8 @@ fun markup DSL_Tokens.Add = @{term plus}
   | markup DSL_Tokens.Or = @{term or}
   | markup DSL_Tokens.Xor = @{term xor}
   | markup DSL_Tokens.Abs = @{term abs}
-  | markup DSL_Tokens.Less = @{term less}
+  | markup DSL_Tokens.Less = @{term word_sless}
+  | markup DSL_Tokens.Below = @{term less}
   | markup DSL_Tokens.Equals = @{term HOL.eq}
   | markup DSL_Tokens.Not = @{term not}
   | markup DSL_Tokens.Negate = @{term uminus}
@@ -164,5 +168,7 @@ value "val[~x]"
 value "exp[~x]"
 
 value "~x"
+
+value "a <s b"
 
 end

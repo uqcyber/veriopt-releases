@@ -1029,11 +1029,10 @@ lemma exp_xor_not_fall_through:
       using evalDet p(6,9) by auto
     then have wfVal: "wf_value (new_int b (not 0))"
       by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def xa)
-    have rhs: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals y (const (new_int b (not 0)))] \<mapsto>
-                       val[intval_equals ya (new_int b (not 0))]"
+    have rhs: "[m,p] \<turnstile> exp[y eq (const (new_int b (not 0)))] \<mapsto> val[ya eq (new_int b (not 0))]"
       by (metis (no_types, lifting) yaEval bin_eval.simps(13) val_xor_not_fall_through evalDet wfVal
           p(5,6) unfold_binary unfold_const xa xaaEquiv ya)
-    have eval: "val[intval_equals (xa \<oplus> ya) (\<not>xa)] = val[intval_equals ya (new_int b (not 0))]"
+    have eval: "val[(xa \<oplus> ya) eq (\<not>xa)] = val[ya eq (new_int b (not 0))]"
       by (metis val_xor_not_fall_through evalDet p(6,7) xa ya)
     then show ?thesis
       by (metis bit.compl_zero mask_eq_take_bit_minus_one new_int.elims p(2,4) xaaEquiv wf_stamp_def
@@ -1233,6 +1232,12 @@ optimization XorNotFallThrough4: "exp[(\<not>x) eq (y \<oplus> x)] \<longmapsto>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_binary_lhs trans_less_add2)
   using XorNotFallThrough2 apply simp by (meson le_expr_def exp_equals_commute)
+
+optimization OrRHSNotToFalseOnMaskY: "((x | y) eq \<not>y) \<longmapsto> false
+                        when (IRExpr_down y \<noteq> 0 \<and>
+                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
+  by (simp add: IRExpr_down_def)
 
 end (* End of IntegerEqualsPhase *)
 

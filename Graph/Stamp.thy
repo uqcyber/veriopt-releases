@@ -221,6 +221,14 @@ lemma unfold_wf_value[simp]:
   "wf_value v \<Longrightarrow> valid_value v (constantAsStamp v)"
   by (simp add: wf_value_def)
 
+lemma wf_value_false:
+  shows "wf_value (IntVal 32 0)"
+  unfolding wf_value_def by auto
+
+lemma wf_value_true:
+  shows "wf_value (IntVal 32 1)"
+  unfolding wf_value_def by auto
+
 fun compatible :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "compatible (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
      (b1 = b2 \<and> valid_stamp (IntegerStamp b1 lo1 hi1) \<and> valid_stamp (IntegerStamp b2 lo2 hi2))" |

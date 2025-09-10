@@ -1239,6 +1239,24 @@ optimization OrRHSNotToFalseOnMaskY: "((x | y) eq \<not>y) \<longmapsto> false
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
   by (simp add: IRExpr_down_def)
 
+optimization OrLHSNotToFalseOnMaskY: "((\<not>(x | y)) eq y) \<longmapsto> false
+                        when (IRExpr_down y \<noteq> 0 \<and>
+                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
+  by (simp add: IRExpr_down_def)+
+
+optimization OrRHSNotToTrueOnMaskXY: "((x | y) eq \<not>y) \<longmapsto> true
+                        when (IRExpr_up y = 0 \<and> IRExpr_down x = -1 \<and>
+                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
+  by (simp add: IRExpr_down_def)
+
+optimization OrLHSNotToTrueOnMaskXY: "((\<not>(x | y)) eq y) \<longmapsto> true
+                        when (IRExpr_up y = 0 \<and> IRExpr_down x = -1 \<and>
+                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
+  by (simp add: IRExpr_down_def)+
+
 end (* End of IntegerEqualsPhase *)
 
 end (* End of file *)

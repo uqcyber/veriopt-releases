@@ -191,6 +191,12 @@ optimization OrRightFallthrough:
   "x | y \<longmapsto> y when ((and (not (IRExpr_down y)) (IRExpr_up x)) = 0)"
   using simple_mask.OrRightFallthrough by blast
 
+optimization OrToNotYOnMaskXY: "(x | y) \<longmapsto> (\<not>y)
+                        when (IRExpr_up y = 0 \<and> IRExpr_down x = -1 \<and>
+                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
+  by (simp add: IRExpr_down_def)+
+
 end (* End of OrPhase *)
 
 

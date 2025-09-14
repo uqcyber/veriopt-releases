@@ -43,12 +43,6 @@ text \<open>Optimisations\<close>
 optimization NotCancel: "exp[~(~a)] \<longmapsto> a"
   by (metis exp_not_cancel)
 
-optimization NotOrToYOnMaskXY: "\<not>(x | y) \<longmapsto> y
-                        when (IRExpr_up y = 0 \<and> IRExpr_down x = -1 \<and>
-                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
-  by (simp add: IRExpr_down_def)+
-
 end (* End of NotPhase *)
 
 end (* End of file *)

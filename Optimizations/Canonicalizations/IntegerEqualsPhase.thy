@@ -11,10 +11,6 @@ phase IntegerEqualsNode
 begin
 
 (* Helpers *)
-
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
-
 lemma val_and_commute:
   assumes "x \<noteq> UndefVal"
   assumes "y \<noteq> UndefVal"
@@ -1232,30 +1228,6 @@ optimization XorNotFallThrough4: "exp[(\<not>x) eq (y \<oplus> x)] \<longmapsto>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_binary_lhs trans_less_add2)
   using XorNotFallThrough2 apply simp by (meson le_expr_def exp_equals_commute)
-
-optimization OrRHSNotToFalseOnMaskY: "((x | y) eq \<not>y) \<longmapsto> false
-                        when (IRExpr_down y \<noteq> 0 \<and>
-                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
-  by (simp add: IRExpr_down_def)
-
-optimization OrLHSNotToFalseOnMaskY: "((\<not>(x | y)) eq y) \<longmapsto> false
-                        when (IRExpr_down y \<noteq> 0 \<and>
-                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
-  by (simp add: IRExpr_down_def)+
-
-optimization OrRHSNotToTrueOnMaskXY: "((x | y) eq \<not>y) \<longmapsto> true
-                        when (IRExpr_up y = 0 \<and> IRExpr_down x = -1 \<and>
-                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
-  by (simp add: IRExpr_down_def)
-
-optimization OrLHSNotToTrueOnMaskXY: "((\<not>(x | y)) eq y) \<longmapsto> true
-                        when (IRExpr_up y = 0 \<and> IRExpr_down x = -1 \<and>
-                             (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y))"
-  by (simp add: IRExpr_down_def)+
 
 end (* End of IntegerEqualsPhase *)
 

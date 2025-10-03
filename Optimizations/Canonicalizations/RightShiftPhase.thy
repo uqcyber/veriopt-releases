@@ -13,34 +13,29 @@ begin
 (* Value level proofs *)
 (* Has counter-example if x not 32-bit *)
 lemma val_ReturnXOnZeroShift:
-  assumes "val[x >> (IntVal 32 0)] \<noteq> UndefVal"
-  and     "x = IntVal 32 xv"
-  shows "val[x >> (IntVal 32 0)] = x"  
-  unfolding assms(2) intval_right_shift.simps(1) apply auto
-  sorry
+  assumes "val[x >> (new_int 32 0)] \<noteq> UndefVal"
+  and     "x = new_int 32 xv"
+  shows "val[x >> (new_int 32 0)] = x"
+  using assms apply auto unfolding shiftr_def by auto
 
 (* Exp level proofs *)
 lemma exp_ReturnXOnZeroShift:
   assumes "stamp_expr x = IntegerStamp 32 lo hi"
   and     "wf_stamp x"
-  shows "exp[x >> const(IntVal 32 0)] \<ge> exp[x]" 
+  shows "exp[x >> const(new_int 32 0)] \<ge> exp[x]"
   apply auto
   subgoal premises p for m p xa
   proof - 
     obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
       using p(1) by auto
-    then have vx: "\<exists>vx. xa = IntVal 32 vx"
-      by (metis valid_int assms wf_stamp_def)
-    then have 1: "val[xa >> (IntVal 32 0)] \<noteq> UndefVal"
-      using evalDet p(1,2) xa by blast
-    then have 2: "wf_value (IntVal 32 0)"
-      by (auto simp: p(3))
-    then have equals: "xa = val[xa >> (IntVal 32 0)]"
-      by (metis "1" val_ReturnXOnZeroShift vx)
-    then have 3: "[m,p] \<turnstile> x \<mapsto> val[xa >> (IntVal 32 0)]"
-      by (simp add: xa)
+    then have vx: "\<exists>vx. xa = new_int 32 vx"
+      apply auto by (metis eval_unused_bits_zero wf_stamp_def assms valid_int)
+    then have shiftZeroNotUndef: "val[xa >> (new_int 32 0)] \<noteq> UndefVal"
+      using evalDet p(1,2) xa by (metis IntVal0)
+    then have equals: "xa = val[xa >> (new_int 32 0)]"
+      by (metis shiftZeroNotUndef val_ReturnXOnZeroShift vx)
     then show ?thesis
-      using evalDet p(1) xa by blast
+      using evalDet p(1) xa by fastforce
   qed
   done
 

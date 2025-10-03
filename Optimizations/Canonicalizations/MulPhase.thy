@@ -317,16 +317,25 @@ lemma exp_MulPower2AddPower2:
   using ConstantExprE equiv_exprs_def unfold_binary assms by fastforce
 
 (* Exp level helpers *)
-
 lemma greaterConstant:
   fixes a b :: "64 word"
   assumes "a > b"
-  and     "y = ConstantExpr (IntVal 32 a)"
-  and     "x = ConstantExpr (IntVal 32 b)"
-  shows "exp[BinaryExpr BinIntegerLessThan y x] \<ge> exp[const (new_int 32 0)]"
-  using assms 
-  apply simp unfolding equiv_exprs_def apply auto 
-  sorry
+  and     "y = ConstantExpr (new_int 32 a)"
+  and     "x = ConstantExpr (new_int 32 b)"
+  shows "exp[y < x] \<ge> exp[const (new_int 32 0)]"
+  using assms apply auto
+  subgoal premises p for m p
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(3,6) by auto
+    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
+      using p(2,5) by auto
+    have evalRhs: "[m,p] \<turnstile> exp[const (new_int 32 0)] \<mapsto> val[new_int 32 0]"
+      using wf_value_false by auto
+    show ?thesis
+     sorry
+  qed
+  done
 
 lemma exp_distribute_multiplication:
   assumes "stamp_expr x = IntegerStamp b xl xh"

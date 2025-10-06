@@ -15,6 +15,7 @@ datatype Block =
 function findEnd :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list \<Rightarrow> ID" where
   "findEnd g nid [next] = findEnd g next (successors_of (kind g next))" |
   "findEnd g nid succs = nid"
+  prefer 4 apply (meson Pair_inject) using prod_cases3 apply blast apply blast
   sorry termination sorry
 
 (* TODO: prove termination *)
@@ -25,6 +26,7 @@ function findStart :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list \<Rightarr
     else
       (findStart g pred (sorted_list_of_set (predecessors g nid))))" |
   "findStart g nid preds = nid"
+  prefer 4 apply simp using prod_cases3 apply blast apply fastforce
   sorry termination sorry
 
 fun blockOf :: "IRGraph \<Rightarrow> ID \<Rightarrow> Block" where

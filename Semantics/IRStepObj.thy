@@ -81,9 +81,30 @@ lemma fun_add_empty:
   "xs ++\<^sub>f (map_of []) = xs"
   unfolding fun_add_def by simp
 
+lemma upds_inc_helper:
+   "(\<lambda>x::'a.
+        case case map_of (rev (zip as bs)) x of None \<Rightarrow> [a \<mapsto> b] x
+        | Some (x::'b) \<Rightarrow> Some x of None \<Rightarrow> m x
+        | Some (y::'b) \<Rightarrow> y) =
+    (\<lambda>x::'a. case map_of (rev (zip as bs)) x of None \<Rightarrow> (m(a := b)) x | Some (y::'b) \<Rightarrow> y)"
+    proof -
+    { fix aa :: 'a
+        have "map_of (rev (zip as bs)) aa = None \<longrightarrow>
+            (case case map_of (rev (zip as bs)) aa of None \<Rightarrow> [a \<mapsto> b] aa |
+                       Some x \<Rightarrow> Some x of None \<Rightarrow> m aa | Some b \<Rightarrow> b) =
+            (case map_of (rev (zip as bs)) aa of None \<Rightarrow> (m(a := b)) aa | Some b \<Rightarrow> b)"
+          by fastforce
+        then have "(case case map_of (rev (zip as bs)) aa of None \<Rightarrow> [a \<mapsto> b] aa |
+                         Some x \<Rightarrow> Some x of None \<Rightarrow> m aa | Some b \<Rightarrow> b) =
+                   (case map_of (rev (zip as bs)) aa of None \<Rightarrow> (m(a := b)) aa | Some b \<Rightarrow> b)"
+          by force }
+        then show ?thesis
+        by presburger
+    qed
+
 lemma upds_inc:
   "m(a#as [\<rightarrow>] b#bs) = (m(a:=b))(as[\<rightarrow>]bs)"
-  unfolding upds_def fun_add_def apply simp sorry
+  unfolding upds_def fun_add_def apply simp unfolding map_add_def by (metis upds_inc_helper)
 
 lemma upds_compose:
   "a ++\<^sub>f map_of (rev (zip (n # ns) (v # vs))) = a(n := v) ++\<^sub>f map_of (rev (zip ns vs))"

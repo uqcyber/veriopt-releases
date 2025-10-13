@@ -9,8 +9,7 @@ begin
 lemma size_pos[size_simps]: "0 < size y"
   apply (induction y; auto?)
   subgoal for op
-    apply (cases op)
-    by (smt (z3) gr0I one_neq_zero pos2 size.elims trans_less_add2)+
+    apply (cases op) by (smt (z3) gr0I one_neq_zero pos2 size.elims trans_less_add2)+
   done
 
 lemma size_non_add[size_simps]: "size (BinaryExpr op a b) = size a + size b + 2 \<longleftrightarrow> \<not>(is_ConstantExpr b)"
@@ -19,7 +18,8 @@ lemma size_non_add[size_simps]: "size (BinaryExpr op a b) = size a + size b + 2 
 lemma size_non_const[size_simps]:
   "\<not> is_ConstantExpr y \<Longrightarrow> 1 < size y"
   using size_pos apply (induction y; auto)
-  by (metis Suc_lessI add_is_1 is_ConstantExpr_def le_less linorder_not_le n_not_Suc_n numeral_2_eq_2 pos2 size.simps(2) size_non_add)
+  by (metis Suc_lessI add_is_1 is_ConstantExpr_def le_less linorder_not_le n_not_Suc_n size_non_add
+      numeral_2_eq_2 pos2 size.simps(2))
 
 lemma size_binary_const[size_simps]:
   "size (BinaryExpr op a b) = size a + 2 \<longleftrightarrow> (is_ConstantExpr b)"
@@ -35,11 +35,14 @@ lemma size_binary_lhs_a[size_simps]:
 
 lemma size_binary_lhs_b[size_simps]:
   "size (BinaryExpr op (BinaryExpr op' a b) c) > size b"
-  by (metis IRExpr.disc(42) One_nat_def add.left_commute add.right_neutral is_ConstantExpr_def less_add_Suc2 numeral_2_eq_2 plus_1_eq_Suc size.simps(11) size_binary_const size_non_add size_non_const trans_less_add1)
+  by (metis IRExpr.disc(42) One_nat_def add.left_commute add.right_neutral is_ConstantExpr_def
+      less_add_Suc2 numeral_2_eq_2 plus_1_eq_Suc size.simps(11) size_binary_const size_non_add
+      size_non_const trans_less_add1)
 
 lemma size_binary_lhs_c[size_simps]:
   "size (BinaryExpr op (BinaryExpr op' a b) c) > size c"
-  by (metis IRExpr.disc(42) add.left_commute add.right_neutral is_ConstantExpr_def less_Suc_eq numeral_2_eq_2 plus_1_eq_Suc size.simps(11) size_non_add size_non_const trans_less_add2)
+  by (metis IRExpr.disc(42) add.left_commute add.right_neutral is_ConstantExpr_def less_Suc_eq
+      numeral_2_eq_2 plus_1_eq_Suc size.simps(11) size_non_add size_non_const trans_less_add2)
 
 lemma size_binary_rhs_a[size_simps]:
   "size (BinaryExpr op c (BinaryExpr op' a b)) > size a"
@@ -49,7 +52,8 @@ lemma size_binary_rhs_a[size_simps]:
 
 lemma size_binary_rhs_b[size_simps]:
   "size (BinaryExpr op c (BinaryExpr op' a b)) > size b"
-  by (metis add.left_commute add.right_neutral is_ConstantExpr_def lessI numeral_2_eq_2 plus_1_eq_Suc size.simps(4,11) size_non_add trans_less_add2)
+  by (metis add.left_commute add.right_neutral is_ConstantExpr_def lessI numeral_2_eq_2 size_non_add
+      plus_1_eq_Suc size.simps(4,11) trans_less_add2)
 
 lemma size_binary_rhs_c[size_simps]:
   "size (BinaryExpr op c (BinaryExpr op' a b)) > size c"
@@ -57,11 +61,13 @@ lemma size_binary_rhs_c[size_simps]:
 
 lemma size_binary_lhs[size_simps]:
   "size (BinaryExpr op x y) > size x"
-  by (metis One_nat_def Suc_eq_plus1 add_Suc_right less_add_Suc1 numeral_2_eq_2 size_binary_const size_non_add)
+  by (metis One_nat_def Suc_eq_plus1 add_Suc_right less_add_Suc1 numeral_2_eq_2 size_binary_const
+      size_non_add)
 
 lemma size_binary_rhs[size_simps]:
   "size (BinaryExpr op x y) > size y"
-  by (metis IRExpr.disc(42) add_strict_increasing is_ConstantExpr_def linorder_not_le not_add_less1 size.simps(11) size_non_add size_non_const size_pos)
+  by (metis IRExpr.disc(42) add_strict_increasing is_ConstantExpr_def linorder_not_le not_add_less1
+      size.simps(11) size_non_add size_non_const size_pos)
 
 lemmas arith[size_simps] = Suc_leI add_strict_increasing order_less_trans trans_less_add2
 

@@ -47,13 +47,13 @@ lemma AddNeutral_Exp:
     then obtain b evx where evx: "ev = IntVal b evx"
       by (metis evalDet evaltree_not_undef intval_add.simps(3,4,5) intval_logic_negation.cases
           p(1,2))
-    then have additionNotUndef: "val[ev + (IntVal 32 0)] \<noteq> UndefVal"
+    have additionNotUndef: "val[ev + (IntVal 32 0)] \<noteq> UndefVal"
       using p evalDet ev by blast
-    then have sameWidth: "b = 32"
+    have sameWidth: "b = 32"
       by (metis evx additionNotUndef intval_add.simps(1))
-    then have unfolded: "val[ev + (IntVal 32 0)] = IntVal 32 (take_bit 32 (evx+0))"
+    then have unfolded: "val[ev + (IntVal 32 0)] = IntVal 32 (take_bit 32 (evx + 0))"
       by (simp add: evx)
-    then have eqE: "IntVal 32 (take_bit 32 (evx+0)) = IntVal 32 (take_bit 32 (evx))"
+    have eqE: "IntVal 32 (take_bit 32 (evx + 0)) = IntVal 32 (take_bit 32 (evx))"
       by auto
     then show ?thesis
       by (metis ev evalDet eval_unused_bits_zero evx p(1) sameWidth unfolded)
@@ -83,11 +83,12 @@ lemma RedundantSubAdd_Exp:
       by (metis bv evalDet p(3,4,5))
     then obtain bb bvv where bInt: "bv = IntVal bb bvv"
       by (metis bv evaltree_not_undef intval_logic_negation.cases intval_sub.simps(7,8,9))
-    then obtain ba avv where aInt: "av = IntVal ba avv"
-      by (metis av evaltree_not_undef intval_logic_negation.cases intval_sub.simps(3,4,5) subNotUndef)
-    then have widthSame: "bb=ba"
+    obtain ba avv where aInt: "av = IntVal ba avv"
+      by (metis evaltree_not_undef intval_logic_negation.cases intval_sub.simps(3,4,5) subNotUndef
+          av)
+    then have widthSame: "bb = ba"
       by (metis av bInt bv evalDet intval_sub.simps(1) new_int_bin.simps p(3,4,5))
-    then have valEval: "val[((av-bv)+bv)] = val[av]"
+    have valEval: "val[((av - bv) + bv)] = val[av]"
       using aInt av eval_unused_bits_zero widthSame bInt by simp
     then show ?thesis
       by (metis av bv evalDet p(1,3,4))
@@ -109,8 +110,8 @@ lemma just_goal2:
 
 optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
   using size_binary_rhs_a apply simp apply auto
-  by (smt (z3) NeutralLeftSubVal evalDet eval_unused_bits_zero intval_add_sym intval_sub.elims new_int.simps well_formed_equal_defn)
-
+  by (smt (z3) NeutralLeftSubVal evalDet eval_unused_bits_zero intval_add_sym intval_sub.elims
+      new_int.simps well_formed_equal_defn)
 
 (* Demonstration of our FOUR levels of expression rewrites:
    =======================================================
@@ -207,14 +208,14 @@ lemma RedundantAddSub_Exp:
       using p(4) by auto
     then have addNotUndef: "val[av + bv] \<noteq> UndefVal"
       by (metis bv evalDet intval_add_sym intval_sub.simps(2) p(2,3,4))
-    then obtain bb bvv where bInt: "bv = IntVal bb bvv"
+    obtain bb bvv where bInt: "bv = IntVal bb bvv"
       by (metis bv evalDet evaltree_not_undef intval_add.simps(3,5) intval_logic_negation.cases
           intval_sub.simps(8) p(1,2,3,5))
-    then obtain ba avv where aInt: "av = IntVal ba avv"
+    obtain ba avv where aInt: "av = IntVal ba avv"
       by (metis addNotUndef intval_add.simps(2,3,4,5) intval_logic_negation.cases)
-    then have widthSame: "bb=ba"
+    then have widthSame: "bb = ba"
       by (metis addNotUndef bInt intval_add.simps(1))
-    then have valEval: "val[((bv+av)-bv)] = val[av]"
+    have valEval: "val[((bv + av) - bv)] = val[av]"
       using aInt av eval_unused_bits_zero widthSame bInt by simp
     then show ?thesis
       by (metis av bv evalDet p(1,3,4))

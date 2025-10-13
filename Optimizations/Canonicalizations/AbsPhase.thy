@@ -20,12 +20,12 @@ while @{const intval_less_than} uses the $b^{th}$ bit depending on the size of t
 value "val[new_int 32 0 < new_int 32 4294967286]" \<comment> \<open>0 < -10 = False\<close>
 value "(0::int64) <s 4294967286" \<comment> \<open>0 < 4294967286 = True\<close>
 
-
 lemma signed_eqiv:
   assumes "b > 0 \<and> b \<le> 64"
   shows "val_to_bool (val[new_int b v < new_int b v']) = (int_signed_value b v < int_signed_value b v')"
-  using assms
-  by (metis (no_types, lifting) ValueThms.signed_take_take_bit bool_to_val.elims bool_to_val_bin.elims int_signed_value.simps intval_less_than.simps(1) new_int.simps one_neq_zero val_to_bool.simps(1))
+  by (metis (no_types, lifting) assms ValueThms.signed_take_take_bit bool_to_val.elims one_neq_zero
+      bool_to_val_bin.elims int_signed_value.simps intval_less_than.simps(1) new_int.simps
+      val_to_bool.simps(1))
 
 lemma val_abs_pos:
   assumes "val_to_bool(val[(new_int b 0) < (new_int b v)])"
@@ -41,13 +41,11 @@ lemma val_bool_unwrap:
   "val_to_bool (bool_to_val v) = v"
   by (metis bool_to_val.elims one_neq_zero val_to_bool.simps(1))
 
-
 lemma take_bit_64:
   assumes "0 < b \<and> b \<le> 64"
   assumes "take_bit b v = v"
   shows "take_bit 64 v = take_bit b v"
-  using assms
-  by (metis min_def nle_le take_bit_take_bit)
+  by (metis assms min_def nle_le take_bit_take_bit)
 
 
 text \<open>
@@ -60,20 +58,17 @@ value "-(set_bit 1 0)::2 word" \<comment> \<open>2\<close>
 value "(set_bit 31 0)::32 word" \<comment> \<open>2147483648\<close>
 value "-(set_bit 31 0)::32 word" \<comment> \<open>2147483648\<close>
 
-
 lemma negative_def:
   fixes v :: "'a::len word"
   assumes "v <s 0"
   shows "bit v (LENGTH('a) - 1)"
-  using assms
-  by (simp add: bit_last_iff word_sless_alt)
+  using assms by (simp add: bit_last_iff word_sless_alt)
 
 lemma positive_def:
   fixes v :: "'a::len word"
   assumes "0 <s v"
   shows "\<not>(bit v (LENGTH('a) - 1))"
-  using assms
-  by (simp add: bit_last_iff word_sless_alt)
+  using assms by (simp add: bit_last_iff word_sless_alt)
 
 (*
 lemma invert1:
@@ -130,8 +125,8 @@ lemma negative_lower_bound:
   assumes "(2^(LENGTH('a) - 1)) <s v"
   assumes "v <s 0"
   shows "0 <s (-v)"
-  using assms
-  by (smt (verit) signed_0 signed_take_bit_int_less_self_iff sint_ge sint_word_ariths(4) word_sless_alt)
+  by (smt (verit) assms signed_0 signed_take_bit_int_less_self_iff sint_ge sint_word_ariths(4)
+      word_sless_alt)
 
 lemma min_int:
   fixes x :: "'a::len word"
@@ -153,8 +148,8 @@ lemma negate_min_int:
   fixes v :: "'a::len word"
   assumes "v = (2^(LENGTH('a) - 1))"
   shows "v = (-v)"
-  using assms
-  by (metis One_nat_def add.inverse_neutral double_eq_zero_iff mult_minus_right verit_minus_simplify(4))
+  by (metis assms add.inverse_neutral double_eq_zero_iff mult_minus_right verit_minus_simplify(4)
+      One_nat_def)
 
 fun abs :: "'a::len word \<Rightarrow> 'a word" where
   "abs x = (if x <s 0 then (-x) else x)"
@@ -167,17 +162,16 @@ proof (cases "0 \<le>s x")
   then show ?thesis
     by force
 next
-  case neg: False
+  case False
   then show ?thesis
   proof (cases "x = (2^LENGTH('a) - 1)")
     case True
     then show ?thesis
-      using negate_min_int
       by (simp add: word_sless_alt)
   next
     case False
-    then show ?thesis using min_int negative_lower_bound
-      using negate_min_int by force
+    then show ?thesis
+      using min_int negative_lower_bound negate_min_int by force
   qed
 qed
 
@@ -206,13 +200,10 @@ lemma val_abs_always_pos:
   shows "val_to_bool (val[(new_int b 0) < (new_int b v')]) \<or> val_to_bool (val[(new_int b 0) eq (new_int b v')])"
 proof (cases "v = 0")
   case True
-  then have isZero: "intval_abs (new_int b 0) = new_int b 0"
-    by auto
   then have "IntVal b 0 = new_int b v'"
-    using True assms by auto
-  then have "val_to_bool (val[(new_int b 0) eq (new_int b v')])"
+    using assms by simp
+  then show ?thesis
     by simp
-  then show ?thesis by simp
 next
   case neq0: False
   have zero: "int_signed_value b 0 = 0"
@@ -221,37 +212,33 @@ next
   proof (cases "int_signed_value b v > 0")
     case True
     then have "val_to_bool(val[(new_int b 0) < (new_int b v)])"
-      using zero apply simp
-      by (metis One_nat_def ValueThms.signed_take_take_bit assms(1) val_bool_unwrap)
-    then have "val_to_bool (val[new_int b 0 < new_int b v'])"
-      by (metis assms(4) val_abs_pos)
+      by (metis assms(1) signed_eqiv zero)
     then show ?thesis
-      by blast
+      by (metis assms(4) val_abs_pos)
   next
-    case neg: False
-    then have "val_to_bool (val[new_int b 0 < new_int b v'])"
+    case False
+    have "val_to_bool (val[new_int b 0 < new_int b v'])"
     proof -
-      have "int_signed_value b v \<le> 0"
-        using assms neg neq0 by simp
+      have leq0: "int_signed_value b v \<le> 0"
+        using assms False neq0 by simp
       then show ?thesis
       proof (cases "int_signed_value b v = 0")
         case True
         then have "v = 0"
-          by (metis One_nat_def Suc_pred assms(1) assms(2) dual_order.refl int_signed_value.simps signed_eq_0_iff take_bit_of_0 take_bit_signed_take_bit)
+          by (metis One_nat_def Suc_pred assms(1,2) dual_order.refl int_signed_value.simps
+              signed_eq_0_iff take_bit_of_0 take_bit_signed_take_bit)
         then show ?thesis
           using neq0 by simp
       next
         case False
-        then have "int_signed_value b v < 0"
-          using \<open>int_signed_value (b::nat) (v::64 word) \<sqsubseteq> (0::int)\<close> by linarith
-        then have "new_int b v' = new_int b (-v)"
-          using assms using intval_abs.elims
-          by simp
-        then have "0 < int_signed_value b (-v)"
-          using assms(3) invert_intval
-          using \<open>int_signed_value (b::nat) (v::64 word) < (0::int)\<close> assms(1) assms(2) by blast
+        then have l0: "int_signed_value b v < 0"
+          using leq0 by linarith
+        then have eq: "new_int b v' = new_int b (-v)"
+          using assms(2,4) by auto
+        have "0 < int_signed_value b (-v)"
+          using assms invert_intval l0 by blast
         then show ?thesis
-          using \<open>new_int (b::nat) (v'::64 word) = new_int b (- (v::64 word))\<close> assms(1) signed_eqiv zero by presburger
+          using eq assms(1) signed_eqiv zero by presburger
       qed
     qed
     then show ?thesis
@@ -261,7 +248,7 @@ qed
 
 lemma intval_abs_elims:
   assumes "intval_abs x \<noteq> UndefVal"
-  shows "\<exists>t v . x = IntVal t v \<and> 
+  shows "\<exists>t v . x = IntVal t v \<and>
                     intval_abs x = new_int t (if int_signed_value t v < 0 then - v else v)"
   by (meson intval_abs.elims assms)
 
@@ -284,32 +271,33 @@ proof -
   obtain b v where in_def: "x = IntVal b v"
     using assms intval_abs_elims mono_undef_abs by blast
   then have bInRange: "b > 0 \<and> b \<le> 64"
-    using assms(1)
-    by (metis valid_stamp.simps(1) valid_value.simps(1))
+    by (metis assms(1) valid_stamp.simps(1) valid_value.simps(1))
   then show ?thesis
   proof (cases "int_signed_value b v < 0")
-    case neg: True
+    case True
     then show ?thesis
     proof (cases "v = (2^(b - 1))")
-      case min: True
+      case True
       then show ?thesis
-        by (smt (z3) assms(1) bInRange in_def intval_abs.simps(1) intval_negate.simps(1) negate_max_negative new_int.simps valid_value.simps(1))
+        by (smt (z3) assms(1) bInRange in_def intval_abs.simps(1) intval_negate.simps(1)
+            negate_max_negative new_int.simps valid_value.simps(1))
     next
-      case notMin: False
-      then have nested: "(intval_abs x) = new_int b (-v)"
-        using neg val_abs_neg in_def by simp
-      also have "int_signed_value b (-v) > 0"
-        using neg notMin invert_intval bInRange
-        by (metis assms(1) in_def valid_value.simps(1))
+      case False
+      have nested: "(intval_abs x) = new_int b (-v)"
+        using True val_abs_neg in_def by simp
+      have "int_signed_value b (-v) > 0"
+        by (metis True False invert_intval bInRange assms(1) in_def valid_value.simps(1))
       then have "(intval_abs (new_int b (-v))) = new_int b (-v)"
-        by (smt (verit, best) ValueThms.signed_take_take_bit bInRange int_signed_value.simps intval_abs.simps(1) new_int.simps new_int_unused_bits_zero)
+        by (smt (verit, best) ValueThms.signed_take_take_bit bInRange int_signed_value.simps
+            intval_abs.simps(1) new_int.simps new_int_unused_bits_zero)
       then show ?thesis
         using nested by presburger
     qed
   next
     case False
     then show ?thesis
-      by (metis (mono_tags, lifting) assms(1) in_def intval_abs.simps(1) new_int.simps valid_value.simps(1))
+      by (metis (mono_tags, lifting) in_def intval_abs.simps(1) new_int.simps valid_value.simps(1)
+          assms(1))
   qed
 qed
 

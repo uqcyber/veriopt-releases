@@ -13,8 +13,7 @@ begin
 lemma val_division_by_one_is_self_32:
   assumes "x = new_int 32 v"
   shows "intval_div x (IntVal 32 1) = x"
-  using assms apply (cases x; auto)
-  by (simp add: take_bit_signed_take_bit)
+  using assms apply (cases x; auto) by (simp add: take_bit_signed_take_bit)
 
 (* Optimizations*)
 (*

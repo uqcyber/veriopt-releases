@@ -25,13 +25,13 @@ lemma exp_ReturnXOnZeroShift:
   shows "exp[x >> const(new_int 32 0)] \<ge> exp[x]"
   apply auto
   subgoal premises p for m p xa
-  proof - 
+  proof -
     obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
       using p(1) by auto
     then have vx: "\<exists>vx. xa = new_int 32 vx"
       apply auto by (metis eval_unused_bits_zero wf_stamp_def assms valid_int)
     then have shiftZeroNotUndef: "val[xa >> (new_int 32 0)] \<noteq> UndefVal"
-      using evalDet p(1,2) xa by (metis IntVal0)
+      by (metis evalDet p(1,2) xa IntVal0)
     then have equals: "xa = val[xa >> (new_int 32 0)]"
       by (metis shiftZeroNotUndef val_ReturnXOnZeroShift vx)
     then show ?thesis

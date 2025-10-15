@@ -94,6 +94,12 @@ lemma word_unsigned:
   shows "\<forall> b1 v1. (IntVal b1 (word_of_int (int_unsigned_value b1 v1))) = IntVal b1 v1"
   by simp
 
+lemma new_int_zero [simp]:
+  assumes "1 \<le> b"
+  assumes "b \<le> 64"
+  shows "new_int b 0 = IntVal b 0"
+  unfolding new_int.simps by simp
+
 subsection \<open>Arithmetic Operators\<close>
 
 text \<open>

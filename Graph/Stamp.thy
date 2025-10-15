@@ -229,6 +229,11 @@ lemma wf_value_true:
   shows "wf_value (IntVal 32 1)"
   unfolding wf_value_def by auto
 
+lemma wf_value_zero [simp]:
+  assumes "1 \<le> b \<and> b \<le> 64"
+  shows "wf_value (IntVal b 0)"
+  unfolding wf_value_def using assms apply auto by (simp add: pos_imp_zdiv_pos_iff self_le_power)
+
 fun compatible :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "compatible (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
      (b1 = b2 \<and> valid_stamp (IntegerStamp b1 lo1 hi1) \<and> valid_stamp (IntegerStamp b2 lo2 hi2))" |

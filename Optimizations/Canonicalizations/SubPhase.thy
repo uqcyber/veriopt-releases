@@ -172,16 +172,16 @@ lemma SubtractZero_Exp:
   "exp[(x - (const IntVal b 0))] \<ge> x"
   apply auto
   subgoal premises p for m p xa
-  proof-
+  proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(1) by auto
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis array_length.cases evalDet evaltree_not_undef intval_sub.simps(3,4,5) p(1,2) xv)
-    then have widthSame: "xb=b"
-      by (metis evalDet intval_sub.simps(1) new_int_bin.simps p(1) p(2) xv)
-    then have unfoldSub: "val[xv - (IntVal b 0)] = (new_int xb (xvv-0))"
+    then have widthSame: "xb = b"
+      by (metis evalDet intval_sub.simps(1) new_int_bin.simps p(1,2) xv)
+    then have unfoldSub: "val[xv - (IntVal b 0)] = (new_int xb (xvv - 0))"
       by (simp add: xvv)
-    then have rhsSame: "val[xv] = (new_int xb (xvv))"
+    then have rhsSame: "val[xv] = new_int xb (xvv)"
       using eval_unused_bits_zero xv xvv by auto
     then show ?thesis
       by (metis diff_zero evalDet p(1) unfoldSub xv)
@@ -195,12 +195,12 @@ lemma ZeroSubtractValue_Exp:
   shows "exp[(const IntVal b 0) - x] \<ge> exp[-x]"
   using assms apply auto
   subgoal premises p for m p xa
-  proof-
+  proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(4) by auto
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis constantAsStamp.cases evalDet evaltree_not_undef intval_sub.simps(7,8,9) p(4,5) xv)
-    then have unfoldSub: "val[(IntVal b 0) - xv] = (new_int xb (0-xvv))"
+    then have unfoldSub: "val[(IntVal b 0) - xv] = (new_int xb (0 - xvv))"
       by (metis intval_sub.simps(1) new_int_bin.simps p(1,2) valid_int_same_bits wf_stamp_def xv)
     then show ?thesis
       by (metis UnaryExpr intval_negate.simps(1) p(4,5) unary_eval.simps(2) verit_minus_simplify(3)
@@ -222,12 +222,11 @@ optimization SubAfterSubLeft: "((x - y) - x) \<longmapsto>  -y"
       le_expr_def unary_eval.simps(2) unfold_unary val_sub_after_left_sub)+
 
 optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
-   apply auto
-  by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_then_left_add)
+  apply auto by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_then_left_add)
 
 optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
-   apply auto
-  by (metis evalDet intval_add_sym unary_eval.simps(2) unfold_unary val_sub_then_left_add)
+  apply auto
+  by (metis intval_add_sym unary_eval.simps(2) unfold_unary val_sub_then_left_add evalDet)
 
 optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
   using size_simps exp_sub_then_left_sub by auto
@@ -331,8 +330,9 @@ optimization SubNegativeConstant: "x - (const (val[-y])) \<longmapsto> x + (cons
 *)
 
 (*Additional check for not constant for termination *)
-optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x) 
-                                  when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and> \<not>(is_ConstantExpr x))"
+optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x)
+                                  when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and>
+                                        \<not>(is_ConstantExpr x))"
   using size_flip_binary ZeroSubtractValue_Exp by simp+
 
 (*
@@ -390,10 +390,10 @@ qed
   done
 *)
 
-optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when 
+optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0 when
                       (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using size_non_const apply auto
-  by (smt (verit) wf_value_def ConstantExpr  eval_bits_1_64 eval_unused_bits_zero new_int.simps
+  by (smt (verit) wf_value_def ConstantExpr eval_bits_1_64 eval_unused_bits_zero new_int.simps
       take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def One_nat_def
       evalDet)
 

@@ -36,7 +36,7 @@ lemma exp_negative_cancel:
   shows "exp[-(-x)] \<ge> exp[x]"
   apply auto
   by (metis (no_types, opaque_lifting) eval_unused_bits_zero intval_negate.elims new_int.simps
-      intval_negate.simps(1) minus_equation_iff take_bit_dist_neg) 
+      intval_negate.simps(1) minus_equation_iff take_bit_dist_neg)
  
 lemma exp_negative_shift: 
   assumes "stamp_expr x = IntegerStamp b' lo hi" 
@@ -93,10 +93,9 @@ optimization NegateCancel: "-(-(x)) \<longmapsto> x"
 (* FloatStamp condition is omitted. Not 100% sure. *)
 optimization DistributeSubtraction: "-(x - y) \<longmapsto> (y - x)"
   apply (smt (verit, best) add.left_commute add_2_eq_Suc' add_diff_cancel_left' is_ConstantExpr_def
-         less_Suc_eq_0_disj plus_1_eq_Suc size.simps(11) size_binary_const size_non_add
-         zero_less_diff exp_distribute_sub nat_add_left_cancel_less less_add_eq_less add_Suc lessI
-         trans_less_add2 size_binary_rhs Suc_eq_plus1 Nat.add_0_right old.nat.inject
-         zero_less_Suc)
+         less_Suc_eq_0_disj plus_1_eq_Suc size.simps(11) size_binary_const size_non_add add_Suc
+         zero_less_diff exp_distribute_sub nat_add_left_cancel_less less_add_eq_less zero_less_Suc
+         trans_less_add2 size_binary_rhs Suc_eq_plus1 Nat.add_0_right old.nat.inject lessI)
    using exp_distribute_sub by simp
 
 (* Need to prove exp_negative_shift *)

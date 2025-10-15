@@ -518,7 +518,7 @@ proof -
     also have "... = and ((xv mod 2^n) mod 2^n) zv"
       using L2 n zv yv assms by auto
     also have "... = and (xv mod 2^n) zv"
-      by (smt (verit, best) and.idem take_bit_eq_mask take_bit_eq_mod word_bw_assocs(1) 
+      by (smt (verit, best) and.idem take_bit_eq_mask take_bit_eq_mod word_bw_assocs(1)
           mod_mod_trivial)
     also have "... = and xv zv"
       by (metis L1 n zv)
@@ -529,7 +529,7 @@ proof -
     then have "numberOfLeadingZeros (\<up>z) = 0"
       by simp
     then have "numberOfTrailingZeros (\<up>y) \<ge> 64"
-      using assms by fastforce 
+      using assms by fastforce
     then have "yv = 0"
       by (metis (no_types, lifting) L1 L2 add_diff_cancel_left' and.comm_neutral linorder_not_le
           bit.conj_cancel_right bit.conj_disj_distribs(1) bit.double_compl less_imp_diff_less yv

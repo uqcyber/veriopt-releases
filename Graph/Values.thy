@@ -94,6 +94,14 @@ lemma word_unsigned:
   shows "\<forall> b1 v1. (IntVal b1 (word_of_int (int_unsigned_value b1 v1))) = IntVal b1 v1"
   by simp
 
+lemma new_int_one_intval:
+  assumes "b > 0"
+  shows "new_int b 1 = IntVal b 1"
+  using assms by auto
+
+lemma new_int_zero_is_intval: "new_int b 0 = IntVal b 0"
+  by simp
+
 lemma new_int_zero [simp]:
   assumes "1 \<le> b"
   assumes "b \<le> 64"

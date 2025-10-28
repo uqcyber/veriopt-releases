@@ -588,6 +588,51 @@ end
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
+lemma wf_integerstamp_eval_is_new_int:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "[m,p] \<turnstile> x \<mapsto> xa"
+  shows "\<exists>b xv. xa = new_int b xv"
+  using assms apply (cases x; auto)
+  by (metis is_IntVal_def unary_eval_int valid_int_gives wf_stamp_def bin_eval_int is_IntVal_def
+      bin_eval_unused_bits_zero assms(2,3) valid_int)+
+
+lemma wf_integerstamp_has_wf_value_zero:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "[m,p] \<turnstile> x \<mapsto> xa"
+  assumes "xa = new_int xb xv"
+  shows "wf_value (new_int xb 0)"
+  proof -
+  have "valid_value xa (IntegerStamp xb xl xh)"
+    using assms(1,2,3) wf_stamp_def by auto
+  then show ?thesis
+    unfolding wf_value_def assms(4) by simp
+  qed
+
+lemma wf_integerstamp_has_wf_value_all_ones:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "[m,p] \<turnstile> x \<mapsto> xa"
+  assumes "xa = new_int xb xv"
+  shows "wf_value (new_int xb (not 0))"
+  unfolding wf_value_def
+  by (metis assms(3,4) eval_bits_1_64 new_int.elims new_int_unused_bits_zero validDefIntConst)
+
+lemma true_always_evals: "[m,p] \<turnstile> ConstantExpr (IntVal 32 1) \<mapsto> IntVal 32 1"
+  by (simp add: unfold_const wf_value_true)
+
+lemma false_always_evals: "[m,p] \<turnstile> ConstantExpr (IntVal 32 0) \<mapsto> IntVal 32 0"
+  by auto
+
+lemma stamp_eval_same_bits:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "[m,p] \<turnstile> x \<mapsto> xa"
+  assumes "xa = new_int xbb xv"
+  shows "xbb = xb"
+  by (metis assms new_int.elims valid_value.simps(1) wf_stamp_def)
+
 lemma stamp_under_defn:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"
   assumes "wf_stamp x \<and> wf_stamp y"

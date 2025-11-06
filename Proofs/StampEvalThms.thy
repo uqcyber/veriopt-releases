@@ -633,6 +633,16 @@ lemma stamp_eval_same_bits:
   shows "xbb = xb"
   by (metis assms new_int.elims valid_value.simps(1) wf_stamp_def)
 
+lemma stamp_eval_int:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "[m,p] \<turnstile> x \<mapsto> xa"
+  assumes "xa = new_int xbb xv"
+  shows "[m,p] \<turnstile> ConstantExpr (new_int xb v) \<mapsto> (new_int xb v)"
+  using assms apply auto
+  by (metis (no_types, lifting) ConstantExpr assms(4) eval_bits_1_64 stamp_eval_same_bits
+      take_bit_not_iff take_bit_not_take_bit validDefIntConst wf_value_def)
+
 lemma stamp_under_defn:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"
   assumes "wf_stamp x \<and> wf_stamp y"

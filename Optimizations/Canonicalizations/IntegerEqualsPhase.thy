@@ -308,6 +308,129 @@ lemma val_and_or_eq_64:
     qed
   done
 
+lemma val_not_abs:
+  assumes "x = new_int xb xv"
+  assumes "val[abs(x)] \<noteq> UndefVal"
+  assumes "xb \<ge> 1"
+  shows "val[(\<not>x) eq (abs(x))] = val[false]"
+  using assms apply (cases x) using assms(1) prefer 2 defer
+  apply simp apply simp apply simp apply simp
+  proof (cases "int_signed_value xb xv < 0")
+    case True
+    obtain xvv where xvv: "xvv = (take_bit xb xv)"
+      by simp
+    have xIntVal: "x = IntVal xb xvv"
+      by (simp add: assms(1) xvv)
+    have absX: "val[abs(x)] = new_int xb (-xvv)"
+      unfolding xIntVal xvv apply simp
+      by (metis One_nat_def True ValueThms.signed_take_take_bit assms(3) int_signed_value.simps
+          order_less_le_trans zero_less_one)
+    have notX: "val[\<not>x] = new_int xb (not xv)"
+      by (simp add: take_bit_not_take_bit xIntVal xvv)
+    have "take_bit xb 1 \<noteq> 0"
+      using assms(3) by force
+    then have "take_bit xb (- (xv + 1)) \<noteq> take_bit xb (- xv)"
+      by (smt (verit, del_insts) ValueThms.take_bit_dist_addL add.assoc add.commute take_bit_of_0
+          add.inverse_inverse add.inverse_neutral add.right_inverse add_minus_cancel)
+    then have negNotNot: "(take_bit xb (- xv) = take_bit xb (not (take_bit xb xv))) = False"
+      by (metis (no_types, opaque_lifting) minus_eq_not_plus_1 take_bit_not_take_bit
+          verit_minus_simplify(4) word_not_not)
+    have wordNotEq: "take_bit xb (not xv) \<noteq> take_bit xb (- xv)"
+      by (metis negNotNot take_bit_not_take_bit)
+    have notEq: "val[(\<not>x) eq (abs(x))] = val[false]"
+      unfolding absX notX apply simp by (simp add: wordNotEq xvv)
+    then show ?thesis
+      by blast
+next
+  case False
+  obtain xvv where xvv: "xvv = (take_bit xb xv)"
+      by simp
+    have xIntVal: "x = IntVal xb xvv"
+      by (simp add: assms(1) xvv)
+    have absX: "val[abs(x)] = new_int xb xv"
+      unfolding xIntVal xvv apply simp
+      by (metis False One_nat_def ValueThms.signed_take_take_bit int_signed_value.simps neq0_conv
+          take_bit_0)
+    have notX: "val[\<not>x] = new_int xb (not xv)"
+      by (simp add: take_bit_not_take_bit xIntVal xvv)
+    have unfoldBoolVal: "(take_bit xb (not xv) \<noteq> take_bit xb xv)"
+      using assms(3) takeBitNot by auto
+    have notEq: "val[(\<not>x) eq (abs(x))] = val[false]"
+      by (simp add: absX notX unfoldBoolVal)
+    then show ?thesis
+      by blast
+  qed
+
+lemma val_negate_false:
+  assumes "x = new_int xb xv"
+  assumes "xb \<ge> 1"
+  shows "val[(-x) eq (~x)] = val[false]"
+  using assms apply (cases x; auto)
+  subgoal premises p
+  proof (cases "xb = 1")
+    case True
+    have xvv: "-xv = (not xv) + 1"
+      using minus_eq_not_plus_1 by auto
+    have "take_bit 1 (-xv) \<noteq> take_bit 1 (not xv)"
+      unfolding xvv
+      by (metis (no_types, opaque_lifting) One_nat_def ValueThms.take_bit_dist_addR Word.mask_Suc_0
+          add.right_inverse take_bit_minus_one_eq_mask take_bit_of_0 xvv word_add_not zero_neq_one)
+    then show ?thesis
+      by (metis (mono_tags, opaque_lifting) True bool_to_val.simps(2) take_bit_not_take_bit)
+  next
+    case False
+    have "xb \<ge> 2"
+      using False assms(2) by force
+    then have "take_bit xb 1 \<noteq> 0"
+      by simp
+    then have "take_bit xb (- (xv + 1)) \<noteq> take_bit xb (- xv)"
+      by (metis (no_types) ValueThms.take_bit_dist_subR add.right_inverse minus_add_cancel
+          take_bit_of_0 uminus_add_conv_diff verit_minus_simplify(4))
+    then have "(take_bit xb (- xv) = take_bit xb (not (take_bit xb xv))) = False"
+      by (metis (no_types, opaque_lifting) minus_eq_not_plus_1 take_bit_not_take_bit
+          verit_minus_simplify(4) word_not_not)
+    then show ?thesis
+      using bool_to_val.simps(2) by auto
+qed
+  done
+
+lemma val_negate_sub_right:
+  assumes "x = new_int xb xv"
+  assumes "y = new_int yb yv"
+  assumes "val[(-x) eq (y - x)] \<noteq> UndefVal"
+  shows "val[(-x) eq (y - x)] = val[y eq (new_int yb 0)]"
+  using assms apply (cases x; cases y; auto)
+  by (smt (verit, ccfv_SIG) ValueThms.take_bit_dist_neg ValueThms.take_bit_dist_subL take_bit_of_0
+      cancel_comm_monoid_add_class.diff_cancel diff_right_commute diff_zero minus_diff_commute
+      minus_diff_eq verit_minus_simplify(3))
+
+lemma val_negate_eq_zero:
+  assumes "x = new_int xb xv"
+  shows "val[(-x) eq (new_int b 0)] = val[x eq (new_int b 0)]"
+  using assms apply (cases x; auto)
+  by (smt (verit, del_insts) ValueThms.take_bit_dist_neg neg_0_equal_iff_equal
+      verit_minus_simplify(4))
+
+lemma val_negate_eq:
+  assumes "x = new_int xb xv"
+  assumes "y = new_int yb yv"
+  shows "val[(-x) eq (-y)] = val[x eq y]"
+  using assms apply (cases x; cases y; auto)
+  by (smt (verit, ccfv_threshold) ValueThms.take_bit_dist_neg verit_minus_simplify(4))
+
+lemma val_not_zero_neg_one:
+  assumes "x = new_int xb xv"
+  shows "val[(\<not>x) eq (new_int xb 0)] = val[x eq (new_int xb (not 0))]"
+  using assms apply (cases x; auto)
+  by (smt (verit, best) take_bit_minus_one_eq_mask take_bit_not_mask_eq_0 take_bit_not_take_bit
+      verit_comp_simplify1(2) word_not_not)
+
+lemma val_not_eq:
+  assumes "x = new_int xb xv"
+  assumes "y = new_int yb yv"
+  shows "val[(~x) eq (~y)] = val[x eq y]"
+  using assms apply (cases x; cases y; auto) by (simp add: take_bit_not_iff)
+
 (* Expression level *)
 
 lemma new_intZero [simp]: 
@@ -1009,6 +1132,221 @@ lemma exp_xor_not_fall_through:
    qed
    done
 
+lemma exp_not_abs:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "xb \<ge> 1"
+  shows "exp[(~x) eq (abs(x))] \<ge> exp[false]"
+  using assms apply auto subgoal premises p for m p xa
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(7) by blast
+    obtain xv xbb where xv: "xa = new_int xbb xv"
+      using p(1,2) wf_integerstamp_eval_is_new_int xa by blast
+    have width: "xbb = xb"
+      using p(1,2) stamp_eval_same_bits xa xv by blast
+    have rhsEval: "[m,p] \<turnstile> exp[false] \<mapsto> val[false]"
+      by (simp add: false_always_evals)
+    have absNotUndef: "val[abs(xa)] \<noteq> UndefVal"
+      using evalDet p(7,8) xa by blast
+    have evalEq: "val[(~xa) eq (abs(xa))] = val[false]"
+      using absNotUndef assms(3) val_not_abs width xv by blast
+    then show ?thesis
+      by (metis evalDet p(5,7) rhsEval xa)
+  qed
+  done
+
+lemma exp_negate_not_false:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "xb \<ge> 1"
+  shows "exp[(-x) eq (~x)] \<ge> exp[false]"
+  using assms apply auto
+  subgoal premises p for m p xa
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(7) by auto
+    obtain xbb xv where xv: "xa = new_int xbb xv"
+      using p(1,2) wf_integerstamp_eval_is_new_int xa by blast
+    have width: "xbb = xb"
+      using p(1,2) stamp_eval_same_bits xa xv by auto
+    have "[m,p] \<turnstile> exp[false] \<mapsto> val[false]"
+      by (simp add: false_always_evals)
+    then show ?thesis
+      by (metis assms(3) evalDet p(5,7) val_negate_false width xa xv)
+  qed
+  done
+
+lemma exp_negate_sub_right:
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "stamp_expr y = IntegerStamp yb yl yh"
+  shows "exp[(-x) eq (y - x)] \<ge> exp[y eq (const new_int yb 0)]"
+  using assms apply auto
+  subgoal premises p for m p ya xa xaa
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(9) by auto
+    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
+      using p(6) by auto
+    obtain xv xbb where xv: "xa = new_int xbb xv"
+      using p(1) p(3) wf_integerstamp_eval_is_new_int xa by blast
+    obtain yv ybb where yv: "ya = new_int ybb yv"
+      using p(2) p(4) wf_integerstamp_eval_is_new_int ya by blast
+    have yWidth: "ybb = yb"
+      using p(2) p(4) stamp_eval_same_bits ya yv by blast
+    have constEval: "[m,p] \<turnstile> exp[(const (new_int yb 0))] \<mapsto> val[(new_int yb 0)]"
+      using p(2) p(4) wf_integerstamp_has_wf_value_zero yWidth ya yv by blast
+    have lhsEval: "[m,p] \<turnstile> exp[(-x) eq (y - x)] \<mapsto> val[(-xa) eq (ya - xa)]"
+      by (metis UnaryExpr evalDet xa ya unfold_binary bin_eval.simps(13) bin_eval.simps(2)
+          p(5,6,7,8,9,10) unary_eval.simps(2))
+    have lhsDef: "val[(-xa) eq (ya - xa)] \<noteq> UndefVal"
+      apply auto using xa ya lhsEval by (simp add: evaltree_not_undef)
+    have "val[(-xa) eq (ya - xa)] = val[(ya) eq (new_int yb 0)]"
+      using lhsDef val_negate_sub_right xv yWidth yv by blast
+    then show ?thesis
+      by (metis (no_types, opaque_lifting) BinaryExpr bin_eval.simps(13) constEval evalDet xa ya
+          new_int_zero_is_intval p(5,6,7,9))
+  qed
+  done
+
+lemma exp_negate_eq_zero:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  shows "exp[(-x) eq (const (new_int b 0))] \<ge> exp[x eq (const (new_int b 0))]"
+  using assms apply auto
+  subgoal premises p for m p xa
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(4) by auto
+    obtain xbb xv where xv: "xa = new_int xbb xv"
+      using p(1,2) wf_integerstamp_eval_is_new_int xa by blast
+    have constEval: "[m,p] \<turnstile> exp[(const (new_int b 0))] \<mapsto> val[new_int b 0]"
+      by (simp add: p(6) unfold_const)
+    have evalEq: "val[(-xa) eq (new_int b 0)] = val[(xa) eq (new_int b 0)]"
+      using val_negate_eq_zero xv by auto
+    then show ?thesis
+      apply auto
+      by (metis BinaryExpr bin_eval.simps(13) constEval evalDet new_int_zero_is_intval p(3,4) xa)
+  qed
+  done
+
+lemma exp_negate_eq:
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "stamp_expr y = IntegerStamp yb yl yh"
+  shows "exp[(-x) eq (-y)] \<ge> exp[x eq y]"
+  using assms apply auto
+  subgoal premises p for m p xa ya
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(6) by auto
+    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
+      using p(8) by auto
+    have rhsEval: "[m,p] \<turnstile> exp[(x) eq (y)] \<mapsto> val[(xa) eq (ya)]"
+      by (smt (verit, best) bin_eval.simps(13) evalDet p(1,2,3,4,5,6,8) unfold_binary val_negate_eq
+          wf_integerstamp_eval_is_new_int xa ya)
+    have evalEq: "val[(-xa) eq (-ya)] = val[(xa) eq (ya)]"
+      using val_negate_eq by (meson p(1,2,3,4) wf_integerstamp_eval_is_new_int xa ya)
+    then show ?thesis
+      by (metis evalDet p(6,8) rhsEval xa ya)
+  qed
+  done
+
+lemma exp_not_zero_neg_one:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  shows "exp[(\<not>x) eq (const new_int xb 0)] \<ge> exp[x eq (const new_int xb (not 0))]"
+  using assms apply auto
+  subgoal premises p for m p xa
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(4) by auto
+    obtain xv xbb where xv: "xa = new_int xbb xv"
+      using p(1,2) wf_integerstamp_eval_is_new_int xa by blast
+    have width: "xbb = xb"
+      using p(1,2) stamp_eval_same_bits xa xv by blast
+    have newIntEquiv: "new_int xb 0 = IntVal xb 0"
+      by simp
+    have zeroEval: "[m,p] \<turnstile> exp[(const new_int xb 0)] \<mapsto> val[new_int xb 0]"
+      using p(6) by auto
+    have negEval: "[m,p] \<turnstile> exp[(\<not>x)] \<mapsto> val[(\<not>xa)]"
+      by (metis evalDet p(4,5) unary_eval.simps(3) unfold_unary xa)
+    have lhsEval: "[m,p] \<turnstile> exp[(\<not>x) eq (const new_int xb 0)] \<mapsto> val[(\<not>xa) eq (new_int xb 0)]"
+      by (metis BinaryExpr bin_eval.simps(13) evalDet negEval newIntEquiv p(3,4) xa zeroEval)
+    have rhsEval: "[m,p] \<turnstile> exp[x eq (const new_int xb (not 0))] \<mapsto> val[xa eq (new_int xb (not 0))]"
+      by (metis BinaryExpr ConstantExpr bin_eval.simps(13) evaltree_not_undef lhsEval p(1,2) xa xv
+          val_not_zero_neg_one wf_integerstamp_has_wf_value_all_ones width)
+    have evalEq: "val[(\<not>xa) eq (new_int xb 0)] = val[xa eq (new_int xb (not 0))]"
+      using val_not_zero_neg_one width xv by blast
+    have "[m,p] \<turnstile> exp[x eq (const (new_int xb (mask xb)))] \<mapsto> val[(\<not>xa) eq (new_int xb 0)]"
+      using evalEq rhsEval by simp
+    then show ?thesis
+      using evalDet p(4) xa by fastforce
+  qed
+  done
+
+lemma exp_not_neg_one_zero:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  shows "exp[(\<not>x) eq (const new_int xb (not 0))] \<ge> exp[x eq (const new_int xb 0)]"
+  using assms apply auto
+  subgoal premises p for m p xa
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(4) by auto
+    obtain xv xbb where xv: "xa = new_int xbb xv"
+      using p(1,2) wf_integerstamp_eval_is_new_int xa by blast
+    have maskDef: "(new_int xb (not 0)) = (new_int xb (mask xb))"
+      by simp
+    have zeroEval: "[m,p] \<turnstile> exp[(const new_int xb 0)] \<mapsto> val[new_int xb 0]"
+      by (metis ConstantExpr xv p(1,2) stamp_eval_same_bits wf_integerstamp_has_wf_value_zero xa)
+    have notEval: "[m,p] \<turnstile> exp[(\<not>x)] \<mapsto>  val[(\<not>xa)]"
+      by (metis UnaryExpr evalDet p(4,5) unary_eval.simps(3) xa)
+    have lhsEval: "[m,p] \<turnstile> exp[(\<not>x) eq (const new_int xb (not 0))] \<mapsto>
+                           val[(\<not>xa) eq (new_int xb (not 0))]"
+      by (metis notEval BinaryExpr ConstantExpr bin_eval.simps(13) evalDet maskDef neg_one.elims xa
+          neg_one_value p(3,4,6))
+    have rhsEval: "[m,p] \<turnstile> exp[x eq (const new_int xb 0)] \<mapsto> val[xa eq (new_int xb 0)]"
+      by (metis xa zeroEval BinaryExpr bin_eval.simps(13) evaltree_not_undef intval_not.simps(1) xv
+          lhsEval new_int_zero_is_intval val_not_eq)
+    have evalEq: "val[(\<not>xa) eq (new_int xb (not 0))] = val[xa eq (new_int xb 0)]"
+      by (metis xv intval_not.simps(1) new_int_zero_is_intval val_not_eq)
+    have "[m,p] \<turnstile> exp[x eq (const (new_int xb (0)))] \<mapsto> val[(\<not>xa) eq (new_int xb (mask xb))]"
+      using evalEq rhsEval by auto
+    then show ?thesis
+      using evalDet p(4) xa by fastforce
+  qed
+  done
+
+lemma exp_not_eq:
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "stamp_expr y = IntegerStamp yb yl yh"
+  shows "exp[(~x) eq (~y)] \<ge> exp[x eq y]"
+  using assms apply auto
+  subgoal premises p for m p xa ya
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(6) by auto
+    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
+      using p(8) by auto
+    obtain xbb xv where xv: "xa = new_int xbb xv"
+      using wf_integerstamp_eval_is_new_int p(1,3) xa by blast
+    obtain ybb yv where yv: "ya = new_int ybb yv"
+      using wf_integerstamp_eval_is_new_int p(2,4) ya by blast
+    have rhsEval: "[m,p] \<turnstile> exp[x eq y] \<mapsto> val[xa eq ya]"
+      by (metis bin_eval.simps(13) evalDet p(5,6,8) unfold_binary val_not_eq xa xv ya yv)
+    have evalEq: "val[(~xa) eq (~ya)] = val[(xa) eq (ya)]"
+      using val_not_eq xv yv by blast
+    then show ?thesis
+      by (metis evalDet p(6,8) rhsEval xa ya)
+  qed
+  done
+
 (* Optimizations *)
 
 (* Auxiliary lemmas to help prove size *)
@@ -1201,6 +1539,81 @@ optimization XorNotFallThrough4: "exp[(\<not>x) eq (y \<oplus> x)] \<longmapsto>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_binary_lhs trans_less_add2)
   using XorNotFallThrough2 apply simp by (meson le_expr_def exp_equals_commute)
+
+optimization NotAbs: "exp[(~x) eq (abs(x))] \<longmapsto> exp[false]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x \<and> xb \<ge> 1)"
+  using exp_not_abs by (metis numeral_1_eq_Suc_0 numerals(1))
+
+optimization NotAbsCommute: "exp[(abs(x)) eq (~x)] \<longmapsto> exp[false]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x \<and> xb \<ge> 1)"
+  using exp_not_abs dual_order.trans exp_equals_commute by force
+
+optimization NegateNotFalse: "exp[(-x) eq (~x)] \<longmapsto> false
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x \<and> (xb \<ge> 1))"
+  using exp_negate_not_false by fastforce
+
+optimization NegateNotFalseCommute: "exp[(~x) eq (-x)] \<longmapsto> false
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x \<and> (xb \<ge> 1))"
+  using exp_negate_not_false by (metis exp_equals_commute numeral_1_eq_Suc_0 numerals(1) order.trans)
+
+optimization NegateSubRight: "exp[(-x) eq (y - x)] \<longmapsto> exp[y eq (const new_int yb 0)]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
+  apply (simp add: less_SucI pos_add_strict size_binary_lhs size_pos)
+  using exp_negate_sub_right by force
+
+optimization NegateSubRightCommute: "exp[(y - x) eq (-x)] \<longmapsto> exp[y eq (const new_int yb 0)]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
+  apply (simp add: add.commute less_SucI pos_add_strict size_binary_lhs size_pos)
+  using exp_negate_sub_right by (metis exp_equals_commute new_int_zero_is_intval order.trans)
+
+optimization NegateEqZero: "exp[(-x) eq (const (new_int b 0))] \<longmapsto> exp[x eq (const (new_int b 0))]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x)"
+  using exp_negate_eq_zero by auto
+
+optimization NegateEqZeroCommute: "exp[(const (new_int b 0)) eq (-x)] \<longmapsto>
+                                   exp[x eq (const (new_int b 0))]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x)"
+  using exp_negate_eq_zero dual_order.trans exp_equals_commute new_int_zero_is_intval by auto
+
+optimization NegateEq: "exp[(-x) eq (-y)] \<longmapsto> exp[x eq y]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
+  apply (metis add_2_eq_Suc' add_mono_thms_linordered_field(1) less_Suc_eq less_add_same_cancel1
+               size_binary_const size_non_add size_pos)
+  using exp_negate_eq by auto
+
+optimization NotZeroNegOne: "exp[(\<not>x) eq (const new_int xb 0)] \<longmapsto>
+                             exp[x eq (const new_int xb (not 0))]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
+  using exp_not_zero_neg_one by auto
+
+optimization NotZeroNegOneCommute: "exp[(const new_int xb 0) eq (\<not>x)] \<longmapsto>
+                                    exp[x eq (const new_int xb (not 0))]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
+  using exp_not_zero_neg_one exp_equals_commute by auto
+
+optimization NotNegOneZero: "exp[(\<not>x) eq (const new_int xb (not 0))] \<longmapsto>
+                             exp[x eq (const new_int xb 0)]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
+  using exp_not_neg_one_zero by simp
+
+optimization NotNegOneZeroCommute: "exp[(const new_int xb (not 0)) eq (\<not>x)] \<longmapsto>
+                                    exp[x eq (const new_int xb 0)]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
+  using exp_not_neg_one_zero exp_equals_commute by simp
+
+optimization NotEq: "exp[(~x) eq (~y)] \<longmapsto> exp[x eq y]
+                        when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
+                             (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
+  apply (metis add_2_eq_Suc' add_mono_thms_linordered_field(1) less_Suc_eq less_add_same_cancel1
+         size_binary_const size_non_add size_pos)
+  by (meson exp_not_eq)
 
 end (* End of IntegerEqualsPhase *)
 

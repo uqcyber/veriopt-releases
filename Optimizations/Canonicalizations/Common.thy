@@ -79,4 +79,20 @@ lemma well_formed_equal_defn [simp]:
   "well_formed_equal v\<^sub>1 v\<^sub>2 = (v\<^sub>1 \<noteq> UndefVal \<longrightarrow> v\<^sub>1 = v\<^sub>2)"
   unfolding well_formed_equal_def by simp
 
+lemma takeBitNot:
+  fixes xv :: "64word"
+  assumes "xb \<ge> 1"
+  shows "(take_bit xb (not xv) \<noteq> take_bit xb xv)"
+  apply auto subgoal premises p
+  proof -
+    have addAllOnes: "take_bit xb (not xv) + take_bit xb xv = take_bit xb (-1)"
+      by (smt (z3) take_bit_not_eq_mask_diff add_minus_cancel p take_bit_minus_one_eq_mask
+          uminus_add_conv_diff)
+    have orAllOnes:  "or (take_bit xb (not xv)) (take_bit xb xv) = take_bit xb (-1)"
+      by (metis bit.disj_cancel_left take_bit_or)
+    then show ?thesis
+      using addAllOnes assms orAllOnes p by force
+  qed
+  done
+
 end

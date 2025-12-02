@@ -433,12 +433,6 @@ lemma val_not_eq:
 
 (* Expression level *)
 
-lemma new_intZero [simp]: 
-  assumes "1 \<le> b"
-  assumes "b \<le> 64"
-  shows "new_int b 0 = IntVal b 0"
-  unfolding new_int.simps by simp
-
 lemma wfZero [simp]: 
   assumes "1 \<le> b"
   assumes "b \<le> 64"
@@ -729,48 +723,37 @@ lemma exp_add_zero_equality:
       using prems(1) by auto
     have "val[xa eq (xaa + ya)] \<noteq> UndefVal"
       using evalDet prems(1) prems(2) xa by blast
-    have "xa = xaa"
+    have xaEq: "xa = xaa"
       using evalDet prems(3) xa by auto
     obtain ya where y: "[m,p] \<turnstile> y \<mapsto> ya"
       using prems(4) by auto
-    have "val[xaa + ya] \<noteq> UndefVal"
+    have addNotUndef: "val[xaa + ya] \<noteq> UndefVal"
       using evalDet prems(4) prems(5) y by blast
-    obtain xn xv where "xa = IntVal xn xv"
-      by (smt (z3) \<open>(xa::Value) = (xaa::Value)\<close> intval_add.elims prems(5))
-    then have "xa = new_int xn xv"
+    obtain xn xv where xaIntVal: "xa = IntVal xn xv"
+      by (metis evaltree_not_undef intval_add.simps(7,8,9) intval_add_sym intval_bits.elims prems(5)
+          xa xaEq)
+    then have xaInt: "xa = new_int xn xv"
       using eval_unused_bits_zero xa by auto
     obtain yn yv where ya:"ya = IntVal yn yv"
-      by (metis \<open>intval_add (xaa::Value) (ya::Value) \<noteq> UndefVal\<close> array_length.cases 
-          intval_add.simps(2) intval_add.simps(7) intval_add.simps(8) intval_add.simps(9) 
-          intval_add_sym)
-    then have "ya = new_int yn yv"
+      by (metis evalDet intval_add.simps(6,7,8,9) intval_logic_negation.cases prems(4,5) y)
+    then have yaInt: "ya = new_int yn yv"
       using eval_unused_bits_zero y by auto
-    have "xn = yn"
-      by (metis \<open>(xa::Value) = (xaa::Value)\<close> \<open>(xa::Value) = IntVal (xn::nat) (xv::64 word)\<close> 
-          \<open>(ya::Value) = IntVal (yn::nat) (yv::64 word)\<close> 
-          \<open>intval_add (xaa::Value) (ya::Value) \<noteq> UndefVal\<close> intval_add.simps(1))
+    have width: "xn = yn"
+      by (metis xaEq xaIntVal ya addNotUndef intval_add.simps(1))
     have "wf_value (IntVal b 0)" 
       using wfZero assms(3) assms(4) by auto
-    moreover have "yn = b" using calculation y ya assms
-      by (metis valid_int_same_bits wf_stamp_def) 
+    moreover have widthB: "yn = b"
+      by (metis y ya assms(1,2) valid_int_same_bits wf_stamp_def)
     ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
       using y ya assms apply (auto)
       by (metis(full_types) Value.distinct(1) bool_to_val.simps(1,2))
-    then have "val[ya eq (new_int b 0)] \<noteq> UndefVal"
-      using new_intZero by auto
-    then have "val[xa eq (xaa + ya)] = val[ya eq (new_int b 0)]"
-      by (metis \<open>(xa::Value) = (xaa::Value)\<close> \<open>(xa::Value) = new_int (xn::nat) (xv::64 word)\<close> 
-          \<open>(xn::nat) = (yn::nat)\<close> \<open>(ya::Value) = new_int (yn::nat) (yv::64 word)\<close> 
-          \<open>(yn::nat) = (b::nat)\<close> evalDet prems(1) prems(2) prems(4) val_add_zero_equality xa y)
-    then have eq_value_level: "val[xa eq (xaa + ya)] = val[ya eq (IntVal b 0)]"
-      using new_intZero y ya by auto
+    then have evalEq: "val[xa eq (xaa + ya)] = val[ya eq (new_int b 0)]"
+      by (metis xaEq xaInt width yaInt widthB prems(1,2,4) xa y evalDet val_add_zero_equality)
     have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[ya eq (IntVal b 0)]"
       using \<open>intval_equals (ya::Value) (IntVal (b::nat) (0::64 word)) \<noteq> UndefVal\<close> 
             \<open>wf_value (IntVal (b::nat) (0::64 word))\<close> y by auto
-    then have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[xa eq (xaa + ya)]"
-      using eq_value_level by auto
     then show ?thesis
-      by (metis \<open>(xa::Value) = (xaa::Value)\<close> evalDet prems(1) prems(3) prems(4) y)
+      by (metis xaEq evalEq evalDet new_int_zero_is_intval prems(1,3,4) y)
   qed
   done
 
@@ -860,20 +843,16 @@ lemma exp_xor_zero_equality:
     ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
       using y ya assms apply (auto)
       by (metis(full_types) Value.distinct(1) bool_to_val.simps(1,2))
-    then have "val[ya eq (new_int b 0)] \<noteq> UndefVal"
-      using new_intZero by auto
-    then have "val[xa eq (xaa \<oplus> ya)] = val[ya eq (new_int b 0)]"
+    then have evalEq: "val[xa eq (xaa \<oplus> ya)] = val[ya eq (new_int b 0)]"
       using val_xor_zero_equality xa y
       by (metis \<open>(xa::Value) = (xaa::Value)\<close> \<open>(xa::Value) = new_int (xn::nat) (xv::64 word)\<close> 
           \<open>(xn::nat) = (yn::nat)\<close> \<open>(ya::Value) = new_int (yn::nat) (yv::64 word)\<close> 
           \<open>(yn::nat) = (b::nat)\<close> evalDet prems(1) prems(2) prems(4))
-    then have eq_value_level: "val[xa eq (xaa \<oplus> ya)] = val[ya eq (IntVal b 0)]"
-      using new_intZero y ya by auto
     have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[ya eq (IntVal b 0)]"
       using \<open>intval_equals (ya::Value) (IntVal (b::nat) (0::64 word)) \<noteq> UndefVal\<close> 
             \<open>wf_value (IntVal (b::nat) (0::64 word))\<close> y by auto
     then have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[xa eq (xaa \<oplus> ya)]"
-      using eq_value_level by auto
+      by (simp add: evalEq)
     then show ?thesis
       by (metis \<open>(xa::Value) = (xaa::Value)\<close> evalDet prems(1) prems(3) prems(4) y)
   qed
@@ -961,8 +940,6 @@ lemma exp_sub_zero_equality:
     ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
       using assms ya apply auto
       by (metis(full_types) Value.distinct(1) bool_to_val.simps(1,2))
-    then have "val[ya eq (new_int b 0)] \<noteq> UndefVal"
-      using new_intZero by auto
     then have "val[xa eq (xaa - ya)] = val[ya eq (new_int b 0)]"
       by (metis \<open>xa = new_int xn xv\<close> \<open>xaa = xa\<close> \<open>(ya::Value) = new_int (yn::nat) (yv::64 word)\<close> 
           yBits subNotUndef evalDet y intval_sub.simps(1) new_int.simps new_int_bin.elims

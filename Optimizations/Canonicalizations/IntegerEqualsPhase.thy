@@ -367,32 +367,6 @@ lemma exp_commutative_xor:
   qed
   done
 
-lemma exp_commutative_equal:
-  shows "exp[x eq y] \<ge> exp[y eq x]"
-  apply auto
-  subgoal premises prems for m p xa ya
-  proof -
-    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
-      using prems(1) by auto
-    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
-      using prems(2) by auto
-    have "val[xa eq ya] \<noteq> UndefVal"
-      by (metis evalDet prems(1) prems(2) prems(3) xa ya)
-    have "val[ya eq xa] \<noteq> UndefVal"
-      by (smt (z3) \<open>intval_equals (xa::Value) (ya::Value) \<noteq> UndefVal\<close> bool_to_val_bin.simps 
-          intval_equals.elims intval_equals.simps(1))
-    then have "[m,p] \<turnstile> exp[y eq x] \<mapsto> val[ya eq xa]"
-      using xa ya by auto
-    then have "val[ya eq xa] = val[xa eq ya]"
-      by (smt (verit) BinaryExprE bool_to_val_bin.simps defined_eval_is_intval evalDet 
-          intval_equals.simps(1) is_IntVal_def xa ya)
-    then have "[m,p] \<turnstile> exp[y eq x] \<mapsto> val[xa eq ya]"
-      using \<open>intval_equals (xa::Value) (ya::Value) \<noteq> UndefVal\<close> xa ya by auto
-    then show ?thesis
-      by (metis evalDet prems(1) prems(2) xa ya) 
-  qed
-  done
-
 lemma exp_addition_equality:
   shows "exp[(x+y) eq (x+z)] \<ge> exp[(y eq z)]"
   apply auto
@@ -700,11 +674,11 @@ lemma exp_add_zero_equality_flipped:
   shows "exp[(x+y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
 proof -
   have "exp[x eq (x+y)] \<ge> exp[(x+y) eq x]"
-    using exp_commutative_equal by auto
+    using exp_equals_commute by blast
   then have "exp[x eq (x+y)] \<ge> exp[y eq const (IntVal b 0)]"
     using assms(1) assms(2) assms(3) assms(4) exp_add_zero_equality by blast
   then show ?thesis
-    using exp_commutative_equal order.trans by blast
+    using exp_equals_commute order.trans by blast
 qed
 
 lemma exp_add_zero_equality_flipped_swapped:
@@ -805,11 +779,11 @@ lemma exp_xor_zero_equality_flipped:
   shows "exp[(x\<oplus>y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
 proof -
   have "exp[x eq (x\<oplus>y)] \<ge> exp[(x\<oplus>y) eq x]"
-    using exp_commutative_equal by auto
+    using exp_equals_commute by blast
   then have "exp[x eq (x\<oplus>y)] \<ge> exp[y eq const (IntVal b 0)]"
     using assms(1) assms(2) assms(3) assms(4) exp_xor_zero_equality by blast
   then show ?thesis
-    using exp_commutative_equal order.trans by blast
+    using exp_equals_commute order.trans by blast
 qed
 
 lemma exp_xor_zero_equality_flipped_swapped:
@@ -887,8 +861,7 @@ lemma exp_sub_zero_equality_flipped:
   assumes "wf_stamp y"
   assumes "1 \<le> b" and "b \<le> 64"
   shows "exp[(x-y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
-  using exp_commutative_equal
-  by (meson assms(1) assms(2) assms(3) assms(4) exp_sub_zero_equality le_expr_def)
+  using exp_equals_commute assms exp_sub_zero_equality order.trans by blast
 
 lemma exp_not_self_equality:
   assumes "stamp_expr x = IntegerStamp b lo hi"

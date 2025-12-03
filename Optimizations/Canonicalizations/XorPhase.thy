@@ -60,32 +60,28 @@ lemma val_eliminate_redundant_false:
 lemma val_xor_cancel:
   assumes "x = IntVal 64 v"
   assumes "y = IntVal 64 e"
-  assumes "val[\<not>x] \<noteq> UndefVal" 
-  assumes "val[\<not>y] \<noteq> UndefVal" 
+  assumes "val[\<not>x] \<noteq> UndefVal"
+  assumes "val[\<not>y] \<noteq> UndefVal"
   shows "val[(\<not>x) \<oplus> \<not>y] = val[x \<oplus> y]"
-  apply (auto simp: assms algebra_simps)
-  by (metis bin_xor_cancel take_bit_xor)
+  using assms apply (cases x; cases y; auto)
+  by (metis (no_types, lifting) bin_xor_commute take_bit_xor word_bw_comms(3))
 
 (* Exp level proofs *)
 lemma exp_xor_self_is_false:
  assumes "wf_stamp x \<and> stamp_expr x = default_stamp" 
- shows   "exp[x \<oplus> x] \<ge> exp[false]" 
+ shows   "exp[x \<oplus> x] \<ge> exp[false]"
   using assms apply auto
   subgoal premises p for m p xa ya
-  proof-
+  proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(3) by auto
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis Value.exhaust_sel assms evalDet evaltree_not_undef intval_xor.simps(5,7) p(3,4,5) xv
           valid_value.simps(11) wf_stamp_def)
-    then have unfoldXor: "val[xv \<oplus> xv] = (new_int xb (xor xvv xvv))"
-      by simp
-    then have isZero: "xor xvv xvv = 0"
-      by simp
     then have width: "xb = 32"
       by (metis valid_int_same_bits xv xvv p(1,2) wf_stamp_def)
     then have isFalse: "val[xv \<oplus> xv] = bool_to_val False"
-      unfolding unfoldXor isZero width by fastforce
+      by (simp add: xvv)
     then show ?thesis
       by (metis (no_types, lifting) eval_bits_1_64 p(3,4) width xv xvv validDefIntConst IntVal0
           Value.inject(1) bool_to_val.simps(2) evalDet new_int.simps unfold_const wf_value_def)
@@ -99,53 +95,49 @@ lemma exp_eliminate_redundant_false:
     proof -
       obtain xa where xa: "[m, p] \<turnstile> x \<mapsto> xa"
         using p(2) by blast
-      then have "val[xa \<oplus> (IntVal 32 0)] \<noteq> UndefVal"
+      then have "val[xa \<oplus> false] \<noteq> UndefVal"
         using evalDet p(2,3) by blast
-      then have "[m, p] \<turnstile> val[x] \<mapsto> val[xa \<oplus> (IntVal 32 0)]"
+      then have "[m, p] \<turnstile> val[x] \<mapsto> val[xa \<oplus> false]"
         using eval_unused_bits_zero xa by (cases xa; auto)
       then show ?thesis
         using evalDet p(2) xa by blast
     qed
-    done
+  done
 
 lemma exp_xor_cancel:
   shows "exp[(\<not>x) \<oplus> \<not>y] \<ge> exp[x \<oplus> y]"
-  using val_xor_cancel apply simp
-  using bin_xor_cancel apply auto
-  subgoal premises prems for m p xa xb
-  proof-
+  apply auto subgoal premises p for m p xa xb
+  proof -
     obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
-      using prems(3) by auto
-    obtain tb tv where ghe: "xa = IntVal tb tv"
-      by (metis evalDet intval_not.elims prems(3) prems(4) xa)
-    obtain xb where xb: "[m,p] \<turnstile> y \<mapsto> xb"
-      using prems(5) by auto
-    obtain tb tf where ghe1: "xb = IntVal tb tf"
-      by (metis evalDet intval_not.elims prems(5) prems(6) xb)
-    then have "val[(\<not>xa) \<oplus> \<not>xb] \<noteq> UndefVal"
-      by (metis evalDet prems(2) prems(3) prems(5) xa xb)
-    then have unfoldXOR: "val[(\<not>xa) \<oplus> \<not>xb] = new_int tb (xor tv tf)"
-      using ghe and ghe1 apply simp
-      by (metis bin_xor_cancel take_bit_xor)
-    then have "[m,p] \<turnstile> exp[x \<oplus> y] \<mapsto> new_int tb (xor tv tf)"
-      by (metis BinaryExpr Value.distinct(1) bin_eval.simps(8) ghe ghe1 intval_not.simps(1) 
-          intval_xor.simps(1) new_int.simps new_int_bin.simps xa xb)
+      using p(2) by auto
+    obtain b xv where xv: "xa = IntVal b xv"
+      by (metis Value.exhaust evalDet evaltree_not_undef intval_not.simps(3,4,5) p(2,3) xa)
+    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
+      using p(4) by auto
+    obtain b yv where yv: "ya = IntVal b yv"
+      by (metis constantAsStamp.cases evalDet evaltree_not_undef intval_not.simps(3,4,5) p(4,5) ya)
+    then have "val[(\<not>xa) \<oplus> (\<not>ya)] \<noteq> UndefVal"
+      by (metis evalDet p(1,2,4) xa ya)
+    then have unfoldXor: "val[(\<not>xa) \<oplus> (\<not>ya)] = new_int b (xor xv yv)"
+      using xv yv apply simp by (metis bin_xor_cancel take_bit_xor)
+    then have "[m,p] \<turnstile> exp[x \<oplus> y] \<mapsto> new_int b (xor xv yv)"
+      by (metis BinaryExpr Value.distinct(1) bin_eval.simps(8) xv yv intval_not.simps(1) xa ya
+          intval_xor.simps(1) new_int.simps new_int_bin.simps)
     then show ?thesis
-      by (metis evalDet prems(3) prems(5) unfoldXOR xa xb)
+      by (metis evalDet p(2,4) unfoldXor xa ya)
   qed
   done
 
 text \<open>Optimisations\<close>
 
-optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when 
-                      (wf_stamp x \<and> stamp_expr x = default_stamp)"
-  using size_non_const exp_xor_self_is_false by auto 
+optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> false when (wf_stamp x \<and> stamp_expr x = default_stamp)"
+  using size_non_const exp_xor_self_is_false by auto
 
 optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
   using size_flip_binary val_xor_commute by auto
 
 optimization EliminateRedundantFalse: "(x \<oplus> false) \<longmapsto> x"
-    using exp_eliminate_redundant_false by auto 
+  using exp_eliminate_redundant_false by auto
 
 (* BW: this doesn't seem right *)
 (* Doesn't have any subgoals *)
@@ -158,16 +150,8 @@ optimization MaskOutRHS: "(x \<oplus> y) \<longmapsto> ~x
   sorry
 *)
 
-lemma yConst:
-  assumes "\<not> (is_ConstantExpr y)"
-  shows "Canonicalization.size (BinaryExpr BinXor x y) 
-          = (Canonicalization.size x) + (Canonicalization.size y) + 2"
-  apply(cases y)
-  using assms by auto
-
-optimization XorNot: "((~x)\<oplus>(~y)) \<longmapsto> (x \<oplus> y) when  \<not>(is_ConstantExpr y)"
-  using yConst apply(simp)
-  using exp_xor_cancel by simp
+optimization XorNot: "((~x) \<oplus> (~y)) \<longmapsto> (x \<oplus> y) when \<not>(is_ConstantExpr y)"
+  using size_non_add apply (simp add: less_Suc_eq) using exp_xor_cancel by blast
 
 end (* End of XorPhase *)
 

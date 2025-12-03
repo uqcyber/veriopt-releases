@@ -11,7 +11,7 @@ begin
 
 lemma negative_all_set_32:
   "n < 32 \<Longrightarrow> bit (-1::int32) n"
-  apply transfer by auto
+  apply transfer by fastforce
 
 (* TODO: better handle empty *)
 definition MaxOrNeg :: "nat set \<Rightarrow> int" where
@@ -23,7 +23,6 @@ definition MinOrHighest :: "nat set \<Rightarrow> nat \<Rightarrow> nat" where
 lemma MaxOrNegEmpty:
   "MaxOrNeg s = -1 \<longleftrightarrow> s = {}"
   unfolding MaxOrNeg_def by auto
-
 
 subsection Long.highestOneBit
 
@@ -52,41 +51,40 @@ lemma highestOneBitN:
   assumes "\<forall>i::nat. (int i > n \<longrightarrow> \<not> (bit v i))"
   shows "highestOneBit v = n"
   unfolding highestOneBit_def MaxOrNeg_def
-  by (metis Max_ge Max_in all_not_in_conv assms(1) assms(2) finite_bit_word mem_Collect_eq of_nat_less_iff order_less_le)
+  by (metis Max_ge Max_in all_not_in_conv assms(1,2) finite_bit_word mem_Collect_eq of_nat_less_iff
+      order_less_le)
 
 lemma highestOneBitSize:
   assumes "bit v n"
   assumes "n = size v"
   shows "highestOneBit v = n"
-  by (metis assms(1) assms(2) not_bit_length wsst_TYs(3))
+  by (metis assms(1,2) higherBitsFalse highestOneBitN nat_int_comparison(2))
 
 lemma highestOneBitMax:
   "highestOneBit v < size v"
-  unfolding highestOneBit_def MaxOrNeg_def
-  using higherBitsFalse
-  by (simp add: bit_imp_le_length size_word.rep_eq)
+  unfolding highestOneBit_def MaxOrNeg_def by (simp add: bit_imp_le_length size_word.rep_eq)
 
 lemma highestOneBitAtLeast:
   assumes "bit v n"
   shows "highestOneBit v \<ge> n"
 proof (induction "size v")
   case 0
-  then show ?case by simp
+  then show ?case
+    by simp
 next
   case (Suc x)
   then have "\<forall>i. bit v i \<longrightarrow> i < Suc x"
     by (simp add: bit_imp_le_length wsst_TYs(3))
   then show ?case
-    unfolding highestOneBit_def MaxOrNeg_def
-    using assms by auto
+    unfolding highestOneBit_def MaxOrNeg_def using assms by auto
 qed
 
 lemma highestOneBitElim:
   "highestOneBit v = n
      \<Longrightarrow> ((n = -1 \<and> v = 0) \<or> (n \<ge> 0 \<and> bit v n))"
   unfolding highestOneBit_def MaxOrNeg_def
-  by (metis Max_in finite_bit_word le0 le_minus_one_simps(3) mem_Collect_eq of_nat_0_le_iff of_nat_eq_iff)
-
+  by (metis Max_in finite_bit_word le0 le_minus_one_simps(3) mem_Collect_eq of_nat_0_le_iff
+      of_nat_eq_iff)
 
 text \<open>A recursive implementation of highestOneBit that is suitable for code generation.\<close>
 
@@ -131,7 +129,6 @@ lemma highestOneBitRecLess:
   shows "highestOneBitRec n v = highestOneBitRec (n - 1) v"
   using assms by force
 
-
 text \<open>Some lemmas that use masks to restrict highestOneBit
   and relate it to highestOneBitRec.\<close>
 
@@ -143,9 +140,8 @@ lemma highestOneBitMask:
 lemma maskSmaller:
   fixes v :: "'a :: len word"
   assumes "\<not> bit v n"
-  shows "and v (mask (Suc n)) = and v (mask n)" 
-  unfolding bit_eq_iff
-  by (metis assms bit_and_iff bit_mask_iff less_Suc_eq) 
+  shows "and v (mask (Suc n)) = and v (mask n)"
+  unfolding bit_eq_iff by (metis assms bit_and_iff bit_mask_iff less_Suc_eq)
 
 lemma highestOneBitSmaller:
   assumes "size v = Suc n"
@@ -157,7 +153,7 @@ lemma highestOneBitRecMask:
   shows "highestOneBit (and v (mask (Suc n))) = highestOneBitRec n v"
 proof (induction n)
   case 0
-  then have "highestOneBit (and v (mask (Suc 0))) = highestOneBitRec 0 v"
+  have "highestOneBit (and v (mask (Suc 0))) = highestOneBitRec 0 v"
     apply auto
     apply (smt (verit, ccfv_threshold) neg_equal_zero negative_eq_positive bit_1_iff bit_and_iff
            highestOneBitN)
@@ -173,18 +169,16 @@ next
       by (simp add: True)
     have "\<forall>i::nat. (int i > (Suc n) \<longrightarrow> \<not> (bit (and v (mask (Suc (Suc n)))) i))"
       by (simp add: bit_and_iff bit_mask_iff)
-    then have 2: "highestOneBit (and v (mask (Suc (Suc n)))) = Suc n"
-      using True highestOneBitN
-      by (metis bit_take_bit_iff lessI take_bit_eq_mask) 
-    then show ?thesis 
-      using 1 2 by auto
+    then have "highestOneBit (and v (mask (Suc (Suc n)))) = Suc n"
+      by (metis bit_take_bit_iff lessI take_bit_eq_mask highestOneBitN True)
+    then show ?thesis
+      using 1 by auto
   next
     case False
     then show ?thesis
       by (simp add: Suc maskSmaller) 
   qed
 qed
-
 
 text \<open>Finally - we can use the mask lemmas to relate highestOneBitRec to its spec.\<close>
 
@@ -203,8 +197,7 @@ lemma max_bit: "bit (v::('a::len) word) n \<Longrightarrow> n < size v"
   by (simp add: bit_imp_le_length size_word.rep_eq)
 
 lemma max_set_bit: "MaxOrNeg {n . bit (v::('a::len) word) n} < Nat.size v"
-  using max_bit unfolding MaxOrNeg_def
-  by force
+  using max_bit unfolding MaxOrNeg_def by force
 
 subsection \<open>Long.numberOfLeadingZeros\<close>
 
@@ -228,19 +221,17 @@ lemma "numberOfLeadingZeros (0::64 word) = 64"
   unfolding numberOfLeadingZeros_def by (simp add: highestOneBitImpl size64)
 
 lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} < 64"
-  unfolding highestOneBit_def
-  by (metis Max_singleton int_eq_iff_numeral max_set_bit size64)
+  unfolding highestOneBit_def by (metis Max_singleton int_eq_iff_numeral max_set_bit size64)
 
 lemma numberOfLeadingZeros_top: "Max {numberOfLeadingZeros (v::64 word)} \<le> 64"
-  unfolding numberOfLeadingZeros_def
-  using size64
-  by (simp add: MaxOrNeg_def highestOneBit_def nat_le_iff)
+  unfolding numberOfLeadingZeros_def by (simp add: MaxOrNeg_def highestOneBit_def nat_le_iff size64)
 
-lemma numberOfLeadingZeros_range: "0 \<le> numberOfLeadingZeros a \<and> numberOfLeadingZeros a \<le> Nat.size a"
+lemma numberOfLeadingZeros_range:
+  "0 \<le> numberOfLeadingZeros a \<and> numberOfLeadingZeros a \<le> Nat.size a"
   unfolding numberOfLeadingZeros_def apply auto
   apply (induction "highestOneBit a") apply (simp add: numberOfLeadingZeros_def)
-  by (metis (mono_tags, opaque_lifting) leD negative_zless  int_eq_iff diff_right_commute diff_self
-      diff_zero nat_le_iff le_iff_diff_le_0  minus_diff_eq nat_0_le nat_le_linear of_nat_0_le_iff
+  by (metis (mono_tags, opaque_lifting) leD negative_zless int_eq_iff diff_right_commute diff_self
+      diff_zero nat_le_iff le_iff_diff_le_0 minus_diff_eq nat_0_le nat_le_linear of_nat_0_le_iff
       MaxOrNeg_def highestOneBit_def)
 
 lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v - 1"
@@ -253,8 +244,7 @@ definition numberOfTrailingZeros :: "('a::len) word \<Rightarrow> nat" where
   "numberOfTrailingZeros v = lowestOneBit v"
 
 lemma lowestOneBit_bot: "lowestOneBit (0::64 word) = 64"
-  unfolding lowestOneBit_def MinOrHighest_def
-  by (simp add: size64)
+  unfolding lowestOneBit_def MinOrHighest_def by (simp add: size64)
 
 lemma bit_zero_set_in_top: "bit (-1::'a::len word) 0"
   by auto
@@ -263,8 +253,7 @@ lemma nat_bot_set: "(0::nat) \<in> xs \<longrightarrow> (\<forall>x \<in> xs . 0
   by fastforce
 
 lemma "numberOfTrailingZeros (0::64 word) = 64"
-  unfolding numberOfTrailingZeros_def
-  using lowestOneBit_bot by simp
+  unfolding numberOfTrailingZeros_def by (simp add: lowestOneBit_bot)
 
 subsection \<open>Long.reverseBytes\<close>
 
@@ -286,8 +275,7 @@ fun bitCount_fun :: "('a::len) word \<Rightarrow> nat \<Rightarrow> nat" where
                                     else (0 + bitCount_fun (v) (n - 1)))"
 
 lemma "bitCount 0 = 0"
-  unfolding bitCount_def
-  by (metis card.empty zero_no_bits)
+  unfolding bitCount_def by (metis card.empty zero_no_bits)
 
 subsection \<open>Long.zeroCount\<close>
 
@@ -303,8 +291,7 @@ lemma negone_set:
 
 lemma negone_all_bits:
   "{n . bit (-1::('a::len) word) n} = {n . 0 \<le> n \<and> n < LENGTH('a)}"
-  using negone_set
-  by auto
+  using negone_set by auto
 
 lemma bitCount_finite:
   "finite {n . bit (v::('a::len) word) n}"
@@ -322,7 +309,6 @@ lemma finite_range:
   "finite {n::nat . n < x}"
   by simp
 
-
 lemma range_eq:
   fixes x y :: nat
   shows "card {y..<x} = card {y<..x}"
@@ -333,39 +319,35 @@ lemma card_of_range_bound:
   assumes "x > y"
   shows "x - y = card {n . y < n \<and> n \<le> x}"
 proof -
-  have finite: "finite {n . y \<le> n \<and> n < x}"
-    by auto
-  have nonempty: "{n . y \<le> n \<and> n < x} \<noteq> {}"
-    using assms by blast
   have simprep: "{n . y < n \<and> n \<le> x} = {y<..x}"
-    by auto
-  have "x - y = card {y<..x}"
-    by auto
+    by fastforce
   then show ?thesis
-    unfolding simprep by blast
+    unfolding simprep by fastforce
 qed
 
 lemma "bitCount (-1::('a::len) word) = LENGTH('a)"
-  unfolding bitCount_def using card_of_range
-  by (metis (no_types, lifting) Collect_cong negone_all_bits)
+  unfolding bitCount_def by (metis (no_types, lifting) Collect_cong negone_all_bits card_of_range)
 
 lemma bitCount_range:
   fixes n :: "('a::len) word"
   shows "0 \<le> bitCount n \<and> bitCount n \<le> Nat.size n"
   unfolding bitCount_def
-  by (metis atLeastLessThan_iff bot_nat_0.extremum max_bit mem_Collect_eq subsetI subset_eq_atLeast0_lessThan_card)
+  by (metis bot_nat_0.extremum max_bit mem_Collect_eq subsetI subset_eq_atLeast0_lessThan_card
+      atLeastLessThan_iff)
 
 lemma zerosAboveHighestOne:
   "n > highestOneBit a \<Longrightarrow> \<not>(bit a n)"
   unfolding highestOneBit_def MaxOrNeg_def
-  by (metis (mono_tags, opaque_lifting) Collect_empty_eq Max_ge finite_bit_word less_le_not_le mem_Collect_eq of_nat_le_iff)
+  by (metis (mono_tags, opaque_lifting) Collect_empty_eq Max_ge finite_bit_word less_le_not_le
+      mem_Collect_eq of_nat_le_iff)
 
 lemma zerosBelowLowestOne:
   assumes "n < lowestOneBit a"
   shows "\<not>(bit a n)"
 proof (cases "{i. bit a i} = {}")
   case True
-  then show ?thesis by simp
+  then show ?thesis
+    by simp
 next
   case False
   have "n < Min (Collect (bit a)) \<Longrightarrow> \<not> bit a n"
@@ -393,55 +375,40 @@ lemma card_eq:
   assumes "x \<union> y = z"
   assumes "y \<inter> x = {}"
   shows "card z - card y = card x"
-  using assms add_diff_cancel_right' card_Un_disjoint
-  by (metis inf.commute)
+  by (metis inf.commute card_Un_disjoint add_diff_cancel_right' assms)
 
 lemma card_add:
   assumes "finite x \<and> finite y \<and> finite z"
   assumes "x \<union> y = z"
   assumes "y \<inter> x = {}"
   shows "card x + card y = card z"
-  using assms card_Un_disjoint
-  by (metis inf.commute)
-
+  by (metis inf.commute assms card_Un_disjoint)
 
 lemma card_add_inverses:
   assumes "finite {n. Q n \<and> \<not>(P n)} \<and> finite {n. Q n \<and> P n} \<and> finite {n. Q n}"
   shows "card {n. Q n \<and> P n} + card {n. Q n \<and> \<not>(P n)} = card {n. Q n}"
-  apply (rule card_add)
-  using assms apply simp
-  apply auto[1]
-  by auto
+  apply (rule card_add) using assms by auto
 
 lemma ones_zero_sum_to_width:
   "bitCount a + zeroCount a = Nat.size a"
 proof -
-  have add_cards: "card {n. (\<lambda>n. n < size a) n \<and> (bit a n)} + card {n. (\<lambda>n. n < size a) n \<and> \<not>(bit a n)} = card {n. (\<lambda>n. n < size a) n}"
+  have add_cards: "card {n. (\<lambda>n. n < size a) n \<and> (bit a n)} +
+                   card {n. (\<lambda>n. n < size a) n \<and> \<not>(bit a n)} = card {n. (\<lambda>n. n < size a) n}"
     apply (rule card_add_inverses) by simp
   then have "... = Nat.size a"
     by auto
- then show ?thesis 
-    unfolding bitCount_def zeroCount_def using max_bit
-    by (metis (mono_tags, lifting) Collect_cong add_cards)
+  then show ?thesis
+    unfolding bitCount_def zeroCount_def
+    by (metis (mono_tags, lifting) Collect_cong add_cards max_bit)
 qed
 
 lemma intersect_bitCount_helper:
   "card {n . n < Nat.size a} - bitCount a = card {n . n < Nat.size a \<and> \<not>(bit a n)}"
 proof -
-  have size_def: "Nat.size a = card {n . n < Nat.size a}"
-    using card_of_range by simp
   have bitCount_def: "bitCount a = card {n . n < Nat.size a \<and> bit a n}"
     using qualified_bitCount by auto
-  have disjoint: "{n . n < Nat.size a \<and> bit a n} \<inter> {n . n < Nat.size a \<and> \<not>(bit a n)} = {}"
-    using disjoint_bit_sets by auto
-  have union: "{n . n < Nat.size a \<and> bit a n} \<union> {n . n < Nat.size a \<and> \<not>(bit a n)} = {n . n < Nat.size a}"
-    using union_bit_sets by auto
   show ?thesis
-    unfolding bitCount_def
-    apply (rule card_eq)
-    using finite_range apply simp
-    using union apply blast
-    using disjoint by simp
+    unfolding bitCount_def apply (rule card_eq) apply force by blast+
 qed
 
 lemma intersect_bitCount:
@@ -451,4 +418,3 @@ lemma intersect_bitCount:
 hide_fact intersect_bitCount_helper
 
 end
-

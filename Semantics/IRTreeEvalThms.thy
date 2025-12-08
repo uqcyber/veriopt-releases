@@ -173,8 +173,10 @@ next
 next
   case BinIntegerNormalizeCompare
   then show ?thesis
-    using assms apply (cases x; cases y; auto) using take_bit_of_0 apply blast
-    by (metis IntVal1 intval_word.simps new_int.elims take_bit_minus_one_eq_mask)+
+    using assms apply (cases x; cases y; auto)
+    prefer 5 using take_bit_of_0 IntVal1 new_int_take_bits apply blast+
+    prefer 2 apply (metis take_bit_minus_one_eq_mask)
+    by presburger+
 next
   case BinIntegerMulHigh
   then show ?thesis

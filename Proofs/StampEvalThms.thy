@@ -384,8 +384,7 @@ lemma bin_eval_bits_fixed_32_ops:
   assumes "result \<noteq> UndefVal"
   assumes "op \<in> binary_fixed_32_ops"
   shows "\<exists>v. result = new_int 32 v"
-  apply (cases op; simp)
-  using assms by (metis new_int.simps bin_eval_new_int)+
+  apply (cases op; simp) using assms by (metis new_int.simps bin_eval_new_int)+
 
 lemma bin_eval_bits_normal_ops:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
@@ -394,8 +393,7 @@ lemma bin_eval_bits_normal_ops:
   assumes "op \<notin> binary_fixed_32_ops"
   shows "\<exists>v. result = new_int b1 v"
   using assms apply (cases op; simp)
-  apply metis+
-  apply (metis new_int_bin.simps)+
+  using new_int_bin.simps apply (metis (mono_tags))+
   by (metis take_bit_xor take_bit_and take_bit_or)+
 
 lemma bin_eval_input_bits_equal:

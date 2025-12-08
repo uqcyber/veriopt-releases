@@ -48,21 +48,18 @@ lemma val_sub_after_right_add_2:
   assumes "x = new_int b v"
   assumes "val[(x + y) - y] \<noteq> UndefVal"
   shows   "val[(x + y) - y] = x"
-  using assms apply (cases x; cases y; auto)
-  by (metis (full_types) intval_sub.simps(2))
+  using assms apply (cases x; cases y; auto) by (metis (full_types) intval_sub.simps(2))
 
 lemma val_sub_after_left_sub:
   assumes "val[(x - y) - x] \<noteq> UndefVal"
   shows   "val[(x - y) - x] = val[-y]"
-  using assms intval_sub.elims apply (cases x; cases y; auto)
-  by fastforce
+  using assms apply (cases x; cases y; auto) by (metis (full_types) intval_sub.simps(2))
 
 lemma val_sub_then_left_sub:
   assumes "y = new_int b v"
   assumes "val[x - (x - y)] \<noteq> UndefVal"
   shows   "val[x - (x - y)] = y"
-  using assms apply (cases x; auto)
-  by (metis (mono_tags) intval_sub.simps(6))
+  using assms apply (cases x; auto) by (metis (mono_tags) intval_sub.simps(6))
 
 lemma val_subtract_zero:
   assumes "x = new_int b v"
@@ -79,8 +76,7 @@ lemma val_zero_subtract_value:
 lemma val_sub_then_left_add:
   assumes "val[x - (x + y)] \<noteq> UndefVal"
   shows   "val[x - (x + y)] = val[-y]"
-  using assms apply (cases x; cases y; auto)
-  by (metis (mono_tags, lifting) intval_sub.simps(6))
+  using assms apply (cases x; cases y; auto) by (metis (mono_tags, lifting) intval_sub.simps(6))
 
 lemma val_sub_negative_value:
   assumes "val[x - (-y)] \<noteq> UndefVal"
@@ -102,7 +98,7 @@ lemma exp_sub_after_right_add:
   shows "exp[(x + y) - y] \<ge> x"
   apply auto
   subgoal premises p for m p ya xa yaa
-  proof-
+  proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(3) by auto
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
@@ -113,12 +109,12 @@ lemma exp_sub_after_right_add:
     obtain yb yvv where yvv: "yv = IntVal yb yvv"
       by (metis evalDet evaltree_not_undef intval_add.simps(7,8,9) intval_logic_negation.cases yv
           intval_sub.simps(2) p(2,4))
-    then have lhsDefined: "val[(xv + yv) - yv] \<noteq> UndefVal"
+    then have "val[(xv + yv) - yv] \<noteq> UndefVal"
       using xvv yvv apply (cases xv; cases yv; auto)
       by (metis evalDet intval_add.simps(1) p(3,4,5) xv yv)
      then show ?thesis
-       by (metis \<open>\<And>thesis. (\<And>(xb) xvv. (xv) = IntVal xb xvv \<Longrightarrow> thesis) \<Longrightarrow> thesis\<close> evalDet xv yv
-           eval_unused_bits_zero lhsDefined new_int.simps p(1,3,4) val_sub_after_right_add_2)
+       by (metis xvv xv yv eval_unused_bits_zero new_int.simps p(1,3,4) val_sub_after_right_add_2
+           evalDet)
   qed
   done
 
@@ -136,7 +132,7 @@ lemma exp_sub_negative_value:
       using p(1) by auto
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
       using p(3) by auto
-    then have rhsEval: "[m,p] \<turnstile> exp[x + y] \<mapsto> val[xv + yv]"
+    then have "[m,p] \<turnstile> exp[x + y] \<mapsto> val[xv + yv]"
       by (metis bin_eval.simps(1) evalDet p(1,2,3) unfold_binary val_sub_negative_value xv)
     then show ?thesis
       by (metis evalDet p(1,2,3) val_sub_negative_value xv yv)
@@ -147,23 +143,21 @@ lemma exp_sub_then_left_sub:
   "exp[x - (x - y)] \<ge> y"
   using val_sub_then_left_sub apply auto
   subgoal premises p for m p xa xaa ya
-    proof- 
+    proof -
       obtain xa where xa: "[m, p] \<turnstile> x \<mapsto> xa"
         using p(2) by blast
       obtain ya where ya: "[m, p] \<turnstile> y \<mapsto> ya"
         using p(5) by auto
       obtain xaa where xaa: "[m, p] \<turnstile> x \<mapsto> xaa"
         using p(2) by blast
-      have 1: "val[xa - (xaa - ya)] \<noteq> UndefVal"
+      have "val[xa - (xaa - ya)] \<noteq> UndefVal"
         by (metis evalDet p(2,3,4,5) xa xaa ya)
-      then have "val[xaa - ya] \<noteq> UndefVal"
-        by auto
       then have "[m, p] \<turnstile> y \<mapsto> val[xa - (xaa - ya)]"
-        by (metis "1" Value.exhaust eval_unused_bits_zero evaltree_not_undef xa xaa ya new_int.simps
+        by (metis Value.exhaust eval_unused_bits_zero evaltree_not_undef xa xaa ya  new_int.simps
             intval_sub.simps(6,7,8,9) evalDet val_sub_then_left_sub)
       then show ?thesis
         by (metis evalDet p(2,4,5) xa xaa ya)
-    qed 
+    qed
   done
 
 thm_oracles exp_sub_then_left_sub
@@ -181,7 +175,7 @@ lemma SubtractZero_Exp:
       by (metis evalDet intval_sub.simps(1) new_int_bin.simps p(1,2) xv)
     then have unfoldSub: "val[xv - (IntVal b 0)] = (new_int xb (xvv - 0))"
       by (simp add: xvv)
-    then have rhsSame: "val[xv] = new_int xb (xvv)"
+    have "val[xv] = new_int xb (xvv)"
       using eval_unused_bits_zero xv xvv by auto
     then show ?thesis
       by (metis diff_zero evalDet p(1) unfoldSub xv)
@@ -200,7 +194,7 @@ lemma ZeroSubtractValue_Exp:
       using p(4) by auto
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis constantAsStamp.cases evalDet evaltree_not_undef intval_sub.simps(7,8,9) p(4,5) xv)
-    then have unfoldSub: "val[(IntVal b 0) - xv] = (new_int xb (0 - xvv))"
+    then have "val[(IntVal b 0) - xv] = (new_int xb (0 - xvv))"
       by (metis intval_sub.simps(1) new_int_bin.simps p(1,2) valid_int_same_bits wf_stamp_def xv)
     then show ?thesis
       by (metis UnaryExpr intval_negate.simps(1) p(4,5) unary_eval.simps(2) verit_minus_simplify(3)

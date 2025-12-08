@@ -52,9 +52,9 @@ optimization condition_bounds_y: "((u < v) ? x : y) \<longmapsto> y
 (** Start of new proofs **)
 
 (* Value-level proofs *)
-lemma val_optimise_integer_test: 
+lemma val_optimise_integer_test:
   assumes "\<exists>v. x = IntVal 32 v"
-  shows "val[((x & (IntVal 32 1)) eq (IntVal 32 0)) ? (IntVal 32 0) : (IntVal 32 1)] = 
+  shows "val[((x & (IntVal 32 1)) eq (IntVal 32 0)) ? (IntVal 32 0) : (IntVal 32 1)] =
          val[x & IntVal 32 1]"
   using assms apply auto
   apply (metis (full_types) bool_to_val.simps(2) val_to_bool.simps(1))
@@ -123,7 +123,7 @@ optimization ConditionalIntegerEquals_1: "exp[BinaryExpr BinIntegerEquals (c ? x
       apply (cases "cond = IntVal 32 0"; simp) using cRange xvv by auto
     then have condTrue: "val_to_bool cond \<Longrightarrow> cExpr = xv"
       by (metis (mono_tags, lifting) cond evalDet p(7,9,11))
-    then have condFalse: "\<not>(val_to_bool cond) \<Longrightarrow> cExpr = yv"
+    then have "\<not>(val_to_bool cond) \<Longrightarrow> cExpr = yv"
       by (metis (full_types) cond evalDet p(9,11) yVal)
     then show ?thesis
       using cond condTrue valEvalSame by fastforce
@@ -139,8 +139,6 @@ lemma negation_preserve_eval0:
 proof -
   obtain b vv where vIntVal: "v = IntVal b vv"
     using isBoolean_def assms by blast
-  then have negationDefined: "intval_logic_negation v \<noteq> UndefVal"
-    by simp
   then show ?thesis
     using assms(1) by fastforce
 qed
@@ -157,7 +155,7 @@ proof -
     using evalDet assms(1) unary_eval.simps(4) by blast
   then have vRange: "v = IntVal 32 0 \<or> v = IntVal 32 1"
     using assms by (auto simp add: isBoolean_def)
-  have evaluateNot: "v = intval_logic_negation notEval"
+  have "v = intval_logic_negation notEval"
     by (metis IntVal0 IntVal1 intval_logic_negation.simps(1) logicNegateEquiv logic_negate_def
         vRange)
   then show ?thesis
@@ -213,16 +211,16 @@ optimization ConditionalIntegerEquals_2: "exp[BinaryExpr BinIntegerEquals (c ? x
       using p by (metis ConditionalExprE bin_eval.simps(13) evalDet falseCond unfold_binary)
     have eqEvalFalse: "intval_equals yv xv = (IntVal 32 0)"
       unfolding xvv yvv apply auto by (metis (mono_tags) bool_to_val.simps(2) yxDiff yvv xvv)
-    have trueEvalEquiv: "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals (c ? x : y) (y)] \<mapsto> notCond"
+    have "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals (c ? x : y) (y)] \<mapsto> notCond"
       apply (cases notCond) prefer 2
       apply (metis IntVal0 Value.distinct(1) eqEvalFalse evalDet evaltree_not_undef falseEval
              intval_commute intval_logic_negation.simps(1) intval_self_is_true logic_negate_def
              trueEvalCond yvv cNotRange cRange opposites zero_neq_one)
       using notCond cNotRange by auto
-    show ?thesis
+    then show ?thesis
       using ConditionalExprE
-      by (metis cNotRange falseEval notCond trueEvalEquiv trueCond falseCond intval_self_is_true
-          yvv p(9,11) evalDet)
+      by (metis cNotRange falseEval notCond trueCond falseCond intval_self_is_true p(9,11) evalDet
+          yvv)
   qed
   done
 
@@ -243,13 +241,10 @@ optimization ConditionalExtractCondition2: "exp[(c ? false : true)] \<longmapsto
       using isBoolean_def cond p(1) by auto
     then have condTrue: "cond = IntVal 32 1 \<Longrightarrow> cExpr = IntVal 32 0"
       using cond evalDet p(2) p(4) by fastforce
-    then have condFalse: "cond = IntVal 32 0 \<Longrightarrow> cExpr = IntVal 32 1"
+    then have "cond = IntVal 32 0 \<Longrightarrow> cExpr = IntVal 32 1"
       using p cond evalDet by fastforce
-    then have opposite: "cond = intval_logic_negation cExpr"
-      by (metis (full_types) IntVal0 IntVal1 cRange condTrue intval_logic_negation.simps(1)
-          logic_negate_def)
-    then have eq: "notCond = cExpr"
-      by (metis (no_types, lifting) IntVal0 IntVal1 cRange cond condFalse condTrue evalDet notCond
+    then have "notCond = cExpr"
+      by (metis (no_types, lifting) IntVal0 IntVal1 cRange cond condTrue evalDet notCond
           intval_logic_negation.simps(1) logic_negate_def negation_preserve_eval)
     then show ?thesis
       using notCond by auto
@@ -259,7 +254,7 @@ optimization ConditionalExtractCondition2: "exp[(c ? false : true)] \<longmapsto
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
   apply auto
   subgoal premises p for m p v true false xa ya
-  proof-
+  proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(8) by auto
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
@@ -298,12 +293,12 @@ optimization normalizeX: "((x eq const (IntVal 32 0)) ?
     proof -
       obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
         using p by blast
-       have eval: "[m,p] \<turnstile> if val_to_bool (intval_equals xa (IntVal 32 0))
+      have eval: "[m,p] \<turnstile> if val_to_bool (intval_equals xa (IntVal 32 0))
                            then ConstantExpr (IntVal 32 0)
                            else ConstantExpr (IntVal 32 1) \<mapsto> v"
-         using evalDet p(3,4,5,6,7) xa by blast
-       then have xaRange: "xa = IntVal 32 0 \<or> xa = IntVal 32 1"
-         using isBoolean_def p(3) xa by blast
+        using evalDet p(3,4,5,6,7) xa by blast
+      then have xaRange: "xa = IntVal 32 0 \<or> xa = IntVal 32 1"
+        using isBoolean_def p(3) xa by blast
       then have "v = xa"
         using eval by auto
       then show ?thesis

@@ -47,7 +47,6 @@ lemma take_bit_64:
   shows "take_bit 64 v = take_bit b v"
   by (metis assms min_def nle_le take_bit_take_bit)
 
-
 text \<open>
 A special value exists for the maximum negative integer as its negation is itself.
 We can define the value as @{term "(set_bit (b - 1) 0)::int64"} for any bit-width, b.
@@ -303,12 +302,9 @@ qed
 
 paragraph \<open>Optimisations\<close>
 
-(*
 optimization AbsIdempotence:
-  "abs(abs(x)) \<longmapsto> abs(x) when wf_stamp x \<and> stamp_expr x = IntegerStamp b l h"
-  using val_abs_idem
-  using wf_stamp_def by fastforce
-*)
+  "exp[abs(abs(x))] \<longmapsto> exp[abs(x)] when wf_stamp x \<and> stamp_expr x = IntegerStamp b l h"
+  using val_abs_idem wf_stamp_def by fastforce
 
 end
 

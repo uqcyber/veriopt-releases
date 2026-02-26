@@ -392,9 +392,9 @@ lemma bin_eval_bits_normal_ops:
   assumes "op \<notin> binary_shift_ops"
   assumes "op \<notin> binary_fixed_32_ops"
   shows "\<exists>v. result = new_int b1 v"
-  using assms apply (cases op; simp)
+  using assms apply (cases op; simp) prefer 9
   using new_int_bin.simps apply (metis (mono_tags))+
-  by (metis take_bit_xor take_bit_and take_bit_or)+
+  apply (metis take_bit_and) apply (metis take_bit_or) by (metis take_bit_xor)
 
 lemma bin_eval_input_bits_equal:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"

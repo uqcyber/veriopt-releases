@@ -120,15 +120,15 @@ next
 next
   case BinAnd
   then show ?thesis
-    using assms apply (cases x; cases y; auto) by (metis take_bit_and)+
+    using assms apply (cases x; cases y; auto) apply (metis take_bit_and) by meson
 next
   case BinOr
   then show ?thesis
-    using assms apply (cases x; cases y; auto) by (metis take_bit_or)+
+    using assms apply (cases x; cases y; auto) apply (metis take_bit_or) by presburger
 next
   case BinXor
   then show ?thesis
-    using assms apply (cases x; cases y; auto) by (metis take_bit_xor)+
+    using assms apply (cases x; cases y; auto) apply (metis take_bit_xor) by meson
 next
   case BinShortCircuitOr
   then show ?thesis
@@ -730,7 +730,7 @@ lemma unary_normal_bitsize:
   shows "\<exists> ix. x = IntVal b ix"
   using assms apply (cases op; auto) prefer 5
   apply (smt (verit, ccfv_threshold) Value.distinct(1) Value.inject(1) intval_reverse_bytes.elims
-      new_int.simps)
+         new_int.simps)
   by (metis Value.distinct(1) Value.inject(1) intval_logic_negation.elims new_int.simps
       intval_not.elims intval_negate.elims intval_abs.elims)+
 
@@ -830,7 +830,6 @@ next
     by auto
 qed
 
-
 lemma bin_eval_normal_bits:
   assumes "op \<in> binary_normal"
   assumes "bin_eval op x y = xy"
@@ -849,8 +848,9 @@ lemma bin_eval_normal_bits:
         by (metis assms(3) bin_eval_inputs_are_ints bin_eval_int is_IntVal_def operator)
       then have notUndefMeansWidthSame: "bin_eval op x y \<noteq> UndefVal \<Longrightarrow> (xb = yb)"
         using assms apply (cases op; auto)
-        by (metis intval_xor.simps(1) intval_or.simps(1) intval_div.simps(1) intval_mod.simps(1) intval_and.simps(1) intval_sub.simps(1)
-            intval_mul.simps(1) intval_add.simps(1) new_int_bin.elims xv)+
+        by (metis intval_xor.simps(1) intval_or.simps(1) intval_div.simps(1) intval_mod.simps(1)
+            intval_and.simps(1) intval_sub.simps(1) intval_mul.simps(1) intval_add.simps(1)
+            new_int_bin.elims xv)+
       then have inWidthsSame: "xb = yb"
         using assms(3) operator by auto
       obtain ob xyv where out: "xy = IntVal ob xyv"
@@ -898,8 +898,9 @@ lemma unfold_binary_width_bin_normal:
       by (metis evalDet p(2,3) eval)
     then have notUndefMeansSameWidth: "bin_eval op xv yv \<noteq> UndefVal \<Longrightarrow> (bb = yb)"
       using assms apply (cases op; auto)
-      by (metis intval_add.simps(1) intval_mul.simps(1) intval_div.simps(1) intval_mod.simps(1) intval_sub.simps(1) intval_and.simps(1)
-          intval_or.simps(1) intval_xor.simps(1) new_int_bin.simps xa ya)+
+      by (metis intval_add.simps(1) intval_mul.simps(1) intval_div.simps(1) intval_mod.simps(1)
+          intval_sub.simps(1) intval_and.simps(1) intval_or.simps(1) intval_xor.simps(1) xa ya
+          new_int_bin.simps)+
     have unfoldVal: "bin_eval op x y = bin_eval op (IntVal bb xa) (IntVal yb ya)"
       unfolding sameVals xa ya by simp
     then have sameWidth: "b = yb"

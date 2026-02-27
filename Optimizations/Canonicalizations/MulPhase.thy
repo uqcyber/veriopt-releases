@@ -395,14 +395,6 @@ proof -
 qed
   done
 
-lemma ExpIntBecomesIntValArbitrary:
-  assumes "stamp_expr x = IntegerStamp b xl xh"
-  assumes "wf_stamp x"
-  assumes "valid_value v (IntegerStamp b xl xh)"
-  assumes "[m,p] \<turnstile> x \<mapsto> v"
-  shows "\<exists>xv. v = IntVal b xv"
-  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3))
-
 optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i) 
                               when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>
@@ -415,7 +407,7 @@ proof -
   obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
     using eval(1,2) by blast
   obtain xvv where xvv: "xv = IntVal 64 xvv"
-    by (metis wf_stamp_def eval(1) ExpIntBecomesIntValArbitrary xv)
+    by (metis wf_stamp_def eval(1) ExpIntBecomesIntVal xv)
   then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
     by (metis bin_eval.simps(3) eval(1,2) evalDet unfold_binary xv yv)
   have "[m, p] \<turnstile> exp[const (IntVal 64 i)] \<mapsto> val[(IntVal 64 i)]"

@@ -1,5 +1,7 @@
 theory TacticSolving
-  imports Common
+  imports
+    Common
+    Proofs.StampEvalThms
 begin
 
 fun size :: "IRExpr \<Rightarrow> nat" where
@@ -245,14 +247,6 @@ begin
    x | y \<mapsto> -1 when (downMask x | downMask y == -1)
 *)
 
-lemma ExpIntBecomesIntValArbitrary:
-  assumes "stamp_expr x = IntegerStamp b xl xh"
-  assumes "wf_stamp x"
-  assumes "valid_value v (IntegerStamp b xl xh)"
-  assumes "[m,p] \<turnstile> x \<mapsto> v"
-  shows "\<exists>xv. v = IntVal b xv"
-  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3)) 
-
 lemma OrGeneralization:
   assumes "stamp_expr x = IntegerStamp b xl xh"
   assumes "stamp_expr y = IntegerStamp b yl yh"
@@ -300,14 +294,6 @@ lemma ValNeverEqNotSelf:
   assumes "e = IntVal 32 ev"
   shows "val[(\<not>e) eq e] = val[bool_to_val False]"
   by (simp add: TakeBitNotSelf assms)
-
-lemma ExpIntBecomesIntVal:
-  assumes "stamp_expr x = IntegerStamp 32 xl xh"
-  assumes "wf_stamp x"
-  assumes "valid_value v (IntegerStamp 32 xl xh)"
-  assumes "[m,p] \<turnstile> x \<mapsto> v"
-  shows "\<exists>xv. v = IntVal 32 xv"
-  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3)) 
 
 lemma ExpNeverNotSelf:
   assumes "stamp_expr x = IntegerStamp 32 xl xh"
@@ -371,13 +357,9 @@ lemma ValXorFallThrough:
   shows "val[(x \<oplus> y) eq x] = val[y eq (new_int b 0)]"
   by (simp add: assms BinXorFallThrough)
 
-lemma ValEqAssoc:
-  "val[x eq y] = val[y eq x]"
-  apply (cases x; cases y; auto) by (smt (verit, del_insts))
-
 lemma ExpEqAssoc:
   "exp[x eq y] \<ge> exp[y eq x]"
-  by (auto simp add: ValEqAssoc)
+  by (auto simp add: intval_eq_commute)
 
 lemma ExpXorBinEqCommute:
   "exp[(x \<oplus> y) eq y] \<ge> exp[(y \<oplus> x) eq y]"
@@ -669,14 +651,6 @@ lemma ValXorIsDeterministic_64:
   by (smt (verit, best) ValXorElimSelf64 ValXorIsAssociative ValXorSelfIsZero Value.distinct(1)
       assms Value.inject(1) val_xor_commute valXorIsEqual_64)
 
-lemma ExpIntBecomesIntVal_64:
-  assumes "stamp_expr x = IntegerStamp 64 xl xh"
-  assumes "wf_stamp x"
-  assumes "valid_value v (IntegerStamp 64 xl xh)"
-  assumes "[m,p] \<turnstile> x \<mapsto> v"
-  shows "\<exists>xv. v = IntVal 64 xv"
-  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3))
-
 lemma expXorIsEqual_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"
   assumes "stamp_expr y = IntegerStamp 64 yl yh"
@@ -695,7 +669,7 @@ lemma expXorIsEqual_64:
     obtain zVal where zVal: "[m,p] \<turnstile> z \<mapsto> zVal"
       using p(12) by simp
     obtain xv where xv: "xVal = IntVal 64 xv"
-      by (metis p(1) p(4) wf_stamp_def xVal ExpIntBecomesIntVal_64)
+      by (metis p(1) p(4) wf_stamp_def xVal ExpIntBecomesIntVal)
     then have "[m,p] \<turnstile> exp[y eq z] \<mapsto> val[yVal eq zVal]"
       by (metis BinaryExpr bin_eval.simps(13) evalDet p(7,8,9,10,11,12,13) valXorIsEqual_64 xVal 
           yVal zVal)
@@ -768,12 +742,12 @@ lemma expXorEqZero_64:
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
       using p by fast
     obtain xvv where xvv: "xv = IntVal 64 xvv"
-      by (metis p(1,3) wf_stamp_def xv ExpIntBecomesIntVal_64)
+      by (metis p(1,3) wf_stamp_def xv ExpIntBecomesIntVal)
     obtain yvv where yvv: "yv = IntVal 64 yvv"
-      by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal_64)
+      by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal)
     have "[m,p] \<turnstile> exp[x eq y] \<mapsto> val[xv eq yv]"
-      by (smt (z3) BinaryExpr ValEqAssoc ValXorSelfIsZero Value.distinct(1) bin_eval.simps(13) xvv
-          evalDet p(5,6,7,8) valXorIsEqual_64 xv yv)
+      by (smt (z3) BinaryExpr intval_eq_commute ValXorSelfIsZero Value.distinct(1) valXorIsEqual_64
+          bin_eval.simps(13) xvv evalDet p(5,6,7,8) xv yv)
     then show ?thesis
       by (metis evalDet p(6,7,8) valXorEqZero_64 xv xvv yv yvv)
   qed
@@ -815,9 +789,9 @@ lemma expXorEqNeg1_64:
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
       using p by fast
     obtain xvv where xvv: "xv = IntVal 64 xvv"
-      by (metis p(1,3) wf_stamp_def xv ExpIntBecomesIntVal_64)
+      by (metis p(1,3) wf_stamp_def xv ExpIntBecomesIntVal)
     obtain yvv where yvv: "yv = IntVal 64 yvv"
-      by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal_64)
+      by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal)
     obtain nyv where nyv: "[m,p] \<turnstile> exp[(\<not>y)] \<mapsto> nyv"
       by (metis ValXorSelfIsZero2 Value.distinct(1) intval_not.simps(1) yv yvv intval_xor.simps(2)
           UnaryExpr unary_eval.simps(3))

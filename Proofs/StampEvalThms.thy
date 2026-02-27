@@ -584,6 +584,20 @@ lemma value_range:
 end
 *)
 
+lemma ExpIntBecomesIntVal:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "wf_stamp x"
+  assumes "valid_value v (IntegerStamp b xl xh)"
+  assumes "[m,p] \<turnstile> x \<mapsto> v"
+  shows "\<exists>xv. v = IntVal b xv"
+  using assms by (simp add: IRTreeEvalThms.valid_value_elims(3))
+
+lemma stamp_of_default:
+  assumes "stamp_expr x = default_stamp"
+  assumes "wf_stamp x"
+  shows "([m, p] \<turnstile> x \<mapsto> v) \<longrightarrow> (\<exists>vv. v = IntVal 32 vv)"
+  by (metis assms default_stamp valid_value_elims(3) wf_stamp_def)
+
 lemma wf_integerstamp_eval_is_new_int:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b xl xh"

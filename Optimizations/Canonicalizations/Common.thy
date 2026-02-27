@@ -81,6 +81,7 @@ lemma well_formed_equal_defn [simp]:
 
 text \<open> Helpful lemmas for canonicalization proofs \<close>
 
+(* General lemmas *)
 lemma takeBitNot:
   fixes xv :: "64word"
   assumes "xb \<ge> 1"
@@ -101,5 +102,10 @@ lemma const_eval_is_const:
   assumes "wf_value n"
   shows "[m,p] \<turnstile> exp[(const (n))] \<mapsto> n"
   by (simp add: assms IRTreeEval.evaltree.ConstantExpr)
+
+(* IntegerEquals lemmas *)
+lemma intval_eq_commute:
+  shows "val[y eq x] = val[x eq y]"
+  apply (cases y; cases x; auto) by (smt (verit, best))
 
 end

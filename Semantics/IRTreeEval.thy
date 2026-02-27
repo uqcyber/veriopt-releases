@@ -490,6 +490,9 @@ end
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
   "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
+definition is_boolean :: "IRExpr \<Rightarrow> bool" where
+  "is_boolean e = (\<forall>m p cond. (([m,p] \<turnstile> e \<mapsto> cond) \<longrightarrow> (cond \<in> {IntVal 32 0, IntVal 32 1})))"
+
 definition IRExpr_up :: "IRExpr \<Rightarrow> int64" where
   "IRExpr_up e = not 0"
 

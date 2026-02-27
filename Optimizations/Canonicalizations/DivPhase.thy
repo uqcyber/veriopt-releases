@@ -40,6 +40,8 @@ phase DivPhase
   terminating size
 begin
 
+text \<open>Optimisations\<close>
+
 optimization DivItself: "(x / x) \<longmapsto> const IntVal b 1 when
                          (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using size_non_const apply force

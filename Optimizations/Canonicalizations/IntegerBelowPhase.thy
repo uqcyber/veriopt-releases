@@ -93,7 +93,7 @@ proof -
   then have "(take_bit n v - take_bit (n-1) v) = push_bit (n-1) (of_bool (bit v (n-1)))"
     by (smt (verit) One_nat_def assms(1) assms(3) bit_take_bit_iff eq_iff_diff_eq_0 isValPositive.simps less_Suc_eq less_nat_zero_code linordered_semidom_class.add_diff_inverse not_gr_zero of_bool_eq(1) plus_1_eq_Suc push_bit_of_0 signed_take_bit_code signed_take_bit_eq_if_positive zero_less_diff)
   then have "... = 0"
-    by (metis One_nat_def assms(1) assms(3) isValPositive.simps of_bool_eq(1) push_bit_of_0)
+    by (metis (full_types) One_nat_def assms(1,3) isValPositive.simps of_bool_eq(1) push_bit_of_0)
   then show ?thesis
     using \<open>take_bit (n::nat) (v::64 word) - take_bit (n - (1::nat)) v = push_bit (n - (1::nat)) (of_bool (bit v (n - (1::nat))))\<close> assms(1) assms(2) by force 
 qed
@@ -127,8 +127,7 @@ lemma val_bit_stake_eq:
   fixes v::int64
   assumes "take_bit n v = v"
   shows "(0 \<le> sint (signed_take_bit (n-1) v)) = (\<not> bit v (n-1))"
-  by (metis assms(1) assms(2) assms(3) dual_order.refl order.strict_iff_not 
-      signed_take_bit_eq_if_positive sint_0 take_bit_of_0 val_pos_bit val_pos_def)
+  by (metis assms val_pos_bit val_pos_def)
 
 lemma pos_greater_zero:
   assumes "x = IntVal n v"
@@ -192,11 +191,11 @@ proof -
     using assms by simp
   then have "\<not>val_to_bool(val[x < y])"
     using assms bin_inverse_negate_less apply simp
-    by (metis (full_types) bool_to_val.simps(1) bool_to_val.simps(2) 
-        signed.less_asym val_to_bool.simps(1) word_sless_alt)
+    by (metis (mono_tags) bool_to_val.simps(1,2) signed.less_asym val_to_bool.simps(1)
+        word_sless_alt)
   then show ?thesis
     using assms bin_negate_less apply simp
-    by (metis (full_types) bool_to_val.simps(1) bool_to_val.simps(2) val_to_bool.simps(1))
+    by (metis (mono_tags) bool_to_val.simps(1,2) val_to_bool.simps(1))
 qed
 
 lemma verify_isValPositive:
@@ -486,13 +485,13 @@ proof -
   obtain sB sLo sHi where hi:"(IntegerStamp sB sLo sHi) = (stamp_expr x)"
     by (metis \<open>(xv::Value) = IntVal (tb::nat) (tv::64 word)\<close> 
         \<open>valid_value (xv::Value) (stamp_expr (x::IRExpr))\<close> valid_int_gives)
-  have "tb = sB"
+  have bitsEq: "tb = sB"
     by (metis \<open>(xv::Value) = IntVal (tb::nat) (tv::64 word)\<close> \<open>valid_value (xv::Value) 
         (stamp_expr (x::IRExpr))\<close> hi valid_value.simps(1))
   then have "sLo \<le> int_signed_value tb tv"
     by (metis \<open>(xv::Value) = IntVal (tb::nat) (tv::64 word)\<close> 
               \<open>valid_value (xv::Value) (stamp_expr (x::IRExpr))\<close> hi valid_value.simps(1))
-  have "isStampPos (IntegerStamp sB sLo sHi)"
+  have posStamp: "isStampPos (IntegerStamp sB sLo sHi)"
     by (simp add: assms(1) hi)
   then have "sLo \<ge> 0"
     using assms hi apply simp
@@ -503,10 +502,8 @@ proof -
     by simp
   then have "\<not> (bit tv (tb-1))"
     using assms signed_take_bit_nonnegative_iff apply simp
-    by (metis (mono_tags, lifting) One_nat_def Suc_eq_plus1 \<open>(tb::nat) = (sB::nat)\<close> 
-        \<open>isStampPos (IntegerStamp (sB::nat) (sLo::int) (sHi::int))\<close> bit_take_bit_iff 
-        isStampPos.simps(1) less_diff_conv less_numeral_extra(3) linorder_not_less nat_diff_split 
-        plus_1_eq_Suc take_bit_0 val_neg_def)
+    by (metis (mono_tags, lifting) One_nat_def bitsEq posStamp isStampPos.simps(1) linorder_not_less
+        val_neg_def)
   then show ?thesis
     by (simp add: \<open>(xv::Value) = IntVal (tb::nat) (tv::64 word)\<close>)
 qed
@@ -575,7 +572,7 @@ lemma exp_below_less:
           evalDet wfCond wf_rhs1 ya)
     then have "val[xa < (xaa - yaa)] \<noteq> UndefVal"
       using xa hello3 apply auto
-      by (metis Value.distinct(1) bool_to_val.simps(1) bool_to_val.simps(2))
+      by (metis (full_types) Value.distinct(1) bool_to_val.simps(1) bool_to_val.simps(2))
     then have wf_rhs:"[m,p] \<turnstile> exp[x < (y-z)] \<mapsto> val[xa < (xaa - yaa)]"
       apply (auto simp add: unfold_binary)
       by (metis intval_less_than.simps(6) prems(1) yValue zValue)
@@ -605,7 +602,7 @@ lemma exp_below_less:
         by (metis Value.distinct(1) \<open>(vyb::nat) = (vzb::nat)\<close> hello1 hello2 hello3 
             lower_stamp2 yValue zValue)
       then have "val[xa |<| ya] = val[xa |<| (xaa-yaa)]"
-        by (metis False evalDet prems(4) wf_rhs1)
+        by (metis (full_types) False evalDet prems(4) wf_rhs1)
       then have "val[xa |<| (xaa - yaa)] = val[xa < (xaa - yaa)]"
         using assms val_below_eq_less xaPos wf_rhs
         by (smt (verit, del_insts) False \<open>(vxb::nat) = (b::nat)\<close> \<open>(vxb::nat) = (yab::nat)\<close> 

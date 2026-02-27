@@ -79,6 +79,8 @@ lemma well_formed_equal_defn [simp]:
   "well_formed_equal v\<^sub>1 v\<^sub>2 = (v\<^sub>1 \<noteq> UndefVal \<longrightarrow> v\<^sub>1 = v\<^sub>2)"
   unfolding well_formed_equal_def by simp
 
+text \<open> Helpful lemmas for canonicalization proofs \<close>
+
 lemma takeBitNot:
   fixes xv :: "64word"
   assumes "xb \<ge> 1"
@@ -94,5 +96,10 @@ lemma takeBitNot:
       using addAllOnes assms orAllOnes p by force
   qed
   done
+
+lemma const_eval_is_const:
+  assumes "wf_value n"
+  shows "[m,p] \<turnstile> exp[(const (n))] \<mapsto> n"
+  by (simp add: assms IRTreeEval.evaltree.ConstantExpr)
 
 end

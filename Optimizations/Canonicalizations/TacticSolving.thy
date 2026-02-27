@@ -99,9 +99,6 @@ lemma val_xor_self_is_false:
   shows "val[x \<oplus> x] \<approx> val[false]"
   by (cases x; auto simp: assms)
 
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
-
 lemma exp_xor_self_is_false: 
   assumes "stamp_expr x = IntegerStamp 32 l h"
   assumes "wf_stamp x"
@@ -314,58 +311,6 @@ phase TacticSolving
   terminating size
 begin
 
-(* Add
-   x + ~x \<mapsto> -1 
-*)
-
-lemma constEvalIsConst: 
-  assumes "wf_value n"
-  shows "[m,p] \<turnstile> exp[(const (n))] \<mapsto> n"  
-  by (simp add: assms IRTreeEval.evaltree.ConstantExpr)
-
-lemma ExpAddCommute:
-  "exp[x + y] \<ge> exp[y + x]"
-  by (auto simp add: Values.intval_add_sym)
-
-lemma AddNotVal:
-  assumes "n = IntVal bv v"
-  shows "val[n + (~n)] = new_int bv (not 0)"
-  by (auto simp: assms)
-
-lemma AddNotExp:
-  assumes "stamp_expr n = IntegerStamp b l h"
-  assumes "wf_stamp n"
-  shows "exp[n + (~n)] \<ge> exp[(const (new_int b (not 0)))]"
-  apply auto
-  subgoal premises p for m p x xa
-  proof -
-    have xaDef: "[m,p] \<turnstile> n \<mapsto> xa"
-      by (simp add: p)
-    then have xaDef2: "[m,p] \<turnstile> n \<mapsto> x"
-      by (simp add: p)
-    then have xaEq: "xa = x"
-      using p by (simp add: evalDet)
-    then obtain xv where xv: "xa = IntVal b xv"
-      by (metis valid_int wf_stamp_def xaDef2 assms)
-    have wfInt: "wf_value (new_int b (not 0))"
-      using validDefIntConst xaDef by (simp add: eval_bits_1_64 xv wf_value_def)
-    have toValRHS: "[m,p] \<turnstile> exp[(const (new_int b (not 0)))] \<mapsto> new_int b (not 0)"
-      using wfInt by (simp add: constEvalIsConst)
-    have "val[xa + (~xa)] = new_int b (not 0)"
-      by (simp add: xv)
-    then show ?thesis
-      using toValRHS by (simp add: xaEq)
-    qed
-   done
-
-optimization AddNot: "exp[n + (~n)] \<longmapsto> (const (new_int b (not 0)))
-                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
-   apply (simp add: Suc_lessI) using AddNotExp by force
-
-optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
-                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
-   apply (simp add: Suc_lessI) using AddNot ExpAddCommute by simp
-
 (* 
   ~e == e \<mapsto> false
  *)
@@ -482,8 +427,8 @@ lemma ExpXorFallThrough:
       by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def xa)
     then have "[m,p] \<turnstile> exp[BinaryExpr BinIntegerEquals y (const (new_int b 0))] \<mapsto>
                        val[intval_equals (xa \<oplus> ya) xa]"
-      by (metis (no_types, lifting) ValXorFallThrough constEvalIsConst bin_eval.simps(13) evalDet xa
-          p(5,6,7,8) unfold_binary ya)
+      by (metis (no_types, lifting) ValXorFallThrough const_eval_is_const bin_eval.simps(13) evalDet
+          xa p(5,6,7,8) unfold_binary ya)
     then show ?thesis
       by (metis evalDet new_int.elims p(1,3,5,7) take_bit_of_0 valid_value.simps(1) wf_stamp_def xa)
    qed 

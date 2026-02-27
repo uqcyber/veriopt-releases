@@ -487,6 +487,9 @@ lemma not_down_up_mask_and_zero_implies_zero:
 
 end
 
+definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
+  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
+
 definition IRExpr_up :: "IRExpr \<Rightarrow> int64" where
   "IRExpr_up e = not 0"
 

@@ -44,8 +44,8 @@ fun wf_stamps :: "IRGraph \<Rightarrow> bool" where
   "wf_stamps g = (\<forall> n \<in> ids g . 
     (\<forall> v m p e . (g \<turnstile> n \<simeq> e) \<and> ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e)))"
 
-fun wf_stamp :: "IRGraph \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> bool" where
-  "wf_stamp g s = (\<forall> n \<in> ids g . 
+fun wf_stamp_irgraph :: "IRGraph \<Rightarrow> (ID \<Rightarrow> Stamp) \<Rightarrow> bool" where
+  "wf_stamp_irgraph g s = (\<forall> n \<in> ids g .
     (\<forall> v m p e . (g \<turnstile> n \<simeq> e) \<and> ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (s n)))"
 
 lemma wf_empty: "wf_graph start_end_graph"
@@ -60,8 +60,8 @@ fun wf_logic_node_inputs :: "IRGraph \<Rightarrow> ID \<Rightarrow> bool" where
 
 fun wf_values :: "IRGraph \<Rightarrow> bool" where
   "wf_values g = (\<forall> n \<in> ids g .
-    (\<forall> v m p . ([g, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> 
-       (is_LogicNode (kind g n) \<longrightarrow> 
+    (\<forall> v m p . ([g, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow>
+       (is_LogicNode (kind g n) \<longrightarrow>
         wf_bool v \<and> wf_logic_node_inputs g n)))"
 
 end

@@ -145,14 +145,9 @@ lemma exp_and_equal:
 
 lemma exp_and_nots:
   "exp[~x & ~y] \<ge> exp[~(x | y)]"
-   using val_and_nots by force
+  using val_and_nots by force
 
- value "wf_value (IntVal 64 0)"
-lemma new_intZero [simp]: 
-  assumes "1 \<le> b"
-  assumes "b \<le> 64"
-  shows "new_int b 0 = IntVal b 0"
-  unfolding new_int.simps by simp
+value "wf_value (IntVal 64 0)"
 
 lemma wfZero [simp]:
   assumes "1 \<le> b"

@@ -140,17 +140,11 @@ no_translations
   "n" <= "CONST ConstantExpr (CONST IntVal b n)"
   "x - y" <= "CONST BinaryExpr (CONST BinSub) x y"
 
-
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
-
 lemma wf_stamp_eval:
   assumes "wf_stamp e"
   assumes "stamp_expr e = IntegerStamp b lo hi"
   shows "\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> (\<exists>vv. v = IntVal b vv)"
-  using assms unfolding wf_stamp_def
-  using valid_int_same_bits valid_int
-  by metis
+  using assms unfolding wf_stamp_def by (metis valid_int)
 
 phase SnipPhase
   terminating size
@@ -174,8 +168,9 @@ proof -
     using assms wf_stamp_eval
     by (metis stamp_expr.simps(2))
   then show "\<forall>m p v. ([m,p] \<turnstile> BinaryExpr BinSub x x \<mapsto> v) \<longrightarrow> ([m,p] \<turnstile> ConstantExpr (IntVal b 0) \<mapsto> v)"
-    using wf_value_def
-    by (smt (verit, best) BinaryExprE TreeSnippets.wf_stamp_def assms bin_eval.simps(2) constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val unfold_const valid_stamp.simps(1) valid_value.simps(1))
+    by (smt (verit, best) BinaryExprE IRTreeEval.wf_stamp_def assms bin_eval.simps(2) unfold_const
+        constantAsStamp.simps(1) evalDet stamp_expr.simps(2) sub_same_val valid_stamp.simps(1)
+        valid_value.simps(1) wf_value_def)
 qed
 thm_oracles SubIdentity
 
@@ -348,7 +343,7 @@ begin
 end
 snipend -
 
-hide_const (open) "Form.wf_stamp"
+(*hide_const (open) "Form.wf_stamp"*)
 
 snipbegin \<open>phase-example\<close>
 phase Conditional
@@ -374,14 +369,13 @@ snipbegin \<open>phase-example-5\<close>optimization LessCond: "((u < v) ? t : f
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -
   apply (auto simp: trm_def)
   using ConditionalPhase.condition_bounds_x(1)
-  by (metis(full_types) StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def bin_eval.simps(14) stamp_under_defn)
+  by (metis (full_types) bin_eval.simps(14) stamp_under_defn)
 
 snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < y) ? x : y) \<longmapsto> y
                    when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wf_stamp x \<and> wf_stamp y)"snipend -
   apply (auto simp: trm_def)
   using ConditionalPhase.condition_bounds_y(1)
-  by (metis(full_types) StampEvalThms.wf_stamp_def TreeSnippets.wf_stamp_def bin_eval.simps(14) stamp_under_defn_inverse)
-
+  by (metis (full_types) bin_eval.simps(14) stamp_under_defn_inverse)
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 

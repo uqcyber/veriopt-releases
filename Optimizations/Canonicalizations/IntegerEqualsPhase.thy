@@ -81,8 +81,7 @@ lemma bin_sub_zero_equality: "(x = (x-y)) \<longleftrightarrow> y = 0" for x y::
   by simp
 
 lemma bin_not_self_equality: "(x = (not x)) \<longleftrightarrow> False" for x::int64
-  by (metis bit.compl_one bit.disj_cancel_left bit.xor_cancel_right 
-      disjunctive_and_not_eq_xor neg_equal_0_iff_equal word_not_dist(1) zero_neq_one)
+  by (metis less_eq_mask takeBitNot)
 
 lemma bin_equal_substraction: "(x - y) = 0 \<longleftrightarrow> x = y" for x y::int64
   by simp
@@ -257,8 +256,7 @@ lemma val_not_self_equality:
   shows "val[x eq (~ x)] = IntVal 32 0"
 proof -
   have "take_bit n (not vx) \<noteq> take_bit n vx"
-    by (metis (no_types, opaque_lifting) assms(2) bin_not_self_equality decr_eq_not_minus mask_1 
-        minus_diff_eq take_bit_not_eq_mask_diff take_bit_tightened)
+    using assms(2) takeBitNot by auto
   then show ?thesis using assms apply auto
     by (simp add: take_bit_not_take_bit)
 qed

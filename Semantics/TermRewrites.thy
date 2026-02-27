@@ -1,5 +1,7 @@
 theory TermRewrites
-  imports Semantics.IRTreeEvalThms Semantics.TreeToGraphThms
+  imports
+    Semantics.IRTreeEvalThms
+    Semantics.TreeToGraphThms
 begin
 
 (*
@@ -21,10 +23,8 @@ lemma expr_at_node: "g \<turnstile> n \<simeq> e \<Longrightarrow> g \<turnstile
 
 lemma graph_refinement:
   "graph_refinement g1 g2 \<Longrightarrow> (\<forall>n m p v. n \<in> ids g1 \<longrightarrow> ([g1, m, p] \<turnstile> n \<mapsto> v) \<longrightarrow> ([g2, m, p] \<turnstile> n \<mapsto> v))"
-  unfolding graph_refinement_def expr_at_node.simps
-  apply auto[1]
-  using expr_at_node.simps encodeeval_def graph_refinement_def le_expr_def 
-  by (meson term_graph_evaluation)
+  unfolding graph_refinement_def expr_at_node.simps apply auto[1]
+  using graph_refinement graph_refinement_def ids_some by presburger
 
 datatype SubValue = SubExpr(s_expr: IRExpr) | SubConst(s_val: Value)
 
@@ -339,8 +339,6 @@ datatype SideCondition =
   And SideCondition SideCondition |
   Not SideCondition
 
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 fun eval_condition :: "SideCondition \<Rightarrow> bool" where
   "eval_condition (IsConstantExpr e) = is_ConstantExpr e" |
   "eval_condition (WellFormed e) = wf_stamp e" |

@@ -1,8 +1,9 @@
 subsection \<open>Evaluation Stamp Theorems\<close>
 
 theory StampEvalThms
-  imports Graph.ValueThms
-          Semantics.IRTreeEvalThms
+  imports
+    Graph.ValueThms
+    Semantics.IRTreeEvalThms
 begin
 
 lemma
@@ -582,9 +583,6 @@ lemma value_range:
   using assms sorry
 end
 *)
-
-definition wf_stamp :: "IRExpr \<Rightarrow> bool" where
-  "wf_stamp e = (\<forall>m p v. ([m, p] \<turnstile> e \<mapsto> v) \<longrightarrow> valid_value v (stamp_expr e))"
 
 lemma wf_integerstamp_eval_is_new_int:
   assumes "wf_stamp x"

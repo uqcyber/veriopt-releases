@@ -60,9 +60,6 @@ lemma AddNeutral_Exp:
   qed
   done
 
-optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
-  using AddNeutral_Exp by presburger
-
 ML_val \<open>@{term \<open>x = y\<close>}\<close>
 
 lemma NeutralLeftSubVal:
@@ -94,9 +91,6 @@ lemma RedundantSubAdd_Exp:
       by (metis av bv evalDet p(1,3,4))
   qed
   done
-  
-optimization RedundantSubAdd: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
-  using RedundantSubAdd_Exp by blast
 
 (* a little helper lemma for using universal quantified assumptions *)
 lemma allE2: "(\<forall>x y. P x y) \<Longrightarrow> (P a b \<Longrightarrow> R) \<Longrightarrow> R"
@@ -107,11 +101,6 @@ lemma just_goal2:
                     val[(a - b) + b] = a))"
   shows "(exp[(e\<^sub>1 - e\<^sub>2) + e\<^sub>2]) \<ge> e\<^sub>1"
   unfolding le_expr_def unfold_binary bin_eval.simps by (metis assms evalDet evaltree_not_undef)
-
-optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
-  using size_binary_rhs_a apply simp apply auto
-  by (smt (z3) NeutralLeftSubVal evalDet eval_unused_bits_zero intval_add_sym intval_sub.elims
-      new_int.simps well_formed_equal_defn)
 
 (* Demonstration of our FOUR levels of expression rewrites:
    =======================================================
@@ -222,7 +211,48 @@ lemma RedundantAddSub_Exp:
   qed
   done
 
+lemma ExpAddCommute:
+  "exp[x + y] \<ge> exp[y + x]"
+  by (auto simp add: Values.intval_add_sym)
+
+lemma AddNotExp:
+  assumes "stamp_expr n = IntegerStamp b l h"
+  assumes "wf_stamp n"
+  shows "exp[n + (~n)] \<ge> exp[(const (new_int b (not 0)))]"
+  apply auto
+  subgoal premises p for m p x xa
+  proof -
+    have xaDef: "[m,p] \<turnstile> n \<mapsto> xa"
+      by (simp add: p)
+    then have xaDef2: "[m,p] \<turnstile> n \<mapsto> x"
+      by (simp add: p)
+    then have xaEq: "xa = x"
+      using p by (simp add: evalDet)
+    then obtain xv where xv: "xa = IntVal b xv"
+      by (metis valid_int wf_stamp_def xaDef2 assms)
+    have wfInt: "wf_value (new_int b (not 0))"
+      using validDefIntConst xaDef by (simp add: eval_bits_1_64 xv wf_value_def)
+    have toValRHS: "[m,p] \<turnstile> exp[(const (new_int b (not 0)))] \<mapsto> new_int b (not 0)"
+      using wfInt by (simp add: const_eval_is_const)
+    have "val[xa + (~xa)] = new_int b (not 0)"
+      by (simp add: xv)
+    then show ?thesis
+      using toValRHS by (simp add: xaEq)
+    qed
+    done
+
 text \<open>Optimisations\<close>
+
+optimization RedundantSubAdd: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
+  using RedundantSubAdd_Exp by blast
+
+optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
+  using size_binary_rhs_a apply simp apply auto
+  by (smt (z3) NeutralLeftSubVal evalDet eval_unused_bits_zero intval_add_sym intval_sub.elims
+      new_int.simps well_formed_equal_defn)
+
+optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
+  using AddNeutral_Exp by presburger
 
 optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
   using RedundantAddSub_Exp by blast
@@ -236,6 +266,16 @@ optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   apply (smt (verit, best) One_nat_def add.commute add_Suc_right is_ConstantExpr_def less_add_Suc2 
          numeral_2_eq_2 plus_1_eq_Suc size.simps(1) size.simps(11) size_binary_const size_non_add)
   using exp_add_left_negate_to_sub by simp
+
+optimization AddNot: "exp[n + (~n)] \<longmapsto> (const (new_int b (not 0)))
+                       when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
+   apply (simp add: Suc_lessI) using AddNotExp by fastforce
+
+optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
+                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
+   apply (metis One_nat_def less_numeral_extra(3) less_one linorder_neqE_nat size_binary_rhs
+          size_pos)
+   using AddNot ExpAddCommute by auto
 
 (* ----- Ends here ----- *)
 

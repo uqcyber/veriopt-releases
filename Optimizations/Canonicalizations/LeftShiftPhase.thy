@@ -23,7 +23,6 @@ lemma bin_combine_left_shift: "(x << y) << z = x << (y+z)" for x::int64
   unfolding shiftl_def apply auto by (metis add.commute)
 
 (* Value level proofs *)
-
 lemma val_EliminateRHS:
   assumes "x = new_int bx vx"
   assumes "1 \<le> bx"
@@ -33,7 +32,7 @@ lemma val_EliminateRHS:
   assumes "val[x << y] \<noteq> UndefVal"
   shows "val[x << y] = x"
 proof -
-  have zeroShift: "(take_bit bx vx) << 0 = (take_bit bx vx)"
+  have "(take_bit bx vx) << 0 = (take_bit bx vx)"
     unfolding shiftl_def by simp
   then show ?thesis
     using assms(1,4,5) by force

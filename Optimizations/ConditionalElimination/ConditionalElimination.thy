@@ -297,7 +297,7 @@ proof
 qed
 
 lemma alwaysDistinct_evaluate:
-  assumes "wf_stamp g stamps"
+  assumes "wf_stamp_irgraph g stamps"
   assumes "alwaysDistinct (stamps x) (stamps y)"
   assumes "is_IntegerStamp (stamps x) \<and> is_IntegerStamp (stamps y) \<and> valid_stamp (stamps x) \<and> valid_stamp (stamps y)"
   shows "\<not>(\<exists> val . ([g, m, p] \<turnstile> x \<mapsto> val) \<and> ([g, m, p] \<turnstile> y \<mapsto> val))"
@@ -305,9 +305,9 @@ proof -
   obtain stampx stampy where stampdef: "stampx = stamps x \<and> stampy = stamps y"
     by simp
   then have xv: "\<forall> xv . ([g, m, p] \<turnstile> x \<mapsto> xv) \<longrightarrow> valid_value xv stampx"
-    by (meson assms(1) encodeeval.simps eval_in_ids wf_stamp.elims(2))
+    by (meson assms(1) encodeeval.simps eval_in_ids wf_stamp_irgraph.elims(2))
   from stampdef have yv: "\<forall> yv . ([g, m, p] \<turnstile> y \<mapsto> yv) \<longrightarrow> valid_value yv stampy"
-    by (meson assms(1) encodeeval.simps eval_in_ids wf_stamp.elims(2))
+    by (meson assms(1) encodeeval.simps eval_in_ids wf_stamp_irgraph.elims(2))
   have "\<forall>v. valid_value v (join stampx stampy) = (valid_value v stampx \<and> valid_value v stampy)"
     using assms(3)
     by (simp add: join_valid stampdef)
@@ -317,7 +317,7 @@ proof -
 qed
 
 lemma alwaysDistinct_valid:
-  assumes "wf_stamp g stamps"
+  assumes "wf_stamp_irgraph g stamps"
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "alwaysDistinct (stamps x) (stamps y)"
@@ -335,7 +335,7 @@ proof -
   ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
     by (meson BinaryExprE encodeeval.simps)
   have xvalid: "valid_value xv (stamps x)"
-    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp.simps by blast
+    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp_irgraph.simps by blast
   then have xint: "is_IntegerStamp (stamps x)"
     using assms(4) valid_value.elims(2) by fastforce
   then have xstamp: "valid_stamp (stamps x)"
@@ -343,7 +343,7 @@ proof -
     apply (smt (z3) valid_stamp.simps(6) valid_value.elims(1))
     using is_IntegerStamp_def by fastforce
   have yvalid: "valid_value yv (stamps y)"
-    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp.simps by blast
+    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp_irgraph.simps by blast
   then have yint: "is_IntegerStamp (stamps y)"
     using assms(4) valid_value.elims(2) by fastforce
   then have ystamp: "valid_stamp (stamps y)"
@@ -396,7 +396,7 @@ proof -
 qed
 
 lemma neverDistinct_valid:
-  assumes "wf_stamp g stamps"
+  assumes "wf_stamp_irgraph g stamps"
   assumes "kind g nid = (IntegerEqualsNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "neverDistinct (stamps x) (stamps y)"
@@ -417,11 +417,11 @@ proof -
   ultimately obtain xv yv where evalsub: "[g, m, p] \<turnstile> x \<mapsto> xv \<and> [g, m, p] \<turnstile> y \<mapsto> yv"
     by (meson BinaryExprE encodeeval.simps)
   have xvalid: "valid_value xv (stamps x)"
-    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp.simps by blast
+    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp_irgraph.simps by blast
   then have xint: "is_IntegerStamp (stamps x)"
     using assms(4) valid_value.elims(2) by fastforce
   have yvalid: "valid_value yv (stamps y)"
-    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp.simps by blast
+    using assms(1) encode_in_ids encodeeval.simps evalsub wf_stamp_irgraph.simps by blast
   then have yint: "is_IntegerStamp (stamps y)"
     using assms(4) valid_value.elims(2) by fastforce
   have eq: "\<forall>v1 v2. (([g, m, p] \<turnstile> x \<mapsto> v1) \<and> ([g, m, p] \<turnstile> y \<mapsto> v2)) \<longrightarrow> v1 = v2"
@@ -438,7 +438,7 @@ proof -
 qed
 
 lemma stampUnder_valid:
-  assumes "wf_stamp g stamps"
+  assumes "wf_stamp_irgraph g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "stpi_upper (stamps x) < stpi_lower (stamps y)"
@@ -457,14 +457,14 @@ proof -
   then obtain b xvv where "xv = IntVal b xvv"
     by (metis bin_eval.simps(14) defined_eval_is_intval evale evaltree_not_undef is_IntVal_def)
   also have xvalid: "valid_value xv (stamps x)"
-    by (meson assms(1) encodeeval.simps eval_in_ids evalsub wf_stamp.elims(2))
+    by (meson assms(1) encodeeval.simps eval_in_ids evalsub wf_stamp_irgraph.elims(2))
   then obtain xl xh where xstamp: "stamps x = IntegerStamp b xl xh"
     using calculation valid_value.simps apply (cases "stamps x"; auto)
     by presburger
   from vval obtain yvv where yint: "yv = IntVal b yvv"
     by (metis Value.collapse(1) bin_eval.simps(14) bool_to_val_bin.simps calculation defined_eval_is_intval evale evaltree_not_undef intval_less_than.simps(1))
   then have yvalid: "valid_value yv (stamps y)"
-    using assms(1) encodeeval.simps evalsub no_encoding wf_stamp.simps by blast
+    using assms(1) encodeeval.simps evalsub no_encoding wf_stamp_irgraph.simps by blast
   then obtain yl yh where ystamp: "stamps y = IntegerStamp b yl yh"
     using calculation yint valid_value.simps apply (cases "stamps y"; auto)
     by presburger
@@ -483,7 +483,7 @@ proof -
 qed
 
 lemma stampOver_valid:
-  assumes "wf_stamp g stamps"
+  assumes "wf_stamp_irgraph g stamps"
   assumes "kind g nid = (IntegerLessThanNode x y)"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   assumes "stpi_lower (stamps x) \<ge> stpi_upper (stamps y)"
@@ -502,14 +502,14 @@ proof -
   then obtain b xvv where "xv = IntVal b xvv"
     by (metis bin_eval.simps(14) defined_eval_is_intval evale evaltree_not_undef is_IntVal_def)
   also have xvalid: "valid_value xv (stamps x)"
-    by (meson assms(1) encodeeval.simps eval_in_ids evalsub wf_stamp.elims(2))
+    by (meson assms(1) encodeeval.simps eval_in_ids evalsub wf_stamp_irgraph.elims(2))
   then obtain xl xh where xstamp: "stamps x = IntegerStamp b xl xh"
     using calculation valid_value.simps apply (cases "stamps x"; auto)
     by presburger
   from vval obtain yvv where yint: "yv = IntVal b yvv"
     by (metis Value.collapse(1) bin_eval.simps(14) bool_to_val_bin.simps calculation defined_eval_is_intval evale evaltree_not_undef intval_less_than.simps(1))
   then have yvalid: "valid_value yv (stamps y)"
-    using assms(1) encodeeval.simps evalsub no_encoding wf_stamp.simps by blast
+    using assms(1) encodeeval.simps evalsub no_encoding wf_stamp_irgraph.simps by blast
   then obtain yl yh where ystamp: "stamps y = IntegerStamp b yl yh"
     using calculation yint valid_value.simps apply (cases "stamps y"; auto)
     by presburger
@@ -528,7 +528,7 @@ proof -
 qed
 
 theorem tryFoldTrue_valid:
-  assumes "wf_stamp g stamps"
+  assumes "wf_stamp_irgraph g stamps"
   assumes "tryFold (kind g nid) stamps True"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   shows "val_to_bool v"
@@ -553,7 +553,7 @@ case (4 stamps x y)
 qed
 
 theorem tryFoldFalse_valid:
-  assumes "wf_stamp g stamps"
+  assumes "wf_stamp_irgraph g stamps"
   assumes "tryFold (kind g nid) stamps False"
   assumes "[g, m, p] \<turnstile> nid \<mapsto> v"
   shows "\<not>(val_to_bool v)"
@@ -1169,7 +1169,7 @@ Prove that the individual conditional elimination rules are correct
 with respect to finding a bisimulation between the unoptimized and optimized graphs.
 \<close>
 lemma ConditionalEliminationStepProofBisimulation:
-  assumes wf: "wf_graph g \<and> wf_stamp g stamps \<and> wf_values g"
+  assumes wf: "wf_graph g \<and> wf_stamp_irgraph g stamps \<and> wf_values g"
   assumes nid: "nid \<in> ids g"
   assumes conds_valid: "\<forall> c \<in> conds . \<exists> v. ([m, p] \<turnstile> c \<mapsto> v) \<and> val_to_bool v"
   assumes ce: "ConditionalEliminationStep conds stamps nid g g'"

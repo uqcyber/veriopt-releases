@@ -639,6 +639,24 @@ lemma wf_integerstamp_has_wf_value_all_ones:
   unfolding wf_value_def
   by (metis assms(3,4) eval_bits_1_64 new_int.elims new_int_unused_bits_zero validDefIntConst)
 
+lemma wf_integerstamp_implies_nonzero_bits:
+  assumes "stamp_expr x = IntegerStamp b xl xh"
+  assumes "wf_stamp x"
+  assumes "[m, p] \<turnstile> x \<mapsto> v"
+  shows "b \<noteq> 0"
+  using assms apply auto subgoal
+proof -
+  have invalidStamp: "b = 0 \<Longrightarrow> \<not>(valid_stamp (stamp_expr x))"
+    unfolding assms(1) using valid_stamp.simps(1) by blast
+  have "\<not>(valid_stamp (stamp_expr x)) \<Longrightarrow> \<not>wf_stamp x"
+    unfolding wf_stamp_def by (metis assms(1,3) valid_int valid_value.simps(1))
+  then have "b \<noteq> 0"
+    using assms(2) invalidStamp by auto
+  then show ?thesis
+    by (simp add: assms(2))
+qed
+  done
+
 lemma true_always_evals: "[m,p] \<turnstile> ConstantExpr (IntVal 32 1) \<mapsto> IntVal 32 1"
   by (simp add: unfold_const wf_value_true)
 

@@ -708,14 +708,6 @@ XorEqZero
   (x ^ y) == 0 \<mapsto> (x == y)
  *)
 
-lemma unwrap_bool_to_val:
-  shows "(bool_to_val a = bool_to_val b) = (a = b)"
-  apply auto using bool_to_val.elims by fastforce+
-
-lemma take_bit_size_eq:
-  shows "take_bit 64 a = take_bit LENGTH(64) (a::64 word)"
-  by auto
-
 lemma xorZeroIsEq:
   "bin[(xor xv yv) = 0] = bin[xv = yv]"
   by (metis binXorIsEqual xor_self_eq)

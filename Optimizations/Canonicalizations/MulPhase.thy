@@ -373,28 +373,6 @@ optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (
 optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
   using exp_multiply_negative by presburger
 
-fun isNonZero :: "Stamp \<Rightarrow> bool" where
-  "isNonZero (IntegerStamp b lo hi) = (lo > 0)" |
-  "isNonZero _ = False"
-
-lemma isNonZero_defn:
-  assumes "isNonZero (stamp_expr x)"
-  assumes "wf_stamp x"
-  shows "([m, p] \<turnstile> x \<mapsto> v) \<longrightarrow> (\<exists>vv b. (v = IntVal b vv \<and> val_to_bool val[(IntVal b 0) < v]))"
-  apply (rule impI) subgoal premises eval
-proof -
-  obtain b lo hi where xstamp: "stamp_expr x = IntegerStamp b lo hi"
-    by (meson isNonZero.elims(2) assms)
-  obtain vv where vdef: "v = IntVal b vv"
-    by (metis xstamp assms(2) eval valid_int wf_stamp_def)
-  then have signed_above: "int_signed_value b vv > 0"
-    by (metis assms dual_order.strict_trans1 eval isNonZero.simps(1) valid_int_signed_range xstamp
-        wf_stamp_def)
-  then show ?thesis
-    by (simp add: vdef)
-qed
-  done
-
 optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i) 
                               when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>

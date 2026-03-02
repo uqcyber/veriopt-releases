@@ -6,6 +6,16 @@ theory StampEvalThms
     Semantics.IRTreeEvalThms
 begin
 
+lemma strict_pos_implies_pos:
+  assumes "is_stamp_strictly_positive s"
+  shows "is_stamp_positive s"
+  by (metis assms is_stamp_positive.simps(1) is_stamp_strictly_positive.elims(2) order_less_imp_le)
+
+lemma strict_neg_implies_neg:
+  assumes "is_stamp_strictly_negative s"
+  shows "is_stamp_negative s"
+  using assms is_stamp_strictly_negative.elims(2) by fastforce
+
 lemma
   assumes "take_bit b v = v"
   shows "signed_take_bit b v = v"
@@ -652,6 +662,25 @@ lemma stamp_eval_int:
   using assms apply auto
   by (metis (no_types, lifting) ConstantExpr assms(4) eval_bits_1_64 stamp_eval_same_bits
       take_bit_not_iff take_bit_not_take_bit validDefIntConst wf_value_def)
+
+lemma isNonZero_defn:
+  assumes "is_stamp_strictly_positive (stamp_expr x)"
+  assumes "wf_stamp x"
+  shows "([m, p] \<turnstile> x \<mapsto> v) \<longrightarrow>
+         (\<exists>vv b. (v = IntVal b vv \<and> val_to_bool (intval_less_than (IntVal b 0) v)))"
+  apply (rule impI) subgoal premises eval
+proof -
+  obtain b lo hi where xstamp: "stamp_expr x = IntegerStamp b lo hi"
+    by (meson is_stamp_strictly_positive.elims(2) assms)
+  obtain vv where vdef: "v = IntVal b vv"
+    by (metis xstamp assms(2) eval valid_int wf_stamp_def)
+  then have signed_above: "int_signed_value b vv > 0"
+    by (metis assms dual_order.strict_trans1 eval is_stamp_strictly_positive.simps(1) wf_stamp_def
+        valid_int_signed_range xstamp)
+  then show ?thesis
+    by (simp add: vdef)
+qed
+  done
 
 lemma stamp_under_defn:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"

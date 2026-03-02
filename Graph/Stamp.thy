@@ -36,6 +36,30 @@ fun is_stamp_empty :: "Stamp \<Rightarrow> bool" where
   (* "is_stamp_empty (FloatStamp b lower upper) = (upper < lower)" | *)
   "is_stamp_empty x = False"
 
+(* General stamp property functions from IntegerStamp.java *)
+fun is_stamp_positive :: "Stamp \<Rightarrow> bool" where
+  "is_stamp_positive (IntegerStamp b l h) = (l \<ge> 0)" |
+  "is_stamp_positive _ = False"
+
+fun is_stamp_negative :: "Stamp \<Rightarrow> bool" where
+  "is_stamp_negative (IntegerStamp b l h) = (h \<le> 0)" |
+  "is_stamp_negative _ = False"
+
+fun is_stamp_strictly_positive :: "Stamp \<Rightarrow> bool" where
+  "is_stamp_strictly_positive (IntegerStamp b l h) = (l > 0)" |
+  "is_stamp_strictly_positive _ = False"
+
+fun is_stamp_strictly_negative :: "Stamp \<Rightarrow> bool" where
+  "is_stamp_strictly_negative (IntegerStamp b l h) = (h < 0)" |
+  "is_stamp_strictly_negative _ = False"
+
+fun can_stamp_be_positive :: "Stamp \<Rightarrow> bool" where
+  "can_stamp_be_positive (IntegerStamp b l h) = (h > 0)" |
+  "can_stamp_be_positive _ = False"
+
+fun can_stamp_be_negative :: "Stamp \<Rightarrow> bool" where
+  "can_stamp_be_negative (IntegerStamp b l h) = (l < 0)" |
+  "can_stamp_be_negative _ = False"
 
 text \<open>Just like the IntegerStamp class, we need to know that our lo/hi bounds
   fit into the given number of bits (either signed or unsigned).

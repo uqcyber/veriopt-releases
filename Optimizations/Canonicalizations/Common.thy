@@ -98,6 +98,10 @@ lemma takeBitNot:
   qed
   done
 
+lemma take_bit_size_eq:
+  shows "take_bit 64 a = take_bit LENGTH(64) (a::64 word)"
+  by auto
+
 lemma const_eval_is_const:
   assumes "wf_value n"
   shows "[m,p] \<turnstile> exp[(const (n))] \<mapsto> n"

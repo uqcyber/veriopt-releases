@@ -108,6 +108,10 @@ lemma new_int_zero [simp]:
   shows "new_int b 0 = IntVal b 0"
   unfolding new_int.simps by simp
 
+lemma unwrap_bool_to_val:
+  shows "(bool_to_val a = bool_to_val b) = (a = b)"
+  apply auto using bool_to_val.elims by fastforce+
+
 subsection \<open>Arithmetic Operators\<close>
 
 text \<open>

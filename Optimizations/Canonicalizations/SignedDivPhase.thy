@@ -15,11 +15,11 @@ lemma val_division_by_one_is_self_32:
   shows "intval_div x (IntVal 32 1) = x"
   using assms apply (cases x; auto) by (simp add: take_bit_signed_take_bit)
 
-(* Optimizations*)
-(*
-optimization opt_DivisionByOneIsSelf32: "x / ConstantExpr (IntVal32 1) \<longmapsto> x"
-   apply unfold_optimization unfolding le_expr_def
-  sorry*)
+text \<open>Optimisations\<close>
+
+optimization opt_DivisionByOneIsSelf32: "x / ConstantExpr (new_int 32 1) \<longmapsto> x"
+  unfolding le_expr_def
+  sorry
 
 end (* end of phase *)
 

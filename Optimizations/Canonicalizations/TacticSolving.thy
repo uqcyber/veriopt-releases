@@ -110,59 +110,15 @@ lemma exp_xor_self_is_false:
       valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn val_xor_self_is_false 
       le_expr_def assms wf_stamp_def)
 
-lemma val_or_commute[simp]:
-   "val[x | y] = val[y | x]"
-  by (cases x; cases y; auto simp: or.commute)
-
 lemma val_xor_commute[simp]:
    "val[x \<oplus> y] = val[y \<oplus> x]"
   by (cases x; cases y; auto simp: word_bw_comms(3))
-
-lemma exp_or_commutative:
-  "exp[x | y] \<ge> exp[y | x]"
-  by auto 
 
 lemma exp_xor_commutative:
   "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
   by auto
 
 text \<open>--- --- New Optimisations - submitted and added into Graal ---\<close>
-lemma OrInverseVal:
-  assumes "n = IntVal 32 v"
-  shows "val[n | ~n] \<approx> new_int 32 (-1)"
-  apply (auto simp: assms)
-  by (metis bit.disj_cancel_right mask_eq_take_bit_minus_one take_bit_or)
-
-optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (new_int 32 (not 0)))
-                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  apply (auto simp: Suc_lessI)
-  subgoal premises p for m p xa xaa
-  proof -
-    obtain nv where nv: "[m,p] \<turnstile> n \<mapsto> nv"
-      using p(3) by auto
-    obtain nbits nvv where nvv: "nv = IntVal nbits nvv"
-      by (metis evalDet evaltree_not_undef intval_logic_negation.cases intval_not.simps(3,4,5) nv
-          p(5,6))
-    then have width: "nbits = 32"
-      by (metis Value.inject(1) nv p(1,2) valid_int wf_stamp_def)
-    then have stamp: "constantAsStamp (IntVal 32 (mask 32)) =
-                  (IntegerStamp 32 (int_signed_value 32 (mask 32)) (int_signed_value 32 (mask 32)))"
-      by auto
-    have wf: "wf_value (IntVal 32 (mask 32))"
-      unfolding wf_value_def stamp apply auto by eval+
-    then have unfoldOr: "val[nv | ~nv] = (new_int 32 (or (not nvv) nvv))"
-      using intval_or.simps OrInverseVal nvv width by auto
-    then have "val[nv | ~nv] = new_int 32 (not 0)"
-      by simp
-    then show ?thesis
-      by (metis bit.compl_zero evalDet local.wf new_int.elims nv p(3,5) take_bit_minus_one_eq_mask
-          unfold_const)
-  qed
-  done
-
-optimization OrInverse2: "exp[~n | n] \<longmapsto> (const (new_int 32 (not 0)))
-                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-   using OrInverse exp_or_commutative by auto
 
 lemma XorInverseVal:
   assumes "n = IntVal 32 v"

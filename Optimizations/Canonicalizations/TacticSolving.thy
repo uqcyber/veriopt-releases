@@ -110,54 +110,7 @@ lemma exp_xor_self_is_false:
       valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn val_xor_self_is_false 
       le_expr_def assms wf_stamp_def)
 
-lemma val_xor_commute[simp]:
-   "val[x \<oplus> y] = val[y \<oplus> x]"
-  by (cases x; cases y; auto simp: word_bw_comms(3))
-
-lemma exp_xor_commutative:
-  "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
-  by auto
-
 text \<open>--- --- New Optimisations - submitted and added into Graal ---\<close>
-
-lemma XorInverseVal:
-  assumes "n = IntVal 32 v"
-  shows "val[n \<oplus> ~n] \<approx> new_int 32 (-1)"
-  apply (auto simp: assms)
-  by (metis (no_types, opaque_lifting) bit.compl_zero bit.xor_compl_right bit.xor_self take_bit_xor
-      mask_eq_take_bit_minus_one)
-
-optimization XorInverse: "exp[n \<oplus> ~n] \<longmapsto> (const (new_int 32 (not 0)))
-                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  apply (auto simp: Suc_lessI)
-  subgoal premises p for m p xa xaa
-  proof -
-    obtain xv where xv: "[m,p] \<turnstile> n \<mapsto> xv"
-      using p(3) by auto
-    obtain xb xvv where xvv: "xv = IntVal xb xvv"
-      by (metis evalDet evaltree_not_undef intval_logic_negation.cases intval_not.simps(3,4,5) xv
-          p(5,6))
-    have rhsDefined: "[m,p] \<turnstile> (ConstantExpr (IntVal 32 (mask 32))) \<mapsto> (IntVal 32 (mask 32))"
-      by (metis ConstantExpr add.right_neutral add_less_cancel_left neg_one_value numeral_Bit0
-          new_int_unused_bits_zero not_numeral_less_zero validDefIntConst zero_less_numeral
-          verit_comp_simplify1(3) wf_value_def)
-    have w32: "xb = 32"
-      by (metis Value.inject(1) p(1,2) valid_int xv xvv wf_stamp_def)
-    then have unfoldNot: "val[(\<not>xv)] = new_int xb (not xvv)"
-      by (simp add: xvv)
-    have unfoldXor: "val[xv \<oplus> (\<not>xv)] =
-                    (if xb=xb then (new_int xb (xor xvv (not xvv))) else UndefVal)"
-      using intval_xor.simps(1) XorInverseVal w32 xvv by auto
-    then have rhs: "val[xv \<oplus> (\<not>xv)] = new_int 32 (mask 32)"
-      using unfoldXor w32 by auto
-    then show ?thesis
-      by (metis evalDet neg_one.elims neg_one_value p(3,5) rhsDefined xv)
-  qed
-  done
-
-optimization XorInverse2: "exp[(~n) \<oplus> n] \<longmapsto> (const (new_int 32 (not 0)))
-                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-   using XorInverse exp_xor_commutative by auto
 
 lemma NotXorToXorVal:
   assumes "x = IntVal 32 xv"
@@ -315,7 +268,7 @@ lemma ValXorFallThrough:
 
 lemma ExpEqAssoc:
   "exp[x eq y] \<ge> exp[y eq x]"
-  by (auto simp add: intval_eq_commute)
+  by (auto simp add: val_eq_commutative)
 
 lemma ExpXorBinEqCommute:
   "exp[(x \<oplus> y) eq y] \<ge> exp[(y \<oplus> x) eq y]"
@@ -521,7 +474,7 @@ lemma ValXorIsAssociative:
   assumes "y = IntVal b yv"
   assumes "val[(x \<oplus> y)] \<noteq> UndefVal"
   shows "val[(x \<oplus> y) \<oplus> y] = val[x \<oplus> (y \<oplus> y)]"
-  by (auto simp add: word_bw_lcs(3) assms) 
+  by (auto simp add: word_bw_same(3) word_log_esimps(5) xor.assoc assms)
 
 lemma ValXorIsAssociative2:
   assumes "x = new_int b xv"
@@ -574,7 +527,7 @@ lemma valXorIsEqual_64:
   assumes "val[x \<oplus> y] \<noteq> UndefVal"
   assumes "val[x \<oplus> z] \<noteq> UndefVal"
   shows "val[(x \<oplus> y) eq (x \<oplus> z)] = val[y eq z]"
-  using assms apply (cases x; cases y; cases z; auto)
+  using assms val_eq_commutative apply (cases x; cases y; cases z; auto)
   subgoal premises p for yv zv apply (cases "(yv = zv)"; simp)
   subgoal premises p
   proof -
@@ -586,12 +539,21 @@ lemma valXorIsEqual_64:
       using take_bit_length_eq by blast
     then have unfoldTakebitxv: "take_bit LENGTH(64) xv = xv"
       using take_bit_length_eq by blast
-    then have "(xor (take_bit LENGTH(64) yv) (take_bit LENGTH(64) xv) =
-                xor (take_bit LENGTH(64) zv) (take_bit LENGTH(64) xv)) = (False)"
+    then have notEq: "(xor (take_bit LENGTH(64) yv) (take_bit LENGTH(64) xv) =
+                       xor (take_bit LENGTH(64) zv) (take_bit LENGTH(64) xv)) = False"
       unfolding unfoldTakebityv unfoldTakebitzv unfoldTakebitxv
       by (simp add: binXorIsEqual word_bw_comms(3) p)
     then show ?thesis
-      by (simp add: isFalse)
+      proof -
+        obtain l0 where l0: "l0 = (lowestOneBit (0::64 word))"
+          by simp
+        have "xor (take_bit l0 zv) (take_bit l0 xv) \<noteq> xor (take_bit l0 yv) (take_bit l0 xv)"
+          using notEq lowestOneBit_bot take_bit_size_eq l0 by presburger
+        then have "xor (take_bit l0 xv) (take_bit l0 yv) \<noteq> xor (take_bit l0 xv) (take_bit l0 zv)"
+          by (simp add: xor.commute)
+        then show ?thesis
+          using lowestOneBit_bot l0 by force
+      qed
     qed
    done
   done
@@ -604,8 +566,8 @@ lemma ValXorIsDeterministic_64:
   assumes "val[x \<oplus> z] \<noteq> UndefVal"
   assumes "yv \<noteq> zv"
   shows "val[x \<oplus> y] \<noteq> val[x \<oplus> z]"
-  by (smt (verit, best) ValXorElimSelf64 ValXorIsAssociative ValXorSelfIsZero Value.distinct(1)
-      assms Value.inject(1) val_xor_commute valXorIsEqual_64)
+  by (smt (z3) ValXorElimSelf64 ValXorIsAssociative ValXorSelfIsZero Value.distinct(1)
+      assms Value.inject(1) val_xor_commutative lowestOneBit_bot)
 
 lemma expXorIsEqual_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"
@@ -694,7 +656,7 @@ lemma expXorEqZero_64:
     obtain yvv where yvv: "yv = IntVal 64 yvv"
       by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal)
     have "[m,p] \<turnstile> exp[x eq y] \<mapsto> val[xv eq yv]"
-      by (smt (z3) BinaryExpr intval_eq_commute ValXorSelfIsZero Value.distinct(1) valXorIsEqual_64
+      by (smt (z3) BinaryExpr val_eq_commutative ValXorSelfIsZero Value.distinct(1) valXorIsEqual_64
           bin_eval.simps(13) xvv evalDet p(5,6,7,8) xv yv)
     then show ?thesis
       by (metis evalDet p(6,7,8) valXorEqZero_64 xv xvv yv yvv)

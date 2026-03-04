@@ -35,10 +35,6 @@ lemma exp_or_commute:
   "exp[x | y] \<ge> exp[y | x]"
   by (auto simp: intval_or_commute)
 
-lemma exp_xor_commute:
-  "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
-  by (auto simp: intval_xor_commute)
-
 lemma intval_eliminate_y:
   assumes "val[y & z] = IntVal b 0"
   shows "val[(x | y) & z] = val[x & z]"

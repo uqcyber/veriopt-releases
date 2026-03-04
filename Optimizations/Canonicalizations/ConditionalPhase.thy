@@ -189,7 +189,7 @@ optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!
       unfolding xvv yvv apply auto by (metis (mono_tags) bool_to_val.simps(2) yxDiff yvv xvv)
     have "[m,p] \<turnstile> exp[(c ? x : y) eq y] \<mapsto> notCond"
       apply (cases notCond) prefer 2
-      apply (metis IntVal0 eqEvalFalse falseEval intval_eq_commute intval_logic_negation.simps(1)
+      apply (metis IntVal0 eqEvalFalse falseEval val_eq_commutative intval_logic_negation.simps(1)
              intval_self_is_true logic_negate_def trueEvalCond yvv cNotRange opposites zero_neq_one
              cRange)
       using notCond cNotRange by auto

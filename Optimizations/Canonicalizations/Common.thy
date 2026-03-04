@@ -104,12 +104,20 @@ lemma take_bit_size_eq:
 
 lemma const_eval_is_const:
   assumes "wf_value n"
-  shows "[m,p] \<turnstile> exp[(const (n))] \<mapsto> n"
+  shows "[m,p] \<turnstile> exp[const (n)] \<mapsto> n"
   by (simp add: assms IRTreeEval.evaltree.ConstantExpr)
 
-(* IntegerEquals lemmas *)
-lemma intval_eq_commute:
-  shows "val[y eq x] = val[x eq y]"
-  apply (cases y; cases x; auto) by (smt (verit, best))
+(* Operator commutativity lemmas *)
+lemma val_eq_commutative:
+  "val[y eq x] = val[x eq y]"
+  by (cases y; cases x; auto simp: unwrap_bool_to_val)
+
+lemma val_xor_commutative:
+  "val[x \<oplus> y] = val[y \<oplus> x]"
+  by (cases x; cases y; auto simp: word_bw_comms(3))
+
+lemma exp_xor_commutative:
+  "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
+  using val_xor_commutative by auto
 
 end

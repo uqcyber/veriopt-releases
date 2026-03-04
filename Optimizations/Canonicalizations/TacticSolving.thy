@@ -761,6 +761,22 @@ optimization XorEqNeg1_64: "exp[(x \<oplus> y) eq (const (IntVal 64 (not 0)))] \
                            (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y)"
   using expXorEqNeg1_64 apply auto (* termination proof *) sorry
 
+(* Definitions and lemmas for primitives *)
+fun forPrimitive :: "Stamp \<Rightarrow> int64 \<Rightarrow> IRExpr" where
+  "forPrimitive (IntegerStamp b lo hi) v =
+      ConstantExpr (if take_bit b v = v then (IntVal b v) else UndefVal)" |
+  "forPrimitive _ _ = ConstantExpr UndefVal"
+
+lemma unfold_forPrimitive:
+  "forPrimitive s v =
+    ConstantExpr (if is_IntegerStamp s \<and> take_bit (stp_bits s) v = v
+                  then (IntVal (stp_bits s) v)
+                  else UndefVal)"
+  by (cases s; auto)
+
+lemma forPrimitive_size[size_simps]: "size (forPrimitive s v) = 1"
+  by (cases s; auto)
+
 end
 
 end

@@ -47,15 +47,6 @@ lemma val_xor_self_is_false_3:
   shows "val[x \<oplus> x] = IntVal 64 0"
   by (auto simp: assms)
 
-lemma val_xor_self_is_zero:
-  assumes "x = IntVal b xv"
-  shows "val[x \<oplus> x] = val[IntVal b 0]"
-  using assms by (cases x; auto)
-
-lemma val_xor_commute:
-   "val[x \<oplus> y] = val[y \<oplus> x]"
-  by (cases x; cases y; auto simp: xor.commute)
-
 lemma val_eliminate_redundant_false:
   assumes "x = new_int b v"
   assumes "val[x \<oplus> (bool_to_val False)] \<noteq> UndefVal"
@@ -107,7 +98,7 @@ lemma exp_xor_self_is_false:
     have "[m,p] \<turnstile> exp[const (IntVal b 0)] \<mapsto> val[IntVal b 0]"
       by (metis new_int_zero_is_intval p(1,2,4) stamp_eval_int wf_integerstamp_eval_is_new_int)
     then show ?thesis
-      by (metis evalDet p(1,2,3,4) val_xor_self_is_zero valid_int_same_bits wf_stamp_def xv xvv)
+      by (metis evalDet p(1,2,3,4) val_xor_self valid_int_same_bits wf_stamp_def xv xvv)
   qed
   done
 
@@ -186,7 +177,7 @@ optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> const (IntVal b 0)
   using exp_xor_self_is_false by blast
 
 optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
-  using size_flip_binary val_xor_commute by auto
+  using size_flip_binary val_xor_commutative by auto
 
 optimization EliminateRedundantFalse: "(x \<oplus> (const (IntVal b 0))) \<longmapsto> x
                                        when (wf_stamp x \<and> stamp_expr x = IntegerStamp b xl xh)"

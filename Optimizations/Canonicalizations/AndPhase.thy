@@ -9,14 +9,6 @@ begin
 context stamp_mask
 begin
 
-lemma val_and_commute:
-  shows "val[x & y] = val[y & x]"
-  apply (cases x; cases y; auto) by (simp add: and.commute)
-
-lemma exp_and_commute:
-  shows "exp[x & y] \<ge> exp[y & x]"
-  using val_and_commute unfold_binary by auto
-
 lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[y]"
   apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
@@ -45,7 +37,7 @@ lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrigh
   done
 
 lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[x]"
-  using AndRightFallthrough exp_and_commute by simp
+  using AndRightFallthrough exp_and_commutative by simp
 
 end
 
@@ -174,8 +166,8 @@ lemma exp_and_equal_not:
     then have eqBitX: "xb = xc"
       by (simp add: eqa xy)
     then have unfoldEq: "val[(~xa) & y] = new_int xb (and (not xva) xvv)"
-      by (metis (no_types, lifting) Value.inject(1) bit.conj_cancel_left eqa evalDet new_int.elims
-          eval_unused_bits_zero p(2,3,4) simple_mask.val_and_commute xa xy y val_and_equal_not)
+      by (metis (no_types, lifting) Value.inject(1) bit.conj_cancel_left eqa evalDet new_int.elims y
+          eval_unused_bits_zero p(2,3,4) val_and_commutative xa xy val_and_equal_not)
     then have "new_int xb (and (not xva) xvv) = new_int xb 0"
       using eqa xa xy by fastforce
     then have evalSame: "val[(~xa) & y] = new_int xb 0"
@@ -264,21 +256,21 @@ optimization AndEqual: "x & x \<longmapsto> x"
 
 optimization AndEqualNot: "x & (~x) \<longmapsto> const (IntVal b 0)
                           when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  by (metis dual_order.trans exp_and_equal_not simple_mask.exp_and_commute)
+  by (metis dual_order.trans exp_and_equal_not exp_and_commutative)
 
 optimization AndSelf: "exp[(~n) & n] \<longmapsto> (const (new_int 32 (0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
   apply (auto simp: Suc_lessI) unfolding size.simps using size_non_const apply auto[1]
-  by (metis evalDet false_always_evals new_int_zero_is_intval simple_mask.val_and_commute
-      stamp_eval_same_bits val_and_equal_not wf_integerstamp_eval_is_new_int)
+  by (metis evalDet false_always_evals new_int_zero_is_intval val_and_commutative val_and_equal_not
+      stamp_eval_same_bits wf_integerstamp_eval_is_new_int)
 
 optimization AndSelf2: "exp[n & (~n)] \<longmapsto> (const (new_int 32 (0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  using AndSelf simple_mask.exp_and_commute by auto
+  using AndSelf exp_and_commutative by auto
 
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
                                        when \<not>(is_ConstantExpr y)"
-  using size_flip_binary simple_mask.val_and_commute by force+
+  using size_flip_binary val_and_commutative by force+
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
   by (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add

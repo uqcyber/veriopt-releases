@@ -239,21 +239,6 @@ lemma BinXorFallThrough:
   shows "bin[(x \<oplus> y) = x] \<longleftrightarrow> bin[y = 0]"
   by (metis xor.assoc xor.left_neutral xor_self_eq)
 
-lemma valXorEqual:
-  assumes "x = new_int 32 xv"
-  assumes "val[x \<oplus> x] \<noteq> UndefVal"
-  shows "val[x \<oplus> x] = val[new_int 32 0]"
-  using assms by (cases x; auto)
-
-lemma valXorAssoc:
-  assumes "x = new_int b xv"
-  assumes "y = new_int b yv"
-  assumes "z = new_int b zv"
-  assumes "val[(x \<oplus> y) \<oplus> z] \<noteq> UndefVal"
-  assumes "val[x \<oplus> (y \<oplus> z)] \<noteq> UndefVal"
-  shows "val[(x \<oplus> y) \<oplus> z] = val[x \<oplus> (y \<oplus> z)]"
-  by (simp add: xor.commute xor.left_commute assms)
-
 lemma valNeutral:
   assumes "x = new_int b xv"
   assumes "val[x \<oplus> (new_int b 0)] \<noteq> UndefVal"
@@ -265,14 +250,6 @@ lemma ValXorFallThrough:
   assumes "y = new_int b yv"
   shows "val[(x \<oplus> y) eq x] = val[y eq (new_int b 0)]"
   by (simp add: assms BinXorFallThrough)
-
-lemma ExpEqAssoc:
-  "exp[x eq y] \<ge> exp[y eq x]"
-  by (auto simp add: val_eq_commutative)
-
-lemma ExpXorBinEqCommute:
-  "exp[(x \<oplus> y) eq y] \<ge> exp[(y \<oplus> x) eq y]"
-  using exp_xor_commutative mono_binary by blast
 
 lemma ExpXorFallThrough:
   assumes "stamp_expr x = IntegerStamp b xl xh"
@@ -304,7 +281,8 @@ lemma ExpXorFallThrough2:
   assumes "wf_stamp x"
   assumes "wf_stamp y"
   shows "exp[(x \<oplus> y) eq y] \<ge> exp[x eq (const (new_int b 0))]"
-  by (meson assms dual_order.trans ExpXorBinEqCommute ExpXorFallThrough)
+  by (meson ExpXorFallThrough assms mono_binary order_refl order_trans exp_xor_commutative
+      exp_eq_commutative)
 
 optimization XorFallThrough1: "exp[(x \<oplus> y) eq x] \<longmapsto> exp[y eq (const (new_int b 0))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
@@ -314,7 +292,7 @@ optimization XorFallThrough1: "exp[(x \<oplus> y) eq x] \<longmapsto> exp[y eq (
 optimization XorFallThrough2: "exp[x eq (x \<oplus> y)] \<longmapsto> exp[y eq (const (new_int b 0))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
-  using ExpXorFallThrough ExpEqAssoc by force
+  using ExpXorFallThrough exp_eq_commutative by force
 
 optimization XorFallThrough3: "exp[(x \<oplus> y) eq y] \<longmapsto> exp[x eq (const (new_int b 0))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
@@ -324,7 +302,7 @@ optimization XorFallThrough3: "exp[(x \<oplus> y) eq y] \<longmapsto> exp[x eq (
 optimization XorFallThrough4: "exp[y eq (x \<oplus> y)] \<longmapsto> exp[x eq (const (new_int b 0))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
-  using ExpXorFallThrough2 ExpEqAssoc by force
+  using ExpXorFallThrough2 exp_eq_commutative by force
 
 end
 
@@ -459,30 +437,6 @@ lemma binXorIsDeterministic:
   shows "bin[x \<oplus> y] \<noteq> bin[x \<oplus> z]"
   by (auto simp add: binXorIsEqual assms)
 
-lemma ValXorSelfIsZero:
-  assumes "x = IntVal b xv"
-  shows "val[x \<oplus> x] = IntVal b 0" 
-  by (simp add: assms)
-
-lemma ValXorSelfIsZero2:
-  assumes "x = new_int b xv"
-  shows "val[x \<oplus> x] = IntVal b 0" 
-  by (simp add: assms)
-
-lemma ValXorIsAssociative:
-  assumes "x = IntVal b xv"
-  assumes "y = IntVal b yv"
-  assumes "val[(x \<oplus> y)] \<noteq> UndefVal"
-  shows "val[(x \<oplus> y) \<oplus> y] = val[x \<oplus> (y \<oplus> y)]"
-  by (auto simp add: word_bw_same(3) word_log_esimps(5) xor.assoc assms)
-
-lemma ValXorIsAssociative2:
-  assumes "x = new_int b xv"
-  assumes "y = new_int b yv"
-  assumes "val[(x \<oplus> y)] \<noteq> UndefVal"
-  shows "val[(x \<oplus> y) \<oplus> y] = val[x \<oplus> (y \<oplus> y)]"
-  using ValXorIsAssociative by (simp add: assms)
-
 lemma XorZeroIsSelf64:
   assumes "x = IntVal 64 xv"
   assumes "val[x \<oplus> (IntVal 64 0)] \<noteq> UndefVal"
@@ -520,7 +474,7 @@ lemma ValXorIsReverse64:
   assumes "val[x \<oplus> y] \<noteq> UndefVal"
   assumes "val[z \<oplus> y] \<noteq> UndefVal"
   shows "val[z \<oplus> y] = x"
-  using ValXorIsAssociative ValXorElimSelf64 assms(1,2,4,5) by force
+  using val_xor_associative val_xor_self XorZeroIsSelf64 assms(1,2,4,6) by presburger
 
 lemma valXorIsEqual_64:
   assumes "x = IntVal 64 xv"
@@ -566,8 +520,8 @@ lemma ValXorIsDeterministic_64:
   assumes "val[x \<oplus> z] \<noteq> UndefVal"
   assumes "yv \<noteq> zv"
   shows "val[x \<oplus> y] \<noteq> val[x \<oplus> z]"
-  by (smt (z3) ValXorElimSelf64 ValXorIsAssociative ValXorSelfIsZero Value.distinct(1)
-      assms Value.inject(1) val_xor_commutative lowestOneBit_bot)
+  by (smt (z3) ValXorElimSelf64 val_xor_associative val_xor_self Value.distinct(1) Value.inject(1)
+      assms val_xor_commutative lowestOneBit_bot)
 
 lemma expXorIsEqual_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"
@@ -656,8 +610,8 @@ lemma expXorEqZero_64:
     obtain yvv where yvv: "yv = IntVal 64 yvv"
       by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal)
     have "[m,p] \<turnstile> exp[x eq y] \<mapsto> val[xv eq yv]"
-      by (smt (z3) BinaryExpr val_eq_commutative ValXorSelfIsZero Value.distinct(1) valXorIsEqual_64
-          bin_eval.simps(13) xvv evalDet p(5,6,7,8) xv yv)
+      by (smt (z3) BinaryExpr val_eq_commutative val_xor_self Value.distinct(1) valXorIsEqual_64 xvv
+          bin_eval.simps(13) evalDet p(5,6,7,8) xv yv)
     then show ?thesis
       by (metis evalDet p(6,7,8) valXorEqZero_64 xv xvv yv yvv)
   qed
@@ -703,8 +657,8 @@ lemma expXorEqNeg1_64:
     obtain yvv where yvv: "yv = IntVal 64 yvv"
       by (metis p(2,4) wf_stamp_def yv ExpIntBecomesIntVal)
     obtain nyv where nyv: "[m,p] \<turnstile> exp[(\<not>y)] \<mapsto> nyv"
-      by (metis ValXorSelfIsZero2 Value.distinct(1) intval_not.simps(1) yv yvv intval_xor.simps(2)
-          UnaryExpr unary_eval.simps(3))
+      by (metis Value.distinct(1) intval_equals.simps(2) intval_not.elims intval_xor.simps(2,7,8,9)
+          new_int.simps p(5,7) unary_eval.simps(3) unfold_unary val_xor_commutative)
     then have nyvEq: "val[\<not>yv] = nyv"
       using evalDet yv by fastforce
     obtain nyvv where nyvv: "nyv = IntVal 64 nyvv"

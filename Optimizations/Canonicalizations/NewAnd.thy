@@ -6,6 +6,8 @@ theory NewAnd
     Graph.JavaLong
 begin
 
+(* Proving the new optimisations in AndNode.eliminateRedundantBinaryArithmeticOp() *)
+
 lemma intval_distribute_and_over_or:
   "val[z & (x | y)] = val[(z & x) | (z & y)]"
   by (cases x; cases y; cases z; auto simp add: bit.conj_disj_distrib)
@@ -15,74 +17,28 @@ lemma exp_distribute_and_over_or:
   apply auto
   by (metis bin_eval.simps(6,7) intval_or.simps(2,6) intval_distribute_and_over_or BinaryExpr)
 
-lemma intval_and_commute:
-  "val[x & y] = val[y & x]"
-  by (cases x; cases y; auto simp: and.commute)
-
-lemma intval_or_commute:
-  "val[x | y] = val[y | x]"
-  by (cases x; cases y; auto simp: or.commute)
-
-lemma intval_xor_commute:
-  "val[x \<oplus> y] = val[y \<oplus> x]"
-  by (cases x; cases y; auto simp: xor.commute)
-
-lemma exp_and_commute:
-  "exp[x & z] \<ge> exp[z & x]"
-  by (auto simp: intval_and_commute)
-
-lemma exp_or_commute:
-  "exp[x | y] \<ge> exp[y | x]"
-  by (auto simp: intval_or_commute)
-
 lemma intval_eliminate_y:
   assumes "val[y & z] = IntVal b 0"
   shows "val[(x | y) & z] = val[x & z]"
   using assms by (cases x; cases y; cases z; auto simp add: bit.conj_disj_distrib2)
 
-lemma intval_and_associative:
-  "val[(x & y) & z] = val[x & (y & z)]"
-  by (cases x; cases y; cases z; auto simp: and.assoc)
-
-lemma intval_or_associative:
-  "val[(x | y) | z] = val[x | (y | z)]"
-  by (cases x; cases y; cases z; auto simp: or.assoc) 
-
-lemma intval_xor_associative:
-  "val[(x \<oplus> y) \<oplus> z] = val[x \<oplus> (y \<oplus> z)]"
-  by (cases x; cases y; cases z; auto simp: xor.assoc)
-
-lemma exp_and_associative:
-  "exp[(x & y) & z] \<ge> exp[x & (y & z)]"
-  using intval_and_associative by fastforce
-
-lemma exp_or_associative:
-  "exp[(x | y) | z] \<ge> exp[x | (y | z)]"
-  using intval_or_associative by fastforce
-
-lemma exp_xor_associative:
-  "exp[(x \<oplus> y) \<oplus> z] \<ge> exp[x \<oplus> (y \<oplus> z)]"
-  using intval_xor_associative by fastforce
-
 lemma intval_and_absorb_or:
   assumes "\<exists>b v . x = new_int b v" (* TODO: required? *)
   assumes "val[x & (x | y)] \<noteq> UndefVal"
   shows "val[x & (x | y)] = val[x]"
-  using assms apply (cases x; cases y; auto)
-  by (metis (full_types) intval_and.simps(6))
+  using assms apply (cases x; cases y; auto) by (metis (full_types) intval_and.simps(6))
 
 lemma intval_or_absorb_and:
   assumes "\<exists>b v . x = new_int b v" (* TODO: required? *)
   assumes "val[x | (x & y)] \<noteq> UndefVal"
   shows "val[x | (x & y)] = val[x]"
-  using assms apply (cases x; cases y; auto)
-  by (metis (full_types) intval_or.simps(6))
+  using assms apply (cases x; cases y; auto) by (metis (full_types) intval_or.simps(6))
 
 lemma exp_and_absorb_or:
   "exp[x & (x | y)] \<ge> exp[x]"
   apply auto
   subgoal premises p for m p xa xaa ya
-  proof-
+  proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(1) by auto
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
@@ -104,7 +60,7 @@ lemma exp_or_absorb_and:
   "exp[x | (x & y)] \<ge> exp[x]"
   apply auto
   subgoal premises p for m p xa xaa ya
-  proof-
+  proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(1) by auto
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
@@ -279,7 +235,7 @@ lemma intval_up_and_zero_implies_zero:
 
 lemma exp_eliminate_y:
   "and (\<up>y) (\<up>z) = 0 \<longrightarrow> exp[(x | y) & z] \<ge> exp[x & z]"
-  apply simp apply (rule impI; rule allI; rule allI; rule allI) 
+  apply simp apply (rule impI; rule allI; rule allI; rule allI)
   subgoal premises p for m p v apply (rule impI) subgoal premises e
   proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
@@ -291,7 +247,7 @@ lemma exp_eliminate_y:
     have lhs: "v = val[(xv | yv) & zv]" 
       by (smt (verit, best) BinaryExprE bin_eval.simps(6,7) e evalDet xv yv zv)
     then have "v = val[(xv & zv) | (yv & zv)]"
-      by (simp add: intval_and_commute intval_distribute_and_over_or)
+      by (simp add: val_and_commutative intval_distribute_and_over_or)
     also have "\<exists>b. val[yv & zv] = new_int b 0"
       by (metis calculation e intval_or.simps(6) p unfold_binary intval_up_and_zero_implies_zero yv
           zv)
@@ -299,6 +255,32 @@ lemma exp_eliminate_y:
       by (auto simp: intval_eliminate_y lhs)
     from lhs rhs show ?thesis
       by (metis BinaryExpr BinaryExprE bin_eval.simps(6) e xv zv)
+  qed
+  done
+  done
+
+lemma exp_eliminate_x:
+  "and (\<up>x) (\<up>z) = 0 \<longrightarrow> exp[(x | y) & z] \<ge> exp[y & z]"
+  apply simp apply (rule impI; rule allI; rule allI; rule allI)
+  subgoal premises p for m p v apply (rule impI) subgoal premises e
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using e by auto
+    obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
+      using e by auto
+    obtain zv where zv: "[m,p] \<turnstile> z \<mapsto> zv"
+      using e by auto
+    have lhs: "v = val[(xv | yv) & zv]"
+      by (smt (verit, best) BinaryExprE bin_eval.simps(6,7) e evalDet xv yv zv)
+    then have "v = val[(xv & zv) | (yv & zv)]"
+      by (simp add: val_and_commutative intval_distribute_and_over_or)
+    also have "\<exists>b. val[xv & zv] = new_int b 0"
+      by (metis intval_up_and_zero_implies_zero calculation e evaltree_not_undef intval_or.simps(2)
+          p xv zv)
+    ultimately have rhs: "v = val[yv & zv]"
+      using intval_eliminate_y val_or_commutative lhs by force
+    from lhs rhs show ?thesis
+      by (metis bin_eval.simps(6) e unfold_binary yv zv)
   qed
   done
   done
@@ -313,7 +295,7 @@ lemma above_nth_not_set:
   fixes x :: int64
   assumes "n = 64 - numberOfLeadingZeros x"
   shows "j > n \<longrightarrow> \<not>(bit x j)"
-  by (smt (verit, ccfv_SIG) highestOneBit_def int_nat_eq int_ops(6) less_imp_of_nat_less size64 
+  by (smt (verit, ccfv_SIG) highestOneBit_def int_nat_eq int_ops(6) less_imp_of_nat_less size64
       max_set_bit zerosAboveHighestOne assms numberOfLeadingZeros_def)
 
 no_notation LogicNegationNotation ("!_")
@@ -333,7 +315,8 @@ lemma map_join_horner:
   assumes "map f [0..<n] = map f [0..<j] @ map (\<lambda>x. False) [j..<n]"
   shows "horner_sum of_bool (2::'a::len word) (map f [0..<n]) = horner_sum of_bool 2 (map f [0..<j])"
 proof -
-  have "horner_sum of_bool (2::'a::len word) (map f [0..<n]) = horner_sum of_bool 2 (map f [0..<j]) + 2 ^ length [0..<j] * horner_sum of_bool 2 (map f [j..<n])"
+  have "horner_sum of_bool (2::'a::len word) (map f [0..<n]) =
+        horner_sum of_bool 2 (map f [0..<j]) + 2 ^ length [0..<j] * horner_sum of_bool 2 (map f [j..<n])"
     using assms apply auto
     by (smt (verit) assms diff_le_self diff_zero le_add_same_cancel2 length_append length_map
         length_upt map_append upt_add_eq_append horner_sum_append)
@@ -341,7 +324,7 @@ proof -
     by (metis calculation horner_sum_append length_map assms)
   also have "... = horner_sum of_bool 2 (map f [0..<j])"
     using zero_horner mult_not_zero by auto
-  finally show ?thesis 
+  finally show ?thesis
     by simp
 qed
 
@@ -378,12 +361,12 @@ proof -
   proof -
     have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
       by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms
-          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc 
+          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc
           zerosAboveHighestOne not_may_implies_false)
     then have "\<forall>i. i \<ge> n \<longrightarrow> \<not>((bit v i) \<and> (bit zv i))"
       by auto
-    then show ?thesis using nle split_horner
-      by (metis (no_types, lifting))
+    then show ?thesis
+      by (metis (no_types, lifting) nle split_horner)
   qed
   also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<n])"
   proof -
@@ -397,8 +380,8 @@ proof -
   also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<64])"
   proof -
     have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
-      by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms 
-          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc 
+      by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms
+          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc
           zerosAboveHighestOne not_may_implies_false)
     then show ?thesis
       by (metis (no_types, lifting) assms(1) diff_le_self split_horner)
@@ -428,7 +411,7 @@ proof -
     by (simp add: horner_sum_bit_eq_take_bit take_bit_eq_mod)
   also have "... \<le> horner_sum of_bool 2 (map (bit (\<up>y)) [0..<n])"
     by (metis (no_types, opaque_lifting) and.right_neutral bit.conj_cancel_right word_not_dist(2)
-        bit.conj_disj_distribs(1) bit.double_compl horner_sum_bit_eq_take_bit take_bit_and ucast_id 
+        bit.conj_disj_distribs(1) bit.double_compl horner_sum_bit_eq_take_bit take_bit_and ucast_id
         up_spec word_and_le1 assms(4))
   also have "horner_sum of_bool 2 (map (bit (\<up>y)) [0..<n]) = horner_sum of_bool 2 (map (\<lambda>x. False) [0..<n])"
   proof -
@@ -798,26 +781,36 @@ phase NewAnd
   terminating size
 begin
 
-optimization redundant_lhs_y_or: "((x | y) & z) \<longmapsto> x & z
+text \<open>Optimisations\<close>
+
+optimization RedundantLhsYOr: "((x | y) & z) \<longmapsto> x & z
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-  by (simp add: IRExpr_up_def)+
+  apply (metis size_binary_const add_strict_right_mono size_binary_lhs size_non_add)
+  using simple_mask.exp_eliminate_y by blast
 
-optimization redundant_lhs_x_or: "((x | y) & z) \<longmapsto> y & z
+optimization RedundantLhsXOr: "((x | y) & z) \<longmapsto> y & z
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  by (simp add: IRExpr_up_def)+
+  apply (metis size_binary_const add_less_cancel_right size_binary_rhs size_non_add)
+  using simple_mask.exp_eliminate_x by blast
 
-optimization redundant_rhs_y_or: "(z & (x | y)) \<longmapsto> z & x
+optimization RedundantRhsYOr: "(z & (x | y)) \<longmapsto> z & x
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-  by (simp add: IRExpr_up_def)+
+  apply (smt (verit, ccfv_threshold) Suc_mono add.assoc add.commute add_2_eq_Suc' add_le_less_mono
+         less_Suc_eq numeral_2_eq_2 size_non_add size_pos verit_comp_simplify1(2) size_binary_const
+         size_binary_lhs_a)
+  by (meson dual_order.trans simple_mask.exp_eliminate_y RedundantLhsYOr exp_and_commutative)
 
-optimization redundant_rhs_x_or: "(z & (x | y)) \<longmapsto> z & y
+optimization RedundantRhsXOr: "(z & (x | y)) \<longmapsto> z & y
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  by (simp add: IRExpr_up_def)+
+  apply (metis (no_types, opaque_lifting) add.assoc add_strict_increasing less_Suc_eq
+         nat_add_left_cancel_less size_non_add size_pos verit_comp_simplify1(2) size_binary_const)
+  by (meson dual_order.trans exp_and_commutative simple_mask.exp_eliminate_x)
 
 (*
 optimization redundant_lhs_add: "((x + y) & z) \<longmapsto> x & z
-                               when ((and (IRExpr_up y) (IRExpr_down z)) = 0)"
+                               when ((and (IRExpr_up y) (IRExpr_up z)) = 0)"
 *)
+
 
 end
 

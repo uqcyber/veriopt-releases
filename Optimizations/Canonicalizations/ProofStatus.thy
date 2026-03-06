@@ -4,15 +4,16 @@ theory ProofStatus
     AddPhase
     AndPhase
     ConditionalPhase
-    MulPhase
-    (*NarrowPhase*)
     IntegerBelowPhase
     IntegerEqualsPhase
     LeftShiftPhase
+    MulPhase
+    (*NarrowPhase*)
     NegatePhase
     NewAnd
     NotPhase
     OrPhase
+    RightShiftPhase
     ShiftPhase
     SignedDivPhase
     SignedRemPhase

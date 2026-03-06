@@ -112,10 +112,6 @@ lemma val_elim_redundant_false:
   shows   "val[x | false] = val[x]"
   using assms by (cases x; auto; presburger)
 
-lemma val_shift_const_right_helper:
-  "val[x | y] = val[y | x]"
-  by (cases x; cases y; auto simp: or.commute)
-
 lemma val_or_not_operands:
   "val[~x | ~y] = val[~(x & y)]"
   by (cases x; cases y; auto simp: take_bit_not_take_bit)
@@ -124,10 +120,6 @@ lemma val_or_inverse:
   assumes "n = IntVal 32 v"
   shows "val[n | ~n] \<approx> new_int 32 (-1)"
   apply (auto simp: assms) by (metis bit.disj_cancel_right mask_eq_take_bit_minus_one take_bit_or)
-
-lemma val_or_commute[simp]:
-  "val[x | y] = val[y | x]"
-  by (cases x; cases y; auto simp: or.commute)
 
 (* Exp level proofs *)
 lemma exp_or_equal:
@@ -162,17 +154,13 @@ lemma exp_elim_redundant_false:
   qed
   done
 
-lemma exp_or_commutative:
-  "exp[x | y] \<ge> exp[y | x]"
-  by auto
-
 text \<open>Optimisations\<close>
 
 optimization OrEqual: "x | x \<longmapsto> x"
   by (meson exp_or_equal)
 
 optimization OrShiftConstantRight: "((const x) | y) \<longmapsto> y | (const x) when \<not>(is_ConstantExpr y)"
-  using size_flip_binary by (auto simp: BinaryExpr unfold_const val_shift_const_right_helper)
+  using size_flip_binary by (auto simp: BinaryExpr unfold_const val_or_commutative)
 
 optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
   by (meson exp_elim_redundant_false)

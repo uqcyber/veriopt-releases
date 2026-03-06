@@ -211,10 +211,6 @@ lemma RedundantAddSub_Exp:
   qed
   done
 
-lemma ExpAddCommute:
-  "exp[x + y] \<ge> exp[y + x]"
-  by (auto simp add: Values.intval_add_sym)
-
 lemma AddNotExp:
   assumes "stamp_expr n = IntegerStamp b l h"
   assumes "wf_stamp n"
@@ -275,7 +271,7 @@ optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
                         when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
    apply (metis One_nat_def less_numeral_extra(3) less_one linorder_neqE_nat size_binary_rhs
           size_pos)
-   using AddNot ExpAddCommute by auto
+   using AddNot exp_add_commutative by auto
 
 (* ----- Ends here ----- *)
 

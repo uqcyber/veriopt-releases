@@ -10,47 +10,6 @@ phase IntegerEqualsNode
   terminating size
 begin
 
-(* Helpers *)
-lemma val_and_commute:
-  assumes "x \<noteq> UndefVal"
-  assumes "y \<noteq> UndefVal"
-  shows "val[x & y] = val[y & x]"
-  using assms apply (cases x; cases y; auto) by (simp add: word_bw_comms(1))
-
-lemma exp_and_commute:
-  shows "exp[x & y] \<ge> exp[y & x]"
-  apply auto by (simp add: BinaryExpr evaltree_not_undef val_and_commute)
-
-lemma val_or_commute:
-  assumes "x \<noteq> UndefVal"
-  assumes "y \<noteq> UndefVal"
-  shows "val[x | y] = val[y | x]"
-  using assms apply (cases x; cases y; auto) by (simp add: or.commute)
-
-lemma exp_or_commute:
-  shows "exp[x | y] \<ge> exp[y | x]"
-  apply auto by (simp add: BinaryExpr evaltree_not_undef val_or_commute)
-
-lemma val_equals_commute:
-  assumes "x \<noteq> UndefVal"
-  assumes "y \<noteq> UndefVal"
-  shows "val[x eq y] = val[y eq x]"
-  using assms apply (cases x; cases y; auto) by (smt (verit, best))
-
-lemma exp_equals_commute:
-  shows "exp[x eq y] \<ge> exp[y eq x]"
-  apply auto by (simp add: BinaryExpr evaltree_not_undef val_equals_commute)
-
-lemma val_xor_commute:
-  assumes "x \<noteq> UndefVal"
-  assumes "y \<noteq> UndefVal"
-  shows "val[x \<oplus> y] = val[y \<oplus> x]"
-  using assms apply (cases x; cases y; auto) by (simp add: word_bw_comms(3))
-
-lemma exp_xor_commute:
-  shows "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
-  apply auto by (simp add: BinaryExpr evaltree_not_undef val_xor_commute)
-
 (* Word level *)
 
 lemma bin_add_commutative: "(x+y) = (y+x)" for x y z::int64
@@ -87,20 +46,6 @@ lemma bin_equal_substraction: "(x - y) = 0 \<longleftrightarrow> x = y" for x y:
   by simp
 
 (* Value level *)
-
-lemma val_add_commutative:
-  assumes "x = new_int n vx"
-  assumes "y = new_int n vy"
-  assumes "val[x + y] \<noteq> UndefVal"
-  shows "val[x + y] = val[y + x]"
-  by (simp add: intval_add_sym)
-
-lemma val_xor_commutative:
-  assumes "x = new_int n vx"
-  assumes "y = new_int n vy"
-  assumes "val[x \<oplus> y] \<noteq> UndefVal"
-  shows "val[x \<oplus> y] = val[y \<oplus> x]"
-  by (simp add: assms(1) assms(2) bin_xor_commutative)
 
 lemma val_addition_equality: 
   assumes "x = new_int n vx"
@@ -431,57 +376,6 @@ lemma val_not_eq:
 
 (* Expression level *)
 
-lemma wfZero [simp]: 
-  assumes "1 \<le> b"
-  assumes "b \<le> 64"
-  shows "wf_value (IntVal b 0)"
-  unfolding wf_value_def stamp_expr.simps(3) valid_value.simps apply auto
-  using assms(1) apply auto[1]
-  apply (simp add: assms(2))
-  by (metis ValueThms.upper_bounds_equiv assms(1) gr0I less_numeral_extra(1) 
-      linorder_not_less not_exp_less_eq_0_int)
-
-lemma exp_commutative_addition: 
-  shows "exp[x + y] \<ge> exp[y + x]"
-  apply auto
-  subgoal premises prems for m p xa ya
-  proof -
-    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
-      using prems(1) by auto
-    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
-      using prems(2) by auto
-    have "val[xa + ya] \<noteq> UndefVal"
-      by (metis evalDet prems(1) prems(2) prems(3) xa ya)
-    have "[m,p] \<turnstile> exp[y + x] \<mapsto> val[xa + ya]"
-      using \<open>intval_add (xa::Value) (ya::Value) \<noteq> UndefVal\<close> intval_add_sym xa ya by auto
-    then show ?thesis
-      by (metis evalDet prems(1) prems(2) xa ya) 
-  qed
-  done
-
-lemma exp_commutative_xor:
-  shows "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]" 
-  apply auto
-  subgoal premises prems for m p xa ya
-  proof -
-    obtain xa where x: "[m,p] \<turnstile> x \<mapsto> xa"
-      using prems(1) by auto
-    obtain ya where y: "[m,p] \<turnstile> y \<mapsto> ya"
-      using prems(2) by auto
-    have "val[xa \<oplus> ya] \<noteq> UndefVal"
-      by (metis evalDet prems(1) prems(2) prems(3) x y)
-    moreover have "val[xa \<oplus> ya] = val[ya \<oplus> xa]"
-      using val_xor_commutative
-      by (smt (z3) Value.distinct(11) Value.distinct(9) Value.inject(1) bin_xor_commutative 
-          evaltree_not_undef intval_xor.elims intval_xor.simps(5) intval_xor.simps(9) 
-          new_int_bin.simps x y)
-    ultimately have "[m,p] \<turnstile> exp[y \<oplus> x] \<mapsto> val[xa \<oplus> ya]"
-      using x y by auto
-    then show ?thesis
-      by (metis evalDet prems(1) prems(2) x y)
-  qed
-  done
-
 lemma exp_addition_equality:
   shows "exp[(x+y) eq (x+z)] \<ge> exp[(y eq z)]"
   apply auto
@@ -739,7 +633,7 @@ lemma exp_add_zero_equality:
     have width: "xn = yn"
       by (metis xaEq xaIntVal ya addNotUndef intval_add.simps(1))
     have "wf_value (IntVal b 0)" 
-      using wfZero assms(3) assms(4) by auto
+      using wf_value_zero assms(3,4) by auto
     moreover have widthB: "yn = b"
       by (metis y ya assms(1,2) valid_int_same_bits wf_stamp_def)
     ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
@@ -762,7 +656,7 @@ lemma exp_add_zero_equality_swapped:
   shows "exp[y eq (x+y)] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
   have "exp[x+y] \<ge> exp[y+x]"
-    using exp_commutative_addition assms by auto
+    using exp_add_commutative assms by auto
   then have "exp[y eq (x+y)] \<ge> exp[y eq (y+x)]"
     using mono_binary by blast
   moreover have "exp[y eq (y+x)] \<ge> exp[x eq const (IntVal b 0)]"
@@ -778,11 +672,11 @@ lemma exp_add_zero_equality_flipped:
   shows "exp[(x+y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
 proof -
   have "exp[x eq (x+y)] \<ge> exp[(x+y) eq x]"
-    using exp_equals_commute by blast
+    using exp_eq_commutative by blast
   then have "exp[x eq (x+y)] \<ge> exp[y eq const (IntVal b 0)]"
     using assms(1) assms(2) assms(3) assms(4) exp_add_zero_equality by blast
   then show ?thesis
-    using exp_equals_commute order.trans by blast
+    using exp_eq_commutative order.trans by blast
 qed
 
 lemma exp_add_zero_equality_flipped_swapped:
@@ -792,7 +686,7 @@ lemma exp_add_zero_equality_flipped_swapped:
   shows "exp[(x+y) eq y] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
   have "exp[x+y] \<ge> exp[y+x]"
-    using exp_commutative_addition assms by auto
+    using exp_add_commutative assms by auto
   then have "exp[(x+y) eq y] \<ge> exp[(y+x) eq y]"
     using mono_binary by blast
   moreover have "exp[(y+x) eq y] \<ge> exp[x eq const (IntVal b 0)]"
@@ -835,7 +729,7 @@ lemma exp_xor_zero_equality:
           \<open>(ya::Value) = IntVal (yn::nat) (yv::64 word)\<close> 
           \<open>intval_xor (xaa::Value) (ya::Value) \<noteq> UndefVal\<close> apply auto by meson
     have "wf_value (IntVal b 0)" 
-      using wfZero assms(3) assms(4) by auto
+      using wf_value_zero assms(3,4) by auto
     moreover have "yn = b" using calculation y ya assms
       by (metis valid_int_same_bits wf_stamp_def) 
     ultimately have "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
@@ -863,7 +757,7 @@ lemma exp_xor_zero_equality_swapped:
   shows "exp[y eq (x\<oplus>y)] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
   have "exp[x\<oplus>y] \<ge> exp[y\<oplus>x]"
-    using exp_commutative_xor assms by auto
+    using exp_xor_commutative assms by auto
   then have "exp[y eq (x\<oplus>y)] \<ge> exp[y eq (y\<oplus>x)]"
     using mono_binary by blast
   moreover have "exp[y eq (y\<oplus>x)] \<ge> exp[x eq const (IntVal b 0)]"
@@ -879,11 +773,11 @@ lemma exp_xor_zero_equality_flipped:
   shows "exp[(x\<oplus>y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
 proof -
   have "exp[x eq (x\<oplus>y)] \<ge> exp[(x\<oplus>y) eq x]"
-    using exp_equals_commute by blast
+    using exp_eq_commutative by blast
   then have "exp[x eq (x\<oplus>y)] \<ge> exp[y eq const (IntVal b 0)]"
     using assms(1) assms(2) assms(3) assms(4) exp_xor_zero_equality by blast
   then show ?thesis
-    using exp_equals_commute order.trans by blast
+    using exp_eq_commutative order.trans by blast
 qed
 
 lemma exp_xor_zero_equality_flipped_swapped:
@@ -893,7 +787,7 @@ lemma exp_xor_zero_equality_flipped_swapped:
   shows "exp[(x\<oplus>y) eq y] \<ge> exp[x eq const (IntVal b 0)]"
 proof -
   have "exp[x\<oplus>y] \<ge> exp[y\<oplus>x]"
-    using exp_commutative_xor assms by auto
+    using exp_xor_commutative assms by auto
   then have "exp[(x\<oplus>y) eq y] \<ge> exp[(y\<oplus>x) eq y]"
     using mono_binary by blast
   moreover have "exp[(y\<oplus>x) eq y] \<ge> exp[x eq const (IntVal b 0)]"
@@ -931,7 +825,7 @@ lemma exp_sub_zero_equality:
     then have "ya = new_int yn yv"
       using eval_unused_bits_zero y by auto
     have "wf_value (IntVal b 0)"
-      using wfZero assms by auto
+      using wf_value_zero assms by auto
     moreover have yBits: "yn = b"
       using calculation assms y
       by (metis valid_int_same_bits wf_stamp_def ya)
@@ -959,7 +853,7 @@ lemma exp_sub_zero_equality_flipped:
   assumes "wf_stamp y"
   assumes "1 \<le> b" and "b \<le> 64"
   shows "exp[(x-y) eq x] \<ge> exp[y eq const (IntVal b 0)]"
-  using exp_equals_commute assms exp_sub_zero_equality order.trans by blast
+  using exp_eq_commutative assms exp_sub_zero_equality order.trans by blast
 
 lemma exp_not_self_equality:
   assumes "stamp_expr x = IntegerStamp b lo hi"
@@ -1369,17 +1263,17 @@ optimization AdditionEquality: "exp[(x+y) eq (x+z)] \<longmapsto> exp[(y eq z)]"
 
 optimization AdditionEquality2: "exp[(x+y) eq (z+x)] \<longmapsto> exp[(y eq z)]"
   apply simp
-  using exp_addition_equality exp_commutative_addition
+  using exp_addition_equality exp_add_commutative
   by (meson le_expr_def mono_binary)
 
 optimization AdditionEquality3: "exp[(y+x) eq (x+z)] \<longmapsto> exp[(y eq z)]"
   apply simp
-  using exp_addition_equality exp_commutative_addition
+  using exp_addition_equality exp_add_commutative
   by (meson le_expr_def mono_binary)
 
 optimization AdditionEquality4: "exp[(y+x) eq (z+x)] \<longmapsto> exp[(y eq z)]"
   apply simp
-  using exp_addition_equality exp_commutative_addition
+  using exp_addition_equality exp_add_commutative
   by (meson le_expr_def mono_binary)
 
 optimization XorEquality: "exp[(x\<oplus>y) eq (x\<oplus>z)] \<longmapsto> exp[(y eq z)]"
@@ -1388,17 +1282,17 @@ optimization XorEquality: "exp[(x\<oplus>y) eq (x\<oplus>z)] \<longmapsto> exp[(
 
 optimization XorEquality2: "exp[(x\<oplus>y) eq (z\<oplus>x)] \<longmapsto> exp[(y eq z)]"
   apply simp
-  using exp_xor_equality exp_commutative_xor
+  using exp_xor_equality exp_xor_commutative
   by (meson le_expr_def mono_binary)
 
 optimization XorEquality3: "exp[(y\<oplus>x) eq (x\<oplus>z)] \<longmapsto> exp[(y eq z)]"
   apply simp
-  using exp_xor_equality exp_commutative_xor
+  using exp_xor_equality exp_xor_commutative
   by (meson le_expr_def mono_binary)
 
 optimization XorEquality4: "exp[(y\<oplus>x) eq (z\<oplus>x)] \<longmapsto> exp[(y eq z)]"
   apply simp
-  using exp_xor_equality exp_commutative_xor
+  using exp_xor_equality exp_xor_commutative
   by (meson le_expr_def mono_binary)
 
 optimization SubtractionEquality: "exp[(x-y) eq (x-z)] \<longmapsto> exp[(y eq z)]"
@@ -1477,19 +1371,19 @@ optimization AndOrEquals2: "exp[(x & y) eq (y | x)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
-  using AndOrEquals1 apply simp by (meson exp_or_commute le_expr_def mono_binary)
+  using AndOrEquals1 apply simp by (meson exp_or_commutative le_expr_def mono_binary)
 
 optimization AndOrEquals3: "exp[(x | y) eq (x & y)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
-  by (meson exp_equals_commute order.trans exp_and_or_eq_64)
+  by (meson exp_eq_commutative order.trans exp_and_or_eq_64)
 
 optimization AndOrEquals4: "exp[(x | y) eq (y & x)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
   apply (metis less_SucI less_add_Suc1 size_binary_const size_non_add)
-  using AndOrEquals3 apply simp by (meson exp_and_commute le_expr_def mono_binary)
+  using AndOrEquals3 apply simp by (meson exp_and_commutative le_expr_def mono_binary)
 
 optimization XorNotFallThrough1: "exp[(x \<oplus> y) eq (\<not>x)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
@@ -1501,19 +1395,19 @@ optimization XorNotFallThrough2: "exp[(y \<oplus> x) eq (\<not>x)] \<longmapsto>
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: add.commute less_SucI pos_add_strict size_binary_lhs size_pos)
-  using XorNotFallThrough1 apply simp by (meson exp_xor_commute le_expr_def mono_binary)
+  using XorNotFallThrough1 apply simp by (meson exp_xor_commutative le_expr_def mono_binary)
 
 optimization XorNotFallThrough3: "exp[(\<not>x) eq (x \<oplus> y)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_binary_rhs trans_less_add2)
-  using exp_xor_not_fall_through exp_equals_commute by force
+  using exp_xor_not_fall_through exp_eq_commutative by force
 
 optimization XorNotFallThrough4: "exp[(\<not>x) eq (y \<oplus> x)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_binary_lhs trans_less_add2)
-  using XorNotFallThrough2 apply simp by (meson le_expr_def exp_equals_commute)
+  using XorNotFallThrough2 apply simp by (meson le_expr_def exp_eq_commutative)
 
 optimization NotAbs: "exp[(~x) eq (abs(x))] \<longmapsto> exp[false]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x \<and> xb \<ge> 1)"
@@ -1521,7 +1415,7 @@ optimization NotAbs: "exp[(~x) eq (abs(x))] \<longmapsto> exp[false]
 
 optimization NotAbsCommute: "exp[(abs(x)) eq (~x)] \<longmapsto> exp[false]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x \<and> xb \<ge> 1)"
-  using exp_not_abs dual_order.trans exp_equals_commute by force
+  using exp_not_abs dual_order.trans exp_eq_commutative by force
 
 optimization NegateNotFalse: "exp[(-x) eq (~x)] \<longmapsto> false
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x \<and> (xb \<ge> 1))"
@@ -1529,7 +1423,7 @@ optimization NegateNotFalse: "exp[(-x) eq (~x)] \<longmapsto> false
 
 optimization NegateNotFalseCommute: "exp[(~x) eq (-x)] \<longmapsto> false
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x \<and> (xb \<ge> 1))"
-  using exp_negate_not_false by (metis exp_equals_commute numeral_1_eq_Suc_0 numerals(1) order.trans)
+  using exp_negate_not_false by (metis exp_eq_commutative numeral_1_eq_Suc_0 numerals(1) order.trans)
 
 optimization NegateSubRight: "exp[(-x) eq (y - x)] \<longmapsto> exp[y eq (const new_int yb 0)]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
@@ -1541,7 +1435,7 @@ optimization NegateSubRightCommute: "exp[(y - x) eq (-x)] \<longmapsto> exp[y eq
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
   apply (simp add: add.commute less_SucI pos_add_strict size_binary_lhs size_pos)
-  using exp_negate_sub_right by (metis exp_equals_commute new_int_zero_is_intval order.trans)
+  using exp_negate_sub_right by (metis exp_eq_commutative new_int_zero_is_intval order.trans)
 
 optimization NegateEqZero: "exp[(-x) eq (const (new_int b 0))] \<longmapsto> exp[x eq (const (new_int b 0))]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x)"
@@ -1550,7 +1444,7 @@ optimization NegateEqZero: "exp[(-x) eq (const (new_int b 0))] \<longmapsto> exp
 optimization NegateEqZeroCommute: "exp[(const (new_int b 0)) eq (-x)] \<longmapsto>
                                    exp[x eq (const (new_int b 0))]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x)"
-  using exp_negate_eq_zero dual_order.trans exp_equals_commute new_int_zero_is_intval by auto
+  using exp_negate_eq_zero dual_order.trans exp_eq_commutative new_int_zero_is_intval by auto
 
 optimization NegateEq: "exp[(-x) eq (-y)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
@@ -1569,7 +1463,7 @@ optimization NotZeroNegOneCommute: "exp[(const new_int xb 0) eq (\<not>x)] \<lon
                                     exp[x eq (const new_int xb (not 0))]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
-  using exp_not_zero_neg_one exp_equals_commute by auto
+  using exp_not_zero_neg_one exp_eq_commutative by auto
 
 optimization NotNegOneZero: "exp[(\<not>x) eq (const new_int xb (not 0))] \<longmapsto>
                              exp[x eq (const new_int xb 0)]
@@ -1581,7 +1475,7 @@ optimization NotNegOneZeroCommute: "exp[(const new_int xb (not 0)) eq (\<not>x)]
                                     exp[x eq (const new_int xb 0)]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
-  using exp_not_neg_one_zero exp_equals_commute by simp
+  using exp_not_neg_one_zero exp_eq_commutative by simp
 
 optimization NotEq: "exp[(~x) eq (~y)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>

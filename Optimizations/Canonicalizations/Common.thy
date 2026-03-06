@@ -108,16 +108,75 @@ lemma const_eval_is_const:
   by (simp add: assms IRTreeEval.evaltree.ConstantExpr)
 
 (* Operator commutativity lemmas *)
+lemma val_add_commutative:
+  "val[x + y] = val[y + x]"
+  by (cases x; cases y; auto simp: add.commute)
+
+lemma val_and_commutative:
+  "val[x & y] = val[y & x]"
+  by (cases x; cases y; auto simp: and.commute)
+
 lemma val_eq_commutative:
-  "val[y eq x] = val[x eq y]"
+  "val[x eq y] = val[y eq x]"
   by (cases y; cases x; auto simp: unwrap_bool_to_val)
+
+lemma val_or_commutative:
+  "val[x | y] = val[y | x]"
+  by (cases x; cases y; auto simp: or.commute)
 
 lemma val_xor_commutative:
   "val[x \<oplus> y] = val[y \<oplus> x]"
   by (cases x; cases y; auto simp: word_bw_comms(3))
 
+lemma exp_add_commutative:
+  "exp[x + y] \<ge> exp[y + x]"
+  by (auto simp: val_add_commutative)
+
+lemma exp_and_commutative:
+  "exp[x & y] \<ge> exp[y & x]"
+  by (auto simp: val_and_commutative)
+
+lemma exp_eq_commutative:
+  "exp[x eq y] \<ge> exp[y eq x]"
+  by (auto simp: val_eq_commutative)
+
+lemma exp_or_commutative:
+  "exp[x | y] \<ge> exp[y | x]"
+  by (auto simp: val_or_commutative)
+
 lemma exp_xor_commutative:
   "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
-  using val_xor_commutative by auto
+  by (auto simp: val_xor_commutative)
+
+(* Operator associativity lemmas *)
+lemma val_and_associative:
+  "val[(x & y) & z] = val[x & (y & z)]"
+  by (cases x; cases y; cases z; auto simp: and.assoc)
+
+lemma val_or_associative:
+  "val[(x | y) | z] = val[x | (y | z)]"
+  by (cases x; cases y; cases z; auto simp: or.assoc)
+
+lemma val_xor_associative:
+  "val[(x \<oplus> y) \<oplus> z] = val[x \<oplus> (y \<oplus> z)]"
+  by (cases x; cases y; cases z; auto simp: xor.assoc)
+
+lemma exp_and_associative:
+  "exp[(x & y) & z] \<ge> exp[x & (y & z)]"
+  using val_and_associative by fastforce
+
+lemma exp_or_associative:
+  "exp[(x | y) | z] \<ge> exp[x | (y | z)]"
+  using val_or_associative by fastforce
+
+lemma exp_xor_associative:
+  "exp[(x \<oplus> y) \<oplus> z] \<ge> exp[x \<oplus> (y \<oplus> z)]"
+  using val_xor_associative by fastforce
+
+(* Operator self lemmas *)
+lemma val_xor_self:
+  assumes "x = IntVal b xv"
+  shows "val[x \<oplus> x] = val[IntVal b 0]"
+  using assms by (cases x; auto)
 
 end

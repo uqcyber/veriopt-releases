@@ -69,6 +69,14 @@ lemma size_binary_rhs[size_simps]:
   by (metis IRExpr.disc(42) add_strict_increasing is_ConstantExpr_def linorder_not_le not_add_less1
       size.simps(11) size_non_add size_non_const size_pos)
 
+lemma size_eq_ops [size_simps]:
+  "size (BinaryExpr BinIntegerEquals y z) < Suc (Suc (size (BinaryExpr op y x) + size (BinaryExpr op z x)))"
+  by (cases x; cases y; cases z; auto)
+
+lemma size_eq_const [size_simps]:
+  "Suc (Suc (size x)) < size (BinaryExpr op' (BinaryExpr op x y) y)"
+  by (cases x; cases y; auto)
+
 lemmas arith[size_simps] = Suc_leI add_strict_increasing order_less_trans trans_less_add2
 
 definition well_formed_equal :: "Value \<Rightarrow> Value \<Rightarrow> bool" 

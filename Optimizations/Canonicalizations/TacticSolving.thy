@@ -625,6 +625,9 @@ optimization XorEqZero_64: "exp[(x \<oplus> y) eq (const (IntVal 64 0))] \<longm
 (*
 XorEqNeg1
   (x ^ y) == -1 \<mapsto> (x == \<not>y)
+
+  TODO prove termination and submit
+
  *)
 
 lemma xorNeg1IsEq:

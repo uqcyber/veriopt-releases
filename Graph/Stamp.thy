@@ -61,6 +61,10 @@ fun can_stamp_be_negative :: "Stamp \<Rightarrow> bool" where
   "can_stamp_be_negative (IntegerStamp b l h) = (l < 0)" |
   "can_stamp_be_negative _ = False"
 
+fun width_in_bounds :: "Stamp \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" where
+  "width_in_bounds (IntegerStamp b _ _) lb hb = ((lb \<le> b) \<and> (hb \<ge> b))" |
+  "width_in_bounds _ _ _ = False"
+
 text \<open>Just like the IntegerStamp class, we need to know that our lo/hi bounds
   fit into the given number of bits (either signed or unsigned).
   Our integer stamps have infinite lo/hi bounds, so if the lower

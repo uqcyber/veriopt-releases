@@ -700,6 +700,15 @@ proof -
 qed
   done
 
+lemma bit_bound_maintained:
+  assumes "width_in_bounds (stamp_expr x) xl xh"
+  assumes "wf_stamp x"
+  assumes "[m,p] \<turnstile> x \<mapsto> xv"
+  assumes "xv = IntVal n v"
+  shows "intval_bits_in_bounds xv xl xh"
+  by (metis intval_bits_in_bounds.simps valid_int_same_bits wf_stamp_def width_in_bounds.elims(2)
+      assms)
+
 lemma stamp_under_defn:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"
   assumes "wf_stamp x \<and> wf_stamp y"

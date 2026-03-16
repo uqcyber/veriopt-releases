@@ -49,6 +49,22 @@ fun intval_bits :: "Value \<Rightarrow> nat" where
 fun intval_word :: "Value \<Rightarrow> int64" where
   "intval_word (IntVal b v) = v"
 
+fun intval_bits_in_bounds :: "Value \<Rightarrow> nat \<Rightarrow> nat \<Rightarrow> bool" where
+  "intval_bits_in_bounds (IntVal b v) lb hb = ((lb \<le> b) \<and> (hb \<ge> b))" |
+  "intval_bits_in_bounds _ _ _ = False"
+
+fun take_bit_val_eq :: "Value \<Rightarrow> bool" where
+  "take_bit_val_eq (IntVal b v) = (take_bit b v = v)" |
+  "take_bit_val_eq _ = False"
+
+fun negative_intval :: "Value \<Rightarrow> bool" where
+  "negative_intval (IntVal b v) = bit v (b - 1)" |
+  "negative_intval _ = False"
+
+fun positive_intval :: "Value \<Rightarrow> bool" where
+  "positive_intval (IntVal b v) = (\<not>bit v (b - 1))" |
+  "positive_intval _ = False"
+
 text \<open>Converts an integer word into a Java value.\<close>
 fun new_int :: "iwidth \<Rightarrow> int64 \<Rightarrow> Value" where
   "new_int b w = IntVal b (take_bit b w)"

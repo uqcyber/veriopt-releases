@@ -3,8 +3,7 @@ chapter "veriopt"
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM Intermediate Representation encoding"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
+    options [document = false, show_question_marks = false]
   theories
     JavaWords
     JavaLong
@@ -24,8 +23,7 @@ session Graph in Graph = "HOL-Library" +
 session Semantics in Semantics = Graph +
   description
     "Semantics of the GraalVM IR"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false, quick_and_dirty]
+  options [document = false, show_question_marks = false, quick_and_dirty]
   sessions
     "HOL-Eisbach"
     Snippets
@@ -57,8 +55,7 @@ session Proofs in Proofs = Semantics +
 session OptimizationDSL in "Optimizations/DSL" = Proofs +
   description
     "DSL for expressing optimizations"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
+  options [document = false, show_question_marks = false]
   sessions
     Snippets
   theories
@@ -72,8 +69,7 @@ session OptimizationDSL in "Optimizations/DSL" = Proofs +
 session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL +
   description
     "Canonicalization phase"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false, quick_and_dirty]
+  options [document = false, show_question_marks = false, quick_and_dirty]
   theories
     Common
 
@@ -103,10 +99,7 @@ session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL
 session ConditionalElimination in "Optimizations/ConditionalElimination" = OptimizationDSL +
   description
     "(experimental) Conditional elimination phase"
-  options [quick_and_dirty,
-           document = pdf, document_output = "output",
-           show_question_marks = false,
-           document_variants="document:outline=/proof"]
+  options [document = false, show_question_marks = false, quick_and_dirty]
   theories
     ConditionalElimination
     CFG
@@ -140,8 +133,7 @@ session Optimizations in Optimizations = OptimizationDSL +
 session Snippets = "HOL-Library" +
   description
     "Additional commands to enable the generation of LaTeX snippets of theories"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
+    options [document = false, show_question_marks = false]
   theories
     Snipping
   document_files (in "./latex")
@@ -152,10 +144,7 @@ session Snippets = "HOL-Library" +
 session Document in "Papers/Main" = Canonicalizations +
   description
     "Whole project document"
-  options [quick_and_dirty,
-           document = pdf, document_output = "output",
-           show_question_marks = false,
-           document_variants="document:outline=/proof"]
+  options [document = false, show_question_marks = false, quick_and_dirty]
   sessions
     Graph
     Semantics
@@ -230,8 +219,7 @@ session Document in "Papers/Main" = Canonicalizations +
 session SemanticsPaper in "Papers/Semantics" = Semantics +
   description
     "Content for IR semantics description paper"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
+  options [document = false, show_question_marks = false]
   sessions
     Proofs
   theories
@@ -244,9 +232,7 @@ session SemanticsPaper in "Papers/Semantics" = Semantics +
 session StampLattice in "Papers/Stamps" = Graph +
   description
     "(experimental) Investigation of an alternative approach to representing stamps in Isabelle/HOL"
-  options [quick_and_dirty,
-           document = pdf, document_output = "output",
-           show_question_marks = false]
+  options [document = false, show_question_marks = false, quick_and_dirty]
   theories
     Graph.StampLattice
   document_theories
@@ -261,8 +247,7 @@ session StampLattice in "Papers/Stamps" = Graph +
 session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
   description
     "Snippets of Isabelle theories used for the preparation of the future paper ``Verifying term graph optimizations using Isabelle/HOL''"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false]
+  options [document = false, show_question_marks = false]
   sessions
     Snippets
   theories
@@ -316,8 +301,7 @@ session TreePaperSnippets in "Papers/Tree" = Canonicalizations +
 session ValidationPaperSnippets in "Papers/Validation" = ConditionalElimination +
   description
     "Snippets of Isabelle theories used for the preparation of the future paper ``Validating Faithful Formalization of an Existing Compiler''"
-  options [document = pdf, document_output = "output",
-           show_question_marks = false, quick_and_dirty]
+  options [document = false, show_question_marks = false, quick_and_dirty]
   sessions
     Snippets
   theories

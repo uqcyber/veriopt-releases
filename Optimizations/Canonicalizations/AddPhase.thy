@@ -275,7 +275,7 @@ optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
 
 (* ----- Ends here ----- *)
 
-end
+end (* End of AddPhase *)
 
 (* Isabelle Isar Questions:
  Why doesn't subgoal handle \forall and \<longrightarrow> ?
@@ -284,4 +284,5 @@ end
     apply ((rule allI)+; rule impI)
     subgoal premises p2 for m p v
 *)
-end
+
+end (* End of file *)

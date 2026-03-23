@@ -491,6 +491,6 @@ optimization BelowLess: "(x |<| ((y |<| z) ? const (IntVal b 0) : (y - z))) \<lo
         stamp_expr y = IntegerStamp b lo hi)"
   using exp_below_less by blast
 
-end
+end (* End of IntegerBelowPhase *)
 
-end
+end (* End of file *)

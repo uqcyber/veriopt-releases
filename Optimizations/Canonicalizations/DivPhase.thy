@@ -59,6 +59,6 @@ optimization DivItself: "(x / x) \<longmapsto> const IntVal b 1 when
 
 thm_oracles DivItself
 
-end
+end (* End of DivPhase *)
 
-end
+end (* End of file *)

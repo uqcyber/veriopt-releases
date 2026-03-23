@@ -306,6 +306,6 @@ optimization AbsIdempotence:
   "exp[abs(abs(x))] \<longmapsto> exp[abs(x)] when wf_stamp x \<and> stamp_expr x = IntegerStamp b l h"
   using val_abs_idem wf_stamp_def by fastforce
 
-end
+end (* End of AbsPhase *)
 
-end
+end (* End of file *)

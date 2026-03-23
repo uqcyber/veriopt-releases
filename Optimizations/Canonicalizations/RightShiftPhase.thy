@@ -92,6 +92,6 @@ optimization ReturnXOnZeroShift:
   using exp_ReturnXOnZeroShift
   by fastforce
 
-end
+end (* End of RightShiftPhase *)
 
 end (* End of file *)

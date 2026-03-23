@@ -349,6 +349,6 @@ optimization opt_normalize_x_original: "((BinaryExpr BinIntegerEquals x (Constan
 
 (** End of new proofs **)
 
-end
+end (* End of ConditionalPhase *)
 
-end
+end (* End of file *)

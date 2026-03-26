@@ -639,6 +639,15 @@ lemma wf_integerstamp_has_wf_value_all_ones:
   unfolding wf_value_def
   by (metis assms(3,4) eval_bits_1_64 new_int.elims new_int_unused_bits_zero validDefIntConst)
 
+lemma wf_integerstamp_implies_zero_evals:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp xb xl xh"
+  assumes "[m,p] \<turnstile> x \<mapsto> xa"
+  shows "[m,p] \<turnstile> (ConstantExpr (new_int xb 0)) \<mapsto> new_int xb 0"
+  using assms unfolding wf_stamp_def
+  by (metis ConstantExpr assms(1) new_int.elims valid_int_same_bits wf_integerstamp_eval_is_new_int
+      wf_integerstamp_has_wf_value_zero)
+
 lemma wf_integerstamp_implies_nonzero_bits:
   assumes "stamp_expr x = IntegerStamp b xl xh"
   assumes "wf_stamp x"

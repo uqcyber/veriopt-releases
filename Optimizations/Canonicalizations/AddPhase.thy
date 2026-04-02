@@ -186,6 +186,10 @@ lemma exp_add_left_negate_to_sub:
   "exp[-e + y] \<ge> exp[y - e]"
   by (cases e; cases y; auto simp: AddToSubHelperLowLevel)
 
+lemma exp_add_right_negate_to_sub:
+  shows "exp[x + -y] \<ge> exp[x - y]"
+  by (meson dual_order.trans exp_add_commutative exp_add_left_negate_to_sub)
+
 lemma RedundantAddSub_Exp:
   shows "exp[(b + a) - b] \<ge> a"
   apply auto

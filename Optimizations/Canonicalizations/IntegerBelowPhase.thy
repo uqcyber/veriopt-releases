@@ -3,6 +3,7 @@ subsection \<open>IntegerBelowNode Phase\<close>
 theory IntegerBelowPhase
   imports 
     Common
+    AddPhase
     Proofs.StampEvalThms
 begin
 
@@ -153,7 +154,6 @@ qed
 lemma pos_less_neg:
   assumes "x = IntVal n vx"
   assumes "y = IntVal n vy"
-  assumes "intval_bits_in_bounds x 2 64"
   assumes "take_bit_val_eq x"
   assumes "intval_bits_in_bounds y 2 64"
   assumes "positive_intval x"
@@ -161,13 +161,13 @@ lemma pos_less_neg:
   shows "val[x < y] = val[false]"
 proof -
   have "val[y < IntVal n 0] = val[true]"
-    using assms(2,5,7) neg_less_zero by blast
+    using assms(2,4,6) neg_less_zero by blast
   then have sint1: "sint (signed_take_bit (n - 1) vy) < sint (signed_take_bit (n - 1) 0)"
-    using assms(2,7) val_neg_def by auto
+    using assms(2,6) val_neg_def by fastforce
   have "val[x < IntVal n 0] = val[false]"
-    using assms(1,3,4,6) pos_greater_zero by blast
+    by (metis assms(1,2,3,4,5) intval_bits_in_bounds.simps(1) pos_greater_zero)
   then have sint2: "sint (signed_take_bit (n - 1) 0) \<le> sint (signed_take_bit (n - 1) vx)"
-    using assms(1,3,4) val_pos_def by force
+    using assms(1,2,3,4,5) val_pos_def by auto
   have "sint (signed_take_bit (n - 1) vy) < sint (signed_take_bit (n - 1) vx)"
     using sint1 sint2 by auto
   then show ?thesis
@@ -276,15 +276,15 @@ lemma val_below_eq_less:
   assumes "x = IntVal n vx"
   assumes "y = IntVal n vy"
   assumes "intval_bits_in_bounds x 2 64"
-  assumes "take_bit_val_eq x"
   assumes "intval_bits_in_bounds y 2 64"
+  assumes "take_bit_val_eq x"
   assumes "take_bit_val_eq y"
   assumes "positive_intval x"
   assumes "positive_intval y"
   shows "val[x |<| y] = val[x < y]"
   using assms apply (cases x; cases y; auto)
-  by (smt (verit, best) assms(3,4,5,6,7,8) bin_below_eq_less numeral_1_eq_Suc_0 numerals(1) tb_n1
-      signed_take_bit_eq_if_positive verify_isValPositive word_sless_alt)
+  by (smt (verit, ccfv_SIG) assms(3,4,5,6,7,8) bin_below_eq_less numeral_1_eq_Suc_0 numerals(1)
+      signed_take_bit_eq_if_positive tb_n1 verify_isValPositive word_sless_alt)
 
 lemma below_zero: 
   shows "val[(IntVal b v) |<| (IntVal b 0)] = val[false]"
@@ -382,16 +382,16 @@ lemma exp_below_less:
   shows "exp[x |<| ((y |<| z)? const (IntVal b 0) : (y - z))] \<ge> exp[x < (y - z)]"
   apply auto
   subgoal premises p for m p xa cond ya za yaa zaa
-  proof-
+  proof -
     have xa: "[m,p] \<turnstile> x \<mapsto> xa"
-      by (simp add: p)
+      by (simp add: p(1))
     have ya: "[m,p] \<turnstile> y \<mapsto> ya"
-      by (simp add: p)
+      by (simp add: p(7))
     have za: "[m,p] \<turnstile> z \<mapsto> za"
-      by (simp add: p)
+      by (simp add: p(8))
     have cond: "[m,p] \<turnstile> (if (val_to_bool val[ya |<| za])
                          then exp[const (IntVal b 0)] else exp[y - z]) \<mapsto> cond"
-      by (simp add: p)
+      by (simp add: p(4))
     have sub: "[m,p] \<turnstile> exp[y - z] \<mapsto> val[ya - za]"
       by (metis BinaryExpr bin_eval.simps(2) evalDet p(10,6,9) ya za)
     have xaPos: "positive_intval xa"
@@ -401,7 +401,7 @@ lemma exp_below_less:
     have zaPos: "positive_intval za"
       using lower_stamp assms(3,6,9) za by blast
     have lhsDef: "val[xa |<| cond] \<noteq> UndefVal"
-      using xa evalDet p(1) p(2) by blast
+      using xa evalDet p(1,2) by blast
     obtain cb cv where cv: "cond = IntVal cb cv"
       by (metis Value.collapse(1) bin_eval.simps(15) defined_eval_is_intval lhsDef)
     obtain xb xv where xv: "xa = IntVal xb xv"
@@ -452,15 +452,49 @@ lemma exp_below_less:
   qed
   done
 
+lemma exp_below_less_equiv:
+  assumes "is_stamp_positive (stamp_expr z)"
+  assumes "wf_stamp y"
+  assumes "wf_stamp z"
+  shows "exp[x |<| ((y |<| z)? const (IntVal b 0) : (y + (-z)))] \<ge>
+         exp[x |<| ((y |<| z)? const (IntVal b 0) : (y - z))]"
+  by (meson assms exp_add_right_negate_to_sub is_stamp_positive.elims(2) mono_conditional order_refl
+      mono_binary)
+
+lemma exp_below_less_add:
+  assumes "is_stamp_positive (stamp_expr x)"
+  assumes "is_stamp_positive (stamp_expr y)"
+  assumes "is_stamp_positive (stamp_expr z)"
+  assumes "wf_stamp x"
+  assumes "wf_stamp y"
+  assumes "wf_stamp z"
+  assumes "width_in_bounds (stamp_expr x) 2 64"
+  assumes "width_in_bounds (stamp_expr y) 2 64"
+  assumes "width_in_bounds (stamp_expr z) 2 64"
+  assumes "stamp_expr y = IntegerStamp b lo hi"
+  shows "exp[(x |<| ((y |<| z)? const (IntVal b 0) : (y + (-z))))] \<ge> exp[x < (y - z)]"
+proof -
+  have ltSub: "exp[x |<| ((y |<| z)? const (IntVal b 0) : (y + (-z)))] \<ge>
+               exp[x |<| ((y |<| z)? const (IntVal b 0) : (y - z))]"
+    by (meson assms(3,5,6) exp_add_right_negate_to_sub is_stamp_positive.elims(2) mono_binary
+        mono_conditional order_refl)
+  have "exp[x |<| ((y |<| z)? const (IntVal b 0) : (y - z))] \<ge> exp[x < (y - z)]"
+    using assms exp_below_less by blast
+  then show ?thesis
+    using dual_order.trans ltSub by blast
+qed
+
 text \<open>Optimisations\<close>
 
-(* x |<| (n |<| C ? 0 : n - C) \<mapsto> (x < n - c) *)
-optimization BelowLess: "(x |<| ((y |<| z) ? const (IntVal b 0) : (y - z))) \<longmapsto> x < (y - z)
+(* x |<| (n |<| c ? 0 : n + (-c)) \<mapsto> (x < n - c) *)
+optimization BelowLess: "(x |<| ((y |<| z) ? const (IntVal b 0) : (y + (-z)))) \<longmapsto> x < (y - z)
  when ((is_stamp_positive (stamp_expr x)) \<and> (wf_stamp x) \<and> (width_in_bounds (stamp_expr x) 2 64) \<and>
        (is_stamp_positive (stamp_expr y)) \<and> (wf_stamp y) \<and> (width_in_bounds (stamp_expr y) 2 64) \<and>
        (is_stamp_positive (stamp_expr z)) \<and> (wf_stamp z) \<and> (width_in_bounds (stamp_expr z) 2 64) \<and>
         stamp_expr y = IntegerStamp b lo hi)"
-  using exp_below_less by blast
+  apply (metis add_mono_thms_linordered_field(2) size_binary_const size_non_add trans_less_add2
+         size_pos verit_sum_simplify)
+  using exp_below_less_add by blast
 
 end (* End of IntegerBelowPhase *)
 

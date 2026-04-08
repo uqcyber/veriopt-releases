@@ -86,9 +86,11 @@ session Canonicalizations in "Optimizations/Canonicalizations" = OptimizationDSL
     IntegerEqualsPhase
     LeftShiftPhase
     MulPhase
+    NegatePhase
     NewAnd
     NotPhase
     OrPhase
+    RightShiftPhase
     ShiftPhase
     SignedDivPhase
     SignedRemPhase

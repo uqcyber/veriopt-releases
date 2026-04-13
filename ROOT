@@ -1,5 +1,54 @@
 chapter "veriopt"
 
+session Word_Lib in "Lib/Word_Lib" = HOL +
+  options [timeout = 300]
+  sessions
+    "HOL-Library"
+    "HOL-Eisbach"
+  theories [document = false] \<comment> \<open>Attempt to just generate word-specific document material\<close>
+    Enumeration
+    Even_More_List
+    Legacy_Aliases
+    More_Arithmetic
+    More_Divides
+    More_Misc
+    More_Sublist
+  theories
+    Bit_Comprehension
+    More_Int
+    More_Word
+    Bit_Shifts_Infix_Syntax
+    Next_and_Prev
+    Signed_Division_Word
+  theories [document = false]
+    Many_More
+    Singleton_Bit_Shifts
+    Typedef_Morphisms
+    Bin_sign
+  theories
+    Bitwise
+    Guide
+  theories [document = false]
+    Examples
+  document_files
+    "root.tex"
+    "root.bib"
+
+session IEEE_Floating_Point in "Lib/IEEE_Floating_Point" = Word_Lib +
+  options [timeout = 3600]
+  sessions
+    "HOL-Library"
+  theories
+    IEEE_Properties
+    FP64
+    Double
+    IEEE_Single_NaN
+    IEEE_Single_NaN_SMTLIB
+  document_files
+    "root.bib"
+    "root.tex"
+
+
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM Intermediate Representation encoding"

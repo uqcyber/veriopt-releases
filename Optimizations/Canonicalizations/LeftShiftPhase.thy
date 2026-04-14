@@ -10,6 +10,7 @@ phase LeftShiftNode
   terminating size
 begin
 
+(* Word level proofs *)
 lemma "x \<noteq> 0 \<Longrightarrow> x << 64 = 0" for x::int64
   unfolding shiftl_def by auto
 

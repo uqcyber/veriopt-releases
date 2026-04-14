@@ -90,6 +90,8 @@ lemma well_formed_equal_defn [simp]:
 text \<open> Helpful lemmas for canonicalization proofs \<close>
 
 (* General lemmas *)
+
+(* take_bit lemmas *)
 lemma takeBitNot:
   fixes xv :: "64word"
   assumes "xb \<ge> 1"
@@ -110,6 +112,23 @@ lemma take_bit_size_eq:
   shows "take_bit 64 a = take_bit LENGTH(64) (a::64 word)"
   by auto
 
+lemma take_bit64 [simp]:
+  fixes w :: "int64"
+  shows "take_bit 64 w = w"
+proof -
+  have "Nat.size w = 64"
+    by (simp add: size64)
+  then show ?thesis
+    by (metis lt2p_lem mask_eq_iff take_bit_eq_mask verit_comp_simplify1(2) wsst_TYs(3))
+qed
+
+lemma mergeTakeBit:
+  fixes a :: "nat"
+  fixes b c :: "64 word"
+  shows "take_bit a (take_bit a (b) * take_bit a (c)) = take_bit a (b * c)"
+ by (smt (verit, ccfv_SIG) take_bit_mult take_bit_of_int unsigned_take_bit_eq word_mult_def)
+
+(* Evaluation lemmas *)
 lemma const_eval_is_const:
   assumes "wf_value n"
   shows "[m,p] \<turnstile> exp[const (n)] \<mapsto> n"

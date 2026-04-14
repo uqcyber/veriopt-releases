@@ -147,8 +147,6 @@ optimization NotXorToXor: "exp[(~x) \<oplus> (~y)] \<longmapsto> (x \<oplus> y)
 
 end
 
-text \<open>--- New optimisations - submitted, not added into Graal yet ---\<close>
-
 context stamp_mask
 begin
 
@@ -228,7 +226,6 @@ optimization NeverEqNotSelf: "exp[(\<not>x) eq x] \<longmapsto> exp[(const (bool
                         when (stamp_expr x = IntegerStamp 32 xl xh \<and> wf_stamp x)"
   apply (simp add: Suc_lessI) using ExpNeverNotSelf by force
 
-text \<open>--- New optimisations - not submitted / added into Graal yet ---\<close>
 (* 
   (x ^ y) == x \<mapsto> y == 0
   x == (x ^ y) \<mapsto> y == 0 
@@ -419,7 +416,6 @@ end
 phase TacticSolving
   terminating size
 begin
-
 
 (* 
  (x ^ y) == (x ^ z) \<mapsto> y == z
@@ -622,14 +618,6 @@ optimization XorEqZero_64: "exp[(x \<oplus> y) eq (const (IntVal 64 0))] \<longm
                            (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y)"
   using expXorEqZero_64 by fast
 
-(*
-XorEqNeg1
-  (x ^ y) == -1 \<mapsto> (x == \<not>y)
-
-  TODO prove termination and submit
-
- *)
-
 lemma xorNeg1IsEq:
   "bin[(xor xv yv) = (not 0)] = bin[xv = not yv]"
   using xorZeroIsEq by fastforce
@@ -695,6 +683,11 @@ lemma unfold_forPrimitive:
 
 lemma forPrimitive_size[size_simps]: "size (forPrimitive s v) = 1"
   by (cases s; auto)
+
+optimization opt_optimise_integer_test_2:
+     "(((x & (const val[true])) eq (const val[false])) ? (const val[false]) : (const val[true]))
+         \<longmapsto> x
+         when (x = ConstantExpr val[false] | (x = ConstantExpr val[true]))" .
 
 end
 

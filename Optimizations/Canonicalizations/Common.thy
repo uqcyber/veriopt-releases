@@ -12,7 +12,8 @@ lemma size_pos[size_simps]: "0 < size y"
     apply (cases op) by (smt (z3) gr0I one_neq_zero pos2 size.elims trans_less_add2)+
   done
 
-lemma size_non_add[size_simps]: "size (BinaryExpr op a b) = size a + size b + 2 \<longleftrightarrow> \<not>(is_ConstantExpr b)"
+lemma size_non_add[size_simps]: "size (BinaryExpr op a b) = size a + size b + 2 \<longleftrightarrow>
+                                 \<not>(is_ConstantExpr b)"
   by (induction b; induction op; auto simp: is_ConstantExpr_def)
 
 lemma size_non_const[size_simps]:
@@ -26,7 +27,8 @@ lemma size_binary_const[size_simps]:
   by (induction b; auto simp: is_ConstantExpr_def size_pos)
 
 lemma size_flip_binary[size_simps]:
-  "\<not>(is_ConstantExpr y) \<longrightarrow> size (BinaryExpr op (ConstantExpr x) y) > size (BinaryExpr op y (ConstantExpr x))"
+  "\<not>(is_ConstantExpr y) \<longrightarrow>
+   size (BinaryExpr op (ConstantExpr x) y) > size (BinaryExpr op y (ConstantExpr x))"
   by (metis add_Suc not_less_eq order_less_asym plus_1_eq_Suc size.simps(2,11) size_non_add)
 
 lemma size_binary_lhs_a[size_simps]:
@@ -70,7 +72,8 @@ lemma size_binary_rhs[size_simps]:
       size.simps(11) size_non_add size_non_const size_pos)
 
 lemma size_eq_ops [size_simps]:
-  "size (BinaryExpr BinIntegerEquals y z) < Suc (Suc (size (BinaryExpr op y x) + size (BinaryExpr op z x)))"
+  "size (BinaryExpr BinIntegerEquals y z) <
+   Suc (Suc (size (BinaryExpr op y x) + size (BinaryExpr op z x)))"
   by (cases x; cases y; cases z; auto)
 
 lemma size_eq_const [size_simps]:
@@ -79,7 +82,7 @@ lemma size_eq_const [size_simps]:
 
 lemmas arith[size_simps] = Suc_leI add_strict_increasing order_less_trans trans_less_add2
 
-definition well_formed_equal :: "Value \<Rightarrow> Value \<Rightarrow> bool" 
+definition well_formed_equal :: "Value \<Rightarrow> Value \<Rightarrow> bool"
   (infix "\<approx>" 50) where
   "well_formed_equal v\<^sub>1 v\<^sub>2 = (v\<^sub>1 \<noteq> UndefVal \<longrightarrow> v\<^sub>1 = v\<^sub>2)"
 

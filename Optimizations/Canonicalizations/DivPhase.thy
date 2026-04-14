@@ -1,7 +1,10 @@
 theory DivPhase
-imports Common Proofs.StampEvalThms
+  imports
+    Common
+    Proofs.StampEvalThms
 begin
 
+(* Word level proofs *)
 lemma int_div_itself:
   assumes "x \<noteq> 0"
   shows "(x::int) sdiv x = 1"
@@ -21,6 +24,7 @@ lemma word64_div_itself:
       bot_nat_0.not_eq_extremum diff_le_self dual_order.refl int_signed_value.simps signed_eq_0_iff
       take_bit_of_0 take_bit_signed_take_bit)
 
+(* Value level proofs *)
 fun valid_int :: "Value \<Rightarrow> bool" where
   "valid_int (IntVal b v) = (0 < b \<and> b \<le> 64 \<and> take_bit b v = v)" |
   "valid_int _ = False"
@@ -42,14 +46,14 @@ begin
 
 text \<open>Optimisations\<close>
 
-optimization DivItself: "(x / x) \<longmapsto> const IntVal b 1 when
-                         (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+optimization DivItself: "(x / x) \<longmapsto> const IntVal b 1
+                          when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using size_non_const apply force
   apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
   proof -
     obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
-      by (metis p(1,2) BinaryExprE valid_int wf_stamp_def)
+      by (metis p BinaryExprE valid_int wf_stamp_def)
     then show ?thesis
       by (metis (no_types, lifting) value_div_itself BinaryExprE xv bin_eval.simps(4) evalDet p(2)
           eval_bits_1_64 eval_unused_bits_zero intval_div.simps(1) new_int.simps new_int_bin.elims

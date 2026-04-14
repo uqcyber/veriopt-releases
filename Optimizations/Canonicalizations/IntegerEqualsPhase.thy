@@ -10,8 +10,7 @@ phase IntegerEqualsNode
   terminating size
 begin
 
-(* Word level *)
-
+(* Word level proofs *)
 lemma bin_xor_equality: "((xor x y) = (xor x z)) \<longleftrightarrow> (y = z)" for x y z::int64
   by (metis bit.xor_left_self)
 
@@ -30,8 +29,7 @@ lemma bin_sub_zero_equality: "(x = (x-y)) \<longleftrightarrow> y = 0" for x y::
 lemma bin_not_self_equality: "(x = (not x)) \<longleftrightarrow> False" for x::int64
   by (metis less_eq_mask takeBitNot)
 
-(* Value level *)
-
+(* Value level proofs *)
 lemma val_addition_equality:
   assumes "x = new_int n xv"
   assumes "y = new_int n yv"
@@ -123,15 +121,6 @@ lemma val_equal_substraction:
   using assms right_minus_eq apply auto
   by (smt (verit, del_insts) ValueThms.take_bit_dist_subR right_minus_eq diff_0 diff_right_commute
       minus_diff_eq take_bit_of_0)
-
-(* New Optimisations - Not in Graal yet
-
-  AndOrEquals
-  (x & y) == (x | y) \<mapsto> (x == y)
-
-  XorNotFallThrough
-  (x \<oplus> y) == \<not>x \<mapsto> (y == -1)
-*)
 
 lemma val_xor_not_fall_through:
   assumes "x = new_int b xv"
@@ -289,8 +278,7 @@ lemma val_equal_xor:
   using assms apply (cases x; cases y; auto)
   by (smt (verit) bin_xor_zero_equality bit.xor_left_self)
 
-(* Expression level *)
-
+(* Exp level proofs *)
 lemma exp_addition_equality:
   shows "exp[(x + y) eq (x + z)] \<ge> exp[y eq z]"
   apply auto
@@ -660,15 +648,6 @@ lemma exp_equal_xor:
   qed
   done
 
-(* New Optimisations - Not in Graal yet
-
-  AndOrEquals
-  (x & y) == (x | y) \<mapsto> (x == y)
-
-  XorNotFallThrough
-  (x \<oplus> y) == \<not>x \<mapsto> (y == -1)
-*)
-
 lemma exp_and_or_eq_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"
   assumes "stamp_expr y = IntegerStamp 64 yl yh"
@@ -1030,7 +1009,6 @@ optimization EqualXor: "exp[(x \<oplus> y) eq const (IntVal b 0)] \<longmapsto> 
                         when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   apply (metis lessI less_SucI size_binary_const size_non_add) using exp_equal_xor by auto
 
-(* New Optimisations - Not in Graal yet *)
 optimization AndOrEquals1: "exp[(x & y) eq (x | y)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"

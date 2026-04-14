@@ -6,7 +6,7 @@ theory NewAnd
     Graph.JavaLong
 begin
 
-(* Proving the new optimisations in AndNode.eliminateRedundantBinaryArithmeticOp() *)
+text \<open> Proving the new optimisations in AndNode.eliminateRedundantBinaryArithmeticOp() \<close>
 
 lemma intval_distribute_and_over_or:
   "val[z & (x | y)] = val[(z & x) | (z & y)]"
@@ -351,13 +351,13 @@ lemma L1:
 proof -
   have nle: "n \<le> 64"
     using assms diff_le_self by blast
-  also have "and v zv = horner_sum of_bool 2 (map (bit (and v zv)) [0..<64])"
+  also have andEq: "and v zv = horner_sum of_bool 2 (map (bit (and v zv)) [0..<64])"
     by (metis size_word.rep_eq take_bit_length_eq horner_sum_bit_eq_take_bit size64)
   also have "... = horner_sum of_bool 2 (map (\<lambda>i. bit (and v zv) i) [0..<64])"
     by blast
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<64])"
+  also have eqSum64:"... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<64])"
     by (metis bit_and_iff)
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<n])"
+  also have eqSumN: "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<n])"
   proof -
     have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
       by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms
@@ -368,7 +368,7 @@ proof -
     then show ?thesis
       by (metis (no_types, lifting) nle split_horner)
   qed
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<n])"
+  also have eqSumAndN: "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<n])"
   proof -
     have "\<forall>i. i < n \<longrightarrow> bit (v mod 2^n) i = bit v i"
       by (metis bit_take_bit_iff take_bit_eq_mod)
@@ -377,7 +377,7 @@ proof -
     then show ?thesis
       by (rule transfer_horner)
   qed
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<64])"
+  also have eqSumAnd: "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<64])"
   proof -
     have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
       by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms
@@ -386,12 +386,12 @@ proof -
     then show ?thesis
       by (metis (no_types, lifting) assms(1) diff_le_self split_horner)
   qed
-  also have "... = horner_sum of_bool 2 (map (bit (and (v mod 2^n) zv)) [0..<64])"
+  also have eqSum: "... = horner_sum of_bool 2 (map (bit (and (v mod 2^n) zv)) [0..<64])"
     by (meson bit_and_iff)
   also have "... = and (v mod 2^n) zv"
     by (metis size_word.rep_eq take_bit_length_eq horner_sum_bit_eq_take_bit size64)
-  finally show ?thesis
-    using \<open>and (v::64 word) (zv::64 word) = horner_sum of_bool (2::64 word) (map (bit (and v zv)) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit ((v::64 word) mod (2::64 word) ^ (n::nat)) i \<and> bit (zv::64 word) i) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (bit (and (v mod (2::64 word) ^ n) zv)) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit ((v::64 word) mod (2::64 word) ^ (n::nat)) i \<and> bit (zv::64 word) i) [0::nat..<n]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v mod (2::64 word) ^ n) i \<and> bit zv i) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v::64 word) i \<and> bit (zv::64 word) i) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit v i \<and> bit zv i) [0::nat..<n::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v::64 word) i \<and> bit (zv::64 word) i) [0::nat..<n::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v mod (2::64 word) ^ n) i \<and> bit zv i) [0::nat..<n])\<close> \<open>horner_sum of_bool (2::64 word) (map (bit (and ((v::64 word) mod (2::64 word) ^ (n::nat)) (zv::64 word))) [0::nat..<64::nat]) = and (v mod (2::64 word) ^ n) zv\<close> \<open>horner_sum of_bool (2::64 word) (map (bit (and (v::64 word) (zv::64 word))) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit v i \<and> bit zv i) [0::nat..<64::nat])\<close> by presburger
+  then show ?thesis
+    using andEq eqSum eqSumAnd eqSumN eqSumAndN eqSum64 by presburger
 qed
 
 lemma up_mask_upper_bound:

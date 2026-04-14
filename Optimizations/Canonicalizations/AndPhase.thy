@@ -36,12 +36,12 @@ lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrigh
     qed
   done
 
-lemma AndLeftFallthrough: "(((and (not (\<down> y)) (\<up> x)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[x]"
+lemma AndLeftFallthrough: "((and (not (\<down> y)) (\<up> x)) = 0) \<longrightarrow> exp[x & y] \<ge> exp[x]"
   using AndRightFallthrough exp_and_commutative by simp
 
 end
 
-phase AndNode  
+phase AndNode
   terminating size
 begin
 
@@ -92,12 +92,11 @@ lemma AndSelfVal:
   shows "val[~n & n] = new_int 32 0"
   apply (auto simp: assms) by (metis bit.conj_cancel_left take_bit_and take_bit_of_0)
 
-(* Not sure if this one is written correctly *)
-
+(* TODO double check encoding *)
 lemma val_and_sign_extend:
   assumes "e = (1 << In)-1"
   shows "val[(intval_sign_extend In Out x) & (IntVal b e)] = intval_zero_extend In Out x"
-  using assms apply (cases x; auto) 
+  using assms apply (cases x; auto)
   sorry
 
 lemma val_and_sign_extend_2:
@@ -141,29 +140,22 @@ lemma exp_and_nots:
   "exp[~x & ~y] \<ge> exp[~(x | y)]"
   using val_and_nots by force
 
-(* Assuming that the constant 0 is well formed, not sure if right *)
 lemma exp_and_equal_not:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b lo hi"
   shows "exp[~x & x] \<ge> exp[const (IntVal b 0)]"
   using val_and_equal_not apply auto
   subgoal premises p for m p y xa
-  proof - 
+  proof -
     obtain y where y: "[m,p] \<turnstile> x \<mapsto> y"
       using p by auto
-    then have "val[(~xa) & y] \<noteq> UndefVal"
-      by (metis evalDet p(2,3,4))
     obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
       using p by auto
-    then have "val[~xa] \<noteq> UndefVal"
-      using evalDet p by blast
     then have eqa: "xa = y"
       using evalDet xa y by blast
     obtain xb xvv where xy: "y = IntVal xb xvv"
       by (metis evalDet intval_not.elims p(4,5) y)
     obtain xc xva where xa: "xa = IntVal xc xva"
-      by (simp add: eqa xy)
-    then have eqBitX: "xb = xc"
       by (simp add: eqa xy)
     then have unfoldEq: "val[(~xa) & y] = new_int xb (and (not xva) xvv)"
       by (metis (no_types, lifting) Value.inject(1) bit.conj_cancel_left eqa evalDet new_int.elims y
@@ -219,7 +211,7 @@ lemma exp_sign_extend:
 lemma exp_and_neutral:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b lo hi"
-  shows "exp[(x & ~(const (IntVal b 0)))] \<ge> x"
+  shows "exp[x & ~(const (new_int b 0))] \<ge> x"
   using assms apply auto
   subgoal premises p for m p xa
   proof -
@@ -233,36 +225,18 @@ lemma exp_and_neutral:
   qed
   done
 
-(*lemma exp_and_neutral: 
-  "exp[x & ~(const (new_int b 0))] \<ge> x"
-  apply auto using val_and_neutral eval_unused_bits_zero sorry (*
-  apply (cases x; simp) using val_and_neutral bin_eval.simps(4)  
-  apply (smt (verit) BinaryExprE Value.collapse(1) intval_and.simps(12) intval_not.simps(2) 
-         is_IntVal_def unary_eval.simps(3) unary_eval_int unfold_const64 unfold_unary) 
-         using val_and_neutral_64 bin_eval.simps(4) 
-  apply (metis (no_types, lifting) BinaryExprE UnaryExprE Value.collapse(1) bin_eval_int 
-         intval_and.simps(12) intval_not.simps(2) is_IntVal_def unary_eval.simps(3) unfold_const64)
-         using val_and_neutral_64 bin_eval.simps(4) unary_eval.simps(3)
-  apply (smt (z3) BinaryExprE UnaryExprE Value.discI(2) Value.distinct(9) intval_and.elims 
-         intval_not.simps(2) unfold_const64) 
-         using val_and_neutral_64 bin_eval.simps(4) unary_eval.simps(3) bin_and_neutral 
-               unfold_const64 intval_and.elims intval_not.simps(2) 
-         sorry*)*)
-
 text \<open>Optimisations\<close>
 
 optimization AndEqual: "x & x \<longmapsto> x"
   using exp_and_equal by blast
 
 optimization AndEqualNot: "x & (~x) \<longmapsto> const (IntVal b 0)
-                          when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+                           when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   by (metis dual_order.trans exp_and_equal_not exp_and_commutative)
 
 optimization AndSelf: "exp[(~n) & n] \<longmapsto> (const (new_int 32 (0)))
-                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  apply (auto simp: Suc_lessI) unfolding size.simps using size_non_const apply auto[1]
-  by (metis evalDet false_always_evals new_int_zero_is_intval val_and_commutative val_and_equal_not
-      stamp_eval_same_bits wf_integerstamp_eval_is_new_int)
+                       when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
+  using size_non_const exp_and_equal_not by force+
 
 optimization AndSelf2: "exp[n & (~n)] \<longmapsto> (const (new_int 32 (0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
@@ -276,24 +250,23 @@ optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
   by (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add
       exp_and_nots)+
 
-(* Need to prove exp_sign_extend*)
-optimization AndSignExtend: "BinaryExpr BinAnd (UnaryExpr (UnarySignExtend In Out) (x)) 
-                                               (const (new_int b e))
-                              \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) (x))
-                                  when (e = (1 << In) - 1)"
-   using exp_sign_extend by simp 
+(* TODO need to prove exp_sign_extend *)
+optimization AndSignExtend: "exp[(UnaryExpr (UnarySignExtend In Out) x) & const (new_int b e)]
+                             \<longmapsto> (UnaryExpr (UnaryZeroExtend In Out) x)
+                             when (e = (1 << In) - 1)"
+   using exp_sign_extend by simp
 
-optimization AndNeutral: "(x & ~(const (IntVal b 0))) \<longmapsto> x
+optimization AndNeutral: "(x & ~(const (new_int b 0))) \<longmapsto> x
                            when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  using exp_and_neutral by fast
+  using exp_and_neutral by auto
 
 optimization AndRightFallThrough: "(x & y) \<longmapsto> y
-                                when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
-  by (simp add: IRExpr_down_def IRExpr_up_def)
+                                    when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
+  using simple_mask.AndRightFallthrough by blast
 
 optimization AndLeftFallThrough: "(x & y) \<longmapsto> x
-                                when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
-   by (simp add: IRExpr_down_def IRExpr_up_def) 
+                                   when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
+  using simple_mask.AndLeftFallthrough by auto
 
 end (* End of AndPhase *)
 

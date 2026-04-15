@@ -89,11 +89,11 @@ optimization opt_add_left_negate_to_sub:
 
 subsection \<open>NegateNode\<close>
 
-lemma val_distribute_sub: 
- "val[-(x-y)] \<approx> val[y-x]" 
-  by (cases x; cases y; auto) 
+lemma val_distribute_sub:
+ "val[-(x - y)] \<approx> val[y - x]"
+  by (cases x; cases y; auto)
 
-optimization distribute_sub: "-(x-y) \<longmapsto> (y-x)" 
+optimization distribute_sub: "-(x - y) \<longmapsto> (y - x)"
   using val_distribute_sub unfold_binary unfold_unary by auto
 
 lemma val_xor_self_is_false:
@@ -101,16 +101,15 @@ lemma val_xor_self_is_false:
   shows "val[x \<oplus> x] \<approx> val[false]"
   by (cases x; auto simp: assms)
 
-lemma exp_xor_self_is_false: 
+lemma exp_xor_self_is_false:
   assumes "stamp_expr x = IntegerStamp 32 l h"
   assumes "wf_stamp x"
-  shows "exp[x \<oplus> x] >= exp[false]"
-  by (smt (z3) wf_value_def bin_eval.simps(8) bin_eval_new_int constantAsStamp.simps(1) evalDet 
-      int_signed_value_bounds new_int.simps new_int_take_bits unfold_binary unfold_const valid_int 
-      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn val_xor_self_is_false 
-      le_expr_def assms wf_stamp_def)
+  shows "exp[x \<oplus> x] \<ge> exp[false]"
+  using assms apply auto
+  by (metis (no_types, opaque_lifting) ExpIntBecomesIntVal evalDet false_always_evals val_xor_self
+      wf_stamp_def)
 
-text \<open>--- --- New Optimisations - submitted and added into Graal ---\<close>
+text \<open>--- New Optimisations ---\<close>
 
 lemma NotXorToXorVal:
   assumes "x = IntVal 32 xv"
@@ -377,8 +376,6 @@ lemma RemoveRHSAndMask:
 
 (* Ian's new And optimisation
     x & y \<mapsto> 0 when x.up & y.up = 0
-
-    TODO: Double check and submit issue
 *)
 lemma ReturnZeroAndMask:
   assumes "stamp_expr x = IntegerStamp b xl xh"
@@ -437,15 +434,7 @@ lemma XorZeroIsSelf64:
   assumes "x = IntVal 64 xv"
   assumes "val[x \<oplus> (IntVal 64 0)] \<noteq> UndefVal"
   shows  "val[x \<oplus> (IntVal 64 0)] = x"
-  using assms apply (cases x; auto)
-  subgoal
-  proof -
-    have "take_bit (LENGTH(64)) xv = xv"
-      unfolding Word.take_bit_length_eq by simp
-    then show ?thesis
-      by auto
-   qed
-  done
+  using assms by (cases x; auto)
 
 lemma ValXorElimSelf64:
   assumes "x = IntVal 64 xv"

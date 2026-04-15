@@ -41,7 +41,6 @@ lemma val_xor_self_is_false_2:
   shows "val[x \<oplus> x] = bool_to_val False"
   by (auto simp: assms)
 
-(* Not sure if I need this; Optimization uses ConstantExpr False which is IntVal32 0 *)
 lemma val_xor_self_is_false_3:
   assumes "val[x \<oplus> x] \<noteq> UndefVal \<and> x = IntVal 64 v"
   shows "val[x \<oplus> x] = IntVal 64 0"
@@ -64,8 +63,7 @@ lemma val_xor_cancel:
   assumes "val[\<not>x] \<noteq> UndefVal"
   assumes "val[\<not>y] \<noteq> UndefVal"
   shows "val[(\<not>x) \<oplus> \<not>y] = val[x \<oplus> y]"
-  using assms apply (cases x; cases y; auto)
-  by (metis (no_types, lifting) bin_xor_commute take_bit_xor word_bw_comms(3))
+  using assms by (cases x; cases y; auto)
 
 lemma XorInverseVal:
   assumes "n = IntVal 32 v"
@@ -194,8 +192,8 @@ optimization MaskOutRHS: "(x \<oplus> y) \<longmapsto> ~x
   sorry
 *)
 
-optimization XorNot: "((~x) \<oplus> (~y)) \<longmapsto> (x \<oplus> y) when \<not>(is_ConstantExpr y)"
-  using size_non_add apply (simp add: less_Suc_eq) using exp_xor_cancel by blast
+optimization XorNot: "((~x) \<oplus> (~y)) \<longmapsto> (x \<oplus> y)"
+  apply (cases x; cases y; auto) using exp_xor_cancel by blast
 
 optimization XorInverse: "(x \<oplus> ~x) \<longmapsto> (const (new_int b (not 0)))
                           when (stamp_expr x = IntegerStamp b l h \<and> wf_stamp x)"

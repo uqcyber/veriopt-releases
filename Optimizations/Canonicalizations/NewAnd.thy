@@ -47,8 +47,6 @@ lemma exp_and_absorb_or:
       by (metis evalDet p(1,2,3,4) xv)
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis Value.exhaust_sel intval_and.simps(2,3,4,5) lhsDefined)
-    obtain yb yvv where yvv: "yv = IntVal yb yvv"
-      by (metis Value.exhaust_sel intval_and.simps(6) intval_or.simps(6,7,8,9) lhsDefined)
     then have valEval: "val[xv & (xv | yv)] = val[xv]"
       by (metis eval_unused_bits_zero intval_and_absorb_or lhsDefined new_int.elims xv xvv)
     then show ?thesis
@@ -69,8 +67,6 @@ lemma exp_or_absorb_and:
       by (metis evalDet p(1,2,3,4) xv)
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis Value.exhaust_sel intval_and.simps(3,4,5) intval_or.simps(2,6) lhsDefined)
-    obtain yb yvv where yvv: "yv = IntVal yb yvv"
-      by (metis Value.exhaust_sel intval_and.simps(6,7,8,9) intval_or.simps(6) lhsDefined)
     then have valEval: "val[xv | (xv & yv)] = val[xv]"
       by (metis eval_unused_bits_zero intval_or_absorb_and lhsDefined new_int.elims xv xvv)
     then show ?thesis
@@ -361,8 +357,8 @@ proof -
   proof -
     have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
       by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms
-          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc
-          zerosAboveHighestOne not_may_implies_false)
+          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zerosAboveHighestOne
+          not_may_implies_false zero_less_Suc)
     then have "\<forall>i. i \<ge> n \<longrightarrow> \<not>((bit v i) \<and> (bit zv i))"
       by auto
     then show ?thesis
@@ -381,8 +377,8 @@ proof -
   proof -
     have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
       by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms
-          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc
-          zerosAboveHighestOne not_may_implies_false)
+          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zerosAboveHighestOne
+          not_may_implies_false zero_less_Suc)
     then show ?thesis
       by (metis (no_types, lifting) assms(1) diff_le_self split_horner)
   qed
@@ -403,7 +399,6 @@ lemma up_mask_upper_bound:
 lemma L2:
   assumes "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 64"
   assumes "n = 64 - numberOfLeadingZeros (\<up>z)"
-  assumes "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
   shows "yv mod 2^n = 0"
 proof -
@@ -412,7 +407,7 @@ proof -
   also have "... \<le> horner_sum of_bool 2 (map (bit (\<up>y)) [0..<n])"
     by (metis (no_types, opaque_lifting) and.right_neutral bit.conj_cancel_right word_not_dist(2)
         bit.conj_disj_distribs(1) bit.double_compl horner_sum_bit_eq_take_bit take_bit_and ucast_id
-        up_spec word_and_le1 assms(4))
+        up_spec word_and_le1 assms(3))
   also have "horner_sum of_bool 2 (map (bit (\<up>y)) [0..<n]) = horner_sum of_bool 2 (map (\<lambda>x. False) [0..<n])"
   proof -
     have "\<forall>i < n. \<not>(bit (\<up>y) i)"
@@ -496,22 +491,17 @@ proof -
       using ValueThms.mod_dist_over_add le_eq_less_or_eq n_bounds by auto
     also have "... = and ((xv mod 2^n) mod 2^n) zv"
       using L2 n zv yv assms by auto
-    also have "... = and (xv mod 2^n) zv"
-      by (smt (verit, best) and.idem take_bit_eq_mask take_bit_eq_mod word_bw_assocs(1)
-          mod_mod_trivial)
     also have "... = and xv zv"
       by (metis L1 n zv)
     finally show ?thesis
       by (metis evalDet eval lhs rhs)
   next
     case False
-    then have "numberOfLeadingZeros (\<up>z) = 0"
-      by simp
     then have "numberOfTrailingZeros (\<up>y) \<ge> 64"
       using assms by fastforce
     then have "yv = 0"
-      by (metis (no_types, lifting) L1 L2 add_diff_cancel_left' and.comm_neutral linorder_not_le
-          bit.conj_cancel_right bit.conj_disj_distribs(1) bit.double_compl less_imp_diff_less yv
+      by (metis (no_types, lifting) L1 L2 add_diff_cancel_left' and.comm_neutral linorder_not_le yv
+          bit.conj_cancel_right bit.conj_disj_distribs(1) bit.double_compl less_imp_diff_less
           word_not_dist(2))
     then show ?thesis
       by (metis add.right_neutral eval evalDet lhs rhs)

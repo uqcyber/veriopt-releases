@@ -715,16 +715,98 @@ lemma bit_bound_maintained:
   assumes "[m,p] \<turnstile> x \<mapsto> xv"
   assumes "xv = IntVal n v"
   shows "intval_bits_in_bounds xv xl xh"
-  by (metis intval_bits_in_bounds.simps valid_int_same_bits wf_stamp_def width_in_bounds.elims(2)
+  by (metis intval_bits_in_bounds.simps(1) valid_int_same_bits wf_stamp_def width_in_bounds.elims(2)
       assms)
 
 lemma bit_width_maintained:
-  assumes "width_in_bounds (stamp_expr x) xl xh"
   assumes "wf_stamp x"
   assumes "[m,p] \<turnstile> x \<mapsto> xv"
   assumes "xv = IntVal n v"
   shows "n = stp_bits (stamp_expr x)"
-  by (metis Stamp.sel(1) assms valid_int_same_bits wf_stamp_def width_in_bounds.elims(2))
+  by (metis Stamp.sel(1) assms valid_int_gives wf_stamp_def)
+
+lemma stamp_pos_neg_implies_integerstamp:
+  assumes "is_stamp_positive s          \<or> is_stamp_negative s \<or>
+           is_stamp_strictly_positive s \<or> is_stamp_strictly_negative s \<or>
+           can_stamp_be_positive s      \<or> can_stamp_be_negative s"
+  shows "is_IntegerStamp s"
+  by (metis Stamp.disc(2) assms can_stamp_be_negative.elims(2) can_stamp_be_positive.elims(2)
+      is_stamp_negative.elims(2) is_stamp_positive.elims(2) strict_neg_implies_neg
+      strict_pos_implies_pos)
+
+lemma width_in_bounds_implies_integerstamp:
+  assumes "width_in_bounds s l h"
+  shows "is_IntegerStamp s"
+  by (metis Stamp.discI(1) assms width_in_bounds.elims(2))
+
+lemma integerstamp_implies_bounds:
+  assumes "is_IntegerStamp s"
+  shows "\<exists>l h. width_in_bounds s l h"
+  using assms is_IntegerStamp_def by fastforce
+
+lemma stamp_width_eval_is_eq_intval:
+  assumes "width_in_bounds (stamp_expr x) l h"
+  assumes "wf_stamp x"
+  assumes "[m,p] \<turnstile> x \<mapsto> xv"
+  shows "(is_IntVal xv) \<and> (intval_bits_in_bounds xv l h) \<and> (take_bit_val_eq xv)"
+proof -
+  have integerstamp: "is_IntegerStamp (stamp_expr x)"
+    using width_in_bounds_implies_integerstamp assms(1) by auto
+  obtain xb xl xh where stamp: "(IntegerStamp xb xl xh) = (stamp_expr x)"
+    using Stamp.collapse(1) integerstamp by blast
+  then show ?thesis
+    by (metis ExpIntBecomesIntVal bit_bound_maintained eval_int_implies_take_bit_eq is_IntVal_def
+        wf_stamp_def assms)
+qed
+
+lemma pos_stamp_eval_is_pos_intval:
+  assumes "is_stamp_positive (stamp_expr x)"
+  assumes "wf_stamp x"
+  assumes "[m,p] \<turnstile> x \<mapsto> xv"
+  shows "positive_intval xv"
+proof -
+  obtain xb xvv where xv: "xv = IntVal xb xvv"
+    by (metis ExpIntBecomesIntVal assms is_stamp_positive.elims(2) wf_stamp_def)
+  then have valid: "valid_value xv (stamp_expr x)"
+    using assms(2,3) wf_stamp_def by auto
+  obtain xb' xl xh where stamp: "IntegerStamp xb' xl xh = stamp_expr x"
+    by (metis assms(1) is_stamp_positive.elims(2))
+  have bitsEq: "xb = xb'"
+    by (metis stamp valid valid_value.simps(1) xv)
+  then have "0 \<le> sint (signed_take_bit (xb - 1) xvv)"
+    by (smt (verit) valid int_signed_value.elims is_stamp_positive.simps(1) valid_value.simps(1) xv
+        assms(1) stamp)
+  then have "\<not> (bit xvv (xb - 1))"
+    using val_neg_def by force
+  then show ?thesis
+    using bit_take_bit_iff xv by auto
+qed
+
+lemma stamp_width_in_bounds_expand_lower:
+  assumes "width_in_bounds s l h"
+  assumes "l' < l"
+  shows "width_in_bounds s l' h"
+proof -
+  have stamp: "is_IntegerStamp s"
+    using assms(1) width_in_bounds_implies_integerstamp by auto
+  obtain b sl sh where s: "s = IntegerStamp b sl sh"
+    by (meson stamp is_IntegerStamp_def)
+  then show ?thesis
+    using assms by auto
+qed
+
+lemma stamp_width_in_bounds_expand_upper:
+  assumes "width_in_bounds s l h"
+  assumes "h' > h"
+  shows "width_in_bounds s l h'"
+proof -
+  have stamp: "is_IntegerStamp s"
+    using assms(1) width_in_bounds_implies_integerstamp by auto
+  obtain b sl sh where s: "s = IntegerStamp b sl sh"
+    by (meson stamp is_IntegerStamp_def)
+  then show ?thesis
+    using assms by auto
+qed
 
 lemma stamp_under_defn:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"

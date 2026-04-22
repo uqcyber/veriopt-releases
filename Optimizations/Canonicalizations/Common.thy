@@ -1,7 +1,7 @@
 section \<open>Canonicalization Optimizations\<close>
 
 theory Common
-  imports 
+  imports
     OptimizationDSL.Canonicalization
     Semantics.IRTreeEvalThms
 begin
@@ -90,54 +90,17 @@ lemma well_formed_equal_defn [simp]:
   "well_formed_equal v\<^sub>1 v\<^sub>2 = (v\<^sub>1 \<noteq> UndefVal \<longrightarrow> v\<^sub>1 = v\<^sub>2)"
   unfolding well_formed_equal_def by simp
 
-text \<open> Helpful lemmas for canonicalization proofs \<close>
+subsection \<open> Helpful lemmas for canonicalization proofs \<close>
 
-(* General lemmas *)
+subsubsection \<open> Evaluation lemmas \<close>
 
-(* take_bit lemmas *)
-lemma takeBitNot:
-  fixes xv :: "64word"
-  assumes "xb \<ge> 1"
-  shows "(take_bit xb (not xv) \<noteq> take_bit xb xv)"
-  apply auto subgoal premises p
-  proof -
-    have addAllOnes: "take_bit xb (not xv) + take_bit xb xv = take_bit xb (-1)"
-      by (smt (z3) take_bit_not_eq_mask_diff add_minus_cancel p take_bit_minus_one_eq_mask
-          uminus_add_conv_diff)
-    have orAllOnes:  "or (take_bit xb (not xv)) (take_bit xb xv) = take_bit xb (-1)"
-      by (metis bit.disj_cancel_left take_bit_or)
-    then show ?thesis
-      using addAllOnes assms orAllOnes p by force
-  qed
-  done
-
-lemma take_bit_size_eq:
-  shows "take_bit 64 a = take_bit LENGTH(64) (a::64 word)"
-  by auto
-
-lemma take_bit64 [simp]:
-  fixes w :: "int64"
-  shows "take_bit 64 w = w"
-proof -
-  have "Nat.size w = 64"
-    by (simp add: size64)
-  then show ?thesis
-    by (metis lt2p_lem mask_eq_iff take_bit_eq_mask verit_comp_simplify1(2) wsst_TYs(3))
-qed
-
-lemma mergeTakeBit:
-  fixes a :: "nat"
-  fixes b c :: "64 word"
-  shows "take_bit a (take_bit a (b) * take_bit a (c)) = take_bit a (b * c)"
- by (smt (verit, ccfv_SIG) take_bit_mult take_bit_of_int unsigned_take_bit_eq word_mult_def)
-
-(* Evaluation lemmas *)
 lemma const_eval_is_const:
   assumes "wf_value n"
   shows "[m,p] \<turnstile> exp[const (n)] \<mapsto> n"
   by (simp add: assms IRTreeEval.evaltree.ConstantExpr)
 
-(* Operator commutativity lemmas *)
+subsubsection \<open> Operator commutativity lemmas \<close>
+
 lemma val_add_commutative:
   "val[x + y] = val[y + x]"
   by (cases x; cases y; auto simp: add.commute)
@@ -149,6 +112,10 @@ lemma val_and_commutative:
 lemma val_eq_commutative:
   "val[x eq y] = val[y eq x]"
   by (cases y; cases x; auto simp: unwrap_bool_to_val)
+
+lemma val_mul_commutative:
+  "val[x * y] = val[y * x]"
+  by (cases x; cases y; auto simp: mult.commute)
 
 lemma val_or_commutative:
   "val[x | y] = val[y | x]"
@@ -170,6 +137,10 @@ lemma exp_eq_commutative:
   "exp[x eq y] \<ge> exp[y eq x]"
   by (auto simp: val_eq_commutative)
 
+lemma exp_mul_commutative:
+  "exp[x * y] \<ge> exp[y * x]"
+  by (auto simp: val_mul_commutative)
+
 lemma exp_or_commutative:
   "exp[x | y] \<ge> exp[y | x]"
   by (auto simp: val_or_commutative)
@@ -178,10 +149,20 @@ lemma exp_xor_commutative:
   "exp[x \<oplus> y] \<ge> exp[y \<oplus> x]"
   by (auto simp: val_xor_commutative)
 
-(* Operator associativity lemmas *)
+subsubsection \<open> Operator associativity lemmas \<close>
+
+lemma val_add_associative:
+  "val[(x + y) + z] = val[x + (y + z)]"
+  by (cases x; cases y; cases z; auto simp: ab_semigroup_add_class.add_ac(1))
+
 lemma val_and_associative:
   "val[(x & y) & z] = val[x & (y & z)]"
   by (cases x; cases y; cases z; auto simp: and.assoc)
+
+lemma val_mul_associative:
+  "val[(x * y) * z] = val[x * (y * z)]"
+  apply (cases x; cases y; cases z; auto)
+  by (metis (no_types, lifting) mergeTakeBit mult.assoc new_int.elims new_int_take_bits)
 
 lemma val_or_associative:
   "val[(x | y) | z] = val[x | (y | z)]"
@@ -191,9 +172,17 @@ lemma val_xor_associative:
   "val[(x \<oplus> y) \<oplus> z] = val[x \<oplus> (y \<oplus> z)]"
   by (cases x; cases y; cases z; auto simp: xor.assoc)
 
+lemma exp_add_associative:
+  "exp[(x + y) + z] \<ge> exp[x + (y + z)]"
+  using val_add_associative by fastforce
+
 lemma exp_and_associative:
   "exp[(x & y) & z] \<ge> exp[x & (y & z)]"
   using val_and_associative by fastforce
+
+lemma exp_mul_associative:
+  "exp[(x * y) * z] \<ge> exp[x * (y * z)]"
+  using val_mul_associative by fastforce
 
 lemma exp_or_associative:
   "exp[(x | y) | z] \<ge> exp[x | (y | z)]"
@@ -203,7 +192,8 @@ lemma exp_xor_associative:
   "exp[(x \<oplus> y) \<oplus> z] \<ge> exp[x \<oplus> (y \<oplus> z)]"
   using val_xor_associative by fastforce
 
-(* Operator self lemmas *)
+subsubsection \<open> Operator self lemmas \<close>
+
 lemma val_xor_self:
   assumes "x = IntVal b xv"
   shows "val[x \<oplus> x] = val[IntVal b 0]"

@@ -225,7 +225,7 @@ lemma AddNotExp:
     have wfInt: "wf_value (new_int b (not 0))"
       using validDefIntConst xaDef by (simp add: eval_bits_1_64 xv wf_value_def)
     have toValRHS: "[m,p] \<turnstile> exp[const (new_int b (not 0))] \<mapsto> new_int b (not 0)"
-      using wfInt by (simp add: const_eval_is_const)
+      using wfInt by blast
     have "val[xa + (~xa)] = new_int b (not 0)"
       by (simp add: xv)
     then show ?thesis

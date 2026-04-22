@@ -193,8 +193,9 @@ begin
  *)
 
 lemma TakeBitNotSelf:
-  "(take_bit 32 (not e) = e) = False"
-  by (metis even_not_iff even_take_bit_eq zero_neq_numeral)
+  assumes "b \<ge> 1"
+  shows "(take_bit b (not e) = e) = False"
+  by (metis assms takeBitNot take_bit_not_take_bit)
 
 lemma ValNeverEqNotSelf:
   assumes "e = IntVal 32 ev"
@@ -487,7 +488,7 @@ lemma valXorIsEqual_64:
         obtain l0 where l0: "l0 = (lowestOneBit (0::64 word))"
           by simp
         have "xor (take_bit l0 zv) (take_bit l0 xv) \<noteq> xor (take_bit l0 yv) (take_bit l0 xv)"
-          using notEq lowestOneBit_bot take_bit_size_eq l0 by presburger
+          using notEq lowestOneBit_bot take_bit_size_eq64 l0 by presburger
         then have "xor (take_bit l0 xv) (take_bit l0 yv) \<noteq> xor (take_bit l0 xv) (take_bit l0 zv)"
           by (simp add: xor.commute)
         then show ?thesis
@@ -575,7 +576,7 @@ lemma valXorEqZero_64:
   assumes "y = IntVal 64 yv"
   shows "val[(x \<oplus> y) eq (IntVal 64 0)] = val[x eq y]"
   using assms apply (cases x; cases y; auto)
-  unfolding unwrap_bool_to_val take_bit_size_eq Word.take_bit_length_eq by (simp add: xorZeroIsEq)
+  unfolding unwrap_bool_to_val take_bit_size_eq64 Word.take_bit_length_eq by (simp add: xorZeroIsEq)
 
 lemma expXorEqZero_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"
@@ -617,7 +618,7 @@ lemma valXorEqNeg1_64:
   assumes "y = IntVal 64 yv"
   shows "val[(x \<oplus> y) eq (IntVal 64 (not 0))] = val[x eq (\<not>y)]"
   using assms apply (cases x; cases y; auto)
-  unfolding unwrap_bool_to_val take_bit_size_eq Word.take_bit_length_eq using xorNeg1IsEq by auto
+  unfolding unwrap_bool_to_val take_bit_size_eq64 Word.take_bit_length_eq using xorNeg1IsEq by auto
 
 lemma expXorEqNeg1_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"

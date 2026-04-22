@@ -36,6 +36,18 @@ lemma upper_bounds_equiv:
   shows "(2::int) ^ (N-1) = (2::int) ^ N div 2"
   by (simp add: assms int_power_div_base)
 
+lemma intval_bits_in_bounds_expand_lower:
+  assumes "intval_bits_in_bounds x l h"
+  assumes "l' < l"
+  shows "intval_bits_in_bounds x l' h"
+  using assms intval_bits_in_bounds.elims(2) by fastforce
+
+lemma intval_bits_in_bounds_expand_upper:
+  assumes "intval_bits_in_bounds x l h"
+  assumes "h' > h"
+  shows "intval_bits_in_bounds x l h'"
+  using assms intval_bits_in_bounds.elims(2) by fastforce
+
 text \<open>Some min/max bounds for 64-bit words\<close>
 
 lemma bit_bounds_min64: "((fst (bit_bounds 64))) \<le> (sint (v::int64))"

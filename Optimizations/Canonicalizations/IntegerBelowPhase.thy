@@ -164,23 +164,25 @@ lemma below_sub_inv:
   assumes "positive_intval y"
   assumes "positive_intval z"
   assumes "intval_bits_in_bounds y 2 64"
-  assumes "intval_bits_in_bounds z 2 64"
   assumes "take_bit_val_eq y"
   assumes "take_bit_val_eq z"
   assumes "val_to_bool val[y |<| z]"
   shows "\<not>positive_intval val[y - z]"
 proof -
+  have zBounds: "intval_bits_in_bounds z 2 64"
+    using assms(1,2,5) by auto
   have yPos: "0 \<le>s vy"
-    by (metis assms(1,3,5,7) signed_0 verify_isValPositive word_sle_eq)
+    by (metis assms(1,3,5,6) signed_0 verify_isValPositive word_sle_eq)
   have subUnfold: "val[y - z] = IntVal n (take_bit n (vy - vz))"
     by (simp add: assms(1,2))
   have "vy < vz"
-    using assms(1,2,9) val_to_bool.elims(2) by fastforce
+    using assms(1,2,8) val_to_bool.elims(2) by fastforce
   then have "vy <s vz"
-    using assms bin_below_eq_less verify_isValPositive by blast
+    using assms bin_below_eq_less verify_isValPositive zBounds by blast
   then have "signed_take_bit (n - 1) (take_bit n (vy - vz)) <s 0"
     using assms(1,2,3,4,5,6,7,8)
-    by (meson prot2 bin_below_sub yPos signed.dual_order.strict_implies_order signed.order.trans)
+    by (meson bin_below_sub prot2 signed.dual_order.strict_trans2 width_eq_implies_bitbounds_eq yPos
+        word_sless_eq)
   then have "\<not>(0 \<le> sint(signed_take_bit (n - 1) (take_bit n (vy - vz))))"
     by (simp add: word_sless_alt)
   then show ?thesis
@@ -193,7 +195,6 @@ lemma below_sub:
   assumes "positive_intval y"
   assumes "positive_intval z"
   assumes "intval_bits_in_bounds y 2 64"
-  assumes "intval_bits_in_bounds z 2 64"
   assumes "take_bit_val_eq y"
   assumes "take_bit_val_eq z"
   assumes "\<not>val_to_bool val[y |<| z]"
@@ -208,19 +209,21 @@ next
   case False
   have notEq: "vz \<noteq> vy"
     using False assms(1,2) by auto
-  then have "\<not>(vy < vz)"
+  then have geq: "\<not>(vy < vz)"
     using False assms by auto
+  have zBounds: "intval_bits_in_bounds z 2 64"
+    using assms(1,2,5) by auto
   moreover have vPos: "sint(vz) \<ge> 0"
-    using assms(2,4,6,8) verify_isValPositive by presburger
+    using assms verify_isValPositive zBounds by presburger
   ultimately have "vz <s vy"
-    by (metis assms(1,3,5,7) bin_below_eq_less verify_isValPositive notEq bin_negate_less)
+    by (metis geq assms(1,3,5,6) bin_below_eq_less bin_negate_less notEq verify_isValPositive)
   then have subNotNeg: "\<not>((vy - vz) <s 0)"
     by (metis (no_types, opaque_lifting) bin_below_sub order.strict_trans2 order_less_imp_not_eq2
         signed.less_trans signed.not_le signed_0 vPos word_sless_alt)
   have subUnfold: "val[y - z] = IntVal n (take_bit n (vy - vz))"
     by (simp add: assms(1,2))
   have "\<not>(signed_take_bit (n - 1) (take_bit n (vy - vz)) <s 0)"
-    by (metis subNotNeg assms(1,2,3,4,5,6,7,8) prot2)
+    using assms prot2 subNotNeg zBounds by blast
   then have "0 \<le> sint(signed_take_bit (n - 1) (take_bit n (vy - vz)))"
     by (simp add: word_sless_alt)
   then show ?thesis
@@ -254,8 +257,6 @@ lemma val_below_less:
   assumes "y = new_int n vy"
   assumes "z = new_int n vz"
   assumes "intval_bits_in_bounds x 2 64"
-  assumes "intval_bits_in_bounds y 2 64"
-  assumes "intval_bits_in_bounds z 2 64"
   assumes "take_bit_val_eq x"
   assumes "take_bit_val_eq y"
   assumes "take_bit_val_eq z"
@@ -267,7 +268,7 @@ lemma val_below_less:
 proof (cases "val_to_bool val[y |<| z]")
   case True
   then have "\<not>positive_intval val[y - z]"
-    by (metis assms(11,12,2,3,5,6,8,9) below_sub_inv new_int.elims)
+    by (metis assms(1,2,3,4,6,7,9,10) below_sub_inv intval_bits_in_bounds.simps(1) new_int.simps)
   then have "val[x < (y - z)] = val[false]"
     using assms pos_less_neg by simp
   then show ?thesis
@@ -275,11 +276,11 @@ proof (cases "val_to_bool val[y |<| z]")
 next
   case False
   then have yzPos: "positive_intval val[y - z]"
-    by (metis assms(11,12,2,3,5,6,8,9) below_sub new_int.elims)
+    by (metis assms(1,10,2,3,4,6,7,9) below_sub new_int.elims width_eq_implies_bitbounds_eq)
   obtain vyz where yz: "val[y - z] = new_int n vyz"
     using assms(2,3) by auto
   then show ?thesis
-    using False assms(1,10,4,5) val_below_eq_less yzPos by auto
+    using False assms(1,8,4,5) val_below_eq_less yzPos by auto
 qed
 
 (* Exp level proofs *)

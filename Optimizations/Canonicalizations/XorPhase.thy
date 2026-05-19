@@ -175,7 +175,7 @@ optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> const (IntVal b 0)
   using exp_xor_self_is_false by blast
 
 optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
-  using size_flip_binary val_xor_commutative by auto
+  apply (cases x; cases y; auto) using exp_xor_commutative by blast
 
 optimization EliminateRedundantFalse: "(x \<oplus> (const (IntVal b 0))) \<longmapsto> x
                                        when (wf_stamp x \<and> stamp_expr x = IntegerStamp b xl xh)"

@@ -250,9 +250,7 @@ optimization SubAfterAddLeft: "(x + y) - x \<longmapsto> y"
   using exp_sub_after_right_add2 by blast
 
 optimization SubAfterSubLeft: "(x - y) - x \<longmapsto> -y"
-  apply (metis size_binary_const add_2_eq_Suc' add_mono_thms_linordered_field(1) size_binary_rhs
-         size_non_add trans_less_add1)
-  using exp_sub_after_sub_left by simp
+  apply (cases x; cases y; auto) using exp_sub_after_sub_left by simp
 
 optimization SubThenAddLeft: "x - (x + y) \<longmapsto> -y"
   apply auto by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_then_left_add)
@@ -262,7 +260,8 @@ optimization SubThenAddRight: "y - (x + y) \<longmapsto> -x"
   by (metis intval_add_sym unary_eval.simps(2) unfold_unary val_sub_then_left_add evalDet)
 
 optimization SubThenSubLeft: "x - (x - y) \<longmapsto> y"
-  using size_simps exp_sub_then_left_sub by auto
+  apply (simp add: less_SucI pos_add_strict size_binary_rhs size_pos)
+  using exp_sub_then_left_sub by blast
 
 optimization SubtractZero: "x - (const IntVal b 0) \<longmapsto> x"
   using SubtractZero_Exp by fast
@@ -277,22 +276,20 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
 *)
 
 optimization SubNegativeValue: "x - (-y) \<longmapsto> x + y"
-  apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
-  using exp_sub_negative_value by blast
+  apply (cases x; cases y; simp) using exp_sub_negative_value by blast
 
 thm_oracles SubNegativeValue
 
 optimization ZeroSubtractValue: "(const IntVal b 0) - x \<longmapsto> (-x)
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and>
                                         \<not>(is_ConstantExpr x))"
-  using size_flip_binary ZeroSubtractValue_Exp by simp+
+  apply (cases x; auto) using ZeroSubtractValue_Exp by blast
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0
                             when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using size_non_const apply auto
-  by (smt (verit) wf_value_def ConstantExpr eval_bits_1_64 eval_unused_bits_zero new_int.simps
-      take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def One_nat_def
-      evalDet)
+  by (smt (verit) wf_value_def ConstantExpr eval_bits_1_64 eval_unused_bits_zero validDefIntConst
+      take_bit_of_0 val_sub_self_is_zero new_int.simps  valid_int wf_stamp_def One_nat_def evalDet)
 
 end (* End of SubPhase *)
 

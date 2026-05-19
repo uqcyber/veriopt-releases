@@ -9,7 +9,7 @@ begin
 context stamp_mask
 begin
 
-lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrightarrow> exp[x & y] \<ge> exp[y]"
+lemma AndRightFallthrough: "((and (not (\<down> x)) (\<up> y)) = 0) \<longrightarrow> exp[x & y] \<ge> exp[y]"
   apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
     proof -
@@ -23,7 +23,7 @@ lemma AndRightFallthrough: "(((and (not (\<down> x)) (\<up> y)) = 0)) \<longrigh
         by (metis bin_eval_inputs_are_ints bin_eval_int evalDet is_IntVal_def p(2) unfold_binary yv)
       have equalAnd: "v = val[xv & yv]"
         by (metis BinaryExprE bin_eval.simps(6) evalDet p(2) xv yv)
-      then have andUnfold: "val[xv & yv] = (if xb=yb then new_int xb (and xvv yvv) else UndefVal)"
+      then have andUnfold: "val[xv & yv] = (if xb = yb then new_int xb (and xvv yvv) else UndefVal)"
         by (simp add: xvv yvv)
       have "v = yv"
         apply (cases v; cases yv; auto)
@@ -244,11 +244,10 @@ optimization AndSelf2: "exp[n & (~n)] \<longmapsto> (const (new_int 32 (0)))
 
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
                                        when \<not>(is_ConstantExpr y)"
-  using size_flip_binary val_and_commutative by force+
+  apply (cases x; cases y; auto) using exp_and_commutative by blast
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
-  by (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add
-      exp_and_nots)+
+  apply (cases x; cases y; auto) using exp_and_nots by auto
 
 (* TODO need to prove exp_sign_extend *)
 optimization AndSignExtend: "exp[(UnaryExpr (UnarySignExtend In Out) x) & const (new_int b e)]

@@ -12,7 +12,7 @@ lemma size_pos[size_simps]: "0 < size y"
     apply (cases op) by (smt (z3) gr0I one_neq_zero pos2 size.elims trans_less_add2)+
   done
 
-lemma size_non_add[size_simps]: "size (BinaryExpr op a b) = size a + size b + 2 \<longleftrightarrow>
+lemma size_non_add[size_simps]: "size (BinaryExpr op a b) = bin_op_size op + size a + size b + 2 \<longleftrightarrow>
                                  \<not>(is_ConstantExpr b)"
   by (induction b; induction op; auto simp: is_ConstantExpr_def)
 
@@ -23,17 +23,25 @@ lemma size_non_const[size_simps]:
       numeral_2_eq_2 pos2 size.simps(2))
 
 lemma size_binary_const[size_simps]:
-  "size (BinaryExpr op a b) = size a + 2 \<longleftrightarrow> (is_ConstantExpr b)"
+  "size (BinaryExpr op a b) = bin_op_size op + size a + 2 \<longleftrightarrow> (is_ConstantExpr b)"
   by (induction b; auto simp: is_ConstantExpr_def size_pos)
 
 lemma size_flip_binary[size_simps]:
   "\<not>(is_ConstantExpr y) \<longrightarrow>
    size (BinaryExpr op (ConstantExpr x) y) > size (BinaryExpr op y (ConstantExpr x))"
-  by (metis add_Suc not_less_eq order_less_asym plus_1_eq_Suc size.simps(2,11) size_non_add)
+  by (cases x; cases y; cases op; auto)
+
+lemma size_binary_lhs[size_simps]:
+  "size (BinaryExpr op x y) > size x"
+  by (cases x; cases y; cases op; auto)
+
+lemma size_binary_rhs[size_simps]:
+  "size (BinaryExpr op x y) > size y"
+  by (cases x; cases y; cases op; auto)
 
 lemma size_binary_lhs_a[size_simps]:
   "size (BinaryExpr op (BinaryExpr op' a b) c) > size a"
-  by (metis add_lessD1 less_add_same_cancel1 pos2 size_binary_const size_non_add)
+  by (meson order_less_trans size_binary_lhs)
 
 lemma size_binary_lhs_b[size_simps]:
   "size (BinaryExpr op (BinaryExpr op' a b) c) > size b"
@@ -48,9 +56,7 @@ lemma size_binary_lhs_c[size_simps]:
 
 lemma size_binary_rhs_a[size_simps]:
   "size (BinaryExpr op c (BinaryExpr op' a b)) > size a"
-  apply auto
-  by (metis trans_less_add2 less_Suc_eq less_add_same_cancel1 linorder_neqE_nat not_add_less1 pos2
-      order_less_trans size_binary_const size_non_add)
+  apply auto by (meson less_SucI size_binary_lhs trans_less_add2)
 
 lemma size_binary_rhs_b[size_simps]:
   "size (BinaryExpr op c (BinaryExpr op' a b)) > size b"
@@ -61,16 +67,6 @@ lemma size_binary_rhs_c[size_simps]:
   "size (BinaryExpr op c (BinaryExpr op' a b)) > size c"
   by simp
 
-lemma size_binary_lhs[size_simps]:
-  "size (BinaryExpr op x y) > size x"
-  by (metis One_nat_def Suc_eq_plus1 add_Suc_right less_add_Suc1 numeral_2_eq_2 size_binary_const
-      size_non_add)
-
-lemma size_binary_rhs[size_simps]:
-  "size (BinaryExpr op x y) > size y"
-  by (metis IRExpr.disc(42) add_strict_increasing is_ConstantExpr_def linorder_not_le not_add_less1
-      size.simps(11) size_non_add size_non_const size_pos)
-
 lemma size_eq_ops [size_simps]:
   "size (BinaryExpr BinIntegerEquals y z) <
    Suc (Suc (size (BinaryExpr op y x) + size (BinaryExpr op z x)))"
@@ -79,6 +75,24 @@ lemma size_eq_ops [size_simps]:
 lemma size_eq_const [size_simps]:
   "Suc (Suc (size x)) < size (BinaryExpr op' (BinaryExpr op x y) y)"
   by (cases x; cases y; auto)
+
+lemma size_binop_equality[size_simps]:
+  assumes "op' \<noteq> BinDiv"
+  shows "size (BinaryExpr BinIntegerEquals y z) <
+         Suc (Suc (size (BinaryExpr op' x y) + size (BinaryExpr op' x z)))"
+  by (cases z; cases y; cases x; auto)
+
+lemma size_binop_equality_commute_rhs[size_simps]:
+  assumes "op' \<noteq> BinDiv"
+  shows "size (BinaryExpr BinIntegerEquals y z) <
+         Suc (Suc (size (BinaryExpr op' x y) + size (BinaryExpr op' z x)))"
+  by (cases z; cases y; cases x; auto)
+
+lemma size_binop_equality_commute_lhs[size_simps]:
+  assumes "op' \<noteq> BinDiv"
+  shows "size (BinaryExpr BinIntegerEquals y z) <
+         Suc (Suc (size (BinaryExpr op' y x) + size (BinaryExpr op' x z)))"
+  by (cases x; cases y; cases z; auto)
 
 lemmas arith[size_simps] = Suc_leI add_strict_increasing order_less_trans trans_less_add2
 

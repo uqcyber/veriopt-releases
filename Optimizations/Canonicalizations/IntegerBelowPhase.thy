@@ -412,9 +412,7 @@ optimization BelowLess: "(x |<| ((y |<| z) ? const (IntVal b 0) : (y + (-z)))) \
        (is_stamp_positive (stamp_expr y)) \<and> (wf_stamp y) \<and> (width_in_bounds (stamp_expr y) 2 64) \<and>
        (is_stamp_positive (stamp_expr z)) \<and> (wf_stamp z) \<and> (width_in_bounds (stamp_expr z) 2 64) \<and>
         stamp_expr y = IntegerStamp b lo hi)"
-  apply (metis add_mono_thms_linordered_field(2) size_binary_const size_non_add trans_less_add2
-         size_pos verit_sum_simplify)
-  using exp_below_less_add by blast
+  apply (cases x; cases y; cases z; auto) using exp_below_less_add by blast
 
 end (* End of IntegerBelowPhase *)
 

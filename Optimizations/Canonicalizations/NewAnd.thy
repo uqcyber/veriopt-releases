@@ -775,32 +775,26 @@ text \<open>Optimisations\<close>
 
 optimization RedundantLhsYOr: "((x | y) & z) \<longmapsto> x & z
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-  apply (metis size_binary_const add_strict_right_mono size_binary_lhs size_non_add)
-  using simple_mask.exp_eliminate_y by blast
+  apply (cases x; cases y; cases z; simp) using simple_mask.exp_eliminate_y by blast
 
 optimization RedundantLhsXOr: "((x | y) & z) \<longmapsto> y & z
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  apply (metis size_binary_const add_less_cancel_right size_binary_rhs size_non_add)
-  using simple_mask.exp_eliminate_x by blast
+  apply (cases x; cases y; cases z; simp) using simple_mask.exp_eliminate_x by blast
 
 optimization RedundantRhsYOr: "(z & (x | y)) \<longmapsto> z & x
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-  apply (smt (verit, ccfv_threshold) Suc_mono add.assoc add.commute add_2_eq_Suc' add_le_less_mono
-         less_Suc_eq numeral_2_eq_2 size_non_add size_pos verit_comp_simplify1(2) size_binary_const
-         size_binary_lhs_a)
+  apply (cases x; cases y; cases z; simp)
   by (meson dual_order.trans simple_mask.exp_eliminate_y RedundantLhsYOr exp_and_commutative)
 
 optimization RedundantRhsXOr: "(z & (x | y)) \<longmapsto> z & y
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  apply (metis (no_types, opaque_lifting) add.assoc add_strict_increasing less_Suc_eq
-         nat_add_left_cancel_less size_non_add size_pos verit_comp_simplify1(2) size_binary_const)
+  apply (cases x; cases y; cases z; simp)
   by (meson dual_order.trans exp_and_commutative simple_mask.exp_eliminate_x)
 
 (*
 optimization redundant_lhs_add: "((x + y) & z) \<longmapsto> x & z
                                when ((and (IRExpr_up y) (IRExpr_up z)) = 0)"
 *)
-
 
 end
 

@@ -882,66 +882,45 @@ lemma exp_not_eq:
   qed
   done
 
-(* Auxiliary lemmas to help prove size *)
-lemma canonical_size_binop_equality:
-  "size (BinaryExpr op y z) < Suc (Suc (size (BinaryExpr op' x y) + size (BinaryExpr op' x z)))"
-  by (cases z; cases y; auto)
-
-lemma canonical_size_binop_equality_commute_rhs:
-  "size (BinaryExpr op y z) < Suc (Suc (size (BinaryExpr op' x y) + size (BinaryExpr op' z x)))"
-  by (cases z; cases y; cases x; auto)
-
-lemma canonical_size_binop_equality_commute_lhs:
-  "size (BinaryExpr op y z) < Suc (Suc (size (BinaryExpr op' y x) + size (BinaryExpr op' x z)))"
-  by (cases z; cases x; auto)
-
 text \<open>Optimisations\<close>
 
 optimization AdditionEquality: "exp[(x + y) eq (x + z)] \<longmapsto> exp[y eq z]"
-  apply (simp add: canonical_size_binop_equality) using exp_addition_equality by presburger
+  using exp_addition_equality by presburger
 
 optimization AdditionEquality2: "exp[(x + y) eq (z + x)] \<longmapsto> exp[y eq z]"
-  apply (simp add: canonical_size_binop_equality_commute_rhs)
   by (meson dual_order.trans exp_add_commutative exp_addition_equality mono_binary)
 
 optimization AdditionEquality3: "exp[(y + x) eq (x + z)] \<longmapsto> exp[y eq z]"
-  apply (simp add: canonical_size_binop_equality_commute_lhs)
   by (meson dual_order.trans exp_add_commutative exp_addition_equality mono_binary)
 
 optimization AdditionEquality4: "exp[(y + x) eq (z + x)] \<longmapsto> exp[y eq z]"
   by (meson dual_order.trans exp_add_commutative exp_addition_equality mono_binary)
 
 optimization XorEquality: "exp[(x \<oplus> y) eq (x \<oplus> z)] \<longmapsto> exp[y eq z]"
-  apply (simp add: canonical_size_binop_equality) by (meson exp_xor_equality)
+  by (meson exp_xor_equality)
 
 optimization XorEquality2: "exp[(x \<oplus> y) eq (z \<oplus> x)] \<longmapsto> exp[y eq z]"
-  apply (simp add: canonical_size_binop_equality_commute_rhs)
   by (meson dual_order.trans exp_xor_commutative exp_xor_equality mono_binary)
 
 optimization XorEquality3: "exp[(y \<oplus> x) eq (x \<oplus> z)] \<longmapsto> exp[y eq z]"
-  apply (simp add: canonical_size_binop_equality_commute_lhs)
   by (meson dual_order.trans exp_xor_commutative exp_xor_equality mono_binary)
 
 optimization XorEquality4: "exp[(y \<oplus> x) eq (z \<oplus> x)] \<longmapsto> exp[y eq z]"
   by (meson dual_order.trans exp_xor_commutative exp_xor_equality mono_binary)
 
 optimization SubtractionEquality: "exp[(x - y) eq (x - z)] \<longmapsto> exp[y eq z]"
-  apply (simp add: canonical_size_binop_equality) using exp_subtraction_equality by blast
+  using exp_subtraction_equality by blast
 
 optimization SubtractionEqualityFlipped: "exp[(y - x) eq (z - x)] \<longmapsto> exp[y eq z]"
   using exp_subtraction_equality_swapped by blast
 
 optimization EqualAddZero_Flipped: "exp[(x + y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))]
                                     when (wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi)"
-  apply (metis Suc_lessI add_2_eq_Suc' add_right_cancel less_trans_Suc not_add_less1 size_non_add
-         size_binary_const size_binary_lhs size_binary_rhs)
-  using exp_add_zero_equality exp_eq_commutative order.trans by blast
+  apply (cases x; cases y; auto) using exp_add_zero_equality exp_eq_commutative order.trans by blast
 
 optimization EqualXorZero_Flipped: "exp[(x \<oplus> y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))]
                                     when (wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi)"
-  apply (metis Suc_lessI add_2_eq_Suc' add_right_cancel less_trans_Suc not_add_less1 size_non_add
-         size_binary_const size_binary_lhs size_binary_rhs)
-  using exp_eq_commutative exp_xor_zero_equality order.trans by blast
+  apply (cases x; cases y; auto) using exp_eq_commutative exp_xor_zero_equality order.trans by blast
 
 optimization EqualAddZero_FlippedSwapped: "exp[(x + y) eq y] \<longmapsto> exp[x eq (const (IntVal b 0))]
                                            when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
@@ -971,8 +950,7 @@ optimization EqualXorZero_Swapped: "exp[y eq (x \<oplus> y)] \<longmapsto> exp[x
 
 optimization EqualSubZeroFlipped: "exp[(x - y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))]
                                    when (wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi)"
-  apply (metis Suc_lessI add_2_eq_Suc' add_right_cancel less_trans_Suc not_add_less1 size_non_add
-         size_binary_const size_binary_lhs size_binary_rhs)
+  apply (cases x; cases y; auto)
   by (meson dual_order.trans exp_eq_commutative exp_sub_zero_equality)
 
 optimization EqualSubZero: "exp[x eq (x - y)] \<longmapsto> exp[y eq (const (IntVal b 0))]
@@ -990,35 +968,33 @@ optimization EqualNotSelfCommute: "exp[x eq (~x)] \<longmapsto> false
 
 optimization EqualSubtraction: "exp[(x - y) eq const (IntVal b 0)] \<longmapsto> exp[x eq y]
                                 when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  apply (metis lessI less_SucI size_binary_const size_non_add) using exp_equal_substraction by auto
+  apply (cases x; cases y; simp) using exp_equal_substraction by auto
 
 optimization EqualXor: "exp[(x \<oplus> y) eq const (IntVal b 0)] \<longmapsto> exp[x eq y]
                         when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  apply (metis lessI less_SucI size_binary_const size_non_add) using exp_equal_xor by auto
+  apply (cases x; cases y; simp) using exp_equal_xor by auto
 
 optimization AndOrEquals1: "exp[(x & y) eq (x | y)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (metis add_Suc_right lessI less_SucI size_binary_const size_non_add trans_less_add2)
-  using exp_and_or_eq_64 by blast
+  apply (cases x; cases y; simp) using exp_and_or_eq_64 by blast
 
 optimization AndOrEquals2: "exp[(x & y) eq (y | x)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (metis add_Suc lessI less_SucI size_binary_const size_non_add trans_less_add1)
-  using AndOrEquals1 apply simp by (meson exp_or_commutative le_expr_def mono_binary)
+  apply (cases x; cases y; auto) using AndOrEquals1 apply simp
+  by (meson exp_or_commutative le_expr_def mono_binary)
 
 optimization AndOrEquals3: "exp[(x | y) eq (x & y)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (metis add_Suc_right lessI less_SucI size_binary_const size_non_add trans_less_add2)
-  by (meson exp_eq_commutative order.trans exp_and_or_eq_64)
+  apply (cases x; cases y; auto) by (meson exp_eq_commutative order.trans exp_and_or_eq_64)
 
 optimization AndOrEquals4: "exp[(x | y) eq (y & x)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (metis add_Suc lessI less_SucI size_binary_const size_non_add trans_less_add1)
-  using AndOrEquals3 apply simp by (meson exp_and_commutative le_expr_def mono_binary)
+  apply (cases x; cases y; auto) using AndOrEquals3 apply simp
+  by (meson exp_and_commutative le_expr_def mono_binary)
 
 optimization XorNotFallThrough1: "exp[(x \<oplus> y) eq (\<not>x)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                                   when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
@@ -1085,9 +1061,7 @@ optimization NegateEqZeroCommute: "exp[(const (new_int b 0)) eq (-x)] \<longmaps
 optimization NegateEq: "exp[(-x) eq (-y)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
-  apply (metis add_2_eq_Suc' add_mono_thms_linordered_field(1) less_Suc_eq less_add_same_cancel1
-         size_binary_const size_non_add size_pos)
-  using exp_negate_eq by blast
+  apply (cases x; cases y; auto) using exp_negate_eq by blast
 
 optimization NotZeroNegOne: "exp[(\<not>x) eq (const new_int xb 0)] \<longmapsto>
                              exp[x eq (const new_int xb (not 0))]
@@ -1116,9 +1090,7 @@ optimization NotNegOneZeroCommute: "exp[(const new_int xb (not 0)) eq (\<not>x)]
 optimization NotEq: "exp[(~x) eq (~y)] \<longmapsto> exp[x eq y]
                      when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                           (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
-  apply (metis add_2_eq_Suc' add_mono_thms_linordered_field(1) less_Suc_eq less_add_same_cancel1
-         size_binary_const size_non_add size_pos)
-  using exp_not_eq by auto
+  apply (cases x; cases y; auto) using exp_not_eq by auto
 
 end (* End of IntegerEqualsPhase *)
 

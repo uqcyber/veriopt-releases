@@ -68,6 +68,10 @@ datatype IRBinaryOp =
   | BinIntegerNormalizeCompare
   | BinIntegerMulHigh
 
+(* TODO add (discs_sels) to IRBinaryOp to generalise this definition *)
+definition is_BinDiv :: "IRBinaryOp \<Rightarrow> bool" where
+  "is_BinDiv op = (op = BinDiv)"
+
 datatype (discs_sels) IRExpr =
     UnaryExpr (ir_uop: IRUnaryOp) (ir_value: IRExpr)
   | BinaryExpr (ir_op: IRBinaryOp) (ir_x: IRExpr) (ir_y: IRExpr)

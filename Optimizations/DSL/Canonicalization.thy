@@ -161,25 +161,26 @@ fun intval :: "Value Rewrite \<Rightarrow> bool" where
 
 subsubsection \<open>Standard Termination Measure\<close>
 
-(* Sizes for particular operators, default is 0 *)
-fun bin_op_size :: "IRBinaryOp \<Rightarrow> nat" where
+(* Calculates an expression's size as a function of the operator and size of the operands, default
+   is unchanged *)
+fun bin_op_size :: "nat \<Rightarrow> IRBinaryOp \<Rightarrow> nat" where
   div_size:
-  "bin_op_size BinDiv = 4" |
-  "bin_op_size _ = 0"
+  "bin_op_size ops_size BinDiv = ops_size + 4" |
+  "bin_op_size ops_size _ = ops_size"
 (*"bin_op_size BinSub = 1" |
   "bin_op_size BinMul = 1"*)
 
-fun un_op_size :: "IRUnaryOp \<Rightarrow> nat" where
-  "un_op_size _ = 0"
+fun un_op_size :: "nat \<Rightarrow> IRUnaryOp \<Rightarrow> nat" where
+  "un_op_size ops_size _ = ops_size"
 
 (* General size calculation *)
 fun size :: "IRExpr \<Rightarrow> nat" where
   unary_size:
-  "size (UnaryExpr op x) = (un_op_size op) + (size x) + 2" |
+  "size (UnaryExpr op x) = (un_op_size ((size x) + 2) op)" |
   bin_const_size:
-  "size (BinaryExpr op x (ConstantExpr cy)) = (bin_op_size op) + (size x) + 2" |
+  "size (BinaryExpr op x (ConstantExpr cy)) = (bin_op_size ((size x) + 2) op)" |
   bin_size:
-  "size (BinaryExpr op x y) = (bin_op_size op) + (size x) + (size y) + 2" |
+  "size (BinaryExpr op x y) = (bin_op_size ((size x) + (size y) + 2) op)" |
   cond_size:
   "size (ConditionalExpr c t f) = (size c) + (size t) + (size f) + 2" |
   const_size:

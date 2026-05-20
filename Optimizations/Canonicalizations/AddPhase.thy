@@ -236,7 +236,7 @@ lemma AddNotExp:
 text \<open>Optimisations\<close>
 
 optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
-  apply (cases v; cases y; auto) using le_expr_def binadd_commute by blast
+  using exp_add_commutative by blast
 
 optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
   using AddShiftConstantRight by auto

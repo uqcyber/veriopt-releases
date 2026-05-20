@@ -244,7 +244,7 @@ optimization AndSelf2: "exp[n & (~n)] \<longmapsto> (const (new_int 32 (0)))
 
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
                                        when \<not>(is_ConstantExpr y)"
-  apply (cases x; cases y; auto) using exp_and_commutative by blast
+  using exp_and_commutative by blast
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
   apply (cases x; cases y; auto) using exp_and_nots by auto

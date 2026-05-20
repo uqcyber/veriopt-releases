@@ -283,7 +283,7 @@ thm_oracles SubNegativeValue
 optimization ZeroSubtractValue: "(const IntVal b 0) - x \<longmapsto> (-x)
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and>
                                         \<not>(is_ConstantExpr x))"
-  apply (cases x; auto) using ZeroSubtractValue_Exp by blast
+  using ZeroSubtractValue_Exp by auto
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0
                             when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"

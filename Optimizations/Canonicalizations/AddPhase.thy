@@ -245,7 +245,7 @@ optimization RedundantSubAdd: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapst
   using RedundantSubAdd_Exp by blast
 
 optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
-  apply (cases e\<^sub>1; cases e\<^sub>2; auto)
+  apply (simp add: less_SucI pos_add_strict size_pos size_binary_lhs)
   using RedundantSubAdd_Exp exp_add_commutative order.trans by blast
 
 optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
@@ -255,20 +255,18 @@ optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
   using RedundantAddSub_Exp by blast
 
 optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
-  apply (cases x; cases e; auto) using AddToSubHelperLowLevel intval_add_sym by auto
+  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_add_right_negate_to_sub by auto
 
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
-  apply (cases e; cases y; auto) using exp_add_left_negate_to_sub by simp
+  using exp_add_left_negate_to_sub by auto
 
 optimization AddNot: "exp[n + (~n)] \<longmapsto> (const (new_int b (not 0)))
                       when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
-   apply (simp add: Suc_lessI) using AddNotExp by fastforce
+  using AddNotExp by force
 
 optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
-   apply (metis One_nat_def less_numeral_extra(3) less_one linorder_neqE_nat size_binary_rhs
-          size_pos)
-   using AddNot exp_add_commutative by auto
+  using size_bin_gt_1 AddNotExp exp_add_commutative by force+
 
 (* ----- Ends here ----- *)
 

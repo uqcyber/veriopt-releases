@@ -193,7 +193,7 @@ optimization MaskOutRHS: "(x \<oplus> y) \<longmapsto> ~x
 *)
 
 optimization XorNot: "((~x) \<oplus> (~y)) \<longmapsto> (x \<oplus> y)"
-  apply (cases x; cases y; auto) using exp_xor_cancel by blast
+  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_xor_cancel by blast
 
 optimization XorInverse: "(x \<oplus> ~x) \<longmapsto> (const (new_int b (not 0)))
                           when (stamp_expr x = IntegerStamp b l h \<and> wf_stamp x)"

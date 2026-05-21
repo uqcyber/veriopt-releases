@@ -250,7 +250,8 @@ optimization SubAfterAddLeft: "(x + y) - x \<longmapsto> y"
   using exp_sub_after_right_add2 by blast
 
 optimization SubAfterSubLeft: "(x - y) - x \<longmapsto> -y"
-  apply (cases x; cases y; auto) using exp_sub_after_sub_left by simp
+  apply (meson less_trans_Suc size_binary_lhs size_binary_rhs_succ)
+  using exp_sub_after_sub_left by simp
 
 optimization SubThenAddLeft: "x - (x + y) \<longmapsto> -y"
   apply auto by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_then_left_add)
@@ -276,7 +277,7 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
 *)
 
 optimization SubNegativeValue: "x - (-y) \<longmapsto> x + y"
-  apply (cases x; cases y; simp) using exp_sub_negative_value by blast
+  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_sub_negative_value by blast
 
 thm_oracles SubNegativeValue
 

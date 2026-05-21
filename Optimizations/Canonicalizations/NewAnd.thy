@@ -775,20 +775,22 @@ text \<open>Optimisations\<close>
 
 optimization RedundantLhsYOr: "((x | y) & z) \<longmapsto> x & z
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-  apply (cases x; cases y; cases z; simp) using simple_mask.exp_eliminate_y by blast
+  using size_lt_implies_bin_lt size_binary_lhs simple_mask.exp_eliminate_y by blast+
 
 optimization RedundantLhsXOr: "((x | y) & z) \<longmapsto> y & z
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  apply (cases x; cases y; cases z; simp) using simple_mask.exp_eliminate_x by blast
+  using size_lt_implies_bin_lt size_binary_rhs simple_mask.exp_eliminate_x by blast+
 
 optimization RedundantRhsYOr: "(z & (x | y)) \<longmapsto> z & x
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-  apply (cases x; cases y; cases z; simp)
+  apply (smt (verit, ccfv_SIG) IRBinaryOp.distinct(99) int_ops(2) int_plus nat_int_comparison(2)
+         plus_1_eq_Suc size_bin_lt_sum_div size_binary_lhs)
   by (meson dual_order.trans simple_mask.exp_eliminate_y RedundantLhsYOr exp_and_commutative)
 
 optimization RedundantRhsXOr: "(z & (x | y)) \<longmapsto> z & y
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  apply (cases x; cases y; cases z; simp)
+  apply (smt (verit, del_insts) IRBinaryOp.distinct(99) int_plus nat_int_comparison(2) plus_1_eq_Suc
+      size_bin_lt_sum_div size_binary_rhs_succ)
   by (meson dual_order.trans exp_and_commutative simple_mask.exp_eliminate_x)
 
 (*

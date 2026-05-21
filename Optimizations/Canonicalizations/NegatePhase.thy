@@ -88,10 +88,10 @@ lemma exp_negative_shift:
 text \<open>Optimisations\<close>
 
 optimization NegateCancel: "-(-(x)) \<longmapsto> x"
-  using exp_negative_cancel by blast 
+  using exp_negative_cancel by blast
 
 optimization DistributeSubtraction: "-(x - y) \<longmapsto> (y - x)"
-  apply (cases x; cases y; auto) using exp_distribute_sub by simp
+  using exp_distribute_sub by simp
 
 (* TODO need to prove exp_negative_shift *)
 optimization NegativeShift: "-(x >> (const (new_int b y))) \<longmapsto> x >>> (const (new_int b y))

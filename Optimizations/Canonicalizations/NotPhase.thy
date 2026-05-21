@@ -59,7 +59,7 @@ optimization NotSubToNeg: "exp[~(x - (const (new_int b 1)))] \<longmapsto> exp[-
       by (metis p(2,3) valid_int wf_stamp_def xa)
     have rhsNewInt: "val[-xa] = new_int xb (-xvv)"
       unfolding xvv by simp
-    have lhsEval: "[m,p] \<turnstile> exp[\<not>(x - (const (new_int b 1)))] \<mapsto> val[\<not>(xa - (new_int b 1))]"
+    have "[m,p] \<turnstile> exp[\<not>(x - (const (new_int b 1)))] \<mapsto> val[\<not>(xa - (new_int b 1))]"
       by (metis (no_types, opaque_lifting) BinaryExpr ConstantExpr UnaryExpr bin_eval.simps(2) xa
           evalDet new_int_one_intval p(1,4,5,6,7) unary_eval.simps(3))
     then show ?thesis
@@ -68,8 +68,6 @@ optimization NotSubToNeg: "exp[~(x - (const (new_int b 1)))] \<longmapsto> exp[-
   qed
   subgoal premises p for m p xa
   proof -
-    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
-      using p(5) by auto
     have "b \<noteq> 0"
       using wf_integerstamp_implies_nonzero_bits p(2,3,5) by blast
     then show ?thesis

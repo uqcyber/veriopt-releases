@@ -916,11 +916,13 @@ optimization SubtractionEqualityFlipped: "exp[(y - x) eq (z - x)] \<longmapsto> 
 
 optimization EqualAddZero_Flipped: "exp[(x + y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))]
                                     when (wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi)"
-  apply (cases x; cases y; auto) using exp_add_zero_equality exp_eq_commutative order.trans by blast
+  apply (meson less_trans_Suc size_binary_lhs size_binary_rhs_succ)
+  using exp_add_zero_equality exp_eq_commutative order.trans by blast
 
 optimization EqualXorZero_Flipped: "exp[(x \<oplus> y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))]
                                     when (wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi)"
-  apply (cases x; cases y; auto) using exp_eq_commutative exp_xor_zero_equality order.trans by blast
+  by (meson exp_eq_commutative exp_xor_zero_equality order.trans less_trans_Suc size_binary_lhs
+      size_binary_rhs_succ)+
 
 optimization EqualAddZero_FlippedSwapped: "exp[(x + y) eq y] \<longmapsto> exp[x eq (const (IntVal b 0))]
                                            when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
@@ -950,8 +952,8 @@ optimization EqualXorZero_Swapped: "exp[y eq (x \<oplus> y)] \<longmapsto> exp[x
 
 optimization EqualSubZeroFlipped: "exp[(x - y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))]
                                    when (wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi)"
-  apply (cases x; cases y; auto)
-  by (meson dual_order.trans exp_eq_commutative exp_sub_zero_equality)
+  by (meson dual_order.trans exp_eq_commutative exp_sub_zero_equality less_trans_Suc size_binary_lhs
+      size_binary_rhs_succ)+
 
 optimization EqualSubZero: "exp[x eq (x - y)] \<longmapsto> exp[y eq (const (IntVal b 0))]
                             when (wf_stamp y \<and> stamp_expr y = IntegerStamp b lo hi)"
@@ -968,33 +970,36 @@ optimization EqualNotSelfCommute: "exp[x eq (~x)] \<longmapsto> false
 
 optimization EqualSubtraction: "exp[(x - y) eq const (IntVal b 0)] \<longmapsto> exp[x eq y]
                                 when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  apply (cases x; cases y; simp) using exp_equal_substraction by auto
+  apply (simp add: less_Suc_eq size_bin_eq_div) using exp_equal_substraction by auto
 
 optimization EqualXor: "exp[(x \<oplus> y) eq const (IntVal b 0)] \<longmapsto> exp[x eq y]
                         when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  apply (cases x; cases y; simp) using exp_equal_xor by auto
+  apply (simp add: less_Suc_eq size_bin_eq_div) using exp_equal_xor by auto
 
 optimization AndOrEquals1: "exp[(x & y) eq (x | y)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (cases x; cases y; simp) using exp_and_or_eq_64 by blast
+  apply (metis IRBinaryOp.distinct(113,99) less_SucI less_add_Suc1 size_bin_eq_div)
+  using exp_and_or_eq_64 by blast
 
 optimization AndOrEquals2: "exp[(x & y) eq (y | x)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (cases x; cases y; auto) using AndOrEquals1 apply simp
-  by (meson exp_or_commutative le_expr_def mono_binary)
+  apply (metis IRBinaryOp.distinct(113,99) less_SucI less_add_Suc1 size_bin_eq_div)
+  using AndOrEquals1 apply simp
+  by (meson exp_and_commutative exp_eq_commutative le_expr_def mono_binary order_eq_refl)
 
 optimization AndOrEquals3: "exp[(x | y) eq (x & y)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (cases x; cases y; auto) by (meson exp_eq_commutative order.trans exp_and_or_eq_64)
+  apply (metis IRBinaryOp.distinct(101,113) less_SucI less_add_Suc1 size_bin_eq_div)
+  by (meson dual_order.trans exp_and_or_eq_64 exp_eq_commutative)
 
 optimization AndOrEquals4: "exp[(x | y) eq (y & x)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (cases x; cases y; auto) using AndOrEquals3 apply simp
-  by (meson exp_and_commutative le_expr_def mono_binary)
+  apply (metis IRBinaryOp.distinct(101,113) less_SucI less_add_Suc1 size_bin_eq_div)
+  using AndOrEquals3 apply simp by (meson exp_and_commutative le_expr_def mono_binary)
 
 optimization XorNotFallThrough1: "exp[(x \<oplus> y) eq (\<not>x)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]
                                   when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
@@ -1061,7 +1066,7 @@ optimization NegateEqZeroCommute: "exp[(const (new_int b 0)) eq (-x)] \<longmaps
 optimization NegateEq: "exp[(-x) eq (-y)] \<longmapsto> exp[x eq y]
                         when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
-  apply (cases x; cases y; auto) using exp_negate_eq by blast
+  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_negate_eq by blast
 
 optimization NotZeroNegOne: "exp[(\<not>x) eq (const new_int xb 0)] \<longmapsto>
                              exp[x eq (const new_int xb (not 0))]
@@ -1090,7 +1095,7 @@ optimization NotNegOneZeroCommute: "exp[(const new_int xb (not 0)) eq (\<not>x)]
 optimization NotEq: "exp[(~x) eq (~y)] \<longmapsto> exp[x eq y]
                      when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                           (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
-  apply (cases x; cases y; auto) using exp_not_eq by auto
+  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_not_eq by auto
 
 end (* End of IntegerEqualsPhase *)
 

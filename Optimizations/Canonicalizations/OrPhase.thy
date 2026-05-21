@@ -160,16 +160,15 @@ optimization OrEqual: "x | x \<longmapsto> x"
   by (meson exp_or_equal)
 
 optimization OrShiftConstantRight: "((const x) | y) \<longmapsto> y | (const x) when \<not>(is_ConstantExpr y)"
-  apply (cases x; cases y; auto) by (auto simp: BinaryExpr unfold_const val_or_commutative)
+  using exp_or_commutative by blast
 
 optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
   by (meson exp_elim_redundant_false)
 
 optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~(x & y)"
-  apply (cases x; cases y; auto)
-  using BinaryExpr UnaryExpr bin_eval.simps(4) intval_not.simps(2) unary_eval.simps(3)
-        val_or_not_operands
-  by fastforce
+  apply (simp add: less_SucI size_bin_lt_sum_div) apply auto
+  by (metis BinaryExpr bin_eval.simps(6) intval_not.simps(2) unary_eval.simps(3) unfold_unary
+      val_or_not_operands)
 
 optimization OrLeftFallthrough:
   "x | y \<longmapsto> x when ((and (not (IRExpr_down x)) (IRExpr_up y)) = 0)"
@@ -181,7 +180,7 @@ optimization OrRightFallthrough:
 
 optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (new_int 32 (not 0)))
                          when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  apply (auto simp: Suc_lessI)
+  apply auto
   subgoal premises p for m p xa xaa
   proof -
     obtain nv where nv: "[m,p] \<turnstile> n \<mapsto> nv"
@@ -196,13 +195,11 @@ optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (new_int 32 (not 0)))
       by auto
     have wf: "wf_value (IntVal 32 (mask 32))"
       unfolding wf_value_def stamp apply auto by eval+
-    then have unfoldOr: "val[nv | ~nv] = (new_int 32 (or (not nvv) nvv))"
+    then have "val[nv | ~nv] = (new_int 32 (or (not nvv) nvv))"
       using intval_or.simps val_or_inverse nvv width by auto
-    then have "val[nv | ~nv] = new_int 32 (not 0)"
-      by simp
     then show ?thesis
-      by (metis bit.compl_zero evalDet local.wf new_int.elims nv p(3,5) take_bit_minus_one_eq_mask
-          unfold_const)
+      by (metis bit.compl_zero evalDet local.wf neg_one.elims nv p(3,5) bit.disj_cancel_left
+          neg_one_value new_int_mask unfold_const)
   qed
   done
 

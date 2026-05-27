@@ -20,7 +20,7 @@ lemma "x \<noteq> 0 \<and> 64 \<le> a \<Longrightarrow> x << a = 0" for x::int64
 lemma bin_LeftShiftBecomesZero: "(64 \<le> y + z) \<Longrightarrow> (x << y) << z = 0" for x::int64
   unfolding shiftl_def by auto
 
-lemma bin_combine_left_shift: "(x << y) << z = x << (y+z)" for x::int64
+lemma bin_combine_left_shift: "(x << y) << z = x << (y + z)" for x::int64
   unfolding shiftl_def apply auto by (metis add.commute)
 
 (* Value level proofs *)

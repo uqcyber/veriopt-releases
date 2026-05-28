@@ -16,7 +16,7 @@ lemma strict_neg_implies_neg:
   shows "is_stamp_negative s"
   using assms is_stamp_strictly_negative.elims(2) by fastforce
 
-lemma
+lemma take_bit_eq_signed:
   assumes "take_bit b v = v"
   shows "signed_take_bit b v = v"
   by (metis(full_types) eq_imp_le signed_take_bit_take_bit assms)
@@ -37,9 +37,9 @@ lemma unrestricted_new_int_always_valid [simp]:
 lemma unary_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVal"
   by (cases op; auto)
 
-lemma unary_obj: 
-  "val = ObjRef x \<Longrightarrow> (if (op = UnaryIsNull) then 
-                           unary_eval op val \<noteq> UndefVal else 
+lemma unary_obj:
+  "val = ObjRef x \<Longrightarrow> (if (op = UnaryIsNull) then
+                           unary_eval op val \<noteq> UndefVal else
                            unary_eval op val = UndefVal)"
   by (cases op; auto)
 
@@ -56,7 +56,7 @@ lemma unrestricted_stamp_valid_value [simp]:
   shows "valid_value result (unrestricted_stamp (IntegerStamp b lo hi))"
 proof -
   have "valid_stamp (unrestricted_stamp (IntegerStamp b lo hi))"
-    using assms unrestricted_stamp_valid by blast 
+    using assms unrestricted_stamp_valid by blast
   then show ?thesis
     unfolding unrestricted_stamp.simps using assms int_signed_value_bounds valid_value.simps
     by presburger
@@ -79,8 +79,6 @@ lemma larger_stamp32_always_valid [simp]:
   shows "valid_value result (unrestricted_stamp (IntegerStamp outBits lo hi))"
   using assms by (smt (z3)  bit_bounds.simps diff_le_mono linorder_not_less lower_bounds_equiv not_numeral_le_zero numerals(1) power_increasing_iff prod.sel(1) prod.sel(2) unrestricted_stamp.simps(2) valid_value.simps(1))
 *)
-
-
 
 subsubsection \<open>Support Lemmas for Integer Stamps and Associated IntVal values\<close>
 (* TODO: these do not use eval so could go up into a StampThms.thy? *)
@@ -544,8 +542,8 @@ proof -
     by (smt (verit, ccfv_threshold) Stamp.distinct(13,25) compatible.elims(2) meet.simps(1,2))
   then have "valid_stamp (meet (stamp_expr expr1) (stamp_expr expr2))"
     using assms apply auto
-    by (metis compatible_refl compatible.elims(2) stamp_meet_is_valid_stamp valid_stamp.simps(2)
-        assms(7))
+    by (smt (verit, del_insts) compatible.elims(2) compatible_trans stamp_meet_is_valid_stamp
+        valid_value.simps(13))
   then show ?thesis
     using assms apply auto
     by (smt (verit, ccfv_SIG) Stamp.distinct(1) assms(6,7) compatible.elims(2) compatible.simps(1)
@@ -762,7 +760,7 @@ qed
 lemma pos_stamp_eval_is_pos_intval:
   assumes "is_stamp_positive (stamp_expr x)"
   assumes "wf_stamp x"
-  assumes "[m,p] \<turnstile> x \<mapsto> xv"
+  assumes "[m, p] \<turnstile> x \<mapsto> xv"
   shows "positive_intval xv"
 proof -
   obtain xb xvv where xv: "xv = IntVal xb xvv"
@@ -876,5 +874,40 @@ proof -
   then show ?thesis
     by force
 qed
+
+subsection \<open>Stamp mask lemmas\<close>
+
+context stamp_mask
+begin
+
+lemma stamp_mask_up_1_implies_only_lsb_set:
+  assumes "\<up>x = 1"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal xb xvv"
+  shows "\<forall> i . i \<noteq> 0 \<longrightarrow> \<not>bit xvv i"
+  by (metis assms bit_1_iff not_may_implies_false)
+
+lemma stamp_mask_up_1_implies_0_1:
+  assumes "\<up>x = 1"
+  assumes "stamp_expr x = IntegerStamp b lo hi"
+  assumes "wf_stamp x"
+  assumes "[m, p] \<turnstile> x \<mapsto> xv"
+  shows "\<exists> xb xvv . xv = IntVal xb xvv \<and> (xvv \<in> {0, 1})"
+proof -
+  obtain m p where eval: "[m, p] \<turnstile> x \<mapsto> xv"
+    using assms(4) by auto
+  obtain xb xvv where xvv: "xv = IntVal xb xvv"
+    by (metis Value.collapse(1) assms(2,3) dual_order.refl eval stamp_width_eval_is_eq_intval
+        width_in_bounds.simps(1))
+  have "\<forall> i . i \<noteq> 0 \<longrightarrow> \<not>bit xvv i"
+    using assms(1) eval stamp_mask_up_1_implies_only_lsb_set xvv by auto
+  then have xvvVal: "xvv = 0 \<or> xvv = 1"
+    using upper_bits_unset_implies_0_1 by auto
+  have "\<exists> xb . xv = IntVal xb xvv"
+    by (simp add: xvv)
+  then show ?thesis
+    using xvvVal by blast
+qed
+
+end
 
 end

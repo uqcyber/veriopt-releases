@@ -882,7 +882,7 @@ next
         and "new_int b val = bin_eval op (IntVal b x) (IntVal b y)"
         and "new_int b val \<noteq> UndefVal"
     using bin_eval_unused_bits_zero by force
-  then show ?L 
+  then show ?L
     using R by blast
 qed
 

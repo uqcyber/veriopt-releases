@@ -37,6 +37,11 @@ lemma nat_bot_set: "(0::nat) \<in> xs \<longrightarrow> (\<forall>x \<in> xs . 0
 lemma nat_add_zero: "\<forall>w. word_of_nat (unat (w::'a :: len word) + unat (0::'a :: len word)) = w"
   by simp
 
+lemma size_len_eq:
+  fixes v :: "'a::len word"
+  shows "LENGTH('a) = Nat.size v"
+  by (simp add: size_word.rep_eq)
+
 subsubsection \<open>Bit lemmas\<close>
 
 lemma union_bit_sets:
@@ -60,7 +65,7 @@ lemma higherBitsFalse:
   shows "i > size v \<Longrightarrow> \<not> (bit v i)"
   by (simp add: bit_word.rep_eq size_word.rep_eq)
 
-lemma bit_zero_set_in_top: "bit (-1::'a::len word) 0"
+lemma bit_lsb_set_in_all_ones: "bit (-1::'a::len word) 0"
   by auto
 
 lemma bit_set_not: "bit v n \<Longrightarrow> \<not>bit (not v) n"
@@ -81,8 +86,19 @@ lemma zero_bits_card_0: "\<forall>i . \<not>bit v i \<Longrightarrow> card {i . 
 lemma empty_zero_bits: "{i . bit v i} = {} \<Longrightarrow> \<forall>i . \<not>bit v i"
   by auto
 
+lemma zero_empty_bits: "v = 0 \<Longrightarrow> {i . bit v i} = {}"
+  by simp
+
+lemma no_bits_implies_zero:
+  fixes v :: "'a::len word"
+  shows "\<forall> i . \<not>bit v i \<Longrightarrow> v = 0"
+  by (simp add: bit_eqI)
+
 lemma bits_1_set: "{n . bit 1 n} = {0}"
   by (simp add: bit_1_iff)
+
+lemma bits_set_in_range: "bit (v::'a::len word) n \<Longrightarrow> n < LENGTH('a)"
+  by (simp add: bit_imp_le_length)
 
 lemma bits_bound_eq: "{n . bit (v::'a::len word) n} = {n . n < Nat.size v \<and> bit v n}"
   using max_bit by auto
@@ -92,6 +108,39 @@ lemma bits_card_bound_eq: "card {n . bit (v::'a::len word) n} = card {n . n < Na
 
 lemma all_ones_card: "card {n . bit (-1::'a::len word) n} = LENGTH('a)"
   by fastforce
+
+lemma forall_eq_bits:
+  fixes v :: "'a::len word"
+  shows "(\<forall> n . bit v n  = bit v' n) \<longleftrightarrow> {n . bit v n} = {n . bit v' n}"
+  by auto
+
+lemma bits_same_implies_val_same:
+  fixes v :: "'a::len word"
+  shows "(\<forall> n . bit v n  = bit v' n) \<Longrightarrow> v = v'"
+  by (simp add: bit_eqI)
+
+lemma bits_same_set_implies_val_same:
+  fixes v :: "'a::len word"
+  shows "{n . bit v n} = {n . bit v' n} \<Longrightarrow> v = v'"
+  by (simp add: bits_same_implies_val_same forall_eq_bits)
+
+lemma upper_bits_unset_implies_0_1:
+  fixes v :: "'a::len word"
+  assumes "\<forall> i . i \<noteq> 0 \<longrightarrow> \<not>bit v i"
+  shows "v = 0 \<or> v = 1"
+proof (cases "\<not>bit v 0")
+  case True
+  have "\<forall> i . \<not>bit v i"
+    by (metis True assms)
+  then show ?thesis
+    by (simp add: no_bits_implies_zero)
+next
+  case False
+  have "{n . bit v n} = {0}"
+    using False assms by blast
+  then show ?thesis
+    by (simp add: bits_1_set bits_same_set_implies_val_same)
+qed
 
 text \<open>Shifting lemmas\<close>
 
@@ -374,10 +423,7 @@ lemma numberOfLeadingZeros_top: "Max {numberOfLeadingZeros (v::64 word)} \<le> 6
 lemma numberOfLeadingZeros_range:
   "0 \<le> numberOfLeadingZeros a \<and> numberOfLeadingZeros a \<le> Nat.size a"
   unfolding numberOfLeadingZeros_def apply auto
-  apply (induction "highestOneBit a") apply (simp add: numberOfLeadingZeros_def)
-  by (metis (mono_tags, opaque_lifting) leD negative_zless int_eq_iff diff_right_commute diff_self
-      diff_zero nat_le_iff le_iff_diff_le_0 minus_diff_eq nat_0_le nat_le_linear of_nat_0_le_iff
-      MaxOrNeg_def highestOneBit_def)
+  apply (induction "highestOneBit a") unfolding highestOneBit_def MaxOrNeg_def by (linarith, auto)
 
 lemma leadingZerosAddHighestOne: "numberOfLeadingZeros v + highestOneBit v = Nat.size v - 1"
   unfolding numberOfLeadingZeros_def highestOneBit_def
@@ -437,6 +483,17 @@ lemma bitCount_card: "card {n . bit v n} = m \<Longrightarrow> bitCount v = m"
 
 lemma bitCount_card_set_equiv: "card {n . bit v n} = bitCount v"
   by (simp add: bitCount_card)
+
+subsubsection \<open> bitSum - a summation-based implementation of bitCount \<close>
+
+definition bitSum :: "'a::len word \<Rightarrow> nat" where
+  "bitSum v = (\<Sum>i=0::nat..LENGTH('a)-1 . (if bit v i then 1 else 0))"
+
+lemma bitSum_all_ones_len: "bitSum (-1::'a::len word) = LENGTH('a)"
+  unfolding bitSum_def by auto
+
+lemma bitSum_zero: "bitSum (0::'a::len word) = 0"
+  unfolding bitSum_def by auto
 
 subsection \<open>Long.zeroCount\<close>
 

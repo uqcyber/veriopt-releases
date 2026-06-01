@@ -343,9 +343,10 @@ fun highestOneBitRec :: "nat \<Rightarrow> ('a::len) word \<Rightarrow> int" whe
      else highestOneBitRec (n - 1) v)"
 
 lemma highestOneBitRecTrue: "highestOneBitRec n v = j \<Longrightarrow> j \<ge> 0 \<Longrightarrow> bit v j"
-  apply (induction n)
-  by (metis diff_0 of_nat_0_eq_iff of_nat_0_le_iff zle_diff1_eq diff_Suc_1 highestOneBitRec.elims
-      nat.discI nat_int leD)+
+  using highestOneBitRec.simps apply auto apply (induction n)
+  apply (metis less_minus_one_simps(1) of_nat_eq_iff of_nat_less_0_iff)
+  by (metis (no_types, lifting) diff_Suc_1 highestOneBitRec.elims less_Suc_eq_0_disj of_nat_eq_iff
+      less_numeral_extra(3))
 
 lemma highestOneBitRecN:
   assumes "bit v n"

@@ -357,14 +357,18 @@ lemma bin_eval_bits_binary_shift_ops:
   assumes "result \<noteq> UndefVal"
   assumes "op \<in> binary_shift_ops"
   shows "\<exists>v. result = new_int b1 v"
-  using assms by (cases op; simp; smt (verit, best) new_int.simps)+
+  using assms apply (cases op; simp) prefer 2
+  apply (smt (z3) new_int.simps take_bit_eq_mask word_bw_comms(2)) by blast+
 
 lemma bin_eval_bits_fixed_32_ops:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
   assumes "result \<noteq> UndefVal"
   assumes "op \<in> binary_fixed_32_ops"
   shows "\<exists>v. result = new_int 32 v"
-  apply (cases op; simp) using assms by (metis new_int.simps bin_eval_new_int)+
+  using assms apply (cases op; simp)
+  apply (smt (verit, best) assms(1) bin_eval_unused_bits_zero bool_to_val.simps(1,2)) prefer 5
+  apply (metis IntVal1 Value.inject(1) new_int.simps take_bit_minus_one_eq_mask take_bit_of_0)
+  by (metis (full_types) assms(1) bin_eval_unused_bits_zero bool_to_val.simps(1,2))+
 
 lemma bin_eval_bits_normal_ops:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
@@ -372,7 +376,7 @@ lemma bin_eval_bits_normal_ops:
   assumes "op \<notin> binary_shift_ops"
   assumes "op \<notin> binary_fixed_32_ops"
   shows "\<exists>v. result = new_int b1 v"
-  by (metis assms bin_eval_new_int intval_bits.simps)
+  by (metis assms(1,2,4) bin_eval_new_int intval_bits.simps)
 
 lemma bin_eval_input_bits_equal:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
@@ -445,8 +449,30 @@ lemma stamp_meet_integer_is_valid_stamp:
   assumes "is_IntegerStamp stamp1"
   assumes "is_IntegerStamp stamp2"
   shows "valid_stamp (meet stamp1 stamp2)"
-  using assms apply (cases stamp1; cases stamp2; auto)
-  using meet.simps(2) valid_stamp.simps(1,8) is_IntegerStamp_def assms by linarith+
+proof -
+  obtain b1 l1 h1 where stamp1: "stamp1 = IntegerStamp b1 l1 h1"
+    using assms(3) is_IntegerStamp_def by fastforce
+  obtain b2 l2 h2 where stamp2: "stamp2 = IntegerStamp b2 l2 h2"
+    using assms(4) is_IntegerStamp_def by auto
+  have stamp1_bounds: "fst (bit_bounds b1) \<le> l1 \<and> l1 \<le> snd (bit_bounds b1) \<and>
+                       fst (bit_bounds b1) \<le> h1 \<and> h1 \<le> snd (bit_bounds b1)"
+    using assms(1) stamp1 valid_stamp.simps(1) by blast
+  have stamp2_bounds: "fst (bit_bounds b2) \<le> l2 \<and> l2 \<le> snd (bit_bounds b2) \<and>
+                       fst (bit_bounds b2) \<le> h2 \<and> h2 \<le> snd (bit_bounds b2)"
+    using assms(2) stamp2 valid_stamp.simps(1) by blast
+  then show ?thesis
+  proof (cases "b1 = b2")
+    case True
+    have "meet stamp1 stamp2 = IntegerStamp b1 (min l1 l2) (max h1 h2)"
+      by (simp add: True stamp1 stamp2)
+    then show ?thesis
+      by (smt (verit) True assms(1) stamp1 stamp2_bounds valid_stamp.simps(1))
+  next
+    case False
+    then show ?thesis
+      using meet.simps(2) stamp1 stamp2 by simp
+  qed
+qed
 
 lemma stamp_meet_is_valid_stamp:
   assumes 1: "valid_stamp stamp1"
@@ -660,7 +686,7 @@ proof -
   then have "stamp_expr (BinaryExpr BinSub x y) \<noteq> IllegalStamp"
     by force
   then show ?thesis
-    unfolding stamp_expr.simps
+    unfolding stamp_expr.simps using stamp_binary.simps(1)
     by (smt (z3) stamp_binary.simps stamp_binary.elims unrestricted_stamp.simps(2))
 qed
 

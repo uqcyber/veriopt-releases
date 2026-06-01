@@ -602,7 +602,7 @@ subsection \<open> Word definitions and properties \<close>
 definition bin_log2 :: "'a::len word \<Rightarrow> nat" where
   "bin_log2 v = (LENGTH('a) - 1 - numberOfLeadingZeros v)"
 
-text \<open> bitCount = 2 \<Longrightarrow> {i . bit v i} = {lowestSetBit, highestSetBit} \<close>
+text \<open> bitCount = 2 ==> {i . bit v i} = {lowestSetBit, highestSetBit} \<close>
 
 lemma bin_log2_highestOneBit_eq_64:
   fixes v :: "64word"

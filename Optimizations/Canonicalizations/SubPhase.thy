@@ -227,20 +227,6 @@ lemma exp_sub_after_sub_left:
   qed
   done
 
-lemma evalSubStamp:
-  assumes "[m, p] \<turnstile> exp[x - y] \<mapsto> v"
-  assumes "wf_stamp exp[x - y]"
-  shows "\<exists>b lo hi. stamp_expr exp[x - y] = IntegerStamp b lo hi"
-proof -
-  have "valid_value v (stamp_expr exp[x - y])"
-    using assms unfolding wf_stamp_def by auto
-  then have "stamp_expr exp[x - y] \<noteq> IllegalStamp"
-    by force
-  then show ?thesis
-    unfolding stamp_expr.simps
-    by (smt (z3) stamp_binary.simps stamp_binary.elims unrestricted_stamp.simps(2))
-qed
-
 text \<open>Optimisations\<close>
 
 optimization SubAfterAddRight: "(x + y) - y \<longmapsto> x"

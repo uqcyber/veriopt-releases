@@ -188,15 +188,11 @@ optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!
     have eqEvalFalse: "val[yv eq xv] = val[false]"
       unfolding xvv yvv apply auto by (metis (mono_tags) bool_to_val.simps(2) yxDiff yvv xvv)
     have "[m,p] \<turnstile> exp[(c ? x : y) eq y] \<mapsto> notCond"
-      apply (cases notCond) prefer 2
-      apply (metis IntVal0 eqEvalFalse falseEval val_eq_commutative intval_logic_negation.simps(1)
-             intval_self_is_true logic_negate_def trueEvalCond yvv cNotRange opposites zero_neq_one
-             cRange)
-      using notCond cNotRange by auto
+      by (metis cNotRange cRange eqEvalFalse falseEval intval_self_is_true negates opposites yvv
+          trueEvalCond val_eq_commutative zero_less_numeral)
     then show ?thesis
-      using ConditionalExprE
       by (metis cNotRange falseEval notCond trueCond falseCond intval_self_is_true p(9,11) evalDet
-          yvv)
+          yvv ConditionalExprE)
   qed
   done
 
@@ -309,9 +305,8 @@ proof -
                                       (const val[false]) : (const val[true]))] \<mapsto> lhs"
     using eval(2) by auto
   then have lhsV: "lhs = val[((xv & true) eq false) ? false : true]"
-    using ConditionalExprE ConstantExprE bin_eval.simps(4,11) evalDet xv unfold_binary
-          intval_conditional.simps
-    by fastforce
+    by (smt (verit, del_insts) ConditionalExprE ConstantExprE evalDet xv intval_conditional.simps
+        unfold_binary bin_eval.simps(6,13))
   obtain rhs where rhs: "[m, p] \<turnstile> exp[x & (const val[true])] \<mapsto> rhs"
     using eval(2) by blast
   then have rhsV: "rhs = val[xv & true]"

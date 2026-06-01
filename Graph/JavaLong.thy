@@ -29,6 +29,9 @@ lemma MaxOrNeg_max: "s \<noteq> {} \<Longrightarrow> MaxOrNeg s = Max s"
 
 subsection \<open>Helpful lemmas\<close>
 
+fun bin_is_even :: "'a::len word \<Rightarrow> bool" where
+  "bin_is_even v = (\<not>bit v 0)"
+
 subsubsection \<open>Nat lemmas\<close>
 
 lemma nat_bot_set: "(0::nat) \<in> xs \<longrightarrow> (\<forall>x \<in> xs . 0 \<le> x)"
@@ -89,9 +92,7 @@ lemma empty_zero_bits: "{i . bit v i} = {} \<Longrightarrow> \<forall>i . \<not>
 lemma zero_empty_bits: "v = 0 \<Longrightarrow> {i . bit v i} = {}"
   by simp
 
-lemma no_bits_implies_zero:
-  fixes v :: "'a::len word"
-  shows "\<forall> i . \<not>bit v i \<Longrightarrow> v = 0"
+lemma no_bits_implies_zero: "\<forall> i . \<not>bit v i \<Longrightarrow> v = 0"
   by (simp add: bit_eqI)
 
 lemma bits_1_set: "{n . bit 1 n} = {0}"
@@ -109,40 +110,24 @@ lemma bits_card_bound_eq: "card {n . bit (v::'a::len word) n} = card {n . n < Na
 lemma all_ones_card: "card {n . bit (-1::'a::len word) n} = LENGTH('a)"
   by fastforce
 
-lemma forall_eq_bits:
-  fixes v :: "'a::len word"
-  shows "(\<forall> n . bit v n  = bit v' n) \<longleftrightarrow> {n . bit v n} = {n . bit v' n}"
-  by auto
+lemma forall_eq_bits: "(\<forall> n . bit v n  = bit v' n) \<longleftrightarrow> {n . bit v n} = {n . bit v' n}"
+  by blast
 
-lemma bits_same_implies_val_same:
-  fixes v :: "'a::len word"
-  shows "(\<forall> n . bit v n  = bit v' n) \<Longrightarrow> v = v'"
+lemma bits_same_implies_val_same: "(\<forall> n . bit v n  = bit v' n) \<Longrightarrow> v = v'"
   by (simp add: bit_eqI)
 
-lemma bits_same_set_implies_val_same:
-  fixes v :: "'a::len word"
-  shows "{n . bit v n} = {n . bit v' n} \<Longrightarrow> v = v'"
+lemma bits_same_set_implies_val_same: "{n . bit v n} = {n . bit v' n} \<Longrightarrow> v = v'"
   by (simp add: bits_same_implies_val_same forall_eq_bits)
 
 lemma upper_bits_unset_implies_0_1:
-  fixes v :: "'a::len word"
   assumes "\<forall> i . i \<noteq> 0 \<longrightarrow> \<not>bit v i"
   shows "v = 0 \<or> v = 1"
-proof (cases "\<not>bit v 0")
-  case True
-  have "\<forall> i . \<not>bit v i"
-    by (metis True assms)
-  then show ?thesis
-    by (simp add: no_bits_implies_zero)
-next
-  case False
-  have "{n . bit v n} = {0}"
-    using False assms by blast
-  then show ?thesis
-    by (simp add: bits_1_set bits_same_set_implies_val_same)
-qed
+  by (metis assms bit_1_iff bits_same_implies_val_same no_bits_implies_zero)
 
 text \<open>Shifting lemmas\<close>
+
+lemma shift_succ: "\<forall> v i . (v << (Suc i)) = ((v << i) << 1)"
+  unfolding shiftl_def by fastforce
 
 lemma pow2_1_shift: "2 ^ j = 1 << j"
   by (simp add: shiftl_def)
@@ -187,6 +172,50 @@ qed
 
 lemma shift_zero_card: "card {n . bit 0 n} = card {n . bit (0 << i) n}"
   unfolding shiftl_def by simp
+
+lemma non_shiftbit_unset: "\<forall> i . i \<noteq> j \<longrightarrow> \<not>bit (1 << j) i"
+  by (metis bit_and_iff bit_iff_and_push_bit_not_eq_0 bit_unset_bit_iff shiftl_def)
+
+lemma shift_set_implies_shiftbit: "bit ((1::'a::len word) << j) i \<Longrightarrow> i = j"
+  using non_shiftbit_unset by auto
+
+lemma bitset_shift_is_shift:
+  assumes "j < LENGTH('a)"
+  shows "{n . bit ((1 << j)::('a::len) word) n} = {j}"
+  using non_shiftbit_unset apply auto by (metis assms bit_1_0 bit_shift_upper plus_nat.add_0)
+
+lemma card_shift_one:
+  assumes "j < LENGTH('a)"
+  shows "card {n . bit ((1 << j)::('a::len) word) n} = 1"
+  using bitset_shift_is_shift [of j] apply auto using assms by fastforce
+
+lemma shift_never_all_ones:
+  fixes v :: "'a::len word"
+  shows "\<forall> j . j > 0 \<longrightarrow> v << j \<noteq> -1"
+  unfolding shiftl_def by (metis shift_zeros_below bit_lsb_set_in_all_ones shiftl_def)
+
+text \<open>Power of 2 lemmas\<close>
+
+lemma bitset_pow2_is_pow:
+  assumes "j < LENGTH('a)"
+  shows "{n . bit ((2 ^ j)::('a::len) word) n} = {j}"
+  unfolding pow2_1_shift by (simp add: assms bitset_shift_is_shift)
+
+lemma card_pow2_one:
+  assumes "j < LENGTH('a)"
+  shows "card {n . bit ((2 ^ j)::('a::len) word) n} = 1"
+  by (simp add: assms pow2_1_shift card_shift_one)
+
+lemma bitset_pow2_shift_eq:
+  assumes "j < LENGTH('a)"
+  shows "{n . bit ((2 ^ j)::('a::len) word) n} = {n . bit ((1 << j)::('a::len) word) n}"
+  by (simp add: pow2_1_shift)
+
+lemma pow2_even:
+  assumes "k > 0"
+  shows "bin_is_even (2 ^ k)"
+  using assms apply (induction k) apply auto
+  by (metis bot_nat_0.not_eq_extremum not_bit_numeral_Bit0_0 shift_zeros_below zero_shift)
 
 subsubsection \<open>Set cardinality lemmas\<close>
 
@@ -253,7 +282,7 @@ lemma highestOneBitNeg: "highestOneBit v = -1 \<longleftrightarrow> v = 0"
 
 lemma highestOneBitN:
   assumes "bit v n"
-  assumes "\<forall>i::nat. (int i > n \<longrightarrow> \<not> (bit v i))"
+  assumes "\<forall> i . (int i > n \<longrightarrow> \<not>(bit v i))"
   shows "highestOneBit v = n"
   unfolding highestOneBit_def MaxOrNeg_def
   by (metis Max_ge Max_in all_not_in_conv assms finite_bit_word mem_Collect_eq of_nat_less_iff
@@ -289,6 +318,22 @@ lemma "highestOneBit (0::64 word) = -1"
 lemma highestOneBit_top: "Max {highestOneBit (v::64 word)} < 64"
   unfolding highestOneBit_def by (metis Max_singleton int_eq_iff_numeral max_set_bit size64)
 
+lemma highestOneBit_gtzero_range: "(v::64 word) > 0 \<Longrightarrow> 0 \<le> highestOneBit v \<and> highestOneBit v < 64"
+  subgoal premises p
+proof -
+  have bit_set: "\<exists> n . bit v n \<and> n \<ge> 0"
+    using no_bits_implies_zero
+    using p by auto
+  have geq0: "0 \<le> highestOneBit v"
+    using bit_set zerosAboveHighestOne by force
+  have lt64: "highestOneBit v < 64"
+    using highestOneBitMax
+    by (metis of_nat_numeral size64)
+  then show ?thesis
+    by (simp add: geq0)
+qed
+  done
+
 text \<open>A recursive implementation of highestOneBit that is suitable for code generation.\<close>
 
 fun highestOneBitRec :: "nat \<Rightarrow> ('a::len) word \<Rightarrow> int" where
@@ -297,8 +342,7 @@ fun highestOneBitRec :: "nat \<Rightarrow> ('a::len) word \<Rightarrow> int" whe
      else if n = 0 then -1
      else highestOneBitRec (n - 1) v)"
 
-lemma highestOneBitRecTrue:
-  "highestOneBitRec n v = j \<Longrightarrow> j \<ge> 0 \<Longrightarrow> bit v j"
+lemma highestOneBitRecTrue: "highestOneBitRec n v = j \<Longrightarrow> j \<ge> 0 \<Longrightarrow> bit v j"
   apply (induction n)
   by (metis diff_0 of_nat_0_eq_iff of_nat_0_le_iff zle_diff1_eq diff_Suc_1 highestOneBitRec.elims
       nat.discI nat_int leD)+
@@ -333,7 +377,6 @@ lemma highestOneBitMask:
   by (metis assms dual_order.refl lt2p_lem mask_eq_iff size_word.rep_eq)
 
 lemma maskSmaller:
-  fixes v :: "'a :: len word"
   assumes "\<not> bit v n"
   shows "and v (mask (Suc n)) = and v (mask n)"
   unfolding bit_eq_iff by (metis assms bit_and_iff bit_mask_iff less_Suc_eq)
@@ -434,7 +477,7 @@ subsection \<open>Long.numberOfTrailingZeros\<close>
 definition numberOfTrailingZeros :: "('a::len) word \<Rightarrow> nat" where
   "numberOfTrailingZeros v = lowestOneBit v"
 
-lemma "numberOfTrailingZeros (0::64 word) = 64"
+lemma numberOfTrailingZeros_0: "numberOfTrailingZeros (0::64 word) = 64"
   unfolding numberOfTrailingZeros_def by (simp add: lowestOneBit_bot)
 
 subsection \<open>Long.reverseBytes\<close>
@@ -456,20 +499,18 @@ fun bitCount_fun :: "('a::len) word \<Rightarrow> nat \<Rightarrow> nat" where
                        if (bit v n) then (1 + bitCount_fun (v) (n - 1))
                                     else (0 + bitCount_fun (v) (n - 1)))"
 
-lemma "bitCount 0 = 0"
+lemma bitCount_0: "bitCount 0 = 0"
   unfolding bitCount_def by (metis card.empty zero_no_bits)
 
 lemma bitCount_1: "bitCount 1 = 1"
   unfolding bitCount_def using bits_1_set card_1_singleton_iff by auto
 
-lemma bitCount_range:
-  fixes n :: "('a::len) word"
-  shows "0 \<le> bitCount n \<and> bitCount n \<le> Nat.size n"
+lemma bitCount_range: "0 \<le> bitCount n \<and> bitCount n \<le> Nat.size n"
   unfolding bitCount_def
   by (metis bot_nat_0.extremum max_bit mem_Collect_eq subsetI subset_eq_atLeast0_lessThan_card
       atLeastLessThan_iff)
 
-lemma card_bits_lt_len: "card {n . bit (v::'a::len word) n} \<le> LENGTH('a)"
+lemma card_bits_leq_len: "card {n . bit (v::'a::len word) n} \<le> LENGTH('a)"
   by (metis bitCount_def bitCount_range word_size)
 
 lemma bitCount_all_ones: "bitCount (-1::('a::len) word) = LENGTH('a)"
@@ -483,6 +524,39 @@ lemma bitCount_card: "card {n . bit v n} = m \<Longrightarrow> bitCount v = m"
 
 lemma bitCount_card_set_equiv: "card {n . bit v n} = bitCount v"
   by (simp add: bitCount_card)
+
+lemma bitCount_shift1:
+  assumes "j < LENGTH('a)"
+  shows " bitCount ((1 :: 'a :: len word) << j) = 1"
+  unfolding bitCount_def by (simp add: assms card_shift_one)
+
+lemma bitCount_pow2:
+  assumes "j < LENGTH('a)"
+  shows "bitCount ((2 :: 'a :: len word) ^ j) = 1"
+  unfolding bitCount_def using card_pow2_one assms by blast
+
+lemma bitCount_leq_len: "bitCount (v::'a::len word) \<le> LENGTH('a)"
+  unfolding bitCount_def using card_bits_leq_len by blast
+
+lemma bitCount_pos_implies_bit_set:
+  assumes "bitCount v > 0"
+  shows "\<exists> n . bit v n"
+proof -
+  have "bitCount v = card {n . bit v n}"
+    unfolding bitCount_def by simp
+  then show ?thesis
+    using assms nat_less_le by auto
+qed
+
+lemma bitCount_pos_implies_highestOneBit_set:
+  assumes "bitCount v > 0"
+  shows "bit v (nat (highestOneBit v))"
+proof -
+  have "\<exists> n . bit v n"
+    by (simp add: assms bitCount_pos_implies_bit_set)
+  then show ?thesis
+    using highestOneBitAtLeast highestOneBitElim by force
+qed
 
 subsubsection \<open> bitSum - a summation-based implementation of bitCount \<close>
 
@@ -511,8 +585,7 @@ proof -
   then have "... = Nat.size a"
     by auto
   then show ?thesis
-    unfolding bitCount_def zeroCount_def
-    by (metis (mono_tags, lifting) Collect_cong add_cards max_bit)
+    unfolding bitCount_def zeroCount_def by (simp add: add_cards bits_bound_eq)
 qed
 
 lemma intersect_bitCount_helper:
@@ -523,5 +596,28 @@ lemma intersect_bitCount: "Nat.size a - bitCount a = card {n . n < Nat.size a \<
   using card_of_range intersect_bitCount_helper by auto
 
 hide_fact intersect_bitCount_helper
+
+subsection \<open> Word definitions and properties \<close>
+
+definition bin_log2 :: "'a::len word \<Rightarrow> nat" where
+  "bin_log2 v = (LENGTH('a) - 1 - numberOfLeadingZeros v)"
+
+text \<open> bitCount = 2 \<Longrightarrow> {i . bit v i} = {lowestSetBit, highestSetBit} \<close>
+
+lemma bin_log2_highestOneBit_eq_64:
+  fixes v :: "64word"
+  assumes "v > 0"
+  shows "bin_log2 v = highestOneBit v"
+  using assms unfolding bin_log2_def numberOfLeadingZeros_def apply auto
+  subgoal premises p
+  proof -
+    have size_v: "int (size_class.size v) = 64"
+      by (simp add: size64)
+    have "int (63 - nat (63 - highestOneBit v)) = highestOneBit v"
+      using highestOneBit_gtzero_range [of v] assms by linarith
+    then show ?thesis
+      by (simp add: size_v)
+  qed
+  done
 
 end

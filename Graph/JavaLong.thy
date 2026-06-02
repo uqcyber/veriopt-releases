@@ -620,4 +620,199 @@ lemma bin_log2_highestOneBit_eq_64:
   qed
   done
 
+
+lemma sum_eq_card:
+  fixes N :: nat
+  shows "(\<Sum>i=0..N. of_bool (P i)) = card {i. 0 \<le> i \<and> i \<le> N \<and> P i}"
+proof -
+  have fin: "finite {0..N}" by simp
+  have set_eq: "{i. 0 \<le> i \<and> i \<le> N \<and> P i} = {0..N} \<inter> {i. P i}"
+    by auto
+  have "(\<Sum>i=0..N. of_bool (P i)) = (\<Sum>i=0..N. if P i then 1 else 0)"
+    by (simp add: of_bool_def)
+  also have "\<dots> = (\<Sum>i \<in> {0..N} \<inter> {i. P i}. (1::nat))
+                 + (\<Sum>i \<in> {0..N} \<inter> {i. \<not> P i}. 0)"
+    using sum.If_cases
+    by (smt (verit, best) fin group_cancel.rule0 mem_Collect_eq sum.cong sum.inter_restrict sum.neutral_const)
+  also have "\<dots> = (\<Sum>i \<in> {0..N} \<inter> {i. P i}. (1::nat))"
+    by simp
+  also have "\<dots> = card ({0..N} \<inter> {i. P i})"
+    by auto
+  also have "\<dots> = card {i. 0 \<le> i \<and> i \<le> N \<and> P i}"
+    using set_eq by simp
+  finally show ?thesis .
+qed
+
+locale bounded_ring_bit_operations = ring_bit_operations +
+  fixes N :: "'a \<Rightarrow> nat"
+  assumes bounded: "\<forall>i > N w. \<not>(bit w i)"
+begin
+
+lemma finite_bits: "finite {i. bit w i}"
+  by (metis bounded finite_Collect_le_nat finite_subset linorder_le_less_linear mem_Collect_eq subsetI)
+
+end
+
+section \<open>Population Count\<close>
+
+text \<open>The `pop' of a word, the count of set bits.\<close>
+
+locale bit_count = bounded_ring_bit_operations +
+  fixes bitCount :: "'a \<Rightarrow> nat"
+  assumes bc: "bitCount w = (\<Sum>i=0..N w. of_bool (bit w i))"
+begin
+
+lemma of_bool: "of_bool a = (if a then 1 else 0)"
+  by auto
+
+lemma count_zero: "bitCount zero = 0"
+  using bc by fastforce
+
+lemma count_one: "bitCount one = 1"
+  unfolding bc of_bool using bit_1_iff by simp
+
+lemma card_count: "bitCount w = card {i. bit w i}"
+proof -
+  have "{i. bit w i} = ({i. i \<le> N w \<and> bit w i} \<union> {i. i > N w \<and> bit w i})"
+    by fastforce
+  also have "{i. i > N w \<and> bit w i} = {}"
+    using bounded by blast
+  ultimately have set_eq: "{i. bit w i} = {i. 0 \<le> i \<and> i \<le> N w \<and> bit w i}"
+    by blast
+  then show ?thesis unfolding bc using sum_eq_card
+    by (metis (no_types, lifting) ext)
+qed
+
+lemma power_of_two_ex:
+  assumes "bitCount w = 1"
+  shows "\<exists>n. w = push_bit n one"
+proof -
+  obtain n where "bit w n"
+    using assms card_count
+    by force
+  then have "{i. bit w i} = {n}"
+    using assms card_count
+    by (metis card_1_singletonE mem_Collect_eq singletonD)
+  then have "\<forall> i. bit w i \<longleftrightarrow> i = n"
+    by blast
+  then have "w = push_bit n one"
+    using bit_exp_iff 
+    by (simp add: local.bit_eq_iff)
+  then show ?thesis by blast
+qed
+end
+
+locale bit_top_bot = bounded_ring_bit_operations +
+  fixes topBit :: "'a \<Rightarrow> nat" ("\<top>")
+    and botBit :: "'a \<Rightarrow> nat" ("\<bottom>")
+  assumes hsb: "topBit w = Max {i . bit w i}"
+      and lsb: "botBit w = Min {i . bit w i}"
+begin
+definition highestOneBit :: "'a \<Rightarrow> 'a" where
+  "highestOneBit w = push_bit (\<top> w) one"
+
+definition lowestOneBit :: "'a \<Rightarrow> 'a" where
+  "lowestOneBit w = push_bit (\<bottom> w) one"
+
+lemma top_one: "\<top> one = 0"
+  using hsb bit_1_iff by simp
+
+lemma bot_one: "\<bottom> one = 0"
+  using lsb bit_1_iff by simp
+
+lemma top_set: 
+  assumes "w \<noteq> zero"
+  shows "bit w (\<top> w)"
+  using assms finite_bits unfolding hsb
+  by (metis Collect_empty_eq_bot Max_in local.bit_0_eq local.bit_eq_iff mem_Collect_eq)
+
+lemma bot_set: "w \<noteq> zero \<Longrightarrow> bit w (\<bottom> w)"
+  using finite_bits unfolding lsb
+  using Min_in top_set by auto
+
+lemma above_top_unset:
+  "i > \<top> w \<Longrightarrow> \<not>(bit w i)"
+  by (metis empty_def eq_Max_iff finite_bits hsb linorder_not_less mem_Collect_eq)
+
+lemma below_bot_unset:
+  "i < \<bottom> w \<Longrightarrow> \<not>(bit w i)"
+  by (metis Min_gr_iff bex_empty finite_bits less_irrefl lsb mem_Collect_eq)
+
+subsection \<open>Subtraction\<close>
+lemma below_sub_allset:
+  "i < \<bottom> w \<Longrightarrow> bit (minus w one) i"
+  sorry
+
+lemma below_sub_unset:
+  "\<not>(bit (minus w one) (\<bottom> w))"
+proof -
+  have "minus w one = not (uminus w)"
+    by (simp add: local.decr_eq_not_minus)
+  also have "bit (uminus w) (\<bottom> w)"
+    using bit_minus_iff sorry
+  ultimately show ?thesis
+    using local.bit_minus_iff by blast
+qed
+
+end
+
+locale bit_inspection = bit_count + bit_top_bot + comm_monoid_add
+begin
+lemma one_bit:
+  assumes "bitCount w = 1"
+  shows "\<bottom> w = \<top> w"
+  by (metis assms bot_set count_zero local.bit_exp_iff local.push_bit_of_1 power_of_two_ex top_set
+      zero_neq_one_class.zero_neq_one)
+
+lemma two_bit:
+  assumes "bitCount w = 2"
+  shows "w = plus (push_bit (\<top> w) one) (push_bit (\<bottom> w) one)"
+proof -
+  (*have "w = (\<Sum>i=0..N w. push_bit i one)"*)
+  obtain k j where set: "{i. bit w i} = {k, j}"
+    using assms unfolding bc
+    by (metis assms card_2_iff card_count)
+  then have wsum: "w = plus (push_bit k one) (push_bit j one)"
+    sorry
+  from set have "{k, j} = {\<top> w, \<bottom> w}"
+    using hsb lsb by force
+  then show ?thesis using assms unfolding bc wsum unfolding hsb lsb
+    by (metis add_commute doubleton_eq_iff)
+qed
+
+
+lemma power_of_two:
+  assumes "bitCount w = 1"
+  shows "w = push_bit (\<top> w) one"
+  using assms bc
+  by (metis bot_set count_zero local.bit_exp_iff local.push_bit_of_1 one_bit power_of_two_ex
+      zero_neq_one_class.zero_neq_one)
+
+end
+
+definition bitCountSum :: "'a::len word \<Rightarrow> nat" where
+  "bitCountSum w = (\<Sum>i=0..LENGTH('a). of_bool (bit w i))"
+definition topBit :: "'a::len word \<Rightarrow> nat" where
+  "topBit w = Max {i . bit w i}"
+definition botBit :: "'a::len word \<Rightarrow> nat" where
+  "botBit w = Min {i . bit w i}"
+
+interpretation word_inspection: bit_inspection "(+)" "(-)" "0" "(*)" "1" "(div)" "(mod)" 
+  "bit" "and" "or" "xor" "mask" "set_bit" "unset_bit" "flip_bit"
+  "push_bit" "drop_bit" "take_bit" "uminus" "not" "(\<lambda>w::'a::len word. (LENGTH('a)))"
+  bitCountSum topBit botBit
+  apply standard
+  apply (simp add: bit_word.rep_eq)
+  using bitCountSum_def apply blast
+  unfolding topBit_def apply simp
+  unfolding botBit_def apply simp
+  done
+
+\<comment> \<open>POC: bit_inspection lemmas can be used for optimizations\<close>
+lemma
+  assumes "bitCount w = 1"
+  shows "w = 1 << topBit w"
+  using assms
+  by (metis word_inspection.card_count word_inspection.power_of_two bitCount_def shiftl_def)
+
 end

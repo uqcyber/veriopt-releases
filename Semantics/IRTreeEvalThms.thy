@@ -68,14 +68,14 @@ lemma bin_eval_int:
   assumes "bin_eval op x y \<noteq> UndefVal"
   shows "is_IntVal (bin_eval op x y)"
   using assms apply (cases op; cases x; cases y; auto simp add: is_IntVal_def)
-  prefer 10 prefer 7 prefer 8 prefer 16 prefer 18 prefer 20 prefer 21
+  prefer 10 prefer 7 prefer 8 prefer 16 prefer 18 prefer 20 prefer 21 prefer 13 prefer 29
   apply presburger+ (* prove 6 more easy cases *)
-  apply (meson new_int_bin.simps)+
-  apply (meson bool_to_val.elims)
-  apply (smt (verit, del_insts) new_int.elims)
-  apply (smt (verit, del_insts) new_int.elims)
-  apply (metis (full_types) bool_to_val.simps(1,2))
-  prefer 12 prefer 10 prefer 8 apply meson+ using bool_to_val.elims apply (meson, meson, meson)
+  apply (meson new_int_bin.simps)+ defer
+  apply (smt (verit, best) new_int.elims)
+  apply (smt (verit) new_int.elims)
+  apply (metis (full_types) bool_to_val.simps(1,2)) defer
+  prefer 12 using bool_to_val.elims apply (meson, meson, metis, meson)
+  prefer 9 prefer 6 prefer 4 apply meson+
   by metis+
 
 lemma IntVal0: "(IntVal 32 0) = (new_int 32 0)"

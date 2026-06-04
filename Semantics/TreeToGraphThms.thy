@@ -292,11 +292,11 @@ proof (induction arbitrary: e\<^sub>2 rule: "rep.induct")
 next
   case (ParameterNode n i s)
   then show ?case
-    by (metis IRNode.distinct(3655) IRNode.distinct(3697) ParameterNodeE rep_parameter)
+    by (metis IRNode.distinct(3655,3697) ParameterNodeE rep_parameter)
 next
   case (ConditionalNode n c t f ce te fe)
   then show ?case
-    by (metis ConditionalNodeE IRNode.distinct(925) IRNode.distinct(967) IRNode.sel(90) IRNode.sel(93) IRNode.sel(94) rep_conditional)
+    by (metis ConditionalNodeE IRNode.distinct(925,967) IRNode.sel(90,93,94) rep_conditional)
 next
   case (AbsNode n x xe)
   then show ?case
@@ -348,7 +348,7 @@ next
 next
   case (OrNode n x y xe ye)
   then show ?case
-    by (solve_det node: OrNode)
+    by (metis IRNode.distinct(3611) IRNode.distinct(3653) IRNode.inject(41) OrNodeE rep_or)
 next
   case (XorNode n x y xe ye)
   then show ?case
@@ -862,7 +862,7 @@ proof -
         have "\<exists> xe2. (g2 \<turnstile> xn \<simeq> xe2) \<and> xe1 \<ge> xe2"
           using LogicNegationNode False b l not_excluded_keep_type singletonD no_encoding
           by (metis_node_eq_unary LogicNegationNode)
-        then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr UnaryLogicNegation xe2) \<and> 
+        then have "\<exists> xe2. (g2 \<turnstile> n \<simeq> UnaryExpr UnaryLogicNegation xe2) \<and>
  UnaryExpr UnaryLogicNegation xe1 \<ge> UnaryExpr UnaryLogicNegation xe2"
           by (metis LogicNegationNode.prems l mono_unary rep.LogicNegationNode)
         then show ?thesis
@@ -1862,9 +1862,9 @@ theorem term_graph_reconstruction:
     then show ?case 
       using x k apply (cases op)
       using bin_node.simps(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18)
-            AddNode MulNode DivNode ModNode SubNode AndNode OrNode ShortCircuitOrNode LeftShiftNode RightShiftNode 
+            AddNode MulNode DivNode ModNode SubNode AndNode OrNode ShortCircuitOrNode LeftShiftNode
             UnsignedRightShiftNode IntegerEqualsNode IntegerLessThanNode IntegerBelowNode XorNode
-            IntegerTestNode IntegerNormalizeCompareNode IntegerMulHighNode
+            IntegerTestNode IntegerNormalizeCompareNode IntegerMulHighNode RightShiftNode
       by metis+
   next
     case (AllLeafNodes g n s)

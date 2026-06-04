@@ -68,20 +68,20 @@ lemma bin_eval_int:
   assumes "bin_eval op x y \<noteq> UndefVal"
   shows "is_IntVal (bin_eval op x y)"
   using assms apply (cases op; cases x; cases y; auto simp add: is_IntVal_def)
-  prefer 10 prefer 7 prefer 8
+  prefer 10 prefer 7 prefer 8 prefer 16 prefer 18 prefer 20 prefer 21
   apply presburger+ (* prove 6 more easy cases *)
   apply (meson new_int_bin.simps)+
   apply (meson bool_to_val.elims)
   apply (smt (verit, del_insts) new_int.elims)
   apply (smt (verit, del_insts) new_int.elims)
-  using bool_to_val.elims by metis+
+  apply (metis (full_types) bool_to_val.simps(1,2))
+  prefer 12 prefer 10 prefer 8 apply meson+ using bool_to_val.elims apply (meson, meson, meson)
+  by metis+
 
-lemma IntVal0:
-  "(IntVal 32 0) = (new_int 32 0)"
+lemma IntVal0: "(IntVal 32 0) = (new_int 32 0)"
   by auto
 
-lemma IntVal1:
-  "(IntVal 32 1) = (new_int 32 1)"
+lemma IntVal1: "(IntVal 32 1) = (new_int 32 1)"
   by auto
 
 (* ICK, a collection of relevant take_bit_x lemmas would help *)
@@ -126,7 +126,7 @@ next
   case BinShortCircuitOr
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    by (metis IntVal0 IntVal1 bool_to_val.elims new_int.elims)+
+    using new_int.elims apply (metis IntVal0 IntVal1 bool_to_val.elims) by presburger
 next
   case BinLeftShift
   then show ?thesis
@@ -134,7 +134,7 @@ next
 next
   case BinRightShift
   then show ?thesis
-    using assms apply (cases x; cases y; auto) by (smt (verit, del_insts) new_int.simps)+
+    using assms apply (cases x; cases y; auto) by (smt (verit, best) new_int.simps new_int.elims)+
 next
   case BinURightShift
   then show ?thesis
@@ -167,8 +167,7 @@ next
   then show ?thesis
     using assms apply (cases x; cases y; auto)
     prefer 5 using take_bit_of_0 IntVal1 new_int_take_bits apply blast+
-    prefer 2 apply (metis take_bit_minus_one_eq_mask)
-    by presburger+
+    prefer 2 apply (metis take_bit_minus_one_eq_mask) by presburger+
 next
   case BinIntegerMulHigh
   then show ?thesis
@@ -181,17 +180,17 @@ lemma int_stamp:
   using assms is_IntVal_def by auto
 
 lemma validStampIntConst:
-  assumes "v = IntVal b ival"
+  assumes "v = IntVal b vv"
   assumes "0 < b \<and> b \<le> 64"
   shows "valid_stamp (constantAsStamp v)"
 proof -
-  have bnds: "fst (bit_bounds b) \<le> int_signed_value b ival \<and>
-              int_signed_value b ival \<le> snd (bit_bounds b)"
+  have bnds: "fst (bit_bounds b) \<le> int_signed_value b vv \<and>
+              int_signed_value b vv \<le> snd (bit_bounds b)"
     using assms(2) int_signed_value_bounds by simp
-  have s: "constantAsStamp v = IntegerStamp b (int_signed_value b ival) (int_signed_value b ival)"
+  have "constantAsStamp v = IntegerStamp b (int_signed_value b vv) (int_signed_value b vv)"
     using assms(1) by simp
   then show ?thesis
-    unfolding s valid_stamp.simps using assms(2) bnds by linarith
+    unfolding valid_stamp.simps using assms(2) bnds valid_stamp.simps(1) by presburger
 qed
 
 lemma validDefIntConst:
@@ -226,8 +225,7 @@ lemma valid_ObjStamp[elim]:
   shows "valid_value val (ObjectStamp klass exact nonNull alwaysNull) \<Longrightarrow> (\<exists>v. val = ObjRef v)"
   by (metis Value.exhaust valid_value.simps(3,11,12,18))
 
-lemma valid_int[elim]:
-  shows "valid_value val (IntegerStamp b lo hi) \<Longrightarrow> (\<exists>v. val = IntVal b v)"
+lemma valid_int[elim]: "valid_value val (IntegerStamp b lo hi) \<Longrightarrow> (\<exists>v. val = IntVal b v)"
   using valid_value.elims(2) by fastforce
 
 lemmas valid_value_elims =
@@ -251,9 +249,8 @@ lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (-2147483648) 21474
 
 lemma valid_value_signed_int_range [simp]:
   assumes "valid_value val (IntegerStamp b lo hi)"
-  assumes "lo < 0"
   shows "\<exists>v. (val = IntVal b v \<and> lo \<le> int_signed_value b v \<and> int_signed_value b v \<le> hi)"
-  by (metis valid_value.simps(1) assms(1) valid_int)
+  by (metis valid_value.simps(1) assms valid_int)
 
 (* If we want to support unsigned values:
 lemma valid_value_unsigned_int_range [simp]:
@@ -321,7 +318,7 @@ subsubsection \<open>Monotonicity of Expression Refinement\<close>
 
 text \<open>We prove that each subexpression position is monotonic.
 That is, optimizing a subexpression anywhere deep inside a top-level expression
-also optimizes that top-level expression.  
+also optimizes that top-level expression.
 
 Note that we might also be able to do
 this via reusing Isabelle's $mono$ operator (HOL.Orderings theory), proving instantiations
@@ -340,10 +337,9 @@ lemma mono_binary:
   using BinaryExpr assms by auto
 
 lemma never_void:
-  assumes "[m, p] \<turnstile> x \<mapsto> xv"
   assumes "valid_value xv (stamp_expr xe)"
   shows "stamp_expr xe \<noteq> VoidStamp"
-  using assms(2) by force
+  using assms by force
 
 (* These were trivially true, due to operator precedence errors.
 lemma stamp32:
@@ -363,12 +359,10 @@ lemma stamprange:
   using valid_value.elims
 *)  
 
-lemma compatible_trans:
-  "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"
+lemma compatible_trans: "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"
   by (cases x; cases y; cases z; auto)
 
-lemma compatible_refl:
-  "compatible x y \<Longrightarrow> compatible y x"
+lemma compatible_refl: "compatible x y \<Longrightarrow> compatible y x"
   using compatible.elims(2) by fastforce
 
 (*
@@ -440,8 +434,8 @@ proof (simp only: le_expr_def; (rule allI)+; rule impI)
       case False
       then show ?thesis sorry
     qed*)
-  from beval have "[m,p] \<turnstile> branch' \<mapsto> v" 
-    using assms by (auto simp add: b b')
+  have "[m,p] \<turnstile> branch' \<mapsto> v"
+    using beval assms by (auto simp add: b b')
   then show "[m,p] \<turnstile> ConditionalExpr c' t' f' \<mapsto> v"
     using c' fa' tr' by (simp add: evaltree_not_undef b' ConditionalExpr)
 qed
@@ -462,7 +456,7 @@ lemma graph_refined:
 subsection \<open>Unfolding rules for evaltree quadruples down to bin-eval level\<close>
 
 text \<open>These rewrite rules can be useful when proving optimizations.
-  They support top-down rewriting of each level of the tree into the 
+  They support top-down rewriting of each level of the tree into the
   lower-level $bin_eval$ / $unary_eval$ level, simply by saying
   $unfolding unfold_evaltree$.\<close>
 
@@ -477,8 +471,7 @@ lemma unfold_valid64 [simp]:
 *)
 
 (* the general case, for all constants *)
-lemma unfold_const:
-  "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (wf_value v \<and> v = c)"
+lemma unfold_const: "([m,p] \<turnstile> ConstantExpr c \<mapsto> v) = (wf_value v \<and> v = c)"
   by auto
 
 (* TODO:
@@ -510,7 +503,7 @@ next
     by auto
   then show ?L
      by (rule BinaryExpr)
- qed
+qed
 
 lemma unfold_unary:
   shows "([m,p] \<turnstile> UnaryExpr op xe \<mapsto> val)
@@ -610,8 +603,11 @@ next
   case UnaryIsNull
   then show ?thesis
     apply auto
-    by (metis bool_to_val.simps(1) new_int.simps IntVal0 IntVal1 unary_eval.simps(8) assms def
-        intval_is_null.elims bool_to_val.elims)
+    proof -
+      show "\<exists>w. intval_is_null x = IntVal 32 (take_bit 32 w)"
+        by (metis UnaryIsNull IntVal0 IntVal1 bool_to_val.elims intval_is_null.elims new_int.simps
+            unary_eval.simps(8) def)
+    qed
 next
   case UnaryReverseBytes
   then show ?thesis
@@ -693,26 +689,34 @@ lemma unary_normal_bitsize:
   using assms apply (cases op; auto) prefer 5
   apply (smt (verit, ccfv_threshold) Value.distinct(1) Value.inject(1) intval_reverse_bytes.elims
          new_int.simps)
-  by (metis Value.distinct(1) Value.inject(1) intval_logic_negation.elims new_int.simps
-      intval_not.elims intval_negate.elims intval_abs.elims)+
+  prefer 3 apply (smt (verit) intval_not.elims new_int.simps Value.distinct(1) Value.inject(1))
+  apply (smt (verit, ccfv_SIG) intval_abs.elims new_int.simps Value.distinct(1) Value.inject(1))
+  apply (smt (verit, ccfv_SIG) intval_negate.elims new_int.simps Value.distinct(1) Value.inject(1))
+  by (smt (verit, ccfv_SIG) intval_logic_negation.elims new_int.simps Value.distinct(1)
+      Value.inject(1))
 
 lemma unary_not_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<notin> normal_unary \<and> op \<notin> boolean_unary \<and> op \<notin> unary_fixed_32_ops"
   shows "b = ir_resultBits op \<and> 0 < b \<and> b \<le> 64"
   apply (cases op) prefer 8 prefer 10 prefer 10 using assms apply blast+  (* the normal_unary and boolean_unary cases *)
-  by (smt(verit, ccfv_SIG) Value.distinct(1) assms(1) intval_bits.simps intval_narrow.elims
-      intval_narrow_ok intval_zero_extend.elims linorder_not_less neq0_conv new_int.simps
-      unary_eval.simps(5,6,7) IRUnaryOp.sel(4,5,6) intval_sign_extend.elims)+
+  apply (smt (verit) intval_narrow.elims IRUnaryOp.sel(4) Value.distinct(1) Value.inject(1) assms(1)
+         le_trans new_int.simps unary_eval.simps(5))
+  apply (smt (verit, del_insts) intval_sign_extend.elims IRUnaryOp.sel(5) Value.distinct(1) assms(1)
+         Value.inject(1) new_int.simps order.strict_trans2 unary_eval.simps(6))
+  by (smt (verit) intval_zero_extend.elims IRUnaryOp.sel(6) Value.distinct(1) Value.inject(1)
+      assms(1) new_int.simps order.strict_trans2 unary_eval.simps(7))
 
 lemma unary_eval_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes 2: "x = IntVal bx ix"
   assumes "0 < bx \<and> bx \<le> 64"
   shows "0 < b \<and> b \<le> 64"
-  using assms apply (cases op; simp)
-  by (metis Value.distinct(1) Value.inject(1) intval_narrow.simps(1) le_zero_eq intval_narrow_ok
-      new_int.simps le_zero_eq gr_zeroI)+
+  using assms apply (cases op; simp) prefer 2
+  apply (metis (no_types, lifting) Value.distinct(1) Value.inject(1) le_zero_eq new_int.simps
+         gr_zeroI)
+  by (metis Value.distinct(1) Value.inject(1) intval_narrow.simps(1) intval_narrow_ok new_int.simps
+      le_zero_eq gr_zeroI)+
 
 (*
 lemma unary2:
@@ -849,7 +853,7 @@ lemma unfold_binary_width_bin_normal:
       by (metis Value.collapse(1) defined_eval_is_intval eval evalDet p(3,4))
     then have eqWidth: "bb = b"
       by (metis intval_bits.simps p(1,2,4) assms eval xa bin_eval_normal_bits evalDet)
-    then have notUndefMeansSameWidth: "bin_eval op xv yv \<noteq> UndefVal \<Longrightarrow> (bb = yb)"
+    then have "bin_eval op xv yv \<noteq> UndefVal \<Longrightarrow> (bb = yb)"
       using assms apply (cases op; auto)
       by (metis intval_add.simps(1) intval_mul.simps(1) intval_div.simps(1) intval_mod.simps(1) xa
           intval_sub.simps(1) intval_and.simps(1) intval_or.simps(1) intval_xor.simps(1) ya

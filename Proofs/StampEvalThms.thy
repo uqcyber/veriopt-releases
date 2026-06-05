@@ -787,6 +787,9 @@ proof -
     using assms by auto
 qed
 
+lemma const_intval_stamp: "\<exists> l h . (constantAsStamp (IntVal b v)) = IntegerStamp b l h"
+  using constantAsStamp.simps by simp
+
 lemma stamp_under_defn:
   assumes "stamp_under (stamp_expr x) (stamp_expr y)"
   assumes "wf_stamp x \<and> wf_stamp y"
@@ -859,17 +862,27 @@ lemma stamp_mask_up_1_implies_0_1:
   assumes "stamp_expr x = IntegerStamp b lo hi"
   assumes "wf_stamp x"
   assumes "[m, p] \<turnstile> x \<mapsto> xv"
-  shows "\<exists> xb xvv . xv = IntVal xb xvv \<and> (xvv \<in> {0, 1})"
+  shows "\<exists> xvv . xv = IntVal b xvv \<and> (xvv \<in> {0, 1})"
 proof -
   obtain m p where eval: "[m, p] \<turnstile> x \<mapsto> xv"
     using assms(4) by auto
   obtain xb xvv where xvv: "xv = IntVal xb xvv"
     by (metis Value.collapse(1) assms(2,3) dual_order.refl eval stamp_width_eval_is_eq_intval
         width_in_bounds.simps(1))
+  have "xb = b"
+    by (metis Stamp.sel(1) assms(2,3) bit_width_maintained eval xvv)
   then show ?thesis
-    by (metis (mono_tags, opaque_lifting) assms(1,4) insertI1 insert_commute not_may_implies_false
-        bit_1_iff upper_bits_unset_implies_0_1)
+    by (metis assms(1) insertCI stamp_mask_up_1_implies_only_lsb_set upper_bits_unset_implies_0_1
+        xvv eval)
 qed
+
+lemma stamp_mask_up_1_32_implies_boolean:
+  assumes "\<up>x = 1"
+  assumes "stamp_expr x = IntegerStamp 32 lo hi"
+  assumes "wf_stamp x"
+  assumes "[m, p] \<turnstile> x \<mapsto> xv"
+  shows "xv = IntVal 32 0 \<or> xv = IntVal 32 1"
+  using stamp_mask_up_1_implies_0_1 assms by blast
 
 end
 

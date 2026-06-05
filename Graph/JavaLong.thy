@@ -807,7 +807,7 @@ interpretation word_inspection: bit_inspection "(+)" "(-)" "0" "(*)" "1" "(div)"
   unfolding botBit_def apply simp
   done
 
-\<comment> \<open>POC: bit_inspection lemmas can be used for optimizations\<close>
+text \<open>POC: bit_inspection lemmas can be used for optimizations\<close>
 lemma
   assumes "bitCount w = 1"
   shows "w = 1 << topBit w"

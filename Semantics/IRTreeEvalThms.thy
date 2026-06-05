@@ -794,6 +794,15 @@ next
     by blast
 qed
 
+lemma bin_eval_normal_undef_implies_bits:
+  assumes "x = IntVal xb xv"
+  assumes "y = IntVal yb yv"
+  assumes "bin_eval op x y \<noteq> UndefVal"
+  assumes "op \<in> binary_normal"
+  shows "xb = yb"
+  using assms apply (cases op; auto) prefer 5 prefer 5
+  using new_int_bin.elims apply (meson, meson) by presburger+
+
 lemma bin_eval_normal_bits:
   assumes "op \<in> binary_normal"
   assumes "bin_eval op x y = xy"
@@ -811,10 +820,7 @@ lemma bin_eval_normal_bits:
       obtain yv yb where yv: "y = IntVal yb yv"
         by (metis assms(3) bin_eval_inputs_are_ints bin_eval_int is_IntVal_def operator)
       then have "bin_eval op x y \<noteq> UndefVal \<Longrightarrow> (xb = yb)"
-        using assms apply (cases op; auto)
-        by (metis intval_xor.simps(1) intval_or.simps(1) intval_div.simps(1) intval_mod.simps(1) xv
-            intval_and.simps(1) intval_sub.simps(1) intval_mul.simps(1) intval_add.simps(1)
-            new_int_bin.elims)+
+        using bin_eval_normal_undef_implies_bits True xv by blast
       then have inWidthsSame: "xb = yb"
         using assms(3) operator by auto
       obtain ob xyv where out: "xy = IntVal ob xyv"
@@ -854,10 +860,7 @@ lemma unfold_binary_width_bin_normal:
     then have eqWidth: "bb = b"
       by (metis intval_bits.simps p(1,2,4) assms eval xa bin_eval_normal_bits evalDet)
     then have "bin_eval op xv yv \<noteq> UndefVal \<Longrightarrow> (bb = yb)"
-      using assms apply (cases op; auto)
-      by (metis intval_add.simps(1) intval_mul.simps(1) intval_div.simps(1) intval_mod.simps(1) xa
-          intval_sub.simps(1) intval_and.simps(1) intval_or.simps(1) intval_xor.simps(1) ya
-          new_int_bin.simps)+
+      using bin_eval_normal_undef_implies_bits assms xa ya by blast
     then have "b = yb"
       by (metis eqWidth eval evalDet p(2,3,4))
     then show ?thesis

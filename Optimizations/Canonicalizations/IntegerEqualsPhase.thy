@@ -6,6 +6,53 @@ theory IntegerEqualsPhase
     Proofs.StampEvalThms
 begin
 
+context stamp_mask
+begin
+
+lemma val_equal_xor_one_shift_64:
+  assumes "x = IntVal xb xvv"
+  assumes "b = 64"
+  assumes "xvv \<in> {0, 1}"
+  assumes "val[(x \<oplus> (IntVal b 1)) eq (IntVal b cv)] \<noteq> UndefVal"
+  shows "val[(x \<oplus> (IntVal b 1)) eq (IntVal b cv)] = val[x eq (new_int b (xor cv 1))]"
+  using assms unfolding assms(2) apply auto
+  apply (metis (mono_tags) bit.xor_left_self bool_to_val.simps(2) xor.right_neutral)
+  by (smt (verit, best) bit.xor_left_self xor.assoc xor.right_neutral)
+
+lemma exp_equal_xor_one_shift_64:
+  assumes "b = 64"
+  assumes "stamp_expr x = IntegerStamp 64 lo hi"
+  assumes "wf_stamp x"
+  assumes "\<up>x = 1"
+  shows "exp[(x \<oplus> (const (IntVal b 1))) eq (const (IntVal b cv))] \<ge>
+         exp[x eq (const (new_int b (xor cv 1)))]"
+  using assms apply auto subgoal premises p for m p xa
+proof -
+  obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+    using p(6) by auto
+  obtain xbb xvv where xvv: "xa = IntVal xbb xvv"
+    using p(2,3,4) stamp_mask_up_1_implies_0_1 xa by blast
+  have zeroOne: "xvv \<in> {0, 1}"
+    using p(2,3,4) stamp_mask_up_1_implies_0_1 xa xvv by blast
+  have constE: "[m,p] \<turnstile> exp[const (new_int b (xor cv 1))] \<mapsto> val[new_int b (xor cv 1)]"
+    by (metis ConstantExpr le_refl p(1) validIntConst wf_value_def zero_less_numeral)
+  have rhsE: "[m,p] \<turnstile> exp[x eq (const (new_int b (xor cv 1)))] \<mapsto> val[xa eq (new_int b (xor cv 1))]"
+    by (metis (no_types, lifting) BinaryExpr xa bin_eval.simps(13) constE evalDet p(1,5,6) zeroOne
+        val_equal_xor_one_shift_64 xvv)
+  have eq: "val[xa eq (IntVal 64 (xor cv 1))] = val[(xa \<oplus> (IntVal 64 1)) eq (IntVal 64 cv)]"
+    using assms xvv zeroOne apply auto
+    apply (metis (mono_tags, opaque_lifting) bit.xor_left_self unwrap_bool_to_val xor.right_neutral)
+    by (smt (verit, ccfv_SIG) bit.xor_left_self xor.assoc xor.right_neutral)
+  have "[m,p] \<turnstile> exp[x eq (const (IntVal 64 (xor cv 1)))] \<mapsto>
+                val[(xa \<oplus> (IntVal 64 1)) eq (IntVal 64 cv)]"
+    using eq p(1) rhsE by auto
+  then show ?thesis
+    by (metis evalDet p(6) xa)
+qed
+  done
+
+end
+
 phase IntegerEqualsNode
   terminating size
 begin
@@ -1096,6 +1143,12 @@ optimization NotEq: "exp[(~x) eq (~y)] \<longmapsto> exp[x eq y]
                      when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                           (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
   apply (simp add: less_SucI size_bin_lt_sum_div) using exp_not_eq by auto
+
+optimization EqualXorOneShift_64: "exp[(x \<oplus> (const (IntVal b 1))) eq (const (IntVal b cv))] \<longmapsto>
+                                   exp[x eq (const (new_int b (xor cv 1)))]
+                                   when (stamp_expr x = IntegerStamp 64 lo hi \<and> wf_stamp x \<and>
+                                         b = 64 \<and> IRExpr_up x = 1)"
+  using stamp_mask.exp_equal_xor_one_shift_64 simple_mask.stamp_mask_axioms by simp
 
 end (* End of IntegerEqualsPhase *)
 

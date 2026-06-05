@@ -766,7 +766,6 @@ qed
 
 end
 
-
 phase NewAnd
   terminating size
 begin
@@ -789,8 +788,8 @@ optimization RedundantRhsYOr: "(z & (x | y)) \<longmapsto> z & x
 
 optimization RedundantRhsXOr: "(z & (x | y)) \<longmapsto> z & y
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  apply (smt (verit, del_insts) IRBinaryOp.distinct(99) int_plus nat_int_comparison(2) plus_1_eq_Suc
-      size_bin_lt_sum_div size_binary_rhs_succ)
+  apply (smt (verit) IRBinaryOp.distinct(99) int_plus nat_int_comparison(2) size_bin_lt_sum_div
+         size_binary_rhs int_ops(4))
   by (meson dual_order.trans exp_and_commutative simple_mask.exp_eliminate_x)
 
 (*

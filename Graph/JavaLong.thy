@@ -697,8 +697,7 @@ proof -
   then have "\<forall> i. bit w i \<longleftrightarrow> i = n"
     by blast
   then have "w = push_bit n one"
-    using bit_exp_iff 
-    by (simp add: local.bit_eq_iff)
+    using bit_exp_iff local.bit_eq_iff by auto
   then show ?thesis by blast
 qed
 end
@@ -740,7 +739,7 @@ lemma below_bot_unset:
   by (metis Min_gr_iff bex_empty finite_bits less_irrefl lsb mem_Collect_eq)
 
 subsection \<open>Subtraction\<close>
-lemma below_sub_allset:
+(*lemma below_sub_allset:
   "i < \<bottom> w \<Longrightarrow> bit (minus w one) i"
   sorry
 
@@ -748,12 +747,12 @@ lemma below_sub_unset:
   "\<not>(bit (minus w one) (\<bottom> w))"
 proof -
   have "minus w one = not (uminus w)"
-    by (simp add: local.decr_eq_not_minus)
+    by (simp add: local.minus_eq_not_minus_1)
   also have "bit (uminus w) (\<bottom> w)"
     using bit_minus_iff sorry
   ultimately show ?thesis
     using local.bit_minus_iff by blast
-qed
+qed*)
 
 end
 
@@ -765,7 +764,7 @@ lemma one_bit:
   by (metis assms bot_set count_zero local.bit_exp_iff local.push_bit_of_1 power_of_two_ex top_set
       zero_neq_one_class.zero_neq_one)
 
-lemma two_bit:
+(*lemma two_bit:
   assumes "bitCount w = 2"
   shows "w = plus (push_bit (\<top> w) one) (push_bit (\<bottom> w) one)"
 proof -
@@ -779,8 +778,7 @@ proof -
     using hsb lsb by force
   then show ?thesis using assms unfolding bc wsum unfolding hsb lsb
     by (metis add_commute doubleton_eq_iff)
-qed
-
+qed*)
 
 lemma power_of_two:
   assumes "bitCount w = 1"

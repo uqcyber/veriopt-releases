@@ -124,6 +124,28 @@ lemma upper_bits_unset_implies_0_1:
   shows "v = 0 \<or> v = 1"
   by (metis assms bit_1_iff bits_same_implies_val_same no_bits_implies_zero)
 
+lemma bit_set_implies_atleast_pow2:
+  fixes v :: "'a :: len word"
+  shows "bit v i \<Longrightarrow> v - (2 ^ i) \<ge> 0"
+  by simp
+
+lemma single_bit_set:
+  fixes v :: "'a::len word"
+  assumes "{n . bit v n} = {b}"
+  shows "bit v b \<and> (\<forall> i . i \<noteq> b \<longrightarrow> \<not>bit v i)"
+  using assms by auto
+
+lemma bit_set_implies_range:
+  fixes v :: "'a::len word"
+  assumes "b \<in> {n . bit v n}"
+  shows "b < LENGTH('a)"
+proof -
+  have "\<forall> i . bit v i \<longrightarrow> i < LENGTH('a)"
+    by (simp add: bit_imp_le_length)
+  then show ?thesis
+    using assms by blast
+qed
+
 text \<open>Shifting lemmas\<close>
 
 lemma shift_succ: "\<forall> v i . (v << (Suc i)) = ((v << i) << 1)"
@@ -193,6 +215,19 @@ lemma shift_never_all_ones:
   fixes v :: "'a::len word"
   shows "\<forall> j . j > 0 \<longrightarrow> v << j \<noteq> -1"
   unfolding shiftl_def by (metis shift_zeros_below bit_lsb_set_in_all_ones shiftl_def)
+
+lemma pow2_add_to_shift: "2 ^ j + 2 ^ k = (1 << j) + (1 << k)"
+  by (simp add: pow2_1_shift)
+
+lemma shift_one_def:
+  fixes v :: "'a::len word"
+  assumes "v = 1 << b"
+  assumes "b < LENGTH('a)"
+  shows "bit v b \<and> (\<forall> i . i \<noteq> b \<longrightarrow> \<not>bit v i)"
+  by (metis add_0 assms bit_1_0 bit_shift_upper shift_set_implies_shiftbit)
+
+lemma pow2_succ_eq_2shift: "(2::'a :: len word) ^ Suc i = (2 << i)"
+  by simp
 
 text \<open>Power of 2 lemmas\<close>
 
@@ -430,6 +465,11 @@ text \<open>A highestOneBit definition mimicing the Long.java implementation\<cl
 definition highestOneBit_long :: "('a::len) word \<Rightarrow> int" where
   "highestOneBit_long v = (let bit = highestOneBit v in (if (bit = -1) then 0 else (2 ^ nat bit)))"
 
+lemma highestOneBit_long_pos:
+  fixes v :: "'a::len word"
+  shows "(highestOneBit_long v) \<ge> 0"
+  unfolding highestOneBit_long_def apply (cases "highestOneBit v = (-1)") by simp+
+
 subsection \<open>Long.lowestOneBit\<close>
 
 definition lowestOneBit :: "('a::len) word \<Rightarrow> nat" where
@@ -528,7 +568,7 @@ lemma bitCount_card_set_equiv: "card {n . bit v n} = bitCount v"
 
 lemma bitCount_shift1:
   assumes "j < LENGTH('a)"
-  shows " bitCount ((1 :: 'a :: len word) << j) = 1"
+  shows "bitCount ((1 :: 'a :: len word) << j) = 1"
   unfolding bitCount_def by (simp add: assms card_shift_one)
 
 lemma bitCount_pow2:
@@ -558,6 +598,11 @@ proof -
   then show ?thesis
     using highestOneBitAtLeast highestOneBitElim by force
 qed
+
+lemma bitCount_one:
+  assumes "bitCount v = 1"
+  shows "\<exists> b . {n . bit v n} = {b}"
+  by (metis assms bits_bound_eq card_1_singletonE qualified_bitCount)
 
 subsubsection \<open> bitSum - a summation-based implementation of bitCount \<close>
 
@@ -813,5 +858,12 @@ lemma
   shows "w = 1 << topBit w"
   using assms
   by (metis word_inspection.card_count word_inspection.power_of_two bitCount_def shiftl_def)
+
+lemma single_bit_shift_one:
+  fixes v :: "'a::len word"
+  assumes "{n . bit v n} = {b}"
+  shows "v = 1 << b"
+  by (metis assms One_nat_def card_1_singleton_iff shiftl_def topBit_def word_inspection.card_count
+      word_inspection.power_of_two Max_singleton)
 
 end

@@ -43,7 +43,7 @@ session IEEE_Floating_Point in "Lib/IEEE_Floating_Point" = Word_Lib +
     IEEE_Single_NaN_SMTLIB
 
 
-session Graph in Graph = "HOL-Library" +
+session Graph in Graph = IEEE_Floating_Point +
   description
     "GraalVM Intermediate Representation encoding"
   options [document = pdf, document_output = "output",

@@ -6,6 +6,7 @@ session Word_Lib in "Lib/Word_Lib" = HOL +
     "HOL-Library"
     "HOL-Eisbach"
   theories [document = false] \<comment> \<open>Attempt to just generate word-specific document material\<close>
+    HOL.Bit_Operations
     Enumeration
     Even_More_List
     Legacy_Aliases

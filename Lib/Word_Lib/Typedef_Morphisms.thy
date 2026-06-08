@@ -13,7 +13,7 @@
 section \<open>Type Definition Theorems\<close>
 
 theory Typedef_Morphisms
-  imports Main "HOL-Library.Word" More_Int Bit_Comprehension
+  imports Main "HOL-Library.Word" Bit_Comprehension Bits_Int
 begin
 
 subsection "More lemmas about normal type definitions"
@@ -96,24 +96,16 @@ subsection "Extended form of type definition predicate"
 lemma td_conds:
   "norm \<circ> norm = norm \<Longrightarrow>
     fr \<circ> norm = norm \<circ> fr \<longleftrightarrow> norm \<circ> fr \<circ> norm = fr \<circ> norm \<and> norm \<circ> fr \<circ> norm = norm \<circ> fr"
-  by (metis fun.map_comp)
+  apply safe
+    apply (simp_all add: comp_assoc)
+   apply (simp_all add: o_assoc)
+  done
 
-lemma fn_comm_power:
-  assumes "fa \<circ> tr = tr \<circ> fr"
-  shows "fa ^^ n \<circ> tr = tr \<circ> fr ^^ n"
-proof -
-  have "\<And>x. (fa ^^ n) (tr x) = tr ((fr ^^ n) x)"
-  proof (induction n)
-    case 0
-    then show ?case by auto
-  next
-    case (Suc n)
-    then show ?case
-      by (metis assms comp_def funpow.simps(2))
-  qed
-  then show ?thesis
-    by force
-qed
+lemma fn_comm_power: "fa \<circ> tr = tr \<circ> fr \<Longrightarrow> fa ^^ n \<circ> tr = tr \<circ> fr ^^ n"
+  apply (rule ext)
+  apply (induct n)
+   apply (auto dest: fun_cong)
+  done
 
 lemmas fn_comm_power' =
   ext [THEN fn_comm_power, THEN fun_cong, unfolded o_def]
@@ -125,16 +117,16 @@ locale td_ext = type_definition +
 begin
 
 lemma Abs_norm [simp]: "Abs (norm x) = Abs x"
-  using Rep_inverse' eq_norm by blast
+  using eq_norm [of x] by (auto elim: Rep_inverse')
 
 lemma td_th: "g \<circ> Abs = f \<Longrightarrow> f (Rep x) = g x"
-  by auto
+  by (drule comp_Abs_inverse [symmetric]) simp
 
 lemma eq_norm': "Rep \<circ> Abs = norm"
   by (auto simp: eq_norm)
 
 lemma norm_Rep [simp]: "norm (Rep x) = Rep x"
-  using eq_norm' td_th by force
+  by (auto simp: eq_norm' intro: td_th)
 
 lemmas td = td_thm
 
@@ -142,7 +134,10 @@ lemma set_iff_norm: "w \<in> A \<longleftrightarrow> w = norm w"
   by (auto simp: set_Rep_Abs eq_norm' eq_norm [symmetric])
 
 lemma inverse_norm: "Abs n = w \<longleftrightarrow> Rep w = norm n"
-  by (metis Rep_inverse eq_norm)
+  apply (rule iffI)
+   apply (clarsimp simp add: eq_norm)
+  apply (simp add: eq_norm' [symmetric])
+  done
 
 lemma norm_eq_iff: "norm x = norm y \<longleftrightarrow> Abs x = Abs y"
   by (simp add: eq_norm' [symmetric])
@@ -169,13 +164,36 @@ text \<open>
   \<^item> \<open>norm \<circ> fr = fr\<close> says that \<open>fr\<close> takes any argument to a normalised result
 \<close>
 lemma fns2: "Abs \<circ> fr \<circ> Rep = fa \<Longrightarrow> norm \<circ> fr \<circ> norm = fr \<circ> norm \<longleftrightarrow> Rep \<circ> fa = fr \<circ> Rep"
-  by (metis (no_types, lifting) comp_Abs_inverse comp_assoc eq_norm')
+  apply (fold eq_norm')
+  apply safe
+   prefer 2
+   apply (simp add: o_assoc)
+  apply (rule ext)
+  apply (drule_tac x="Rep x" in fun_cong)
+  apply auto
+  done
 
 lemma fns3: "Abs \<circ> fr \<circ> Rep = fa \<Longrightarrow> norm \<circ> fr \<circ> norm = norm \<circ> fr \<longleftrightarrow> fa \<circ> Abs = Abs \<circ> fr"
-  by (metis (no_types, lifting) eq_norm' fun.map_comp norm_norm(1))
+  apply (fold eq_norm')
+  apply safe
+   prefer 2
+   apply (simp add: comp_assoc)
+  apply (rule ext)
+  apply (drule_tac f="a \<circ> b" for a b in fun_cong)
+  apply simp
+  done
 
 lemma fns: "fr \<circ> norm = norm \<circ> fr \<Longrightarrow> fa \<circ> Abs = Abs \<circ> fr \<longleftrightarrow> Rep \<circ> fa = fr \<circ> Rep"
-  by (metis (mono_tags, lifting) eq_norm' fns2 fns4 fun.map_comp norm_norm(1))
+  apply safe
+   apply (frule fns1b)
+   prefer 2
+   apply (frule fns1a)
+   apply (rule fns3 [THEN iffD1])
+     prefer 3
+     apply (rule fns2 [THEN iffD1])
+       apply (simp_all add: comp_assoc)
+   apply (simp_all add: o_assoc)
+  done
 
 lemma range_norm: "range (Rep \<circ> Abs) = A"
   by (simp add: set_Rep_Abs)
@@ -206,8 +224,11 @@ definition unats :: "nat \<Rightarrow> nat set"
 
 \<comment> \<open>naturals\<close>
 lemma uints_unats: "uints n = int ` unats n"
-  unfolding unats_def uints_num
-  using nonneg_int_cases by fastforce
+  apply (unfold unats_def uints_num)
+  apply safe
+    apply (rule_tac image_eqI)
+     apply (erule_tac nat_0_le [symmetric])
+  by auto
 
 lemma unats_uints: "unats n = nat ` uints n"
   by (auto simp: uints_unats image_iff)
@@ -215,8 +236,10 @@ lemma unats_uints: "unats n = nat ` uints n"
 lemma td_ext_uint:
   "td_ext (uint :: 'a word \<Rightarrow> int) word_of_int (uints (LENGTH('a::len)))
     (\<lambda>w::int. w mod 2 ^ LENGTH('a))"
-  unfolding td_ext_def'
-  by transfer (simp add: uints_num take_bit_eq_mod)
+  apply (unfold td_ext_def')
+  apply transfer
+  apply (simp add: uints_num take_bit_eq_mod)
+  done
 
 interpretation word_uint:
   td_ext
@@ -232,7 +255,10 @@ lemmas int_word_uint = word_uint.eq_norm
 lemma td_ext_ubin:
   "td_ext (uint :: 'a word \<Rightarrow> int) word_of_int (uints (LENGTH('a::len)))
     (take_bit (LENGTH('a)))"
-  by (simp add: td_ext_axioms.intro td_ext_def td_uint uint_word_of_int_eq)
+  apply standard
+  apply transfer
+  apply simp
+  done
 
 interpretation word_ubin:
   td_ext
@@ -245,7 +271,10 @@ interpretation word_ubin:
 lemma td_ext_unat [OF refl]:
   "n = LENGTH('a::len) \<Longrightarrow>
     td_ext (unat :: 'a word \<Rightarrow> nat) of_nat (unats n) (\<lambda>i. i mod 2 ^ n)"
-  by (simp add: td_ext_def' unat_of_nat unats_def)
+  apply (standard; transfer)
+     apply (simp_all add: unats_def take_bit_of_nat take_bit_nat_eq_self_iff
+      flip: take_bit_eq_mod)
+  done
 
 lemmas unat_of_nat = td_ext_unat [THEN td_ext.eq_norm]
 
@@ -261,7 +290,10 @@ lemmas td_unat = word_unat.td_thm
 
 lemma unat_le: "y \<le> unat z \<Longrightarrow> y \<in> unats (LENGTH('a))"
   for z :: "'a::len word"
-  by (metis le_unat_uoi word_unat.Rep)
+  apply (unfold unats_def)
+  apply clarsimp
+  apply (metis le_unat_uoi unsigned_less)
+  done
 
 lemma td_ext_sbin:
   "td_ext (sint :: 'a word \<Rightarrow> int) word_of_int (sints (LENGTH('a::len)))
@@ -323,24 +355,21 @@ interpretation test_bit:
 lemmas td_nth = test_bit.td_thm
 
 lemma sints_subset:
-  assumes "m \<le> n"
-  shows "sints m \<subseteq> sints n"
-proof -
-  have "\<And>i::int. \<lbrakk>- (2 ^ (m - Suc 0)) \<le> i; i < 2 ^ (m - Suc 0)\<rbrakk>
-         \<Longrightarrow> - (2 ^ (n - Suc 0)) \<le> i"
-    by (smt (verit, ccfv_SIG) assms le_diff_conv power_increasing_iff)
-  moreover
-  have "\<And>i::int. \<lbrakk>- (2 ^ (m - Suc 0)) \<le> i; i < 2 ^ (m - Suc 0)\<rbrakk>
-         \<Longrightarrow> i < 2 ^ (n - Suc 0)"
-    using assms order_less_le_trans  by fastforce
-  ultimately show ?thesis
-    by (auto simp add: sints_num)
-qed
+  "m \<le> n \<Longrightarrow> sints m \<subseteq> sints n"
+  apply (simp add: sints_num)
+  apply clarsimp
+  apply (rule conjI)
+   apply (erule order_trans[rotated])
+   apply simp
+  apply (erule order_less_le_trans)
+  apply simp
+  done
 
 lemma uints_mono_iff: "uints l \<subseteq> uints m \<longleftrightarrow> l \<le> m"
   using power_increasing_iff[of "2::int" l m]
-  unfolding uints_num subset_iff mem_Collect_eq
-  by (smt (verit, best) not_exp_less_eq_0_int)
+  apply (auto simp: uints_num subset_iff simp del: power_increasing_iff)
+  apply (meson less_irrefl not_le zero_le_numeral zero_le_power)
+  done
 
 lemmas uints_monoI = uints_mono_iff[THEN iffD2]
 
@@ -353,30 +382,19 @@ lemma Bit_in_uintsI: "of_bool c + 2 * w \<in> uints m" if "w \<in> uints (m - 1)
   by auto
 
 lemma bin_cat_in_uintsI:
-  \<open>concat_bit n b a \<in> uints m\<close> if \<open>a \<in> uints l\<close> \<open>l + n \<le> m\<close>
+  \<open>concat_bit n b a \<in> uints m\<close> if \<open>a \<in> uints l\<close> \<open>m \<ge> l + n\<close>
 proof -
-  from \<open>a \<in> uints l\<close> have \<open>0 \<le> a\<close> \<open>a < 2 ^ l\<close>
-    by (auto simp add: uints_def range_bintrunc)
-  define q where \<open>q = m - n\<close>
-  with \<open>l + n \<le> m\<close> have \<open>m = n + q\<close>
-    by simp
-  from \<open>q = m - n\<close> \<open>l + n \<le> m\<close> have \<open>l \<le> q\<close>
-    by simp
-  then have \<open>(2::int) ^ l \<le> 2 ^ q\<close>
-    by simp
-  with \<open>a < 2 ^ l\<close> have \<open>a < 2 ^ q\<close>
-    by linarith
-  have \<open>take_bit n b < 2 ^ n * 2 ^ q\<close>
-    using take_bit_int_less_exp [of n b]
-    by (rule order.strict_trans2) simp
-  then have \<open>take_bit n b < 2 ^ (n + q)\<close>
-    by (simp add: power_add)
-  moreover have \<open>push_bit n a < 2 ^ (n + q)\<close>
-    using \<open>a < 2 ^ q\<close> by (simp add: power_add push_bit_eq_mult)
-  ultimately have \<open>concat_bit n b a < 2 ^ (n + q)\<close>
-    by (simp add: concat_bit_def OR_upper)
-  with \<open>0 \<le> a\<close> show ?thesis
-    by (simp add: uints_def range_bintrunc \<open>m = n + q\<close>)
+  from \<open>m \<ge> l + n\<close> obtain q where \<open>m = l + n + q\<close>
+    using le_Suc_ex by blast
+  then have \<open>(2::int) ^ m = 2 ^ n * 2 ^ (l + q)\<close>
+    by (simp add: ac_simps power_add)
+  moreover have \<open>a mod 2 ^ (l + q) = a\<close>
+    using \<open>a \<in> uints l\<close>
+    by (auto simp add: uints_def take_bit_eq_mod power_add Divides.mod_mult2_eq)
+  ultimately have \<open>concat_bit n b a = take_bit m (concat_bit n b a)\<close>
+    by (simp add: concat_bit_eq take_bit_eq_mod push_bit_eq_mult Divides.mod_mult2_eq)
+  then show ?thesis
+    by (simp add: uints_def)
 qed
 
 end

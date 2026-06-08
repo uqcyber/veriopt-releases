@@ -6,7 +6,12 @@ theory JavaWords
     "HOL-Library.Signed_Division"
     "HOL-Library.Float"
     "HOL-Library.LaTeXsugar"
+    Word_Lib.Aligned
 begin
+
+no_notation shiftl (infixl \<open><<\<close> 55)
+no_notation shiftr (infixl \<open>>>\<close> 55)
+no_notation sshiftr (infixl \<open>>>>\<close> 55)
 
 text \<open>Java supports 64, 32, 16, 8 signed ints, plus 1 bit (boolean)
 ints, and char is 16-bit unsigned.

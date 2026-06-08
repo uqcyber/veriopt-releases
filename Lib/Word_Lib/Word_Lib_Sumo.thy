@@ -13,6 +13,7 @@ imports
   Bit_Comprehension
   Bit_Comprehension_Int
   Bit_Shifts_Infix_Syntax
+  Bits_Int
   Bitwise_Signed
   Bitwise
   Enumeration_Word
@@ -22,10 +23,9 @@ imports
   More_Arithmetic
   More_Divides
   More_Sublist
-  More_Int
-  Bin_sign
   Even_More_List
   More_Misc
+  Strict_part_mono
   Legacy_Aliases
   Most_significant_bit
   Next_and_Prev
@@ -125,7 +125,7 @@ declare of_nat_diff [simp]
 
 (* Haskellish names/syntax *)
 notation (input)
-  bit (\<open>testBit\<close>)
+  bit ("testBit")
 
 lemmas cast_simps = cast_simps ucast_down_bl
 

@@ -13,9 +13,10 @@ session Word_Lib in "Lib/Word_Lib" = HOL +
     More_Divides
     More_Misc
     More_Sublist
+    Strict_part_mono
   theories
+    Bits_Int
     Bit_Comprehension
-    More_Int
     More_Word
     Bit_Shifts_Infix_Syntax
     Next_and_Prev
@@ -24,15 +25,11 @@ session Word_Lib in "Lib/Word_Lib" = HOL +
     Many_More
     Singleton_Bit_Shifts
     Typedef_Morphisms
-    Bin_sign
   theories
     Bitwise
     Guide
   theories [document = false]
     Examples
-  document_files
-    "root.tex"
-    "root.bib"
 
 session IEEE_Floating_Point in "Lib/IEEE_Floating_Point" = Word_Lib +
   options [timeout = 3600]
@@ -44,9 +41,6 @@ session IEEE_Floating_Point in "Lib/IEEE_Floating_Point" = Word_Lib +
     Double
     IEEE_Single_NaN
     IEEE_Single_NaN_SMTLIB
-  document_files
-    "root.bib"
-    "root.tex"
 
 
 session Graph in Graph = "HOL-Library" +

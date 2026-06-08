@@ -13,11 +13,12 @@ session Word_Lib in "Lib/Word_Lib" = HOL +
     More_Divides
     More_Misc
     More_Sublist
+    More_Bit_Ring
+    More_Word
     Strict_part_mono
   theories
     Bits_Int
     Bit_Comprehension
-    More_Word
     Bit_Shifts_Infix_Syntax
     Next_and_Prev
     Signed_Division_Word

@@ -71,7 +71,7 @@ fun pretty ctxt obligations t =
 
     fun pretty_bind binding =
       Pretty.markup 
-        (Position.markup (Binding.pos_of binding) Markup.position)
+        (Position.markup (Binding.pos_of binding))
         [Pretty.str (Binding.name_of binding)];
 
   in
@@ -109,10 +109,10 @@ val _ =
 fun export_phases thy name =
   let
     val state = Toplevel.make_state (SOME thy);
-    val ctxt = Toplevel.context_of state;
-    val content = Pretty.string_of (Pretty.chunks (print_phases false ctxt));
-    val cleaned = YXML.content_of content;    
-
+    val ctxt = Toplevel.context_of state;          
+    val content = Pretty.pure_string_of (Pretty.chunks (print_phases false ctxt));
+    (*val cleaned = YXML.content_of content;   *) 
+    val cleaned = content; 
 
     val filename = Path.explode (name^".rules");
     val directory = Path.explode "optimizations";

@@ -126,6 +126,18 @@ fun add_proofs (rewrite: rewrite) proofs =
     source= #source rewrite
   }
 
+(* Isabelle 2025 introduced a "_type_constraint_" prefix to untyped terms.
+   Easiest to just drop this for now. *)
+fun drop_type_constraints term =
+    case term of
+      Const s => Const s |
+      Free s => Free s |
+      Var s => Var s |
+      Bound s => Bound s |
+      Abs s => Abs s |
+      ((Const ("_type_constraint_", _)) $ b) => drop_type_constraints b |
+      (a $ b) => (drop_type_constraints a $ drop_type_constraints b)
+
 fun rewrite_cmd ((bind, options), opt) ctxt = 
   let
     val intval = case options of [[token]] => Token.content_of token = "intval" | _ => false;
@@ -133,8 +145,8 @@ fun rewrite_cmd ((bind, options), opt) ctxt =
     val subgoals = case options of [[token]] => Token.content_of token = "subgoals" | _ => false;
     val raw_term = (Syntax.parse_term ctxt opt);
 
-    val term = IRExprMarkup.markup_expr [] ctxt [raw_term];
-    val rewrite = of_term bind term raw_term;
+    val term = IRExprMarkup.markup_expr [] ctxt [drop_type_constraints raw_term];
+    val rewrite = of_term bind term (drop_type_constraints raw_term);
 
     val ctxt = (if subgoals then
       (Specification.abbreviation (Syntax.mode_default)

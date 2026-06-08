@@ -648,8 +648,6 @@ subsection \<open> Word definitions and properties \<close>
 definition bin_log2 :: "'a::len word \<Rightarrow> nat" where
   "bin_log2 v = (LENGTH('a) - 1 - numberOfLeadingZeros v)"
 
-text \<open> bitCount = 2 ==> {i . bit v i} = {lowestSetBit, highestSetBit} \<close>
-
 lemma bin_log2_highestOneBit_eq_64:
   fixes v :: "64word"
   assumes "v > 0"
@@ -671,22 +669,20 @@ lemma sum_eq_card:
   fixes N :: nat
   shows "(\<Sum>i=0..N. of_bool (P i)) = card {i. 0 \<le> i \<and> i \<le> N \<and> P i}"
 proof -
-  have fin: "finite {0..N}" by simp
+  have fin: "finite {0..N}"
+    by simp
   have set_eq: "{i. 0 \<le> i \<and> i \<le> N \<and> P i} = {0..N} \<inter> {i. P i}"
     by auto
   have "(\<Sum>i=0..N. of_bool (P i)) = (\<Sum>i=0..N. if P i then 1 else 0)"
     by (simp add: of_bool_def)
-  also have "\<dots> = (\<Sum>i \<in> {0..N} \<inter> {i. P i}. (1::nat))
-                 + (\<Sum>i \<in> {0..N} \<inter> {i. \<not> P i}. 0)"
-    using sum.If_cases
-    by (smt (verit, best) fin group_cancel.rule0 mem_Collect_eq sum.cong sum.inter_restrict sum.neutral_const)
-  also have "\<dots> = (\<Sum>i \<in> {0..N} \<inter> {i. P i}. (1::nat))"
+  also have "\<dots> = (\<Sum>i \<in> {0..N} \<inter> {i. P i}. 1)
+                + (\<Sum>i \<in> {0..N} \<inter> {i. \<not> P i}. 0)"
+    by (smt (verit, best) sum.If_cases group_cancel.rule0 mem_Collect_eq sum.cong sum.inter_restrict
+        fin sum.neutral_const)
+  also have "\<dots> = (\<Sum>i \<in> {0..N} \<inter> {i. P i}. 1)"
     by simp
-  also have "\<dots> = card ({0..N} \<inter> {i. P i})"
-    by auto
-  also have "\<dots> = card {i. 0 \<le> i \<and> i \<le> N \<and> P i}"
-    using set_eq by simp
-  finally show ?thesis .
+  finally show ?thesis
+    by (metis card_eq_sum set_eq)
 qed
 
 locale bounded_ring_bit_operations = ring_bit_operations +
@@ -695,7 +691,8 @@ locale bounded_ring_bit_operations = ring_bit_operations +
 begin
 
 lemma finite_bits: "finite {i. bit w i}"
-  by (metis bounded finite_Collect_le_nat finite_subset linorder_le_less_linear mem_Collect_eq subsetI)
+  by (metis finite_Collect_le_nat finite_subset linorder_le_less_linear mem_Collect_eq subsetI
+      bounded)
 
 end
 
@@ -725,8 +722,8 @@ proof -
     using bounded by blast
   ultimately have set_eq: "{i. bit w i} = {i. 0 \<le> i \<and> i \<le> N w \<and> bit w i}"
     by blast
-  then show ?thesis unfolding bc using sum_eq_card
-    by (metis (no_types, lifting) ext)
+  then show ?thesis
+    unfolding bc by (metis (no_types, lifting) sum_eq_card ext)
 qed
 
 lemma power_of_two_ex:
@@ -734,16 +731,15 @@ lemma power_of_two_ex:
   shows "\<exists>n. w = push_bit n one"
 proof -
   obtain n where "bit w n"
-    using assms card_count
-    by force
+    using assms card_count by force
   then have "{i. bit w i} = {n}"
-    using assms card_count
-    by (metis card_1_singletonE mem_Collect_eq singletonD)
+    by (metis assms card_count card_1_singletonE mem_Collect_eq singletonD)
   then have "\<forall> i. bit w i \<longleftrightarrow> i = n"
     by blast
   then have "w = push_bit n one"
     using bit_exp_iff local.bit_eq_iff by auto
-  then show ?thesis by blast
+  then show ?thesis
+    by blast
 qed
 end
 
@@ -753,6 +749,7 @@ locale bit_top_bot = bounded_ring_bit_operations +
   assumes hsb: "topBit w = Max {i . bit w i}"
       and lsb: "botBit w = Min {i . bit w i}"
 begin
+
 definition highestOneBit :: "'a \<Rightarrow> 'a" where
   "highestOneBit w = push_bit (\<top> w) one"
 
@@ -765,22 +762,17 @@ lemma top_one: "\<top> one = 0"
 lemma bot_one: "\<bottom> one = 0"
   using lsb bit_1_iff by simp
 
-lemma top_set: 
-  assumes "w \<noteq> zero"
-  shows "bit w (\<top> w)"
-  using assms finite_bits unfolding hsb
+lemma top_set: "w \<noteq> zero \<Longrightarrow> bit w (\<top> w)"
+  using finite_bits unfolding hsb
   by (metis Collect_empty_eq_bot Max_in local.bit_0_eq local.bit_eq_iff mem_Collect_eq)
 
 lemma bot_set: "w \<noteq> zero \<Longrightarrow> bit w (\<bottom> w)"
-  using finite_bits unfolding lsb
-  using Min_in top_set by auto
+  using finite_bits unfolding lsb using Min_in top_set by auto
 
-lemma above_top_unset:
-  "i > \<top> w \<Longrightarrow> \<not>(bit w i)"
+lemma above_top_unset: "i > \<top> w \<Longrightarrow> \<not>(bit w i)"
   by (metis empty_def eq_Max_iff finite_bits hsb linorder_not_less mem_Collect_eq)
 
-lemma below_bot_unset:
-  "i < \<bottom> w \<Longrightarrow> \<not>(bit w i)"
+lemma below_bot_unset: "i < \<bottom> w \<Longrightarrow> \<not>(bit w i)"
   by (metis Min_gr_iff bex_empty finite_bits less_irrefl lsb mem_Collect_eq)
 
 subsection \<open>Subtraction\<close>
@@ -803,6 +795,7 @@ end
 
 locale bit_inspection = bit_count + bit_top_bot + comm_monoid_add
 begin
+
 lemma one_bit:
   assumes "bitCount w = 1"
   shows "\<bottom> w = \<top> w"
@@ -828,16 +821,17 @@ qed*)
 lemma power_of_two:
   assumes "bitCount w = 1"
   shows "w = push_bit (\<top> w) one"
-  using assms bc
-  by (metis bot_set count_zero local.bit_exp_iff local.push_bit_of_1 one_bit power_of_two_ex
+  by (metis bot_set count_zero local.bit_exp_iff local.push_bit_of_1 one_bit power_of_two_ex assms
       zero_neq_one_class.zero_neq_one)
 
 end
 
 definition bitCountSum :: "'a::len word \<Rightarrow> nat" where
   "bitCountSum w = (\<Sum>i=0..LENGTH('a). of_bool (bit w i))"
+
 definition topBit :: "'a::len word \<Rightarrow> nat" where
   "topBit w = Max {i . bit w i}"
+
 definition botBit :: "'a::len word \<Rightarrow> nat" where
   "botBit w = Min {i . bit w i}"
 

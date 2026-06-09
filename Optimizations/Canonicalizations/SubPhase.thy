@@ -227,73 +227,56 @@ lemma exp_sub_after_sub_left:
   qed
   done
 
-lemma evalSubStamp:
-  assumes "[m, p] \<turnstile> exp[x - y] \<mapsto> v"
-  assumes "wf_stamp exp[x - y]"
-  shows "\<exists>b lo hi. stamp_expr exp[x - y] = IntegerStamp b lo hi"
-proof -
-  have "valid_value v (stamp_expr exp[x - y])"
-    using assms unfolding wf_stamp_def by auto
-  then have "stamp_expr exp[x - y] \<noteq> IllegalStamp"
-    by force
-  then show ?thesis
-    unfolding stamp_expr.simps
-    by (smt (z3) stamp_binary.simps stamp_binary.elims unrestricted_stamp.simps(2))
-qed
-
 text \<open>Optimisations\<close>
 
-optimization SubAfterAddRight: "((x + y) - y) \<longmapsto>  x"
+optimization SubAfterAddRight: "(x + y) - y \<longmapsto> x"
   using exp_sub_after_right_add by blast
 
-optimization SubAfterAddLeft: "((x + y) - x) \<longmapsto>  y"
+optimization SubAfterAddLeft: "(x + y) - x \<longmapsto> y"
   using exp_sub_after_right_add2 by blast
 
-optimization SubAfterSubLeft: "((x - y) - x) \<longmapsto>  -y"
-  apply (metis size_binary_const add_2_eq_Suc' add_mono_thms_linordered_field(1) size_binary_rhs
-         size_non_add trans_less_add1)
+optimization SubAfterSubLeft: "(x - y) - x \<longmapsto> -y"
+  apply (meson less_trans_Suc size_binary_lhs size_binary_rhs_succ)
   using exp_sub_after_sub_left by simp
 
-optimization SubThenAddLeft: "(x - (x + y)) \<longmapsto> -y"
+optimization SubThenAddLeft: "x - (x + y) \<longmapsto> -y"
   apply auto by (metis evalDet unary_eval.simps(2) unfold_unary val_sub_then_left_add)
 
-optimization SubThenAddRight: "(y - (x + y)) \<longmapsto> -x"
+optimization SubThenAddRight: "y - (x + y) \<longmapsto> -x"
   apply auto
   by (metis intval_add_sym unary_eval.simps(2) unfold_unary val_sub_then_left_add evalDet)
 
-optimization SubThenSubLeft: "(x - (x - y)) \<longmapsto> y"
-  using size_simps exp_sub_then_left_sub by auto
- 
-optimization SubtractZero: "(x - (const IntVal b 0)) \<longmapsto> x"
+optimization SubThenSubLeft: "x - (x - y) \<longmapsto> y"
+  apply (simp add: less_SucI pos_add_strict size_binary_rhs size_pos)
+  using exp_sub_then_left_sub by blast
+
+optimization SubtractZero: "x - (const IntVal b 0) \<longmapsto> x"
   using SubtractZero_Exp by fast
 
 thm_oracles SubtractZero
 
-(* Doesn't have any subgoals? *)
+(* doesn't have any subgoals? *)
 (*
 optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto> 
                                     x + (const (IntVal b y))  when (y < 0)"  
   done
 *)
 
-optimization SubNegativeValue: "(x - (-y)) \<longmapsto> x + y"
-  apply (metis add_2_eq_Suc' less_SucI less_add_Suc1 not_less_eq size_binary_const size_non_add)
-  using exp_sub_negative_value by blast
+optimization SubNegativeValue: "x - (-y) \<longmapsto> x + y"
+  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_sub_negative_value by blast
 
 thm_oracles SubNegativeValue
 
-(*Additional check for not constant for termination *)
-optimization ZeroSubtractValue: "((const IntVal b 0) - x) \<longmapsto> (-x)
+optimization ZeroSubtractValue: "(const IntVal b 0) - x \<longmapsto> (-x)
                                   when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and>
                                         \<not>(is_ConstantExpr x))"
-  using size_flip_binary ZeroSubtractValue_Exp by simp+
+  using ZeroSubtractValue_Exp by auto
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0
                             when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using size_non_const apply auto
-  by (smt (verit) wf_value_def ConstantExpr eval_bits_1_64 eval_unused_bits_zero new_int.simps
-      take_bit_of_0 val_sub_self_is_zero validDefIntConst valid_int wf_stamp_def One_nat_def
-      evalDet)
+  by (smt (verit) wf_value_def ConstantExpr eval_bits_1_64 eval_unused_bits_zero validDefIntConst
+      take_bit_of_0 val_sub_self_is_zero new_int.simps  valid_int wf_stamp_def One_nat_def evalDet)
 
 end (* End of SubPhase *)
 

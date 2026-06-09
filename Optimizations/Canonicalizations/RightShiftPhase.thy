@@ -31,7 +31,6 @@ proof -
 qed
 
 (* Exp level proofs *)
-
 lemma exp_ReturnXOnZeroShift_anyWidth:
   assumes "stamp_expr x = IntegerStamp b lo hi"
   and     "wf_stamp x"

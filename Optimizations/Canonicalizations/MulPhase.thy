@@ -42,25 +42,6 @@ lemma bin_multiply_power_2:
  "(x:: 'a::len word) * (2^j) = x << j"
   by simp
 
-(* Helper *)
-lemma take_bit64 [simp]:
-  fixes w :: "int64"
-  shows "take_bit 64 w = w"
-proof -
-  have "Nat.size w = 64"
-    by (simp add: size64)
-  then show ?thesis
-    by (metis lt2p_lem mask_eq_iff take_bit_eq_mask verit_comp_simplify1(2) wsst_TYs(3))
-qed
-
-(* TODO: merge this with val_eliminate_redundant_negative *)
-lemma mergeTakeBit:
-  fixes a :: "nat"
-  fixes b c :: "64 word"
-  shows "take_bit a (take_bit a (b) * take_bit a (c)) =
-         take_bit a (b * c)"
- by (smt (verit, ccfv_SIG) take_bit_mult take_bit_of_int unsigned_take_bit_eq word_mult_def)
-
 (* Value level proofs *)
 lemma val_eliminate_redundant_negative:
   assumes "val[-x * -y] \<noteq> UndefVal"
@@ -308,26 +289,6 @@ lemma exp_MulPower2AddPower2:
   using ConstantExprE equiv_exprs_def unfold_binary assms by fastforce
 
 (* Exp level helpers *)
-lemma greaterConstant:
-  fixes a b :: "64 word"
-  assumes "a > b"
-  and     "y = ConstantExpr (new_int 32 a)"
-  and     "x = ConstantExpr (new_int 32 b)"
-  shows "exp[y < x] \<ge> exp[const (new_int 32 0)]"
-  using assms apply auto
-  subgoal premises p for m p
-  proof -
-    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
-      using p(3,6) by auto
-    obtain ya where ya: "[m,p] \<turnstile> y \<mapsto> ya"
-      using p(2,5) by auto
-    have evalRhs: "[m,p] \<turnstile> exp[const (new_int 32 0)] \<mapsto> val[new_int 32 0]"
-      using wf_value_false by auto
-    show ?thesis
-     sorry
-  qed
-  done
-
 lemma exp_distribute_multiplication:
   assumes "stamp_expr x = IntegerStamp b xl xh"
   assumes "stamp_expr q = IntegerStamp b ql qh"
@@ -399,10 +360,10 @@ proof -
 qed
   done
 
-optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x 
+optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
                               when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>
-                                    y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1)) )"
+                                    y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1)))"
    apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
   proof -
@@ -413,9 +374,9 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
     obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> yv"
       using p by blast
     have ygezero: "y > ConstantExpr (IntVal 64 0)"
-      using greaterConstant p wf_value_def sorry 
+      using p wf_value_def sorry
     then have 1: "0 < i \<and>
-                  i < 64 \<and> 
+                  i < 64 \<and>
                   y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) + 1))"
       using p by blast
     then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
@@ -438,11 +399,10 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
   qed
   done
 
-(* Need to prove exp_MulPower2Sub1 *)
-optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x 
+optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
                               when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>
-                                    y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) - 1)) )"
+                                    y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) - 1)))"
    apply simp apply (rule impI; (rule allI)+; rule impI)
   subgoal premises p for m p v
   proof -
@@ -454,7 +414,7 @@ optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
       using p by blast
     have ygezero: "y > ConstantExpr (IntVal 64 0)" sorry
     then have 1: "0 < i \<and>
-                  i < 64 \<and> 
+                  i < 64 \<and>
                   y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) - 1))"
       using p by blast
     then have lhs: "[m, p] \<turnstile> exp[x * y] \<mapsto> val[xv * yv]"
@@ -470,7 +430,7 @@ optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
     then have "val[xv * yv] = val[(xv << (IntVal 64 i)) - xv]"
        using "1" exp_MulPower2Sub1 ygezero sorry 
      then show ?thesis
-      by (metis evalDet lhs p(1) p(2) rhs)
+      by (metis evalDet lhs p(1,2) rhs)
   qed
 done
 

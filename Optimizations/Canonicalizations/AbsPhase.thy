@@ -2,7 +2,8 @@ subsection \<open>AbsNode Phase\<close>
 
 theory AbsPhase
   imports
-    Common Proofs.StampEvalThms
+    Common
+    Proofs.StampEvalThms
 begin
 
 phase AbsNode

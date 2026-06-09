@@ -188,15 +188,11 @@ optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!
     have eqEvalFalse: "val[yv eq xv] = val[false]"
       unfolding xvv yvv apply auto by (metis (mono_tags) bool_to_val.simps(2) yxDiff yvv xvv)
     have "[m,p] \<turnstile> exp[(c ? x : y) eq y] \<mapsto> notCond"
-      apply (cases notCond) prefer 2
-      apply (metis IntVal0 eqEvalFalse falseEval val_eq_commutative intval_logic_negation.simps(1)
-             intval_self_is_true logic_negate_def trueEvalCond yvv cNotRange opposites zero_neq_one
-             cRange)
-      using notCond cNotRange by auto
+      by (metis cNotRange cRange eqEvalFalse falseEval intval_self_is_true negates opposites yvv
+          trueEvalCond val_eq_commutative zero_less_numeral)
     then show ?thesis
-      using ConditionalExprE
       by (metis cNotRange falseEval notCond trueCond falseCond intval_self_is_true p(9,11) evalDet
-          yvv)
+          yvv ConditionalExprE)
   qed
   done
 
@@ -259,7 +255,7 @@ optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
   qed
   done
 
-(* todo not sure if this is done properly *)
+(* TODO may require more complex stamp definition *)
 optimization normalizeX: "((x eq const val[false]) ? (const val[false]) : (const val[true])) \<longmapsto> x
                             when stamp_expr x = IntegerStamp 32 0 1 \<and> wf_stamp x \<and> is_boolean x"
   apply auto
@@ -280,16 +276,16 @@ optimization normalizeX: "((x eq const val[false]) ? (const val[false]) : (const
     qed
   done
 
-(* todo not sure if this is done properly *)
+(* TODO may require more complex stamp definition *)
 optimization normalizeX2: "((x eq (const val[true])) ? (const val[true]) : (const val[false])) \<longmapsto> x
                              when (x = ConstantExpr val[false] | (x = ConstantExpr val[true]))" .
 
-(* todo not sure if this is done properly *)
+(* TODO may require more complex stamp definition *)
 optimization flipX: "((x eq (const val[false])) ? (const val[true]) : (const val[false])) \<longmapsto>
                        x \<oplus> (const val[true])
                        when (x = ConstantExpr val[false] | (x = ConstantExpr val[true]))" .
 
-(* todo not sure if this is done properly *)
+(* TODO may require more complex stamp definition *)
 optimization flipX2: "((x eq (const val[true])) ? (const val[false]) : (const val[true])) \<longmapsto>
                         x \<oplus> (const val[true])
                         when (x = ConstantExpr val[false] | (x = ConstantExpr val[true]))" .
@@ -309,9 +305,8 @@ proof -
                                       (const val[false]) : (const val[true]))] \<mapsto> lhs"
     using eval(2) by auto
   then have lhsV: "lhs = val[((xv & true) eq false) ? false : true]"
-    using ConditionalExprE ConstantExprE bin_eval.simps(4,11) evalDet xv unfold_binary
-          intval_conditional.simps
-    by fastforce
+    by (smt (verit, del_insts) ConditionalExprE ConstantExprE evalDet xv intval_conditional.simps
+        unfold_binary bin_eval.simps(6,13))
   obtain rhs where rhs: "[m, p] \<turnstile> exp[x & (const val[true])] \<mapsto> rhs"
     using eval(2) by blast
   then have rhsV: "rhs = val[xv & true]"
@@ -320,32 +315,6 @@ proof -
     by (metis eval(2) evalDet lhs lhsV rhs val_optimise_integer_test x32)
 qed
   done
-
-(* todo not sure if this is done properly *)
-optimization opt_optimise_integer_test_2:
-     "(((x & (const val[true])) eq (const val[false])) ? (const val[false]) : (const val[true]))
-         \<longmapsto> x
-         when (x = ConstantExpr val[false] | (x = ConstantExpr val[true]))" .
-
-(*
-optimization opt_conditional_eliminate_known_less: "((x < y) ? x : y) \<longmapsto> x 
-                                 when (((stamp_under (stamp_expr x) (stamp_expr y)) |
-                                      ((stpi_upper (stamp_expr x)) = (stpi_lower (stamp_expr y))))
-                                      \<and> wf_stamp x \<and> wf_stamp y)"
-   apply auto using stamp_under_defn
-  apply simp sorry
-*)
-
-(*
-optimization opt_normalize_x_original: "((BinaryExpr BinIntegerEquals x (ConstantExpr (IntVal32 0))) ? 
-                                (ConstantExpr (IntVal32 0)) : (ConstantExpr (IntVal32 1))) \<longmapsto> x
-                                when (stamp_expr x = IntegerStamp 32 0 1 \<and> 
-                                      wf_stamp x)"
-   apply unfold_optimization apply simp_all
-  using wf_stamp_def apply (cases x; simp) 
-  
-  sorry
-*)
 
 (** End of new proofs **)
 

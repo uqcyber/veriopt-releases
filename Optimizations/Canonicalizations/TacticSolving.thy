@@ -89,11 +89,11 @@ optimization opt_add_left_negate_to_sub:
 
 subsection \<open>NegateNode\<close>
 
-lemma val_distribute_sub: 
- "val[-(x-y)] \<approx> val[y-x]" 
-  by (cases x; cases y; auto) 
+lemma val_distribute_sub:
+ "val[-(x - y)] \<approx> val[y - x]"
+  by (cases x; cases y; auto)
 
-optimization distribute_sub: "-(x-y) \<longmapsto> (y-x)" 
+optimization distribute_sub: "-(x - y) \<longmapsto> (y - x)"
   using val_distribute_sub unfold_binary unfold_unary by auto
 
 lemma val_xor_self_is_false:
@@ -101,16 +101,15 @@ lemma val_xor_self_is_false:
   shows "val[x \<oplus> x] \<approx> val[false]"
   by (cases x; auto simp: assms)
 
-lemma exp_xor_self_is_false: 
+lemma exp_xor_self_is_false:
   assumes "stamp_expr x = IntegerStamp 32 l h"
   assumes "wf_stamp x"
-  shows "exp[x \<oplus> x] >= exp[false]"
-  by (smt (z3) wf_value_def bin_eval.simps(8) bin_eval_new_int constantAsStamp.simps(1) evalDet 
-      int_signed_value_bounds new_int.simps new_int_take_bits unfold_binary unfold_const valid_int 
-      valid_stamp.simps(1) valid_value.simps(1) well_formed_equal_defn val_xor_self_is_false 
-      le_expr_def assms wf_stamp_def)
+  shows "exp[x \<oplus> x] \<ge> exp[false]"
+  using assms apply auto
+  by (metis (no_types, opaque_lifting) ExpIntBecomesIntVal evalDet false_always_evals val_xor_self
+      wf_stamp_def)
 
-text \<open>--- --- New Optimisations - submitted and added into Graal ---\<close>
+text \<open>--- New Optimisations ---\<close>
 
 lemma NotXorToXorVal:
   assumes "x = IntVal 32 xv"
@@ -146,8 +145,6 @@ optimization NotXorToXor: "exp[(~x) \<oplus> (~y)] \<longmapsto> (x \<oplus> y)
   using NotXorToXorExp by simp
 
 end
-
-text \<open>--- New optimisations - submitted, not added into Graal yet ---\<close>
 
 context stamp_mask
 begin
@@ -196,8 +193,9 @@ begin
  *)
 
 lemma TakeBitNotSelf:
-  "(take_bit 32 (not e) = e) = False"
-  by (metis even_not_iff even_take_bit_eq zero_neq_numeral)
+  assumes "b \<ge> 1"
+  shows "(take_bit b (not e) = e) = False"
+  by (metis assms takeBitNot take_bit_not_take_bit)
 
 lemma ValNeverEqNotSelf:
   assumes "e = IntVal 32 ev"
@@ -228,7 +226,6 @@ optimization NeverEqNotSelf: "exp[(\<not>x) eq x] \<longmapsto> exp[(const (bool
                         when (stamp_expr x = IntegerStamp 32 xl xh \<and> wf_stamp x)"
   apply (simp add: Suc_lessI) using ExpNeverNotSelf by force
 
-text \<open>--- New optimisations - not submitted / added into Graal yet ---\<close>
 (* 
   (x ^ y) == x \<mapsto> y == 0
   x == (x ^ y) \<mapsto> y == 0 
@@ -380,8 +377,6 @@ lemma RemoveRHSAndMask:
 
 (* Ian's new And optimisation
     x & y \<mapsto> 0 when x.up & y.up = 0
-
-    TODO: Double check and submit issue
 *)
 lemma ReturnZeroAndMask:
   assumes "stamp_expr x = IntegerStamp b xl xh"
@@ -420,7 +415,6 @@ phase TacticSolving
   terminating size
 begin
 
-
 (* 
  (x ^ y) == (x ^ z) \<mapsto> y == z
  (x ^ y) == (z ^ x) \<mapsto> y == z
@@ -441,15 +435,7 @@ lemma XorZeroIsSelf64:
   assumes "x = IntVal 64 xv"
   assumes "val[x \<oplus> (IntVal 64 0)] \<noteq> UndefVal"
   shows  "val[x \<oplus> (IntVal 64 0)] = x"
-  using assms apply (cases x; auto)
-  subgoal
-  proof -
-    have "take_bit (LENGTH(64)) xv = xv"
-      unfolding Word.take_bit_length_eq by simp
-    then show ?thesis
-      by auto
-   qed
-  done
+  using assms by (cases x; auto)
 
 lemma ValXorElimSelf64:
   assumes "x = IntVal 64 xv"
@@ -502,7 +488,7 @@ lemma valXorIsEqual_64:
         obtain l0 where l0: "l0 = (lowestOneBit (0::64 word))"
           by simp
         have "xor (take_bit l0 zv) (take_bit l0 xv) \<noteq> xor (take_bit l0 yv) (take_bit l0 xv)"
-          using notEq lowestOneBit_bot take_bit_size_eq l0 by presburger
+          using notEq lowestOneBit_bot take_bit_size_eq64 l0 by presburger
         then have "xor (take_bit l0 xv) (take_bit l0 yv) \<noteq> xor (take_bit l0 xv) (take_bit l0 zv)"
           by (simp add: xor.commute)
         then show ?thesis
@@ -590,7 +576,7 @@ lemma valXorEqZero_64:
   assumes "y = IntVal 64 yv"
   shows "val[(x \<oplus> y) eq (IntVal 64 0)] = val[x eq y]"
   using assms apply (cases x; cases y; auto)
-  unfolding unwrap_bool_to_val take_bit_size_eq Word.take_bit_length_eq by (simp add: xorZeroIsEq)
+  unfolding unwrap_bool_to_val take_bit_size_eq64 Word.take_bit_length_eq by (simp add: xorZeroIsEq)
 
 lemma expXorEqZero_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"
@@ -622,14 +608,6 @@ optimization XorEqZero_64: "exp[(x \<oplus> y) eq (const (IntVal 64 0))] \<longm
                            (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y)"
   using expXorEqZero_64 by fast
 
-(*
-XorEqNeg1
-  (x ^ y) == -1 \<mapsto> (x == \<not>y)
-
-  TODO prove termination and submit
-
- *)
-
 lemma xorNeg1IsEq:
   "bin[(xor xv yv) = (not 0)] = bin[xv = not yv]"
   using xorZeroIsEq by fastforce
@@ -640,7 +618,7 @@ lemma valXorEqNeg1_64:
   assumes "y = IntVal 64 yv"
   shows "val[(x \<oplus> y) eq (IntVal 64 (not 0))] = val[x eq (\<not>y)]"
   using assms apply (cases x; cases y; auto)
-  unfolding unwrap_bool_to_val take_bit_size_eq Word.take_bit_length_eq using xorNeg1IsEq by auto
+  unfolding unwrap_bool_to_val take_bit_size_eq64 Word.take_bit_length_eq using xorNeg1IsEq by auto
 
 lemma expXorEqNeg1_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"
@@ -695,6 +673,11 @@ lemma unfold_forPrimitive:
 
 lemma forPrimitive_size[size_simps]: "size (forPrimitive s v) = 1"
   by (cases s; auto)
+
+optimization opt_optimise_integer_test_2:
+     "(((x & (const val[true])) eq (const val[false])) ? (const val[false]) : (const val[true]))
+         \<longmapsto> x
+         when (x = ConstantExpr val[false] | (x = ConstantExpr val[true]))" .
 
 end
 

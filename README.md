@@ -19,13 +19,65 @@ Full document: https://uqcyber.github.io/veriopt-releases/Document/document.pdf
 
 Outline, ignoring proof details: https://uqcyber.github.io/veriopt-releases/Document/outline.pdf
 
-## Editing Theories
-Theories can be modified within the Isabelle/HOL IDE using the following command. Isabelle2022 will need to be installed and the tool wrapper should be accessible via the `isabelle` command on your machine.
+The theories can also be viewed interactively within the Isabelle/HOL IDE. Instructions on how to do so 
+are provided below.
+
+## Setup
+
+### Repository setup
+All of the Isabelle theories for this project are contained within this repository. First we will clone
+a local copy to access the theories.
 
 ```bash
 git clone https://github.com/uqcyber/veriopt-releases
-isabelle jedit -d veriopt-releases ROOT
 ```
+
+### Isabelle setup
+
+In order to build, edit and interactively view the theories, you will need access to the `isabelle`
+command which is bundled with the Isabelle2024 installation. On the 
+[Isabelle2024 installation website](https://isabelle.in.tum.de/website-Isabelle2024/installation.html), 
+find your operating system and follow the installation and setup instructions. Once complete, you should
+have an unpacked `Isabelle2024` directory on your system. Follow the additional instructions for your 
+operating system below to access the `isabelle` command.
+
+#### Linux
+
+The `isabelle` tool is located inside the `Isabelle2024/bin` directory. It is recommended that you add
+this directory to your PATH to access the `isabelle` command from anywhere on your system. 
+
+#### macOS
+
+Move the Isabelle2024 `.app` into the `/Applications` folder.
+
+The `isabelle` tool is located inside the `Isabelle2024.app/bin` directory. It is recommended
+that you add this directory to your PATH to access the `isabelle` command from anywhere on your system.
+
+#### Windows
+
+Open command prompt and navigate to the `Isabelle2024` directory
+
+```bash
+cd Isabelle2024
+```
+
+Run the `Cygwin-Terminal` batch file
+
+```bash
+Cygwin-Terminal.bat
+```
+
+From this terminal, the `isabelle` command can be accessed from anywhere on your system.
+
+## Editing Theories
+Theories can be modified within the Isabelle/HOL IDE using the following commands.
+
+```bash
+cd veriopt-releases
+isabelle jedit -d . ROOT
+```
+
+### Pre-compiling theories
 
 These theories are fairly large and require 32GB of RAM to load interactively. 
 If you do not have that luxury, you can pre-compile the most memory-intensive theories
@@ -43,10 +95,9 @@ As a side-effect of this precompilation, you'll be prevented from editing
 theories within Semantics ("Cannot update finished theory").
 
 ## Building Theories
-Building the theories will check all the theories in the repository are correct and generate HTML and PDF outputs. You can build the theories with the following command. Isabelle2022 will need to be installed and the tool wrapper should be accessible via the `isabelle` command on your machine.
+Building the theories will check all the theories in the repository are correct and generate HTML and PDF outputs. You can build the theories with the following commands.
 
 ```bash
-git clone https://github.com/uqcyber/veriopt-releases
 cd veriopt-releases
 isabelle build -P. -D . -v
 ```

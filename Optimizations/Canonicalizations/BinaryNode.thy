@@ -9,7 +9,9 @@ phase BinaryNode
   terminating size
 begin
 
-optimization BinaryFoldConstant: "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2)"
+optimization BinaryFoldConstant:
+  "BinaryExpr op (const v1) (const v2) \<longmapsto> ConstantExpr (bin_eval op v1 v2)"
+  using bin_op_size.simps apply (metis Suc_lessD not_add_less1 not_less_eq size_bin_ops_div)
   unfolding le_expr_def apply (rule allI impI)+
   subgoal premises bin for m p v
     apply (rule BinaryExprE[OF bin])

@@ -14,14 +14,6 @@ lemma binadd_commute:
   shows "bin_eval BinAdd x y = bin_eval BinAdd y x"
   by (simp add: intval_add_sym)
 
-(* horrible backward proof - needs improving *)
-optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
-  apply (metis add_2_eq_Suc' less_Suc_eq plus_1_eq_Suc size.simps(11) size_non_add)
-  using le_expr_def binadd_commute by blast
-
-optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
-  using AddShiftConstantRight by auto
-
 (* TODO: define is_neutral and then lemmas like this: 
 lemma simp_neutral:
   assumes n: "is_neutral op (IntVal32 n)" 
@@ -186,6 +178,10 @@ lemma exp_add_left_negate_to_sub:
   "exp[-e + y] \<ge> exp[y - e]"
   by (cases e; cases y; auto simp: AddToSubHelperLowLevel)
 
+lemma exp_add_right_negate_to_sub:
+  shows "exp[x + -y] \<ge> exp[x - y]"
+  by (meson dual_order.trans exp_add_commutative exp_add_left_negate_to_sub)
+
 lemma RedundantAddSub_Exp:
   shows "exp[(b + a) - b] \<ge> a"
   apply auto
@@ -228,8 +224,8 @@ lemma AddNotExp:
       by (metis valid_int wf_stamp_def xaDef2 assms)
     have wfInt: "wf_value (new_int b (not 0))"
       using validDefIntConst xaDef by (simp add: eval_bits_1_64 xv wf_value_def)
-    have toValRHS: "[m,p] \<turnstile> exp[(const (new_int b (not 0)))] \<mapsto> new_int b (not 0)"
-      using wfInt by (simp add: const_eval_is_const)
+    have toValRHS: "[m,p] \<turnstile> exp[const (new_int b (not 0))] \<mapsto> new_int b (not 0)"
+      using wfInt by blast
     have "val[xa + (~xa)] = new_int b (not 0)"
       by (simp add: xv)
     then show ?thesis
@@ -239,13 +235,18 @@ lemma AddNotExp:
 
 text \<open>Optimisations\<close>
 
+optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+  using exp_add_commutative by blast
+
+optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+  using AddShiftConstantRight by auto
+
 optimization RedundantSubAdd: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
   using RedundantSubAdd_Exp by blast
 
 optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
-  using size_binary_rhs_a apply simp apply auto
-  by (smt (z3) NeutralLeftSubVal evalDet eval_unused_bits_zero intval_add_sym intval_sub.elims
-      new_int.simps well_formed_equal_defn)
+  apply (simp add: less_SucI pos_add_strict size_pos size_binary_lhs)
+  using RedundantSubAdd_Exp exp_add_commutative order.trans by blast
 
 optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
   using AddNeutral_Exp by presburger
@@ -254,24 +255,18 @@ optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
   using RedundantAddSub_Exp by blast
 
 optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
-  apply (metis Nat.add_0_right add_2_eq_Suc' add_less_mono1 add_mono_thms_linordered_field(2) 
-         less_SucI not_less_less_Suc_eq size_binary_const size_non_add size_pos)
-  using AddToSubHelperLowLevel intval_add_sym by auto
+  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_add_right_negate_to_sub by auto
 
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
-  apply (smt (verit, best) One_nat_def add.commute add_Suc_right is_ConstantExpr_def less_add_Suc2 
-         numeral_2_eq_2 plus_1_eq_Suc size.simps(1) size.simps(11) size_binary_const size_non_add)
-  using exp_add_left_negate_to_sub by simp
+  using exp_add_left_negate_to_sub by auto
 
 optimization AddNot: "exp[n + (~n)] \<longmapsto> (const (new_int b (not 0)))
-                       when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
-   apply (simp add: Suc_lessI) using AddNotExp by fastforce
+                      when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
+  using AddNotExp by force
 
 optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
-                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
-   apply (metis One_nat_def less_numeral_extra(3) less_one linorder_neqE_nat size_binary_rhs
-          size_pos)
-   using AddNot exp_add_commutative by auto
+                       when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
+  using size_bin_gt_1 AddNotExp exp_add_commutative by force+
 
 (* ----- Ends here ----- *)
 

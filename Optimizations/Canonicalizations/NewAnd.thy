@@ -6,7 +6,7 @@ theory NewAnd
     Graph.JavaLong
 begin
 
-(* Proving the new optimisations in AndNode.eliminateRedundantBinaryArithmeticOp() *)
+text \<open> Proving the new optimisations in AndNode.eliminateRedundantBinaryArithmeticOp() \<close>
 
 lemma intval_distribute_and_over_or:
   "val[z & (x | y)] = val[(z & x) | (z & y)]"
@@ -47,8 +47,6 @@ lemma exp_and_absorb_or:
       by (metis evalDet p(1,2,3,4) xv)
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis Value.exhaust_sel intval_and.simps(2,3,4,5) lhsDefined)
-    obtain yb yvv where yvv: "yv = IntVal yb yvv"
-      by (metis Value.exhaust_sel intval_and.simps(6) intval_or.simps(6,7,8,9) lhsDefined)
     then have valEval: "val[xv & (xv | yv)] = val[xv]"
       by (metis eval_unused_bits_zero intval_and_absorb_or lhsDefined new_int.elims xv xvv)
     then show ?thesis
@@ -69,8 +67,6 @@ lemma exp_or_absorb_and:
       by (metis evalDet p(1,2,3,4) xv)
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis Value.exhaust_sel intval_and.simps(3,4,5) intval_or.simps(2,6) lhsDefined)
-    obtain yb yvv where yvv: "yv = IntVal yb yvv"
-      by (metis Value.exhaust_sel intval_and.simps(6,7,8,9) intval_or.simps(6) lhsDefined)
     then have valEval: "val[xv | (xv & yv)] = val[xv]"
       by (metis eval_unused_bits_zero intval_or_absorb_and lhsDefined new_int.elims xv xvv)
     then show ?thesis
@@ -351,24 +347,24 @@ lemma L1:
 proof -
   have nle: "n \<le> 64"
     using assms diff_le_self by blast
-  also have "and v zv = horner_sum of_bool 2 (map (bit (and v zv)) [0..<64])"
+  also have andEq: "and v zv = horner_sum of_bool 2 (map (bit (and v zv)) [0..<64])"
     by (metis size_word.rep_eq take_bit_length_eq horner_sum_bit_eq_take_bit size64)
   also have "... = horner_sum of_bool 2 (map (\<lambda>i. bit (and v zv) i) [0..<64])"
     by blast
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<64])"
+  also have eqSum64:"... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<64])"
     by (metis bit_and_iff)
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<n])"
+  also have eqSumN: "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit v i) \<and> (bit zv i))) [0..<n])"
   proof -
     have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
       by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms
-          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc
-          zerosAboveHighestOne not_may_implies_false)
+          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zerosAboveHighestOne
+          not_may_implies_false zero_less_Suc)
     then have "\<forall>i. i \<ge> n \<longrightarrow> \<not>((bit v i) \<and> (bit zv i))"
       by auto
     then show ?thesis
       by (metis (no_types, lifting) nle split_horner)
   qed
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<n])"
+  also have eqSumAndN: "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<n])"
   proof -
     have "\<forall>i. i < n \<longrightarrow> bit (v mod 2^n) i = bit v i"
       by (metis bit_take_bit_iff take_bit_eq_mod)
@@ -377,21 +373,21 @@ proof -
     then show ?thesis
       by (rule transfer_horner)
   qed
-  also have "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<64])"
+  also have eqSumAnd: "... = horner_sum of_bool 2 (map (\<lambda>i. ((bit (v mod 2^n) i) \<and> (bit zv i))) [0..<64])"
   proof -
     have "\<forall>i. i \<ge> n \<longrightarrow> \<not>(bit zv i)"
       by (smt (verit, ccfv_SIG) One_nat_def diff_less int_ops(6) leadingZerosAddHighestOne assms
-          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zero_less_Suc
-          zerosAboveHighestOne not_may_implies_false)
+          linorder_not_le nat_int_comparison(2) not_numeral_le_zero size64 zerosAboveHighestOne
+          not_may_implies_false zero_less_Suc)
     then show ?thesis
       by (metis (no_types, lifting) assms(1) diff_le_self split_horner)
   qed
-  also have "... = horner_sum of_bool 2 (map (bit (and (v mod 2^n) zv)) [0..<64])"
+  also have eqSum: "... = horner_sum of_bool 2 (map (bit (and (v mod 2^n) zv)) [0..<64])"
     by (meson bit_and_iff)
   also have "... = and (v mod 2^n) zv"
     by (metis size_word.rep_eq take_bit_length_eq horner_sum_bit_eq_take_bit size64)
-  finally show ?thesis
-    using \<open>and (v::64 word) (zv::64 word) = horner_sum of_bool (2::64 word) (map (bit (and v zv)) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit ((v::64 word) mod (2::64 word) ^ (n::nat)) i \<and> bit (zv::64 word) i) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (bit (and (v mod (2::64 word) ^ n) zv)) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit ((v::64 word) mod (2::64 word) ^ (n::nat)) i \<and> bit (zv::64 word) i) [0::nat..<n]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v mod (2::64 word) ^ n) i \<and> bit zv i) [0::nat..<64::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v::64 word) i \<and> bit (zv::64 word) i) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit v i \<and> bit zv i) [0::nat..<n::nat])\<close> \<open>horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v::64 word) i \<and> bit (zv::64 word) i) [0::nat..<n::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit (v mod (2::64 word) ^ n) i \<and> bit zv i) [0::nat..<n])\<close> \<open>horner_sum of_bool (2::64 word) (map (bit (and ((v::64 word) mod (2::64 word) ^ (n::nat)) (zv::64 word))) [0::nat..<64::nat]) = and (v mod (2::64 word) ^ n) zv\<close> \<open>horner_sum of_bool (2::64 word) (map (bit (and (v::64 word) (zv::64 word))) [0::nat..<64::nat]) = horner_sum of_bool (2::64 word) (map (\<lambda>i::nat. bit v i \<and> bit zv i) [0::nat..<64::nat])\<close> by presburger
+  then show ?thesis
+    using andEq eqSum eqSumAnd eqSumN eqSumAndN eqSum64 by presburger
 qed
 
 lemma up_mask_upper_bound:
@@ -403,7 +399,6 @@ lemma up_mask_upper_bound:
 lemma L2:
   assumes "numberOfLeadingZeros (\<up>z) + numberOfTrailingZeros (\<up>y) \<ge> 64"
   assumes "n = 64 - numberOfLeadingZeros (\<up>z)"
-  assumes "[m, p] \<turnstile> z \<mapsto> IntVal b zv"
   assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
   shows "yv mod 2^n = 0"
 proof -
@@ -412,7 +407,7 @@ proof -
   also have "... \<le> horner_sum of_bool 2 (map (bit (\<up>y)) [0..<n])"
     by (metis (no_types, opaque_lifting) and.right_neutral bit.conj_cancel_right word_not_dist(2)
         bit.conj_disj_distribs(1) bit.double_compl horner_sum_bit_eq_take_bit take_bit_and ucast_id
-        up_spec word_and_le1 assms(4))
+        up_spec word_and_le1 assms(3))
   also have "horner_sum of_bool 2 (map (bit (\<up>y)) [0..<n]) = horner_sum of_bool 2 (map (\<lambda>x. False) [0..<n])"
   proof -
     have "\<forall>i < n. \<not>(bit (\<up>y) i)"
@@ -496,22 +491,17 @@ proof -
       using ValueThms.mod_dist_over_add le_eq_less_or_eq n_bounds by auto
     also have "... = and ((xv mod 2^n) mod 2^n) zv"
       using L2 n zv yv assms by auto
-    also have "... = and (xv mod 2^n) zv"
-      by (smt (verit, best) and.idem take_bit_eq_mask take_bit_eq_mod word_bw_assocs(1)
-          mod_mod_trivial)
     also have "... = and xv zv"
       by (metis L1 n zv)
     finally show ?thesis
       by (metis evalDet eval lhs rhs)
   next
     case False
-    then have "numberOfLeadingZeros (\<up>z) = 0"
-      by simp
     then have "numberOfTrailingZeros (\<up>y) \<ge> 64"
       using assms by fastforce
     then have "yv = 0"
-      by (metis (no_types, lifting) L1 L2 add_diff_cancel_left' and.comm_neutral linorder_not_le
-          bit.conj_cancel_right bit.conj_disj_distribs(1) bit.double_compl less_imp_diff_less yv
+      by (metis (no_types, lifting) L1 L2 add_diff_cancel_left' and.comm_neutral linorder_not_le yv
+          bit.conj_cancel_right bit.conj_disj_distribs(1) bit.double_compl less_imp_diff_less
           word_not_dist(2))
     then show ?thesis
       by (metis add.right_neutral eval evalDet lhs rhs)
@@ -776,7 +766,6 @@ qed
 
 end
 
-
 phase NewAnd
   terminating size
 begin
@@ -785,32 +774,28 @@ text \<open>Optimisations\<close>
 
 optimization RedundantLhsYOr: "((x | y) & z) \<longmapsto> x & z
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-  apply (metis size_binary_const add_strict_right_mono size_binary_lhs size_non_add)
-  using simple_mask.exp_eliminate_y by blast
+  using size_lt_implies_bin_lt size_binary_lhs simple_mask.exp_eliminate_y by blast+
 
 optimization RedundantLhsXOr: "((x | y) & z) \<longmapsto> y & z
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  apply (metis size_binary_const add_less_cancel_right size_binary_rhs size_non_add)
-  using simple_mask.exp_eliminate_x by blast
+  using size_lt_implies_bin_lt size_binary_rhs simple_mask.exp_eliminate_x by blast+
 
 optimization RedundantRhsYOr: "(z & (x | y)) \<longmapsto> z & x
                                 when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
-  apply (smt (verit, ccfv_threshold) Suc_mono add.assoc add.commute add_2_eq_Suc' add_le_less_mono
-         less_Suc_eq numeral_2_eq_2 size_non_add size_pos verit_comp_simplify1(2) size_binary_const
-         size_binary_lhs_a)
+  apply (smt (verit, ccfv_SIG) IRBinaryOp.distinct(99) int_ops(2) int_plus nat_int_comparison(2)
+         plus_1_eq_Suc size_bin_lt_sum_div size_binary_lhs)
   by (meson dual_order.trans simple_mask.exp_eliminate_y RedundantLhsYOr exp_and_commutative)
 
 optimization RedundantRhsXOr: "(z & (x | y)) \<longmapsto> z & y
                                 when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
-  apply (metis (no_types, opaque_lifting) add.assoc add_strict_increasing less_Suc_eq
-         nat_add_left_cancel_less size_non_add size_pos verit_comp_simplify1(2) size_binary_const)
+  apply (smt (verit) IRBinaryOp.distinct(99) int_plus nat_int_comparison(2) size_bin_lt_sum_div
+         size_binary_rhs int_ops(4))
   by (meson dual_order.trans exp_and_commutative simple_mask.exp_eliminate_x)
 
 (*
 optimization redundant_lhs_add: "((x + y) & z) \<longmapsto> x & z
                                when ((and (IRExpr_up y) (IRExpr_up z)) = 0)"
 *)
-
 
 end
 

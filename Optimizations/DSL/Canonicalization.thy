@@ -71,7 +71,7 @@ fun pretty ctxt obligations t =
 
     fun pretty_bind binding =
       Pretty.markup 
-        (Position.markup (Binding.pos_of binding) Markup.position)
+        (Position.markup (Binding.pos_of binding))
         [Pretty.str (Binding.name_of binding)];
 
   in
@@ -109,10 +109,10 @@ val _ =
 fun export_phases thy name =
   let
     val state = Toplevel.make_state (SOME thy);
-    val ctxt = Toplevel.context_of state;
-    val content = Pretty.string_of (Pretty.chunks (print_phases false ctxt));
-    val cleaned = YXML.content_of content;    
-
+    val ctxt = Toplevel.context_of state;          
+    val content = Pretty.pure_string_of (Pretty.chunks (print_phases false ctxt));
+    (*val cleaned = YXML.content_of content;   *) 
+    val cleaned = content; 
 
     val filename = Path.explode (name^".rules");
     val directory = Path.explode "optimizations";
@@ -161,15 +161,26 @@ fun intval :: "Value Rewrite \<Rightarrow> bool" where
 
 subsubsection \<open>Standard Termination Measure\<close>
 
+(* Calculates an expression's size as a function of the operator and size of the operands, default
+   is unchanged *)
+fun bin_op_size :: "nat \<Rightarrow> IRBinaryOp \<Rightarrow> nat" where
+  div_size:
+  "bin_op_size ops_size BinDiv = ops_size + 4" |
+  "bin_op_size ops_size _ = ops_size"
+(*"bin_op_size BinSub = 1" |
+  "bin_op_size BinMul = 1"*)
+
+fun un_op_size :: "nat \<Rightarrow> IRUnaryOp \<Rightarrow> nat" where
+  "un_op_size ops_size _ = ops_size"
+
+(* General size calculation *)
 fun size :: "IRExpr \<Rightarrow> nat" where
   unary_size:
-  "size (UnaryExpr op x) = (size x) + 2" |
-  (*"size (BinaryExpr BinSub x y) = (size x) + (size y) + 3" |
-  "size (BinaryExpr BinMul x y) = (size x) + (size y) + 3" |*)
+  "size (UnaryExpr op x) = (un_op_size ((size x) + 2) op)" |
   bin_const_size:
-  "size (BinaryExpr op x (ConstantExpr cy)) = (size x) + 2" |
+  "size (BinaryExpr op x (ConstantExpr cy)) = (bin_op_size ((size x) + 2) op)" |
   bin_size:
-  "size (BinaryExpr op x y) = (size x) + (size y) + 2" |
+  "size (BinaryExpr op x y) = (bin_op_size ((size x) + (size y) + 2) op)" |
   cond_size:
   "size (ConditionalExpr c t f) = (size c) + (size t) + (size f) + 2" |
   const_size:

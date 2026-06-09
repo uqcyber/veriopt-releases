@@ -1,7 +1,7 @@
 subsection \<open>ShiftNode Phase\<close>
 
 theory ShiftPhase
-  imports 
+  imports
     Common
 begin
 
@@ -9,6 +9,7 @@ phase ShiftNode
   terminating size
 begin
 
+(* Value level proofs *)
 fun intval_log2 :: "Value \<Rightarrow> Value" where
   "intval_log2 (IntVal b v) = IntVal b (word_of_int (SOME e. v=2^e))" |
   "intval_log2 _ = UndefVal"
@@ -49,10 +50,12 @@ proof (rule impI)
 qed
 qed
 
+text \<open>Optimisations\<close>
+
 optimization e:
   "x * (const c) \<longmapsto> x << (const n) when (n = intval_log2 c \<and> in_bounds n 0 32)"
   using e_intval BinaryExprE ConstantExprE bin_eval.simps(2,7) sorry
 
-end
+end (* End of ShiftPhase *)
 
-end
+end (* End of file *)

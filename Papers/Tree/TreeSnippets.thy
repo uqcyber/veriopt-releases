@@ -178,7 +178,7 @@ snipbegin \<open>RedundantSubtract\<close>
 optimization RedundantSubtract:
   "x - (x - y) \<longmapsto> y"
 snipend -
-  using size_simps apply simp
+  using size_binary_rhs_b apply blast
   using diff_diff_cancel_expr by presburger
 end
 
@@ -299,6 +299,7 @@ snipend -
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
+  using const_size size_bin_gt_1 apply presburger
   using BinaryFoldConstant(1) by auto
 
 snipbegin \<open>AddCommuteConstantRight\<close>
@@ -379,7 +380,7 @@ snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < 
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
-lemma simplified_binary: "\<not>(is_ConstantExpr b) \<Longrightarrow> size (BinaryExpr op a b) = size a + size b + 2"
+lemma simplified_binary: "\<not>(is_ConstantExpr b) \<Longrightarrow> size (BinaryExpr op a b) = bin_op_size ((size a) + (size b) + 2) op"
   by (induction b; induction op; auto simp: is_ConstantExpr_def)
 
 thm bin_size

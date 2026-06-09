@@ -88,20 +88,15 @@ lemma exp_negative_shift:
 text \<open>Optimisations\<close>
 
 optimization NegateCancel: "-(-(x)) \<longmapsto> x"
-  using exp_negative_cancel by blast 
+  using exp_negative_cancel by blast
 
-(* FloatStamp condition is omitted. Not 100% sure. *)
 optimization DistributeSubtraction: "-(x - y) \<longmapsto> (y - x)"
-  apply (smt (verit, best) add.left_commute add_2_eq_Suc' add_diff_cancel_left' is_ConstantExpr_def
-         less_Suc_eq_0_disj plus_1_eq_Suc size.simps(11) size_binary_const size_non_add add_Suc
-         zero_less_diff exp_distribute_sub nat_add_left_cancel_less less_add_eq_less zero_less_Suc
-         trans_less_add2 size_binary_rhs Suc_eq_plus1 Nat.add_0_right old.nat.inject lessI)
-   using exp_distribute_sub by simp
+  using exp_distribute_sub by simp
 
-(* Need to prove exp_negative_shift *)
+(* TODO need to prove exp_negative_shift *)
 optimization NegativeShift: "-(x >> (const (new_int b y))) \<longmapsto> x >>> (const (new_int b y))
                                    when (stamp_expr x = IntegerStamp b' lo hi \<and> unat y = (b' - 1))"
-  using exp_negative_shift by simp 
+  using exp_negative_shift by simp
 
 end (* End of NegatePhase *)
 

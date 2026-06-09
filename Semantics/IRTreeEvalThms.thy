@@ -715,8 +715,7 @@ lemma unary_eval_bitsize:
   using assms apply (cases op; simp) prefer 2
   apply (metis (no_types, lifting) Value.distinct(1) Value.inject(1) le_zero_eq new_int.simps
          gr_zeroI)
-  by (metis Value.distinct(1) Value.inject(1) intval_narrow.simps(1) intval_narrow_ok new_int.simps
-      le_zero_eq gr_zeroI)+
+  by (metis Value.distinct(1) new_int.simps order.strict_trans2 intval_bits.simps le_trans)+
 
 (*
 lemma unary2:

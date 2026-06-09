@@ -47,7 +47,7 @@ proof -
     by (metis Suc_1 diff_le_self lessI linorder_not_less one_less_numeral_iff
         power_strict_increasing_iff zle_diff1_eq)
   have **: "1 - 2 ^ (LENGTH('e) - Suc 0) < int LENGTH('f)"
-    by (smt len_gt_0 of_nat_0_less_iff zero_less_power)
+    by (smt (verit) len_gt_0 of_nat_0_less_iff zero_less_power)
   have ***: "2 ^ (LENGTH('e) - 1) + 1 =
     2 ^ LENGTH('e) - int (bias TYPE(('e, 'f) IEEE.float))"
     by (simp add: bias_def power_Suc[symmetric] of_nat_diff mask_eq_exp_minus_1)

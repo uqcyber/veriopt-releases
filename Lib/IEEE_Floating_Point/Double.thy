@@ -33,9 +33,9 @@ lift_definition eq_double::"double\<Rightarrow>double\<Rightarrow>bool" is float
 
 lift_definition sqrt_double::"double\<Rightarrow>double" is float_sqrt .
 
-no_notation plus_infinity ("\<infinity>")
+no_notation plus_infinity (\<open>\<infinity>\<close>)
 
-lift_definition infinity_double::"double" ("\<infinity>") is plus_infinity .
+lift_definition infinity_double::"double" (\<open>\<infinity>\<close>) is plus_infinity .
 
 lift_definition is_normal::"double \<Rightarrow> bool" is IEEE.is_normal .
 lift_definition is_zero::"double \<Rightarrow> bool" is IEEE.is_zero .

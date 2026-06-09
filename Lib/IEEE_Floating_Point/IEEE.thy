@@ -18,7 +18,8 @@ typedef (overloaded) ('e::len, 'f::len) float = "UNIV::(1 word \<times> 'e word 
 
 setup_lifting type_definition_float
 
-syntax "_float" :: "type \<Rightarrow> type \<Rightarrow> type" ("'(_, _') float")
+syntax "_float" :: "type \<Rightarrow> type \<Rightarrow> type" (\<open>'(_, _') float\<close>)
+syntax_types "_float" \<rightleftharpoons> float
 text \<open>parse \<open>('a, 'b) float\<close> as ('a::len, 'b::len) float.\<close>
 
 parse_translation \<open>
@@ -112,7 +113,7 @@ definition is_finite :: "('e, 'f) float \<Rightarrow> bool"
 
 subsection \<open>Special values\<close>
 
-lift_definition plus_infinity :: "('e, 'f) float" ("\<infinity>") is "(0, - 1, 0)" .
+lift_definition plus_infinity :: "('e, 'f) float" (\<open>\<infinity>\<close>) is "(0, - 1, 0)" .
 
 lift_definition topfloat :: "('e, 'f) float" is "(0, - 2, 2^LENGTH('f) - 1)" .
 
@@ -455,7 +456,7 @@ instance ..
 
 end
 
-definition float_eq :: "('a, 'b) float \<Rightarrow> ('a, 'b) float \<Rightarrow> bool"  (infixl "\<doteq>" 70)
+definition float_eq :: "('a, 'b) float \<Rightarrow> ('a, 'b) float \<Rightarrow> bool"  (infixl \<open>\<doteq>\<close> 70)
   where "float_eq a b = feq a b"
 
 instantiation float :: (len, len) abs

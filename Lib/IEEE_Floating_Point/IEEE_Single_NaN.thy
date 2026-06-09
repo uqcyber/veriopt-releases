@@ -37,7 +37,8 @@ text \<open>Note that @{typ "('e, 'f) floatSingleNaN"} does not count the hidden
   without completely separating the definition of @{typ "('e, 'f) floatSingleNaN"} in this theory
   from the definition of @{typ "('e, 'f) float"} in IEEE.thy.\<close>
 
-syntax "_floatSingleNaN" :: "type \<Rightarrow> type \<Rightarrow> type" ("'(_, _') floatSingleNaN")
+syntax "_floatSingleNaN" :: "type \<Rightarrow> type \<Rightarrow> type" (\<open>'(_, _') floatSingleNaN\<close>)
+syntax_types "_floatSingleNaN" \<rightleftharpoons> floatSingleNaN
 text \<open>Parse \<open>('a, 'b) floatSingleNaN\<close> as \<open>('a::len, 'b::len) floatSingleNaN\<close>.\<close>
 
 parse_translation \<open>
@@ -69,7 +70,7 @@ lift_definition fp :: "1 word \<Rightarrow> 'e word \<Rightarrow> 'f word \<Righ
 
 subsubsection \<open>Plus and minus infinity\<close>
 
-lift_definition plus_infinity :: "('e, 'f) floatSingleNaN" ("\<infinity>") is IEEE.plus_infinity .
+lift_definition plus_infinity :: "('e, 'f) floatSingleNaN" (\<open>\<infinity>\<close>) is IEEE.plus_infinity .
 
 lift_definition minus_infinity :: "('e, 'f) floatSingleNaN" is IEEE.minus_infinity .
 

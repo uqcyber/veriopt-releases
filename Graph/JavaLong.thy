@@ -689,6 +689,13 @@ proof -
   finally show ?thesis .
 qed
 
+section \<open>Bounded Rings\<close>
+
+text \<open>
+Extending the @{locale ring_bit_operations} locale to be bounded by some limit.
+On machine words for example, this is the word width.
+\<close>
+
 locale bounded_ring_bit_operations = ring_bit_operations +
   fixes bound :: "'a \<Rightarrow> nat"
   assumes bounded: "\<forall>i > bound w. \<not>(bit w i)"
@@ -699,14 +706,71 @@ lemma finite_bits: "finite {i. bit w i}"
 
 end
 
+subsection \<open>Support\<close>
+
+text \<open>
+Defining a function, supp, that provides the set of all set (on) bits.
+@{url "https://en.wikipedia.org/wiki/Support_(mathematics)"}
+\<close>
+
+context bounded_ring_bit_operations
+begin
+
+definition supp :: "'a \<Rightarrow> nat set" where
+  "supp w = {i. bit w i}"
+
+lemma supp_finite: "finite (supp w)"
+  unfolding supp_def by (rule finite_bits)
+
+lemma supp_zero: "supp zero = {}"
+  unfolding supp_def by simp
+
+lemma supp_one: "supp one = {0}"
+  unfolding supp_def using local.bit_1_iff by auto
+
+lemma supp_eq_iff: "a = b \<longleftrightarrow> supp a = supp b"
+  unfolding supp_def by (metis local.bit_eq_iff mem_Collect_eq)
+
+lemma supp_and: "supp (and a b) = supp a \<inter> supp b"
+  unfolding supp_def by (auto simp: local.bit_and_iff)
+
+lemma supp_or: "supp (or a b) = supp a \<union> supp b"
+  unfolding supp_def by (auto simp: local.bit_or_iff)
+
+lemma supp_xor: "supp (xor a b) = (supp a - supp b) \<union> (supp b - supp a)"
+  unfolding supp_def by (auto simp: local.bit_xor_iff)
+
+(*
+lemma supp_not: "supp (not w) = {i. 2^i \<noteq> 0} - supp w"
+  unfolding supp_def using bit_not_iff sorry
+
+lemma supp_push_bit: "supp (push_bit n w) = {i + n | i . i \<in> supp w}"
+  unfolding supp_def using bit_push_bit_iff sorry
+*)
+
+end
+
 section \<open>Population Count\<close>
 
 text \<open>The `pop' of a word, the count of set bits.\<close>
 
-locale bit_count = bounded_ring_bit_operations +
-  fixes bitCount :: "'a \<Rightarrow> nat"
-  assumes bc: "bitCount w = (\<Sum>i=0..bound w. of_bool (bit w i))"
+locale bit_count = bounded_ring_bit_operations
 begin
+
+definition bitCount :: "'a \<Rightarrow> nat" where
+  "bitCount w = card (supp w)"
+
+lemma bc: "bitCount w = (\<Sum>i=0..bound w. of_bool (bit w i))"
+proof -
+  have "{i. bit w i} = ({i. i \<le> bound w \<and> bit w i} \<union> {i. i > bound w \<and> bit w i})"
+    by fastforce
+  also have "{i. i > bound w \<and> bit w i} = {}"
+    using bounded by blast
+  ultimately have set_eq: "{i. bit w i} = {i. 0 \<le> i \<and> i \<le> bound w \<and> bit w i}"
+    by blast
+  then show ?thesis using sum_eq_card
+    using local.bitCount_def supp_def by presburger
+qed
 
 lemma of_bool: "of_bool a = (if a then 1 else 0)"
   by auto
@@ -716,6 +780,10 @@ lemma count_zero: "bitCount zero = 0"
 
 lemma count_one: "bitCount one = 1"
   unfolding bc of_bool using bit_1_iff by simp
+
+lemma count_union_inter:
+  "bitCount (or a b) + bitCount (and a b) = bitCount a + bitCount b"
+  by (metis card_Un_Int local.bitCount_def supp_and supp_finite supp_or)
 
 lemma card_count: "bitCount w = card {i. bit w i}"
 proof -
@@ -747,12 +815,17 @@ proof -
 qed
 end
 
-locale bit_top_bot = bounded_ring_bit_operations +
-  fixes topBit :: "'a \<Rightarrow> nat" ("\<top>")
-    and botBit :: "'a \<Rightarrow> nat" ("\<bottom>")
-  assumes hsb: "topBit w = Max {i . bit w i}"
-      and lsb: "botBit w = Min {i . bit w i}"
+locale bit_top_bot = bounded_ring_bit_operations
 begin
+
+definition topBit :: "'a \<Rightarrow> nat" ("\<top>") where
+  "topBit w = Max (supp w)"
+definition botBit :: "'a \<Rightarrow> nat" ("\<bottom>") where
+  "botBit w = Min (supp w)"
+
+definition ntz :: "'a \<Rightarrow> nat" where "ntz w = \<bottom> w"
+definition nlz :: "'a \<Rightarrow> nat" where "nlz w = bound w - \<top> w"
+
 definition highestOneBit :: "'a \<Rightarrow> 'a" where
   "highestOneBit w = push_bit (\<top> w) one"
 
@@ -760,28 +833,33 @@ definition lowestOneBit :: "'a \<Rightarrow> 'a" where
   "lowestOneBit w = push_bit (\<bottom> w) one"
 
 lemma top_one: "\<top> one = 0"
-  using hsb bit_1_iff by simp
+  using topBit_def supp_def bit_1_iff by simp
 
 lemma bot_one: "\<bottom> one = 0"
-  using lsb bit_1_iff by simp
+  using botBit_def supp_def bit_1_iff by simp
 
 lemma top_set: 
   assumes "w \<noteq> zero"
   shows "bit w (\<top> w)"
-  using assms finite_bits unfolding hsb
+  using assms finite_bits unfolding topBit_def supp_def
   by (metis Collect_empty_eq_bot Max_in local.bit_0_eq local.bit_eq_iff mem_Collect_eq)
 
 lemma bot_set: "w \<noteq> zero \<Longrightarrow> bit w (\<bottom> w)"
-  using finite_bits unfolding lsb
+  using finite_bits unfolding botBit_def supp_def
   using Min_in top_set by auto
 
 lemma above_top_unset:
   "i > \<top> w \<Longrightarrow> \<not>(bit w i)"
-  by (metis empty_def eq_Max_iff finite_bits hsb linorder_not_less mem_Collect_eq)
+  by (metis empty_def eq_Max_iff finite_bits topBit_def supp_def linorder_not_less mem_Collect_eq)
 
 lemma below_bot_unset:
   "i < \<bottom> w \<Longrightarrow> \<not>(bit w i)"
-  by (metis Min_gr_iff bex_empty finite_bits less_irrefl lsb mem_Collect_eq)
+  by (metis Min_gr_iff bex_empty finite_bits less_irrefl botBit_def supp_def mem_Collect_eq)
+
+lemma or_eq_add_disjoint:
+  assumes "supp a \<inter> supp b = {}"
+  shows "or a b = plus a b"
+  by (simp add: assms local.disjunctive_add_eq_or supp_and supp_eq_iff supp_zero)
 
 subsection \<open>Subtraction\<close>
 (*lemma below_sub_allset:
@@ -844,26 +922,23 @@ definition botBit :: "'a::len word \<Rightarrow> nat" where
 interpretation word_inspection: bit_inspection "(+)" "(-)" "0" "(*)" "1" "(div)" "(mod)" 
   "bit" "and" "or" "xor" "mask" "set_bit" "unset_bit" "flip_bit"
   "push_bit" "drop_bit" "take_bit" "uminus" "not" "(\<lambda>w::'a::len word. (LENGTH('a)))"
-  bitCountSum topBit botBit
   apply standard
   apply (simp add: bit_word.rep_eq)
-  using bitCountSum_def apply blast
-  unfolding topBit_def apply simp
-  unfolding botBit_def apply simp
   done
 
-text \<open>POC: $bit_inspection$ lemmas can be used for optimizations\<close>
+text \<open>POC: @{locale bit_inspection} lemmas can be used for optimizations\<close>
 lemma
   assumes "bitCount w = 1"
   shows "w = 1 << topBit w"
   using assms
-  by (metis word_inspection.card_count word_inspection.power_of_two bitCount_def shiftl_def)
+  by (metis bitCount_card_set_equiv pow2_1_shift push_bit_of_1 topBit_def word_inspection.card_count
+      word_inspection.power_of_two word_inspection.supp_def word_inspection.topBit_def)
 
 lemma single_bit_shift_one:
   fixes v :: "'a::len word"
   assumes "{n . bit v n} = {b}"
   shows "v = 1 << b"
-  by (metis assms One_nat_def card_1_singleton_iff shiftl_def topBit_def word_inspection.card_count
-      word_inspection.power_of_two Max_singleton)
+  by (metis assms bit_imp_le_length bits_same_set_implies_val_same bitset_shift_is_shift
+      single_bit_set)
 
 end

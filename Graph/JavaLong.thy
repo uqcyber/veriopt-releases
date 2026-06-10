@@ -690,8 +690,8 @@ proof -
 qed
 
 locale bounded_ring_bit_operations = ring_bit_operations +
-  fixes N :: "'a \<Rightarrow> nat"
-  assumes bounded: "\<forall>i > N w. \<not>(bit w i)"
+  fixes bound :: "'a \<Rightarrow> nat"
+  assumes bounded: "\<forall>i > bound w. \<not>(bit w i)"
 begin
 
 lemma finite_bits: "finite {i. bit w i}"
@@ -705,7 +705,7 @@ text \<open>The `pop' of a word, the count of set bits.\<close>
 
 locale bit_count = bounded_ring_bit_operations +
   fixes bitCount :: "'a \<Rightarrow> nat"
-  assumes bc: "bitCount w = (\<Sum>i=0..N w. of_bool (bit w i))"
+  assumes bc: "bitCount w = (\<Sum>i=0..bound w. of_bool (bit w i))"
 begin
 
 lemma of_bool: "of_bool a = (if a then 1 else 0)"
@@ -719,11 +719,11 @@ lemma count_one: "bitCount one = 1"
 
 lemma card_count: "bitCount w = card {i. bit w i}"
 proof -
-  have "{i. bit w i} = ({i. i \<le> N w \<and> bit w i} \<union> {i. i > N w \<and> bit w i})"
+  have "{i. bit w i} = ({i. i \<le> bound w \<and> bit w i} \<union> {i. i > bound w \<and> bit w i})"
     by fastforce
-  also have "{i. i > N w \<and> bit w i} = {}"
+  also have "{i. i > bound w \<and> bit w i} = {}"
     using bounded by blast
-  ultimately have set_eq: "{i. bit w i} = {i. 0 \<le> i \<and> i \<le> N w \<and> bit w i}"
+  ultimately have set_eq: "{i. bit w i} = {i. 0 \<le> i \<and> i \<le> bound w \<and> bit w i}"
     by blast
   then show ?thesis unfolding bc using sum_eq_card
     by (metis (no_types, lifting) ext)
@@ -813,7 +813,7 @@ lemma one_bit:
   assumes "bitCount w = 2"
   shows "w = plus (push_bit (\<top> w) one) (push_bit (\<bottom> w) one)"
 proof -
-  (*have "w = (\<Sum>i=0..N w. push_bit i one)"*)
+  (*have "w = (\<Sum>i=0..bound w. push_bit i one)"*)
   obtain k j where set: "{i. bit w i} = {k, j}"
     using assms unfolding bc
     by (metis assms card_2_iff card_count)

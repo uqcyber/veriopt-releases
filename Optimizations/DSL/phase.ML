@@ -145,7 +145,7 @@ val exit = Local_Theory.background_theory exit'
 
 fun pretty_bind binding =
   Pretty.markup 
-    (Position.markup (Binding.pos_of binding) Markup.position)
+    (Position.markup (Binding.pos_of binding))
     [Pretty.str (Binding.name_of binding)];
 
 fun pretty_phase obligation (phase:phase) ctxt =

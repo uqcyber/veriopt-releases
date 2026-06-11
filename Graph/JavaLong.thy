@@ -146,6 +146,29 @@ proof -
     using assms by blast
 qed
 
+lemma horner_sum_word:
+  fixes v :: "'a::len word"
+  shows "v = (horner_sum of_bool 2 (map (\<lambda>i. bit v i) [0..<LENGTH('a)]) :: 'a word)"
+  by (simp add: horner_sum_bit_eq_take_bit)
+
+lemma horner_sum_word_push_bit:
+  fixes v :: "'a::len word"
+  shows "v = (\<Sum>i=0..LENGTH('a) . (push_bit i (of_bool (bit v i))))"
+  by (metis atLeastLessThanSuc_atLeastAtMost take_bit_sum take_bit_word_beyond_length_eq nat_less_le
+      lessI)
+
+lemma sum_word_rewrite:
+  fixes v :: "'a::len word"
+  shows "(\<Sum>i=0..LENGTH('a) . (push_bit i (of_bool (bit v i)))) =
+         (\<Sum>i=0..LENGTH('a) . of_bool (bit v i) * (push_bit i 1))"
+  by (metis (lifting) lambda_one lambda_zero push_bit_of_0 of_bool_eq_0_iff of_bool_eq_1_iff)
+
+lemma map_set_bits:
+  fixes v :: "'a::len word"
+  assumes "bool_list = (map (\<lambda>i. bit v i) [0..<LENGTH('a)])"
+  shows "\<forall> i . i < LENGTH('a) \<longrightarrow> (nth bool_list i \<longleftrightarrow> (i \<in> {n . bit v n}))"
+  using assms by simp
+
 text \<open>Shifting lemmas\<close>
 
 lemma shift_succ: "\<forall> v i . (v << (Suc i)) = ((v << i) << 1)"
@@ -252,7 +275,7 @@ lemma pow2_even:
   using assms apply (induction k) apply auto
   by (metis bot_nat_0.not_eq_extremum not_bit_numeral_Bit0_0 shift_zeros_below zero_shift)
 
-subsubsection \<open>Set cardinality lemmas\<close>
+subsubsection \<open>Set lemmas\<close>
 
 lemma card_eq:
   assumes "finite x \<and> finite y \<and> finite z"
@@ -272,6 +295,12 @@ lemma card_add_inverses:
   assumes "finite {n. Q n \<and> \<not>(P n)} \<and> finite {n. Q n \<and> P n} \<and> finite {n. Q n}"
   shows "card {n. Q n \<and> P n} + card {n. Q n \<and> \<not>(P n)} = card {n. Q n}"
   apply (rule card_add) using assms by auto
+
+lemma subset_sum:
+  assumes "B \<subseteq> A"
+  assumes "finite A"
+  shows "(\<Sum>i \<in> A . f i) = ((\<Sum>i \<in> B . f i) + (\<Sum>i \<in> (A - B) . f i))"
+  using assms by (simp add: add.commute sum.subset_diff)
 
 subsubsection \<open>Range lemmas\<close>
 
@@ -599,10 +628,10 @@ proof -
     using highestOneBitAtLeast highestOneBitElim by force
 qed
 
-lemma bitCount_one:
-  assumes "bitCount v = 1"
-  shows "\<exists> b . {n . bit v n} = {b}"
-  by (metis assms bits_bound_eq card_1_singletonE qualified_bitCount)
+lemma bitCount_1_equiv:
+  fixes v :: "'a::len word"
+  shows "bitCount v = 1 \<longleftrightarrow> (\<exists> b . {n . bit v n} = {b})"
+  by (metis bitCount_card_set_equiv is_singletonI is_singleton_altdef is_singleton_the_elem)
 
 subsubsection \<open> bitSum - a summation-based implementation of bitCount \<close>
 
@@ -739,6 +768,12 @@ lemma supp_or: "supp (or a b) = supp a \<union> supp b"
 
 lemma supp_xor: "supp (xor a b) = (supp a - supp b) \<union> (supp b - supp a)"
   unfolding supp_def by (auto simp: local.bit_xor_iff)
+
+lemma supp_subset: "supp w \<subseteq> {0..bound w}"
+  unfolding supp_def using bounded apply auto using linorder_le_less_linear by auto
+
+lemma supp_unset: "{0..bound w} - (supp w) = {i. \<not>bit w i} \<inter> {0..bound w}"
+  using supp_def by auto
 
 (*
 lemma supp_not: "supp (not w) = {i. 2^i \<noteq> 0} - supp w"
@@ -927,12 +962,12 @@ interpretation word_inspection: bit_inspection "(+)" "(-)" "0" "(*)" "1" "(div)"
   done
 
 text \<open>POC: @{locale bit_inspection} lemmas can be used for optimizations\<close>
-lemma
+
+lemma bitCount_1_shift:
   assumes "bitCount w = 1"
   shows "w = 1 << topBit w"
-  using assms
   by (metis bitCount_card_set_equiv pow2_1_shift push_bit_of_1 topBit_def word_inspection.card_count
-      word_inspection.power_of_two word_inspection.supp_def word_inspection.topBit_def)
+      word_inspection.power_of_two word_inspection.supp_def word_inspection.topBit_def assms)
 
 lemma single_bit_shift_one:
   fixes v :: "'a::len word"
@@ -940,5 +975,46 @@ lemma single_bit_shift_one:
   shows "v = 1 << b"
   by (metis assms bit_imp_le_length bits_same_set_implies_val_same bitset_shift_is_shift
       single_bit_set)
+
+lemma bitCount_2_lsb_msb:
+  fixes v :: "'a::len word"
+  assumes "bitCount v = 2"
+  shows "{n . bit v n} = {topBit v, botBit v}"
+proof -
+  have twoBits: "\<exists> j k . {n . bit v n} = {j, k}"
+    using assms unfolding bitCount_def by (meson card_2_iff)
+  have topAlwaysIn: "topBit v \<in> {n . bit v n}"
+    by (metis Max_in bits_finite insert_not_empty topBit_def twoBits)
+  have botAlwaysIn: "botBit v \<in> {n . bit v n}"
+    by (metis bits_finite botBit_def insert_not_empty obtains_Min twoBits)
+  then show ?thesis
+    using twoBits topAlwaysIn apply auto
+    by (metis (no_types, lifting) Max.coboundedI Min.coboundedI bits_finite botBit_def insert_iff
+        mem_Collect_eq order_antisym_conv singleton_iff topBit_def)
+qed
+
+lemma supp_range:
+  fixes v :: "'a::len word"
+  shows "\<forall> i . i \<in>  word_inspection.supp v \<longrightarrow> 0 \<le> i \<and> i < LENGTH('a)"
+  unfolding word_inspection.supp_def by (simp add: bits_set_in_range)
+
+lemma supp_push_bit_sum:
+  fixes v :: "'a::len word"
+  shows "v = (\<Sum>i \<in> (word_inspection.supp v) . (push_bit i 1))"
+proof -
+  have subs: "word_inspection.supp v \<subseteq> {0..LENGTH('a)}"
+    by (simp add: word_inspection.supp_subset)
+  have v: "v = (\<Sum>i=0..LENGTH('a) . of_bool (bit v i) * (push_bit i 1))"
+    by (metis (mono_tags, lifting) sum_word_rewrite horner_sum_word_push_bit)
+  have split: "... =
+      (\<Sum>i \<in> word_inspection.supp v . (of_bool (bit v i) * push_bit i 1)) +
+      (\<Sum>i \<in> ({0..LENGTH('a)} - word_inspection.supp v) . (of_bool (bit v i) * push_bit i 1))"
+    using subset_sum word_inspection.supp_finite subs by blast
+  have "(\<Sum>i \<in> ({0..LENGTH('a)} - word_inspection.supp v) . (of_bool (bit v i) * push_bit i 1)) = 0"
+    unfolding word_inspection.supp_def by simp
+  then show ?thesis
+    by (smt (verit) v add_cancel_right_right mem_Collect_eq mult_1 of_bool_eq(2) sum.cong split
+        word_inspection.supp_def)
+qed
 
 end

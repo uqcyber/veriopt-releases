@@ -119,10 +119,8 @@ lemma bits_same_implies_val_same: "(\<forall> n . bit v n  = bit v' n) \<Longrig
 lemma bits_same_set_implies_val_same: "{n . bit v n} = {n . bit v' n} \<Longrightarrow> v = v'"
   by (simp add: bits_same_implies_val_same forall_eq_bits)
 
-lemma upper_bits_unset_implies_0_1:
-  assumes "\<forall> i . i \<noteq> 0 \<longrightarrow> \<not>bit v i"
-  shows "v = 0 \<or> v = 1"
-  by (metis assms bit_1_iff bits_same_implies_val_same no_bits_implies_zero)
+lemma upper_bits_unset_implies_0_1: "\<forall> i . i \<noteq> 0 \<longrightarrow> \<not>bit v i \<Longrightarrow> v = 0 \<or> v = 1"
+  by (metis bit_1_iff bits_same_implies_val_same no_bits_implies_zero)
 
 lemma bit_set_implies_atleast_pow2:
   fixes v :: "'a :: len word"
@@ -168,6 +166,34 @@ lemma map_set_bits:
   assumes "bool_list = (map (\<lambda>i. bit v i) [0..<LENGTH('a)])"
   shows "\<forall> i . i < LENGTH('a) \<longrightarrow> (nth bool_list i \<longleftrightarrow> (i \<in> {n . bit v n}))"
   using assms by simp
+
+lemma unat_word_of_nat_unfold: "v < (2 ^ LENGTH('a)) \<Longrightarrow> unat (word_of_nat (v)::'a::len word) = v"
+  using le_unat_uoi by (simp add: of_nat_inverse)
+
+lemma unat_word_of_nat_unfold_64: "v < (2 ^ LENGTH(64)) \<Longrightarrow> unat (word_of_nat (v)::64word) = v"
+  using unat_word_of_nat_unfold by blast
+
+lemma mask_range_64:
+  fixes x :: "64word"
+  assumes "x < 64"
+  shows "(and x 63) = x"
+proof -
+  have "(63::64 word) = mask 6"
+    by eval
+  then show ?thesis
+    by (metis assms inc_mask_eq_exp less_mask_eq numeral_plus_one semiring_norm(2,8))
+qed
+
+lemma mask_range_32:
+  fixes x :: "64word"
+  assumes "x < 32"
+  shows "(and x 31) = x"
+proof -
+  have "(31::64 word) = mask 5"
+    by eval
+  then show ?thesis
+    by (metis assms inc_mask_eq_exp less_mask_eq numeral_plus_one semiring_norm(2,8))
+qed
 
 text \<open>Shifting lemmas\<close>
 
@@ -224,15 +250,11 @@ lemma non_shiftbit_unset: "\<forall> i . i \<noteq> j \<longrightarrow> \<not>bi
 lemma shift_set_implies_shiftbit: "bit ((1::'a::len word) << j) i \<Longrightarrow> i = j"
   using non_shiftbit_unset by auto
 
-lemma bitset_shift_is_shift:
-  assumes "j < LENGTH('a)"
-  shows "{n . bit ((1 << j)::('a::len) word) n} = {j}"
-  using non_shiftbit_unset apply auto by (metis assms bit_1_0 bit_shift_upper plus_nat.add_0)
+lemma bitset_shift_is_shift: "j < LENGTH('a) \<Longrightarrow> {n . bit ((1 << j)::('a::len) word) n} = {j}"
+  using non_shiftbit_unset apply auto by (metis bit_1_0 bit_shift_upper plus_nat.add_0)
 
-lemma card_shift_one:
-  assumes "j < LENGTH('a)"
-  shows "card {n . bit ((1 << j)::('a::len) word) n} = 1"
-  using bitset_shift_is_shift [of j] apply auto using assms by fastforce
+lemma card_shift_one: "j < LENGTH('a) \<Longrightarrow> card {n . bit ((1 << j)::('a::len) word) n} = 1"
+  using bitset_shift_is_shift [of j] apply auto by fastforce
 
 lemma shift_never_all_ones:
   fixes v :: "'a::len word"
@@ -254,25 +276,19 @@ lemma pow2_succ_eq_2shift: "(2::'a :: len word) ^ Suc i = (2 << i)"
 
 text \<open>Power of 2 lemmas\<close>
 
-lemma bitset_pow2_is_pow:
-  assumes "j < LENGTH('a)"
-  shows "{n . bit ((2 ^ j)::('a::len) word) n} = {j}"
-  unfolding pow2_1_shift by (simp add: assms bitset_shift_is_shift)
+lemma bitset_pow2_is_pow: "j < LENGTH('a) \<Longrightarrow> {n . bit ((2 ^ j)::('a::len) word) n} = {j}"
+  unfolding pow2_1_shift by (simp add: bitset_shift_is_shift)
 
-lemma card_pow2_one:
-  assumes "j < LENGTH('a)"
-  shows "card {n . bit ((2 ^ j)::('a::len) word) n} = 1"
-  by (simp add: assms pow2_1_shift card_shift_one)
+lemma card_pow2_one: "j < LENGTH('a) \<Longrightarrow> card {n . bit ((2 ^ j)::('a::len) word) n} = 1"
+  by (simp add: pow2_1_shift card_shift_one)
 
 lemma bitset_pow2_shift_eq:
   assumes "j < LENGTH('a)"
   shows "{n . bit ((2 ^ j)::('a::len) word) n} = {n . bit ((1 << j)::('a::len) word) n}"
   by (simp add: pow2_1_shift)
 
-lemma pow2_even:
-  assumes "k > 0"
-  shows "bin_is_even (2 ^ k)"
-  using assms apply (induction k) apply auto
+lemma pow2_even: "k > 0 \<Longrightarrow> bin_is_even (2 ^ k)"
+  apply (induction k; auto)
   by (metis bot_nat_0.not_eq_extremum not_bit_numeral_Bit0_0 shift_zeros_below zero_shift)
 
 subsubsection \<open>Set lemmas\<close>
@@ -361,10 +377,8 @@ lemma highestOneBitSize:
 lemma highestOneBitMax: "highestOneBit v < size v"
   unfolding highestOneBit_def MaxOrNeg_def by (simp add: bit_imp_le_length size_word.rep_eq)
 
-lemma highestOneBitAtLeast:
-  assumes "bit v n"
-  shows "highestOneBit v \<ge> n"
-  using assms highestOneBitInvar verit_comp_simplify1(3) by blast
+lemma highestOneBitAtLeast: "bit v n \<Longrightarrow> highestOneBit v \<ge> n"
+  using highestOneBitInvar verit_comp_simplify1(3) by blast
 
 lemma highestOneBitElim: "highestOneBit v = n \<Longrightarrow> ((n = -1 \<and> v = 0) \<or> (n \<ge> 0 \<and> bit v n))"
   unfolding highestOneBit_def MaxOrNeg_def
@@ -386,13 +400,11 @@ lemma highestOneBit_gtzero_range: "(v::64 word) > 0 \<Longrightarrow> 0 \<le> hi
   subgoal premises p
 proof -
   have bit_set: "\<exists> n . bit v n \<and> n \<ge> 0"
-    using no_bits_implies_zero
-    using p by auto
+    using no_bits_implies_zero p by auto
   have geq0: "0 \<le> highestOneBit v"
     using bit_set zerosAboveHighestOne by force
-  have lt64: "highestOneBit v < 64"
-    using highestOneBitMax
-    by (metis of_nat_numeral size64)
+  have "highestOneBit v < 64"
+    by (metis of_nat_numeral size64 highestOneBitMax)
   then show ?thesis
     by (simp add: geq0)
 qed
@@ -412,43 +424,33 @@ lemma highestOneBitRecTrue: "highestOneBitRec n v = j \<Longrightarrow> j \<ge> 
   by (metis (no_types, lifting) diff_Suc_1 highestOneBitRec.elims less_Suc_eq_0_disj of_nat_eq_iff
       less_numeral_extra(3))
 
-lemma highestOneBitRecN:
-  assumes "bit v n"
-  shows "highestOneBitRec n v = n"
-  by (simp add: assms)
+lemma highestOneBitRecN: "bit v n \<Longrightarrow> highestOneBitRec n v = n"
+  by simp
 
 lemma highestOneBitRecMax: "highestOneBitRec n v \<le> n"
   by (induction n; simp)
 
-lemma highestOneBitRecElim:
-  assumes "highestOneBitRec n v = j"
-  shows "(j = -1 \<and> v = 0) \<or> (j \<ge> 0 \<and> bit v j)"
-  using assms highestOneBitRecTrue by blast
+lemma highestOneBitRecElim: "highestOneBitRec n v = j \<Longrightarrow> (j = -1 \<and> v = 0) \<or> (j \<ge> 0 \<and> bit v j)"
+  using highestOneBitRecTrue by blast
 
 lemma highestOneBitRecZero: "v = 0 \<Longrightarrow> highestOneBitRec (size v) v = -1"
   by (induction rule: "highestOneBitRec.induct"; simp)
 
-lemma highestOneBitRecLess:
-  assumes "\<not> bit v n"
-  shows "highestOneBitRec n v = highestOneBitRec (n - 1) v"
-  using assms by force
+lemma highestOneBitRecLess: "\<not>bit v n \<Longrightarrow> highestOneBitRec n v = highestOneBitRec (n - 1) v"
+  by force
 
 text \<open>Some lemmas that use masks to restrict highestOneBit
       and relate it to highestOneBitRec.\<close>
 
-lemma highestOneBitMask:
-  assumes "size v = n"
-  shows "highestOneBit v = highestOneBit (and v (mask n))"
-  by (metis assms dual_order.refl lt2p_lem mask_eq_iff size_word.rep_eq)
+lemma highestOneBitMask: "size v = n \<Longrightarrow> highestOneBit v = highestOneBit (and v (mask n))"
+  by (metis dual_order.refl lt2p_lem mask_eq_iff size_word.rep_eq)
 
-lemma maskSmaller:
-  assumes "\<not> bit v n"
-  shows "and v (mask (Suc n)) = and v (mask n)"
-  unfolding bit_eq_iff by (metis assms bit_and_iff bit_mask_iff less_Suc_eq)
+lemma maskSmaller: "\<not>bit v n \<Longrightarrow> and v (mask (Suc n)) = and v (mask n)"
+  unfolding bit_eq_iff by (metis bit_and_iff bit_mask_iff less_Suc_eq)
 
 lemma highestOneBitSmaller:
   assumes "size v = Suc n"
-  assumes "\<not> bit v n"
+  assumes "\<not>bit v n"
   shows "highestOneBit v = highestOneBit (and v (mask n))"
   by (metis assms highestOneBitMask maskSmaller)
 
@@ -595,28 +597,17 @@ lemma bitCount_card: "card {n . bit v n} = m \<Longrightarrow> bitCount v = m"
 lemma bitCount_card_set_equiv: "card {n . bit v n} = bitCount v"
   by (simp add: bitCount_card)
 
-lemma bitCount_shift1:
-  assumes "j < LENGTH('a)"
-  shows "bitCount ((1 :: 'a :: len word) << j) = 1"
-  unfolding bitCount_def by (simp add: assms card_shift_one)
+lemma bitCount_shift1: "j < LENGTH('a) \<Longrightarrow> bitCount ((1 :: 'a :: len word) << j) = 1"
+  unfolding bitCount_def by (simp add: card_shift_one)
 
-lemma bitCount_pow2:
-  assumes "j < LENGTH('a)"
-  shows "bitCount ((2 :: 'a :: len word) ^ j) = 1"
-  unfolding bitCount_def using card_pow2_one assms by blast
+lemma bitCount_pow2: "j < LENGTH('a) \<Longrightarrow> bitCount ((2 :: 'a :: len word) ^ j) = 1"
+  unfolding bitCount_def using card_pow2_one by blast
 
 lemma bitCount_leq_len: "bitCount (v::'a::len word) \<le> LENGTH('a)"
   unfolding bitCount_def using card_bits_leq_len by blast
 
-lemma bitCount_pos_implies_bit_set:
-  assumes "bitCount v > 0"
-  shows "\<exists> n . bit v n"
-proof -
-  have "bitCount v = card {n . bit v n}"
-    unfolding bitCount_def by simp
-  then show ?thesis
-    using assms nat_less_le by auto
-qed
+lemma bitCount_pos_implies_bit_set: "bitCount v > 0 \<Longrightarrow> \<exists> n . bit v n"
+  by (metis bitCount_0 less_irrefl_nat no_bits_implies_zero)
 
 lemma bitCount_pos_implies_highestOneBit_set:
   assumes "bitCount v > 0"
@@ -1016,5 +1007,58 @@ proof -
     by (smt (verit) v add_cancel_right_right mem_Collect_eq mult_1 of_bool_eq(2) sum.cong split
         word_inspection.supp_def)
 qed
+
+lemma distribute_sum_singular: "(\<Sum>i \<in> {A} . f i) = f A"
+  unfolding sum_def
+  by (metis add.right_neutral comm_monoid_add_class.sum_def finite.emptyI insert_absorb sum.empty
+      sum.insert insert_not_empty)
+
+lemma bitCount_2_supp:
+  fixes v :: "'a::len word"
+  assumes "bitCount v = 2"
+  shows "word_inspection.supp v = {topBit v, botBit v}"
+  using bitCount_2_lsb_msb word_inspection.supp_def assms by auto
+
+lemma bitCount_2_sum_push_bit:
+  fixes v :: "'a::len word"
+  assumes "bitCount v = 2"
+  shows "v = push_bit (topBit v) 1 + push_bit (botBit v) 1"
+proof -
+  have supp: "word_inspection.supp v = {topBit v, botBit v}"
+    using bitCount_2_supp assms by meson
+  have topBotDiff: "topBit v \<noteq> botBit v"
+    by (metis assms bitCount_1_equiv insert_absorb2 semiring_norm(83) supp word_inspection.supp_def
+        numeral_eq_one_iff)
+  have suppSum: "v = (\<Sum>i \<in> (word_inspection.supp v) . (push_bit i 1))"
+    using supp_push_bit_sum by blast
+  have suppTopBot: "... = (\<Sum>i \<in> {topBit v, botBit v} . (push_bit i 1))"
+    by (simp add: supp)
+  have distribute: "... = (\<Sum>i \<in> {botBit v} . (push_bit i 1)) + (\<Sum>i \<in> {topBit v} . (push_bit i 1))"
+    using topBotDiff by auto
+  have "... = push_bit (topBit v) 1 + push_bit (botBit v) 1"
+    by simp
+  then show ?thesis
+    using suppTopBot distribute suppSum by argo
+qed
+
+lemma bitCount_2_sum_pow_2:
+  fixes v :: "'a::len word"
+  assumes "bitCount v = 2"
+  shows "v = 2 ^ (topBit v) + 2 ^ (botBit v)"
+  using assms bitCount_2_sum_push_bit by auto
+
+lemma bitCount_2_sum_shift_1:
+  fixes v :: "'a::len word"
+  assumes "bitCount v = 2"
+  shows "v = 1 << (topBit v) + 1 << (botBit v)"
+  by (metis assms bitCount_2_sum_pow_2 pow2_1_shift)
+
+lemma bitCount_2_mul_distribute:
+  fixes v :: "'a::len word"
+  assumes "bitCount v = 2"
+  shows "x * v = x << (topBit v) + x << (botBit v)"
+  using assms unfolding bitCount_def
+  by (metis (no_types, lifting) bitCount_2_sum_shift_1 pow2_1_shift push_bit_eq_mult shiftl_def
+      assms ring_class.ring_distribs(1))
 
 end

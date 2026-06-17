@@ -35,30 +35,30 @@ git clone https://github.com/uqcyber/veriopt-releases
 ### Isabelle setup
 
 In order to build, edit and interactively view the theories, you will need access to the `isabelle`
-command which is bundled with the Isabelle2024 installation. On the 
-[Isabelle2024 installation website](https://isabelle.in.tum.de/website-Isabelle2024/installation.html), 
+command which is bundled with the Isabelle2025 installation. On the 
+[Isabelle2025 installation website](https://isabelle.in.tum.de/website-Isabelle2025/installation.html), 
 find your operating system and follow the installation and setup instructions. Once complete, you should
-have an unpacked `Isabelle2024` directory on your system. Follow the additional instructions for your 
+have an unpacked `Isabelle2025` directory on your system. Follow the additional instructions for your 
 operating system below to access the `isabelle` command.
 
 #### Linux
 
-The `isabelle` tool is located inside the `Isabelle2024/bin` directory. It is recommended that you add
+The `isabelle` tool is located inside the `Isabelle2025/bin` directory. It is recommended that you add
 this directory to your PATH to access the `isabelle` command from anywhere on your system. 
 
 #### macOS
 
-Move the Isabelle2024 `.app` into the `/Applications` folder.
+Move the Isabelle2025 `.app` into the `/Applications` folder.
 
-The `isabelle` tool is located inside the `Isabelle2024.app/bin` directory. It is recommended
+The `isabelle` tool is located inside the `Isabelle2025.app/bin` directory. It is recommended
 that you add this directory to your PATH to access the `isabelle` command from anywhere on your system.
 
 #### Windows
 
-Open command prompt and navigate to the `Isabelle2024` directory
+Open command prompt and navigate to the `Isabelle2025` directory
 
 ```bash
-cd Isabelle2024
+cd Isabelle2025
 ```
 
 Run the `Cygwin-Terminal` batch file

@@ -106,7 +106,7 @@ lemma bits_finite: "finite {n . bit (v::('a::len) word) n}"
 lemma zero_bits_card_0: "\<forall>i . \<not>bit v i \<Longrightarrow> card {i . bit v i} = 0"
   by auto
 
-lemma empty_zero_bits: "{i . bit v i} = {} \<Longrightarrow> \<forall>i . \<not>bit v i"
+lemma empty_zero_bits_iff: "{i . bit v i} = {} \<longleftrightarrow> (\<forall>i . \<not>bit v i)"
   by auto
 
 lemma zero_empty_bits: "v = 0 \<Longrightarrow> {i . bit v i} = {}"
@@ -222,7 +222,7 @@ proof -
     by (metis assms inc_mask_eq_exp less_mask_eq numeral_plus_one semiring_norm(2,8))
 qed
 
-text \<open>Shifting lemmas\<close>
+text \<open>Shifting and $push_bit$ lemmas\<close>
 
 lemma shift_succ: "\<forall> v i . (v << (Suc i)) = ((v << i) << 1)"
   unfolding shiftl_def by fastforce
@@ -301,6 +301,13 @@ lemma shift_one_def:
 lemma pow2_succ_eq_2shift: "(2::'a :: len word) ^ Suc i = (2 << i)"
   by simp
 
+lemma mask_succ_push_bit: "(mask n) + 1 = push_bit n 1"
+  by (simp add: inc_mask_eq_exp)
+
+lemma push_bit_pos: "b < LENGTH('a) \<Longrightarrow> ((push_bit b 1)::'a::len word) > 0"
+  apply (induction b; auto)
+  by (metis exp_eq_zero_iff pow2_succ_eq_2shift verit_comp_simplify1(3) word_neq_0_conv)
+
 text \<open>Power of 2 lemmas\<close>
 
 lemma bitset_pow2_is_pow: "j < LENGTH('a) \<Longrightarrow> {n . bit ((2 ^ j)::('a::len) word) n} = {j}"
@@ -317,6 +324,14 @@ lemma bitset_pow2_shift_eq:
 lemma pow2_even: "k > 0 \<Longrightarrow> bin_is_even (2 ^ k)"
   apply (induction k; auto)
   by (metis bot_nat_0.not_eq_extremum not_bit_numeral_Bit0_0 shift_zeros_below zero_shift)
+
+text \<open>mask lemmas\<close>
+
+lemma mask_geq_n_unset: "\<forall> i . i \<ge> n \<longrightarrow> \<not>bit ((mask n)::'a::len word) i"
+  using bit_mask_iff linorder_not_less by blast
+
+lemma mask_lt_n_set: "n \<le> LENGTH('a) \<Longrightarrow> \<forall> i . i < n \<longrightarrow> bit ((mask n)::'a::len word) i"
+  using bit_mask_iff dual_order.strict_trans possible_bit_word by fastforce
 
 subsubsection \<open>Set lemmas\<close>
 
@@ -349,14 +364,26 @@ lemma Max_range_upper:
 lemma Max_or_lt:
   fixes s :: "nat set"
   assumes "finite s"
-  shows "\<forall>i . i \<in> s \<longrightarrow> i = Max s \<or> i < Max s"
+  shows "\<forall> i . i \<in> s \<longrightarrow> i = Max s \<or> i < Max s"
   using Max_ge assms order_le_imp_less_or_eq by auto
+
+lemma Min_or_gt:
+  fixes s :: "nat set"
+  assumes "finite s"
+  shows "\<forall> i . i \<in> s \<longrightarrow> i = Min s \<or> i > Min s"
+  using Min_le assms le_neq_implies_less by blast
 
 lemma subset_sum:
   assumes "B \<subseteq> A"
   assumes "finite A"
   shows "(\<Sum>i \<in> A . f i) = ((\<Sum>i \<in> B . f i) + (\<Sum>i \<in> (A - B) . f i))"
   using assms by (simp add: add.commute sum.subset_diff)
+
+lemma subset_property:
+  assumes "\<forall> i . i \<in> S \<longrightarrow> P i"
+  assumes "s \<subseteq> S"
+  shows "\<forall> i . i \<in> s \<longrightarrow> P i"
+  using assms(1,2) by auto
 
 lemma distribute_sum_singular: "(\<Sum>i \<in> {A} . f i) = f A"
   unfolding sum_def
@@ -1012,7 +1039,7 @@ subsection \<open>supp lemmas\<close>
 
 lemma supp_range:
   fixes v :: "'a::len word"
-  shows "\<forall> i . i \<in>  word_inspection.supp v \<longrightarrow> 0 \<le> i \<and> i < LENGTH('a)"
+  shows "\<forall> i . i \<in> word_inspection.supp v \<longrightarrow> 0 \<le> i \<and> i < LENGTH('a)"
   unfolding word_inspection.supp_def by (simp add: bits_set_in_range)
 
 lemma supp_push_bit_sum:
@@ -1040,13 +1067,44 @@ lemma supp_nonzero_nonempty_iff: "v \<noteq> 0 \<longleftrightarrow> word_inspec
 lemma supp_zero_empty_iff: "v = 0 \<longleftrightarrow> word_inspection.supp v = {}"
   unfolding word_inspection.supp_def using no_bits_implies_zero by auto
 
+lemma supp_all_ones_iff:
+  fixes v :: "'a::len word"
+  shows "word_inspection.supp v = {0..LENGTH('a)-1} \<longleftrightarrow> (-1::'a::len word) = v"
+proof -
+  have "{n . 0 \<le> n \<and> n < LENGTH('a)} = {0..LENGTH('a)-1}"
+    by auto
+  then show ?thesis
+    unfolding word_inspection.supp_def by (metis bits_same_set_implies_val_same negone_all_bits)
+qed
+
+lemma supp_mask:
+  fixes v :: "'a::len word"
+  assumes "v = ((mask n)::'a::len word)"
+  assumes "n > 0"
+  assumes "n \<le> LENGTH('a)"
+  shows "word_inspection.supp v = {0..n-1}"
+proof -
+  have "word_inspection.supp ((mask n)::'a::len word) = {0..n-1}"
+    unfolding word_inspection.supp_def apply auto
+    apply (metis Suc_pred assms(2) mask_geq_n_unset not_less_eq_eq)
+    using assms(2,3) mask_lt_n_set by fastforce
+  then show ?thesis
+    using assms(1) by blast
+qed
+
 lemma supp_max_topBit: "topBit v = Max (word_inspection.supp v)"
   by (simp add: topBit_def word_inspection.supp_def)
+
+lemma supp_min_botBit: "botBit v = Min (word_inspection.supp v)"
+  by (simp add: botBit_def word_inspection.supp_def)
 
 lemma supp_contains_topBit_nonzero_iff: "v \<noteq> 0 \<longleftrightarrow> topBit v \<in> word_inspection.supp v"
   by (metis Max_in emptyE supp_max_topBit supp_nonzero_nonempty_iff word_inspection.supp_finite)
 
-lemma supp_lt_topBit:
+lemma supp_contains_botBit_nonzero_iff: "v \<noteq> 0 \<longleftrightarrow> botBit v \<in> word_inspection.supp v"
+  by (metis Min_in emptyE supp_min_botBit supp_nonzero_nonempty_iff word_inspection.supp_finite)
+
+lemma supp_leq_topBit:
   assumes "v \<noteq> 0"
   shows "\<forall> b . b \<in> word_inspection.supp v \<longrightarrow> b \<le> topBit v"
 proof (cases "word_inspection.supp v = {topBit v}")
@@ -1055,14 +1113,37 @@ proof (cases "word_inspection.supp v = {topBit v}")
     unfolding topBit_def word_inspection.supp_def by simp
 next
   case False
-  have topBit_in_set: "topBit v \<in> word_inspection.supp v"
-    using assms supp_contains_topBit_nonzero_iff by auto
-  have "\<forall>i. i \<in> word_inspection.supp v \<longrightarrow> i = Max (word_inspection.supp v) \<or>
-                                           i < Max (word_inspection.supp v)"
+  have "\<forall> i . i \<in> word_inspection.supp v \<longrightarrow> i = Max (word_inspection.supp v) \<or>
+                                             i < Max (word_inspection.supp v)"
     using Max_or_lt [of "word_inspection.supp v"] word_inspection.supp_finite by blast
   then show ?thesis
     unfolding topBit_def word_inspection.supp_def by simp
 qed
+
+lemma supp_geq_botBit:
+  assumes "v \<noteq> 0"
+  shows "\<forall> b . b \<in> word_inspection.supp v \<longrightarrow> b \<ge> botBit v"
+proof (cases "word_inspection.supp v = {botBit v}")
+  case True
+  then show ?thesis
+    unfolding botBit_def word_inspection.supp_def by fastforce
+next
+  case False
+  have "\<forall> i . i \<in> word_inspection.supp v \<longrightarrow> i = Min (word_inspection.supp v) \<or>
+                                             i > Min (word_inspection.supp v)"
+    using Min_or_gt [of "word_inspection.supp v"] word_inspection.supp_finite by blast
+  then show ?thesis
+    unfolding botBit_def word_inspection.supp_def by simp
+qed
+
+lemma supp_singular_is_topBit: "word_inspection.supp v = {S} \<Longrightarrow> S = topBit v"
+  unfolding word_inspection.supp_def topBit_def by simp
+
+lemma supp_singular_is_botBit: "word_inspection.supp v = {S} \<Longrightarrow> S = botBit v"
+  unfolding word_inspection.supp_def botBit_def by simp
+
+lemma supp_singular_imp_botBit_eq_topBit: "word_inspection.supp v = {S} \<Longrightarrow> botBit v = topBit v"
+  unfolding word_inspection.supp_def botBit_def topBit_def by auto
 
 subsection \<open>bitCount lemmas\<close>
 
@@ -1144,7 +1225,7 @@ lemma topBit_higher_unset:
   shows "\<forall> i . i > topBit v \<longrightarrow> \<not>bit v i"
 proof -
   have "\<forall> b . b \<in> word_inspection.supp v \<longrightarrow> b \<le> topBit v"
-    using supp_lt_topBit assms by auto
+    using supp_leq_topBit assms by auto
   then show ?thesis
     by (simp add: supp_max_topBit word_inspection.above_top_unset word_inspection.topBit_def)
 qed
@@ -1156,6 +1237,37 @@ lemma topBit_in_range:
 proof -
   have "topBit v \<in> word_inspection.supp v"
     using assms supp_contains_topBit_nonzero_iff by auto
+  then show ?thesis
+    using supp_range by auto
+qed
+
+lemma topBit_0_imp_1:
+  fixes v :: "'a::len word"
+  assumes "v \<noteq> 0"
+  assumes "topBit v = 0"
+  shows "v = 1"
+  by (metis assms le0 nle_le supp_leq_topBit upper_bits_unset_implies_0_1 word_inspection.supp_def
+      mem_Collect_eq)
+
+subsection \<open>botBit lemmas\<close>
+
+lemma botBit_lower_unset:
+  assumes "v \<noteq> 0"
+  shows "\<forall> i . i < botBit v \<longrightarrow> \<not>bit v i"
+proof -
+  have "\<forall> b . b \<in> word_inspection.supp v \<longrightarrow> b \<ge> botBit v"
+    by (simp add: assms supp_geq_botBit)
+  then show ?thesis
+    by (simp add: supp_min_botBit word_inspection.below_bot_unset word_inspection.botBit_def)
+qed
+
+lemma botBit_in_range:
+  fixes v :: "'a::len word"
+  assumes "v \<noteq> 0"
+  shows "botBit v \<le> LENGTH('a) - 1"
+proof -
+  have "botBit v \<in> word_inspection.supp v"
+    using assms supp_contains_botBit_nonzero_iff by auto
   then show ?thesis
     using supp_range by auto
 qed

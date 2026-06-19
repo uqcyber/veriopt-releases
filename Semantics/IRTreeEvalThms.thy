@@ -145,8 +145,8 @@ next
   case BinIntegerLessThan
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis (no_types, opaque_lifting) bool_to_val.simps(1,2) bool_to_val.elims new_int.simps
-           IntVal1 take_bit_of_0)
+    apply (metis (no_types, opaque_lifting) bool_to_val.elims signed_take_bit_eq_if_positive mod_0
+           signed_take_bit_numeral_of_1  take_bit_eq_mod not_bit_1_numeral)
     by presburger
 next
   case BinIntegerBelow

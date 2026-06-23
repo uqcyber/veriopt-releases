@@ -117,12 +117,12 @@ next
 next
   case BinXor
   then show ?thesis
-    using assms apply (cases x; cases y; auto) apply (metis take_bit_xor) by meson
+    using assms apply (cases x; cases y; auto) by (metis take_bit_xor)+
 next
   case BinShortCircuitOr
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    using new_int.elims apply (metis IntVal0 IntVal1 bool_to_val.elims) by presburger
+    apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.elims) by presburger
 next
   case BinLeftShift
   then show ?thesis
@@ -130,7 +130,7 @@ next
 next
   case BinRightShift
   then show ?thesis
-    using assms apply (cases x; cases y; auto) apply (smt (verit, del_insts) new_int.simps)
+    using assms apply (cases x; cases y; auto) apply (smt (verit, ccfv_SIG) new_int.simps)
     by (smt (verit, best) new_int.simps)
 next
   case BinURightShift
@@ -140,13 +140,13 @@ next
   case BinIntegerEquals
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis (full_types) IntVal0 IntVal1 bool_to_val.simps(1,2) new_int.elims) by presburger
+    apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.elims) by presburger
 next
   case BinIntegerLessThan
   then show ?thesis
     using assms apply (cases x; cases y; auto)
     apply (metis (no_types, opaque_lifting) bool_to_val.elims signed_take_bit_eq_if_positive mod_0
-           signed_take_bit_numeral_of_1  take_bit_eq_mod not_bit_1_numeral)
+           signed_take_bit_numeral_of_1 take_bit_eq_mod not_bit_1_numeral)
     by presburger
 next
   case BinIntegerBelow
@@ -157,8 +157,7 @@ next
   case BinIntegerTest
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps IntVal0 IntVal1)
-    by presburger
+    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps IntVal0 IntVal1) by argo
 next
   case BinIntegerNormalizeCompare
   then show ?thesis
@@ -168,7 +167,7 @@ next
 next
   case BinIntegerMulHigh
   then show ?thesis
-    using assms apply (cases x; cases y; simp) by metis
+    using assms apply (cases x; cases y; simp) by (metis (full_types))
 qed
 
 lemma int_stamp: "is_IntVal v \<Longrightarrow> is_IntegerStamp (constantAsStamp v)"
@@ -215,8 +214,7 @@ lemma valid_not_undef:
 lemma valid_VoidStamp[elim]: "valid_value val VoidStamp \<Longrightarrow> val = UndefVal"
   by simp
 
-lemma valid_ObjStamp[elim]:
-  shows "valid_value val (ObjectStamp klass exact nonNull alwaysNull) \<Longrightarrow> (\<exists>v. val = ObjRef v)"
+lemma valid_ObjStamp[elim]: "valid_value val (ObjectStamp k e n a) \<Longrightarrow> (\<exists>v. val = ObjRef v)"
   by (metis Value.exhaust valid_value.simps(3,11,12,18))
 
 lemma valid_int[elim]: "valid_value val (IntegerStamp b lo hi) \<Longrightarrow> (\<exists>v. val = IntVal b v)"
@@ -232,11 +230,9 @@ lemma evaltree_not_undef:
   shows "([m,p] \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
   apply (induction rule: "evaltree.induct") by (auto simp add: wf_value_def)
 
-lemma leafint:
-  assumes "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val"
-  shows "\<exists>b v. val = (IntVal b v)"
+lemma leafint: "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val \<Longrightarrow> (\<exists>b v. val = (IntVal b v))"
 (* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
-  using assms by auto
+  by auto
 
 lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (-2147483648) 2147483647"
   by (auto simp add: default_stamp_def)
@@ -687,8 +683,8 @@ lemma unary_not_normal_bitsize:
       assms(1) new_int.simps order.strict_trans2 unary_eval.simps(7))
 
 lemma unary_eval_bitsize:
-  assumes "unary_eval op x = IntVal b ival"
-  assumes 2: "x = IntVal bx ix"
+  assumes "unary_eval op x = IntVal b v"
+  assumes "x = IntVal bx ix"
   assumes "0 < bx \<and> bx \<le> 64"
   shows "0 < b \<and> b \<le> 64"
   using assms apply (cases op; simp)

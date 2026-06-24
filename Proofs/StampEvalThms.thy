@@ -31,8 +31,9 @@ lemma unwrap_signed_take_bit:
 lemma unrestricted_new_int_always_valid [simp]:
   assumes "0 < b \<and> b \<le> 64"
   shows "valid_value (new_int b v) (unrestricted_stamp (IntegerStamp b lo hi))"
-  by (simp; metis One_nat_def assms int_power_div_base int_signed_value.simps int_signed_value_range
-      linorder_not_le not_exp_less_eq_0_int zero_less_numeral)
+  using assms apply auto
+  by (metis One_nat_def assms int_power_div_base int_signed_value.simps int_signed_value_range
+      zero_less_numeral)+
 
 lemma unary_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVal"
   by (cases op; auto)
@@ -47,7 +48,7 @@ lemma unrestricted_stamp_valid:
   assumes "s = unrestricted_stamp (IntegerStamp b lo hi)"
   assumes "0 < b \<and> b \<le> 64"
   shows "valid_stamp s"
-  using assms apply auto by (simp add: pos_imp_zdiv_pos_iff self_le_power)
+  using assms by auto
 
 lemma unrestricted_stamp_valid_value [simp]:
   assumes "result = IntVal b v"

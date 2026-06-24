@@ -148,6 +148,9 @@ lemma nonzero_nonempty_iff: "v \<noteq> 0 \<longleftrightarrow> {i . bit v i} \<
 lemma take_bit_leq: "take_bit b (v::'a::len word) \<le> v"
   by (simp add: unsigned_take_bit_eq word_le_nat_alt)
 
+lemma word_lt: "\<forall> (v::64word) . v \<noteq> -1 \<longrightarrow> v < -1"
+  using word_order.not_eq_extremum by auto
+
 lemma bit_set_implies_atleast_pow2:
   fixes v :: "'a :: len word"
   shows "bit v i \<Longrightarrow> v - (2 ^ i) \<ge> 0"
@@ -366,6 +369,28 @@ lemma leq_mask_implies_lt_push_bit:
   assumes "v \<le> mask n"
   shows "v < ((push_bit n 1)::'a::len word)"
   using assms order_le_less_trans mask_lt_push_bit by auto
+
+lemma mask_lt:
+  assumes "n \<le> LENGTH(64)"
+  assumes "m < n"
+  shows "((mask m)::64word) < ((mask n)::64word)"
+  by (metis (no_types, lifting) assms dual_order.strict_trans1 mask_mono nless_le possible_bit_word
+      bit_mask_iff)
+
+lemma push_bit_gt_less_mask:
+  assumes "n < LENGTH(64)"
+  assumes "m < n"
+  shows "((push_bit n 1)::64word) > ((mask m)::64word)"
+proof -
+  have m_lt_len: "m < LENGTH(64)"
+    using assms by auto
+  have "((push_bit m 1)::64word) - 1 < ((push_bit n 1)::64word)"
+    by (metis add_diff_cancel assms diff_numeral_special(9) leq_mask_implies_lt_push_bit m_lt_len
+        mask_succ_push_bit nat_less_le push_bit_pos word_less_imp_diff_less word_minus_one_le_leq
+        mask_lt)
+  then show ?thesis
+    by (metis add_diff_cancel mask_succ_push_bit)
+qed
 
 text \<open>LENGTH lemmas\<close>
 
@@ -1340,6 +1365,31 @@ lemma topBit_0_imp_1:
   by (metis assms le0 nle_le supp_leq_topBit upper_bits_unset_implies_0_1 word_inspection.supp_def
       mem_Collect_eq)
 
+lemma unfold_topBit_64:
+  fixes yv :: "64word"
+  assumes "bitCount yv = 2"
+  shows "unat (and (word_of_nat (topBit yv)) (63::64 word)) = topBit yv"
+proof -
+  have mask: "(63::64 word) = mask 6"
+    by eval
+  have "63 = LENGTH(64) - 1"
+    by auto
+  then have range: "topBit yv \<le> 63"
+    by (metis topBit_in_range assms bitCount_0 zero_neq_numeral)
+  obtain max where maxInSet: "max = topBit yv"
+    by simp
+  have word_range: "(word_of_nat (max)::64word) \<le> 63"
+    by (simp add: local.range maxInSet word_of_nat_leq_len_1_64)
+  have lt_pow2: "(topBit yv) < (2 ^ LENGTH(64))"
+    using range by auto
+  have foldAnd: "(and (word_of_nat (max)::64word) (63::64 word)) = (word_of_nat (max)::64word)"
+    using and_mask_eq_iff_le_mask by (metis mask word_range)
+  have "unat (word_of_nat (max)::64word) = max"
+    using lt_pow2 unat_word_of_nat_unfold_64 maxInSet by blast
+  then show ?thesis
+    using foldAnd maxInSet by auto
+qed
+
 subsection \<open>botBit lemmas\<close>
 
 lemma botBit_lower_unset:
@@ -1361,6 +1411,31 @@ proof -
     using assms supp_contains_botBit_nonzero_iff by auto
   then show ?thesis
     using supp_range by auto
+qed
+
+lemma unfold_botBit_64:
+  fixes yv :: "64word"
+  assumes "bitCount yv = 2"
+  shows "unat (and (word_of_nat (botBit yv)) (63::64 word)) = (botBit yv)"
+proof -
+  have mask: "(63::64 word) = mask 6"
+    by eval
+  have "63 = LENGTH(64) - 1"
+    by auto
+  then have range: "botBit yv \<le> 63"
+    by (metis botBit_in_range assms bitCount_0 less_numeral_extra(3) pos2)
+  obtain min where minInSet: "min = botBit yv"
+    by simp
+  have word_range: "(word_of_nat (min)::64word) \<le> 63"
+    by (simp add: local.range minInSet word_of_nat_leq_len_1_64)
+  have lt_pow2: "(botBit yv) < (2 ^ LENGTH(64))"
+    using range by auto
+  have foldAnd: "(and (word_of_nat (min)::64word) (63::64 word)) = (word_of_nat (min)::64word)"
+    by (metis and_mask_eq_iff_le_mask mask word_range)
+  have "unat (word_of_nat (min)::64word) = min"
+    using lt_pow2 unat_word_of_nat_unfold_64 minInSet by blast
+  then show ?thesis
+    using foldAnd minInSet by auto
 qed
 
 end

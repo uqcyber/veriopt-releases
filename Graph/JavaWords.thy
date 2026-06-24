@@ -6,7 +6,7 @@ theory JavaWords
     "HOL-Library.Signed_Division"
     "HOL-Library.Float"
     "HOL-Library.LaTeXsugar"
-    Word_Lib.Aligned
+    Word_Lib.More_Word_Operations
 begin
 
 no_notation shiftl (infixl \<open><<\<close> 55)

@@ -1253,7 +1253,8 @@ proof -
   have topAlwaysIn: "topBit v \<in> {n . bit v n}"
     by (metis Max_in bits_finite insert_not_empty topBit_def twoBits)
   have botAlwaysIn: "botBit v \<in> {n . bit v n}"
-    by (metis bits_finite botBit_def insert_not_empty obtains_Min twoBits)
+    by (metis twoBits supp_contains_botBit_nonzero_iff word_inspection.supp_def zero_empty_bits
+        insert_not_empty)
   then show ?thesis
     using twoBits topAlwaysIn apply auto
     by (metis (no_types, lifting) Max.coboundedI Min.coboundedI bits_finite botBit_def insert_iff

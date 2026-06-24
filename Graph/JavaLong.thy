@@ -145,6 +145,9 @@ lemma upper_bits_unset_implies_0_1: "\<forall> i . i \<noteq> 0 \<longrightarrow
 lemma nonzero_nonempty_iff: "v \<noteq> 0 \<longleftrightarrow> {i . bit v i} \<noteq> {}"
   by (metis bits_same_set_implies_val_same zero_no_bits)
 
+lemma take_bit_leq: "take_bit b (v::'a::len word) \<le> v"
+  by (simp add: unsigned_take_bit_eq word_le_nat_alt)
+
 lemma bit_set_implies_atleast_pow2:
   fixes v :: "'a :: len word"
   shows "bit v i \<Longrightarrow> v - (2 ^ i) \<ge> 0"
@@ -193,6 +196,12 @@ lemma sum_word_rewrite:
   shows "(\<Sum>i=0..LENGTH('a) . (push_bit i (of_bool (bit v i)))) =
          (\<Sum>i=0..LENGTH('a) . of_bool (bit v i) * (push_bit i 1))"
   by (metis (lifting) lambda_one lambda_zero push_bit_of_0 of_bool_eq_0_iff of_bool_eq_1_iff)
+
+lemma sum_push_bit_distrib_sub:
+  assumes "finite s"
+  assumes "S \<in> s"
+  shows "(\<Sum>i \<in> s - {S} . push_bit i 1) = (\<Sum>i \<in> s . push_bit i 1) - (\<Sum>i \<in> {S} . push_bit i 1)"
+  using assms apply auto by (simp add: sum.remove)
 
 lemma map_set_bits:
   fixes v :: "'a::len word"
@@ -301,9 +310,6 @@ lemma shift_one_def:
 lemma pow2_succ_eq_2shift: "(2::'a :: len word) ^ Suc i = (2 << i)"
   by simp
 
-lemma mask_succ_push_bit: "(mask n) + 1 = push_bit n 1"
-  by (simp add: inc_mask_eq_exp)
-
 lemma push_bit_pos: "b < LENGTH('a) \<Longrightarrow> ((push_bit b 1)::'a::len word) > 0"
   apply (induction b; auto)
   by (metis exp_eq_zero_iff pow2_succ_eq_2shift verit_comp_simplify1(3) word_neq_0_conv)
@@ -332,6 +338,45 @@ lemma mask_geq_n_unset: "\<forall> i . i \<ge> n \<longrightarrow> \<not>bit ((m
 
 lemma mask_lt_n_set: "n \<le> LENGTH('a) \<Longrightarrow> \<forall> i . i < n \<longrightarrow> bit ((mask n)::'a::len word) i"
   using bit_mask_iff dual_order.strict_trans possible_bit_word by fastforce
+
+lemma mask_succ_push_bit: "(mask n) + 1 = push_bit n 1"
+  by (simp add: inc_mask_eq_exp)
+
+lemma mask_lt_push_bit:
+  assumes "n < LENGTH('a)"
+  shows "mask n < ((push_bit n 1)::'a::len word)"
+proof -
+  have "(mask n) + 1 = push_bit n 1"
+    by (simp add: mask_succ_push_bit)
+  then have "(mask n) = (push_bit n 1) - 1"
+    using add_implies_diff by blast
+  then show ?thesis
+    by (metis add_cancel_right_right antisym_conv3 assms mask_succ_push_bit push_bit_pos word_less_1
+        word_not_simps(1) word_sub_less_iff)
+qed
+
+lemma mask_all_ones_iff:
+  assumes "v \<le> LENGTH('a)"
+  shows "(mask v::'a::len word) = (-1) \<longleftrightarrow> v = LENGTH('a)"
+  by (smt (z3) minus_1_eq_mask nat_less_le negative_zle of_nat_mask_eq take_bit_minus_one_eq_mask
+      signed_take_bit_eq signed_minus_1 assms)
+
+lemma leq_mask_implies_lt_push_bit:
+  assumes "n < LENGTH('a)"
+  assumes "v \<le> mask n"
+  shows "v < ((push_bit n 1)::'a::len word)"
+  using assms order_le_less_trans mask_lt_push_bit by auto
+
+text \<open>LENGTH lemmas\<close>
+
+lemma lt_64_iff: "v < 64 \<longleftrightarrow> v < LENGTH(64)"
+  by auto
+
+lemma leq_64_iff: "v \<le> 64 \<longleftrightarrow> v \<le> LENGTH(64)"
+  by auto
+
+lemma len_64: "64 = LENGTH(64)"
+  by auto
 
 subsubsection \<open>Set lemmas\<close>
 
@@ -838,12 +883,20 @@ lemma supp_subset: "supp w \<subseteq> {0..bound w}"
 lemma supp_unset: "{0..bound w} - (supp w) = {i. \<not>bit w i} \<inter> {0..bound w}"
   using supp_def by auto
 
+definition inverse :: "nat set \<Rightarrow> nat \<Rightarrow> nat set" where
+  "inverse s b = {i \<in> {0..b} . i \<notin> s}"
+
 (*
-lemma supp_not: "supp (not w) = {i. 2^i \<noteq> 0} - supp w"
-  unfolding supp_def using bit_not_iff sorry
+lemma supp_not: "supp (not w) = inverse (supp w) (bound w)"
+  unfolding supp_def inverse_def using bit_not_iff  sorry
 
 lemma supp_push_bit: "supp (push_bit n w) = {i + n | i . i \<in> supp w}"
   unfolding supp_def using bit_push_bit_iff sorry
+
+lemma supp_subtract:
+  assumes "supp b \<subset> supp a"
+  shows "supp (minus a b) = (supp a - supp b)"
+  sorry
 *)
 
 end
@@ -1144,6 +1197,43 @@ lemma supp_singular_is_botBit: "word_inspection.supp v = {S} \<Longrightarrow> S
 
 lemma supp_singular_imp_botBit_eq_topBit: "word_inspection.supp v = {S} \<Longrightarrow> botBit v = topBit v"
   unfolding word_inspection.supp_def botBit_def topBit_def by auto
+
+lemma supp_single_bit_less:
+  fixes a b :: "'a::len word"
+  assumes "S \<in> word_inspection.supp a"
+  assumes "word_inspection.supp b = word_inspection.supp a - {S}"
+  shows "b = a - (push_bit S 1)"
+proof -
+  have a_sum: "a = (\<Sum>i \<in> (word_inspection.supp a) . (push_bit i 1))"
+    using supp_push_bit_sum by auto
+  have b_sum: "b = (\<Sum>i \<in> (word_inspection.supp b) . (push_bit i 1))"
+    using supp_push_bit_sum by auto
+  then have "... = (\<Sum>i \<in> word_inspection.supp a - {S} . (push_bit i 1))"
+    using assms(2) by presburger
+  then have distribute_sub: "... = (\<Sum>i \<in> word_inspection.supp a . (push_bit i 1)) -
+                                   (\<Sum>i \<in> {S} . (push_bit i 1))"
+    using sum_push_bit_distrib_sub assms(1) word_inspection.supp_finite by blast
+  then have "... = a - push_bit S 1"
+    using a_sum by force
+  then show ?thesis
+    using assms distribute_sub b_sum by presburger
+qed
+
+lemma supp_sum_minus_subset:
+  fixes v :: "'a::len word"
+  assumes "S \<subset> word_inspection.supp v"
+  assumes "v > 0"
+  shows "v = (\<Sum>i \<in> (word_inspection.supp v - S) . (push_bit i 1)) + (\<Sum>i \<in> S . (push_bit i 1))"
+  using supp_push_bit_sum [of v]
+  by (metis add.commute assms(1) inf.absorb4 sum.Int_Diff word_inspection.supp_finite)
+
+lemma supp_set_less:
+  fixes a b :: "'a::len word"
+  assumes "S \<subset> word_inspection.supp v"
+  assumes "v > 0"
+  assumes "word_inspection.supp b = word_inspection.supp v - S"
+  shows "b = v - (\<Sum>i \<in> S . (push_bit i 1))"
+  by (metis supp_sum_minus_subset add_diff_cancel_right' assms supp_push_bit_sum)
 
 subsection \<open>bitCount lemmas\<close>
 

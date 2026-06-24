@@ -22,19 +22,16 @@ lemma evalAllDet:
 
 subsubsection \<open>Typing Properties for Integer Evaluation Functions\<close>
 
-text \<open>We use three simple typing properties on integer values: 
+text \<open>We use three simple typing properties on integer values:
    $is_IntVal32, is_IntVal64$ and the more general $is_IntVal$.\<close>
 
-lemma unary_eval_not_obj_ref:
-  shows "unary_eval op x \<noteq> ObjRef v"
+lemma unary_eval_not_obj_ref: "unary_eval op x \<noteq> ObjRef v"
   by (cases op; cases x; auto)
 
-lemma unary_eval_not_obj_str:
-  shows "unary_eval op x \<noteq> ObjStr v"
+lemma unary_eval_not_obj_str: "unary_eval op x \<noteq> ObjStr v"
   by (cases op; cases x; auto)
 
-lemma unary_eval_not_array:
-  shows "unary_eval op x \<noteq> ArrayVal len v"
+lemma unary_eval_not_array: "unary_eval op x \<noteq> ArrayVal len v"
   by (cases op; cases x; auto)
 
 (* declare [[show_types = true]] *)
@@ -58,25 +55,24 @@ proof -
 *)
 
 (* Note: this will need qualifying once we have non-integer unary ops. *)
-lemma unary_eval_int:
-  assumes "unary_eval op x \<noteq> UndefVal"
-  shows "is_IntVal (unary_eval op x)"
-  by (cases "unary_eval op x"; auto simp add: assms unary_eval_not_obj_ref unary_eval_not_obj_str
+lemma unary_eval_int: "unary_eval op x \<noteq> UndefVal \<Longrightarrow> is_IntVal (unary_eval op x)"
+  by (cases "unary_eval op x"; auto simp add: unary_eval_not_obj_ref unary_eval_not_obj_str
       unary_eval_not_array)
 
 lemma bin_eval_int:
   assumes "bin_eval op x y \<noteq> UndefVal"
   shows "is_IntVal (bin_eval op x y)"
   using assms apply (cases op; cases x; cases y; auto simp add: is_IntVal_def)
-  prefer 10 prefer 7 prefer 8 prefer 16 prefer 18 prefer 20 prefer 21 prefer 13 prefer 29
+  prefer 10 prefer 7 prefer 8 prefer 16 prefer 18 prefer 20 prefer 21 prefer 13 prefer 29 prefer 19
   apply presburger+ (* prove 6 more easy cases *)
-  apply (meson new_int_bin.simps)+ defer
-  apply (smt (verit, best) new_int.elims)
-  apply (smt (verit) new_int.elims)
-  apply (metis (full_types) bool_to_val.simps(1,2)) defer
-  prefer 12 using bool_to_val.elims apply (meson, meson, metis, meson)
-  prefer 9 prefer 6 prefer 4 apply meson+
-  by metis+
+  prefer 7 prefer 8 prefer 9
+  using bool_to_val.elims new_int_bin.simps apply (meson, meson, meson, meson, meson)
+  apply (smt (verit, ccfv_SIG) bool_to_val.simps(1,2))
+  apply (smt (verit) new_int.simps)
+  apply (smt (verit, ccfv_threshold) new_int.elims)
+  apply (metis (full_types) bool_to_val.simps(1,2))
+  prefer 7 prefer 5 apply (metis, metis, metis)
+  by argo+
 
 lemma IntVal0: "(IntVal 32 0) = (new_int 32 0)"
   by auto
@@ -121,12 +117,12 @@ next
 next
   case BinXor
   then show ?thesis
-    using assms apply (cases x; cases y; auto) apply (metis take_bit_xor) by meson
+    using assms apply (cases x; cases y; auto) by (metis take_bit_xor)+
 next
   case BinShortCircuitOr
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    using new_int.elims apply (metis IntVal0 IntVal1 bool_to_val.elims) by presburger
+    apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.elims) by presburger
 next
   case BinLeftShift
   then show ?thesis
@@ -134,7 +130,8 @@ next
 next
   case BinRightShift
   then show ?thesis
-    using assms apply (cases x; cases y; auto) by (smt (verit, best) new_int.simps new_int.elims)+
+    using assms apply (cases x; cases y; auto) apply (smt (verit, ccfv_SIG) new_int.simps)
+    by (smt (verit, best) new_int.simps)
 next
   case BinURightShift
   then show ?thesis
@@ -143,13 +140,13 @@ next
   case BinIntegerEquals
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis (full_types) IntVal0 IntVal1 bool_to_val.simps(1,2) new_int.elims) by presburger
+    apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.elims) by presburger
 next
   case BinIntegerLessThan
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis (no_types, opaque_lifting) bool_to_val.simps(1,2) bool_to_val.elims new_int.simps
-           IntVal1 take_bit_of_0)
+    apply (metis (no_types, opaque_lifting) bool_to_val.elims signed_take_bit_eq_if_positive mod_0
+           signed_take_bit_numeral_of_1 take_bit_eq_mod not_bit_1_numeral)
     by presburger
 next
   case BinIntegerBelow
@@ -160,8 +157,7 @@ next
   case BinIntegerTest
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps IntVal0 IntVal1)
-    by presburger
+    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps IntVal0 IntVal1) by argo
 next
   case BinIntegerNormalizeCompare
   then show ?thesis
@@ -171,13 +167,11 @@ next
 next
   case BinIntegerMulHigh
   then show ?thesis
-    using assms apply (cases x; cases y; simp) by metis
+    using assms apply (cases x; cases y; simp) by (metis (full_types))
 qed
 
-lemma int_stamp:
-  assumes "is_IntVal v"
-  shows "is_IntegerStamp (constantAsStamp v)"
-  using assms is_IntVal_def by auto
+lemma int_stamp: "is_IntVal v \<Longrightarrow> is_IntegerStamp (constantAsStamp v)"
+  using is_IntVal_def by auto
 
 lemma validStampIntConst:
   assumes "v = IntVal b vv"
@@ -217,12 +211,10 @@ lemma valid_not_undef:
   apply (rule valid_value.elims(1)[of val s True]) using assms by auto
 
 (* Elimination rules for valid_value, for each kind of stamp. *)
-lemma valid_VoidStamp[elim]:
-  shows "valid_value val VoidStamp \<Longrightarrow> val = UndefVal"
+lemma valid_VoidStamp[elim]: "valid_value val VoidStamp \<Longrightarrow> val = UndefVal"
   by simp
 
-lemma valid_ObjStamp[elim]:
-  shows "valid_value val (ObjectStamp klass exact nonNull alwaysNull) \<Longrightarrow> (\<exists>v. val = ObjRef v)"
+lemma valid_ObjStamp[elim]: "valid_value val (ObjectStamp k e n a) \<Longrightarrow> (\<exists>v. val = ObjRef v)"
   by (metis Value.exhaust valid_value.simps(3,11,12,18))
 
 lemma valid_int[elim]: "valid_value val (IntegerStamp b lo hi) \<Longrightarrow> (\<exists>v. val = IntVal b v)"
@@ -238,11 +230,9 @@ lemma evaltree_not_undef:
   shows "([m,p] \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
   apply (induction rule: "evaltree.induct") by (auto simp add: wf_value_def)
 
-lemma leafint:
-  assumes "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val"
-  shows "\<exists>b v. val = (IntVal b v)"
+lemma leafint: "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val \<Longrightarrow> (\<exists>b v. val = (IntVal b v))"
 (* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
-  using assms by auto
+  by auto
 
 lemma default_stamp [simp]: "default_stamp = IntegerStamp 32 (-2147483648) 2147483647"
   by (auto simp add: default_stamp_def)
@@ -336,10 +326,8 @@ lemma mono_binary:
   shows "(BinaryExpr op x y) \<ge> (BinaryExpr op x' y')"
   using BinaryExpr assms by auto
 
-lemma never_void:
-  assumes "valid_value xv (stamp_expr xe)"
-  shows "stamp_expr xe \<noteq> VoidStamp"
-  using assms by force
+lemma never_void: "valid_value xv (stamp_expr xe) \<Longrightarrow> stamp_expr xe \<noteq> VoidStamp"
+  by force
 
 (* These were trivially true, due to operator precedence errors.
 lemma stamp32:
@@ -545,9 +533,7 @@ lemma unary_eval_new_int:
 proof (cases op)
   case UnaryAbs
   then show ?thesis
-    apply auto
-    by (metis intval_bits.simps intval_abs.simps(1) UnaryAbs def new_int.elims unary_eval.simps(1)
-        intval_abs.elims)
+    apply auto by (metis def intval_abs.elims intval_bits.simps new_int.elims unary_eval.simps(1))
 next
   case UnaryNeg
   then show ?thesis
@@ -561,8 +547,7 @@ next
   case UnaryLogicNegation
   then show ?thesis
     apply auto
-    by (metis intval_bits.simps UnaryLogicNegation intval_logic_negation.elims new_int.elims def
-        unary_eval.simps(4))
+    by (metis intval_bits.simps intval_logic_negation.elims new_int.elims unary_eval.simps(4) def)
 next
   case (UnaryNarrow x51 x52)
   then show ?thesis
@@ -621,22 +606,14 @@ next
         def)
 qed
 
-lemma new_int_unused_bits_zero:
-  assumes "IntVal b ival = new_int b ival0"
-  shows "take_bit b ival = ival"
-  by (simp add: new_int_take_bits assms)
+lemma new_int_unused_bits_zero: "IntVal b v = new_int b v0 \<Longrightarrow> take_bit b v = v"
+  by (simp add: new_int_take_bits)
 
-lemma unary_eval_unused_bits_zero:
-  assumes "unary_eval op x = IntVal b ival"
-  shows "take_bit b ival = ival"
-  by (metis unary_eval_new_int Value.inject(1) new_int.elims new_int_unused_bits_zero Value.simps(5)
-      assms)
+lemma unary_eval_unused_bits_zero: "unary_eval op x = IntVal b v \<Longrightarrow> take_bit b v = v"
+  by (metis unary_eval_new_int Value.inject(1) new_int.elims new_int_unused_bits_zero Value.simps(5))
 
-lemma bin_eval_unused_bits_zero:
-  assumes "bin_eval op x y = (IntVal b ival)"
-  shows "take_bit b ival = ival"
-  by (metis bin_eval_new_int Value.distinct(1) Value.inject(1) new_int.elims new_int_take_bits
-      assms)
+lemma bin_eval_unused_bits_zero: "bin_eval op x y = (IntVal b v) \<Longrightarrow> take_bit b v = v"
+  by (metis bin_eval_new_int Value.distinct(1) Value.inject(1) new_int.elims new_int_take_bits)
 
 lemma eval_unused_bits_zero:
   "[m,p] \<turnstile> xe \<mapsto> (IntVal b ix) \<Longrightarrow> take_bit b ix = ix"
@@ -677,23 +654,21 @@ next
     by fast
 qed
 
-lemma eval_int_implies_take_bit_eq:
-  assumes "[m,p] \<turnstile> x \<mapsto> (IntVal b v)"
-  shows "take_bit_val_eq (IntVal b v)"
-  using assms eval_unused_bits_zero by auto
+lemma eval_int_implies_take_bit_eq: "[m,p] \<turnstile> x \<mapsto> (IntVal b v) \<Longrightarrow> take_bit_val_eq (IntVal b v)"
+  using eval_unused_bits_zero by auto
 
 lemma unary_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<in> normal_unary"
   shows "\<exists> ix. x = IntVal b ix"
-  using assms apply (cases op; auto) prefer 5
-  apply (smt (verit, ccfv_threshold) Value.distinct(1) Value.inject(1) intval_reverse_bytes.elims
-         new_int.simps)
-  prefer 3 apply (smt (verit) intval_not.elims new_int.simps Value.distinct(1) Value.inject(1))
+  using assms apply (cases op; auto)
   apply (smt (verit, ccfv_SIG) intval_abs.elims new_int.simps Value.distinct(1) Value.inject(1))
   apply (smt (verit, ccfv_SIG) intval_negate.elims new_int.simps Value.distinct(1) Value.inject(1))
-  by (smt (verit, ccfv_SIG) intval_logic_negation.elims new_int.simps Value.distinct(1)
-      Value.inject(1))
+  apply (smt (verit) intval_not.elims new_int.simps Value.distinct(1) Value.inject(1))
+  apply (smt (verit, ccfv_SIG) intval_logic_negation.elims new_int.simps Value.distinct(1)
+         Value.inject(1))
+  by (smt (verit, ccfv_threshold) Value.distinct(1) Value.inject(1) intval_reverse_bytes.elims
+      new_int.simps)
 
 lemma unary_not_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
@@ -708,14 +683,13 @@ lemma unary_not_normal_bitsize:
       assms(1) new_int.simps order.strict_trans2 unary_eval.simps(7))
 
 lemma unary_eval_bitsize:
-  assumes "unary_eval op x = IntVal b ival"
-  assumes 2: "x = IntVal bx ix"
+  assumes "unary_eval op x = IntVal b v"
+  assumes "x = IntVal bx ix"
   assumes "0 < bx \<and> bx \<le> 64"
   shows "0 < b \<and> b \<le> 64"
-  using assms apply (cases op; simp) prefer 2
-  apply (metis (no_types, lifting) Value.distinct(1) Value.inject(1) le_zero_eq new_int.simps
-         gr_zeroI)
-  by (metis Value.distinct(1) new_int.simps order.strict_trans2 intval_bits.simps le_trans)+
+  using assms apply (cases op; simp)
+  by (metis Value.distinct(1) Value.inject(1) bot_nat_0.not_eq_extremum le_0_eq new_int.simps
+      le_trans le_zero_eq not_gr_zero)+
 
 (*
 lemma unary2:
@@ -727,12 +701,7 @@ lemma unary2:
 lemma bin_eval_inputs_are_ints:
   assumes "bin_eval op x y = IntVal b ix"
   obtains xb yb xi yi where "x = IntVal xb xi \<and> y = IntVal yb yi"
-proof -
-  have "bin_eval op x y \<noteq> UndefVal"
-    by (simp add: assms)
-  then show ?thesis
-    by (meson defined_eval_is_intval is_IntVal_def that)
-qed
+  by (metis Value.distinct(1) assms defined_eval_is_intval is_IntVal_def that)
 
 lemma eval_bits_1_64:
   "[m,p] \<turnstile> xe \<mapsto> (IntVal b ix) \<Longrightarrow> 0 < b \<and> b \<le> 64"

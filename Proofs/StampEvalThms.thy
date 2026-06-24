@@ -426,15 +426,16 @@ proof -
       proof (cases "op \<in> binary_fixed_32_ops")
         case True
         then show ?thesis
-        unfolding stamp_expr.simps
-        by (metis False Value.inject(1) beq bin_eval_new_int le_add_same_cancel1 new_int.simps s2 s1
-            numeral_Bit0 vres zero_le_numeral zero_less_numeral assms(3,4) stamp_binary.simps(1))
+          unfolding stamp_expr.simps
+          by (metis (no_types, lifting) False Value.inject(1) beq bin_eval_new_int zero_less_numeral
+              le_add_same_cancel1 new_int.simps s2 s1 numeral_Bit0 vres zero_le_numeral assms(3,4)
+              stamp_binary.simps(1))
       next
         case False
         then show ?thesis
-        unfolding s1 s2 stamp_binary.simps stamp_expr.simps
-        by (metis beq bin_eval_new_int eval_bits_1_64 intval_bits.simps assms(1,3,4) vres v1
-            unrestricted_new_int_always_valid unrestricted_stamp.simps(2) valid_int_same_bits)
+          unfolding s1 s2 stamp_binary.simps stamp_expr.simps
+          by (metis beq bin_eval_new_int eval_bits_1_64 intval_bits.simps assms(1,3,4) vres v1
+              unrestricted_new_int_always_valid unrestricted_stamp.simps(2) valid_int_same_bits)
       qed
     qed
   then show ?thesis

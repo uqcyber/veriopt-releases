@@ -249,6 +249,15 @@ fun intval_abs :: "Value \<Rightarrow> Value" where
   "intval_abs (IntVal t v) = new_int t (if int_signed_value t v < 0 then - v else v)" |
   "intval_abs _ = UndefVal"
 
+(* Creates a Value for the highest and lowest set bit in an IntVal *)
+fun val_top_bit :: "Value \<Rightarrow> Value" where
+  "val_top_bit (IntVal b v) = new_int b (word_of_nat (topBit v))" |
+  "val_top_bit _ = UndefVal"
+
+fun val_bot_bit :: "Value \<Rightarrow> Value" where
+  "val_bot_bit (IntVal b v) = new_int b (word_of_nat (botBit v))" |
+  "val_bot_bit _ = UndefVal"
+
 text \<open>TODO: clarify which widths this should work on: just 1-bit or all?\<close>
 fun intval_logic_negation :: "Value \<Rightarrow> Value" where
   "intval_logic_negation (IntVal b v) = new_int b (logic_negate v)" |

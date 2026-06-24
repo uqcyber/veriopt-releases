@@ -10,8 +10,7 @@ subsubsection \<open>Support Lemmas for Upper/Lower Bounds\<close>
 
 (* these two were weirdly hard to prove given it should be by definition *)
 lemma size32: "size v = 32" for v :: "32 word"
-  by (smt (verit, del_insts) size_word.rep_eq numeral_Bit0 numeral_2_eq_2 mult_Suc_right One_nat_def
-      mult.commute len_of_numeral_defs(2,3) mult.right_neutral)
+  by (simp add: size32)
 
 lemma size64: "size v = 64" for v :: "64 word"
   by (simp add: size64)

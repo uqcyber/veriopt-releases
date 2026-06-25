@@ -287,4 +287,12 @@ proof -
     by (metis (no_types, opaque_lifting) and.right_idem take_bit_add take_bit_eq_mask)
 qed
 
+text \<open>bitCount and $val_bit_count$ lemmas\<close>
+
+lemma bitCount_64_IntVal: "val_bit_count (IntVal 64 v) = bitCount v"
+  using val_bit_count.simps by simp
+
+lemma bitCount_64_new_int: "val_bit_count (new_int 64 v) = bitCount v"
+  using val_bit_count.simps by simp
+
 end

@@ -258,6 +258,9 @@ fun val_bot_bit :: "Value \<Rightarrow> Value" where
   "val_bot_bit (IntVal b v) = new_int b (word_of_nat (botBit v))" |
   "val_bot_bit _ = UndefVal"
 
+fun val_bit_count :: "Value \<Rightarrow> nat" where
+  "val_bit_count (IntVal b v) = bitCount (take_bit b v)"
+
 text \<open>TODO: clarify which widths this should work on: just 1-bit or all?\<close>
 fun intval_logic_negation :: "Value \<Rightarrow> Value" where
   "intval_logic_negation (IntVal b v) = new_int b (logic_negate v)" |

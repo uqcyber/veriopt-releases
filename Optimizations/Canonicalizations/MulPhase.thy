@@ -189,14 +189,16 @@ thm_oracles val_MulPower2AddPower2
 lemma val_mul_power_2_add_power_2_64:
   assumes "x = new_int b xv"
   assumes "y = new_int b yv"
-  assumes "bitCount yv = 2"
+  assumes "val_bit_count y = 2"
   assumes "lhs = val[x << (val_top_bit y)]"
   assumes "rhs = val[x << (val_bot_bit y)]"
   assumes "b = 64"
   shows "val[x * y] = val[lhs + rhs]"
 proof -
+  have bitCount_y: "bitCount yv = 2"
+    using assms(2,3,6) by auto
   have distribute: "xv * yv = xv << (topBit yv) + xv << (botBit yv)"
-    using bitCount_2_mul_distribute assms(3) by auto
+    using bitCount_2_mul_distribute assms(2,3,6) by auto
   have unfoldLhs:
       "val[(x << (val_top_bit y))] =
        new_int b (xv << shift_amount b (take_bit b (word_of_nat (topBit (take_bit b yv)))))"
@@ -216,7 +218,7 @@ proof -
       "new_int b (take_bit b (xv << shift_amount b (take_bit b (word_of_nat (topBit (take_bit b yv))))) +
                              (xv << shift_amount b (take_bit b (word_of_nat (botBit (take_bit b yv))))))
      = new_int b (xv << (topBit yv) + xv << (botBit yv))"
-    by (simp add: assms(3,6) unfold_botBit_64 unfold_topBit_64)+
+    using bitCount_y by (simp add: assms(3,6) unfold_botBit_64 unfold_topBit_64)+
   have "val[(x << (val_top_bit y)) + (x << (val_bot_bit y))] =
         new_int b (xv << (topBit yv) + xv << (botBit yv))"
     using rhs unfold by argo
@@ -364,7 +366,7 @@ lemma exp_mul_power_2_add_power_2_64:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b lo hi"
   assumes "y = new_int b yv"
-  assumes "bitCount yv = 2"
+  assumes "val_bit_count y = 2"
   assumes "lhs = exp[x << const (val_top_bit y)]"
   assumes "rhs = exp[x << const (val_bot_bit y)]"
   assumes "b = 64"
@@ -380,15 +382,15 @@ lemma exp_mul_power_2_add_power_2_64:
     have botBitEval: "[m,p] \<turnstile> exp[const (val_bot_bit y)] \<mapsto> val[val_bot_bit y]"
       using assms(2) p(1,3,7) stamp_eval_int xv xvv by fastforce
     have rhslhsEval: "[m,p] \<turnstile> exp[lhs] \<mapsto> val[xv << (val_top_bit y)]"
-      by (metis (lifting) BinaryExpr assms(3,5) bin_eval.simps(10) evalDet intval_add.simps(2) xvv
-          p(3,4,7,8,9) topBitEval val_mul_power_2_add_power_2_64 xv)
+      by (metis BinaryExpr assms(3,4,5) bin_eval.simps(10) evalDet intval_add.simps(2) p(3,7,8,9) xv
+          topBitEval val_mul_power_2_add_power_2_64 xvv)
     have rhsrhsEval: "[m,p] \<turnstile> exp[rhs] \<mapsto> val[xv << (val_bot_bit y)]"
-      by (metis BinaryExpr xvv assms(3,6) bin_eval.simps(10) botBitEval evalDet intval_add.simps(6)
-          p(3,4,7,8,9) val_mul_power_2_add_power_2_64 xv)
+      by (metis BinaryExpr xv assms(3,4,6) bin_eval.simps(10) botBitEval evalDet intval_add.simps(6)
+          p(3,7,8,9) val_mul_power_2_add_power_2_64 xvv)
     have "[m,p] \<turnstile> exp[(x << const (val_top_bit y)) + (x << const (val_bot_bit y))] \<mapsto>
                   val[(xv << val_top_bit y) + (xv << val_bot_bit y)]"
-      by (metis BinaryExpr xvv assms(3,5,6) bin_eval.simps(1) evalDet p(3,4,7,8,9) rhslhsEval xv
-          rhsrhsEval val_mul_power_2_add_power_2_64)
+      by (smt (z3) BinaryExpr xvv assms(3,4,5,6) bin_eval.simps(1) evalDet p(3,4,7,8,9) rhslhsEval
+          xv rhsrhsEval val_mul_power_2_add_power_2_64)
     then have rhsE: "[m,p] \<turnstile> exp[lhs + rhs] \<mapsto> val[(xv << val_top_bit y) + (xv << val_bot_bit y)]"
       unfolding assms(5,6) by blast
     have "val[xv * y] = val[(xv << val_top_bit y) + (xv << val_bot_bit y)]"
@@ -441,7 +443,7 @@ qed
 optimization MulPower2AddPower2_64: "(x * (const y)) \<longmapsto>
                                      ((x << const (val_top_bit y)) + (x << const (val_bot_bit y)))
                                      when (stamp_expr x = IntegerStamp b lo hi \<and> wf_stamp x \<and>
-                                           y = new_int b yv \<and> bitCount yv = 2 \<and> b = 64)"
+                                           y = new_int b yv \<and> val_bit_count y = 2 \<and> b = 64)"
   using exp_mul_power_2_add_power_2_64 by force
 
 optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x

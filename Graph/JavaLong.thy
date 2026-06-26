@@ -32,6 +32,20 @@ subsection \<open>Helpful lemmas\<close>
 fun bin_is_even :: "'a::len word \<Rightarrow> bool" where
   "bin_is_even v = (\<not>bit v 0)"
 
+definition is_truncated :: "'a::len word \<Rightarrow> nat \<Rightarrow> bool" where
+  "is_truncated x b = (x = take_bit b x)"
+
+subsubsection \<open>LENGTH lemmas\<close>
+
+lemma lt_64_iff: "v < 64 \<longleftrightarrow> v < LENGTH(64)"
+  by auto
+
+lemma leq_64_iff: "v \<le> 64 \<longleftrightarrow> v \<le> LENGTH(64)"
+  by auto
+
+lemma len_64: "64 = LENGTH(64)"
+  by auto
+
 subsubsection \<open>Nat lemmas\<close>
 
 lemma nat_bot_set: "(0::nat) \<in> xs \<longrightarrow> (\<forall>x \<in> xs . 0 \<le> x)"
@@ -49,6 +63,12 @@ lemma unat_word_of_nat_unfold: "v < (2 ^ LENGTH('a)) \<Longrightarrow> unat (wor
 lemma unat_word_of_nat_unfold_64: "v < (2 ^ LENGTH(64)) \<Longrightarrow> unat (word_of_nat (v)::64word) = v"
   using unat_word_of_nat_unfold by blast
 
+lemma unat_word_of_nat_trunc_unfold:
+  assumes "b \<le> LENGTH('a)"
+  assumes "v = take_bit b v"
+  shows "unat (word_of_nat (v)::'a::len word) = v"
+  by (metis le_unat_uoi assms of_nat_eq_iff take_bit_tightened_less_eq_nat uint_nat unsigned_of_nat)
+
 lemma lt_word_of_nat:
   assumes "v < b"
   assumes "b < 2 ^ LENGTH('a)"
@@ -57,6 +77,14 @@ lemma lt_word_of_nat:
 
 lemma of_nat_gt0_implies_eq: "n > 0 \<Longrightarrow> (n::int) = of_nat (nat n)"
   by simp
+
+lemma word_of_nat_leq_len_1_32:
+  fixes n :: nat
+  assumes "n \<le> (31::nat)"
+  shows "(word_of_nat n::64word) \<le> (31::64word)"
+  by (smt (verit, ccfv_SIG) assms lt_word_of_nat le_eq_less_or_eq less_exp word_le_less_eq len_64
+      nat_int_comparison(3) numeral_le_iff of_nat_numeral semiring_norm(72,74,76)
+      verit_la_disequality)
 
 lemma word_of_nat_leq_len_1_64:
   fixes n :: nat
@@ -121,6 +149,9 @@ lemma bits_1_set: "{n . bit 1 n} = {0}"
 lemma bits_set_in_range: "bit (v::'a::len word) n \<Longrightarrow> n < LENGTH('a)"
   by (simp add: bit_imp_le_length)
 
+lemma bits_set_in_truncated_range: "is_truncated v b \<Longrightarrow> bit (v::'a::len word) n \<Longrightarrow> n < b"
+  unfolding is_truncated_def by (metis bit_take_bit_iff)
+
 lemma bits_bound_eq: "{n . bit (v::'a::len word) n} = {n . n < Nat.size v \<and> bit v n}"
   using max_bit by auto
 
@@ -147,6 +178,10 @@ lemma nonzero_nonempty_iff: "v \<noteq> 0 \<longleftrightarrow> {i . bit v i} \<
 
 lemma take_bit_leq: "take_bit b (v::'a::len word) \<le> v"
   by (simp add: unsigned_take_bit_eq word_le_nat_alt)
+
+lemma take_bit_eq: "v \<le> n \<Longrightarrow> take_bit n v = v"
+  by (smt (z3) bintrunc_id less_imp_of_nat_less nat_int_comparison(1) negative_zle take_bit_of_nat
+      take_bit_nat_less_eq_self of_nat_mono)
 
 lemma word_lt: "\<forall> (v::64word) . v \<noteq> -1 \<longrightarrow> v < -1"
   using word_order.not_eq_extremum by auto
@@ -391,17 +426,6 @@ proof -
   then show ?thesis
     by (metis add_diff_cancel mask_succ_push_bit)
 qed
-
-text \<open>LENGTH lemmas\<close>
-
-lemma lt_64_iff: "v < 64 \<longleftrightarrow> v < LENGTH(64)"
-  by auto
-
-lemma leq_64_iff: "v \<le> 64 \<longleftrightarrow> v \<le> LENGTH(64)"
-  by auto
-
-lemma len_64: "64 = LENGTH(64)"
-  by auto
 
 subsubsection \<open>Set lemmas\<close>
 
@@ -1119,6 +1143,11 @@ lemma supp_range:
   fixes v :: "'a::len word"
   shows "\<forall> i . i \<in> word_inspection.supp v \<longrightarrow> 0 \<le> i \<and> i < LENGTH('a)"
   unfolding word_inspection.supp_def by (simp add: bits_set_in_range)
+
+lemma supp_is_truncated_range:
+  assumes "is_truncated v b"
+  shows "\<forall> i . i \<in> word_inspection.supp v \<longrightarrow> 0 \<le> i \<and> i < b"
+  unfolding word_inspection.supp_def using assms bits_set_in_truncated_range by auto
 
 lemma supp_push_bit_sum:
   fixes v :: "'a::len word"

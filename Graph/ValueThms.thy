@@ -223,6 +223,9 @@ lemma new_int_take_bits:
   shows "take_bit b val = val"
   using assms by simp
 
+lemma is_truncated_IntVal_new_int_iff: "is_truncated v b \<longleftrightarrow> new_int b v = IntVal b v"
+  using is_truncated_def by force
+
 subsubsection \<open>Support lemmas for take bit and signed take bit.\<close>
 
 text \<open>Lemmas for removing redundant take\_bit wrappers.\<close>
@@ -287,12 +290,138 @@ proof -
     by (metis (no_types, opaque_lifting) and.right_idem take_bit_add take_bit_eq_mask)
 qed
 
-text \<open>bitCount and $val_bit_count$ lemmas\<close>
+subsubsection \<open>bitCount and $val_bit_count$ lemmas\<close>
+
+text \<open>bitCount lemmas\<close>
 
 lemma bitCount_64_IntVal: "val_bit_count (IntVal 64 v) = bitCount v"
   using val_bit_count.simps by simp
 
 lemma bitCount_64_new_int: "val_bit_count (new_int 64 v) = bitCount v"
   using val_bit_count.simps by simp
+
+text \<open>$val_bit_count$ lemmas\<close>
+
+lemma val_bit_count_2_val_supp:
+  assumes "y = new_int b yv"
+  assumes "is_truncated yv b"
+  assumes "val_bit_count y = 2"
+  shows "val_supp y = {topBit yv, botBit yv}"
+  using bitCount_2_lsb_msb word_inspection.supp_def assms unfolding is_truncated_def by auto
+
+lemma val_bit_count_2_sum_push_bit:
+  assumes "y = new_int b yv"
+  assumes "is_truncated yv b"
+  assumes "val_bit_count y = 2"
+  shows "yv = push_bit (topBit yv) 1 + push_bit (botBit yv) 1"
+  using assms bitCount_2_sum_push_bit unfolding is_truncated_def by force
+
+lemma val_bit_count_2_sum_pow_2:
+  assumes "y = new_int b yv"
+  assumes "val_bit_count y = 2"
+  assumes "is_truncated yv b"
+  shows "yv = 2 ^ (topBit yv) + 2 ^ (botBit yv)"
+  using val_bit_count_2_sum_push_bit assms by fastforce
+
+lemma val_bit_count_nonzero:
+  assumes "x = new_int b xv"
+  assumes "val_bit_count x \<noteq> 0"
+  shows "xv \<noteq> 0"
+  by (metis val_bit_count.simps Value.inject(1) bitCount_0 new_int.elims new_int_zero_is_intval
+      assms)
+
+text \<open>topBit lemmas\<close>
+
+lemma val_bit_count_top_is_truncated_take_bit_32:
+  assumes "y = new_int b yv"
+  assumes "val_bit_count y = 2"
+  assumes "yv \<noteq> 0"
+  assumes "is_truncated yv 32"
+  shows "(and (take_bit 32 (word_of_nat (topBit yv))) 31) =
+         (and (word_of_nat (topBit yv))) 31"
+proof -
+  have "topBit yv \<in> word_inspection.supp yv"
+    using assms(3) supp_contains_topBit_nonzero_iff by blast
+  then have range: "topBit yv \<in> {0..31}"
+    using assms supp_is_truncated_range [of yv 32] unfolding is_truncated_def by auto
+  have "(and (take_bit 32 (topBit yv)) 31) = (and (topBit yv) 31)"
+    using range take_bit_eq by (simp add: le_def)
+  then show ?thesis
+    by (metis of_nat_and_eq of_nat_numeral take_bit_of_nat)
+qed
+
+lemma val_bit_count_unfold_topBit_32:
+  assumes "y = new_int b yv"
+  assumes "val_bit_count y = 2"
+  assumes "yv \<noteq> 0"
+  assumes "is_truncated yv 32"
+  shows "unat (and (word_of_nat (topBit yv)) (31::64word)) = topBit yv"
+proof -
+  have mask: "(31::64word) = mask 5"
+    by eval
+  have "topBit yv \<in> word_inspection.supp yv"
+    using assms(3) supp_contains_topBit_nonzero_iff by blast
+  then have range: "topBit yv \<le> 31"
+    using assms supp_is_truncated_range [of yv 32] unfolding is_truncated_def by fastforce
+  obtain max where maxInSet: "max = topBit yv"
+    by simp
+  have word_range: "(word_of_nat (max)::64word) \<le> 31"
+    by (simp add: local.range maxInSet word_of_nat_leq_len_1_32)
+  have lt_pow2: "(topBit yv) < (2 ^ LENGTH(64))"
+    using range by auto
+  have foldAnd: "(and (word_of_nat (max)::64word) (31::64 word)) = (word_of_nat (max)::64word)"
+    by (metis le_mask_imp_and_mask mask word_range)
+  have "unat (word_of_nat (max)::64word) = max"
+    unfolding maxInSet using unat_word_of_nat_unfold_64 lt_pow2 by presburger
+  then show ?thesis
+    unfolding maxInSet using foldAnd maxInSet by argo
+qed
+
+text \<open>botBit lemmas\<close>
+
+lemma val_bit_count_bot_is_truncated_take_bit_32:
+  assumes "y = new_int b yv"
+  assumes "val_bit_count y = 2"
+  assumes "yv \<noteq> 0"
+  assumes "is_truncated yv 32"
+  shows "(and (take_bit 32 (word_of_nat (botBit yv))) 31) =
+         (and (word_of_nat (botBit yv))) 31"
+proof -
+  have "botBit yv \<in> word_inspection.supp yv"
+    using assms(3) supp_contains_botBit_nonzero_iff by blast
+  then have range: "botBit yv \<in> {0..31}"
+    using assms supp_is_truncated_range [of yv 32] unfolding is_truncated_def by auto
+  have "(and (take_bit 32 (botBit yv)) 31) = (and (botBit yv) 31)"
+    using range take_bit_eq by simp
+  then show ?thesis
+    by (metis of_nat_and_eq of_nat_numeral take_bit_of_nat)
+qed
+
+lemma val_bit_count_unfold_botBit_32:
+  assumes "y = new_int b yv"
+  assumes "val_bit_count y = 2"
+  assumes "yv \<noteq> 0"
+  assumes "is_truncated yv 32"
+  shows "unat (and (word_of_nat (botBit yv)) (31::64word)) = botBit yv"
+proof -
+  have mask: "(31::64word) = mask 5"
+    by eval
+  have "botBit yv \<in> word_inspection.supp yv"
+    using assms(3) supp_contains_botBit_nonzero_iff by blast
+  then have range: "botBit yv \<le> 31"
+    using assms supp_is_truncated_range [of yv 32] unfolding is_truncated_def by fastforce
+  obtain min where minInSet: "min = botBit yv"
+    by simp
+  have word_range: "(word_of_nat (min)::64word) \<le> 31"
+    by (simp add: local.range minInSet word_of_nat_leq_len_1_32)
+  have lt_pow2: "(botBit yv) < (2 ^ LENGTH(64))"
+    using range by auto
+  have foldAnd: "(and (word_of_nat (min)::64word) (31::64 word)) = (word_of_nat (min)::64word)"
+    by (metis le_mask_imp_and_mask mask word_range)
+  have "unat (word_of_nat (min)::64word) = min"
+    unfolding minInSet using unat_word_of_nat_unfold_64 lt_pow2 by blast
+  then show ?thesis
+    unfolding minInSet using foldAnd minInSet by argo
+qed
 
 end

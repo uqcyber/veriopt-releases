@@ -186,6 +186,62 @@ lemma val_MulPower2AddPower2:
 
 thm_oracles val_MulPower2AddPower2
 
+lemma val_mul_power_2_add_power_2_32:
+  assumes "x = new_int b xv"
+  assumes "y = new_int b yv"
+  assumes "val_bit_count y = 2"
+  assumes "lhs = val[x << (val_top_bit y)]"
+  assumes "rhs = val[x << (val_bot_bit y)]"
+  assumes "b = 32"
+  assumes "is_truncated yv b"
+	shows "val[x * y] = val[lhs + rhs]"
+proof -
+  have distribute: "xv * yv = xv << (topBit yv) + xv << (botBit yv)"
+    by (metis (no_types, lifting) bin_multiply_power_2 distrib_left val_bit_count_2_sum_pow_2
+        assms(2,3,7))
+  have unfoldTopBit: "(val_top_bit y) = new_int b (word_of_nat (topBit (take_bit b yv)))"
+    by (simp add: assms(2))
+  have unfoldBotBit: "(val_bot_bit y) = new_int b (word_of_nat (botBit (take_bit b yv)))"
+    by (simp add: assms(2))
+  have unfoldMul: "val[x * y] = new_int_bin b b (xv * yv)"
+    using intval_mul.simps(1) [of b xv b yv] apply auto by (simp add: assms(1,2) mergeTakeBit)
+  have unfoldMulNewInt: "val[x * y] = new_int b (xv * yv)"
+    using unfoldMul new_int_bin.simps by auto
+  have intValX: "x = IntVal b (take_bit b xv)"
+    using assms(1) by fastforce
+  have unfoldLhs: "val[(x << (val_top_bit y))] =
+                  new_int b (xv << shift_amount b (take_bit b (word_of_nat (topBit (take_bit b yv)))))"
+    using intval_left_shift.simps(1) [of b xv b] apply auto apply (simp add: assms(6))
+    by (smt (verit) bin_multiply_power_2 intValX intval_left_shift.simps(1) mask_eqs(6) unfoldTopBit
+        new_int.simps shift_amount.simps take_bit_eq_mask)
+  have unfoldRhs: "val[(x << (val_bot_bit y))] =
+                   new_int b (xv << shift_amount b (take_bit b (word_of_nat (botBit (take_bit b yv)))))"
+    using intval_left_shift.simps(1) [of b xv b] apply auto apply (simp add: assms(6))
+    by (smt (verit, del_insts) bin_multiply_power_2 intval_left_shift.simps(1) take_bit_eq_mask
+        mask_eqs(6) new_int.simps assms(1,6) shift_amount.elims numeral_Bit0 unfoldBotBit)
+  have rhs: "val[(x << (val_top_bit y)) + (x << (val_bot_bit y))] =
+             new_int b (take_bit b (xv << shift_amount b (take_bit b (word_of_nat (topBit (take_bit b yv))))) +
+                                   (xv << shift_amount b (take_bit b (word_of_nat (botBit (take_bit b yv))))))"
+    by (simp add: unfoldLhs unfoldRhs)
+  have nonzero: "yv \<noteq> 0"
+    using val_bit_count_nonzero assms(2,3) by simp
+  have unfold:
+    "new_int b (take_bit b (xv << shift_amount b (take_bit b (word_of_nat (topBit (take_bit b yv))))) +
+                           (xv << shift_amount b (take_bit b (word_of_nat (botBit (take_bit b yv))))))
+   = new_int b (xv << (topBit yv) + xv << (botBit yv))"
+    apply auto apply (simp add: assms(6))
+    by (metis assms(2,3,6,7) is_truncated_def nonzero val_bit_count_bot_is_truncated_take_bit_32
+        val_bit_count_top_is_truncated_take_bit_32 val_bit_count_unfold_botBit_32
+        val_bit_count_unfold_topBit_32)
+  have "val[(x << (val_top_bit y)) + (x << (val_bot_bit y))] =
+        new_int b (xv << (topBit yv) + xv << (botBit yv))"
+    using unfold rhs by auto
+  then have "val[x * y] = val[(x << (val_top_bit y)) + (x << (val_bot_bit y))]"
+    using distribute unfoldMulNewInt by force
+  then show ?thesis
+    by (simp add: assms(4,5))
+qed
+
 lemma val_mul_power_2_add_power_2_64:
   assumes "x = new_int b xv"
   assumes "y = new_int b yv"
@@ -362,6 +418,42 @@ lemma exp_distribute_multiplication:
    qed
   done
 
+lemma exp_mul_power_2_add_power_2_32:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp b lo hi"
+  assumes "y = new_int b yv"
+  assumes "val_bit_count y = 2"
+  assumes "lhs = exp[x << const (val_top_bit y)]"
+  assumes "rhs = exp[x << const (val_bot_bit y)]"
+  assumes "b = 32"
+  assumes "is_truncated yv b"
+  shows "exp[x * const y] \<ge> exp[lhs + rhs]"
+  using assms apply auto subgoal premises p for m p xa
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(9) by auto
+    obtain xvv where xvv: "xv = new_int 32 xvv"
+      by (metis p(1,2) stamp_eval_same_bits wf_integerstamp_eval_is_new_int xv)
+    have topBitEval: "[m,p] \<turnstile> exp[const (val_top_bit y)] \<mapsto> val[val_top_bit y]"
+      using p(1,2,3) stamp_eval_int xv xvv by auto
+    have botBitEval: "[m,p] \<turnstile> exp[const (val_bot_bit y)] \<mapsto> val[val_bot_bit y]"
+      using p(1,2,3) stamp_eval_int xv xvv by auto
+    have rhslhsEval: "[m,p] \<turnstile> exp[lhs] \<mapsto> val[xv << (val_top_bit y)]"
+      using BinaryExpr xvv assms(3,5) topBitEval xv by auto
+    have rhsrhsEval: "[m,p] \<turnstile> exp[rhs] \<mapsto> val[xv << (val_bot_bit y)]"
+      by (metis BinaryExpr assms(3,4,6) bin_eval.simps(10) botBitEval val_mul_power_2_add_power_2_32
+          evalDet intval_add.simps(6) p(10,3,7,8,9) xv xvv)
+    have evalAdd: "[m,p] \<turnstile> exp[(x << const (val_top_bit y)) + (x << const (val_bot_bit y))] \<mapsto>
+                           val[(xv << val_top_bit y) + (xv << val_bot_bit y)]"
+      by (metis BinaryExpr xvv assms(3,4,5,6) bin_eval.simps(1) evalDet p(10,3,7,8,9) rhslhsEval xv
+          rhsrhsEval val_mul_power_2_add_power_2_32)
+    have "val[xv * y] = val[(xv << val_top_bit y) + (xv << val_bot_bit y)]"
+      using assms(3,4,8) p(7) val_mul_power_2_add_power_2_32 xvv by blast
+    then show ?thesis
+      by (metis assms(5,6) evalAdd evalDet p(3,5,6,9) xv)
+  qed
+  done
+
 lemma exp_mul_power_2_add_power_2_64:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b lo hi"
@@ -439,6 +531,13 @@ proof -
     by (metis eval(1,2) evalDet lhs ConstantExprE evaltree_not_undef val_MulPower2 yv)
 qed
   done
+
+optimization MulPower2AddPower2_32: "(x * (const y)) \<longmapsto>
+                                     ((x << const (val_top_bit y)) + (x << const (val_bot_bit y)))
+                                     when (stamp_expr x = IntegerStamp b lo hi \<and> wf_stamp x \<and>
+                                           y = new_int b yv \<and> val_bit_count y = 2 \<and> b = 32 \<and>
+                                           is_truncated yv b)"
+  using exp_mul_power_2_add_power_2_32 by force
 
 optimization MulPower2AddPower2_64: "(x * (const y)) \<longmapsto>
                                      ((x << const (val_top_bit y)) + (x << const (val_bot_bit y)))

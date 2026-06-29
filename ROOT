@@ -1,5 +1,14 @@
 chapter "veriopt"
 
+session Locale_Code in "Lib/Locale_Code" = "HOL-Library" +
+  theories
+    Locale_Code
+
+session Fresh in "Lib/Fresh" = "HOL-Library" +
+  theories
+    Fresh
+    Fresh_String
+
 session Graph in Graph = "HOL-Library" +
   description
     "GraalVM Intermediate Representation encoding"

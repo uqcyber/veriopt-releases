@@ -25,15 +25,11 @@ lemma signed_int_top32: "(2 ^ 31) - 1 \<ge> sint (v::int32)"
   by (smt (verit, ccfv_SIG) One_nat_def Suc_pred add_Suc add_Suc_right eval_nat_numeral(3) nat.inject numeral_2_eq_2 numeral_Bit0 numeral_Bit1 zero_less_numeral)
 *)
 
-lemma lower_bounds_equiv: 
-  assumes "0 < N"
-  shows "-(((2::int) ^ (N-1))) = (2::int) ^ N div 2 * - 1"
-  by (simp add: assms int_power_div_base)
+lemma lower_bounds_equiv: "0 < N \<Longrightarrow> -(((2::int) ^ (N-1))) = (2::int) ^ N div 2 * - 1"
+  by (simp add: int_power_div_base)
 
-lemma upper_bounds_equiv:
-  assumes "0 < N"
-  shows "(2::int) ^ (N-1) = (2::int) ^ N div 2"
-  by (simp add: assms int_power_div_base)
+lemma upper_bounds_equiv: "0 < N \<Longrightarrow> (2::int) ^ (N-1) = (2::int) ^ N div 2"
+  by (simp add: int_power_div_base)
 
 lemma intval_bits_in_bounds_expand_lower:
   assumes "intval_bits_in_bounds x l h"
@@ -64,8 +60,8 @@ lemma bit_bounds_max64: "((snd (bit_bounds 64))) \<ge> (sint (v::int64))"
 
 text \<open>Extend these min/max bounds to extracting smaller signed words using $signed\_take\_bit$.\<close>
 
-text \<open>Note: we could use signed to convert between bit-widths, instead of 
-  signed\_take\_bit.  But that would have to be done separately for each bit-width type.\<close>
+text \<open>Note: we could use signed to convert between bit-widths, instead of
+      signed\_take\_bit.  But that would have to be done separately for each bit-width type.\<close>
 
 value "sint(signed_take_bit 7 (128 :: int8))"
 
@@ -74,26 +70,24 @@ declare [[show_types=true]]
 ML_val \<open>@{thm signed_take_bit_int_less_exp}\<close>
 
 lemma signed_take_bit_int_less_exp_word:
-  fixes ival :: "'a :: len word"
+  fixes v :: "'a :: len word"
   assumes "n < LENGTH('a)"
-  shows "sint(signed_take_bit n ival) < (2::int) ^ n"
-  apply transfer
-  by (smt (verit) not_take_bit_negative signed_take_bit_eq_take_bit_shift 
-     signed_take_bit_int_less_exp take_bit_int_greater_self_iff) 
+  shows "sint(signed_take_bit n v) < (2::int) ^ n"
+  using assms signed_take_bit_range by auto
 
 lemma signed_take_bit_int_greater_eq_minus_exp_word:
-  fixes ival :: "'a :: len word"
+  fixes v :: "'a :: len word"
   assumes "n < LENGTH('a)"
-  shows "- (2 ^ n) \<le> sint(signed_take_bit n ival)"
+  shows "- (2 ^ n) \<le> sint(signed_take_bit n v)"
   using signed_take_bit_int_greater_eq_minus_exp_word assms by blast
 
 lemma signed_take_bit_range:
   fixes ival :: "'a :: len word"
   assumes "n < LENGTH('a)"
-  assumes "val = sint(signed_take_bit n ival)"
-  shows "- (2 ^ n) \<le> val \<and> val < 2 ^ n"
-  by (auto simp add: assms signed_take_bit_int_greater_eq_minus_exp_word 
-      signed_take_bit_int_less_exp_word)
+  assumes "v = sint(signed_take_bit n ival)"
+  shows "- (2 ^ n) \<le> v \<and> v < 2 ^ n"
+  by (auto simp add: signed_take_bit_int_greater_eq_minus_exp_word signed_take_bit_int_less_exp_word
+      assms)
 
 text \<open>A $bit\_bounds$ version of the above lemma.\<close>
 
@@ -101,10 +95,9 @@ lemma signed_take_bit_bounds:
   fixes ival :: "'a :: len word"
   assumes "n \<le> LENGTH('a)"
   assumes "0 < n"
-  assumes "val = sint(signed_take_bit (n - 1) ival)"
-  shows "fst (bit_bounds n) \<le> val \<and> val \<le> snd (bit_bounds n)"
-  by (metis bit_bounds.simps fst_conv less_imp_diff_less nat_less_le sint_ge sint_lt snd_conv 
-      zle_diff1_eq upper_bounds_equiv lower_bounds_equiv signed_take_bit_range assms)
+  assumes "v = sint(signed_take_bit (n - 1) ival)"
+  shows "fst (bit_bounds n) \<le> v \<and> v \<le> snd (bit_bounds n)"
+  using assms signed_take_bit_bounds by blast
 
 (* It is helpful to have the 64-bit instance of the above, to avoid uninstantiated types
    when apply it backwards. *)
@@ -112,8 +105,8 @@ lemma signed_take_bit_bounds64:
   fixes ival :: "int64"
   assumes "n \<le> 64"
   assumes "0 < n"
-  assumes "val = sint(signed_take_bit (n - 1) ival)"
-  shows "fst (bit_bounds n) \<le> val \<and> val \<le> snd (bit_bounds n)"
+  assumes "v = sint(signed_take_bit (n - 1) ival)"
+  shows "fst (bit_bounds n) \<le> v \<and> v \<le> snd (bit_bounds n)"
   by (metis size64 word_size signed_take_bit_bounds assms)
 
 lemma int_signed_value_bounds:
@@ -125,8 +118,8 @@ lemma int_signed_value_bounds:
 
 lemma int_signed_value_range:
   fixes ival :: "int64"
-  assumes "val = int_signed_value n ival"
-  shows "- (2 ^ (n - 1)) \<le> val \<and> val < 2 ^ (n - 1)"
+  assumes "v = int_signed_value n ival"
+  shows "- (2 ^ (n - 1)) \<le> v \<and> v < 2 ^ (n - 1)"
   using assms int_signed_value_range by blast
 
 text \<open>Some lemmas about unsigned words smaller than 64-bit, for zero-extend operators.\<close>
@@ -134,44 +127,34 @@ text \<open>Some lemmas about unsigned words smaller than 64-bit, for zero-exten
 lemma take_bit_smaller_range:
   fixes ival :: "'a :: len word"
   assumes "n < LENGTH('a)"
-  assumes "val = sint(take_bit n ival)"
-  shows "0 \<le> val \<and> val < (2::int) ^ n"
+  assumes "v = sint(take_bit n ival)"
+  shows "0 \<le> v \<and> v < (2::int) ^ n"
   by (simp add: assms signed_take_bit_eq)
 
-lemma take_bit_same_size_nochange:
-  fixes ival :: "'a :: len word"
-  assumes "n = LENGTH('a)"
-  shows "ival = take_bit n ival"
-  by (simp add: assms)
+lemma take_bit_same_size_nochange: "n = LENGTH('a) \<Longrightarrow> (v::'a :: len word) = take_bit n v"
+  by simp
 
 text \<open>A simplification lemma for $new\_int$, showing that upper bits can be ignored.\<close>
 
 lemma take_bit_redundant[simp]:
-  fixes ival :: "'a :: len word"
+  fixes v :: "'a :: len word"
   assumes "0 < n"
   assumes "n < LENGTH('a)"
-  shows "signed_take_bit (n - 1) (take_bit n ival) = signed_take_bit (n - 1) ival"
-proof -
-  have "\<not> (n \<le> n - 1)" 
-    using assms by simp
-  then have "\<And>i . signed_take_bit (n - 1) (take_bit n i) = signed_take_bit (n-1) i"
-    by (metis (mono_tags) signed_take_bit_take_bit) 
-  then show ?thesis
-    by simp
-qed
+  shows "signed_take_bit (n - 1) (take_bit n v) = signed_take_bit (n - 1) v"
+  using assms(1) take_bit_redundant by auto
 
 lemma take_bit_same_size_range:
-  fixes ival :: "'a :: len word"
+  fixes v :: "'a :: len word"
   assumes "n = LENGTH('a)"
-  assumes "ival2 = take_bit n ival"
-  shows "- (2 ^ n div 2) \<le> sint ival2 \<and> sint ival2 < 2 ^ n div 2"
+  assumes "v2 = take_bit n v"
+  shows "- (2 ^ n div 2) \<le> sint v2 \<and> sint v2 < 2 ^ n div 2"
   using lower_bounds_equiv sint_ge sint_lt by (auto simp add: assms)
 
 lemma take_bit_same_bounds:
-  fixes ival :: "'a :: len word"
+  fixes v :: "'a :: len word"
   assumes "n = LENGTH('a)"
-  assumes "ival2 = take_bit n ival"
-  shows "fst (bit_bounds n) \<le> sint ival2 \<and> sint ival2 \<le> snd (bit_bounds n)"
+  assumes "v2 = take_bit n v"
+  shows "fst (bit_bounds n) \<le> sint v2 \<and> sint v2 \<le> snd (bit_bounds n)"
   using assms take_bit_same_size_range by force
 
 text \<open>Next we show that casting a word to a wider word preserves any upper/lower bounds.
@@ -218,10 +201,8 @@ lemma scast_bigger_bit_bounds:
 text \<open>Results about $new\_int$.\<close>
 
 (* may be too trivial? *)
-lemma new_int_take_bits:
-  assumes "IntVal b val = new_int b ival"
-  shows "take_bit b val = val"
-  using assms by simp
+lemma new_int_take_bits: "IntVal b val = new_int b v \<Longrightarrow> take_bit b val = val"
+  by simp
 
 lemma is_truncated_IntVal_new_int_iff: "is_truncated v b \<longleftrightarrow> new_int b v = IntVal b v"
   using is_truncated_def by force
@@ -230,40 +211,32 @@ subsubsection \<open>Support lemmas for take bit and signed take bit.\<close>
 
 text \<open>Lemmas for removing redundant take\_bit wrappers.\<close>
 
-lemma take_bit_dist_addL[simp]: 
+lemma take_bit_dist_addL[simp]:
   fixes x :: "'a :: len word"
   shows "take_bit b (take_bit b x + y) = take_bit b (x + y)"
-proof (induction b)
-  case 0
-  then show ?case
-    by simp 
-next
-  case (Suc b)
-  then show ?case
-    by (simp add: add.commute mask_eqs(2) take_bit_eq_mask) 
-qed
+  by simp
 
-lemma take_bit_dist_addR[simp]: 
+lemma take_bit_dist_addR[simp]:
   fixes x :: "'a :: len word"
   shows "take_bit b (x + take_bit b y) = take_bit b (x + y)"
-  by (metis add.commute take_bit_dist_addL)
+  by simp
 
-lemma take_bit_dist_subL[simp]: 
+lemma take_bit_dist_subL[simp]:
   fixes x :: "'a :: len word"
   shows "take_bit b (take_bit b x - y) = take_bit b (x - y)"
-  by (metis take_bit_dist_addR uminus_add_conv_diff)
+  by simp
 
-lemma take_bit_dist_subR[simp]: 
+lemma take_bit_dist_subR[simp]:
   fixes x :: "'a :: len word"
   shows "take_bit b (x - take_bit b y) = take_bit b (x - y)"
-  by (metis (no_types) take_bit_dist_subL diff_add_cancel diff_right_commute diff_self) 
+  by simp
 
 lemma take_bit_dist_neg[simp]:
   fixes ix :: "'a :: len word"
   shows "take_bit b (- take_bit b (ix)) = take_bit b (- ix)"
-  by (metis diff_0 take_bit_dist_subR)
+  by simp
 
-lemma signed_take_take_bit[simp]: 
+lemma signed_take_take_bit[simp]:
   fixes x :: "'a :: len word"
   assumes "0 < b"
   shows "signed_take_bit (b - 1) (take_bit b x) = signed_take_bit (b - 1) x"
@@ -279,16 +252,10 @@ lemma mod_larger_ignore:
 lemma mod_dist_over_add:
   fixes a b c :: int64  (* "'a :: len word" *)
   fixes n :: nat
-  assumes 1: "0 < n"
-  assumes 2: "n < 64"
+  assumes "0 < n"
+  assumes "n < 64"
   shows "(a mod 2^n + b) mod 2^n = (a + b) mod 2^n"
-proof -
-  have 3: "(0 :: int64) < 2 ^ n"
-    by (simp add: size64 word_2p_lem assms)
-  then show ?thesis
-    unfolding word_mod_2p_is_mask[OF 3] apply transfer
-    by (metis (no_types, opaque_lifting) and.right_idem take_bit_add take_bit_eq_mask)
-qed
+  by (simp add: assms mod_dist_over_add)
 
 subsubsection \<open>bitCount and $val_bit_count$ lemmas\<close>
 

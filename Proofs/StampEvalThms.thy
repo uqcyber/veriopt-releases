@@ -6,20 +6,14 @@ theory StampEvalThms
     Semantics.IRTreeEvalThms
 begin
 
-lemma strict_pos_implies_pos:
-  assumes "is_stamp_strictly_positive s"
-  shows "is_stamp_positive s"
-  by (metis assms is_stamp_positive.simps(1) is_stamp_strictly_positive.elims(2) order_less_imp_le)
+lemma strict_pos_implies_pos: "is_stamp_strictly_positive s \<Longrightarrow> is_stamp_positive s"
+  by (metis is_stamp_positive.simps(1) is_stamp_strictly_positive.elims(2) order_less_imp_le)
 
-lemma strict_neg_implies_neg:
-  assumes "is_stamp_strictly_negative s"
-  shows "is_stamp_negative s"
-  using assms is_stamp_strictly_negative.elims(2) by fastforce
+lemma strict_neg_implies_neg: "is_stamp_strictly_negative s \<Longrightarrow> is_stamp_negative s"
+  using is_stamp_strictly_negative.elims(2) by fastforce
 
-lemma take_bit_eq_signed:
-  assumes "take_bit b v = v"
-  shows "signed_take_bit b v = v"
-  by (metis(full_types) eq_imp_le signed_take_bit_take_bit assms)
+lemma take_bit_eq_signed: "take_bit b v = v \<Longrightarrow> signed_take_bit b v = v"
+  by (metis(full_types) eq_imp_le signed_take_bit_take_bit)
 
 lemma unwrap_signed_take_bit:
   fixes v :: int64
@@ -85,27 +79,27 @@ subsubsection \<open>Support Lemmas for Integer Stamps and Associated IntVal val
 
 text \<open>Valid int implies some useful facts.\<close>
 lemma valid_int_gives:
-  assumes "valid_value (IntVal b val) stamp"
-  obtains lo hi where "stamp = IntegerStamp b lo hi \<and>
-       valid_stamp (IntegerStamp b lo hi) \<and>
-       take_bit b val = val \<and>
-       lo \<le> int_signed_value b val \<and> int_signed_value b val \<le> hi"
+  assumes "valid_value (IntVal b v) stamp"
+  obtains lo hi
+  where "stamp = IntegerStamp b lo hi \<and>
+         valid_stamp (IntegerStamp b lo hi) \<and>
+         take_bit b v = v \<and>
+         lo \<le> int_signed_value b v \<and> int_signed_value b v \<le> hi"
   using assms apply (cases stamp; auto) by (metis that)
 
 text \<open>And the corresponding lemma where we know the stamp rather than the value.\<close>
 lemma valid_int_stamp_gives:
-  assumes "valid_value val (IntegerStamp b lo hi)"
-  obtains ival where "val = IntVal b ival \<and>
-       valid_stamp (IntegerStamp b lo hi) \<and>
-       take_bit b ival = ival \<and>
-       lo \<le> int_signed_value b ival \<and> int_signed_value b ival \<le> hi"
+  assumes "valid_value v (IntegerStamp b lo hi)"
+  obtains ival
+  where "v = IntVal b ival \<and>
+         valid_stamp (IntegerStamp b lo hi) \<and>
+         take_bit b ival = ival \<and>
+         lo \<le> int_signed_value b ival \<and> int_signed_value b ival \<le> hi"
   by (metis assms valid_int valid_value.simps(1))
 
 text \<open>A valid int must have the expected number of bits.\<close>
-lemma valid_int_same_bits:
-  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
-  shows "b = bits"
-  by (meson assms valid_value.simps(1))
+lemma valid_int_same_bits: "valid_value (IntVal b val) (IntegerStamp bits lo hi) \<Longrightarrow> b = bits"
+  by (meson valid_value.simps(1))
 
 text \<open>A valid value means a valid stamp.\<close>
 lemma valid_int_valid_stamp:
@@ -114,16 +108,12 @@ lemma valid_int_valid_stamp:
   by (metis assms valid_value.simps(1))
 
 text \<open>A valid int means a valid non-empty stamp.\<close>
-lemma valid_int_not_empty:
-  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
-  shows "lo \<le> hi"
-  by (metis assms order.trans valid_value.simps(1))
+lemma valid_int_not_empty: "valid_value (IntVal b val) (IntegerStamp bits lo hi) \<Longrightarrow> lo \<le> hi"
+  by (metis order.trans valid_value.simps(1))
 
 text \<open>A valid int fits into the given number of bits (and other bits are zero).\<close>
-lemma valid_int_fits:
-  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
-  shows "take_bit bits val = val"
-  by (metis assms valid_value.simps(1))
+lemma valid_int_fits: "valid_value (IntVal b v) (IntegerStamp bits lo hi) \<Longrightarrow> take_bit bits v = v"
+  by (metis valid_value.simps(1))
 
 lemma valid_int_is_zero_masked:
   assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
@@ -257,8 +247,8 @@ proof -
     by simp
   then obtain b lo2 hi2 where eval: "stamp_expr expr = IntegerStamp b lo2 hi2"
     by (metis assms(7) v1 valid_int_gives)
-  then have s: "(stamp_expr (UnaryExpr op expr)) =
-                 unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
+  then have "(stamp_expr (UnaryExpr op expr)) =
+              unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
     using assms(3,4,5) by (cases op; auto)
   then show ?thesis
     by (metis v1 assms(1,2) eval_bits_1_64 unary_eval_bitsize unrestricted_new_int_always_valid v2
@@ -317,7 +307,7 @@ lemma eval_unary_implies_valid_value:
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
   proof (cases "op \<in> normal_unary")
     case True
-    then show ?thesis 
+    then show ?thesis
       using assms eval_normal_unary_implies_valid_value by blast
   next
     case False
@@ -367,17 +357,18 @@ lemma bin_eval_bits_fixed_32_ops:
   assumes "op \<in> binary_fixed_32_ops"
   shows "\<exists>v. result = new_int 32 v"
   using assms apply (cases op; simp)
-  apply (smt (verit, best) assms(1) bin_eval_unused_bits_zero bool_to_val.simps(1,2)) prefer 5
-  apply (metis IntVal1 Value.inject(1) new_int.simps take_bit_minus_one_eq_mask take_bit_of_0)
+  apply (metis (no_types, opaque_lifting) bin_eval_unused_bits_zero bool_to_val.elims assms(1))
+  prefer 5
+  using IntVal1 Value.inject(1) new_int.simps take_bit_minus_one_eq_mask take_bit_of_0 assms(1)
+        bin_eval_unused_bits_zero bool_to_val.elims apply (metis, metis)
   by (metis (full_types) assms(1) bin_eval_unused_bits_zero bool_to_val.simps(1,2))+
 
 lemma bin_eval_bits_normal_ops:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
   assumes "result \<noteq> UndefVal"
-  assumes "op \<notin> binary_shift_ops"
   assumes "op \<notin> binary_fixed_32_ops"
   shows "\<exists>v. result = new_int b1 v"
-  by (metis assms(1,2,4) bin_eval_new_int intval_bits.simps)
+  by (metis assms bin_eval_new_int intval_bits.simps)
 
 lemma bin_eval_input_bits_equal:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
@@ -435,8 +426,8 @@ proof -
         case False
         then show ?thesis
           unfolding s1 s2 stamp_binary.simps stamp_expr.simps
-          by (metis beq bin_eval_new_int eval_bits_1_64 intval_bits.simps assms(1,3,4) vres v1
-              unrestricted_new_int_always_valid unrestricted_stamp.simps(2) valid_int_same_bits)
+          by (metis assms(1,3,4) beq bin_eval_bits_normal_ops eval_bits_1_64 intval_bits.simps vres
+              new_int.elims v1 v2)
       qed
     qed
   then show ?thesis

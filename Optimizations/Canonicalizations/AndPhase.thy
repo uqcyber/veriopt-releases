@@ -27,10 +27,9 @@ lemma AndRightFallthrough: "((and (not (\<down> x)) (\<up> y)) = 0) \<longrighta
         by (simp add: xvv yvv)
       have "v = yv"
         apply (cases v; cases yv; auto)
-        using p(2) apply auto[1] using yvv apply simp_all
-        by (metis Value.distinct(1,3,5,7,9,11,13) Value.inject(1) andUnfold equalAnd new_int.simps
-            xv xvv yv eval_unused_bits_zero new_int.simps not_down_up_mask_and_zero_implies_zero
-            p(1))+
+        using p(2) yvv apply auto
+        by (metis Value.distinct(9,11,13) andUnfold equalAnd new_int.simps intval_word.simps p(1) xv
+            xvv yv eval_unused_bits_zero not_down_up_mask_and_zero_implies_zero intval_bits.simps)+
       then show ?thesis
         by (simp add: yv)
     qed

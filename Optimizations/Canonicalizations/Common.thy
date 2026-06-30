@@ -56,7 +56,8 @@ lemma size_bin_rhs_nonconst[size_simps]:
 lemma size_bin_lt_sum_div[size_simps]:
   "op \<noteq> BinDiv \<Longrightarrow> size (BinaryExpr op x y) < Suc (Suc (Suc (size x + size y)))"
   using size_bin_rhs_nonconst apply (cases "is_ConstantExpr y")
-  by (metis add_2_eq_Suc' not_add_less1 not_less_eq size_bin_ops_div size_bin_rhs_const lessI)+
+  apply (metis add_2_eq_Suc' not_add_less1 not_less_eq size_bin_ops_div size_bin_rhs_const)
+  by (simp add: less_Suc_eq size_bin_ops_div)
 
 lemma size_un_gt_1[size_simps]: "1 < size (UnaryExpr op y)"
   by (induction y; auto?)

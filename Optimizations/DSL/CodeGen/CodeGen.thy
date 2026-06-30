@@ -1724,6 +1724,7 @@ datatype Rules =
   seq Rules Rules |
   choice "Rules list"
 
+
 instantiation Rules :: substitutable begin
 fun substitute_Rules :: "Rules \<Rightarrow> (VarName \<Rightarrow> VarName option) \<Rightarrow> Rules" where
   "base s p \<Zhide> \<sigma> = (base s p)" | (* TODO: Do we need to substitute in pattern expr? *)
@@ -1731,10 +1732,11 @@ fun substitute_Rules :: "Rules \<Rightarrow> (VarName \<Rightarrow> VarName opti
   "either r1 r2 \<Zhide> \<sigma> = (either (r1 \<Zhide> \<sigma>) (r2 \<Zhide> \<sigma>))" |
   "seq r1 r2 \<Zhide> \<sigma> = (seq (r1 \<Zhide> \<sigma>) (r2 \<Zhide> \<sigma>))" |
   "choice r \<Zhide> \<sigma> = (choice (map (\<lambda>r. r \<Zhide> \<sigma>) r))"
+
 instance apply standard
   subgoal for r apply (induction r)
         apply (simp add: subif_def identity)+
-    by (simp add: list.map_ident_strong)
+    by (simp add: map_idI)
   done
 end
 
@@ -2164,24 +2166,39 @@ theorem sound_rules:
 
 thm_oracles sound_rules
 
+lemma eval_matchvar_dom:
+  assumes "(matchvar v p) | e \<U> \<sigma> = \<sigma>'"
+  shows "v \<in> dom \<sigma>"
+  using assms by (cases rule: eval_match.cases) (auto simp: domIff)
+
+lemma eval_matchstep_head_dom:
+  assumes "(matchstep (matchvar v p # ms)) | e \<U> \<sigma> = \<sigma>'"
+  shows "v \<in> dom \<sigma>"
+  using assms
+  by (cases rule: eval_match.cases) (auto dest: eval_matchvar_dom)
+
 lemma det_variable_match:
   assumes "(e\<^sub>p, {}) \<leadsto> (m, v, \<Sigma>)"
+  assumes "\<And>vn. e\<^sub>p \<noteq> VariablePattern vn"
   assumes "m | e\<^sub>g \<U> [v' \<mapsto> e\<^sub>g] = \<sigma>'"
   shows "v = v'"
-  using assms(2,1) apply (induction m arbitrary: e\<^sub>g e\<^sub>p \<Sigma> \<sigma>' v v')
-  using eval_match.simps
-  apply (smt (z3) MATCH.distinct(2,4) empty_iff lower.cases)
-  using eval_match.cases fun_upd_apply lower.cases option.distinct(1)
-     apply (smt (z3) MATCH.distinct(9) empty_iff eval_match_matchvar)
-  using lower.cases domI dom_empty dom_fun_upd empty_iff eval_match.cases lower.cases singletonD
-  sorry
+proof -
+  from assms(1) have "v \<in> dom [v' \<mapsto> e\<^sub>g]"
+    apply (cases rule: lower.cases) using assms
+    apply fastforce+ 
+    using assms(3) eval_matchvar_dom apply blast+
+    using assms(3) eval_matchstep_head_dom apply blast+
+    using assms(3) eval_matchvar_dom by blast+
+  then show "v = v'" by simp
+qed
 
 lemma det_variable_rules:
   assumes "(l, e\<^sub>p, c, e\<^sub>r) \<leadsto> (v, r)"
+  assumes "\<And>vn. e\<^sub>p \<noteq> VariablePattern vn"
   assumes "eval_rules r e\<^sub>g [v' \<mapsto> e\<^sub>g] (Some e')"
   shows "v = v'"
   using assms det_variable_match
-  by (smt (verit) Rules.distinct(1) Rules.distinct(11) Rules.distinct(13) Rules.distinct(9) Rules.inject(2) eval_rules.simps generate.simps)
+  by (metis condE generate.cases)
 
 (*
 lemma det_variable_rules2:
@@ -2193,14 +2210,19 @@ lemma det_variable_rules2:
 *)
 
 definition refining_rule :: "Rules \<Rightarrow> bool" where
-  "refining_rule r = (\<exists>l e\<^sub>r c e\<^sub>p v. pattern_refinement e\<^sub>r e\<^sub>p \<and> valid_pattern e\<^sub>p \<and> \<L> e\<^sub>r \<subseteq> \<L> e\<^sub>p \<and> \<L> c \<subseteq> \<L> e\<^sub>p \<and> (l, e\<^sub>p, c, e\<^sub>r) \<leadsto> (v, r))"
+  "refining_rule r = 
+    (\<exists>l e\<^sub>r c e\<^sub>p v. 
+        pattern_refinement e\<^sub>r e\<^sub>p 
+        \<and> valid_pattern e\<^sub>p 
+        \<and> \<L> e\<^sub>r \<subseteq> \<L> e\<^sub>p \<and> \<L> c \<subseteq> \<L> e\<^sub>p 
+        \<and> (l, e\<^sub>p, c, e\<^sub>r) \<leadsto> (v, r) \<and> (\<not>(is_VariablePattern e\<^sub>p)))"
 
 lemma lift_choice:
   assumes "\<forall> r \<in> set rules. refining_rule r"
   assumes "eval_rules (choice rules) e\<^sub>g [v \<mapsto> e\<^sub>g] (Some e')"
   shows "e' \<le> e\<^sub>g"
   using assms using det_variable_rules choiceE option.distinct(1) sound_rules unfolding refining_rule_def
-  by (smt (verit))
+  by (smt (verit, ccfv_SIG) is_VariablePattern_def)
 
 lemma lift_else:
   assumes "refining_rule r1"
@@ -2208,7 +2230,8 @@ lemma lift_else:
   assumes "eval_rules (r1 else r2) e\<^sub>g [v \<mapsto> e\<^sub>g] (Some e')"
   shows "e' \<le> e\<^sub>g"
   using assms using det_variable_rules unfolding refining_rule_def
-  by (metis elseE sound_rules)
+  using elseE sound_rules
+  by (metis (no_types, lifting) is_VariablePattern_def)
 
 thm_oracles lift_choice
 
@@ -2226,8 +2249,9 @@ proof (rule allI; rule allI; rule iffI)
     case None
     then show ?thesis
       apply (cases rules)
-      apply (simp add: eval_rules.intros(7))
-      by (smt (verit, ccfv_SIG) A1 assms choiceE eval_rules.intros(6) imageE list.distinct(1) list.set_map option.distinct(1))
+      apply (simp add: eval_rules.intros(7)) 
+      by (smt (verit, ccfv_threshold) A1 assms choiceE eval_rules.intros(6) imageE image_set
+          list.distinct(2) option.simps(2))
   next
     case (Some a)
     then obtain rule where "rule \<in> set rules \<and> eval_rules rule e \<sigma> (Some a)"

@@ -42,6 +42,15 @@ lemma bin_multiply_power_2:
  "(x:: 'a::len word) * (2^j) = x << j"
   by simp
 
+lemma bin_mul_power_2_sub_power_2:
+  fixes v :: "'a:: len word"
+  assumes "sub = (1 << shift) - v"
+  assumes "sub = (1 << i)"
+  shows "x * v = (x << shift) - (x << i)"
+  using assms unfolding bitCount_def
+  by (metis (no_types, lifting) add_diff_cancel_left' bin_multiply_power_2 diff_add_cancel
+      pow2_1_shift right_diff_distrib)
+
 (* Value level proofs *)
 lemma val_eliminate_redundant_negative:
   assumes "val[-x * -y] \<noteq> UndefVal"
@@ -52,6 +61,11 @@ lemma val_multiply_neutral:
   assumes "x = new_int b v"
   shows "val[x * (IntVal b 1)] = x"
   by (auto simp: assms)
+
+lemma val_multiply_neutral_new_int:
+  assumes "x = new_int b xv"
+  shows "val[x * new_int b 1] = x"
+  by (simp add: assms val_multiply_neutral)
 
 lemma val_multiply_zero:
   assumes "x = new_int b v"
@@ -185,6 +199,16 @@ lemma val_MulPower2AddPower2:
    qed
 
 thm_oracles val_MulPower2AddPower2
+
+lemma val_mul_power_2_sub_power_2_64:
+  assumes "x = new_int b xv"
+  assumes "y = new_int b yv"
+  assumes "sub = val[(new_int b 1 << shift) - y]"
+  assumes "sub = val[new_int b 1 << i]"
+  assumes "sub \<noteq> UndefVal"
+  assumes "b = 64"
+  shows "val[x * y] = val[(x << shift) - (x << i)]"
+  using assms apply (cases shift; cases i; auto) using bin_mul_power_2_sub_power_2 by fast
 
 lemma val_mul_power_2_add_power_2_32:
   assumes "x = new_int b xv"
@@ -418,6 +442,12 @@ lemma exp_distribute_multiplication:
    qed
   done
 
+lemma exp_mul_power_2_sub_power_2:
+  assumes "sub = exp[((const new_int b 1) << shift) - (const y)]"
+  assumes "sub = exp[(const new_int b 1) << i]"
+  shows "exp[x * const y] \<ge> exp[(x << shift) - (x << i)]"
+  using assms by fastforce
+
 lemma exp_mul_power_2_add_power_2_32:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b lo hi"
@@ -531,6 +561,10 @@ proof -
     by (metis eval(1,2) evalDet lhs ConstantExprE evaltree_not_undef val_MulPower2 yv)
 qed
   done
+
+optimization MulPower2SubPower2: "(x * (const y)) \<longmapsto> (x << shift) - (x << i)
+                                  when (sub = exp[((const new_int b 1) << shift) - (const y)] \<and>
+                                        sub = exp[(const new_int b 1) << i])" .
 
 optimization MulPower2AddPower2_32: "(x * (const y)) \<longmapsto>
                                      ((x << const (val_top_bit y)) + (x << const (val_bot_bit y)))

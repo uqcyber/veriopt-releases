@@ -15,8 +15,8 @@ lemma val_equal_xor_one_shift_64:
   assumes "xvv \<in> {0, 1}"
   assumes "val[(x \<oplus> (IntVal b 1)) eq (IntVal b cv)] \<noteq> UndefVal"
   shows "val[(x \<oplus> (IntVal b 1)) eq (IntVal b cv)] = val[x eq (new_int b (xor cv 1))]"
-  using assms unfolding assms(2) apply auto
-  apply (metis (mono_tags) bit.xor_left_self bool_to_val.simps(2) xor.right_neutral)
+  using assms unfolding assms(2) apply auto using bool_to_val.simps(2)
+  apply (metis (mono_tags) bit.xor_left_self xor.right_neutral)
   by (smt (verit, best) bit.xor_left_self xor.assoc xor.right_neutral)
 
 lemma exp_equal_xor_one_shift_64:

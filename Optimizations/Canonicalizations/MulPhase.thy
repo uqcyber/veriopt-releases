@@ -717,7 +717,7 @@ optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
   qed
   done
 
-optimization MulPower2Sub1: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
+optimization MulPower2Sub1_64: "x * y \<longmapsto> (x << const (IntVal 64 i)) - x
                               when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>
                                     y = ConstantExpr (IntVal 64 ((2 ^ unat(i)) - 1)))"

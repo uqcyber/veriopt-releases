@@ -4,6 +4,7 @@ theory ProofStatus
     AddPhase
     AndPhase
     ConditionalPhase
+    DivPhase
     IntegerBelowPhase
     IntegerEqualsPhase
     LeftShiftPhase

@@ -13,27 +13,29 @@ lemma eval_match_redundant:
   assumes "valid_match m"
   shows "eval_match (matchstep [m, m]) e u = eval_match m e u"
     using assms eval_match_matchstep eval_match_deterministic eval_match_idempotent eval_match_equivalence
-  by (smt (verit, ccfv_threshold) eval_match.intros(8,9) eval_match_matchstep_cons)
+  (* SLOW *)
+    by (smt (verit, ccfv_threshold) eval_match.intros(8,9) eval_match_matchstep_cons)
 
 lemma eval_rules_choice_map_induct:
-  assumes "eval_rules (a) u e = eval_rules (f a) u e"
-  assumes "eval_rules (choice rules) u e = eval_rules (choice (map f rules)) u e"
-  shows "eval_rules (choice (a # rules)) u e = eval_rules (choice (map f (a # rules))) u e"
+  assumes "eval_rules (a) e u res = eval_rules (f a) e u res"
+  assumes "eval_rules (choice rules) e u res = eval_rules (choice (map f rules)) e u res"
+  shows "eval_rules (choice (a # rules)) e u res = eval_rules (choice (map f (a # rules))) e u res"
   using assms choiceE eval_rules.intros(5,6,7)
   by (smt (verit, ccfv_threshold) list.map_disc_iff list.set_intros(1) list.set_intros(2) list.simps(9) option.distinct(1) set_ConsD)
 
 lemma monotonic_cond:
-  assumes "\<forall>e u. eval_rules r u e = eval_rules (f r) u e"
-  shows "\<forall>e u. eval_rules (m ? r) u e = eval_rules (m ? f r) u e"
+  assumes "\<forall>res u. eval_rules r e u res = eval_rules (f r) e u res"
+  shows "\<forall>res u. eval_rules (m ? r) e u res = eval_rules (m ? f r) e u res"
   using assms by (metis condE eval_rules.intros(2))
 
 lemma monotonic_else:
-  assumes "\<forall>e u. eval_rules r1 u e = eval_rules (f r1) u e"
-  assumes "\<forall>e u. eval_rules r2 u e = eval_rules (f r2) u e"
-  shows "\<forall>e. eval_rules (r1 else r2) u e = eval_rules (f r1 else f r2) u e"
+  assumes "\<forall>res u. eval_rules r1 e u res = eval_rules (f r1) e u res"
+  assumes "\<forall>res u. eval_rules r2 e u res = eval_rules (f r2) e u res"
+  shows "\<forall>res. eval_rules (r1 else r2) e u res = eval_rules (f r1 else f r2) e u res"
   using assms
   by (metis elseE eval_rules.intros(3) eval_rules.intros(4))
 
+(*
 lemma monotonic_seq_with_entry:
   assumes "\<forall>e u. eval_rules r1 u e = eval_rules (f r1) u e"
   assumes "\<forall>e u. eval_rules r2 u e = eval_rules (f r2) u e"
@@ -47,10 +49,11 @@ lemma monotonic_seq_without_entry:
   shows "\<forall>e. eval_rules (r1 \<Zsemi> r2) u e = eval_rules ((f r1) \<Zsemi> r2) u e"
   using assms seqE
   by (smt (verit, ccfv_SIG) eval_rules.intros(10) eval_rules.intros(8) eval_rules.intros(9))
+*)
 
 lemma monotonic_choice:
-  assumes "\<forall>r e u. r \<in> set rules \<longrightarrow> eval_rules r u e = eval_rules (f r) u e"
-  shows "\<forall>e. eval_rules (choice rules) u e = eval_rules (choice (map f rules)) u e"
+  assumes "\<forall>r e res u. r \<in> set rules \<longrightarrow> eval_rules r e u res = eval_rules (f r) e u res"
+  shows "\<forall>res. eval_rules (choice rules) e u res = eval_rules (choice (map f rules)) e u res"
   using assms apply (induction rules) apply simp
   by (metis eval_rules_choice_map_induct list.set_intros(1) list.set_intros(2))
 end
@@ -59,7 +62,7 @@ end
 section \<open>Meta-optimizations\<close>
 
 definition valid_rule_transform :: "(Rules \<Rightarrow> Rules option) \<Rightarrow> bool" where
-  "valid_rule_transform f = (\<forall>r r' u e. valid_rules r \<longrightarrow> f r = Some r' \<longrightarrow> eval_rules r u e = eval_rules r' u e \<and> valid_rules r')"
+  "valid_rule_transform f = (\<forall>r r' u e res. valid_rules r \<longrightarrow> f r = Some r' \<longrightarrow> eval_rules r e u res = eval_rules r' e u res \<and> valid_rules r')"
 
 definition decreasing_measure :: "(Rules \<Rightarrow> nat) \<Rightarrow> bool" where
   "decreasing_measure f = 
@@ -133,8 +136,8 @@ termination transform apply standard
   by (meson in_measure option.distinct(1) terminates)
 
 theorem apply_meta_sound:
-  "eval_rules r \<sigma> = eval_rules (transform r) \<sigma>"
-proof (induction r arbitrary: \<sigma> rule: transform.induct)
+  "eval_rules r e \<sigma> = eval_rules (transform r) e \<sigma>"
+proof (induction r arbitrary: e \<sigma> rule: transform.induct)
   case (1 m)
   then show ?case proof (cases "transform_valid m")
     case None
@@ -144,12 +147,12 @@ proof (induction r arbitrary: \<sigma> rule: transform.induct)
         using None by auto
     next
       case (cond x21 r)
-      have ih: "eval_rules r \<sigma> = eval_rules (transform r) \<sigma>"
+      have ih: "eval_rules r e \<sigma> = eval_rules (transform r) e \<sigma>"
         using None 1
         using cond by blast
       have app: "transform m = cond x21 (transform r)"
         using None cond by fastforce
-      have "\<forall>e. eval_rules (cond x21 r) \<sigma> e = eval_rules (cond x21 (transform r)) \<sigma> e"
+      have "\<forall>res. eval_rules (cond x21 r) e \<sigma> res = eval_rules (cond x21 (transform r)) e \<sigma> res"
         using ih condE
         by (smt (verit) "1.IH"(1) None cond eval_rules.simps)
       then show ?thesis 
@@ -157,44 +160,45 @@ proof (induction r arbitrary: \<sigma> rule: transform.induct)
         by auto
     next
       case (either r1 r2)
-      have ih1: "eval_rules r1 \<sigma> = eval_rules (transform r1) \<sigma>"
+      have ih1: "eval_rules r1 e \<sigma> = eval_rules (transform r1) e \<sigma>"
         using None 1
         using either by blast
-      have ih2: "eval_rules r2 \<sigma> = eval_rules (transform r2) \<sigma>"
+      have ih2: "eval_rules r2 e \<sigma> = eval_rules (transform r2) e \<sigma>"
         using None 1
         using either by blast
       have app: "transform m = either (transform r1) (transform r2)"
         using None either by fastforce
-      have "\<forall>e. eval_rules (either r1 r2) \<sigma> e = eval_rules (either (transform r1) (transform r2)) \<sigma> e"
+      have "\<forall>res. eval_rules (either r1 r2) e \<sigma> res = eval_rules (either (transform r1) (transform r2)) e \<sigma> res"
         using ih1 ih2 elseE
         by (metis eval_rules.intros(3) eval_rules.intros(4))
       then show ?thesis
         using app either by auto
     next
       case (seq r1 r2)
-      have ih1: "eval_rules r1 \<sigma> = eval_rules (transform r1) \<sigma>"
+      have ih1: "eval_rules r1 e \<sigma> = eval_rules (transform r1) e \<sigma>"
         using None 1
         using seq by blast
       have app: "transform m = seq (transform r1) r2"
         using None seq by fastforce
-      have "\<forall>e. eval_rules (seq r1 r2) \<sigma> e = eval_rules (seq (transform r1) r2) \<sigma> e"
+      have "\<forall>res. eval_rules (seq r1 r2) e \<sigma> res = eval_rules (seq (transform r1) r2) e \<sigma> res"
         apply (rule allI; rule iffI)
-        using ih1 seqE eval_rules.intros(8) eval_rules.intros(9) eval_rules.intros(10) 
+        using ih1 seqE eval_rules.intros(8) eval_rules.intros(9) 
         apply (smt (verit) "1.IH"(4) None Rules.distinct(11) Rules.distinct(15) Rules.distinct(19) Rules.distinct(5) Rules.inject(4) eval_rules.cases list.simps(8) seq)
-        by (smt (verit) "1.IH"(4) None eval_rules.intros(10) eval_rules.intros(8) eval_rules.intros(9) seq seqE)
+        by (smt (verit) "1.IH"(4) None eval_rules.intros(8) eval_rules.intros(9) seq seqE)
       then show ?thesis
         using app seq by auto
     next
       case (choice rules)
-      have ih: "\<forall>r \<in> set rules. eval_rules r \<sigma> = eval_rules (transform r) \<sigma>"
+      have ih: "\<forall>r \<in> set rules. eval_rules r e \<sigma> = eval_rules (transform r) e \<sigma>"
         using None 1
         using choice by blast
       have app: "transform m = (choice (map transform rules))"
         using None choice by fastforce
-      have allE: "\<forall>a \<in> set rules. \<forall>e. eval_rules a \<sigma> e = eval_rules (transform a) \<sigma> e"
+      have allE: "\<forall>a \<in> set rules. \<forall>res. eval_rules a e \<sigma> res = eval_rules (transform a) e \<sigma> res"
         using "1.IH"(5) None choice by simp
-      have "\<forall>e. eval_rules (choice rules) \<sigma> e = eval_rules (choice (map transform rules)) \<sigma> e"
-        using inductive_choice  ih by blast
+      have "\<forall>res. eval_rules (choice rules) e \<sigma> res = eval_rules (choice (map transform rules)) e \<sigma> res"
+        using inductive_choice ih
+        using "1.IH"(5) None local.choice by auto
       then show ?thesis
         using app choice by auto
     qed
@@ -211,27 +215,32 @@ definition run :: "Rules \<Rightarrow> Rules" where
 end
 
 
-context includes match_syntax match_pattern_syntax begin
+context includes match_syntax and match_pattern_syntax begin
 subsection \<open>Lift Match Sequence to Rule Conditions\<close>
 
 fun lift_cond :: "Rules \<Rightarrow> Rules option" where
-  "lift_cond ((m1 && m2) ? r) = (Some (m1 ? (m2 ? r)))" |
+  "lift_cond ((matchstep (m # ms)) ? r) = (Some (m ? (matchstep ms ? r)))" |
   "lift_cond _ = None"
 
 lemma lift_condE:
-  "lift_cond r = Some r' \<Longrightarrow> \<exists>m1 m2 rule. r = ((m1 && m2) ? rule) \<and> r' = (m1 ? (m2 ? rule))"
-  apply (cases r) apply auto 
-  subgoal for cond 
-    apply (cases cond) by auto
-  done
-  
-lemma lift_cond_sound:
-  "eval_rules ((m1 && m2) ? r) \<sigma> = eval_rules (m1 ? (m2 ? r)) \<sigma>"
+  assumes "lift_cond r = Some r'"
+  shows "\<exists>m ms rule. r = ((matchstep (m # ms)) ? rule) \<and> r' = (m ? (matchstep ms ? rule))"
 proof -
-  have "\<forall>e. eval_rules (m1 ? (m2 ? r)) \<sigma> e = eval_rules ((m1 && m2) ? r) \<sigma> e"
-    using condE apply auto[1] 
-    apply (metis AndThen eval_rules.intros(2))
-    by (metis eval_match_andthen eval_rules.intros(2))
+  obtain m ms rule where "r = (matchstep (m # ms)) ? rule"
+    using lift_cond.elims  [of r "Some r'", OF assms]
+    by fastforce
+  then show ?thesis
+    using assms by auto
+qed
+
+lemma lift_cond_sound:
+  "eval_rules ((matchstep (m # ms)) ? r) e \<sigma> = eval_rules (m ? (matchstep ms ? r)) e \<sigma>"
+proof -
+  have "\<forall>res. eval_rules (m ? (matchstep ms ? r)) e \<sigma> res = eval_rules ((matchstep (m # ms)) ? r) e \<sigma> res"
+    using condE apply auto[1]
+    apply (smt (verit, best) eval_match.intros(8,9) eval_rules.intros(2))
+    by (smt (verit, del_insts) eval_match_matchstep_cons eval_match_matchstep_nil
+        eval_rules.intros(2))
   then show ?thesis 
     by blast
 qed
@@ -245,11 +254,11 @@ fun combined_size :: "Rules \<Rightarrow> nat" where
   "combined_size (r1 \<Zsemi> r2) = 1 + combined_size r1 + combined_size r2"
 
 lemma combined_size_decreases:
-  "combined_size (m1 ? (m2 ? r)) < combined_size ((m1 && m2) ? r)"
+  "combined_size (m1 ? (m2 ? r)) < combined_size ((matchstep [m1, m2]) ? r)"
 proof -
   have lhs: "combined_size (m1 ? (m2 ? r)) = 1 + 1 + (2 * size m1) + (2 * size m2) + combined_size r"
     by simp
-  have rhs: "combined_size ((m1 && m2) ? r) = 1 + (2 * size (m1 && m2)) + combined_size r"
+  have rhs: "combined_size ((matchstep [m1, m2]) ? r) = 1 + (2 * size (matchstep [m1, m2])) + combined_size r"
     using combined_size.simps(1) by blast
   show ?thesis using lhs rhs
     by simp
@@ -269,9 +278,10 @@ interpretation lift_cond : rule_transform
   lift_cond
   combined_size
   apply standard unfolding valid_rule_transform_def
-    apply (metis lift_condE lift_cond_sound valid_match.simps(3) valid_rules.simps(1))
-  using combined_size_decreases lift_condE apply blast
-  using combined_size_wf by simp
+  apply (metis lift_condE lift_cond_sound valid_match.simps(3) valid_matchstep.simps(2)
+      valid_rules.simps(1))
+  using combined_size_decreases lift_condE sorry
+  (*using combined_size_wf by simp*)
 setup \<open>Locale_Code.close_block\<close>
 
 fun run where "run x = lift_cond.transform x"
@@ -293,41 +303,56 @@ value "run (snd (Predicate.the (generateC STR ''myrule''
 
 subsection \<open>Eliminate Noop Operations\<close>
 
-(*
+context includes match_syntax and match_pattern_syntax begin
 fun elim_noop :: "Rules \<Rightarrow> Rules option" where
-  "elim_noop ((noop x) ? r) = Some (r)" |
+  "elim_noop ((matchstep []) ? r) = Some (r)" |
   "elim_noop _ = None"
 
 lemma elim_noop_sound:
-  "eval_rules (noop x ? r) \<sigma> = eval_rules (r) \<sigma>"
+  "eval_rules (matchstep [] ? r) e \<sigma> = eval_rules (r) e \<sigma>"
 proof -
-  have "\<forall>e. eval_rules (noop x ? r) \<sigma> e = eval_rules (r) \<sigma> e"
-    using condE apply auto[1] 
-     apply (smt (verit, ccfv_threshold) eval_match_andthen eval_match_noop eval_rules.intros(2))
-     (* doesn't hold due to our little noop = assert situation *)
+  have "\<forall>res. eval_rules (matchstep [] ? r) e \<sigma> res = eval_rules (r) e \<sigma> res"
+    using condE apply auto[1]
+    apply (metis eval_match_matchstep_nil)
+    using eval_match.intros(8) eval_rules.intros(2) by blast
   then show ?thesis 
     by blast
 qed
 
 lemma elim_noop_decreases:
-  "combined_size (x ? r) < combined_size ((x && y) ? r)"
+  "combined_size (x ? r) < combined_size ((matchstep [x, y]) ? r)"
   unfolding combined_size.simps by simp
 
+
+lemma apply_elim_noop_sound:
+  assumes "valid_rules r"
+  assumes "elim_noop r = Some r'"
+  shows "eval_rules r e u res = eval_rules r' e u res \<and> valid_rules r'"
+proof -
+  obtain r' where r': "r = ((matchstep []) ? r')" 
+    using assms
+    using elim_noop.elims by blast
+  then show ?thesis
+  using assms by ( auto simp: elim_noop_sound)
+qed
+
+end
+
 setup \<open>Locale_Code.open_block\<close>
-interpretation elim_noop : metaopt
+interpretation elim_noop : rule_transform
   elim_noop
   combined_size
   apply standard
-  using elim_noop_sound
-  apply (smt (verit, best) elim_noop.elims option.distinct(1) option.sel)
+  using elim_noop_sound unfolding valid_rule_transform_def
+  using apply_elim_noop_sound apply blast
   using combined_size_decreases elim_noop.elims apply force
-      apply simp
-  subgoal for rules apply (induction rules; auto) done
-  by simp+
+  using lift_cond.size_wf by blast
 setup \<open>Locale_Code.close_block\<close>
-*)
 
-context includes match_syntax match_pattern_syntax
+fun run1 where "run1 x = elim_noop.transform x"
+
+
+context includes match_syntax and match_pattern_syntax
 begin
 subsection \<open>Join Equal Conditions\<close>
 
@@ -342,13 +367,13 @@ fun join_conditions :: "Rules \<Rightarrow> Rules option" where
 
 lemma join_cond:
   assumes "valid_match m"
-  shows "eval_rules (m ? (m ? r)) \<sigma> e = eval_rules (m ? r) \<sigma> e" (is "?lhs = ?rhs")
+  shows "eval_rules (m ? (m ? r)) e \<sigma> res = eval_rules (m ? r) e \<sigma> res" (is "?lhs = ?rhs")
   using assms
   by (smt (verit) condE eval_match_deterministic eval_match_idempotent eval_rules.intros(2))
 
 lemma join_else:
   assumes "valid_match m"
-  shows "eval_rules (m ? r1 else m ? r2) \<sigma> e = eval_rules (m ? (r1 else r2)) \<sigma> e" (is "?lhs = ?rhs")
+  shows "eval_rules (m ? r1 else m ? r2) e \<sigma> res = eval_rules (m ? (r1 else r2)) e \<sigma> res" (is "?lhs = ?rhs")
   using assms
   by (smt (z3) condE elseE eval_match_deterministic eval_rules.intros(2) eval_rules.intros(3) eval_rules.intros(4))
 
@@ -388,6 +413,35 @@ next
   case (choice x5)
   then show ?thesis using assms(2) by simp
 qed
+
+lemma join_conditions_size:
+  assumes "join_conditions r = Some r'"
+  shows "combined_size r' < combined_size r"
+proof (cases r)
+  case (base x11 x12)
+  then show ?thesis
+    using assms by fastforce
+next
+  case (cond x21 x22)
+  obtain m1 m2 r1 where "r = (m1 ? (m2 ? r1))"
+    by (metis Rules.exhaust assms cond join_conditions.simps(4,5,6,7) option.simps(3))
+  then show ?thesis
+    by (metis assms elim_noop.size_cond join_conditions.simps(2) option.discI option.simps(1))
+next
+  case (either x31 x32)
+  obtain m1 r1 m2 r2 where "r = (m1 ? r1 else m2 ? r2)"
+    by (smt (z3) Rules.simps(15) assms either join_conditions.elims option.simps(2))
+  then show ?thesis
+    by (metis assms combined_size.simps(1,3) elim_noop.size_cond join_conditions.simps(1) nat_arith.add1
+        nat_arith.add2 option.sel option.simps(2))
+next
+  case (seq x41 x42)
+  then show ?thesis using assms by fastforce
+next
+  case (choice x5)
+  then show ?thesis using assms by fastforce
+qed
+
 end
 
 lemma size_wf:
@@ -398,6 +452,7 @@ lemma size_wf:
     by force
   done
 
+(*
 setup \<open>Locale_Code.open_block\<close>
 interpretation join_conditions : rule_transform
   join_conditions
@@ -408,6 +463,18 @@ interpretation join_conditions : rule_transform
    apply (smt (z3) Rules.size(7) Rules.size(8) add.right_neutral add_Suc_right join_conditions.elims less_add_Suc1 option.distinct(1) option.sel plus_nat.simps(2))
   using size_wf by simp
 setup \<open>Locale_Code.close_block\<close>
+*)
+
+setup \<open>Locale_Code.open_block\<close>
+interpretation join_conditions : rule_transform
+  join_conditions
+  combined_size
+  apply standard unfolding valid_rule_transform_def
+  using join_conditions_sound
+  apply (smt (z3) join_conditions.elims option.discI option.inject valid_rules.simps(1) valid_rules.simps(2))
+  using join_conditions_size apply auto[1]
+  by (simp add: elim_noop.size_wf)
+setup \<open>Locale_Code.close_block\<close>
 
 subsection \<open>Combined Meta-optimizations\<close>
 
@@ -416,7 +483,7 @@ definition reduce where "reduce = (join_conditions.transform o lift_cond.transfo
 
 
 theorem reduce_sound:
-  "eval_rules r \<sigma> = eval_rules (reduce r) \<sigma>"
+  "eval_rules r e \<sigma> = eval_rules (reduce r) e \<sigma>"
   by (metis comp_eq_dest_lhs join_conditions.apply_meta_sound lift_cond.apply_meta_sound reduce_def)
 
 value "reduce (snd (Predicate.the (generateC STR ''myrule''
@@ -428,7 +495,7 @@ value "reduce (snd (Predicate.the (generateC STR ''myrule''
 
 subsection \<open>Join Shared Conditions\<close>
 
-context includes match_syntax match_pattern_syntax begin
+context includes match_syntax and match_pattern_syntax begin
 (*fun common_size :: "Rules \<Rightarrow> nat" where
   "common_size (m ? r) = 1 + common_size r" |
   "common_size (base l e) = 0" |
@@ -479,24 +546,26 @@ lemma join_common_empty: "join_common m [] = []"
 lemma join_uncommon_empty: "join_uncommon m [] = []"
   by (simp add: join_uncommon_def map_filter_simps(2))
 
-lemma eval_choice: "{e. eval_rules (choice rules) u e \<and> e \<noteq> None} = {e | e r . r \<in> set rules \<and> eval_rules r u e \<and> e \<noteq> None}"
+lemma eval_choice: "{res. eval_rules (choice rules) e u res \<and> res \<noteq> None} = {res | res r . r \<in> set rules \<and> eval_rules r e u res \<and> res \<noteq> None}"
   using choiceE eval_rules.intros(5) by fastforce
 
-lemma eval_choice_none: "eval_rules (choice rules) u None = (\<forall> r \<in> set rules . eval_rules r u None)"
+lemma eval_choice_none: "eval_rules (choice rules) e u None = (\<forall> r \<in> set rules . eval_rules r e u None)"
   by (metis choiceE eval_rules.intros(6) length_pos_if_in_set list.size(3) nless_le option.distinct(1))
 
-inductive_cases evalRulesE: "eval_rules r u e"
+inductive_cases evalRulesE: "eval_rules r e u res"
 
 lemmas monotonic =
   monotonic_cond
   monotonic_else
   monotonic_choice
+(*
   monotonic_seq_with_entry
   monotonic_seq_without_entry
+*)
 
 lemma unordered_choice:
   assumes "set rules = set rules'"
-  shows "\<forall>e. eval_rules (choice rules) u e = eval_rules (choice rules') u e"
+  shows "\<forall>res. eval_rules (choice rules) e u res = eval_rules (choice rules') e u res"
   using assms by (metis choiceE eval_choice_none eval_rules.intros(5))
 
 lemma find_inverse_lhs:
@@ -564,14 +633,14 @@ lemma join_uncommon_set_def:
   done
 
 lemma
-  assumes "\<exists>r \<in> set rules. r \<in> set rules' \<and> eval_rules r u (Some e)"
-  shows "eval_rules (choice rules) u (Some e) = eval_rules (choice rules') u (Some e)"
+  assumes "\<exists>r \<in> set rules. r \<in> set rules' \<and> eval_rules r e u (Some res)"
+  shows "eval_rules (choice rules) e u (Some res) = eval_rules (choice rules') e u (Some res)"
   using assms
   using eval_rules.intros(5) by blast
 
 lemma map_None:
-  "(\<forall>r\<in>set rules. eval_rules (m ? r) u None) = eval_rules (choice (map ((?) m) rules)) u None"
-  (is "?lhs = eval_rules ?rhs u None")
+  "(\<forall>r\<in>set rules. eval_rules (m ? r) e u None) = eval_rules (choice (map ((?) m) rules)) e u None"
+  (is "?lhs = eval_rules ?rhs e u None")
 proof -
   have setequiv: "set (map ((?) m) rules) = {m ? r | r . r\<in>set rules}"
     by (simp add: Setcompr_eq_image)
@@ -583,90 +652,94 @@ lemma setequiv: "set (map ((?) m) rules) = {m ? r | r . r\<in>set rules}"
   by (simp add: Setcompr_eq_image)
 
 lemma eval_rules_cond_fail:
-  assumes "\<not>(\<exists>e. eval_match m u e)"
-  shows "\<not>(eval_rules (m ? r) u e)"
+  assumes "\<not>(\<exists>res. eval_match m e u res)"
+  shows "\<not>(eval_rules (m ? r) e u res)"
   using assms
   by (meson condE)
 
 lemma eval_rules_choice_fail:
-  assumes "\<not>(\<exists>e. eval_match m u e)"
+  assumes "\<not>(\<exists>res. eval_match m e u res)"
   assumes "rules \<noteq> []"
-  shows "\<not>(eval_rules (choice (map ((?) m) rules)) u e)" (is "\<not>(eval_rules (choice ?rules) u e)")
+  shows "\<not>(eval_rules (choice (map ((?) m) rules)) e u res)" (is "\<not>(eval_rules (choice ?rules) e u res)")
 proof -
-  have "\<forall>r \<in> set ?rules. \<not>(eval_rules (r) u e)"
+  have "\<forall>r \<in> set ?rules. \<not>(eval_rules (r) e u res)"
     by (simp add: assms eval_rules_cond_fail)
   then show ?thesis
     using assms choiceE
     by (smt (verit) condE list.set_intros(1) map_None neq_Nil_conv)
 qed
 
-(*
+
 lemma eval_rules_choice_empty:
-  assumes "eval_rules (choice []) u e"
-  assumes "m \<U> u = u'"
-  shows "eval_rules (m ? choice []) u e"
+  assumes "eval_rules (choice []) e u res"
+  assumes "m | e \<U> u = u'"
+  shows "eval_rules (m ? choice []) e u res"
 proof -
-  have "eval_rules (choice []) u None"
+  have "eval_rules (choice []) e u None"
     by (simp add: eval_rules.intros(7))
-  have "eval_rules (m ? choice []) u None"
+  have "eval_rules (m ? choice []) e u None"
     by (smt (verit, ccfv_threshold) assms(2) eval_rules.simps)
-  then show "eval_rules (m ? choice []) u e"
+  then show "eval_rules (m ? choice []) e u res"
     by (smt (verit, ccfv_SIG) Rules.distinct(13) Rules.distinct(17) Rules.inject(5) Rules.simps(13) Rules.simps(25) assms(1) empty_iff eval_rules.simps list.set(1))
 qed
 
+(*
 lemma pull_cond_out_rhs:
-  assumes "eval_rules (choice (map ((?) m) rules)) u e" (is "eval_rules ?lhs u e")
-  assumes "m \<U> u = u'"
-  shows "eval_rules (m ? choice rules) u e" (is "eval_rules ?rhs u e")
+  assumes "eval_rules (choice (map ((?) m) rules)) e u res" (is "eval_rules ?lhs e u res")
+  assumes "m | e \<U> u = u'"
+  shows "eval_rules (m ? choice rules) e u res" (is "eval_rules ?rhs e u res")
 proof (cases rules)
   case Nil
   then show ?thesis using assms
     by (simp add: eval_rules_choice_empty)
 next
   case (Cons a list)
-  then show ?thesis sorry
-qed
-proof (cases "\<not>(\<exists>e. eval_match m u e)")
+  then show ?thesis
+proof (cases "\<not>(\<exists>res. eval_match m e u res)")
     case True \<comment> \<open>If m doesn't match then both the lhs and rhs should evaluate to e = None\<close>
-    have lhs: "\<forall>e. eval_rules ?lhs u e \<longrightarrow> e = None"
+    have lhs: "\<forall>res. eval_rules ?lhs e u res \<longrightarrow> res = None"
       using True eval_rules.intros(2) eval_rules.intros(5)
       by (smt (verit, del_insts) choiceE condE ex_map_conv option.distinct(1))
-    have rhs: "\<forall>e. eval_rules ?rhs u e \<longrightarrow> e = None"
+    have rhs: "\<forall>res. eval_rules ?rhs e u res \<longrightarrow> res = None"
       by (meson True condE)
     then show ?thesis using assms condE
       using lhs rhs
       using True by blast
   next
     case False
-    then show ?thesis 
-    case match: (Some a) \<comment> \<open>Drop down into evaluation post matching m\<close>
-      have allEval: "\<forall>r \<in> set rules. eval_rules r a e = eval_rules (m ? r) u e"
-        by (metis match condE eval_rules.intros(2) option.distinct(1) option.sel)
+    then obtain a where a: "m | e \<U> u = a"
+      by blast
+    then have allEval: "\<forall>r \<in> set rules. eval_rules r e a res = eval_rules (m ? r) e u res"
+      by (metis condE eval_match_deterministic eval_rules.intros(2))
+    then show ?thesis
+      using a assms(1) choiceE eval_rules.intros(2) eval_rules.simps imageE
+          list.set_map local.Cons map_None
+      sledgehammer
+      by (smt (verit) Rues.inject(5))
+    proof (cases e)
+      case evalsNone: None
+      have "\<forall>r \<in> set rules. eval_rules r a None"
+        using evalsNone allEval assms map_None by blast
+      then have "\<forall>r \<in> set rules. eval_rules (m ? r) u None"
+        using evalsNone allEval by blast
+      then have "eval_rules ?lhs u None"
+        by (simp add: map_None)
+      then show ?thesis
+        using evalsNone
+        using \<open>\<forall>r\<in>set rules. eval_rules r a None\<close> eval_choice_none eval_rules.intros(2) match by blast
+    next
+      case evalsSome: (Some a')
+        then have "\<exists>r \<in> set rules. eval_rules (m ? r) u (Some a')"
+          using condE assms match
+          using choiceE by fastforce
+        then have "\<exists>r \<in> set rules. eval_rules (m ? r) u e"
+          by (simp add: evalsSome)
+        then have "eval_rules ?rhs u e"
+          using allEval eval_rules.intros(2) eval_rules.intros(6) evalsSome match by blast
         then show ?thesis
-        proof (cases e)
-          case evalsNone: None
-          have "\<forall>r \<in> set rules. eval_rules r a None"
-            using evalsNone allEval assms map_None by blast
-          then have "\<forall>r \<in> set rules. eval_rules (m ? r) u None"
-            using evalsNone allEval by blast
-          then have "eval_rules ?lhs u None"
-            by (simp add: map_None)
-          then show ?thesis
-            using evalsNone
-            using \<open>\<forall>r\<in>set rules. eval_rules r a None\<close> eval_choice_none eval_rules.intros(2) match by blast
-        next
-          case evalsSome: (Some a')
-            then have "\<exists>r \<in> set rules. eval_rules (m ? r) u (Some a')"
-              using condE assms match
-              using choiceE by fastforce
-            then have "\<exists>r \<in> set rules. eval_rules (m ? r) u e"
-              by (simp add: evalsSome)
-            then have "eval_rules ?rhs u e"
-              using allEval eval_rules.intros(2) eval_rules.intros(6) evalsSome match by blast
-            then show ?thesis
-              by simp
-          qed
-        qed
+          by simp
+      qed
+    qed
 
 lemma pull_cond_out_lhs:
   assumes "eval_rules (m ? choice rules) u e" (is "eval_rules ?lhs u e")
@@ -927,8 +1000,8 @@ fun eliminate_choice :: "Rules \<Rightarrow> Rules option" where
   "eliminate_choice _ = None"
 
 lemma choice_Single:
-  "eval_rules (choice [r]) u e = eval_rules r u e"
-  apply (cases e) 
+  "eval_rules (choice [r]) e u res = eval_rules r e u res"
+  apply (cases res) 
   using eval_choice_none apply auto[1]
   using choiceE eval_rules.intros(6)
   by (smt (verit, best) RuleChoiceSome empty_iff list.set(1) list.set_intros(1) set_ConsD)
@@ -952,7 +1025,7 @@ lemma entry_var_eliminate_choice:
 *)
 
 lemma eliminate_choice_valid:
-  "eliminate_choice r = Some r' \<Longrightarrow> eval_rules r u e = eval_rules r' u e"
+  "eliminate_choice r = Some r' \<Longrightarrow> eval_rules r e u res = eval_rules r' e u res"
   by (smt (verit) choice_Single eliminate_choice.elims option.distinct(1) option.sel)
 end
 
@@ -967,7 +1040,7 @@ interpretation eliminate_choice : rule_transform
 
 
 
-definition option_composition :: "(Rules \<Rightarrow> Rules option) \<Rightarrow> (Rules \<Rightarrow> Rules option) \<Rightarrow> (Rules \<Rightarrow> Rules option)" (infixl "\<Zspot>" 76) where
+definition option_composition :: "(Rules \<Rightarrow> Rules option) \<Rightarrow> (Rules \<Rightarrow> Rules option) \<Rightarrow> (Rules \<Rightarrow> Rules option)" (infixr "\<Zspot>" 76) where
   "option_composition f\<^sub>1 f\<^sub>2 = (\<lambda>r. (case f\<^sub>1 r of Some r' \<Rightarrow> f\<^sub>2 r' | None \<Rightarrow> f\<^sub>2 r))"
 
 lemma option_composition_valid:
@@ -1022,12 +1095,12 @@ lemma metaopt_composition:
   by (metis is_none_code(2) option.case_eq_if option.split_sel option_composition_def order.strict_trans)
 
 definition optimized_export where
-  "optimized_export = lift_cond \<Zspot> join_conditions \<Zspot> combine_conditions \<Zspot> eliminate_choice"
+  "optimized_export = lift_cond \<Zspot> elim_noop \<Zspot> join_conditions \<Zspot> combine_conditions \<Zspot> eliminate_choice"
 
 value "optimized_export f"
 
 definition optimized_export' where
-  "optimized_export' = lift_cond \<Zspot> join_conditions \<Zspot> eliminate_choice"
+  "optimized_export' = lift_cond \<Zspot> elim_noop \<Zspot> join_conditions \<Zspot> eliminate_choice"
 
 setup \<open>Locale_Code.open_block\<close>
 interpretation optimized_export : rule_transform
@@ -1035,12 +1108,11 @@ interpretation optimized_export : rule_transform
   combined_size
   (*using metaopt_composition optimized_export'_def
   lift_cond.metaopt_axioms join_conditions.metaopt_axioms eliminate_choice.metaopt_axioms*)
-  apply standard using option_composition_valid unfolding rule_transform_def 
-  unfolding optimized_export'_def
-    apply (metis eliminate_choice.sound join_conditions.sound lift_cond.sound option_composition_valid valid_rule_transform_def)
-  unfolding option_composition_def
-  apply (smt (z3) eliminate_choice.simps(3) eliminate_choice.terminates join_conditions.elims option.case_eq_if option.distinct(1) option.sel)
-  using combined_size_wf by simp
+  using metaopt_composition
+  unfolding optimized_export'_def 
+  using eliminate_choice.rule_transform_axioms elim_noop.rule_transform_axioms
+ join_conditions.rule_transform_axioms lift_cond.rule_transform_axioms
+  by presburger
 setup \<open>Locale_Code.close_block\<close>
 
 
@@ -1049,9 +1121,21 @@ fun runall where "runall x = optimized_export.transform x"
 
 value "runall x"
 
+context includes match_syntax and match_pattern_syntax begin
+
+value "valid_rules (snd (Predicate.the (generateC STR ''myrule''
+    (BinaryPattern BinSub (BinaryPattern BinAdd (VariablePattern STR ''x'') (VariablePattern STR ''y'')) (VariablePattern STR ''x''))
+    None
+    (VariablePattern STR ''x''))))"
+value "run1 (run (snd (Predicate.the (generateC STR ''myrule''
+    (BinaryPattern BinSub (BinaryPattern BinAdd (VariablePattern STR ''x'') (VariablePattern STR ''y'')) (VariablePattern STR ''x''))
+    None
+    (VariablePattern STR ''x'')))))"
+
 value "runall (snd (Predicate.the (generateC STR ''myrule''
     (BinaryPattern BinSub (BinaryPattern BinAdd (VariablePattern STR ''x'') (VariablePattern STR ''y'')) (VariablePattern STR ''x''))
     None
     (VariablePattern STR ''x''))))"
+end
 
 end

@@ -1363,6 +1363,12 @@ lemma bitCount_2_mul_distribute:
   by (metis (no_types, lifting) bitCount_2_sum_shift_1 pow2_1_shift push_bit_eq_mult shiftl_def
       assms ring_class.ring_distribs(1))
 
+lemma bitCount_2_lower_minus_upper:
+  assumes "bitCount y = 2"
+  assumes "lower = y - (2 ^ (topBit y))"
+  shows "lower = (2 ^ (botBit y))"
+  by (metis add_diff_cancel2 assms bitCount_2_sum_pow_2)
+
 subsection \<open>topBit lemmas\<close>
 
 lemma topBit_higher_unset:

@@ -78,7 +78,7 @@ fun array_length :: "Value \<Rightarrow> Value" where
 
 fun wf_bool :: "Value \<Rightarrow> bool" where
   "wf_bool (IntVal b w) = (b = 1)" |
-  "wf_bool _ = False" 
+  "wf_bool _ = False"
 
 fun val_to_bool :: "Value \<Rightarrow> bool" where
   "val_to_bool (IntVal b val) = (if val = 0 then False else True)" |
@@ -99,36 +99,24 @@ fun is_int_val :: "Value \<Rightarrow> bool" where
 lemma neg_one_value[simp]: "new_int b (neg_one b) = IntVal b (mask b)"
   by simp
 
-lemma neg_one_signed[simp]:
-  assumes "0 < b"
-  shows "int_signed_value b (neg_one b) = -1"
-  using assms apply auto
+lemma neg_one_signed[simp]: "0 < b \<Longrightarrow> int_signed_value b (neg_one b) = -1"
+  apply auto
   by (metis (no_types, lifting) Suc_pred diff_Suc_1 signed_take_take_bit mask_eq_take_bit_minus_one
-      assms signed_take_bit_of_minus_1)
+      signed_take_bit_of_minus_1)
 
-lemma word_unsigned:
-  shows "\<forall> b1 v1. (IntVal b1 (word_of_int (int_unsigned_value b1 v1))) = IntVal b1 v1"
+lemma word_unsigned: "\<forall> b1 v1. (IntVal b1 (word_of_int (int_unsigned_value b1 v1))) = IntVal b1 v1"
   by simp
 
-lemma new_int_one_intval:
-  assumes "b > 0"
-  shows "new_int b 1 = IntVal b 1"
-  using assms by auto
+lemma new_int_one_intval: "b > 0 \<Longrightarrow> new_int b 1 = IntVal b 1"
+  by auto
 
-lemma new_int_zero_is_intval: "new_int b 0 = IntVal b 0"
+lemma new_int_zero[simp]: "new_int b 0 = IntVal b 0"
   by simp
-
-lemma new_int_zero [simp]:
-  assumes "1 \<le> b"
-  assumes "b \<le> 64"
-  shows "new_int b 0 = IntVal b 0"
-  unfolding new_int.simps by simp
 
 lemma new_int_mask: "new_int b (not 0) = new_int b (mask b)"
   unfolding new_int.simps by simp
 
-lemma unwrap_bool_to_val:
-  shows "(bool_to_val a = bool_to_val b) = (a = b)"
+lemma unwrap_bool_to_val: "(bool_to_val a = bool_to_val b) = (a = b)"
   apply auto using bool_to_val.elims by fastforce+
 
 subsection \<open>Arithmetic Operators\<close>
@@ -142,7 +130,7 @@ or 64 bit integers, unboxing where appropriate.
 The following collection of intval functions correspond to the JVM
 arithmetic operations.  We merge the 32 and 64 bit operations into
 a single function, even though the stamp of each IRNode tells us
-exactly what the bit widths will be.  These merged functions 
+exactly what the bit widths will be. These merged functions
 make it easier to do the instantiation of Value as 'plus', etc.
 It might be worse for reasoning, because it could cause more case analysis,
 but this does not seem to be a problem in practice.
@@ -167,7 +155,7 @@ fun intval_mul :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 (* Java division rounds towards 0, so we use sdiv, not div. *)
 (* TODO: find a signed division operator in the Word library? *)
 fun intval_div :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_div (IntVal b1 v1) (IntVal b2 v2) = 
+  "intval_div (IntVal b1 v1) (IntVal b2 v2) =
     (if v2 = 0 then UndefVal else
         new_int_bin b1 b2 (word_of_int
            ((int_signed_value b1 v1) sdiv (int_signed_value b2 v2))))" |
@@ -177,7 +165,7 @@ value "intval_div (IntVal 32 5) (IntVal 32 0)"
 
 (* Java % is a modulo operator that can give negative results, since div rounds towards 0. *)
 fun intval_mod :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_mod (IntVal b1 v1) (IntVal b2 v2) = 
+  "intval_mod (IntVal b1 v1) (IntVal b2 v2) =
     (if v2 = 0 then UndefVal else
         new_int_bin b1 b2 (word_of_int
            ((int_signed_value b1 v1) smod (int_signed_value b2 v2))))" |
@@ -299,7 +287,7 @@ fun intval_equals :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
   "intval_equals _ _ = UndefVal"
 
 fun intval_less_than :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_less_than (IntVal b1 v1) (IntVal b2 v2) = 
+  "intval_less_than (IntVal b1 v1) (IntVal b2 v2) =
     bool_to_val_bin b1 b2 (int_signed_value b1 v1 < int_signed_value b2 v2)" |
   "intval_less_than _ _ = UndefVal"
 
@@ -430,7 +418,7 @@ lemma intval_sign_extend_ok:
         inBits \<le> outBits \<and> outBits \<le> 64 \<and>
         is_IntVal val \<and>
         intval_bits val = inBits"
-  by (metis intval_bits.simps intval_sign_extend.elims is_IntVal_def assms)
+  using assms apply (cases val; auto) apply meson+ by presburger
 
 lemma intval_zero_extend_ok:
   assumes "intval_zero_extend inBits outBits val \<noteq> UndefVal"
@@ -438,13 +426,13 @@ lemma intval_zero_extend_ok:
         inBits \<le> outBits \<and> outBits \<le> 64 \<and>
         is_IntVal val \<and>
         intval_bits val = inBits"
-  by (metis intval_bits.simps intval_zero_extend.elims is_IntVal_def assms)
+  using assms apply (cases val; auto) apply meson+ by presburger
 
 subsection \<open>Bit-Shifting Operators\<close>
 
-text \<open>Note that Java shift operators use unary numeric promotion, unlike other binary 
+text \<open>Note that Java shift operators use unary numeric promotion, unlike other binary
   operators, which use binary numeric promotion (see the Java language reference manual).
-  This means that the left-hand input determines the output size, while the 
+  This means that the left-hand input determines the output size, while the
   right-hand input can be any size.\<close>
 
 fun shift_amount :: "iwidth \<Rightarrow> int64 \<Rightarrow> nat" where
@@ -457,7 +445,7 @@ fun intval_left_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
 text \<open>Signed shift is more complex, because we sometimes have to insert 1 bits
   at the correct point, which is at b1 bits.\<close>
 fun intval_right_shift :: "Value \<Rightarrow> Value \<Rightarrow> Value" where
-  "intval_right_shift (IntVal b1 v1) (IntVal b2 v2) = 
+  "intval_right_shift (IntVal b1 v1) (IntVal b2 v2) =
      (let shift = shift_amount b1 v2 in
       let ones = and (mask b1) (not (mask (b1 - shift) :: int64)) in
       (if int_signed_value b1 v1 < 0
@@ -474,7 +462,7 @@ subsubsection \<open>Examples of Narrowing / Widening Functions\<close>
 experiment begin
 corollary "intval_narrow 32 8 (IntVal 32 (256 + 128)) = IntVal 8 128" by simp
 corollary "intval_narrow 32 8 (IntVal 32 (-2)) = IntVal 8 254" by simp
-corollary "intval_narrow 32 1 (IntVal 32 (-2)) = IntVal 1 0"    by simp
+corollary "intval_narrow 32 1 (IntVal 32 (-2)) = IntVal 1 0" by simp
 corollary "intval_narrow 32 1 (IntVal 32 (-3)) = IntVal 1 1" by simp
 
 (* now test some 64 bit inputs and outputs *)
@@ -488,7 +476,7 @@ end
 experiment begin
 corollary "intval_sign_extend 8 32 (IntVal 8 (256 + 128)) = IntVal 32 (2^32 - 128)" by simp
 corollary "intval_sign_extend 8 32 (IntVal 8 (-2)) = IntVal 32 (2^32 - 2)" by simp
-corollary "intval_sign_extend 1 32 (IntVal 1 (-2)) = IntVal 32 0"    by simp
+corollary "intval_sign_extend 1 32 (IntVal 1 (-2)) = IntVal 32 0" by simp
 corollary "intval_sign_extend 1 32 (IntVal 1 (-3)) = IntVal 32 (mask 32)" by simp
 
 (* now test some 64 bit inputs and outputs *)
@@ -502,8 +490,8 @@ end
 experiment begin
 corollary "intval_zero_extend 8 32 (IntVal 8 (256 + 128)) = IntVal 32 128" by simp
 corollary "intval_zero_extend 8 32 (IntVal 8 (-2)) = IntVal 32 254" by simp
-corollary "intval_zero_extend 1 32 (IntVal 1 (-1)) = IntVal 32 1"   by simp
-corollary "intval_zero_extend 1 32 (IntVal 1 (-2)) = IntVal 32 0"   by simp
+corollary "intval_zero_extend 1 32 (IntVal 1 (-1)) = IntVal 32 1" by simp
+corollary "intval_zero_extend 1 32 (IntVal 1 (-2)) = IntVal 32 0" by simp
 
 (* now test some 64 bit inputs and outputs *)
 corollary "intval_zero_extend 8 32 (IntVal 64 (-2)) = UndefVal" by simp
@@ -526,8 +514,7 @@ end
    ======================================================================== *)
 
 (* commutative rules to be used when needed. *)
-lemma intval_add_sym:
-  shows "intval_add a b = intval_add b a"
+lemma intval_add_sym: "intval_add a b = intval_add b a"
   by (induction a; induction b; auto simp: add.commute)
 
 (* view dependency graph of code definitions:

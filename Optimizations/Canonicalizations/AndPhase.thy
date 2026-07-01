@@ -166,7 +166,7 @@ lemma exp_and_equal_not:
     then have "b = xb"
       by (metis assms valid_int_same_bits wf_stamp_def xy y)
     then have "[m,p] \<turnstile> exp[const (IntVal b 0)] \<mapsto> val[new_int xb 0]"
-      by (metis assms new_int_zero_is_intval p(2) stamp_eval_int wf_integerstamp_eval_is_new_int)
+      by (metis assms new_int_zero p(2) stamp_eval_int wf_integerstamp_eval_is_new_int)
     then show ?thesis
       by (metis eqa evalDet evalSame p(2,4) y)
   qed

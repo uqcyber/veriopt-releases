@@ -511,11 +511,11 @@ lemma exp_add_zero_equality:
     then have rhsDefined: "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
       using defined newIntX newIntY val_add_zero_equality width widthB xaEq by auto
     have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[ya eq (IntVal b 0)]"
-      by (metis bin_eval.simps(13) const_eval_is_const newIntY new_int_zero_is_intval widthB ya
-          rhsDefined unfold_binary eval_new_int_has_wf_value_zero)
+      by (metis bin_eval.simps(13) const_eval_is_const newIntY new_int_zero widthB ya unfold_binary
+          rhsDefined eval_new_int_has_wf_value_zero)
     then show ?thesis
-      by (metis defined evalDet newIntX newIntY new_int_zero_is_intval p(1,4) val_add_zero_equality
-          width widthB xa xaEq ya)
+      by (metis defined evalDet newIntX newIntY new_int_zero p(1,4) val_add_zero_equality widthB xa
+          width xaEq ya)
   qed
   done
 
@@ -552,11 +552,11 @@ lemma exp_xor_zero_equality:
     have rhsDefined: "val[ya eq (IntVal b 0)] \<noteq> UndefVal"
       using lhsDefined newIntX newIntY val_xor_zero_equality width widthB by force
     have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[ya eq (IntVal b 0)]"
-      by (metis BinaryExpr bin_eval.simps(13) newIntY new_int_zero_is_intval rhsDefined widthB ya
-          unfold_const eval_new_int_has_wf_value_zero)
+      by (metis BinaryExpr bin_eval.simps(13) newIntY new_int_zero rhsDefined widthB ya unfold_const
+          eval_new_int_has_wf_value_zero)
     then show ?thesis
-      by (metis evalDet lhsDefined newIntX newIntY new_int_zero_is_intval p(1,3,4) width widthB xEq
-          ya val_xor_zero_equality)
+      by (metis evalDet lhsDefined newIntX newIntY new_int_zero p(1,3,4) xEq val_xor_zero_equality
+          ya widthB width)
   qed
   done
 
@@ -591,10 +591,10 @@ lemma exp_sub_zero_equality:
       by (metis intval_equals.simps(6) intval_sub.simps(1) lhsDefined newIntX newIntY xv yBits yv
           new_int_bin.simps val_sub_zero_equality)
     have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[ya eq (IntVal b 0)]"
-      by (metis BinaryExpr bin_eval.simps(13) newIntY new_int_zero_is_intval unfold_const ya yBits
-          rhsDefined eval_new_int_has_wf_value_zero)
+      by (metis BinaryExpr bin_eval.simps(13) newIntY new_int_zero unfold_const ya yBits rhsDefined
+          eval_new_int_has_wf_value_zero)
     then show ?thesis
-      by (metis equals evalDet new_int_zero_is_intval p(1,3,4) xEq ya)
+      by (metis equals evalDet new_int_zero p(1,3,4) xEq ya)
     qed
     done
 
@@ -657,7 +657,7 @@ lemma exp_equal_substraction:
     then have "val[(xa - ya) eq (new_int b 0)] = val[xa eq ya]"
       using val_equal_substraction lhsDefined newIntX newIntY width widthB by blast
     then show ?thesis
-      by (metis BinaryExpr bin_eval.simps(13) evalDet new_int_zero_is_intval p(1,2,3) xa ya)
+      by (metis BinaryExpr bin_eval.simps(13) evalDet new_int_zero p(1,2,3) xa ya)
   qed
   done
 
@@ -797,7 +797,7 @@ lemma exp_negate_sub_right:
       using lhsDef val_negate_sub_right xv yWidth yv by blast
     then show ?thesis
       by (metis (no_types, opaque_lifting) BinaryExpr bin_eval.simps(13) const_eval_is_const evalDet
-          new_int_zero_is_intval p(5,6,7,9) eval_new_int_has_wf_value_zero xa yWidth ya yv)
+          new_int_zero p(5,6,7,9) eval_new_int_has_wf_value_zero xa yWidth ya yv)
   qed
   done
 
@@ -858,8 +858,8 @@ lemma exp_not_zero_neg_one:
     have negEval: "[m,p] \<turnstile> exp[\<not>x] \<mapsto> val[\<not>xa]"
       by (metis evalDet p(4,5) unary_eval.simps(3) unfold_unary xa)
     have lhsEval: "[m,p] \<turnstile> exp[(\<not>x) eq (const new_int xb 0)] \<mapsto> val[(\<not>xa) eq (new_int xb 0)]"
-      by (metis bin_eval.simps(13) evalDet negEval new_int_zero_is_intval p(3,4,6) unfold_binary xa
-          unfold_const)
+      by (metis bin_eval.simps(13) evalDet negEval new_int_zero p(3,4,6) unfold_binary unfold_const
+          xa)
     have rhsEval: "[m,p] \<turnstile> exp[x eq (const new_int xb (not 0))] \<mapsto> val[xa eq (new_int xb (not 0))]"
       by (metis BinaryExpr ConstantExpr bin_eval.simps(13) evaltree_not_undef lhsEval xa xv width
           val_not_zero_neg_one eval_new_int_has_wf_value_all_ones)
@@ -893,9 +893,9 @@ lemma exp_not_neg_one_zero:
           neg_one.elims neg_one_value unfold_binary)
     have rhsEval: "[m,p] \<turnstile> exp[x eq (const new_int xb 0)] \<mapsto> val[xa eq (new_int xb 0)]"
       by (metis xa zeroEval BinaryExpr bin_eval.simps(13) evaltree_not_undef intval_not.simps(1) xv
-          lhsEval new_int_zero_is_intval val_not_eq)
+          lhsEval new_int_zero val_not_eq)
     have evalEq: "val[(\<not>xa) eq (new_int xb (not 0))] = val[xa eq (new_int xb 0)]"
-      by (metis xv intval_not.simps(1) new_int_zero_is_intval val_not_eq)
+      by (metis xv intval_not.simps(1) new_int_zero val_not_eq)
     have "[m,p] \<turnstile> exp[x eq (const (new_int xb (0)))] \<mapsto> val[(\<not>xa) eq (new_int xb (mask xb))]"
       using evalEq rhsEval by auto
     then show ?thesis
@@ -1099,7 +1099,7 @@ optimization NegateSubRightCommute: "exp[(y - x) eq (-x)] \<longmapsto> exp[y eq
                                      when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x) \<and>
                                           (stamp_expr y = IntegerStamp yb yl yh \<and> wf_stamp y)"
   apply (simp add: add.commute less_SucI pos_add_strict size_binary_lhs size_pos)
-  by (metis dual_order.trans exp_eq_commutative exp_negate_sub_right new_int_zero_is_intval)
+  by (metis dual_order.trans exp_eq_commutative exp_negate_sub_right new_int_zero)
 
 optimization NegateEqZero: "exp[(-x) eq (const (new_int b 0))] \<longmapsto> exp[x eq (const (new_int b 0))]
                             when (stamp_expr x = IntegerStamp xb xl xh \<and> wf_stamp x)"

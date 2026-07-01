@@ -43,7 +43,7 @@ lemma exp_ReturnXOnZeroShift_anyWidth:
     then have vx: "\<exists>vx. xa = new_int b vx"
       apply auto by (metis eval_unused_bits_zero wf_stamp_def assms valid_int)
     have shiftZeroNotUndef: "val[xa >> (new_int b 0)] \<noteq> UndefVal"
-      by (metis evalDet new_int_zero_is_intval p(1,2) xa)
+      by (metis evalDet new_int_zero p(1,2) xa)
     have "xa = val[xa >> (new_int b 0)]"
       by (metis shiftZeroNotUndef val_ReturnXOnZeroShift_anyWidth vx)
     then show ?thesis

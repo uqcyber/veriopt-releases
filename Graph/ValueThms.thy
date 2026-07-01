@@ -294,8 +294,7 @@ lemma val_bit_count_nonzero:
   assumes "x = new_int b xv"
   assumes "val_bit_count x \<noteq> 0"
   shows "xv \<noteq> 0"
-  by (metis val_bit_count.simps Value.inject(1) bitCount_0 new_int.elims new_int_zero_is_intval
-      assms)
+  by (metis val_bit_count.simps Value.inject(1) bitCount_0 new_int.elims new_int_zero assms)
 
 text \<open>topBit lemmas\<close>
 

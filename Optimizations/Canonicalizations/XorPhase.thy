@@ -94,7 +94,7 @@ lemma exp_xor_self_is_false:
       by (metis evalDet evaltree_not_undef intval_is_null.cases intval_xor.simps(3) p(1,3,5) xv
           valid_value.simps(11,12) wf_stamp_def)
     have "[m,p] \<turnstile> exp[const (IntVal b 0)] \<mapsto> val[IntVal b 0]"
-      by (metis new_int_zero_is_intval p(1,2,4) stamp_eval_int wf_integerstamp_eval_is_new_int)
+      by (metis new_int_zero p(1,2,4) stamp_eval_int wf_integerstamp_eval_is_new_int)
     then show ?thesis
       by (metis evalDet p(1,2,3,4) val_xor_self valid_int_same_bits wf_stamp_def xv xvv)
   qed

@@ -678,6 +678,7 @@ optimization MulPower2Add1_64: "(x * (const y)) \<longmapsto> ((x << const (val_
   using exp_mul_power_2_add_1_64 by fastforce
 
 (* Covered by above lemmas MulPower2Add1_32, MulPower2Add1_64 and MulPower2Sub1 *)
+(*
 optimization MulPower2Add1: "x * y \<longmapsto> (x << const (IntVal 64 i)) + x
                               when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>
                                     64 > i \<and>
@@ -751,6 +752,7 @@ optimization MulPower2Sub1_64: "x * y \<longmapsto> (x << const (IntVal 64 i)) -
       by (metis evalDet lhs p(1,2) rhs)
   qed
 done
+*)
 
 end (* End of MulPhase *)
 

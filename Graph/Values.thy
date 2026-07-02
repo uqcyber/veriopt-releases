@@ -88,6 +88,12 @@ fun bool_to_val :: "bool \<Rightarrow> Value" where
   "bool_to_val True = (IntVal 32 1)" |
   "bool_to_val False = (IntVal 32 0)"
 
+definition bool_values :: "Value set" where
+  "bool_values = {IntVal 32 0, IntVal 32 1}"
+
+definition val_is_boolean :: "Value \<Rightarrow> bool" where
+  "val_is_boolean v = (v \<in> bool_values)"
+
 text \<open>Converts an Isabelle bool into a Java value, iff the two types are equal.\<close>
 fun bool_to_val_bin :: "iwidth \<Rightarrow> iwidth \<Rightarrow> bool \<Rightarrow> Value" where
   "bool_to_val_bin t1 t2 b = (if t1 = t2 then bool_to_val b else UndefVal)"

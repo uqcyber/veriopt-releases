@@ -14,8 +14,9 @@ begin
 lemma preserve_boolean:
   assumes "is_boolean c"
   shows "is_boolean exp[!c]"
-  using assms is_boolean_def apply auto
-  by (metis (no_types, lifting) IntVal0 IntVal1 intval_logic_negation.simps(1) logic_negate_def)
+  using assms unfolding is_boolean_def val_is_boolean_def bool_values_def apply auto
+  by (metis (no_types, opaque_lifting) intval_logic_negation.simps(1) logic_negate_def new_int_zero
+      IntVal1)
 
 lemma negation_preserve_eval0:
   assumes "[m, p] \<turnstile> exp[e] \<mapsto> v"
@@ -24,7 +25,7 @@ lemma negation_preserve_eval0:
   using assms
 proof -
   obtain b vv where vIntVal: "v = IntVal b vv"
-    using is_boolean_def assms by blast
+    using is_boolean_def assms unfolding val_is_boolean_def bool_values_def by blast
   then show ?thesis
     using assms(1) by fastforce
 qed
@@ -40,10 +41,9 @@ proof -
   then have logicNegateEquiv: "notEval = intval_logic_negation v"
     using evalDet assms(1) unary_eval.simps(4) by blast
   then have vRange: "v = val[false] \<or> v = val[true]"
-    using assms by (auto simp add: is_boolean_def)
+    using assms by (auto simp add: is_boolean_def val_is_boolean_def bool_values_def)
   have "v = intval_logic_negation notEval"
-    by (metis IntVal0 IntVal1 intval_logic_negation.simps(1) logicNegateEquiv logic_negate_def
-        vRange)
+    using assms(1,2) intval_logic_negation_bool_self is_boolean_def logicNegateEquiv by auto
   then show ?thesis
     using notEval by auto
 qed
@@ -120,7 +120,7 @@ optimization ConditionalIntegerEquals_1: "exp[(c ? x : y) eq x] \<longmapsto> c
     obtain cond where cond: "[m,p] \<turnstile> c \<mapsto> cond"
       using p by blast
     have cRange: "cond = val[false] \<or> cond = val[true]"
-      using p cond is_boolean_def by blast
+      using p cond is_boolean_def unfolding val_is_boolean_def bool_values_def by blast
     then obtain yv where yVal: "[m,p] \<turnstile> y \<mapsto> yv"
       using p(15) by auto
     obtain xvv where xvv: "xv = IntVal b xvv"
@@ -157,7 +157,7 @@ optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!
     then obtain notCond where notCond: "[m,p] \<turnstile> exp[!c] \<mapsto> notCond"
       by (meson p(6) negation_preserve_eval2 cond)
     have cRange: "cond = val[false] \<or> cond = val[true]"
-      using p cond by (simp add: is_boolean_def)
+      using p cond by (simp add: is_boolean_def val_is_boolean_def bool_values_def)
     then have cNotRange: "notCond = val[false] \<or> notCond = val[true]"
       by (metis (no_types, lifting) IntVal0 IntVal1 cond evalDet intval_logic_negation.simps(1)
           logic_negate_def negation_preserve_eval notCond)
@@ -196,11 +196,11 @@ optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!
   qed
   done
 
-optimization ConditionalExtractCondition: "exp[(c ? true : false)] \<longmapsto> c
+optimization ConditionalExtractCondition: "(c ? true : false) \<longmapsto> c
                                            when is_boolean c"
-  using is_boolean_def by fastforce
+  using is_boolean_def unfolding val_is_boolean_def bool_values_def by fastforce
 
-optimization ConditionalExtractCondition2: "exp[(c ? false : true)] \<longmapsto> !c
+optimization ConditionalExtractCondition2: "(c ? false : true) \<longmapsto> !c
                                             when is_boolean c"
   apply auto
   subgoal premises p for m p cExpr cond
@@ -210,7 +210,7 @@ optimization ConditionalExtractCondition2: "exp[(c ? false : true)] \<longmapsto
     obtain notCond where notCond: "[m,p] \<turnstile> exp[!c] \<mapsto> notCond"
       by (metis cond negation_preserve_eval2 p(1))
     then have cRange: "cond = val[false] \<or> cond = val[true]"
-      using is_boolean_def cond p(1) by auto
+      using is_boolean_def cond p(1) unfolding val_is_boolean_def bool_values_def by auto
     then have condTrue: "cond = val[true] \<Longrightarrow> cExpr = val[false]"
       using cond evalDet p(2) p(4) by fastforce
     then have "cond = val[false] \<Longrightarrow> cExpr = val[true]"
@@ -268,7 +268,7 @@ optimization normalizeX: "((x eq const val[false]) ? (const val[false]) : (const
                            else ConstantExpr val[true] \<mapsto> v"
         using evalDet p(3,4,5,6,7) xa by blast
       then have xaRange: "xa = val[false] \<or> xa = val[true]"
-        using is_boolean_def p(3) xa by blast
+        using is_boolean_def val_is_boolean_def bool_values_def p(3) xa by blast
       then have "v = xa"
         using eval by auto
       then show ?thesis

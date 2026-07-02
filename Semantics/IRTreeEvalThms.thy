@@ -861,4 +861,12 @@ next
     using R by blast
 qed
 
+subsubsection \<open>boolean evaluation\<close>
+
+lemma is_boolean_eval_boolean:
+  assumes "is_boolean e"
+  assumes "[m, p] \<turnstile> e \<mapsto> v"
+  shows "val_is_boolean v"
+  using assms unfolding is_boolean_def val_is_boolean_def by blast
+
 end

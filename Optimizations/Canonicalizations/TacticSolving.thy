@@ -265,8 +265,8 @@ lemma ExpXorFallThrough:
     then have wfVal: "wf_value (new_int b 0)"
       by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def xa)
     then have "[m,p] \<turnstile> exp[y eq (const (new_int b 0))] \<mapsto> val[(xa \<oplus> ya) eq xa]"
-      by (metis (no_types, lifting) ValXorFallThrough const_eval_is_const bin_eval.simps(13) evalDet
-          xa p(5,6,7,8) unfold_binary ya)
+      by (metis (no_types, lifting) ValXorFallThrough ConstantExpr bin_eval.simps(13) evalDet xa ya
+          p(5,6,7,8) unfold_binary)
     then show ?thesis
       by (metis evalDet new_int.elims p(1,3,5,7) take_bit_of_0 valid_value.simps(1) wf_stamp_def xa)
    qed 

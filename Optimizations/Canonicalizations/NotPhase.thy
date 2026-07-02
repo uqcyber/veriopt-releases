@@ -10,7 +10,7 @@ phase NotNode
   terminating size
 begin
 
-text \<open> All optimisations complete as at 02/03/26 \<close>
+text \<open> All optimisations complete as at 02/07/26 \<close>
 
 (* Word level proofs *)
 lemma bin_not_cancel:
@@ -30,6 +30,13 @@ lemma val_not_sub_to_neg:
   using assms apply (cases x; auto) apply (simp add: minus_diff_commute not_eq_complement)
   using intval_not.simps(2) by presburger+
 
+lemma val_not_negate:
+  assumes "val[~(-x)] \<noteq> UndefVal"
+  assumes "val[x - (new_int b 1)] \<noteq> UndefVal"
+  shows "val[~(-x)] = val[x - (new_int b 1)]"
+  using assms apply (cases x; auto) apply (simp add: decr_eq_not_minus take_bit_not_take_bit)
+  by meson+
+
 (* Exp level proofs *)
 lemma exp_not_cancel:
   "exp[~(~a)] \<ge> exp[a]"
@@ -45,10 +52,38 @@ lemma exp_not_cancel:
 
 text \<open>Optimisations\<close>
 
-optimization NotCancel: "exp[~(~a)] \<longmapsto> a"
+optimization NotCancel: "~(~a) \<longmapsto> a"
   by (metis exp_not_cancel)
 
-optimization NotSubToNeg: "exp[~(x - (const (new_int b 1)))] \<longmapsto> exp[-x]
+optimization NotNegate: "~(-x) \<longmapsto> (x - const (new_int b 1))
+                         when (stamp_expr x = IntegerStamp b lo hi \<and> wf_stamp x)"
+  apply auto
+  subgoal premises p for m p xa
+  proof -
+    obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
+      using p(5) by auto
+    obtain xvv where xvv: "xa = new_int b xvv"
+      by (metis p(2,3) stamp_eval_same_bits wf_integerstamp_eval_is_new_int xa)
+    have constEval: "[m,p] \<turnstile> exp[const (new_int b 1)] \<mapsto> val[new_int b 1]"
+      using wf_integerstamp_eval_is_new_int p(2,3) stamp_eval_int xa by blast
+    have rhsDefined: "val[xa - (new_int b 1)] \<noteq> UndefVal"
+      unfolding xvv by simp
+    have "val[~(-xa)] = val[xa - (new_int b 1)]"
+      using evalDet p(4,5) rhsDefined val_not_negate xa by blast
+    then show ?thesis
+      by (metis (no_types, lifting) bin_eval.simps(2) constEval evalDet new_int_one_intval p(1,4,5)
+          unfold_binary xa)
+  qed
+  subgoal premises p for m p xa
+  proof -
+    have "b \<noteq> 0"
+      using wf_integerstamp_implies_nonzero_bits p(2,3,5) by blast
+    then show ?thesis
+      by (simp add: p(1))
+  qed
+  done
+
+optimization NotSubToNeg: "~(x - (const (new_int b 1))) \<longmapsto> -x
                            when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x)"
   apply auto
   subgoal premises p for m p xa

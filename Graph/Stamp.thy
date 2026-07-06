@@ -25,11 +25,9 @@ datatype Stamp =
   | RawPointerStamp (stp_nonNull: bool) (stp_alwaysNull: bool)
   | IllegalStamp
 
-
 text \<open>To help with supporting masks in future, this constructor allows masks but ignores them.\<close>
 abbreviation IntegerStampM :: "nat \<Rightarrow> int \<Rightarrow> int \<Rightarrow> int64 \<Rightarrow> int64 \<Rightarrow> Stamp" where
   "IntegerStampM b lo hi down up \<equiv> IntegerStamp b lo hi"
-
 
 fun is_stamp_empty :: "Stamp \<Rightarrow> bool" where
   "is_stamp_empty (IntegerStamp b lower upper) = (upper < lower)" |
@@ -81,7 +79,7 @@ text \<open>Just like the IntegerStamp class, we need to know that our lo/hi bou
    We could have: (lo = snd (bit_bounds bits) \<and> hi = fst (bit_bounds bits) 
  *)
 fun valid_stamp :: "Stamp \<Rightarrow> bool" where
-  "valid_stamp (IntegerStamp bits lo hi) = 
+  "valid_stamp (IntegerStamp bits lo hi) =
      (0 < bits \<and> bits \<le> 64 \<and>
      fst (bit_bounds bits) \<le> lo \<and> lo \<le> snd (bit_bounds bits) \<and>
      fst (bit_bounds bits) \<le> hi \<and> hi \<le> snd (bit_bounds bits))" |
@@ -131,12 +129,11 @@ fun empty_stamp :: "Stamp \<Rightarrow> Stamp" where
   "empty_stamp (ObjectStamp type exactType nonNull alwaysNull) = (ObjectStamp '''' True True False)" |
   "empty_stamp stamp = IllegalStamp"
 
-
 \<comment> \<open>Calculate the meet stamp of two stamps\<close>
 fun meet :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "meet VoidStamp VoidStamp = VoidStamp" |
   "meet (IntegerStamp b1 l1 u1) (IntegerStamp b2 l2 u2) = (
-    if b1 \<noteq> b2 then IllegalStamp else 
+    if b1 \<noteq> b2 then IllegalStamp else
     (IntegerStamp b1 (min l1 l2) (max u1 u2))
   )" |
   (* "meet (FloatStamp b1 l1 u1) (FloatStamp b2 l2 u2) = (
@@ -158,7 +155,7 @@ fun meet :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 fun join :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "join VoidStamp VoidStamp = VoidStamp" |
   "join (IntegerStamp b1 l1 u1) (IntegerStamp b2 l2 u2) = (
-    if b1 \<noteq> b2 then IllegalStamp else 
+    if b1 \<noteq> b2 then IllegalStamp else
     (IntegerStamp b1 (max l1 l2) (min u1 u2))
   )" |
   (* "join (FloatStamp b1 l1 u1) (FloatStamp b2 l2 u2) = (
@@ -166,17 +163,17 @@ fun join :: "Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
     (FloatStamp b1 (max l1 l2) (min u1 u2))
   )" | *)
   "join (KlassPointerStamp nn1 an1) (KlassPointerStamp nn2 an2) = (
-    if ((nn1 \<or> nn2) \<and> (an1 \<or> an2)) 
+    if ((nn1 \<or> nn2) \<and> (an1 \<or> an2))
     then (empty_stamp (KlassPointerStamp nn1 an1))
     else (KlassPointerStamp (nn1 \<or> nn2) (an1 \<or> an2))
   )" |
   "join (MethodCountersPointerStamp nn1 an1) (MethodCountersPointerStamp nn2 an2) = (
-    if ((nn1 \<or> nn2) \<and> (an1 \<or> an2)) 
+    if ((nn1 \<or> nn2) \<and> (an1 \<or> an2))
     then (empty_stamp (MethodCountersPointerStamp nn1 an1))
     else (MethodCountersPointerStamp (nn1 \<or> nn2) (an1 \<or> an2))
   )" |
   "join (MethodPointersStamp nn1 an1) (MethodPointersStamp nn2 an2) = (
-    if ((nn1 \<or> nn2) \<and> (an1 \<or> an2)) 
+    if ((nn1 \<or> nn2) \<and> (an1 \<or> an2))
     then (empty_stamp (MethodPointersStamp nn1 an1))
     else (MethodPointersStamp (nn1 \<or> nn2) (an1 \<or> an2))
   )" |
@@ -216,7 +213,7 @@ fun valid_value :: "Value \<Rightarrow> Stamp \<Rightarrow> bool" where
        l \<le> int_signed_value b val \<and> int_signed_value b val \<le> h
       else False)" |
   (* "valid_value (FloatStamp b1 l h) (FloatVal b2 v) = ((b1 = b2) \<and> (v \<ge> l) \<and> (v \<le> h))" | *)
-  "valid_value (ObjRef ref) (ObjectStamp klass exact nonNull alwaysNull) = 
+  "valid_value (ObjRef ref) (ObjectStamp klass exact nonNull alwaysNull) =
      ((alwaysNull \<longrightarrow> ref = None) \<and> (ref=None \<longrightarrow> \<not> nonNull))" |
   "valid_value stamp val = False"
 (* NOTE: we could allow for unsigned interpretations too, like this:
@@ -245,22 +242,17 @@ fun wf_value :: "Value \<Rightarrow> bool" where
 definition wf_value :: "Value \<Rightarrow> bool" where
   "wf_value v = valid_value v (constantAsStamp v)"
 
-lemma unfold_wf_value[simp]:
-  "wf_value v \<Longrightarrow> valid_value v (constantAsStamp v)"
+lemma unfold_wf_value[simp]: "wf_value v \<Longrightarrow> valid_value v (constantAsStamp v)"
   by (simp add: wf_value_def)
 
-lemma wf_value_false:
-  shows "wf_value (IntVal 32 0)"
+lemma wf_value_false: "wf_value (IntVal 32 0)"
   unfolding wf_value_def by auto
 
-lemma wf_value_true:
-  shows "wf_value (IntVal 32 1)"
+lemma wf_value_true: "wf_value (IntVal 32 1)"
   unfolding wf_value_def by auto
 
-lemma wf_value_zero [simp]:
-  assumes "1 \<le> b \<and> b \<le> 64"
-  shows "wf_value (IntVal b 0)"
-  unfolding wf_value_def using assms by auto
+lemma wf_value_zero [simp]: "1 \<le> b \<and> b \<le> 64 \<Longrightarrow> wf_value (IntVal b 0)"
+  unfolding wf_value_def by auto
 
 fun compatible :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "compatible (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
@@ -273,8 +265,8 @@ fun stamp_under :: "Stamp \<Rightarrow> Stamp \<Rightarrow> bool" where
   "stamp_under _ _ = False"
 
 \<comment> \<open>
-The most common type of stamp within the compiler (apart from the VoidStamp) is a 32 bit
-integer stamp with an unrestricted range. We use @{text default_stamp} as it is a frequently used stamp.
+The most common type of stamp within the compiler (apart from the VoidStamp) is a 32 bit integer
+stamp with an unrestricted range. We use @{text default_stamp} as it is a frequently used stamp.
 \<close>
 definition default_stamp :: "Stamp" where
   "default_stamp = (unrestricted_stamp (IntegerStamp 32 0 0))"

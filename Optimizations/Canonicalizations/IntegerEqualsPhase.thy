@@ -932,8 +932,6 @@ lemma exp_not_eq:
 text \<open>Optimisations\<close>
 
 optimization AdditionEquality: "exp[(x + y) eq (x + z)] \<longmapsto> exp[y eq z]"
-  apply (metis bin_cycles.simps(1,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ_rhs
-         size_bin_iff size_bin_rhs)
   using exp_addition_equality by presburger
 
 optimization AdditionEquality2: "exp[(x + y) eq (z + x)] \<longmapsto> exp[y eq z]"
@@ -945,13 +943,9 @@ optimization AdditionEquality3: "exp[(y + x) eq (x + z)] \<longmapsto> exp[y eq 
   by (meson dual_order.trans exp_add_commutative exp_addition_equality mono_binary)
 
 optimization AdditionEquality4: "exp[(y + x) eq (z + x)] \<longmapsto> exp[y eq z]"
-  apply (metis bin_cycles.simps(1,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ size_bin_iff
-         size_bin_lhs)
   by (meson dual_order.trans exp_add_commutative exp_addition_equality mono_binary)
 
 optimization XorEquality: "exp[(x \<oplus> y) eq (x \<oplus> z)] \<longmapsto> exp[y eq z]"
-  apply (metis bin_cycles.simps(17,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ_rhs
-         size_bin_iff size_bin_rhs)
   by (meson exp_xor_equality)
 
 optimization XorEquality2: "exp[(x \<oplus> y) eq (z \<oplus> x)] \<longmapsto> exp[y eq z]"
@@ -963,18 +957,12 @@ optimization XorEquality3: "exp[(y \<oplus> x) eq (x \<oplus> z)] \<longmapsto> 
   by (meson dual_order.trans exp_xor_commutative exp_xor_equality mono_binary)
 
 optimization XorEquality4: "exp[(y \<oplus> x) eq (z \<oplus> x)] \<longmapsto> exp[y eq z]"
-  apply (metis bin_cycles.simps(17,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ size_bin_iff
-         size_bin_lhs)
   by (meson dual_order.trans exp_xor_commutative exp_xor_equality mono_binary)
 
 optimization SubtractionEquality: "exp[(x - y) eq (x - z)] \<longmapsto> exp[y eq z]"
-  apply (metis bin_cycles.simps(15,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ_rhs
-         size_bin_iff size_bin_rhs)
   using exp_subtraction_equality by blast
 
 optimization SubtractionEqualityFlipped: "exp[(y - x) eq (z - x)] \<longmapsto> exp[y eq z]"
-  apply (metis bin_cycles.simps(15,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ size_bin_iff
-         size_bin_lhs)
   using exp_subtraction_equality_swapped by blast
 
 optimization EqualAddZero_Flipped: "exp[(x + y) eq x] \<longmapsto> exp[y eq (const (IntVal b 0))]
@@ -1050,23 +1038,23 @@ optimization AndOrEquals1: "exp[(x & y) eq (x | y)] \<longmapsto> exp[x eq y]
 optimization AndOrEquals2: "exp[(x & y) eq (y | x)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (metis (mono_tags, lifting) bin_cycles.simps(2,5) less_SucI not_add_less1 not_less_eq
-         size_bin_eq_cycles_eq_iff)
+  apply (smt (verit, ccfv_threshold) bin_cycles.simps(2,5) less_SucI not_add_less2 le_imp_less_Suc
+         add.commute le_def size_bin_eq_cycles_eq_iff)
   using AndOrEquals1 apply simp
   by (meson exp_and_commutative exp_eq_commutative le_expr_def mono_binary order_eq_refl)
 
 optimization AndOrEquals3: "exp[(x | y) eq (x & y)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (metis (mono_tags, opaque_lifting) bin_cycles.simps(2,5) less_SucI not_add_less2 not_less_eq
-         size_bin_eq_cycles_eq_iff)
+  apply (smt (verit, del_insts) bin_cycles.simps(2,5) add_less_mono size_bin_eq_cycles_eq_iff
+         not_less_eq add_less_same_cancel2 bot_nat_0.extremum_strict less_Suc_eq size_non_const)
   by (meson dual_order.trans exp_and_or_eq_64 exp_eq_commutative)
 
 optimization AndOrEquals4: "exp[(x | y) eq (y & x)] \<longmapsto> exp[x eq y]
                             when (stamp_expr x = IntegerStamp 64 lx hx \<and> wf_stamp x) \<and>
                                  (stamp_expr y = IntegerStamp 64 ly hy \<and> wf_stamp y)"
-  apply (metis (mono_tags, lifting) bin_cycles.simps(13,5) less_Suc_eq less_add_same_cancel1
-         size_bin_eq_cycles_eq_iff size_pos)
+  apply (smt (verit, ccfv_SIG) bin_cycles.simps(13,5) less_add_Suc1 less_add_Suc2 less_trans_Suc
+         not_less_eq plus_1_eq_Suc size_bin_eq_cycles_eq_iff)
   using AndOrEquals3 apply simp by (meson exp_and_commutative le_expr_def mono_binary)
 
 optimization XorNotFallThrough1: "exp[(x \<oplus> y) eq (\<not>x)] \<longmapsto> exp[y eq (const (new_int b (not 0)))]

@@ -86,7 +86,6 @@ lemma negation_preserve_eval_intval:
 text \<open>Optimisations\<close>
 
 optimization NegateConditionFlipBranches: "((!e) ? x : y) \<longmapsto> (e ? y : x)"
-  apply simp apply (rule allI; rule allI; rule allI; rule impI)
   by (smt (z3) le_expr_def ConditionalExpr ConditionalExprE Value.distinct(1) evalDet negates
       negation_preserve_eval negation_preserve_eval_intval)
 
@@ -147,8 +146,7 @@ optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!
                                                stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y \<and>
                                                (alwaysDistinct (stamp_expr x) (stamp_expr y)) \<and>
                                                is_boolean c"
-  apply (meson Suc_mono size_cond_gt_cond less_trans_Suc size_bin_lhs_succ)
-  apply auto
+  apply (meson Suc_mono size_cond_gt_cond less_trans_Suc size_bin_lhs_succ) apply auto
   subgoal premises p for m p cExpr yv cond trE faE
   proof -
     obtain cond where cond: "[m,p] \<turnstile> c \<mapsto> cond"
@@ -163,9 +161,8 @@ optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!
     then obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p by auto
     then have trueCond: "(notCond = val[true]) \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr c x y) \<mapsto> yv"
-      by (smt (verit, best) cRange evalDet negates negation_preserve_eval notCond p(7) cond
-          zero_less_numeral val_to_bool.simps(1) evaltree_not_undef ConditionalExpr
-          ConditionalExprE)
+      by (smt (verit, ccfv_SIG) cRange negates negation_preserve_eval2 notCond ConditionalExpr cond
+          evalDet val_to_bool.simps(1) eval_bits_1_64 p(10,13,14,15,16,6,7,9))
     obtain xvv where xvv: "xv = IntVal b xvv"
       by (metis p(1,2) valid_int wf_stamp_def xv)
     then have opposites: "notCond = intval_logic_negation cond"

@@ -35,9 +35,9 @@ lemma value_div_itself:
   assumes "x \<noteq> val[IntVal b 0]"
   shows "val[x / x] = val[IntVal b 1]"
   using assms apply (cases x) defer
-  apply (smt (verit) word64_div_itself IntVal1 Value.distinct(1) bot_nat_0.not_eq_extremum
-         intval_div.simps(1) intval_word.simps new_int.simps new_int_bin.elims of_int_1
-         take_bit_numeral_1 take_bit_of_1 take_bit_of_1_eq_0_iff valid_int.simps(1))
+  apply (smt (verit) word64_div_itself IntVal1 Value.distinct(1) bot_nat_0.not_eq_extremum of_int_1
+         intval_div.simps(1) intval_word.simps new_int.simps new_int_bin.elims valid_int.simps(1)
+         take_bit_numeral_1 take_bit_of_1 take_bit_of_1_eq_0_iff)
   by simp+
 
 phase DivPhase

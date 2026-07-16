@@ -546,8 +546,6 @@ optimization XorIsEqual_64_1: "exp[(x \<oplus> y) eq (x \<oplus> z)] \<longmapst
                         when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and>
                              (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
-  apply (metis bin_cycles.simps(17,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ_rhs
-         size_bin_iff size_bin_rhs)
   using expXorIsEqual_64 by force
 
 optimization XorIsEqual_64_2: "exp[(x \<oplus> y) eq (z \<oplus> x)] \<longmapsto> exp[y eq z]
@@ -568,8 +566,6 @@ optimization XorIsEqual_64_4: "exp[(y \<oplus> x) eq (z \<oplus> x)] \<longmapst
                         when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and>
                              (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
-  apply (metis bin_cycles.simps(17,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ size_bin_iff
-         size_bin_lhs)
   by (meson dual_order.trans mono_binary exp_xor_commutative expXorIsEqual_64)
 
 (*

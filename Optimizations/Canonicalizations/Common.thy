@@ -223,6 +223,20 @@ lemma size_bin_cycle_eq_lt_bin_un[size_simps]:
          un_exp_size_def)
   using is_ConstantExpr_def by auto
 
+lemma size_bin_cycle_eq_lt_sum_succ[size_simps]:
+  "bin_cycles op = bin_cycles op' \<Longrightarrow>
+   size (BinaryExpr op' y z) < Suc (Suc (Suc (size (BinaryExpr op x y) + size (BinaryExpr op x z))))"
+  apply (cases "is_ConstantExpr z") using size_bin_rhs_const bin_exp_size_def
+  apply (simp add: add.commute size_bin_rhs trans_less_add2)
+  by (metis dual_order.strict_trans size_bin_cycle_eq_lt_succ_rhs size_bin_iff size_bin_rhs)
+
+lemma size_bin_cycle_eq_lt_sum_succ_commute[size_simps]:
+  "bin_cycles op = bin_cycles op' \<Longrightarrow>
+   size (BinaryExpr op' y z) < Suc (Suc (Suc (size (BinaryExpr op y x) + size (BinaryExpr op z x))))"
+  apply (cases "is_ConstantExpr z")
+  by (metis (no_types, lifting) Suc_lessD less_trans_Suc size_bin_cycle_eq_lt_succ size_bin_iff
+      size_bin_lhs)+
+
 lemmas arith[size_simps] = Suc_leI add_strict_increasing order_less_trans trans_less_add2
 
 subsection \<open> Helpful lemmas for canonicalization proofs \<close>

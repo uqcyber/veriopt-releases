@@ -246,7 +246,7 @@ optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
   using exp_and_commutative by blast
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
-  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_and_nots by auto
+  apply (simp add: less_SucI size_bin_cycle1_lt_succ_sum) using exp_and_nots by auto
 
 (* TODO need to prove exp_sign_extend *)
 optimization AndSignExtend: "exp[(UnaryExpr (UnarySignExtend In Out) x) & const (new_int b e)]

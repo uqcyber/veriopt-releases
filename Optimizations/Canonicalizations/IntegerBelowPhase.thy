@@ -412,8 +412,8 @@ optimization BelowLess: "(x |<| ((y |<| z) ? const (IntVal b 0) : (y + (-z)))) \
        (is_stamp_positive (stamp_expr y)) \<and> (wf_stamp y) \<and> (width_in_bounds (stamp_expr y) 2 64) \<and>
        (is_stamp_positive (stamp_expr z)) \<and> (wf_stamp z) \<and> (width_in_bounds (stamp_expr z) 2 64) \<and>
         stamp_expr y = IntegerStamp b lo hi)"
-  apply (metis IRBinaryOp.distinct(117,37) less_add_same_cancel1 pos_add_strict size_bin_eq_div
-         size_pos zero_less_numeral)
+  apply (metis (mono_tags, lifting) add_strict_increasing bin_cycles.simps(15,4) zero_less_numeral
+         size_bin_eq_cycles_eq_iff le_add1)
   using exp_below_less_add by blast
 
 end (* End of IntegerBelowPhase *)

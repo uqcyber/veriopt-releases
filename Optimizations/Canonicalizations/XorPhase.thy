@@ -171,7 +171,7 @@ text \<open>Optimisations\<close>
 
 optimization XorSelfIsFalse: "(x \<oplus> x) \<longmapsto> const (IntVal b 0)
                               when (wf_stamp x \<and> stamp_expr x = IntegerStamp b xl xh)"
-  apply (metis Suc_lessI bot_nat_0.not_eq_extremum less_one size_binary_rhs size_pos)
+  apply (metis Suc_lessI bot_nat_0.not_eq_extremum less_one size_bin_rhs size_pos)
   using exp_xor_self_is_false by blast
 
 optimization XorShiftConstantRight: "((const x) \<oplus> y) \<longmapsto> y \<oplus> (const x) when \<not>(is_ConstantExpr y)"
@@ -193,7 +193,7 @@ optimization MaskOutRHS: "(x \<oplus> y) \<longmapsto> ~x
 *)
 
 optimization XorNot: "((~x) \<oplus> (~y)) \<longmapsto> (x \<oplus> y)"
-  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_xor_cancel by blast
+  apply (simp add: less_SucI size_bin_cycle1_lt_succ_sum) using exp_xor_cancel by blast
 
 optimization XorInverse: "(x \<oplus> ~x) \<longmapsto> (const (new_int b (not 0)))
                           when (stamp_expr x = IntegerStamp b l h \<and> wf_stamp x)"
@@ -201,7 +201,7 @@ optimization XorInverse: "(x \<oplus> ~x) \<longmapsto> (const (new_int b (not 0
 
 optimization XorInverseCommute: "((~x) \<oplus> x) \<longmapsto> (const (new_int b (not 0)))
                                  when (stamp_expr x = IntegerStamp b l h \<and> wf_stamp x)"
-  apply (metis bot_nat_0.not_eq_extremum less_Suc0 linorder_neqE_nat size_binary_rhs size_pos)
+  apply (metis bot_nat_0.not_eq_extremum less_Suc0 linorder_neqE_nat size_bin_rhs size_pos)
   using XorInverse exp_xor_commutative by auto
 
 end (* End of XorPhase *)

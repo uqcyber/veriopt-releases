@@ -646,11 +646,13 @@ qed
 
 optimization MulPower2SubPower2: "(x * (const y)) \<longmapsto> (x << shift) - (x << i)
                                   when (sub = exp[((const new_int b 1) << shift) - (const y)] \<and>
-                                        sub = exp[(const new_int b 1) << i])" .
+                                        sub = exp[(const new_int b 1) << i])"
+  by fastforce
 
 optimization MulPower2Sub1: "(x * (const y)) \<longmapsto> (x << shift) - x
                              when (sub = exp[((const new_int b 1) << shift) - (const y)] \<and>
-                                   sub = exp[const new_int b 1])" .
+                                   sub = exp[const new_int b 1])"
+  by fast
 
 optimization MulPower2AddPower2_32: "(x * (const y)) \<longmapsto>
                                      ((x << const (val_top_bit y)) + (x << const (val_bot_bit y)))

@@ -4,6 +4,7 @@ theory TacticSolving
     Proofs.StampEvalThms
 begin
 
+(*
 fun size :: "IRExpr \<Rightarrow> nat" where
   "size (UnaryExpr op e) = (size e) * 2" |
   "size (BinaryExpr BinAdd x y) = (size x) + ((size y) * 2)" |
@@ -20,6 +21,7 @@ lemma size_pos[simp]: "0 < size y"
   subgoal premises prems for op a b
     using prems by (induction op; auto)
   done
+*)
 
 phase TacticSolving
   terminating size
@@ -94,6 +96,7 @@ lemma val_distribute_sub:
   by (cases x; cases y; auto)
 
 optimization distribute_sub: "-(x - y) \<longmapsto> (y - x)"
+  apply (simp add: less_SucI size_bin_lt_succ)
   using val_distribute_sub unfold_binary unfold_unary by auto
 
 lemma val_xor_self_is_false:
@@ -142,7 +145,7 @@ lemma NotXorToXorExp:
 optimization NotXorToXor: "exp[(~x) \<oplus> (~y)] \<longmapsto> (x \<oplus> y)
                         when (stamp_expr x = IntegerStamp 32 lx hx \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 32 ly hy \<and> wf_stamp y)"
-  using NotXorToXorExp by simp
+  apply (simp add: less_SucI size_bin_cycle1_lt_succ_sum) using NotXorToXorExp by simp
 
 end
 
@@ -224,7 +227,7 @@ lemma ExpNeverNotSelf:
 
 optimization NeverEqNotSelf: "exp[(\<not>x) eq x] \<longmapsto> exp[(const (bool_to_val False))]
                         when (stamp_expr x = IntegerStamp 32 xl xh \<and> wf_stamp x)"
-  apply (simp add: Suc_lessI) using ExpNeverNotSelf by force
+  using size_bin_gt_1 apply force using ExpNeverNotSelf by force
 
 (* 
   (x ^ y) == x \<mapsto> y == 0
@@ -284,6 +287,7 @@ lemma ExpXorFallThrough2:
 optimization XorFallThrough1: "exp[(x \<oplus> y) eq x] \<longmapsto> exp[y eq (const (new_int b 0))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  apply (meson less_trans_Suc not_less_eq size_bin_lhs_succ size_bin_rhs_succ)
   using ExpXorFallThrough by force
 
 optimization XorFallThrough2: "exp[x eq (x \<oplus> y)] \<longmapsto> exp[y eq (const (new_int b 0))]
@@ -294,6 +298,7 @@ optimization XorFallThrough2: "exp[x eq (x \<oplus> y)] \<longmapsto> exp[y eq (
 optimization XorFallThrough3: "exp[(x \<oplus> y) eq y] \<longmapsto> exp[x eq (const (new_int b 0))]
                         when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y)"
+  apply (metis Suc_lessI less_trans_Suc size_bin_lhs size_bin_lhs_succ)
   using ExpXorFallThrough2 by force
 
 optimization XorFallThrough4: "exp[y eq (x \<oplus> y)] \<longmapsto> exp[x eq (const (new_int b 0))]
@@ -541,24 +546,30 @@ optimization XorIsEqual_64_1: "exp[(x \<oplus> y) eq (x \<oplus> z)] \<longmapst
                         when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and>
                              (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
+  apply (metis bin_cycles.simps(17,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ_rhs
+         size_bin_iff size_bin_rhs)
   using expXorIsEqual_64 by force
 
 optimization XorIsEqual_64_2: "exp[(x \<oplus> y) eq (z \<oplus> x)] \<longmapsto> exp[y eq z]
                         when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and>
-                             (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)" 
+                             (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
+  using less_Suc_eq size_bin_cycle1_lt_succ_bin_sum apply fastforce
   by (meson dual_order.trans mono_binary exp_xor_commutative expXorIsEqual_64)
 
 optimization XorIsEqual_64_3: "exp[(y \<oplus> x) eq (x \<oplus> z)] \<longmapsto> exp[y eq z]
                         when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and>
                              (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
+  apply (simp add: less_SucI size_bin_cycle1_lt_succ_bin_sum_lhs)
   by (meson dual_order.trans mono_binary exp_xor_commutative expXorIsEqual_64)
 
 optimization XorIsEqual_64_4: "exp[(y \<oplus> x) eq (z \<oplus> x)] \<longmapsto> exp[y eq z]
                         when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
                              (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y) \<and>
                              (stamp_expr z = IntegerStamp 64 zl zh \<and> wf_stamp z)"
+  apply (metis bin_cycles.simps(17,5) dual_order.strict_trans size_bin_cycle_eq_lt_succ size_bin_iff
+         size_bin_lhs)
   by (meson dual_order.trans mono_binary exp_xor_commutative expXorIsEqual_64)
 
 (*
@@ -606,6 +617,7 @@ lemma expXorEqZero_64:
 optimization XorEqZero_64: "exp[(x \<oplus> y) eq (const (IntVal 64 0))] \<longmapsto> exp[x eq y]
                       when (stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x) \<and>
                            (stamp_expr y = IntegerStamp 64 yl yh \<and> wf_stamp y)"
+  apply (metis add_2_eq_Suc bin_cycles.simps(17,5) less_add_Suc2 size_bin_eq_cycles_eq_iff)
   using expXorEqZero_64 by fast
 
 lemma xorNeg1IsEq:

@@ -161,28 +161,65 @@ fun intval :: "Value Rewrite \<Rightarrow> bool" where
 
 subsubsection \<open>Standard Termination Measure\<close>
 
-(* Calculates an expression's size as a function of the operator and size of the operands, default
-   is unchanged *)
-fun bin_op_size :: "nat \<Rightarrow> IRBinaryOp \<Rightarrow> nat" where
-  div_size:
-  "bin_op_size ops_size BinDiv = ops_size + 4" |
-  "bin_op_size ops_size _ = ops_size"
-(*"bin_op_size BinSub = 1" |
-  "bin_op_size BinMul = 1"*)
+definition cond_cycles :: "nat" where "cond_cycles = 1"
 
-fun un_op_size :: "nat \<Rightarrow> IRUnaryOp \<Rightarrow> nat" where
-  "un_op_size ops_size _ = ops_size"
+(* Operators whose cycle cost is 0 *)
+definition bin_empty_cycles :: "IRBinaryOp set" where
+  "bin_empty_cycles = { BinShortCircuitOr }"
+
+definition un_empty_cycles :: "IRUnaryOp set" where
+  "un_empty_cycles = { UnaryLogicNegation }"
+
+(* Returns a node's estimated CPU cycles *)
+fun bin_cycles :: "IRBinaryOp \<Rightarrow> nat" where
+  "bin_cycles BinAdd = 1" |
+  "bin_cycles BinAnd = 1" |
+  "bin_cycles BinDiv = 16" |
+  "bin_cycles BinIntegerBelow = 1" |
+  "bin_cycles BinIntegerEquals = 1" |
+  "bin_cycles BinIntegerLessThan = 1" |
+  "bin_cycles BinIntegerMulHigh = 2" |
+  "bin_cycles BinIntegerNormalizeCompare = 2" |
+  "bin_cycles BinIntegerTest = 2" |
+  "bin_cycles BinLeftShift = 1" |
+  "bin_cycles BinMod = 16" |
+  "bin_cycles BinMul = 4" |
+  "bin_cycles BinOr = 1" |
+  "bin_cycles BinRightShift = 1" |
+  "bin_cycles BinSub = 1" |
+  "bin_cycles BinURightShift = 1" |
+  "bin_cycles BinXor = 1" |
+  "bin_cycles _ = 0"
+
+fun un_cycles :: "IRUnaryOp \<Rightarrow> nat" where
+  "un_cycles UnaryAbs = 2" |
+  "un_cycles UnaryBitCount = 4" |
+  "un_cycles UnaryIsNull = 2" |
+  "un_cycles (UnaryNarrow b r) = 1" |
+  "un_cycles UnaryNeg = 2" |
+  "un_cycles UnaryNot = 1" |
+  "un_cycles UnaryReverseBytes = 1" |
+  "un_cycles (UnarySignExtend b r) = 1" |
+  "un_cycles (UnaryZeroExtend b r) = 1" |
+  "un_cycles _ = 0"
+
+(* Calculates an expression's size in terms of the operands size and the operator's cycles *)
+definition bin_exp_size :: "nat \<Rightarrow> IRBinaryOp \<Rightarrow> nat" where
+  "bin_exp_size ops_size op = ops_size + bin_cycles op"
+
+definition un_exp_size :: "nat \<Rightarrow> IRUnaryOp \<Rightarrow> nat" where
+  "un_exp_size ops_size op = ops_size + un_cycles op"
 
 (* General size calculation *)
 fun size :: "IRExpr \<Rightarrow> nat" where
   unary_size:
-  "size (UnaryExpr op x) = (un_op_size ((size x) + 2) op)" |
+  "size (UnaryExpr op x) = (un_exp_size ((size x) + 2) op)" |
   bin_const_size:
-  "size (BinaryExpr op x (ConstantExpr cy)) = (bin_op_size ((size x) + 2) op)" |
+  "size (BinaryExpr op x (ConstantExpr cy)) = (bin_exp_size ((size x) + 2) op)" |
   bin_size:
-  "size (BinaryExpr op x y) = (bin_op_size ((size x) + (size y) + 2) op)" |
+  "size (BinaryExpr op x y) = (bin_exp_size ((size x) + (size y) + 2) op)" |
   cond_size:
-  "size (ConditionalExpr c t f) = (size c) + (size t) + (size f) + 2" |
+  "size (ConditionalExpr c t f) = (size c) + (size t) + (size f) + cond_cycles" |
   const_size:
   "size (ConstantExpr c) = 1" |
   param_size:
@@ -206,7 +243,7 @@ method unfold_optimization =
 method unfold_size =
   (((unfold size.simps, simp add: size_simps del: le_expr_def)?
   ; (simp add: size_simps del: le_expr_def)?
-  ; (auto simp: size_simps)?
+  ; (unfold bin_exp_size_def un_exp_size_def cond_cycles_def, auto simp: size_simps)?
   ; (unfold size.simps)?)[1])
   
 

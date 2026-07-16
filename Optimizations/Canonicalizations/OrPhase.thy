@@ -166,7 +166,7 @@ optimization EliminateRedundantFalse: "x | false \<longmapsto> x"
   by (meson exp_elim_redundant_false)
 
 optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~(x & y)"
-  apply (simp add: less_SucI size_bin_lt_sum_div) apply auto
+  apply (simp add: less_SucI size_bin_cycle1_lt_succ_sum) apply auto
   by (metis BinaryExpr bin_eval.simps(6) intval_not.simps(2) unary_eval.simps(3) unfold_unary
       val_or_not_operands)
 

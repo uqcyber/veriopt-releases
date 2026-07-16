@@ -6,8 +6,23 @@ theory SubPhase
     Proofs.StampEvalThms
 begin
 
+(* SubNode size calculation
+   - Due to subtraction not being commutative, some optimisations prefer to remove it even if the
+     resultant expression is the same size, so we make subtraction slightly larger.
+*)
+fun sub_size :: "IRExpr \<Rightarrow> nat" where
+  "sub_size (UnaryExpr op x) = (un_exp_size ((sub_size x) + 2) op)" |
+  "sub_size (BinaryExpr BinSub x y) = (bin_exp_size ((sub_size x) + (sub_size y) + 2) BinSub) + 1" |
+  "sub_size (BinaryExpr op x y) = (bin_exp_size ((sub_size x) + (sub_size y) + 2) op)" |
+  "sub_size (ConditionalExpr c t f) = (sub_size c) + (sub_size t) + (sub_size f) + cond_cycles" |
+  "sub_size (ConstantExpr c) = 1" |
+  "sub_size (ParameterExpr ind s) = 2" |
+  "sub_size (LeafExpr nid s) = 2" |
+  "sub_size (ConstantVar c) = 2" |
+  "sub_size (VariableExpr x s) = 2"
+
 phase SubNode
-  terminating size
+  terminating sub_size
 begin
 
 (* Word level proofs *)
@@ -236,7 +251,6 @@ optimization SubAfterAddLeft: "(x + y) - x \<longmapsto> y"
   using exp_sub_after_right_add2 by blast
 
 optimization SubAfterSubLeft: "(x - y) - x \<longmapsto> -y"
-  apply (meson less_trans_Suc size_binary_lhs size_binary_rhs_succ)
   using exp_sub_after_sub_left by simp
 
 optimization SubThenAddLeft: "x - (x + y) \<longmapsto> -y"
@@ -247,7 +261,6 @@ optimization SubThenAddRight: "y - (x + y) \<longmapsto> -x"
   by (metis intval_add_sym unary_eval.simps(2) unfold_unary val_sub_then_left_add evalDet)
 
 optimization SubThenSubLeft: "x - (x - y) \<longmapsto> y"
-  apply (simp add: less_SucI pos_add_strict size_binary_rhs size_pos)
   using exp_sub_then_left_sub by blast
 
 optimization SubtractZero: "x - (const IntVal b 0) \<longmapsto> x"
@@ -263,7 +276,7 @@ optimization SubNegativeConstant: "(x - (const (IntVal b y))) \<longmapsto>
 *)
 
 optimization SubNegativeValue: "x - (-y) \<longmapsto> x + y"
-  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_sub_negative_value by blast
+  using exp_sub_negative_value by blast
 
 thm_oracles SubNegativeValue
 
@@ -276,7 +289,7 @@ optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0
                             when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using size_non_const apply auto
   by (smt (verit) wf_value_def ConstantExpr eval_bits_1_64 eval_unused_bits_zero validDefIntConst
-      take_bit_of_0 val_sub_self_is_zero new_int.simps  valid_int wf_stamp_def One_nat_def evalDet)
+      take_bit_of_0 val_sub_self_is_zero new_int.simps valid_int wf_stamp_def One_nat_def evalDet)
 
 end (* End of SubPhase *)
 

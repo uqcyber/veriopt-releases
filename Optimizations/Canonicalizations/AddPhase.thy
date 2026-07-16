@@ -245,7 +245,7 @@ optimization RedundantSubAdd: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapst
   using RedundantSubAdd_Exp by blast
 
 optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
-  apply (simp add: less_SucI pos_add_strict size_pos size_binary_lhs)
+  apply (simp add: less_SucI size_bin_lhs trans_less_add2)
   using RedundantSubAdd_Exp exp_add_commutative order.trans by blast
 
 optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
@@ -255,7 +255,7 @@ optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
   using RedundantAddSub_Exp by blast
 
 optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
-  apply (simp add: less_SucI size_bin_lt_sum_div) using exp_add_right_negate_to_sub by auto
+  using less_Suc_eq size_bin_cycle1_lt_succ_sum exp_add_right_negate_to_sub by auto
 
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   using exp_add_left_negate_to_sub by auto

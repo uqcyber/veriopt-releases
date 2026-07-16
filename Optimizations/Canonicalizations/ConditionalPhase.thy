@@ -114,7 +114,7 @@ optimization ConditionalIntegerEquals_1: "exp[(c ? x : y) eq x] \<longmapsto> c
                                                stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y \<and>
                                                (alwaysDistinct (stamp_expr x) (stamp_expr y)) \<and>
                                                is_boolean c"
-  apply (metis Canonicalization.cond_size add_lessD1 size_binary_lhs) apply auto
+  apply (metis dual_order.strict_trans size_bin_lhs size_cond_gt_cond) apply auto
   subgoal premises p for m p cExpr xv cond
   proof -
     obtain cond where cond: "[m,p] \<turnstile> c \<mapsto> cond"
@@ -147,8 +147,7 @@ optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!
                                                stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y \<and>
                                                (alwaysDistinct (stamp_expr x) (stamp_expr y)) \<and>
                                                is_boolean c"
-  apply (smt (verit) not_add_less1 max_less_iff_conj max.absorb3 linorder_less_linear add_2_eq_Suc'
-         add_less_cancel_right size_binary_lhs add_lessD1 Canonicalization.cond_size)
+  apply (meson Suc_mono size_cond_gt_cond less_trans_Suc size_bin_lhs_succ)
   apply auto
   subgoal premises p for m p cExpr yv cond trE faE
   proof -

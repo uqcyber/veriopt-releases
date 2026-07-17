@@ -6,11 +6,15 @@ theory MulPhase
     Proofs.StampEvalThms
 begin
 
+(* MulNode size calculation
+   - Many MulNode optimisations replace multiplication with shifts where possible, which can produce
+     larger expressions due to distribution of operands, so we make multiplication slightly larger.
+*)
 fun mul_size :: "IRExpr \<Rightarrow> nat" where
-  "mul_size (UnaryExpr op e) = (mul_size e) + 2" |
-  "mul_size (BinaryExpr BinMul x y) = ((mul_size x) + (mul_size y) + 2) * 3" |
-  "mul_size (BinaryExpr op x y) = (mul_size x) + (mul_size y) + 2" |
-  "mul_size (ConditionalExpr cond t f) = (mul_size cond) + (mul_size t) + (mul_size f) + 2" |
+  "mul_size (UnaryExpr op x) = (un_exp_size ((mul_size x) + 2) op)" |
+  "mul_size (BinaryExpr BinMul x y) = (bin_exp_size ((mul_size x) + (mul_size y) + 2) BinMul) * 2" |
+  "mul_size (BinaryExpr op x y) = (bin_exp_size ((mul_size x) + (mul_size y) + 2) op)" |
+  "mul_size (ConditionalExpr c t f) = (mul_size c) + (mul_size t) + (mul_size f) + cond_cycles" |
   "mul_size (ConstantExpr c) = 1" |
   "mul_size (ParameterExpr ind s) = 2" |
   "mul_size (LeafExpr nid s) = 2" |
@@ -646,13 +650,11 @@ qed
 
 optimization MulPower2SubPower2: "(x * (const y)) \<longmapsto> (x << shift) - (x << i)
                                   when (sub = exp[((const new_int b 1) << shift) - (const y)] \<and>
-                                        sub = exp[(const new_int b 1) << i])"
-  by fastforce
+                                        sub = exp[(const new_int b 1) << i])" .
 
 optimization MulPower2Sub1: "(x * (const y)) \<longmapsto> (x << shift) - x
                              when (sub = exp[((const new_int b 1) << shift) - (const y)] \<and>
-                                   sub = exp[const new_int b 1])"
-  by fast
+                                   sub = exp[const new_int b 1])" .
 
 optimization MulPower2AddPower2_32: "(x * (const y)) \<longmapsto>
                                      ((x << const (val_top_bit y)) + (x << const (val_bot_bit y)))

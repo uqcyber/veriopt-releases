@@ -108,7 +108,7 @@ optimization ConditionalEliminateKnownLess: "((x < y) ? x : y) \<longmapsto> x
                        when (stamp_under (stamp_expr x) (stamp_expr y) \<and> wf_stamp x \<and> wf_stamp y)"
   using stamp_under_defn by fastforce
 
-optimization ConditionalIntegerEquals_1: "exp[(c ? x : y) eq x] \<longmapsto> c
+optimization ConditionalIntegerEquals_1: "((c ? x : y) eq x) \<longmapsto> c
                                           when stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x \<and>
                                                stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y \<and>
                                                (alwaysDistinct (stamp_expr x) (stamp_expr y)) \<and>
@@ -141,7 +141,7 @@ optimization ConditionalIntegerEquals_1: "exp[(c ? x : y) eq x] \<longmapsto> c
   qed
   done
 
-optimization ConditionalIntegerEquals_2: "exp[(c ? x : y) eq y] \<longmapsto> (!c)
+optimization ConditionalIntegerEquals_2: "((c ? x : y) eq y) \<longmapsto> (!c)
                                           when stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x \<and>
                                                stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y \<and>
                                                (alwaysDistinct (stamp_expr x) (stamp_expr y)) \<and>

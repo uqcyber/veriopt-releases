@@ -38,7 +38,7 @@ lemma val_xor_self_is_false:
 lemma val_xor_self_is_false_2:
   assumes "val[x \<oplus> x] \<noteq> UndefVal"
   and     "x = IntVal 32 v"
-  shows "val[x \<oplus> x] = bool_to_val False"
+  shows "val[x \<oplus> x] = val[false]"
   by (auto simp: assms)
 
 lemma val_xor_self_is_false_3:
@@ -48,8 +48,8 @@ lemma val_xor_self_is_false_3:
 
 lemma val_eliminate_redundant_false:
   assumes "x = new_int b v"
-  assumes "val[x \<oplus> (bool_to_val False)] \<noteq> UndefVal"
-  shows   "val[x \<oplus> (bool_to_val False)] = x"
+  assumes "val[x \<oplus> false] \<noteq> UndefVal"
+  shows   "val[x \<oplus> false] = x"
   using assms by (auto; meson)
 
 lemma val_eliminate_redundant_zero:

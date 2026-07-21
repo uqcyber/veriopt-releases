@@ -51,18 +51,12 @@ lemma bin_below_sub:
   assumes "0 \<le>s y"
   shows "x <s y \<longleftrightarrow> (x - y) <s 0"
   using assms apply transfer apply auto
-  apply (smt (verit, del_insts) signed_take_bit_diff signed_take_bit_int_greater_self_iff
-         signed_take_bit_int_less_exp signed_take_bit_negative_iff)
+  apply (smt (z3) signed_take_bit_int_less_exp signed_take_bit_int_greater_self_iff
+         signed_take_bit_diff signed_take_bit_negative_iff)
   by (smt (verit) signed_take_bit_diff signed_take_bit_int_less_exp signed_take_bit_negative_iff
       signed_take_bit_int_less_self_iff)
 
 (* Value level proofs *)
-lemma newint_intval:
-  assumes "x = IntVal n v"
-  assumes "take_bit_val_eq (IntVal n v)"
-  shows "x = new_int n v"
-  using assms by auto
-
 lemma tb_n1:
   assumes "x = new_int n v"
   assumes "take_bit_val_eq (IntVal n v)"
@@ -70,10 +64,7 @@ lemma tb_n1:
   shows "take_bit (n - 1) v = v"
 proof -
   have eq: "(take_bit n v - take_bit (n - 1) v) = push_bit (n - 1) (of_bool (bit v (n - 1)))"
-    using assms apply auto
-    by (smt (verit) One_nat_def bit_take_bit_iff eq_iff_diff_eq_0 positive_intval.simps not_gr_zero
-        less_Suc_eq less_nat_zero_code linordered_semidom_class.add_diff_inverse zero_less_diff
-        plus_1_eq_Suc signed_take_bit_eq_if_positive signed_take_bit_code)
+    using Value.inject(1) assms new_int.simps take_bit_minus_push_bit by auto
   then have "... = 0"
     using assms by fastforce
   then show ?thesis
@@ -85,7 +76,7 @@ lemma pos_greater_zero:
   assumes "n \<le> 64"
   assumes "positive_intval x"
   shows "val[x < (IntVal n 0)] = val[false]"
-  using assms val_pos_def apply (cases x; auto) by fastforce
+  using assms val_pos_def by fastforce
 
 lemma neg_less_zero:
   assumes "x = IntVal n v"
@@ -116,7 +107,7 @@ proof -
   then have sint1: "sint (signed_take_bit (n - 1) vy) < sint (signed_take_bit (n - 1) 0)"
     using assms(2,6) val_neg_def by fastforce
   have "val[x < IntVal n 0] = val[false]"
-    by (metis assms(1,3,4,5) newint_intval pos_greater_zero)
+    by (metis assms(1,3,4,5) new_int_take_bit_eq pos_greater_zero)
   then have sint2: "sint (signed_take_bit (n - 1) 0) \<le> sint (signed_take_bit (n - 1) vx)"
     using assms(1,2,3,4,5) val_pos_def by auto
   have "sint (signed_take_bit (n - 1) vy) < sint (signed_take_bit (n - 1) vx)"
@@ -141,8 +132,8 @@ lemma verify_pos_val_leq64:
   assumes "positive_intval x"
   shows "sint(v) \<ge> 0"
   using assms verify_isValPositive apply auto
-  by (metis assms(3,4) newint_intval numeral_1_eq_Suc_0 numerals(1) signed_take_bit_eq_if_positive
-      tb_n1 val_pos_def)
+  by (metis assms(3,4) new_int_take_bit_eq numeral_1_eq_Suc_0 tb_n1 signed_take_bit_eq_if_positive
+      numerals(1) val_pos_def)
 
 (* This is here mainly so that the word level can be lifted into the value level *)
 lemma prot2:
@@ -248,8 +239,7 @@ lemma val_below_eq_less:
   by (smt (verit) assms(4,5,6,7) bin_below_eq_less new_int.elims numerals(1) numeral_1_eq_Suc_0
       signed_take_bit_eq_if_positive tb_n1 verify_pos_val_leq64 word_sless_alt)
 
-lemma below_zero: 
-  shows "val[(new_int b v) |<| (new_int b 0)] = val[false]"
+lemma below_zero: "val[(new_int b v) |<| (new_int b 0)] = val[false]"
   by auto
 
 lemma val_below_less:
@@ -406,12 +396,12 @@ qed
 
 text \<open>Optimisations\<close>
 
-(* x |<| (n |<| c ? 0 : n + (-c)) \<mapsto> (x < n - c) *)
-optimization BelowLess: "(x |<| ((y |<| z) ? const (IntVal b 0) : (y + (-z)))) \<longmapsto> x < (y - z)
+(* x |<| (n |<| c ? 0 : (n + (-c))) \<mapsto> (x < n - c) *)
+optimization BelowLess: "(x |<| ((n |<| z) ? const (new_int b 0) : (n + (-z)))) \<longmapsto> x < (n - z)
  when ((is_stamp_positive (stamp_expr x)) \<and> (wf_stamp x) \<and> (width_in_bounds (stamp_expr x) 2 64) \<and>
-       (is_stamp_positive (stamp_expr y)) \<and> (wf_stamp y) \<and> (width_in_bounds (stamp_expr y) 2 64) \<and>
+       (is_stamp_positive (stamp_expr n)) \<and> (wf_stamp n) \<and> (width_in_bounds (stamp_expr n) 2 64) \<and>
        (is_stamp_positive (stamp_expr z)) \<and> (wf_stamp z) \<and> (width_in_bounds (stamp_expr z) 2 64) \<and>
-        stamp_expr y = IntegerStamp b lo hi)"
+        stamp_expr n = IntegerStamp b lo hi)"
   apply (metis (mono_tags, lifting) add_strict_increasing bin_cycles.simps(15,4) zero_less_numeral
          size_bin_eq_cycles_eq_iff le_add1)
   using exp_below_less_add by blast

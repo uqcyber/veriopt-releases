@@ -204,6 +204,12 @@ text \<open>Results about $new\_int$.\<close>
 lemma new_int_take_bits: "IntVal b val = new_int b v \<Longrightarrow> take_bit b val = val"
   by simp
 
+lemma new_int_take_bit_eq:
+  assumes "x = IntVal n v"
+  assumes "take_bit_val_eq x"
+  shows "x = new_int n v"
+  using assms by auto
+
 lemma is_truncated_IntVal_new_int_iff: "is_truncated v b \<longleftrightarrow> new_int b v = IntVal b v"
   using is_truncated_def by force
 

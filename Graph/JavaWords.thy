@@ -398,8 +398,7 @@ lemma signed_take_take_bit[simp]:
   shows "signed_take_bit (b - 1) (take_bit b x) = signed_take_bit (b - 1) x"
   using take_bit_redundant assms by blast
 
-lemma take_bit_size_eq64:
-  shows "take_bit 64 a = take_bit LENGTH(64) (a::64 word)"
+lemma take_bit_size_eq64: "take_bit 64 a = take_bit LENGTH(64) (a::64 word)"
   by auto
 
 lemma take_bit64 [simp]:
@@ -414,6 +413,15 @@ lemma takeBitNot:
   shows "take_bit xb (not xv) \<noteq> take_bit xb xv"
   by (metis bit.xor_compl_left diff_0_right mask_eq_0_iff not_one_le_zero take_bit_not_eq_mask_diff
       assms take_bit_xor xor_self_eq)
+
+lemma take_bit_minus_push_bit:
+  fixes v :: "64word"
+  assumes "\<not>bit v (n - 1)"
+  assumes "take_bit n v = v"
+  shows "(take_bit n v - take_bit (n - 1) v) = push_bit (n - 1) (of_bool (bit v (n - 1)))"
+  using assms apply auto
+  by (smt (z3) linordered_semidom_class.add_diff_inverse signed_take_bit_eq_if_positive less_Suc_eq
+      zero_less_diff signed_take_bit_code One_nat_def plus_1_eq_Suc less_nat_zero_code not_gr_zero)
 
 lemma mod_larger_ignore:
   fixes a :: int

@@ -34,7 +34,11 @@ fun is_stamp_empty :: "Stamp \<Rightarrow> bool" where
   (* "is_stamp_empty (FloatStamp b lower upper) = (upper < lower)" | *)
   "is_stamp_empty x = False"
 
-(* General stamp property functions from IntegerStamp.java *)
+(* General stamp property functions from IntegerStamp.java
+
+   Corresponds to isPositive(), isNegative(), isStrictlyPositive(), isStrictlyNegative(),
+   canBePositive() and canBeNegative().
+*)
 fun is_stamp_positive :: "Stamp \<Rightarrow> bool" where
   "is_stamp_positive (IntegerStamp b l h) = (l \<ge> 0)" |
   "is_stamp_positive _ = False"

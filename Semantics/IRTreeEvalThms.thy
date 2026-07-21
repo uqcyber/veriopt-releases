@@ -62,17 +62,12 @@ lemma unary_eval_int: "unary_eval op x \<noteq> UndefVal \<Longrightarrow> is_In
 lemma bin_eval_int:
   assumes "bin_eval op x y \<noteq> UndefVal"
   shows "is_IntVal (bin_eval op x y)"
-  using assms apply (cases op; cases x; cases y; auto simp add: is_IntVal_def)
-  prefer 10 prefer 7 prefer 8 prefer 16 prefer 18 prefer 20 prefer 21 prefer 13 prefer 29 prefer 19
+  using assms apply (cases op; cases x; cases y; simp add: is_IntVal_def)
+  prefer 15 prefer 9 prefer 9 prefer 9
   apply presburger+ (* prove 6 more easy cases *)
-  prefer 7 prefer 8 prefer 9
-  using bool_to_val.elims new_int_bin.simps apply (meson, meson, meson, meson, meson)
-  apply (smt (verit, ccfv_SIG) bool_to_val.simps(1,2))
-  apply (smt (verit) new_int.simps)
-  apply (smt (verit, ccfv_threshold) new_int.elims)
-  apply (metis (full_types) bool_to_val.simps(1,2))
-  prefer 7 prefer 5 apply (metis, metis, metis)
-  by argo+
+  prefer 4 using new_int.simps apply (smt (z3)) defer defer
+  using bool_to_val.elims apply (meson, meson, meson)
+  using bool_to_val.elims new_int_bin.simps by metis+
 
 lemma IntVal0: "(IntVal 32 0) = (new_int 32 0)"
   by auto

@@ -233,16 +233,16 @@ optimization AndEqualNot: "x & (~x) \<longmapsto> const (IntVal b 0)
                            when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   by (metis dual_order.trans exp_and_equal_not exp_and_commutative)
 
-optimization AndSelf: "exp[(~n) & n] \<longmapsto> (const (new_int 32 (0)))
+optimization AndSelf: "((~n) & n) \<longmapsto> (const (new_int 32 (0)))
                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  using size_non_const exp_and_equal_not by force+
+  using exp_and_equal_not by blast
 
-optimization AndSelf2: "exp[n & (~n)] \<longmapsto> (const (new_int 32 (0)))
+optimization AndSelf2: "(n & (~n)) \<longmapsto> (const (new_int 32 (0)))
                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
   using AndSelf exp_and_commutative by auto
 
 optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
-                                       when \<not>(is_ConstantExpr y)"
+                                     when \<not>(is_ConstantExpr y)"
   using exp_and_commutative by blast
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
@@ -255,15 +255,15 @@ optimization AndSignExtend: "exp[(UnaryExpr (UnarySignExtend In Out) x) & const 
    using exp_sign_extend by simp
 
 optimization AndNeutral: "(x & ~(const (new_int b 0))) \<longmapsto> x
-                           when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+                          when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using exp_and_neutral by auto
 
 optimization AndRightFallThrough: "(x & y) \<longmapsto> y
-                                    when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
+                                   when (((and (not (IRExpr_down x)) (IRExpr_up y)) = 0))"
   using simple_mask.AndRightFallthrough by blast
 
 optimization AndLeftFallThrough: "(x & y) \<longmapsto> x
-                                   when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
+                                  when (((and (not (IRExpr_down y)) (IRExpr_up x)) = 0))"
   using simple_mask.AndLeftFallthrough by auto
 
 end (* End of AndPhase *)

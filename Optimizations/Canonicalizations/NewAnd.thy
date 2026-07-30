@@ -773,19 +773,19 @@ begin
 text \<open>Optimisations\<close>
 
 optimization RedundantLhsYOr: "((x | y) & z) \<longmapsto> x & z
-                                when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
+                               when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
   using size_bin_iff size_bin_lhs simple_mask.exp_eliminate_y by blast+
 
 optimization RedundantLhsXOr: "((x | y) & z) \<longmapsto> y & z
-                                when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
+                               when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
   using size_bin_iff size_bin_rhs simple_mask.exp_eliminate_x by blast+
 
 optimization RedundantRhsYOr: "(z & (x | y)) \<longmapsto> z & x
-                                when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
+                               when (((and (IRExpr_up y) (IRExpr_up z)) = 0))"
   by (meson dual_order.trans simple_mask.exp_eliminate_y RedundantLhsYOr exp_and_commutative)
 
 optimization RedundantRhsXOr: "(z & (x | y)) \<longmapsto> z & y
-                                when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
+                               when (((and (IRExpr_up x) (IRExpr_up z)) = 0))"
   by (meson dual_order.trans exp_and_commutative simple_mask.exp_eliminate_x)
 
 (*

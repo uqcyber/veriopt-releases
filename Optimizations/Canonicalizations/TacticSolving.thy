@@ -143,8 +143,8 @@ lemma NotXorToXorExp:
   done
 
 optimization NotXorToXor: "exp[(~x) \<oplus> (~y)] \<longmapsto> (x \<oplus> y)
-                        when (stamp_expr x = IntegerStamp 32 lx hx \<and> wf_stamp x) \<and>
-                             (stamp_expr y = IntegerStamp 32 ly hy \<and> wf_stamp y)"
+                           when (stamp_expr x = IntegerStamp 32 lx hx \<and> wf_stamp x) \<and>
+                                (stamp_expr y = IntegerStamp 32 ly hy \<and> wf_stamp y)"
   apply (simp add: less_SucI size_bin_cycle1_lt_succ_sum) using NotXorToXorExp by simp
 
 end
@@ -226,8 +226,8 @@ lemma ExpNeverNotSelf:
   done
 
 optimization NeverEqNotSelf: "((\<not>x) eq x) \<longmapsto> false
-                        when (stamp_expr x = IntegerStamp 32 xl xh \<and> wf_stamp x)"
-  using size_bin_gt_1 apply force using ExpNeverNotSelf by force
+                              when (stamp_expr x = IntegerStamp 32 xl xh \<and> wf_stamp x)"
+  using ExpNeverNotSelf by force
 
 (* 
   (x ^ y) == x \<mapsto> y == 0

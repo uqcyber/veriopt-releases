@@ -170,18 +170,15 @@ optimization OrNotOperands: "(~x | ~y) \<longmapsto> ~(x & y)"
   by (metis BinaryExpr bin_eval.simps(6) intval_not.simps(2) unary_eval.simps(3) unfold_unary
       val_or_not_operands)
 
-optimization OrLeftFallthrough:
-  "x | y \<longmapsto> x when ((and (not (IRExpr_down x)) (IRExpr_up y)) = 0)"
+optimization OrLeftFallthrough: "x | y \<longmapsto> x when ((and (not (IRExpr_down x)) (IRExpr_up y)) = 0)"
   using simple_mask.OrLeftFallthrough by blast
 
-optimization OrRightFallthrough:
-  "x | y \<longmapsto> y when ((and (not (IRExpr_down y)) (IRExpr_up x)) = 0)"
+optimization OrRightFallthrough: "x | y \<longmapsto> y when ((and (not (IRExpr_down y)) (IRExpr_up x)) = 0)"
   using simple_mask.OrRightFallthrough by blast
 
-optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (new_int 32 (not 0)))
+optimization OrInverse: "(n | ~n) \<longmapsto> (const (new_int 32 (not 0)))
                          when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  apply auto
-  subgoal premises p for m p xa xaa
+  apply auto subgoal premises p for m p xa xaa
   proof -
     obtain nv where nv: "[m,p] \<turnstile> n \<mapsto> nv"
       using p(3) by auto
@@ -203,9 +200,8 @@ optimization OrInverse: "exp[n | ~n] \<longmapsto> (const (new_int 32 (not 0)))
   qed
   done
 
-optimization OrInverseCommute: "exp[~n | n] \<longmapsto> (const (new_int 32 (not 0)))
+optimization OrInverseCommute: "(~n | n) \<longmapsto> (const (new_int 32 (not 0)))
                                 when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  using IRExpr.disc(42) One_nat_def size_non_const apply presburger
   using OrInverse exp_or_commutative by auto
 
 end (* End of OrPhase *)

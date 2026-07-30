@@ -11,7 +11,7 @@ begin
      larger expressions due to distribution of operands, so we make multiplication slightly larger.
 *)
 fun mul_size :: "IRExpr \<Rightarrow> nat" where
-  "mul_size (UnaryExpr op x) = (un_exp_size ((mul_size x) + 2) op)" |
+  "mul_size (UnaryExpr op x) = (un_exp_size ((mul_size x) + 1) op)" |
   "mul_size (BinaryExpr BinMul x y) = (bin_exp_size ((mul_size x) + (mul_size y) + 2) BinMul) * 2" |
   "mul_size (BinaryExpr op x y) = (bin_exp_size ((mul_size x) + (mul_size y) + 2) op)" |
   "mul_size (ConditionalExpr c t f) = (mul_size c) + (mul_size t) + (mul_size f) + cond_cycles" |

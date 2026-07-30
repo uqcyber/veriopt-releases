@@ -11,7 +11,7 @@ begin
      resultant expression is the same size, so we make subtraction slightly larger.
 *)
 fun sub_size :: "IRExpr \<Rightarrow> nat" where
-  "sub_size (UnaryExpr op x) = (un_exp_size ((sub_size x) + 2) op)" |
+  "sub_size (UnaryExpr op x) = (un_exp_size ((sub_size x) + 1) op)" |
   "sub_size (BinaryExpr BinSub x y) = (bin_exp_size ((sub_size x) + (sub_size y) + 2) BinSub) + 1" |
   "sub_size (BinaryExpr op x y) = (bin_exp_size ((sub_size x) + (sub_size y) + 2) op)" |
   "sub_size (ConditionalExpr c t f) = (sub_size c) + (sub_size t) + (sub_size f) + cond_cycles" |
@@ -281,15 +281,16 @@ optimization SubNegativeValue: "x - (-y) \<longmapsto> x + y"
 thm_oracles SubNegativeValue
 
 optimization ZeroSubtractValue: "(const IntVal b 0) - x \<longmapsto> (-x)
-                                  when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and>
-                                        \<not>(is_ConstantExpr x))"
+                                 when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and>
+                                       \<not>(is_ConstantExpr x))"
   using ZeroSubtractValue_Exp by auto
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0
-                            when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  using size_non_const apply auto
-  by (smt (verit) wf_value_def ConstantExpr eval_bits_1_64 eval_unused_bits_zero validDefIntConst
-      take_bit_of_0 val_sub_self_is_zero new_int.simps valid_int wf_stamp_def One_nat_def evalDet)
+                             when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
+  apply auto
+  by (metis (no_types, lifting) ext wf_value_def new_int.simps eval_bits_1_64 eval_unused_bits_zero
+      validDefIntConst take_bit_of_0 val_sub_self_is_zero ConstantExpr valid_int wf_stamp_def
+      evalDet)
 
 end (* End of SubPhase *)
 

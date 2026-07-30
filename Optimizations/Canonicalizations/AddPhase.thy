@@ -260,13 +260,13 @@ optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   using exp_add_left_negate_to_sub by auto
 
-optimization AddNot: "exp[n + (~n)] \<longmapsto> (const (new_int b (not 0)))
+optimization AddNot: "n + (~n) \<longmapsto> const (new_int b (not 0))
                       when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
   using AddNotExp by force
 
-optimization AddNot2: "exp[(~n) + n] \<longmapsto> (const (new_int b (not 0)))
+optimization AddNot2: "(~n) + n \<longmapsto> const (new_int b (not 0))
                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
-  using size_bin_gt_1 AddNotExp exp_add_commutative by force+
+  using AddNotExp exp_add_commutative by force
 
 (* ----- Ends here ----- *)
 

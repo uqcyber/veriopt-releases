@@ -57,8 +57,7 @@ optimization NotCancel: "~(~a) \<longmapsto> a"
 
 optimization NotNegate: "~(-x) \<longmapsto> (x - const (new_int b 1))
                          when (stamp_expr x = IntegerStamp b lo hi \<and> wf_stamp x)"
-  apply auto
-  subgoal premises p for m p xa
+  apply auto subgoal premises p for m p xa
   proof -
     obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
       using p(5) by auto
@@ -85,8 +84,7 @@ optimization NotNegate: "~(-x) \<longmapsto> (x - const (new_int b 1))
 
 optimization NotSubToNeg: "~(x - (const (new_int b 1))) \<longmapsto> -x
                            when (stamp_expr x = IntegerStamp b xl xh \<and> wf_stamp x)"
-  apply auto
-  subgoal premises p for m p xa
+  apply auto subgoal premises p for m p xa
   proof -
     obtain xa where xa: "[m,p] \<turnstile> x \<mapsto> xa"
       using p(5) by auto

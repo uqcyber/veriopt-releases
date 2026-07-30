@@ -213,7 +213,7 @@ definition un_exp_size :: "nat \<Rightarrow> IRUnaryOp \<Rightarrow> nat" where
 (* General size calculation *)
 fun size :: "IRExpr \<Rightarrow> nat" where
   unary_size:
-  "size (UnaryExpr op x) = (un_exp_size ((size x) + 2) op)" |
+  "size (UnaryExpr op x) = (un_exp_size ((size x) + 1) op)" |
   bin_const_size:
   "size (BinaryExpr op x (ConstantExpr cy)) = (bin_exp_size ((size x) + 2) op)" |
   bin_size:

@@ -95,11 +95,11 @@ optimization DefaultFalseBranch: "(false ? x : y) \<longmapsto> y" .
 
 optimization ConditionalEqualBranches: "(e ? x : x) \<longmapsto> x" .
 
-optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x 
+optimization condition_bounds_x: "((u < v) ? x : y) \<longmapsto> x
     when (stamp_under (stamp_expr u) (stamp_expr v) \<and> wf_stamp u \<and> wf_stamp v)"
   using stamp_under_defn by fastforce
 
-optimization condition_bounds_y: "((u < v) ? x : y) \<longmapsto> y 
+optimization condition_bounds_y: "((u < v) ? x : y) \<longmapsto> y
     when (stamp_under (stamp_expr v) (stamp_expr u) \<and> wf_stamp u \<and> wf_stamp v)"
   using stamp_under_defn_inverse by fastforce
 
@@ -146,7 +146,7 @@ optimization ConditionalIntegerEquals_2: "((c ? x : y) eq y) \<longmapsto> (!c)
                                                stamp_expr y = IntegerStamp b yl yh \<and> wf_stamp y \<and>
                                                (alwaysDistinct (stamp_expr x) (stamp_expr y)) \<and>
                                                is_boolean c"
-  apply (meson Suc_mono size_cond_gt_cond less_trans_Suc size_bin_lhs_succ) apply auto
+  apply (meson less_trans_Suc size_bin_lhs size_cond_gt_cond) apply auto
   subgoal premises p for m p cExpr yv cond trE faE
   proof -
     obtain cond where cond: "[m,p] \<turnstile> c \<mapsto> cond"
@@ -192,14 +192,11 @@ optimization ConditionalIntegerEquals_2: "((c ? x : y) eq y) \<longmapsto> (!c)
   qed
   done
 
-optimization ConditionalExtractCondition: "(c ? true : false) \<longmapsto> c
-                                           when is_boolean c"
+optimization ConditionalExtractCondition: "(c ? true : false) \<longmapsto> c when is_boolean c"
   using is_boolean_def unfolding val_is_boolean_def bool_values_def by fastforce
 
-optimization ConditionalExtractCondition2: "(c ? false : true) \<longmapsto> !c
-                                            when is_boolean c"
-  apply auto
-  subgoal premises p for m p cExpr cond
+optimization ConditionalExtractCondition2: "(c ? false : true) \<longmapsto> !c when is_boolean c"
+  apply auto subgoal premises p for m p cExpr cond
   proof -
     obtain cond where cond: "[m,p] \<turnstile> c \<mapsto> cond"
       using p(2) by auto
@@ -220,8 +217,7 @@ optimization ConditionalExtractCondition2: "(c ? false : true) \<longmapsto> !c
   done
 
 optimization ConditionalEqualIsRHS: "((x eq y) ? x : y) \<longmapsto> y"
-  apply auto
-  subgoal premises p for m p v true false xa ya
+  apply auto subgoal premises p for m p v true false xa ya
   proof -
     obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p(8) by auto

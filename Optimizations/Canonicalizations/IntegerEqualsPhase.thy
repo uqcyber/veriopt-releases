@@ -1013,7 +1013,6 @@ optimization EqualSubZero: "(x eq (x - y)) \<longmapsto> (y eq (const (IntVal b 
 
 optimization EqualNotSelf: "((~x) eq x) \<longmapsto> false
                             when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  apply (metis Suc_lessI order_less_imp_not_less size_bin_rhs size_pos)
   using exp_not_self_equality by blast
 
 optimization EqualNotSelfCommute: "(x eq (~x)) \<longmapsto> false

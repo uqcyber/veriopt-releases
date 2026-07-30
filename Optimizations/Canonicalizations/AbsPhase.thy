@@ -304,7 +304,7 @@ qed
 paragraph \<open>Optimisations\<close>
 
 optimization AbsIdempotence:
-  "exp[abs(abs(x))] \<longmapsto> exp[abs(x)] when wf_stamp x \<and> stamp_expr x = IntegerStamp b l h"
+  "exp[abs(abs(x))] \<longmapsto> exp[abs(x)] when (wf_stamp x \<and> stamp_expr x = IntegerStamp b l h)"
   using val_abs_idem wf_stamp_def by fastforce
 
 end (* End of AbsPhase *)

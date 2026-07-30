@@ -62,7 +62,7 @@ lemma size_pos[size_simps]: "0 < size y"
     using size_bin_rhs_const size_bin_rhs_nonconst unfolding bin_exp_size_def by auto
   done
 
-lemma size_non_const[size_simps]: "\<not>is_ConstantExpr y \<Longrightarrow> 1 < size y"
+lemma size_non_const[size_simps]: "\<not>is_ConstantExpr y \<Longrightarrow> Suc 0 < size y"
   apply (cases y; auto) prefer 3 apply (simp add: cond_cycles_def size_pos)
   by (metis Suc_le_eq Suc_lessI bot_nat_0.extremum_strict not_less_eq un_exp_size_geq_op add_is_1
       size_bin_rhs_const size_bin_rhs_nonconst bin_exp_size_def Suc_lessI add_is_0 pos2 size_pos
@@ -73,7 +73,7 @@ lemma size_const_lt[size_simps]: "\<not>is_ConstantExpr x \<Longrightarrow> size
 
 subsubsection \<open> Conditional size proofs \<close>
 
-lemma size_cond_gt_1[size_simps]: "1 < size (ConditionalExpr cond t f)"
+lemma size_cond_gt_1[size_simps]: "Suc 0 < size (ConditionalExpr cond t f)"
   unfolding cond_size cond_cycles_def by (simp add: size_pos)
 
 lemma size_cond_gt_cond[size_simps]: "(size c) < size (ConditionalExpr c x y)"
@@ -81,7 +81,7 @@ lemma size_cond_gt_cond[size_simps]: "(size c) < size (ConditionalExpr c x y)"
 
 subsubsection \<open> Unary size proofs \<close>
 
-lemma size_un_gt_1[size_simps]: "1 < size (UnaryExpr op y)"
+lemma size_un_gt_1[size_simps]: "Suc 0 < size (UnaryExpr op y)"
   unfolding unary_size un_exp_size_def by (simp add: size_pos)
 
 subsubsection \<open> Binary size proofs \<close>
@@ -104,7 +104,7 @@ lemma size_bin_eq_iff[size_simps]:
   "size x = size y \<longleftrightarrow> size (BinaryExpr bop x z) = size (BinaryExpr bop y z)"
   by (metis less_irrefl_nat linorder_neqE_nat size_bin_iff)
 
-lemma size_bin_gt_1[size_simps]: "1 < size (BinaryExpr op x y)"
+lemma size_bin_gt_1[size_simps]: "Suc 0 < size (BinaryExpr op x y)"
   using size_non_const by auto
 
 lemma size_bin_const_iff[size_simps]:
@@ -218,10 +218,9 @@ lemma size_bin_cycle_eq_lt_bin_un[size_simps]:
    size (BinaryExpr bop y e) < size (BinaryExpr bop' (UnaryExpr uop e) y)"
   apply (cases "is_ConstantExpr y")
   using size_bin_rhs_const bin_exp_size_def apply auto unfolding un_exp_size_def
-  apply (cases "is_ConstantExpr e") prefer 3 using size_bin_rhs_nonconst apply auto
-  apply (smt (verit, del_insts) add.assoc add.commute add_Suc_right size_bin_lt_succ trans_less_add2
-         un_exp_size_def)
-  using is_ConstantExpr_def by auto
+  apply (cases "is_ConstantExpr e") using size_bin_rhs_nonconst apply auto prefer 3
+  by (metis add_2_eq_Suc' add_Suc_right add_Suc_shift less_Suc_eq size_bin_lt_succ un_exp_size_def
+      const_size is_ConstantExpr_def one_less_numeral_iff semiring_norm(77) trans_less_add1)+
 
 lemma size_bin_cycle_eq_lt_sum_succ[size_simps]:
   "bin_cycles op = bin_cycles op' \<Longrightarrow>

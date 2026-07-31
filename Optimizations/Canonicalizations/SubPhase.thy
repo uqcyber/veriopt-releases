@@ -242,6 +242,25 @@ lemma exp_sub_after_sub_left:
   qed
   done
 
+lemma exp_sub_self_is_zero:
+  assumes "wf_stamp x"
+  assumes "stamp_expr x = IntegerStamp b lo hi"
+  shows "exp[x - x] \<ge> exp[const (IntVal b 0)]"
+  using assms apply auto subgoal premises p for m p xa xaa
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(3) by auto
+    obtain xvv where xvv: "xv = IntVal b xvv"
+      by (metis ExpIntBecomesIntVal p(1,2) wf_stamp_def xv)
+    have rhsE: "[m,p] \<turnstile> exp[const (IntVal b 0)] \<mapsto> val[IntVal b 0]"
+      using p(1,2) wf_integerstamp_implies_zero_evals xv by auto
+    have "val[xv - xv] = val[IntVal b 0]"
+      unfolding xvv by simp
+    then show ?thesis
+      by (metis evalDet p(3,4) rhsE xv)
+  qed
+  done
+
 text \<open>Optimisations\<close>
 
 optimization SubAfterAddRight: "(x + y) - y \<longmapsto> x"
@@ -287,10 +306,7 @@ optimization ZeroSubtractValue: "(const IntVal b 0) - x \<longmapsto> (-x)
 
 optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0
                              when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  apply auto
-  by (metis (no_types, lifting) ext wf_value_def new_int.simps eval_bits_1_64 eval_unused_bits_zero
-      validDefIntConst take_bit_of_0 val_sub_self_is_zero ConstantExpr valid_int wf_stamp_def
-      evalDet)
+  using exp_sub_self_is_zero by blast
 
 end (* End of SubPhase *)
 

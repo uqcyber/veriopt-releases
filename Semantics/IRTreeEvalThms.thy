@@ -112,7 +112,7 @@ next
 next
   case BinXor
   then show ?thesis
-    using assms apply (cases x; cases y; auto) by (metis take_bit_xor)+
+    using assms apply (cases x; cases y; auto) apply (metis take_bit_xor) by presburger
 next
   case BinShortCircuitOr
   then show ?thesis

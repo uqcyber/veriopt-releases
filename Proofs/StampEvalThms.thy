@@ -172,10 +172,10 @@ text \<open>We split the validity proof for unary operators into two lemmas,
   one for normal unary operators whose output bits equals their input bits,
   and the other case for the widen and narrow operators.\<close>
 
-lemma eval_normal_unary_implies_valid_value:
+lemma eval_unary_normal_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
-  assumes "op \<in> normal_unary"
+  assumes "op \<in> unary_normal"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
@@ -189,7 +189,7 @@ proof -
   obtain b' lo' hi' where expr: "stamp_expr expr = IntegerStamp b' lo' hi'"
     by (metis assms(5) v1 valid_int_gives)
   then have "stamp_unary op (stamp_expr expr) = unrestricted_stamp
-            (IntegerStamp (if op \<in> normal_unary then b' else ir_resultBits op) lo' hi')"
+            (IntegerStamp (if op \<in> unary_normal then b' else ir_resultBits op) lo' hi')"
     using assms(3) by force
   then obtain lo2 hi2 where s: "(stamp_expr (UnaryExpr op expr)) =
                                  unrestricted_stamp (IntegerStamp b2 lo2 hi2)"
@@ -203,9 +203,9 @@ qed
 
 lemma narrow_widen_output_bits:
   assumes "unary_eval op val \<noteq> UndefVal"
-  assumes "op \<notin> normal_unary"
-  assumes "op \<notin> boolean_unary"
-  assumes "op \<notin> unary_fixed_32_ops"
+  assumes "op \<notin> unary_normal"
+  assumes "op \<notin> unary_boolean"
+  assumes "op \<notin> unary_fixed_32"
   shows "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
 proof -
   consider ib ob where "op = UnaryNarrow ib ob"
@@ -231,9 +231,9 @@ qed
 lemma eval_widen_narrow_unary_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
-  assumes "op \<notin> normal_unary"
-  assumes "op \<notin> boolean_unary"
-  assumes "op \<notin> unary_fixed_32_ops"
+  assumes "op \<notin> unary_normal"
+  assumes "op \<notin> unary_boolean"
+  assumes "op \<notin> unary_fixed_32"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
@@ -255,10 +255,10 @@ proof -
         v3)
 qed
 
-lemma eval_boolean_unary_implies_valid_value:
+lemma eval_unary_boolean_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
-  assumes "op \<in> boolean_unary"
+  assumes "op \<in> unary_boolean"
   assumes "result \<noteq> UndefVal"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
@@ -278,9 +278,9 @@ qed
 lemma eval_fixed_unary_32_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
-  assumes "op \<in> unary_fixed_32_ops"
-  assumes "op \<notin> normal_unary"
-  assumes "op \<notin> boolean_unary"
+  assumes "op \<in> unary_fixed_32"
+  assumes "op \<notin> unary_normal"
+  assumes "op \<notin> unary_boolean"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
@@ -305,21 +305,21 @@ lemma eval_unary_implies_valid_value:
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
-  proof (cases "op \<in> normal_unary")
+  proof (cases "op \<in> unary_normal")
     case True
     then show ?thesis
-      using assms eval_normal_unary_implies_valid_value by blast
+      using assms eval_unary_normal_implies_valid_value by blast
   next
     case False
     then show ?thesis
-  proof (cases "op \<in> boolean_unary")
+  proof (cases "op \<in> unary_boolean")
     case True
     then show ?thesis
-      using assms eval_boolean_unary_implies_valid_value by blast
+      using assms eval_unary_boolean_implies_valid_value by blast
   next
     case False
     then show ?thesis
-  proof (cases "op \<in> unary_fixed_32_ops")
+  proof (cases "op \<in> unary_fixed_32")
     case True
     then show ?thesis
       using assms eval_fixed_unary_32_implies_valid_value by auto
@@ -327,7 +327,7 @@ lemma eval_unary_implies_valid_value:
     case False
     then show ?thesis
       using assms
-      by (meson eval_boolean_unary_implies_valid_value eval_normal_unary_implies_valid_value
+      by (meson eval_unary_boolean_implies_valid_value eval_unary_normal_implies_valid_value
           eval_widen_narrow_unary_implies_valid_value unary_ops_distinct(2))
   qed
  qed

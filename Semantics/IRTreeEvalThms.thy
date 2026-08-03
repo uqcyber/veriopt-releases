@@ -521,10 +521,10 @@ lemma unary_eval_new_int:
   assumes def: "unary_eval op x \<noteq> UndefVal"
   shows "\<exists>b v. (unary_eval op x = new_int b v \<and>
               
-          b = (if op \<in> normal_unary       then intval_bits x  else
-               if op \<in> boolean_unary      then 32             else
-               if op \<in> unary_fixed_32_ops then 32             else
-                                          ir_resultBits op))"
+          b = (if op \<in> unary_normal   then intval_bits x  else
+               if op \<in> unary_boolean  then 32             else
+               if op \<in> unary_fixed_32 then 32             else
+                                      ir_resultBits op))"
 proof (cases op)
   case UnaryAbs
   then show ?thesis
@@ -654,7 +654,7 @@ lemma eval_int_implies_take_bit_eq: "[m,p] \<turnstile> x \<mapsto> (IntVal b v)
 
 lemma unary_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
-  assumes "op \<in> normal_unary"
+  assumes "op \<in> unary_normal"
   shows "\<exists> ix. x = IntVal b ix"
   using assms apply (cases op; auto)
   apply (smt (verit, ccfv_SIG) intval_abs.elims new_int.simps Value.distinct(1) Value.inject(1))
@@ -667,9 +667,9 @@ lemma unary_normal_bitsize:
 
 lemma unary_not_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"
-  assumes "op \<notin> normal_unary \<and> op \<notin> boolean_unary \<and> op \<notin> unary_fixed_32_ops"
+  assumes "op \<notin> unary_normal \<and> op \<notin> unary_boolean \<and> op \<notin> unary_fixed_32"
   shows "b = ir_resultBits op \<and> 0 < b \<and> b \<le> 64"
-  apply (cases op) prefer 8 prefer 10 prefer 10 using assms apply blast+  (* the normal_unary and boolean_unary cases *)
+  apply (cases op) prefer 8 prefer 10 prefer 10 using assms apply blast+  (* the unary_normal and unary_boolean cases *)
   apply (smt (verit) intval_narrow.elims IRUnaryOp.sel(4) Value.distinct(1) Value.inject(1) assms(1)
          le_trans new_int.simps unary_eval.simps(5))
   apply (smt (verit, del_insts) intval_sign_extend.elims IRUnaryOp.sel(5) Value.distinct(1) assms(1)
@@ -706,10 +706,10 @@ proof (induction xe arbitrary: "b" "ix")
        xv: "([m,p] \<turnstile> x2 \<mapsto> xv) \<and>
             IntVal b ix = unary_eval op xv"
     by (auto simp add: unfold_binary)
-  then have "b = (if op \<in> normal_unary       then intval_bits xv else
-                  if op \<in> unary_fixed_32_ops then 32             else
-                  if op \<in> boolean_unary      then 32             else
-                                             ir_resultBits op)"
+  then have "b = (if op \<in> unary_normal   then intval_bits xv else
+                  if op \<in> unary_fixed_32 then 32             else
+                  if op \<in> unary_boolean  then 32             else
+                                         ir_resultBits op)"
     by (metis Value.disc(1) Value.discI(1) Value.sel(1) new_int.simps unary_eval_new_int)
   then show ?case
     by (metis xv linorder_le_cases linorder_not_less numeral_less_iff semiring_norm(76,78) gr0I

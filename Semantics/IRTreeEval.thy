@@ -145,33 +145,37 @@ abbreviation unary_fixed_32 :: "IRUnaryOp set" where
 abbreviation unary_boolean :: "IRUnaryOp set" where
   "unary_boolean \<equiv> {UnaryIsNull}"
 
+(* TODO add a note into the text above about this ?
+
+   Describes operators which inherit from IntegerConvertNode; output widths are specified by the
+   operator.
+*)
+abbreviation unary_integer_convert :: "IRUnaryOp set" where
+  "unary_integer_convert \<equiv> {op . is_UnaryNarrow op \<or> is_UnarySignExtend op \<or> is_UnaryZeroExtend op}"
+
 (* Helpful set lemmas *)
 
-lemma binary_ops_all:
-  shows "op \<in> binary_normal \<or> op \<in> binary_fixed_32_ops \<or> op \<in> binary_fixed_ops \<or> op \<in> binary_shift_ops"
+lemma binary_ops_distinct:
+  shows "op \<in> binary_normal \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_shift_ops"
+  and   "op \<in> binary_fixed_32_ops \<Longrightarrow> op \<notin> binary_normal \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_shift_ops"
+  and   "op \<in> binary_fixed_ops \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_normal \<and> op \<notin> binary_shift_ops"
+  and   "op \<in> binary_shift_ops \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_normal"
+  by auto
+
+lemma binary_ops_complete:
+  "op \<in> binary_normal \<or> op \<in> binary_fixed_32_ops \<or> op \<in> binary_fixed_ops \<or> op \<in> binary_shift_ops"
   by (cases op; auto)
 
-lemma binary_ops_distinct_normal:
-  shows "op \<in> binary_normal \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_shift_ops"
-  by auto
-
-lemma binary_ops_distinct_fixed_32:
-  shows "op \<in> binary_fixed_32_ops \<Longrightarrow> op \<notin> binary_normal \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_shift_ops"
-  by auto
-
-lemma binary_ops_distinct_fixed:
-  shows "op \<in> binary_fixed_ops \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_normal \<and> op \<notin> binary_shift_ops"
-  by auto
-
-lemma binary_ops_distinct_shift:
-  shows  "op \<in> binary_shift_ops \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_normal"
-  by auto
-
 lemma unary_ops_distinct:
-  shows "op \<in> unary_normal \<Longrightarrow> op \<notin> unary_boolean \<and> op \<notin> unary_fixed_32"
-  and   "op \<in> unary_boolean \<Longrightarrow> op \<notin> unary_normal \<and> op \<notin> unary_fixed_32"
-  and   "op \<in> unary_fixed_32 \<Longrightarrow> op \<notin> unary_boolean \<and> op \<notin> unary_normal"
+  shows "op \<in> unary_normal \<Longrightarrow> op \<notin> unary_boolean \<and> op \<notin> unary_fixed_32 \<and> op \<notin> unary_integer_convert"
+  and   "op \<in> unary_boolean \<Longrightarrow> op \<notin> unary_normal \<and> op \<notin> unary_fixed_32 \<and> op \<notin> unary_integer_convert"
+  and   "op \<in> unary_fixed_32 \<Longrightarrow> op \<notin> unary_boolean \<and> op \<notin> unary_normal \<and> op \<notin> unary_integer_convert"
+  and   "op \<in> unary_integer_convert \<Longrightarrow> op \<notin> unary_normal \<and> op \<notin> unary_boolean \<and> op \<notin> unary_fixed_32"
   by auto
+
+lemma unary_ops_complete:
+  "op \<in> unary_normal \<or> op \<in> unary_boolean \<or> op \<in> unary_fixed_32 \<or> op \<in> unary_integer_convert"
+  by (cases op; simp)
 
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 (* WAS:

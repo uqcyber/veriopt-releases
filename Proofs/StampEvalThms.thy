@@ -201,17 +201,15 @@ proof -
         unrestricted_new_int_always_valid)
 qed
 
-lemma narrow_widen_output_bits:
+lemma unary_integer_convert_output_bits:
   assumes "unary_eval op val \<noteq> UndefVal"
-  assumes "op \<notin> unary_normal"
-  assumes "op \<notin> unary_boolean"
-  assumes "op \<notin> unary_fixed_32"
+  assumes "op \<in> unary_integer_convert"
   shows "0 < (ir_resultBits op) \<and> (ir_resultBits op) \<le> 64"
 proof -
   consider ib ob where "op = UnaryNarrow ib ob"
          | ib ob where "op = UnarySignExtend ib ob"
          | ib ob where "op = UnaryZeroExtend ib ob"
-    using IRUnaryOp.exhaust_sel assms(2,3,4) by blast
+    using IRUnaryOp.exhaust_sel assms(2) by blast
   then show ?thesis
   proof (cases)
     case 1
@@ -228,25 +226,23 @@ proof -
   qed
 qed
 
-lemma eval_widen_narrow_unary_implies_valid_value:
+lemma eval_unary_integer_convert_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
-  assumes "op \<notin> unary_normal"
-  assumes "op \<notin> unary_boolean"
-  assumes "op \<notin> unary_fixed_32"
+  assumes "op \<in> unary_integer_convert"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis Value.exhaust_disc insertCI is_ArrayVal_def is_IntVal_def is_ObjRef_def is_ObjStr_def
-        unary_obj valid_value.simps(3,11,12) assms(2,4,6,7))
+    by (metis (lifting) Value.exhaust_disc insertCI is_ArrayVal_def is_IntVal_def is_ObjRef_def
+        is_ObjStr_def unary_obj valid_value.simps(3,11,12) assms(2,3,4,5) unary_ops_distinct(4))
   then obtain v2 where v2: "result = new_int (ir_resultBits op) v2"
-    using assms(2,3,4,5,6) unary_eval_new_int by presburger
+    by (metis (lifting) assms(2,3,4) unary_eval_new_int unary_ops_distinct(4))
   then obtain v3 where v3: "result = IntVal (ir_resultBits op) v3"
     by simp
   then obtain b lo2 hi2 where eval: "stamp_expr expr = IntegerStamp b lo2 hi2"
-    by (metis assms(7) v1 valid_int_gives)
+    by (metis assms(5) v1 valid_int_gives)
   then have "(stamp_expr (UnaryExpr op expr)) =
               unrestricted_stamp (IntegerStamp (ir_resultBits op) lo2 hi2)"
     using assms(3,4,5) by (cases op; auto)
@@ -328,7 +324,7 @@ lemma eval_unary_implies_valid_value:
     then show ?thesis
       using assms
       by (meson eval_unary_boolean_implies_valid_value eval_unary_normal_implies_valid_value
-          eval_widen_narrow_unary_implies_valid_value unary_ops_distinct(2))
+          eval_unary_integer_convert_implies_valid_value unary_ops_complete)
   qed
  qed
 qed
@@ -359,8 +355,8 @@ lemma bin_eval_bits_fixed_32_ops:
   using assms apply (cases op; simp)
   apply (metis (no_types, opaque_lifting) bin_eval_unused_bits_zero bool_to_val.elims assms(1))
   prefer 5
-  using IntVal1 Value.inject(1) new_int.simps take_bit_minus_one_eq_mask take_bit_of_0 assms(1)
-        bin_eval_unused_bits_zero bool_to_val.elims apply (metis, metis)
+  using IntVal1 Value.inject(1) new_int.simps take_bit_minus_one_eq_mask assms(1)
+        bin_eval_unused_bits_zero bool_to_val.elims apply (metis take_bit_of_0, metis)
   by (metis (full_types) assms(1) bin_eval_unused_bits_zero bool_to_val.simps(1,2))+
 
 lemma bin_eval_bits_normal_ops:
@@ -401,34 +397,24 @@ proof -
   then obtain vres where vres: "result = IntVal bres vres"
     by force
   (* now calculate the result stamp for the three classes of operators. *)
-  then have sres: "stamp_expr (BinaryExpr op expr1 expr2) =
+  then have "stamp_expr (BinaryExpr op expr1 expr2) =
              unrestricted_stamp (IntegerStamp bres lo1 hi1)
            \<and> 0 < bres \<and> bres \<le> 64"
     proof (cases "op \<in> binary_shift_ops")
       case True
       then show ?thesis
         unfolding stamp_expr.simps
-        by (metis Value.inject(1) eval_bits_1_64 new_int.simps r assms(1,4) stamp_binary.simps(1)
-            bin_eval_bits_binary_shift_ops s2 s1 v1 vres)
+        by (metis Value.inject(1) eval_bits_1_64 new_int.simps r assms(1,4) stamp_binary.simps(1) v1
+            bin_eval_bits_binary_shift_ops s2 s1 vres)
     next
       case False
       then have beq: "b1 = b2"
         using v1 v2 assms bin_eval_input_bits_equal by blast
       then show ?thesis
-      proof (cases "op \<in> binary_fixed_32_ops")
-        case True
-        then show ?thesis
-          unfolding stamp_expr.simps
-          by (metis (no_types, lifting) False Value.inject(1) beq bin_eval_new_int zero_less_numeral
-              le_add_same_cancel1 new_int.simps s2 s1 numeral_Bit0 vres zero_le_numeral assms(3,4)
-              stamp_binary.simps(1))
-      next
-        case False
-        then show ?thesis
-          unfolding s1 s2 stamp_binary.simps stamp_expr.simps
-          by (metis assms(1,3,4) beq bin_eval_bits_normal_ops eval_bits_1_64 intval_bits.simps vres
-              new_int.elims v1 v2)
-      qed
+        unfolding s1 s2 stamp_binary.simps stamp_expr.simps
+        by (metis (no_types, lifting) eval_bits_1_64 intval_bits.simps v1 False beq bin_eval_new_int
+            zero_less_numeral le_add_same_cancel1 new_int.simps numeral_Bit0 vres zero_le_numeral
+            assms(1,3,4))
     qed
   then show ?thesis
     using unrestricted_new_int_always_valid vres vtmp by presburger

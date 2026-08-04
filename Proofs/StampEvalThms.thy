@@ -30,7 +30,7 @@ lemma valid_stamp_unrestricted:
 subsubsection \<open>stamp\_unary properties\<close>
 
 lemma stamp_unary_boolean: "op \<in> unary_boolean \<Longrightarrow> stamp_unary op s = boolean_stamp"
-  unfolding boolean_stamp_def by auto
+  using stamp_unary.simps(1) by auto
 
 lemma stamp_unary_normal_IntegerStamp:
   assumes "op \<in> unary_normal"
@@ -42,8 +42,7 @@ lemma stamp_unary_normal_non_IntegerStamp:
   assumes "op \<in> unary_normal"
   assumes "\<not>is_IntegerStamp s"
   shows "stamp_unary op s = IllegalStamp"
-  using assms is_IntegerStamp_def apply (cases op; simp)
-  by (metis is_stamp_strictly_positive.cases stamp_unary.simps)+
+  using assms is_IntegerStamp_def by (cases op; simp)
 
 lemma stamp_unary_fixed_32_IntegerStamp:
   assumes "op \<in> unary_fixed_32"
@@ -55,8 +54,7 @@ lemma stamp_unary_fixed_32_non_IntegerStamp:
   assumes "op \<in> unary_fixed_32"
   assumes "\<not>is_IntegerStamp s"
   shows "stamp_unary op s = IllegalStamp"
-  using assms is_IntegerStamp_def apply (cases op; simp)
-  by (metis Stamp.exhaust stamp_unary.simps(67,68,69,70,71,72,73))
+  using assms is_IntegerStamp_def by (cases op; simp)
 
 lemma stamp_unary_integer_convert_IntegerStamp:
   assumes "op \<in> unary_integer_convert"
@@ -68,8 +66,7 @@ lemma stamp_unary_integer_convert_non_IntegerStamp:
   assumes "op \<in> unary_integer_convert"
   assumes "\<not>is_IntegerStamp s"
   shows "stamp_unary op s = IllegalStamp"
-  using assms is_IntegerStamp_def apply (cases op; simp)
-  by (metis is_stamp_strictly_positive.cases stamp_unary.simps)+
+  using assms is_IntegerStamp_def by (cases op; simp)
 
 (* TODO: update to allow any bit size? 
 lemma unrestricted_stamp32_always_valid [simp]:
@@ -236,9 +233,8 @@ proof -
     unfolding stamp_expr.simps
     by (smt (verit) expr assms(2,3,5) unary_normal_bitsize v2 valid_int_same_bits)
   then show ?thesis
-    apply auto
-    by (metis s vtmp assms(1,2) eval_bits_1_64 stamp_expr.simps(1) unary_eval_bitsize v1 v2
-        unrestricted_new_int_always_valid)
+    using vtmp assms(1,2) eval_bits_1_64 unary_eval_bitsize v1 unrestricted_new_int_always_valid
+    by simp
 qed
 
 lemma unary_integer_convert_output_bits:
@@ -249,7 +245,7 @@ proof -
   consider ib ob where "op = UnaryNarrow ib ob"
          | ib ob where "op = UnarySignExtend ib ob"
          | ib ob where "op = UnaryZeroExtend ib ob"
-    using IRUnaryOp.exhaust_sel assms(2) by blast
+    by (metis assms(2) IRUnaryOp.collapse(1,2,3) mem_Collect_eq)
   then show ?thesis
   proof (cases)
     case 1

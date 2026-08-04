@@ -178,23 +178,14 @@ lemma unary_ops_complete:
   by (cases op; simp)
 
 fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
-(* WAS:
-  "stamp_unary op (IntegerStamp b lo hi) =
-    (let bits = (if op \<in> unary_normal
-                 then (if b=64 then 64 else 32)
-                 else (ir_resultBits op)) in
-    unrestricted_stamp (IntegerStamp bits lo hi))" |
-*)
-(* TODO update to generalise all unary_boolean operators to return IntegerStamp 32 0 1 *)
-  "stamp_unary UnaryIsNull _ = (IntegerStamp 32 0 1)" |
-  "stamp_unary op (IntegerStamp b lo hi) =
-     unrestricted_stamp (IntegerStamp 
-                        (if op \<in> unary_normal   then b  else
-                         if op \<in> unary_boolean  then 32 else
+  "stamp_unary op s =
+    (if (op \<in> unary_boolean) then boolean_stamp
+     else if (\<not>is_IntegerStamp s) then IllegalStamp
+     else (unrestricted_stamp
+          (IntegerStamp (if op \<in> unary_normal   then (stp_bits s) else
                          if op \<in> unary_fixed_32 then 32 else
-                                 (ir_resultBits op)) lo hi)" |
+                        (ir_resultBits op)) (stpi_lower s) (stpi_upper s))))"
   (* for now... *)
-  "stamp_unary op _ = IllegalStamp"
 
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_binary op (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =

@@ -24,9 +24,8 @@ value "(0::int64) <s 4294967286" \<comment> \<open>0 < 4294967286 = True\<close>
 lemma signed_eqiv:
   assumes "b > 0 \<and> b \<le> 64"
   shows "val_to_bool (val[new_int b v < new_int b v']) = (int_signed_value b v < int_signed_value b v')"
-  by (metis (no_types, lifting) assms ValueThms.signed_take_take_bit bool_to_val.elims one_neq_zero
-      bool_to_val_bin.elims int_signed_value.simps intval_less_than.simps(1) new_int.simps
-      val_to_bool.simps(1))
+  by (metis (no_types, lifting) assms take_bit_redundant bool_to_val.elims intval_less_than.simps(1)
+      bool_to_val_bin.elims int_signed_value.simps one_neq_zero new_int.simps val_to_bool.simps(1))
 
 lemma val_abs_pos:
   assumes "val_to_bool(val[(new_int b 0) < (new_int b v)])"
@@ -288,8 +287,8 @@ proof -
       have "int_signed_value b (-v) > 0"
         by (metis True False invert_intval bInRange assms(1) in_def valid_value.simps(1))
       then have "(intval_abs (new_int b (-v))) = new_int b (-v)"
-        by (smt (verit, best) ValueThms.signed_take_take_bit bInRange int_signed_value.simps
-            intval_abs.simps(1) new_int.simps new_int_unused_bits_zero)
+        by (smt (verit, best) take_bit_redundant bInRange int_signed_value.simps intval_abs.simps(1)
+            new_int.simps new_int_unused_bits_zero)
       then show ?thesis
         using nested by presburger
     qed

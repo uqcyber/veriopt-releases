@@ -1,7 +1,8 @@
 subsection \<open>Fixed-width Word Theories\<close>
 
 theory ValueThms
-  imports Values
+  imports
+    Values
 begin
 
 (* declare [[show_types=true]] *)
@@ -139,9 +140,8 @@ text \<open>A simplification lemma for $new\_int$, showing that upper bits can b
 lemma take_bit_redundant[simp]:
   fixes v :: "'a :: len word"
   assumes "0 < n"
-  assumes "n < LENGTH('a)"
   shows "signed_take_bit (n - 1) (take_bit n v) = signed_take_bit (n - 1) v"
-  using assms(1) take_bit_redundant by auto
+  using assms take_bit_signed_redundant by auto
 
 lemma take_bit_same_size_range:
   fixes v :: "'a :: len word"
@@ -241,12 +241,6 @@ lemma take_bit_dist_neg[simp]:
   fixes ix :: "'a :: len word"
   shows "take_bit b (- take_bit b (ix)) = take_bit b (- ix)"
   by simp
-
-lemma signed_take_take_bit[simp]:
-  fixes x :: "'a :: len word"
-  assumes "0 < b"
-  shows "signed_take_bit (b - 1) (take_bit b x) = signed_take_bit (b - 1) x"
-  using signed_take_take_bit assms by blast
 
 lemma mod_larger_ignore:
   fixes a :: int

@@ -209,8 +209,8 @@ lemma val_not_abs:
       by (simp add: assms(1) xvv)
     have absX: "val[abs(x)] = new_int xb (-xvv)"
       unfolding xIntVal xvv apply simp
-      by (metis One_nat_def True ValueThms.signed_take_take_bit assms(3) int_signed_value.simps
-          order_less_le_trans zero_less_one)
+      by (metis One_nat_def True take_bit_redundant assms(3) int_signed_value.simps zero_less_one
+          order_less_le_trans)
     have notX: "val[\<not>x] = new_int xb (not xv)"
       by (simp add: take_bit_not_take_bit xIntVal xvv)
     have "take_bit xb 1 \<noteq> 0"
@@ -235,8 +235,7 @@ next
       by (simp add: assms(1) xvv)
     have absX: "val[abs(x)] = new_int xb xv"
       unfolding xIntVal xvv apply simp
-      by (metis False One_nat_def ValueThms.signed_take_take_bit int_signed_value.simps neq0_conv
-          take_bit_0)
+      by (metis False One_nat_def take_bit_redundant int_signed_value.simps neq0_conv take_bit_0)
     have "val[(\<not>x) eq (abs(x))] = val[false]"
       using absX assms(1,3) val_eq_commutative val_not_self_equality takeBitNot by auto
     then show ?thesis

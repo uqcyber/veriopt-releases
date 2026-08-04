@@ -59,6 +59,15 @@ lemma unary_eval_int: "unary_eval op x \<noteq> UndefVal \<Longrightarrow> is_In
   by (cases "unary_eval op x"; auto simp add: unary_eval_not_obj_ref unary_eval_not_obj_str
       unary_eval_not_array)
 
+lemma unary_eval_obj:
+  assumes "val = ObjRef x"
+  shows "(if (op = UnaryIsNull) then unary_eval op val \<noteq> UndefVal
+                                else unary_eval op val = UndefVal)"
+  using assms by (cases op; auto)
+
+lemma unary_eval_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVal"
+  by (cases op; auto)
+
 lemma bin_eval_int:
   assumes "bin_eval op x y \<noteq> UndefVal"
   shows "is_IntVal (bin_eval op x y)"

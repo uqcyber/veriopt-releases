@@ -107,8 +107,8 @@ lemma neg_one_value[simp]: "new_int b (neg_one b) = IntVal b (mask b)"
 
 lemma neg_one_signed[simp]: "0 < b \<Longrightarrow> int_signed_value b (neg_one b) = -1"
   apply auto
-  by (metis (no_types, lifting) Suc_pred diff_Suc_1 signed_take_take_bit mask_eq_take_bit_minus_one
-      signed_take_bit_of_minus_1)
+  by (metis (no_types, lifting) diff_Suc_1 signed_take_bit_of_minus_1 take_bit_signed_redundant
+      mask_eq_take_bit_minus_one Suc_pred)
 
 lemma word_unsigned: "\<forall> b1 v1. (IntVal b1 (word_of_int (int_unsigned_value b1 v1))) = IntVal b1 v1"
   by simp

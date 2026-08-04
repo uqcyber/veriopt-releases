@@ -304,7 +304,7 @@ lemma take_bit_same_size_nochange:
 
 text \<open>A simplification lemma for $new\_int$, showing that upper bits can be ignored.\<close>
 
-lemma take_bit_redundant[simp]:
+lemma take_bit_signed_redundant[simp]:
   fixes ival :: "'a :: len word"
   assumes "0 < n"
   shows "signed_take_bit (n - 1) (take_bit n ival) = signed_take_bit (n - 1) ival"
@@ -392,12 +392,6 @@ lemma mergeTakeBit:
   shows "take_bit a (take_bit a b * take_bit a c) = take_bit a (b * c)"
   by (smt (verit, ccfv_SIG) take_bit_mult take_bit_of_int unsigned_take_bit_eq word_mult_def)
 
-lemma signed_take_take_bit[simp]:
-  fixes x :: "'a :: len word"
-  assumes "0 < b"
-  shows "signed_take_bit (b - 1) (take_bit b x) = signed_take_bit (b - 1) x"
-  using take_bit_redundant assms by blast
-
 lemma take_bit_size_eq64: "take_bit 64 a = take_bit LENGTH(64) (a::64 word)"
   by auto
 
@@ -422,6 +416,20 @@ lemma take_bit_minus_push_bit:
   using assms apply auto
   by (smt (z3) linordered_semidom_class.add_diff_inverse signed_take_bit_eq_if_positive less_Suc_eq
       zero_less_diff signed_take_bit_code One_nat_def plus_1_eq_Suc less_nat_zero_code not_gr_zero)
+
+text \<open>Helpful signed\_take\_bit properties\<close>
+
+lemma take_bit_eq_signed: "take_bit b v = v \<Longrightarrow> signed_take_bit b v = v"
+  by (metis (full_types) eq_imp_le signed_take_bit_take_bit)
+
+lemma unwrap_signed_take_bit:
+  fixes v :: int64
+  assumes "0 < b \<and> b \<le> 64"
+  assumes "signed_take_bit (b - 1) v = v"
+  shows "signed_take_bit 63 (Word.rep (signed_take_bit (b - Suc 0) v)) = sint v"
+  using assms by (simp add: signed_def)
+
+text \<open>mod lemmas\<close>
 
 lemma mod_larger_ignore:
   fixes a :: int

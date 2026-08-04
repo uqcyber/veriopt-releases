@@ -6,56 +6,70 @@ theory StampEvalThms
     Semantics.IRTreeEvalThms
 begin
 
+subsubsection \<open>General stamp properties\<close>
+
 lemma strict_pos_implies_pos: "is_stamp_strictly_positive s \<Longrightarrow> is_stamp_positive s"
   by (metis is_stamp_positive.simps(1) is_stamp_strictly_positive.elims(2) order_less_imp_le)
 
 lemma strict_neg_implies_neg: "is_stamp_strictly_negative s \<Longrightarrow> is_stamp_negative s"
   using is_stamp_strictly_negative.elims(2) by fastforce
 
-lemma take_bit_eq_signed: "take_bit b v = v \<Longrightarrow> signed_take_bit b v = v"
-  by (metis(full_types) eq_imp_le signed_take_bit_take_bit)
+subsubsection \<open>Stamp validity for fixed stamp definitions\<close>
 
-lemma unwrap_signed_take_bit:
-  fixes v :: int64
+lemma valid_stamp_default: "valid_stamp default_stamp"
+  unfolding default_stamp_def using valid_stamp.simps(1) by simp
+
+lemma valid_stamp_boolean: "valid_stamp boolean_stamp"
+  unfolding boolean_stamp_def using valid_stamp.simps(1) by simp
+
+lemma valid_stamp_unrestricted:
   assumes "0 < b \<and> b \<le> 64"
-  assumes "signed_take_bit (b - 1) v = v"
-  shows "signed_take_bit 63 (Word.rep (signed_take_bit (b - Suc 0) v)) = sint v"
-  using assms by (simp add: signed_def)
-
-lemma unrestricted_new_int_always_valid [simp]:
-  assumes "0 < b \<and> b \<le> 64"
-  shows "valid_value (new_int b v) (unrestricted_stamp (IntegerStamp b lo hi))"
-  using assms apply auto
-  by (metis One_nat_def assms int_power_div_base int_signed_value.simps int_signed_value_range
-      zero_less_numeral)+
-
-lemma unary_undef: "val = UndefVal \<Longrightarrow> unary_eval op val = UndefVal"
-  by (cases op; auto)
-
-lemma unary_obj:
-  "val = ObjRef x \<Longrightarrow> (if (op = UnaryIsNull) then
-                           unary_eval op val \<noteq> UndefVal else
-                           unary_eval op val = UndefVal)"
-  by (cases op; auto)
-
-lemma unrestricted_stamp_valid:
-  assumes "s = unrestricted_stamp (IntegerStamp b lo hi)"
-  assumes "0 < b \<and> b \<le> 64"
-  shows "valid_stamp s"
+  shows "valid_stamp (unrestricted_stamp (IntegerStamp b lo hi))"
   using assms by auto
 
-lemma unrestricted_stamp_valid_value [simp]:
-  assumes "result = IntVal b v"
-  assumes "take_bit b v = v"
-  assumes "0 < b \<and> b \<le> 64"
-  shows "valid_value result (unrestricted_stamp (IntegerStamp b lo hi))"
-proof -
-  have "valid_stamp (unrestricted_stamp (IntegerStamp b lo hi))"
-    using assms unrestricted_stamp_valid by blast
-  then show ?thesis
-    unfolding unrestricted_stamp.simps using assms int_signed_value_bounds valid_value.simps
-    by presburger
-qed
+subsubsection \<open>stamp\_unary properties\<close>
+
+lemma stamp_unary_boolean: "op \<in> unary_boolean \<Longrightarrow> stamp_unary op s = boolean_stamp"
+  unfolding boolean_stamp_def by auto
+
+lemma stamp_unary_normal_IntegerStamp:
+  assumes "op \<in> unary_normal"
+  assumes "s = IntegerStamp b lo hi"
+  shows "stamp_unary op s = unrestricted_stamp s"
+  using assms by force
+
+lemma stamp_unary_normal_non_IntegerStamp:
+  assumes "op \<in> unary_normal"
+  assumes "\<not>is_IntegerStamp s"
+  shows "stamp_unary op s = IllegalStamp"
+  using assms is_IntegerStamp_def apply (cases op; simp)
+  by (metis is_stamp_strictly_positive.cases stamp_unary.simps)+
+
+lemma stamp_unary_fixed_32_IntegerStamp:
+  assumes "op \<in> unary_fixed_32"
+  assumes "s = IntegerStamp b lo hi"
+  shows "stamp_unary op s = unrestricted_stamp (IntegerStamp 32 lo hi)"
+  using assms by force
+
+lemma stamp_unary_fixed_32_non_IntegerStamp:
+  assumes "op \<in> unary_fixed_32"
+  assumes "\<not>is_IntegerStamp s"
+  shows "stamp_unary op s = IllegalStamp"
+  using assms is_IntegerStamp_def apply (cases op; simp)
+  by (metis Stamp.exhaust stamp_unary.simps(67,68,69,70,71,72,73))
+
+lemma stamp_unary_integer_convert_IntegerStamp:
+  assumes "op \<in> unary_integer_convert"
+  assumes "s = IntegerStamp b lo hi"
+  shows "stamp_unary op s = unrestricted_stamp (IntegerStamp (ir_resultBits op) lo hi)"
+  using assms by (cases op; simp)
+
+lemma stamp_unary_integer_convert_non_IntegerStamp:
+  assumes "op \<in> unary_integer_convert"
+  assumes "\<not>is_IntegerStamp s"
+  shows "stamp_unary op s = IllegalStamp"
+  using assms is_IntegerStamp_def apply (cases op; simp)
+  by (metis is_stamp_strictly_positive.cases stamp_unary.simps)+
 
 (* TODO: update to allow any bit size? 
 lemma unrestricted_stamp32_always_valid [simp]:
@@ -76,6 +90,32 @@ lemma larger_stamp32_always_valid [simp]:
 
 subsubsection \<open>Support Lemmas for Integer Stamps and Associated IntVal values\<close>
 (* TODO: these do not use eval so could go up into a StampThms.thy? *)
+
+lemma unrestricted_new_int_always_valid [simp]:
+  assumes "0 < b \<and> b \<le> 64"
+  shows "valid_value (new_int b v) (unrestricted_stamp (IntegerStamp b lo hi))"
+  using assms apply auto
+  by (metis One_nat_def assms int_power_div_base int_signed_value.simps int_signed_value_range
+      zero_less_numeral)+
+
+lemma unrestricted_stamp_valid_value [simp]:
+  assumes "result = IntVal b v"
+  assumes "take_bit b v = v"
+  assumes "0 < b \<and> b \<le> 64"
+  shows "valid_value result (unrestricted_stamp (IntegerStamp b lo hi))"
+proof -
+  have "valid_stamp (unrestricted_stamp (IntegerStamp b lo hi))"
+    using assms valid_stamp_unrestricted by blast
+  then show ?thesis
+    unfolding unrestricted_stamp.simps using assms int_signed_value_bounds valid_value.simps
+    by presburger
+qed
+
+lemma boolean_stamp_valid_true: "valid_value (bool_to_val True) boolean_stamp"
+  using valid_value.simps(1) [of 32 1 32 0 1] unfolding boolean_stamp_def by auto
+
+lemma boolean_stamp_valid_false: "valid_value (bool_to_val False) boolean_stamp"
+  using valid_value.simps(1) [of 32 0 32 0 1] unfolding boolean_stamp_def by fastforce
 
 text \<open>Valid int implies some useful facts.\<close>
 lemma valid_int_gives:
@@ -235,8 +275,8 @@ lemma eval_unary_integer_convert_implies_valid_value:
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
 proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis (lifting) Value.exhaust_disc insertCI is_ArrayVal_def is_IntVal_def is_ObjRef_def
-        is_ObjStr_def unary_obj valid_value.simps(3,11,12) assms(2,3,4,5) unary_ops_distinct(4))
+    by (metis (lifting) Value.exhaust_disc insertCI is_ArrayVal_def is_IntVal_def assms(2,3,4,5)
+        is_ObjStr_def unary_eval_obj valid_value.simps(3,11,12) unary_ops_distinct(4) is_ObjRef_def)
   then obtain v2 where v2: "result = new_int (ir_resultBits op) v2"
     by (metis (lifting) assms(2,3,4) unary_eval_new_int unary_ops_distinct(4))
   then obtain v3 where v3: "result = IntVal (ir_resultBits op) v3"
@@ -265,10 +305,10 @@ proof -
   have vBounds: "result \<in> {bool_to_val True, bool_to_val False}"
     by (metis insertI1 insertI2 intval_is_null.simps(1) assms(3) singleton_iff unary_eval.simps(8)
         eval)
-  then have "stamp_expr (UnaryExpr op expr) = IntegerStamp 32 0 1"
-    using assms(3) by (cases op; auto)
+  then have "stamp_expr (UnaryExpr op expr) = boolean_stamp"
+    using assms(3) stamp_unary_boolean by simp
   then show ?thesis
-    using vBounds by (cases result; auto)
+    using boolean_stamp_valid_true boolean_stamp_valid_false boolean_stamp_def vBounds by force
 qed
 
 lemma eval_fixed_unary_32_implies_valid_value:

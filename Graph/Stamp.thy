@@ -275,5 +275,8 @@ stamp with an unrestricted range. We use @{text default_stamp} as it is a freque
 definition default_stamp :: "Stamp" where
   "default_stamp = (unrestricted_stamp (IntegerStamp 32 0 0))"
 
+definition boolean_stamp :: "Stamp" where
+  "boolean_stamp = (IntegerStamp 32 0 1)"
+
 value "valid_value (IntVal 8 (255)) (IntegerStamp 8 (-128) 127)"
 end

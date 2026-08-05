@@ -674,17 +674,17 @@ lemma unary_normal_bitsize:
   by (smt (verit, ccfv_threshold) Value.distinct(1) Value.inject(1) intval_reverse_bytes.elims
       new_int.simps)
 
-lemma unary_not_normal_bitsize:
+lemma unary_integer_convert_bitsize:
   assumes "unary_eval op x = IntVal b ival"
-  assumes "op \<notin> unary_normal \<and> op \<notin> unary_boolean \<and> op \<notin> unary_fixed_32"
+  assumes "op \<in> unary_integer_convert"
   shows "b = ir_resultBits op \<and> 0 < b \<and> b \<le> 64"
-  apply (cases op) prefer 8 prefer 10 prefer 10 using assms apply blast+  (* the unary_normal and unary_boolean cases *)
-  apply (smt (verit) intval_narrow.elims IRUnaryOp.sel(4) Value.distinct(1) Value.inject(1) assms(1)
-         le_trans new_int.simps unary_eval.simps(5))
-  apply (smt (verit, del_insts) intval_sign_extend.elims IRUnaryOp.sel(5) Value.distinct(1) assms(1)
-         Value.inject(1) new_int.simps order.strict_trans2 unary_eval.simps(6))
-  by (smt (verit) intval_zero_extend.elims IRUnaryOp.sel(6) Value.distinct(1) Value.inject(1)
-      assms(1) new_int.simps order.strict_trans2 unary_eval.simps(7))
+  using assms(2) apply (cases op; simp) prefer 2 using new_int.elims (* the unary_normal and unary_boolean cases *)
+  apply (metis (no_types, lifting) assms(1) intval_sign_extend_ok Value.distinct(1) Value.inject(1)
+         new_int.simps order.strict_trans2 unary_eval.simps(6) intval_sign_extend.simps(1)
+         is_IntVal_def)
+  by (metis assms(1) intval_narrow_ok intval_zero_extend_ok intval_narrow.simps(1) linorder_neqE_nat
+      intval_zero_extend.simps(1) is_IntVal_def new_int.elims unary_eval.simps(5,7) gr_implies_not0
+      Value.distinct(1) intval_bits.simps bot_nat_0.extremum_uniqueI)+
 
 lemma unary_eval_bitsize:
   assumes "unary_eval op x = IntVal b v"
@@ -721,8 +721,9 @@ proof (induction xe arbitrary: "b" "ix")
                                          ir_resultBits op)"
     by (metis Value.disc(1) Value.discI(1) Value.sel(1) new_int.simps unary_eval_new_int)
   then show ?case
-    by (metis xv linorder_le_cases linorder_not_less numeral_less_iff semiring_norm(76,78) gr0I
-        unary_normal_bitsize unary_not_normal_bitsize UnaryExpr.IH)
+    by (metis (no_types, lifting) linorder_le_cases linorder_not_less unary_integer_convert_bitsize
+        semiring_norm(76,78) numeral_less_iff unary_normal_bitsize unary_ops_distinct(2,3) gr0I xv
+        unary_ops_complete UnaryExpr.IH)
 next
   case (BinaryExpr op x y)
   then obtain xv yv where 

@@ -257,12 +257,18 @@ lemma mod_dist_over_add:
   shows "(a mod 2^n + b) mod 2^n = (a + b) mod 2^n"
   by (simp add: assms mod_dist_over_add)
 
-subsubsection \<open>$val_boolean$ lemmas\<close>
+subsubsection \<open>$val_boolean$ and $bool_to_val$ lemmas\<close>
 
 lemma intval_logic_negation_bool_self:
   "val_is_boolean v \<Longrightarrow> intval_logic_negation (intval_logic_negation v) = v"
   unfolding val_is_boolean_def bool_values_def apply (cases v; auto)
   by (simp add: logic_negate_def word_coorder.extremum_uniqueI)+
+
+lemma bool_to_val_boolean: "val_is_boolean (bool_to_val v)"
+  unfolding val_is_boolean_def bool_values_def using bool_to_val.elims by blast
+
+lemma unwrap_bool_to_val: "(bool_to_val a = bool_to_val b) = (a = b)"
+  apply auto using bool_to_val.elims by fastforce+
 
 subsubsection \<open>bitCount and $val_bit_count$ lemmas\<close>
 

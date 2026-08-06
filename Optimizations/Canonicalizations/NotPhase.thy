@@ -70,8 +70,8 @@ optimization NotNegate: "~(-x) \<longmapsto> (x - const (new_int b 1))
     have "val[~(-xa)] = val[xa - (new_int b 1)]"
       using evalDet p(4,5) rhsDefined val_not_negate xa by blast
     then show ?thesis
-      by (metis (no_types, lifting) bin_eval.simps(2) constEval evalDet new_int_one_intval p(1,4,5)
-          unfold_binary xa)
+      by (metis (no_types, lifting) bin_eval.simps(2) constEval evalDet unfold_binary new_int_one xa
+          p(1,4,5))
   qed
   subgoal premises p for m p xa
   proof -
@@ -94,10 +94,10 @@ optimization NotSubToNeg: "~(x - (const (new_int b 1))) \<longmapsto> -x
       unfolding xvv by simp
     have "[m,p] \<turnstile> exp[\<not>(x - (const (new_int b 1)))] \<mapsto> val[\<not>(xa - (new_int b 1))]"
       by (metis (no_types, opaque_lifting) BinaryExpr ConstantExpr UnaryExpr bin_eval.simps(2) xa
-          evalDet new_int_one_intval p(1,4,5,6,7) unary_eval.simps(3))
+          evalDet new_int_one p(1,4,5,6,7) unary_eval.simps(3))
     then show ?thesis
-      by (metis Value.distinct(1) evalDet new_int.simps new_int_one_intval p(1,5) xa unfold_unary
-          unary_eval.simps(2) rhsNewInt val_not_sub_to_neg)
+      by (metis Value.distinct(1) rhsNewInt new_int.simps new_int_one p(1,5) xa val_not_sub_to_neg
+          unary_eval.simps(2) evalDet unfold_unary)
   qed
   subgoal premises p for m p xa
   proof -

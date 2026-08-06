@@ -307,23 +307,21 @@ proof -
     using boolean_stamp_valid_true boolean_stamp_valid_false boolean_stamp_def vBounds by force
 qed
 
-lemma eval_fixed_unary_32_implies_valid_value:
+lemma eval_unary_fixed_32_implies_valid_value:
   assumes "[m,p] \<turnstile> expr \<mapsto> val"
   assumes "result = unary_eval op val"
   assumes "op \<in> unary_fixed_32"
-  assumes "op \<notin> unary_normal"
-  assumes "op \<notin> unary_boolean"
   assumes "result \<noteq> UndefVal"
   assumes "valid_value val (stamp_expr expr)"
   shows "valid_value result (stamp_expr (UnaryExpr op expr))"
-  proof -
+proof -
   obtain b1 v1 where v1: "val = IntVal b1 v1"
-    by (metis Value.exhaust_sel insert_iff intval_bit_count.simps(3,4,5) unary_eval.simps(10)
-        valid_value.simps(3) assms(2,3,5,6,7))
+    using assms apply auto
+    by (metis assms(4,5) constantAsStamp.cases intval_bit_count.simps(2,3,4) valid_value.simps(12))
   then obtain v2 where v2: "result = new_int 32 v2"
-    using assms(2,3,4,6) unary_eval_new_int by presburger
+    using assms(2,3) unary_eval_new_int by force
   then obtain b lo2 hi2 where eval: "stamp_expr expr = IntegerStamp b lo2 hi2"
-    by (metis assms(7) v1 valid_int_gives)
+    by (metis assms(5) v1 valid_int_gives)
   then have "(stamp_expr (UnaryExpr op expr)) = unrestricted_stamp (IntegerStamp 32 lo2 hi2)"
     using assms(3,5) by (cases op; auto)
   then show ?thesis
@@ -354,7 +352,7 @@ lemma eval_unary_implies_valid_value:
   proof (cases "op \<in> unary_fixed_32")
     case True
     then show ?thesis
-      using assms eval_fixed_unary_32_implies_valid_value by auto
+      using assms eval_unary_fixed_32_implies_valid_value by auto
   next
     case False
     then show ?thesis

@@ -113,7 +113,10 @@ lemma neg_one_signed[simp]: "0 < b \<Longrightarrow> int_signed_value b (neg_one
 lemma word_unsigned: "\<forall> b1 v1. (IntVal b1 (word_of_int (int_unsigned_value b1 v1))) = IntVal b1 v1"
   by simp
 
-lemma new_int_one_intval: "b > 0 \<Longrightarrow> new_int b 1 = IntVal b 1"
+lemma new_int_one: "b > 0 \<Longrightarrow> new_int b 1 = IntVal b 1"
+  by auto
+
+lemma IntVal1: "(IntVal 32 1) = (new_int 32 1)"
   by auto
 
 lemma new_int_zero[simp]: "new_int b 0 = IntVal b 0"
@@ -121,9 +124,6 @@ lemma new_int_zero[simp]: "new_int b 0 = IntVal b 0"
 
 lemma new_int_mask: "new_int b (not 0) = new_int b (mask b)"
   unfolding new_int.simps by simp
-
-lemma unwrap_bool_to_val: "(bool_to_val a = bool_to_val b) = (a = b)"
-  apply auto using bool_to_val.elims by fastforce+
 
 subsection \<open>Arithmetic Operators\<close>
 

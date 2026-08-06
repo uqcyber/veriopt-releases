@@ -78,12 +78,6 @@ lemma bin_eval_int:
   using bool_to_val.elims apply (meson, meson, meson)
   using bool_to_val.elims new_int_bin.simps by metis+
 
-lemma IntVal0: "(IntVal 32 0) = (new_int 32 0)"
-  by auto
-
-lemma IntVal1: "(IntVal 32 1) = (new_int 32 1)"
-  by auto
-
 (* ICK, a collection of relevant take_bit_x lemmas would help *)
 lemma bin_eval_new_int:
   assumes "bin_eval op x y \<noteq> UndefVal"
@@ -126,7 +120,9 @@ next
   case BinShortCircuitOr
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.elims) by presburger
+    apply (metis (no_types, opaque_lifting) bool_to_val.elims flip_bit_of_0 le_zero_eq power_0
+           take_bit_flip_bit_eq take_bit_of_0 zero_neq_numeral)
+    by presburger
 next
   case BinLeftShift
   then show ?thesis
@@ -144,7 +140,7 @@ next
   case BinIntegerEquals
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis IntVal0 IntVal1 bool_to_val.elims new_int.elims) by presburger
+    apply (metis new_int_zero IntVal1 bool_to_val.elims new_int.simps) by presburger
 next
   case BinIntegerLessThan
   then show ?thesis
@@ -156,18 +152,20 @@ next
   case BinIntegerBelow
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps IntVal0 IntVal1) by argo
+    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps new_int_zero IntVal1)
+    by argo
 next
   case BinIntegerTest
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    apply (metis bool_to_val.simps(1,2) bool_to_val.elims new_int.simps IntVal0 IntVal1) by argo
+    apply (metis bool_to_val.elims new_int.simps new_int_zero IntVal1) by argo
 next
   case BinIntegerNormalizeCompare
   then show ?thesis
     using assms apply (cases x; cases y; auto)
-    prefer 5 using take_bit_of_0 IntVal1 new_int_take_bits apply blast+
-    prefer 2 apply (metis take_bit_minus_one_eq_mask) by presburger+
+    prefer 5 prefer 4 apply (metis take_bit_minus_one_eq_mask)
+    using IntVal1 new_int_take_bits take_bit_of_0 apply (blast, blast)
+    by presburger+
 next
   case BinIntegerMulHigh
   then show ?thesis
@@ -594,8 +592,8 @@ next
     apply auto
     proof -
       show "\<exists>w. intval_is_null x = IntVal 32 (take_bit 32 w)"
-        by (metis UnaryIsNull IntVal0 IntVal1 bool_to_val.elims intval_is_null.elims new_int.simps
-            unary_eval.simps(8) def)
+        by (metis UnaryIsNull unary_eval.simps(8) IntVal1 bool_to_val.elims intval_is_null.elims
+            new_int.simps new_int_zero def)
     qed
 next
   case UnaryReverseBytes

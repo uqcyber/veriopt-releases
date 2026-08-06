@@ -15,8 +15,8 @@ lemma preserve_boolean:
   assumes "is_boolean c"
   shows "is_boolean exp[!c]"
   using assms unfolding is_boolean_def val_is_boolean_def bool_values_def apply auto
-  by (metis (no_types, opaque_lifting) intval_logic_negation.simps(1) logic_negate_def new_int_zero
-      IntVal1)
+  by (metis IntVal1 bool_to_val.simps(2) bool_to_val_boolean intval_logic_negation.simps(1)
+      intval_logic_negation_bool_self logic_negate_def)
 
 lemma negation_preserve_eval0:
   assumes "[m, p] \<turnstile> exp[e] \<mapsto> v"
@@ -156,7 +156,7 @@ optimization ConditionalIntegerEquals_2: "((c ? x : y) eq y) \<longmapsto> (!c)
     have cRange: "cond = val[false] \<or> cond = val[true]"
       using p cond by (simp add: is_boolean_def val_is_boolean_def bool_values_def)
     then have cNotRange: "notCond = val[false] \<or> notCond = val[true]"
-      by (metis (no_types, lifting) IntVal0 IntVal1 cond evalDet intval_logic_negation.simps(1)
+      by (metis (no_types, lifting) new_int_zero IntVal1 cond evalDet intval_logic_negation.simps(1)
           logic_negate_def negation_preserve_eval notCond)
     then obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p by auto
@@ -209,8 +209,8 @@ optimization ConditionalExtractCondition2: "(c ? false : true) \<longmapsto> !c 
     then have "cond = val[false] \<Longrightarrow> cExpr = val[true]"
       using p cond evalDet by fastforce
     then have "notCond = cExpr"
-      by (metis (no_types, lifting) IntVal0 IntVal1 cRange cond condTrue evalDet notCond
-          intval_logic_negation.simps(1) logic_negate_def negation_preserve_eval)
+      by (metis (no_types, lifting) new_int_zero IntVal1 cRange cond condTrue negation_preserve_eval
+          intval_logic_negation.simps(1) logic_negate_def evalDet notCond)
     then show ?thesis
       using notCond by auto
   qed

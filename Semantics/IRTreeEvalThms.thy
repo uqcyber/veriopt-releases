@@ -676,13 +676,12 @@ lemma unary_integer_convert_bitsize:
   assumes "unary_eval op x = IntVal b ival"
   assumes "op \<in> unary_integer_convert"
   shows "b = ir_resultBits op \<and> 0 < b \<and> b \<le> 64"
-  using assms(2) apply (cases op; simp) prefer 2 using new_int.elims (* the unary_normal and unary_boolean cases *)
-  apply (metis (no_types, lifting) assms(1) intval_sign_extend_ok Value.distinct(1) Value.inject(1)
-         new_int.simps order.strict_trans2 unary_eval.simps(6) intval_sign_extend.simps(1)
-         is_IntVal_def)
-  by (metis assms(1) intval_narrow_ok intval_zero_extend_ok intval_narrow.simps(1) linorder_neqE_nat
-      intval_zero_extend.simps(1) is_IntVal_def new_int.elims unary_eval.simps(5,7) gr_implies_not0
-      Value.distinct(1) intval_bits.simps bot_nat_0.extremum_uniqueI)+
+  using assms(2) apply (cases op; simp) (* the unary_normal and unary_boolean cases *)
+  apply (metis assms(1) intval_narrow_ok intval_narrow.simps(1) Value.distinct(1) intval_bits.simps
+         unary_eval.simps(5) is_IntVal_def new_int.elims)
+  by (metis (no_types, lifting) assms(1) intval_sign_extend_ok Value.distinct(1) order.strict_trans2
+      unary_eval.simps(6,7) intval_sign_extend.simps(1) intval_zero_extend.simps(1) is_IntVal_def
+      intval_zero_extend_ok new_int.elims intval_bits.simps)+
 
 lemma unary_eval_bitsize:
   assumes "unary_eval op x = IntVal b v"
@@ -690,8 +689,9 @@ lemma unary_eval_bitsize:
   assumes "0 < bx \<and> bx \<le> 64"
   shows "0 < b \<and> b \<le> 64"
   using assms apply (cases op; simp)
-  by (metis Value.distinct(1) Value.inject(1) bot_nat_0.not_eq_extremum le_0_eq new_int.simps
-      le_trans le_zero_eq not_gr_zero)+
+  using le_trans apply (metis Value.distinct(1) Value.inject(1) new_int.simps)
+  by (metis Value.distinct(1) Value.inject(1) bot_nat_0.not_eq_extremum not_gr_zero new_int.simps
+      le_0_eq le_zero_eq)+
 
 (*
 lemma unary2:

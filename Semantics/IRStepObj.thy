@@ -47,10 +47,8 @@ fun find_index :: "'a \<Rightarrow> 'a list \<Rightarrow> nat" where
 inductive indexof :: "'a list \<Rightarrow> nat \<Rightarrow> 'a \<Rightarrow> bool" where
   "find_index x xs = i \<Longrightarrow> indexof xs i x"
 
-lemma indexof_det:
-  "indexof xs i x \<Longrightarrow> indexof xs i' x \<Longrightarrow> i = i'"
-  apply (induction rule: indexof.induct)
-  by (simp add: indexof.simps)
+lemma indexof_det: "indexof xs i x \<Longrightarrow> indexof xs i' x \<Longrightarrow> i = i'"
+  apply (induction rule: indexof.induct) by (simp add: indexof.simps)
 
 code_pred (modes: i \<Rightarrow> o \<Rightarrow> i \<Rightarrow> bool) indexof .
 
@@ -70,56 +68,32 @@ fun set_phis :: "ID list \<Rightarrow> Value list \<Rightarrow> MapState \<Right
   "set_phis [] (v # vs) m = m" |
   "set_phis (x # ns) [] m = m"
 
-definition
-  fun_add :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a \<rightharpoonup> 'b) \<Rightarrow> ('a \<Rightarrow> 'b)" (infixl "++\<^sub>f" 100) where
+definition fun_add :: "('a \<Rightarrow> 'b) \<Rightarrow> ('a \<rightharpoonup> 'b) \<Rightarrow> ('a \<Rightarrow> 'b)" (infixl "++\<^sub>f" 100) where
   "f1 ++\<^sub>f f2 = (\<lambda>x. case f2 x of None \<Rightarrow> f1 x | Some y \<Rightarrow> y)"
 
 definition upds :: "('a \<Rightarrow> 'b) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> ('a \<Rightarrow> 'b)" ("_/'(_ [\<rightarrow>] _/')" 900) where
   "upds m ns vs = m ++\<^sub>f (map_of (rev (zip ns vs)))"
 
-lemma fun_add_empty:
-  "xs ++\<^sub>f (map_of []) = xs"
+lemma fun_add_empty: "xs ++\<^sub>f (map_of []) = xs"
   unfolding fun_add_def by simp
 
-lemma upds_inc_helper:
-   "(\<lambda>x::'a.
-        case case map_of (rev (zip as bs)) x of None \<Rightarrow> [a \<mapsto> b] x
-        | Some (x::'b) \<Rightarrow> Some x of None \<Rightarrow> m x
-        | Some (y::'b) \<Rightarrow> y) =
-    (\<lambda>x::'a. case map_of (rev (zip as bs)) x of None \<Rightarrow> (m(a := b)) x | Some (y::'b) \<Rightarrow> y)"
-    proof -
-    { fix aa :: 'a
-        have "map_of (rev (zip as bs)) aa = None \<longrightarrow>
-            (case case map_of (rev (zip as bs)) aa of None \<Rightarrow> [a \<mapsto> b] aa |
-                       Some x \<Rightarrow> Some x of None \<Rightarrow> m aa | Some b \<Rightarrow> b) =
-            (case map_of (rev (zip as bs)) aa of None \<Rightarrow> (m(a := b)) aa | Some b \<Rightarrow> b)"
-          by fastforce
-        then have "(case case map_of (rev (zip as bs)) aa of None \<Rightarrow> [a \<mapsto> b] aa |
-                         Some x \<Rightarrow> Some x of None \<Rightarrow> m aa | Some b \<Rightarrow> b) =
-                   (case map_of (rev (zip as bs)) aa of None \<Rightarrow> (m(a := b)) aa | Some b \<Rightarrow> b)"
-          by force }
-        then show ?thesis
-        by presburger
-    qed
-
-lemma upds_inc:
-  "m(a#as [\<rightarrow>] b#bs) = (m(a:=b))(as[\<rightarrow>]bs)"
-  unfolding upds_def fun_add_def apply simp unfolding map_add_def by (metis upds_inc_helper)
+lemma upds_inc: "m(a#as [\<rightarrow>] b#bs) = ((m(a:=b))(as[\<rightarrow>]bs))"
+  unfolding upds_def fun_add_def apply simp unfolding map_add_def
+  using option.case_eq_if[of "[a \<mapsto> b] _" Some] by fastforce
 
 lemma upds_compose:
   "a ++\<^sub>f map_of (rev (zip (n # ns) (v # vs))) = a(n := v) ++\<^sub>f map_of (rev (zip ns vs))"
-  using upds_inc
-  by (metis upds_def)
+  by (metis upds_def upds_inc)
 
 lemma "set_phis ns vs = (\<lambda>m. upds m ns vs)"
 proof (induction rule: set_phis.induct)
   case (1 m)
-  then show ?case unfolding set_phis.simps upds_def
-    by (metis Nil_eq_zip_iff Nil_is_rev_conv fun_add_empty)
+  then show ?case
+    unfolding set_phis.simps upds_def by (metis Nil_eq_zip_iff Nil_is_rev_conv fun_add_empty)
 next
   case (2 n xs v vs m)
-  then show ?case unfolding set_phis.simps upds_def
-    by (metis upds_compose)
+  then show ?case
+    unfolding set_phis.simps upds_def by (metis upds_compose)
 next
   case (3 v vs m)
   then show ?case
@@ -138,7 +112,6 @@ definition filter_phis :: "IRGraph \<Rightarrow> ID \<Rightarrow> ID list" where
 
 definition phi_inputs :: "IRGraph \<Rightarrow> ID list \<Rightarrow> nat \<Rightarrow> ID list" where
   "phi_inputs g phis i = (map (\<lambda>n. (inputs_of (kind g n))!(i + 1)) phis)"
-
 
 text \<open>
 Intraprocedural semantics are given as a small-step semantics.

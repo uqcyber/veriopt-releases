@@ -113,11 +113,9 @@ lemma mul_rewrite_helper32:
       by simp
     obtain xvv where xvv: "x = IntVal b xvv"
       using p valid_int by blast
-    have notUndef: "intval_mul x y \<noteq> UndefVal"
-      by (simp add: xvv y)
     have unfoldMul: "intval_mul x y = (new_int b (mask b * xvv))"
       by (simp add: mult.commute xvv y)
-    have unfoldNegate: "intval_negate x = new_int b (- xvv)"
+    have "intval_negate x = new_int b (- xvv)"
       using xvv by auto
     then show ?thesis
       by (metis (no_types, opaque_lifting) mask_eqs(5) take_bit_eq_mask mult.commute unfoldMul y
@@ -183,7 +181,7 @@ lemma CanonicalizeAddProof:
   using assms
 proof (induct rule: CanonicalizeAdd.induct)
   case (add_xsub x a y stampa stampy)
-  then show ?case 
+  then show ?case
     using BinaryExprE Stamp.collapse(1) bin_eval.simps(1,3) intval_add_sym add_rewrites_helper(1)
           evalDet
     sorry
@@ -216,10 +214,10 @@ lemma sub_rewrites_helper:
   and     2:"valid_value y (IntegerStamp b loy hiy)"
 
   shows "intval_sub (intval_add x y) y  = x"
-  and   "intval_sub (intval_add x y) x  = y" 
-  and   "intval_sub (intval_sub x y) x  = intval_negate y" 
+  and   "intval_sub (intval_add x y) x  = y"
+  and   "intval_sub (intval_sub x y) x  = intval_negate y"
   and   "intval_sub x (intval_add x y)  = intval_negate y"
-  and   "intval_sub y (intval_add x y)  = intval_negate x" 
+  and   "intval_sub y (intval_add x y)  = intval_negate x"
   and   "intval_sub x (intval_sub x y)  = y"
   and   "intval_sub x (intval_negate y) = intval_add x y"
   using valid_int_stamp_both[OF 1 2] by fastforce+
@@ -228,8 +226,8 @@ lemma sub_rewrites_helper:
 (* 0 - x \<Rightarrow> -x *)
 lemma sub_single_rewrites_helper:
   assumes "valid_value x (IntegerStamp b lox hix)"
-  shows   "intval_sub x x = IntVal b 0" 
-  and     "intval_sub (IntVal b 0) x = intval_negate x" 
+  shows   "intval_sub x x = IntVal b 0"
+  and     "intval_sub (IntVal b 0) x = intval_negate x"
   using assms valid_int_stamp_gives by fastforce+
 
 lemma CanonicalizeSubProof:
@@ -292,7 +290,7 @@ lemma negate_xsuby_helper:
   assumes "valid_value x (IntegerStamp b lox hix)"
   and "valid_value y (IntegerStamp b loy hiy)"
   shows "intval_negate (intval_sub x y) = intval_sub y x"
-  using valid_int_stamp_both[OF assms] 
+  using valid_int_stamp_both[OF assms]
   by (smt (verit, ccfv_threshold) ab_group_add_class.ab_diff_conv_add_uminus add.commute diff_0
       add_diff_cancel_left' intval_negate.simps(1) intval_sub.simps(1) take_bit_dist_subR
       new_int_bin.simps new_int.simps)
@@ -300,7 +298,7 @@ lemma negate_xsuby_helper:
 (* -(-x) = x *)
 lemma negate_negate_helper:
   assumes "valid_value x (IntegerStamp b lox hix)"
-  shows "intval_negate (intval_negate x) = x" 
+  shows "intval_negate (intval_negate x) = x"
   by (metis (no_types, opaque_lifting) add.inverse_inverse assms diff_0 intval_negate.simps(1)
       new_int.simps take_bit_dist_subR valid_int_stamp_gives)
 
@@ -359,7 +357,7 @@ lemma abs_neg_is_neg:
   apply (case_tac[!] "x") using intval_negate.simps(2)
   apply presburger defer
   apply (metis valid_value.simps(5) assms)
-  apply simp
+  apply (simp, simp)
   sorry
 end
 
@@ -401,8 +399,8 @@ qed
 lemma not_rewrite_helper:
   assumes "valid_value x (IntegerStamp b lox hix)"
   shows "intval_not (intval_not x) = x"
-  by (metis bit.double_compl intval_not.simps(1) new_int.simps take_bit_not_take_bit assms
-      valid_int_stamp_gives)
+  by (metis bit.double_compl intval_not.simps(1) valid_int_stamp_gives take_bit_not_take_bit assms
+      new_int.simps)
 
 experiment begin
 lemma CanonicalizeNotProof:
@@ -486,7 +484,7 @@ lemma disjoint_stamp_implies_less_than:
   "\<lbrakk>valid_value x stampx;
     valid_value y stampy;
     is_IntegerStamp stampx \<and> is_IntegerStamp stampy;
-    stpi_upper stampx < stpi_lower stampy\<rbrakk> 
+    stpi_upper stampx < stpi_lower stampy\<rbrakk>
   \<Longrightarrow> val_to_bool(intval_less_than x y)"
   sorry
 
@@ -506,7 +504,8 @@ next
     using cond_eq.hyps(1) cond_eq.prems(1) by fast
   obtain yval where yeval: "[m,p] \<turnstile> y \<mapsto> yval"
     using cond_eq.prems(2) by fast
-  show ?case proof (cases "xval = yval")
+  show ?case
+  proof (cases "xval = yval")
     case True
     then show ?thesis
       by (smt (verit, ccfv_threshold) ConditionalExprE cond_eq.prems(1,2) evalDet xeval yeval)
@@ -514,31 +513,20 @@ next
     case False
     then have "\<not>(val_to_bool(intval_equals xval yval))"
       apply (cases "intval_equals xval yval")
-      prefer 2 defer using val_to_bool.simps apply presburger+
+      defer 2 using val_to_bool.simps apply presburger+
       subgoal premises p for b v
       proof -
-        have notUndef: "intval_equals xval yval \<noteq> UndefVal"
-          by (simp add: p(2))
-        have notUndefImpliesIntVal: "intval_equals xval yval \<noteq> UndefVal
-                                                              \<Longrightarrow> (is_IntVal xval \<and> is_IntVal yval)"
-          by (metis bin_eval.simps(11) defined_eval_is_intval)
         obtain xb xvv where xvv: "xval = IntVal xb xvv"
-          by (meson is_IntVal_def notUndef notUndefImpliesIntVal)
+          by (metis bin_eval.simps(13) bin_eval_inputs_are_ints p(2))
         obtain yb yvv where yvv: "yval = IntVal yb yvv"
-          by (meson is_IntVal_def notUndef notUndefImpliesIntVal)
-        have sameWidth: "xb = yb"
-          by (metis bool_to_val_bin.elims intval_equals.simps(1) notUndef xvv yvv)
-        then have unfoldEquals: "intval_equals xval yval = (bool_to_val (xvv = yvv))"
-          by (simp add: xvv yvv)
-        then have notEqual: "(bool_to_val (xvv = yvv)) = bool_to_val False"
-          using False sameWidth xvv yvv by auto
+          by (metis Value.distinct(1) bin_eval.simps(13) defined_eval_is_intval is_IntVal_def p(2))
         then show ?thesis
-          by (simp add: unfoldEquals)
+          using False xvv yvv by auto
       qed
       done
     then have "res = yval"
-      by (smt (verit, ccfv_threshold) BinaryExprE ConditionalExprE bin_eval.simps(11) evalDet yeval
-          cond_eq.hyps(1) cond_eq.prems(1) xeval)
+      by (smt (verit, del_insts) BinaryExprE ConditionalExprE bin_eval.simps(13) evalDet yeval xeval
+          cond_eq.hyps(1) cond_eq.prems(1))
     then show ?thesis
       using cond_eq.prems(1,2) xeval yeval evalDet by presburger
   qed
@@ -551,7 +539,7 @@ next
   then show ?case proof (cases "val_to_bool(intval_less_than xval yval)")
     case True
     then show ?thesis
-      by (smt (verit, best) BinaryExprE ConditionalExprE bin_eval.simps(12) evalDet xeval yeval
+      by (smt (verit, ccfv_SIG) BinaryExprE ConditionalExprE bin_eval.simps(14) evalDet xeval yeval
           condition_bounds_x.hyps(1) condition_bounds_x.prems(1,2))
   next
     case False
@@ -578,8 +566,8 @@ next
   then show ?case proof (cases "val_to_bool(intval_less_than xval yval)")
     case True
     then show ?thesis
-      by (smt (verit, best) BinaryExprE ConditionalExprE bin_eval.simps(12) evalDet xeval yeval
-          condition_bounds_y.hyps(1) condition_bounds_y.prems(1,2))
+      by (smt (verit) BinaryExprE ConditionalExprE bin_eval.simps(14) condition_bounds_y.prems(1,2)
+          condition_bounds_y.hyps(1) evalDet xeval yeval)
   next
     case False
     have "stpi_upper stampx = stpi_lower stampy"
@@ -603,7 +591,9 @@ next
     using negate_condition.prems(2) by auto
   obtain ncval where nceval: "[m,p] \<turnstile> nc \<mapsto> ncval"
     using negate_condition.prems by blast
-  then show ?case using assms proof (cases "(val_to_bool ncval)")
+  then show ?case
+    using assms
+  proof (cases "(val_to_bool ncval)")
     case True
     obtain xval where xeval: "[m,p] \<turnstile> x \<mapsto> xval"
       by (metis (full_types) ConditionalExprE negate_condition.prems(1))
@@ -629,11 +619,8 @@ next
       sorry (*
       by (metis False UnaryExprE ceval evalDet intval_logic_negation.simps(1) nceval negate_condition.hyps(1) negate_condition.hyps(2) negate_condition.hyps(3) stamp_implies_valid_value unary_eval.simps(4) val_to_bool.simps(1) valid_int32 zero_neq_one)
       *)
-    moreover have "res' = yval"
-      by (metis (full_types) calculation(2) ceval negate_condition.prems evalDet ConditionalExprE
-          yeval)
     ultimately show ?thesis
-      by simp
+      by (smt (verit, best) ConditionalExprE ceval evalDet negate_condition.prems(2) yeval)
   qed
 next
   case (const_true c val t f)
@@ -644,6 +631,7 @@ next
   then show ?case
     by (auto simp add: evalDet)
 qed
+
 end
 
 end

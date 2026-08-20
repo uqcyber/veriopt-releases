@@ -160,7 +160,7 @@ optimization ConditionalIntegerEquals_2: "((c ? x : y) eq y) \<longmapsto> (!c)
           logic_negate_def negation_preserve_eval notCond)
     then obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
       using p by auto
-    then have trueCond: "(notCond = val[true]) \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr c x y) \<mapsto> yv"
+    then have trueCond: "(notCond = val[true]) \<Longrightarrow> [m,p] \<turnstile> exp[c ? x : y] \<mapsto> yv"
       by (smt (verit, ccfv_SIG) cRange negates negation_preserve_eval2 notCond ConditionalExpr cond
           evalDet val_to_bool.simps(1) eval_bits_1_64 p(10,13,14,15,16,6,7,9))
     obtain xvv where xvv: "xv = IntVal b xvv"
@@ -169,7 +169,7 @@ optimization ConditionalIntegerEquals_2: "((c ? x : y) eq y) \<longmapsto> (!c)
       by (metis cond evalDet negation_preserve_eval notCond)
     then have negate: "(intval_logic_negation cond = val[false]) \<Longrightarrow> (cond = val[true])"
       using cRange intval_logic_negation.simps negates by fastforce
-    have falseCond: "(notCond = val[false]) \<Longrightarrow> [m,p] \<turnstile> (ConditionalExpr c x y) \<mapsto> xv"
+    have falseCond: "(notCond = val[false]) \<Longrightarrow> [m,p] \<turnstile> exp[c ? x : y] \<mapsto> xv"
       unfolding opposites using negate cond evalDet p(13,14,15,16) xv by auto
     obtain yvv where yvv: "yv = IntVal b yvv"
       by (metis p(3,4,7) wf_stamp_def ExpIntBecomesIntVal)

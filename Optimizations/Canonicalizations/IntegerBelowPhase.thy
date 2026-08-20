@@ -12,30 +12,6 @@ phase IntegerBelowNode
 begin
 
 (* Word level proofs *)
-lemma pos_signed_unsigned:
-  assumes "sint (x) \<ge> 0"
-  shows "sint(x) = uint(x)"
-proof -
-  have bitUnset: "\<not>(bit x (LENGTH('a) - Suc(0)))"
-    using assms bit_last_iff by force
-  then have "signed_take_bit (LENGTH('a) - Suc(0)) x = take_bit (LENGTH('a) - Suc(0)) x"
-    by (simp add: signed_take_bit_eq_if_positive)
-  then show ?thesis
-    by (metis bitUnset bit_uint_iff unsigned_take_bit_eq drop_bit_eq_zero_iff_not_bit_last sint_uint
-        signed_take_bit_eq_if_positive take_bit_eq_self_iff_drop_bit_eq_0)
-qed
-
-lemma bin_below_eq_less:
-  assumes "sint (x) \<ge> 0"
-  assumes "sint (y) \<ge> 0"
-  shows "bin[less x y] = bin[word_sless x y]"
-proof -
-  have "(sint(x) < sint(y)) = (uint(x) < uint(y))"
-    by (metis assms pos_signed_unsigned)
-  then show ?thesis
-    by (simp add: word_less_iff_unsigned word_sless_alt)
-qed
-
 lemma bin_negate_below: "x \<noteq> y \<and> \<not>(x < y) \<Longrightarrow> y < x" for x y::int64
   by auto
 
@@ -169,7 +145,7 @@ proof -
   have "vy < vz"
     using assms(1,2,8) val_to_bool.elims(2) by fastforce
   then have "vy <s vz"
-    using assms bin_below_eq_less verify_isValPositive zBounds by blast
+    using assms sint_pos_lt_uint_below verify_isValPositive zBounds by blast
   then have "signed_take_bit (n - 1) (take_bit n (vy - vz)) <s 0"
     using assms(1,2,3,4,5,6,7,8)
     by (meson bin_below_sub prot2 signed.dual_order.strict_trans2 width_eq_implies_bitbounds_eq yPos
@@ -207,7 +183,7 @@ next
   moreover have vPos: "sint(vz) \<ge> 0"
     using assms verify_isValPositive zBounds by presburger
   ultimately have "vz <s vy"
-    by (metis geq assms(1,3,5,6) bin_below_eq_less bin_negate_less notEq verify_isValPositive)
+    by (metis geq assms(1,3,5,6) sint_pos_lt_uint_below bin_negate_less notEq verify_isValPositive)
   then have subNotNeg: "\<not>((vy - vz) <s 0)"
     by (metis (no_types, opaque_lifting) bin_below_sub order.strict_trans2 order_less_imp_not_eq2
         signed.less_trans signed.not_le signed_0 vPos word_sless_alt)
@@ -236,7 +212,7 @@ lemma val_below_eq_less:
   assumes "positive_intval y"
   shows "val[x |<| y] = val[x < y]"
   using assms apply (cases x; cases y; auto)
-  by (smt (verit) assms(4,5,6,7) bin_below_eq_less new_int.elims numerals(1) numeral_1_eq_Suc_0
+  by (smt (verit) assms(4,5,6,7) sint_pos_lt_uint_below new_int.elims numerals(1) numeral_1_eq_Suc_0
       signed_take_bit_eq_if_positive tb_n1 verify_pos_val_leq64 word_sless_alt)
 
 lemma below_zero: "val[(new_int b v) |<| (new_int b 0)] = val[false]"

@@ -78,8 +78,8 @@ subsubsection \<open> Conditional size proofs \<close>
 lemma size_cond_gt_1[size_simps]: "Suc 0 < size (ConditionalExpr cond t f)"
   unfolding cond_size cond_cycles_def by (simp add: size_pos)
 
-lemma size_cond_gt_cond[size_simps]: "(size c) < size (ConditionalExpr c x y)"
-  using cond_size [of c x y] unfolding cond_cycles_def by simp
+lemma size_cond_gt_cond[size_simps]: "size c < size (ConditionalExpr c x y)"
+  using cond_size [of c x y] unfolding cond_cycles_def by linarith
 
 subsubsection \<open> Unary size proofs \<close>
 

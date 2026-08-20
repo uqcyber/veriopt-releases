@@ -350,7 +350,23 @@ lemma stamprange:
 *)  
 
 lemma compatible_trans: "compatible x y \<and> compatible y z \<Longrightarrow> compatible x z"
-  by (cases x; cases y; cases z; auto)
+  subgoal premises p
+proof (cases "x = VoidStamp")
+  case True
+  then show ?thesis
+    using compatible.elims(2) p by blast
+next
+  case False
+  obtain xb xl xh where x: "x = IntegerStamp xb xl xh"
+    by (smt (verit, ccfv_threshold) False compatible.elims(2) p)
+  obtain yb yl yh where y: "y = IntegerStamp yb yl yh"
+    by (smt (verit, best) False compatible.elims(2) p)
+  obtain zb zl zh where z: "z = IntegerStamp zb zl zh"
+    by (smt (verit, best) compatible.elims(2) p y)
+  then show ?thesis
+    by (metis compatible.simps(1) x y p)
+qed
+  done
 
 lemma compatible_refl: "compatible x y \<Longrightarrow> compatible y x"
   using compatible.elims(2) by fastforce

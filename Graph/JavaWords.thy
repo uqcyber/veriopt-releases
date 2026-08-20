@@ -87,11 +87,11 @@ subsubsection \<open>Support Lemmas for Upper/Lower Bounds\<close>
 
 (* these two were weirdly hard to prove given it should be by definition *)
 lemma size32: "size v = 32" for v :: "32 word"
-  by (smt (verit, del_insts) mult.commute One_nat_def add.right_neutral add_Suc_right numeral_2_eq_2
-      len_of_numeral_defs(2,3) mult.right_neutral mult_Suc_right numeral_Bit0 size_word.rep_eq)
+  by (smt (verit) len_of_numeral_defs(2,3) mult.right_neutral numeral_Bit0_eq_double
+      size_word.rep_eq)
 
 lemma size64: "size v = 64" for v :: "64 word"
-  by (metis numeral_times_numeral semiring_norm(12,13) len_of_numeral_defs(3) size_word.rep_eq
+  by (smt (z3) numeral_times_numeral semiring_norm(12,13) len_of_numeral_defs(3) size_word.rep_eq
       size32)
 
 (* Nb. Word.sint_ge and sint_lt subsume these lemmas.
@@ -171,12 +171,7 @@ lemma val_pos_def:
   assumes "n \<le> 64"
   assumes "\<not> bit v (n - 1)"
   shows "0 \<le> sint (signed_take_bit (n - 1) v)"
-proof -
-  have last_bit: "\<not> bit v (n - 1)"
-    using assms(2) by auto
-  show ?thesis
-    using assms apply transfer by (simp add: bit_take_bit_iff)
-qed
+  using assms apply transfer by (simp add: bit_take_bit_iff)
 
 lemma val_pos_bit:
   fixes v :: int64
@@ -417,7 +412,7 @@ lemma take_bit_minus_push_bit:
   by (smt (z3) linordered_semidom_class.add_diff_inverse signed_take_bit_eq_if_positive less_Suc_eq
       zero_less_diff signed_take_bit_code One_nat_def plus_1_eq_Suc less_nat_zero_code not_gr_zero)
 
-text \<open>Helpful signed\_take\_bit properties\<close>
+text \<open>Helpful signed\_take\_bit and sint properties\<close>
 
 lemma take_bit_eq_signed: "take_bit b v = v \<Longrightarrow> signed_take_bit b v = v"
   by (metis (full_types) eq_imp_le signed_take_bit_take_bit)
@@ -428,6 +423,31 @@ lemma unwrap_signed_take_bit:
   assumes "signed_take_bit (b - 1) v = v"
   shows "signed_take_bit 63 (Word.rep (signed_take_bit (b - Suc 0) v)) = sint v"
   using assms by (simp add: signed_def)
+
+lemma sint_pos_signed_unset:
+  fixes w :: "'a::len word"
+  assumes "sint w \<ge> 0"
+  shows "\<not>(bit w (LENGTH('a) - Suc 0))"
+  using bit_last_iff assms linorder_not_less by auto
+
+lemma sint_pos_eq_uint:
+  assumes "sint x \<ge> 0"
+  shows "sint x = uint x"
+  by (metis (lifting) sint_pos_signed_unset bit_uint_iff take_bit_eq_self_iff_drop_bit_eq_0 assms
+      drop_bit_eq_zero_iff_not_bit_last signed_take_bit_eq_if_positive unsigned_take_bit_eq
+      sint_uint)
+
+lemma sint_pos_lt_uint_lt:
+  assumes "sint x \<ge> 0"
+  assumes "sint y \<ge> 0"
+  shows "(sint x < sint y) = (uint x < uint y)"
+  by (simp add: assms sint_pos_eq_uint)
+
+lemma sint_pos_lt_uint_below:
+  assumes "sint x \<ge> 0"
+  assumes "sint y \<ge> 0"
+  shows "(x <s y) = (x < y)"
+  by (metis word_less_iff_unsigned word_sless_alt sint_pos_lt_uint_lt assms)
 
 text \<open>mod lemmas\<close>
 

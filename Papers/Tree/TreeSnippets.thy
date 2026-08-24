@@ -178,8 +178,7 @@ snipbegin \<open>RedundantSubtract\<close>
 optimization RedundantSubtract:
   "x - (x - y) \<longmapsto> y"
 snipend -
-  using size_binary_rhs_b apply blast
-  using diff_diff_cancel_expr by presburger
+  using size_bin_rhs_b diff_diff_cancel_expr by presburger+
 end
 
 subsection \<open>Representing terms\<close>
@@ -279,8 +278,7 @@ snipend -
   snipbegin \<open>InverseRightSubObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using RedundantSubAdd2(2) rewrite_termination.simps(1) apply blast
-  using RedundantSubAdd2(1) rewrite_preservation.simps(1) by blast
+  using RedundantAddSub(1) rewrite_preservation.simps(1) size_bin_rhs_a by blast+
 end
 
 snipbegin \<open>expression-refinement-monotone\<close>
@@ -299,7 +297,7 @@ snipend -
   snipbegin \<open>BinaryFoldConstantObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  using const_size size_bin_gt_1 apply presburger
+  using const_size numeral_nat(7) size_bin_gt_1 apply presburger
   using BinaryFoldConstant(1) by auto
 
 snipbegin \<open>AddCommuteConstantRight\<close>
@@ -312,13 +310,14 @@ snipend -
   using AddShiftConstantRight by auto
 
 snipbegin \<open>AddNeutral\<close>
-optimization AddNeutral: "x + (const (IntVal 32 0)) \<longmapsto> x"
+optimization AddNeutral: "x + (const (new_int b 0)) \<longmapsto> x
+                          when (stamp_expr x = IntegerStamp b lo hi \<and> wf_stamp x)"
 snipend -
   snipbegin \<open>AddNeutralObligation\<close>
   text \<open>@{subgoals[display]}\<close>
   snipend -
-  apply auto
-  using AddNeutral(1) rewrite_preservation.simps(1) by force
+  using size_bin_lhs apply fast
+  using AddNeutral_Exp by simp
 
 snipbegin \<open>AddToSub\<close>
 optimization AddToSub: "-x + y \<longmapsto> y - x"
@@ -353,7 +352,9 @@ begin
 snipend -
 
 snipbegin \<open>phase-example-1\<close>optimization NegateCond: "((!c) ? t : f) \<longmapsto> (c ? f : t)"snipend -
-  apply (simp add: size_simps)
+  unfolding trm_def
+  apply (smt (verit, del_insts) nat_int_comparison(2) of_nat_1 of_nat_add un_exp_size_eq_empty
+         un_cycles.simps(10) un_cycles_0 size.simps(1,10))
   using ConditionalPhase.NegateConditionFlipBranches(1) by simp
 
 snipbegin \<open>phase-example-2\<close>optimization TrueCond: "(true ? t : f) \<longmapsto> t"snipend -
@@ -363,30 +364,28 @@ snipbegin \<open>phase-example-3\<close>optimization FalseCond: "(false ? t : f)
   by (auto simp: trm_def)
 
 snipbegin \<open>phase-example-4\<close>optimization BranchEqual: "(c ? x : x) \<longmapsto> x"snipend -
-  by (auto simp: trm_def)
+  by (auto simp: trm_def size_pos)
  
 snipbegin \<open>phase-example-5\<close>optimization LessCond: "((u < v) ? t : f) \<longmapsto> t
                    when (stamp_under (stamp_expr u) (stamp_expr v) 
                             \<and> wf_stamp u \<and> wf_stamp v)"snipend -
-  apply (auto simp: trm_def)
-  using ConditionalPhase.condition_bounds_x(1)
-  by (metis (full_types) bin_eval.simps(14) stamp_under_defn)
+  using condition_bounds_x(2) trm_def apply force
+  by (metis condition_bounds_x(1) rewrite_preservation.simps(2))
 
 snipbegin \<open>phase-example-6\<close>optimization condition_bounds_y: "((x < y) ? x : y) \<longmapsto> y
                    when (stamp_under (stamp_expr y) (stamp_expr x) \<and> wf_stamp x \<and> wf_stamp y)"snipend -
-  apply (auto simp: trm_def)
-  using ConditionalPhase.condition_bounds_y(1)
-  by (metis (full_types) bin_eval.simps(14) stamp_under_defn_inverse)
+  using size_cond_gt_cond trm_defn apply force
+  by (metis condition_bounds_y(1) rewrite_preservation.simps(2))
 
 snipbegin \<open>phase-example-7\<close>end snipend -
 
-lemma simplified_binary: "\<not>(is_ConstantExpr b) \<Longrightarrow> size (BinaryExpr op a b) = bin_op_size ((size a) + (size b) + 2) op"
+lemma simplified_binary: "\<not>(is_ConstantExpr b) \<Longrightarrow> size (BinaryExpr op a b) = bin_exp_size ((size a) + (size b) + 2) op"
   by (induction b; induction op; auto simp: is_ConstantExpr_def)
 
 thm bin_size
 thm bin_const_size
 thm unary_size
-thm size_non_add
+thm size_bin_nonconst_iff
 snipbegin \<open>termination\<close>
 text \<open>
 @{thm[display,margin=80] unary_size}

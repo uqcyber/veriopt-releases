@@ -5,7 +5,7 @@ theory AddPhase
     Common
 begin
 
-phase AddNode 
+phase AddNode
   terminating size
 begin
 
@@ -30,25 +30,20 @@ lemma is_neutral_0 [simp]:
   by simp
 
 lemma AddNeutral_Exp:
-  shows "exp[(e + (const (IntVal 32 0)))] \<ge> exp[e]"
+  assumes "stamp_expr e = IntegerStamp b lo hi"
+  assumes "wf_stamp e"
+  shows "exp[e + (const (new_int b 0))] \<ge> exp[e]"
   apply auto
   subgoal premises p for m p x
   proof -
     obtain ev where ev: "[m,p] \<turnstile> e \<mapsto> ev"
       using p by auto
-    then obtain b evx where evx: "ev = IntVal b evx"
-      by (metis evalDet evaltree_not_undef intval_add.simps(3,4,5) intval_logic_negation.cases
-          p(1,2))
-    have additionNotUndef: "val[ev + (IntVal 32 0)] \<noteq> UndefVal"
-      using p evalDet ev by blast
-    have sameWidth: "b = 32"
-      by (metis evx additionNotUndef intval_add.simps(1))
-    then have unfolded: "val[ev + (IntVal 32 0)] = IntVal 32 (take_bit 32 (evx + 0))"
-      by (simp add: evx)
-    have eqE: "IntVal 32 (take_bit 32 (evx + 0)) = IntVal 32 (take_bit 32 (evx))"
-      by auto
+    obtain evv where evv: "ev = IntVal b evv"
+      by (metis assms(1,2) valid_int wf_stamp_def ev)
+    have "[m,p] \<turnstile> exp[e + (const (new_int b 0))] \<mapsto> val[ev + (new_int b 0)]"
+      using ev evalDet p(1,2,3) by fastforce
     then show ?thesis
-      by (metis ev evalDet eval_unused_bits_zero evx p(1) sameWidth unfolded)
+      by (metis ev evalDet eval_int_implies_take_bit_eq evv is_neutral_0 new_int_take_bit_eq p(1,2))
   qed
   done
 
@@ -60,7 +55,7 @@ lemma NeutralLeftSubVal:
   using assms by (cases e1; cases e2; auto)
 
 lemma RedundantSubAdd_Exp:
-  shows "exp[((a - b) + b)] \<ge> a"
+  shows "exp[(a - b) + b] \<ge> a"
   apply auto
   subgoal premises p for m p y xa ya
   proof -
@@ -200,7 +195,7 @@ lemma RedundantAddSub_Exp:
       by (metis addNotUndef intval_add.simps(2,3,4,5) intval_logic_negation.cases)
     then have widthSame: "bb = ba"
       by (metis addNotUndef bInt intval_add.simps(1))
-    have valEval: "val[((bv + av) - bv)] = val[av]"
+    have "val[(bv + av) - bv] = val[av]"
       using aInt av eval_unused_bits_zero widthSame bInt by simp
     then show ?thesis
       by (metis av bv evalDet p(1,3,4))
@@ -235,30 +230,25 @@ lemma AddNotExp:
 
 text \<open>Optimisations\<close>
 
-optimization AddShiftConstantRight: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
+optimization AddShiftConstantRight: "(const v) + y \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
   using exp_add_commutative by blast
 
-optimization AddShiftConstantRight2: "((const v) + y) \<longmapsto> y + (const v) when \<not>(is_ConstantExpr y)"
-  using AddShiftConstantRight by auto
-
-optimization RedundantSubAdd: "((e\<^sub>1 - e\<^sub>2) + e\<^sub>2) \<longmapsto> e\<^sub>1"
+optimization RedundantSubAdd: "(e\<^sub>1 - e\<^sub>2) + e\<^sub>2 \<longmapsto> e\<^sub>1"
   using RedundantSubAdd_Exp by blast
 
-optimization RedundantSubAdd2: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
+optimization RedundantAddSub: "e\<^sub>2 + (e\<^sub>1 - e\<^sub>2) \<longmapsto> e\<^sub>1"
   apply (simp add: less_SucI size_bin_lhs trans_less_add2)
   using RedundantSubAdd_Exp exp_add_commutative order.trans by blast
 
-optimization AddNeutral: "(e + (const (IntVal 32 0))) \<longmapsto> e"
-  using AddNeutral_Exp by presburger
-
-optimization RedundantAddSub: "(b + a) - b \<longmapsto> a"
-  using RedundantAddSub_Exp by blast
-
-optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
-  using less_Suc_eq size_bin_cycle1_lt_succ_sum exp_add_right_negate_to_sub by auto
+optimization AddNeutral: "e + (const (new_int b 0)) \<longmapsto> e
+                          when (stamp_expr e = IntegerStamp b lo hi \<and> wf_stamp e)"
+  using AddNeutral_Exp by fastforce
 
 optimization AddLeftNegateToSub: "-e + y \<longmapsto> y - e"
   using exp_add_left_negate_to_sub by auto
+
+optimization AddRightNegateToSub: "x + -e \<longmapsto> x - e"
+  using less_Suc_eq size_bin_cycle1_lt_succ_sum exp_add_right_negate_to_sub by auto
 
 optimization AddNot: "n + (~n) \<longmapsto> const (new_int b (not 0))
                       when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"

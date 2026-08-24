@@ -2,7 +2,6 @@ subsection \<open>Evaluation Stamp Theorems\<close>
 
 theory StampEvalThms
   imports
-    Graph.ValueThms
     Semantics.IRTreeEvalThms
 begin
 

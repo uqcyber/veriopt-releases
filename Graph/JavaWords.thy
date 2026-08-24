@@ -352,6 +352,64 @@ lemma scast_bigger_bit_bounds:
   shows "fst (bit_bounds (LENGTH('a))) \<le> sint result \<and> sint result \<le> snd (bit_bounds (LENGTH('a)))"
   using assms scast_bigger_min_bound scast_bigger_max_bound by auto
 
+subsubsection \<open>Support lemmas for signed word arithmetic and sint\<close>
+
+text \<open>Negative word value properties\<close>
+
+lemma neg_signed_set:
+  fixes v :: "'a::len word"
+  assumes "v <s 0"
+  shows "bit v (LENGTH('a) - 1)"
+  using assms msb_word_eq msb_word_iff_sless_0 by blast
+
+lemma neg_negate_gt_0:
+  fixes v :: "'a::len word"
+  assumes "(2 ^ (LENGTH('a) - 1)) <s v"
+  assumes "v <s 0"
+  shows "0 <s (-v)"
+  by (smt (verit) assms signed_0 signed_take_bit_int_less_self_iff sint_ge sint_word_ariths(4)
+      word_sless_alt)
+
+lemma min_int_negate:
+  fixes v :: "'a::len word"
+  assumes "v = (2 ^ (LENGTH('a) - 1))"
+  shows "v = (-v)"
+  by (metis (no_types, opaque_lifting) assms add.inverse_neutral double_eq_zero_iff mult_minus_right
+      verit_minus_simplify(4) One_nat_def)
+
+text \<open>Positive word value properties\<close>
+
+lemma pos_signed_unset:
+  fixes v :: "'a::len word"
+  assumes "0 \<le>s v"
+  shows "\<not>(bit v (LENGTH('a) - 1))"
+  using assms msb_word_eq msb_word_iff_sless_0 signed.leD by auto
+
+lemma sint_pos_signed_unset:
+  fixes w :: "'a::len word"
+  assumes "0 \<le> sint w"
+  shows "\<not>(bit w (LENGTH('a) - 1))"
+  using bit_last_iff assms linorder_not_less by auto
+
+lemma sint_pos_eq_uint:
+  assumes "0 \<le> sint x"
+  shows "sint x = uint x"
+  by (metis sint_pos_signed_unset bit_uint_iff take_bit_eq_self_iff_drop_bit_eq_0 assms Suc_diff_1
+      drop_bit_eq_zero_iff_not_bit_last signed_take_bit_eq_if_positive sint_uint diff_self_eq_0
+      unsigned_take_bit_eq less_one)
+
+lemma sint_pos_lt_uint_lt:
+  assumes "0 \<le> sint x"
+  assumes "0 \<le> sint y"
+  shows "(sint x < sint y) = (uint x < uint y)"
+  by (simp add: assms sint_pos_eq_uint)
+
+lemma sint_pos_lt_uint_below:
+  assumes "0 \<le> sint x"
+  assumes "0 \<le> sint y"
+  shows "(x <s y) = (x < y)"
+  by (metis word_less_iff_unsigned word_sless_alt sint_pos_lt_uint_lt assms)
+
 subsubsection \<open>Support lemmas for take bit and signed take bit.\<close>
 
 text \<open>Lemmas for removing redundant take\_bit wrappers.\<close>
@@ -412,7 +470,13 @@ lemma take_bit_minus_push_bit:
   by (smt (z3) linordered_semidom_class.add_diff_inverse signed_take_bit_eq_if_positive less_Suc_eq
       zero_less_diff signed_take_bit_code One_nat_def plus_1_eq_Suc less_nat_zero_code not_gr_zero)
 
-text \<open>Helpful signed\_take\_bit and sint properties\<close>
+lemma take_bit_64:
+  assumes "0 < b \<and> b \<le> 64"
+  assumes "take_bit b v = v"
+  shows "take_bit 64 v = take_bit b v"
+  by (metis assms min_def nle_le take_bit_take_bit)
+
+text \<open>Helpful signed\_take\_bit properties\<close>
 
 lemma take_bit_eq_signed: "take_bit b v = v \<Longrightarrow> signed_take_bit b v = v"
   by (metis (full_types) eq_imp_le signed_take_bit_take_bit)
@@ -423,31 +487,6 @@ lemma unwrap_signed_take_bit:
   assumes "signed_take_bit (b - 1) v = v"
   shows "signed_take_bit 63 (Word.rep (signed_take_bit (b - Suc 0) v)) = sint v"
   using assms by (simp add: signed_def)
-
-lemma sint_pos_signed_unset:
-  fixes w :: "'a::len word"
-  assumes "sint w \<ge> 0"
-  shows "\<not>(bit w (LENGTH('a) - Suc 0))"
-  using bit_last_iff assms linorder_not_less by auto
-
-lemma sint_pos_eq_uint:
-  assumes "sint x \<ge> 0"
-  shows "sint x = uint x"
-  by (metis (lifting) sint_pos_signed_unset bit_uint_iff take_bit_eq_self_iff_drop_bit_eq_0 assms
-      drop_bit_eq_zero_iff_not_bit_last signed_take_bit_eq_if_positive unsigned_take_bit_eq
-      sint_uint)
-
-lemma sint_pos_lt_uint_lt:
-  assumes "sint x \<ge> 0"
-  assumes "sint y \<ge> 0"
-  shows "(sint x < sint y) = (uint x < uint y)"
-  by (simp add: assms sint_pos_eq_uint)
-
-lemma sint_pos_lt_uint_below:
-  assumes "sint x \<ge> 0"
-  assumes "sint y \<ge> 0"
-  shows "(x <s y) = (x < y)"
-  by (metis word_less_iff_unsigned word_sless_alt sint_pos_lt_uint_lt assms)
 
 text \<open>mod lemmas\<close>
 

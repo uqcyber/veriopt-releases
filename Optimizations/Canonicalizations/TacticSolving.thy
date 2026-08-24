@@ -583,7 +583,7 @@ lemma valXorEqZero_64:
   assumes "y = IntVal 64 yv"
   shows "val[(x \<oplus> y) eq (IntVal 64 0)] = val[x eq y]"
   using assms apply (cases x; cases y; auto)
-  unfolding unwrap_bool_to_val take_bit_size_eq64 Word.take_bit_length_eq by (simp add: xorZeroIsEq)
+  unfolding bool_to_val_unwrap take_bit_size_eq64 Word.take_bit_length_eq by (simp add: xorZeroIsEq)
 
 lemma expXorEqZero_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"
@@ -626,7 +626,7 @@ lemma valXorEqNeg1_64:
   assumes "y = IntVal 64 yv"
   shows "val[(x \<oplus> y) eq (IntVal 64 (not 0))] = val[x eq (\<not>y)]"
   using assms apply (cases x; cases y; auto)
-  unfolding unwrap_bool_to_val take_bit_size_eq64 Word.take_bit_length_eq using xorNeg1IsEq by auto
+  unfolding bool_to_val_unwrap take_bit_size_eq64 Word.take_bit_length_eq using xorNeg1IsEq by auto
 
 lemma expXorEqNeg1_64:
   assumes "stamp_expr x = IntegerStamp 64 xl xh"

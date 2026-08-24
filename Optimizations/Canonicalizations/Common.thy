@@ -252,7 +252,7 @@ lemma val_and_commutative: "val[x & y] = val[y & x]"
   by (cases x; cases y; auto simp: and.commute)
 
 lemma val_eq_commutative: "val[x eq y] = val[y eq x]"
-  by (cases y; cases x; auto simp: unwrap_bool_to_val)
+  by (cases y; cases x; auto simp: bool_to_val_unwrap)
 
 lemma val_mul_commutative: "val[x * y] = val[y * x]"
   by (cases x; cases y; auto simp: mult.commute)

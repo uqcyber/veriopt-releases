@@ -21,12 +21,6 @@ while @{const intval_less_than} uses the $b^{th}$ bit depending on the size of t
 value "val[new_int 32 0 < new_int 32 4294967286]" \<comment> \<open>0 < -10 = False\<close>
 value "(0::int64) <s 4294967286" \<comment> \<open>0 < 4294967286 = True\<close>
 
-lemma signed_eqiv:
-  assumes "b > 0 \<and> b \<le> 64"
-  shows "val_to_bool (val[new_int b v < new_int b v']) = (int_signed_value b v < int_signed_value b v')"
-  by (metis (no_types, lifting) assms take_bit_redundant bool_to_val.elims intval_less_than.simps(1)
-      bool_to_val_bin.elims int_signed_value.simps one_neq_zero new_int.simps val_to_bool.simps(1))
-
 lemma val_abs_pos:
   assumes "val_to_bool(val[(new_int b 0) < (new_int b v)])"
   shows "intval_abs (new_int b v) = (new_int b v)"
@@ -37,16 +31,6 @@ lemma val_abs_neg:
   shows "intval_abs (new_int b v) = intval_negate (new_int b v)"
   using assms by force
 
-lemma val_bool_unwrap:
-  "val_to_bool (bool_to_val v) = v"
-  by (metis bool_to_val.elims one_neq_zero val_to_bool.simps(1))
-
-lemma take_bit_64:
-  assumes "0 < b \<and> b \<le> 64"
-  assumes "take_bit b v = v"
-  shows "take_bit 64 v = take_bit b v"
-  by (metis assms min_def nle_le take_bit_take_bit)
-
 text \<open>
 A special value exists for the maximum negative integer as its negation is itself.
 We can define the value as @{term "(set_bit (b - 1) 0)::int64"} for any bit-width, b.
@@ -56,18 +40,6 @@ value "(set_bit 1 0)::2 word" \<comment> \<open>2\<close>
 value "-(set_bit 1 0)::2 word" \<comment> \<open>2\<close>
 value "(set_bit 31 0)::32 word" \<comment> \<open>2147483648\<close>
 value "-(set_bit 31 0)::32 word" \<comment> \<open>2147483648\<close>
-
-lemma negative_def:
-  fixes v :: "'a::len word"
-  assumes "v <s 0"
-  shows "bit v (LENGTH('a) - 1)"
-  using assms by (simp add: bit_last_iff word_sless_alt)
-
-lemma positive_def:
-  fixes v :: "'a::len word"
-  assumes "0 <s v"
-  shows "\<not>(bit v (LENGTH('a) - 1))"
-  using assms by (simp add: bit_last_iff word_sless_alt)
 
 (*
 lemma invert1:
@@ -119,14 +91,6 @@ lemma invert:
   using invert1 assms negative_lower_bound order_less_le by blast
 *)
 
-lemma negative_lower_bound:
-  fixes v :: "'a::len word"
-  assumes "(2^(LENGTH('a) - 1)) <s v"
-  assumes "v <s 0"
-  shows "0 <s (-v)"
-  by (smt (verit) assms signed_0 signed_take_bit_int_less_self_iff sint_ge sint_word_ariths(4)
-      word_sless_alt)
-
 lemma min_int:
   fixes x :: "'a::len word"
   assumes "x <s 0"
@@ -143,17 +107,10 @@ lemma min_int:
   using signed.less_asym by blast
 *)
 
-lemma negate_min_int:
-  fixes v :: "'a::len word"
-  assumes "v = (2^(LENGTH('a) - 1))"
-  shows "v = (-v)"
-  by (metis assms add.inverse_neutral double_eq_zero_iff mult_minus_right verit_minus_simplify(4)
-      One_nat_def)
-
 fun abs :: "'a::len word \<Rightarrow> 'a word" where
   "abs x = (if x <s 0 then (-x) else x)"
 
-lemma
+lemma bin_abs_idempotence:
   "abs(abs(x)) = abs(x)"
   for x :: "'a::len word"
 proof (cases "0 \<le>s x")
@@ -163,14 +120,14 @@ proof (cases "0 \<le>s x")
 next
   case False
   then show ?thesis
-  proof (cases "x = (2^LENGTH('a) - 1)")
+  proof (cases "x = (2 ^ LENGTH('a) - 1)")
     case True
     then show ?thesis
       by (simp add: word_sless_alt)
   next
     case False
     then show ?thesis
-      using min_int negative_lower_bound negate_min_int by force
+      using min_int neg_negate_gt_0 min_int_negate by force
   qed
 qed
 
@@ -189,14 +146,15 @@ lemma negate_max_negative:
   assumes "take_bit b v = v"
   assumes "v = (2^(b - 1))"
   shows "new_int b v = intval_negate (new_int b v)"
-  using assms apply simp using negate_min_int sorry
+  using assms apply simp using min_int_negate sorry
 
 lemma val_abs_always_pos:
   assumes "b > 0 \<and> b \<le> 64"
   assumes "take_bit b v = v"
   assumes "v \<noteq> (2^(b - 1))"
   assumes "intval_abs (new_int b v) = (new_int b v')"
-  shows "val_to_bool (val[(new_int b 0) < (new_int b v')]) \<or> val_to_bool (val[(new_int b 0) eq (new_int b v')])"
+  shows "val_to_bool (val[(new_int b 0) < (new_int b v')]) \<or>
+         val_to_bool (val[(new_int b 0) eq (new_int b v')])"
 proof (cases "v = 0")
   case True
   then have "IntVal b 0 = new_int b v'"
@@ -211,7 +169,7 @@ next
   proof (cases "int_signed_value b v > 0")
     case True
     then have "val_to_bool(val[(new_int b 0) < (new_int b v)])"
-      by (metis assms(1) signed_eqiv zero)
+      by (metis assms(1) val_to_bool_lt_eq_signed_lt zero)
     then show ?thesis
       by (metis assms(4) val_abs_pos)
   next
@@ -237,7 +195,7 @@ next
         have "0 < int_signed_value b (-v)"
           using assms invert_intval l0 by blast
         then show ?thesis
-          using eq assms(1) signed_eqiv zero by presburger
+          using eq assms(1) val_to_bool_lt_eq_signed_lt zero by presburger
       qed
     qed
     then show ?thesis

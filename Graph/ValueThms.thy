@@ -257,7 +257,9 @@ lemma mod_dist_over_add:
   shows "(a mod 2^n + b) mod 2^n = (a + b) mod 2^n"
   by (simp add: assms mod_dist_over_add)
 
-subsubsection \<open>$val_boolean$ and $bool_to_val$ lemmas\<close>
+subsubsection \<open>$val_boolean$, $val_to_bool$ and $bool_to_val$ lemmas\<close>
+
+text \<open>$val_boolean$ lemmas\<close>
 
 lemma intval_logic_negation_bool_self:
   "val_is_boolean v \<Longrightarrow> intval_logic_negation (intval_logic_negation v) = v"
@@ -267,8 +269,23 @@ lemma intval_logic_negation_bool_self:
 lemma bool_to_val_boolean: "val_is_boolean (bool_to_val v)"
   unfolding val_is_boolean_def bool_values_def using bool_to_val.elims by blast
 
-lemma unwrap_bool_to_val: "(bool_to_val a = bool_to_val b) = (a = b)"
+text \<open>$bool_to_val$ lemmas\<close>
+
+lemma bool_to_val_unwrap: "(bool_to_val a = bool_to_val b) = (a = b)"
   apply auto using bool_to_val.elims by fastforce+
+
+text \<open>$val_to_bool$ lemmas\<close>
+
+lemma val_to_bool_lt_eq_signed_lt:
+  assumes "0 < b \<and> b \<le> 64"
+  shows "val_to_bool (intval_less_than (new_int b v) (new_int b v')) =
+                     (int_signed_value b v < int_signed_value b v')"
+  by (smt (z3) assms take_bit_redundant bool_to_val.elims intval_less_than.simps(1) new_int.simps
+      bool_to_val_bin.elims int_signed_value.simps bool_to_val_unwrap val_to_bool.simps(1)
+      one_neq_zero)
+
+lemma val_to_bool_inverse: "val_to_bool (bool_to_val v) = v"
+  by (metis bool_to_val.elims one_neq_zero val_to_bool.simps(1))
 
 subsubsection \<open>bitCount and $val_bit_count$ lemmas\<close>
 

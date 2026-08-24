@@ -41,7 +41,7 @@ proof -
         val_equal_xor_one_shift_64 xvv)
   have eq: "val[xa eq (IntVal 64 (xor cv 1))] = val[(xa \<oplus> (IntVal 64 1)) eq (IntVal 64 cv)]"
     using assms xvv zeroOne apply auto
-    apply (metis (mono_tags, opaque_lifting) bit.xor_left_self unwrap_bool_to_val xor.right_neutral)
+    apply (metis (mono_tags, opaque_lifting) bit.xor_left_self bool_to_val_unwrap xor.right_neutral)
     by (smt (verit, ccfv_SIG) bit.xor_left_self xor.assoc xor.right_neutral)
   have "[m,p] \<turnstile> exp[x eq (const (IntVal 64 (xor cv 1)))] \<mapsto>
                 val[(xa \<oplus> (IntVal 64 1)) eq (IntVal 64 cv)]"

@@ -143,7 +143,7 @@ lemma exp_and_nots:
 lemma exp_and_equal_not:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b lo hi"
-  shows "exp[~x & x] \<ge> exp[const (IntVal b 0)]"
+  shows "exp[~x & x] \<ge> exp[const (new_int b 0)]"
   using val_and_equal_not apply auto
   subgoal premises p for m p y xa
   proof -
@@ -211,7 +211,7 @@ lemma exp_sign_extend:
 lemma exp_and_neutral:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b lo hi"
-  shows "exp[x & ~(const (new_int b 0))] \<ge> x"
+  shows "exp[x & const (new_int b (not 0))] \<ge> x"
   using assms apply auto
   subgoal premises p for m p xa
   proof -
@@ -230,20 +230,19 @@ text \<open>Optimisations\<close>
 optimization AndEqual: "x & x \<longmapsto> x"
   using exp_and_equal by blast
 
-optimization AndEqualNot: "x & (~x) \<longmapsto> const (IntVal b 0)
+optimization AndEqualNot: "x & (~x) \<longmapsto> const (new_int b 0)
                            when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
-  by (metis dual_order.trans exp_and_equal_not exp_and_commutative)
+  using exp_and_commutative exp_and_equal_not by fastforce
 
-optimization AndSelf: "((~n) & n) \<longmapsto> (const (new_int 32 (0)))
-                       when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  using exp_and_equal_not by blast
+optimization AndSelf: "(~n) & n \<longmapsto> const (new_int b 0)
+                       when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
+  using exp_and_equal_not by force
 
-optimization AndSelf2: "(n & (~n)) \<longmapsto> (const (new_int 32 (0)))
-                        when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
+optimization AndSelf2: "n & (~n) \<longmapsto> const (new_int b 0)
+                        when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
   using AndSelf exp_and_commutative by auto
 
-optimization AndShiftConstantRight: "((const x) & y) \<longmapsto> y & (const x)
-                                     when \<not>(is_ConstantExpr y)"
+optimization AndShiftConstantRight: "(const x) & y \<longmapsto> y & (const x) when \<not>(is_ConstantExpr y)"
   using exp_and_commutative by blast
 
 optimization AndNots: "(~x) & (~y) \<longmapsto> ~(x | y)"
@@ -255,7 +254,7 @@ optimization AndSignExtend: "exp[(UnaryExpr (UnarySignExtend In Out) x) & const 
                              when (e = (1 << In) - 1)"
    using exp_sign_extend by simp
 
-optimization AndNeutral: "(x & ~(const (new_int b 0))) \<longmapsto> x
+optimization AndNeutral: "x & (const (new_int b (not 0))) \<longmapsto> x
                           when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using exp_and_neutral by auto
 

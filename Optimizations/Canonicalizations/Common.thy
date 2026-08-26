@@ -316,6 +316,9 @@ lemma exp_xor_associative: "exp[(x \<oplus> y) \<oplus> z] \<ge> exp[x \<oplus> 
 
 subsubsection \<open> Operator self lemmas \<close>
 
+lemma val_below_self: "x = IntVal b xv \<Longrightarrow> val[x |<| x] = val[false]"
+  by simp
+
 lemma val_eq_self: "x = IntVal b xv \<Longrightarrow> val[x eq x] = val[true]"
   by simp
 

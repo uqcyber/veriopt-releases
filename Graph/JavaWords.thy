@@ -488,6 +488,31 @@ lemma unwrap_signed_take_bit:
   shows "signed_take_bit 63 (Word.rep (signed_take_bit (b - Suc 0) v)) = sint v"
   using assms by (simp add: signed_def)
 
+subsubsection \<open>Properties for particular operators\<close>
+
+text \<open>below lemmas\<close>
+
+lemma below_iff:
+  fixes x y :: "'a::len word"
+  shows "(x \<noteq> y \<and> \<not>(x < y)) \<longleftrightarrow> y < x"
+  by auto
+
+text \<open>less lemmas\<close>
+
+lemma less_iff:
+  fixes x y :: "'a::len word"
+  shows "(x \<noteq> y \<and> \<not>(x <s y)) \<longleftrightarrow> y <s x"
+  by auto
+
+lemma less_sub_zero:
+  fixes x y :: "'a::len word"
+  assumes "0 \<le>s x"
+  assumes "0 \<le>s y"
+  shows "x <s y \<longleftrightarrow> (x - y) <s 0"
+  using assms apply transfer apply auto
+  by (smt (verit, del_insts) signed_take_bit_int_less_exp signed_take_bit_int_greater_self_iff
+      signed_take_bit_diff signed_take_bit_negative_iff signed_take_bit_int_less_self_iff)+
+
 text \<open>mod lemmas\<close>
 
 lemma mod_larger_ignore:
@@ -500,8 +525,8 @@ lemma mod_larger_ignore:
 lemma mod_dist_over_add:
   fixes a b c :: int64  (* "'a :: len word" *)
   fixes n :: nat
-  assumes 1: "0 < n"
-  assumes 2: "n < 64"
+  assumes "0 < n"
+  assumes "n < 64"
   shows "(a mod 2^n + b) mod 2^n = (a + b) mod 2^n"
 proof -
   have g0: "(0 :: int64) < 2 ^ n"

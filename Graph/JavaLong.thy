@@ -32,8 +32,8 @@ subsection \<open>Helpful lemmas\<close>
 fun bin_is_even :: "'a::len word \<Rightarrow> bool" where
   "bin_is_even v = (\<not>bit v 0)"
 
-definition is_truncated :: "'a::len word \<Rightarrow> nat \<Rightarrow> bool" where
-  "is_truncated x b = (x = take_bit b x)"
+definition is_truncated :: "nat \<Rightarrow> 'a::len word \<Rightarrow> bool" where
+  "is_truncated b v = (take_bit b v = v)"
 
 subsubsection \<open>LENGTH lemmas\<close>
 
@@ -149,7 +149,7 @@ lemma bits_1_set: "{n . bit 1 n} = {0}"
 lemma bits_set_in_range: "bit (v::'a::len word) n \<Longrightarrow> n < LENGTH('a)"
   by (simp add: bit_imp_le_length)
 
-lemma bits_set_in_truncated_range: "is_truncated v b \<Longrightarrow> bit (v::'a::len word) n \<Longrightarrow> n < b"
+lemma bits_set_in_truncated_range: "is_truncated b v \<Longrightarrow> bit (v::'a::len word) n \<Longrightarrow> n < b"
   unfolding is_truncated_def by (metis bit_take_bit_iff)
 
 lemma bits_bound_eq: "{n . bit (v::'a::len word) n} = {n . n < Nat.size v \<and> bit v n}"
@@ -1145,7 +1145,7 @@ lemma supp_range:
   unfolding word_inspection.supp_def by (simp add: bits_set_in_range)
 
 lemma supp_is_truncated_range:
-  assumes "is_truncated v b"
+  assumes "is_truncated b v"
   shows "\<forall> i . i \<in> word_inspection.supp v \<longrightarrow> 0 \<le> i \<and> i < b"
   unfolding word_inspection.supp_def using assms bits_set_in_truncated_range by auto
 

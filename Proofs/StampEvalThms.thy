@@ -604,8 +604,7 @@ lemma wf_integerstamp_eval_is_new_int:
   assumes "stamp_expr x = IntegerStamp b xl xh"
   assumes "[m,p] \<turnstile> x \<mapsto> xa"
   shows "\<exists>b xv. xa = new_int b xv"
-  by (metis assms eval_int_implies_take_bit_eq new_int.simps take_bit_val_eq.simps(1) wf_stamp_def
-      valid_int)
+  by (metis assms eval_int_implies_truncated new_int_truncated_eq valid_int wf_stamp_def)
 
 lemma eval_new_int_has_wf_value_zero:
   assumes "[m,p] \<turnstile> x \<mapsto> xa"
@@ -741,13 +740,13 @@ lemma stamp_width_eval_is_eq_intval:
   assumes "width_in_bounds (stamp_expr x) l h"
   assumes "wf_stamp x"
   assumes "[m,p] \<turnstile> x \<mapsto> xv"
-  shows "(is_IntVal xv) \<and> (intval_bits_in_bounds xv l h) \<and> (take_bit_val_eq xv)"
+  shows "(is_IntVal xv) \<and> (intval_bits_in_bounds xv l h) \<and> (intval_is_truncated xv)"
 proof -
   have "is_IntegerStamp (stamp_expr x)"
     using width_in_bounds_implies_integerstamp assms(1) by auto
   then show ?thesis
     by (metis ExpIntBecomesIntVal Stamp.collapse(1) Value.disc(2) assms bit_bound_maintained
-        eval_int_implies_take_bit_eq wf_stamp_def)
+        eval_int_implies_truncated wf_stamp_def)
 qed
 
 lemma pos_stamp_eval_is_pos_intval:

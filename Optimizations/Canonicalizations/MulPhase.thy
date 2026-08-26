@@ -221,7 +221,7 @@ lemma val_mul_power_2_add_power_2_32:
   assumes "lhs = val[x << (val_top_bit y)]"
   assumes "rhs = val[x << (val_bot_bit y)]"
   assumes "b = 32"
-  assumes "is_truncated yv b"
+  assumes "is_truncated b yv"
 	shows "val[x * y] = val[lhs + rhs]"
 proof -
   have distribute: "xv * yv = xv << (topBit yv) + xv << (botBit yv)"
@@ -276,7 +276,7 @@ lemma val_mul_power_2_add_1_32:
   assumes "val_bit_count y = 2"
   assumes "val_bot_bit y = new_int b 0"
   assumes "b = 32"
-  assumes "is_truncated yv b"
+  assumes "is_truncated b yv"
   shows "val[x * y] = val[(x << (val_top_bit y)) + x]"
   using assms apply auto unfolding is_truncated_def
   by (metis (no_types, lifting) assms(2,3,6) bitCount_2_mul_distribute unsigned_0 bitCount_0
@@ -485,7 +485,7 @@ lemma exp_mul_power_2_add_power_2_32:
   assumes "lhs = exp[x << const (val_top_bit y)]"
   assumes "rhs = exp[x << const (val_bot_bit y)]"
   assumes "b = 32"
-  assumes "is_truncated yv b"
+  assumes "is_truncated b yv"
   shows "exp[x * const y] \<ge> exp[lhs + rhs]"
   using assms apply auto subgoal premises p for m p xa
   proof -
@@ -520,7 +520,7 @@ lemma exp_mul_power_2_add_1_32:
   assumes "val_bit_count y = 2"
   assumes "val_bot_bit y = new_int b 0"
   assumes "b = 32"
-  assumes "is_truncated yv b"
+  assumes "is_truncated b yv"
   shows "exp[x * const y] \<ge> exp[(x << const (val_top_bit y)) + x]"
   using assms apply auto subgoal premises p for m p xa
   proof -
@@ -660,7 +660,7 @@ optimization MulPower2AddPower2_32: "(x * (const y)) \<longmapsto>
                                      ((x << const (val_top_bit y)) + (x << const (val_bot_bit y)))
                                      when (stamp_expr x = IntegerStamp b lo hi \<and> wf_stamp x \<and>
                                            y = new_int b yv \<and> val_bit_count y = 2 \<and> b = 32 \<and>
-                                           is_truncated yv b)"
+                                           is_truncated b yv)"
   using exp_mul_power_2_add_power_2_32 by force
 
 optimization MulPower2AddPower2_64: "(x * (const y)) \<longmapsto>
@@ -672,7 +672,7 @@ optimization MulPower2AddPower2_64: "(x * (const y)) \<longmapsto>
 optimization MulPower2Add1_32: "(x * (const y)) \<longmapsto> ((x << const (val_top_bit y)) + x)
                                 when (stamp_expr x = IntegerStamp b lo hi \<and> wf_stamp x \<and>
                                       y = new_int b yv \<and> val_bit_count y = 2 \<and> b = 32 \<and>
-                                      is_truncated yv b \<and> val_bot_bit y = new_int b 0)"
+                                      is_truncated b yv \<and> val_bot_bit y = new_int b 0)"
   using exp_mul_power_2_add_1_32 by force
 
 optimization MulPower2Add1_64: "(x * (const y)) \<longmapsto> ((x << const (val_top_bit y)) + x)

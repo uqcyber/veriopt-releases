@@ -28,8 +28,8 @@ lemma AndRightFallthrough: "((and (not (\<down> x)) (\<up> y)) = 0) \<longrighta
       have "v = yv"
         apply (cases v; cases yv; auto)
         using p(2) yvv apply auto prefer 2
-        apply (metis Value.inject(1) andUnfold equalAnd eval_int_implies_take_bit_eq p(1) xv xvv yv
-               new_int_take_bit_eq not_down_up_mask_and_zero_implies_zero)
+        apply (metis Value.inject(1) andUnfold eval_int_implies_truncated new_int_truncated_eq p(1)
+               equalAnd not_down_up_mask_and_zero_implies_zero xv xvv yv)
         by (metis Value.distinct(9,11,13) andUnfold equalAnd new_int.simps intval_bits.simps)+
       then show ?thesis
         by (simp add: yv)
@@ -87,7 +87,7 @@ lemma val_and_zero:
   shows   "val[x & (IntVal b 0)] = IntVal b 0"
   by (auto simp: assms)
 
-lemma AndSelfVal:
+lemma val_and_self:
   assumes "n = IntVal 32 v"
   shows "val[~n & n] = new_int 32 0"
   apply (auto simp: assms) by (metis bit.conj_cancel_left take_bit_and take_bit_of_0)

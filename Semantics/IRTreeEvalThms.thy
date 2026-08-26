@@ -672,8 +672,8 @@ next
     by fast
 qed
 
-lemma eval_int_implies_take_bit_eq: "[m,p] \<turnstile> x \<mapsto> (IntVal b v) \<Longrightarrow> take_bit_val_eq (IntVal b v)"
-  using eval_unused_bits_zero by auto
+lemma eval_int_implies_truncated: "[m,p] \<turnstile> x \<mapsto> (IntVal b v) \<Longrightarrow> intval_is_truncated (IntVal b v)"
+  by (simp add: is_truncated_def eval_unused_bits_zero)
 
 lemma unary_normal_bitsize:
   assumes "unary_eval op x = IntVal b ival"

@@ -53,9 +53,9 @@ fun intval_bits_in_bounds :: "Value \<Rightarrow> nat \<Rightarrow> nat \<Righta
   "intval_bits_in_bounds (IntVal b v) lb hb = ((lb \<le> b) \<and> (hb \<ge> b))" |
   "intval_bits_in_bounds _ _ _ = False"
 
-fun take_bit_val_eq :: "Value \<Rightarrow> bool" where
-  "take_bit_val_eq (IntVal b v) = (take_bit b v = v)" |
-  "take_bit_val_eq _ = False"
+fun intval_is_truncated :: "Value \<Rightarrow> bool" where
+  "intval_is_truncated (IntVal b v) = is_truncated b v" |
+  "intval_is_truncated _ = False"
 
 fun negative_intval :: "Value \<Rightarrow> bool" where
   "negative_intval (IntVal b v) = bit v (b - 1)" |

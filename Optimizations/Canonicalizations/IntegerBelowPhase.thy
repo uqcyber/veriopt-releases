@@ -11,50 +11,15 @@ phase IntegerBelowNode
   terminating size
 begin
 
-(* Word level proofs *)
-lemma bin_negate_below: "x \<noteq> y \<and> \<not>(x < y) \<Longrightarrow> y < x" for x y::int64
-  by auto
-
-lemma bin_negate_less: "x \<noteq> y \<and> \<not>(x <s y) \<Longrightarrow> y <s x" for x y::int64
-  by auto
-
-lemma bin_inverse_negate_less: "x \<noteq> y \<and> (x <s y) \<Longrightarrow> \<not>(y <s x)" for x y::int64
-  by auto
-
-lemma bin_below_sub:
-  fixes x y :: int64
-  assumes "0 \<le>s x"
-  assumes "0 \<le>s y"
-  shows "x <s y \<longleftrightarrow> (x - y) <s 0"
-  using assms apply transfer apply auto
-  apply (smt (z3) signed_take_bit_int_less_exp signed_take_bit_int_greater_self_iff
-         signed_take_bit_diff signed_take_bit_negative_iff)
-  by (smt (verit) signed_take_bit_diff signed_take_bit_int_less_exp signed_take_bit_negative_iff
-      signed_take_bit_int_less_self_iff)
-
 (* Value level proofs *)
-lemma tb_n1:
-  assumes "x = new_int n v"
-  assumes "take_bit_val_eq (IntVal n v)"
-  assumes "positive_intval x"
-  shows "take_bit (n - 1) v = v"
-proof -
-  have eq: "(take_bit n v - take_bit (n - 1) v) = push_bit (n - 1) (of_bool (bit v (n - 1)))"
-    using Value.inject(1) assms new_int.simps take_bit_minus_push_bit by auto
-  then have "... = 0"
-    using assms by fastforce
-  then show ?thesis
-    using assms(2) eq by force
-qed
-
-lemma pos_greater_zero:
+lemma val_pos_greater_zero:
   assumes "x = new_int n v"
   assumes "n \<le> 64"
   assumes "positive_intval x"
   shows "val[x < (IntVal n 0)] = val[false]"
   using assms val_pos_def by fastforce
 
-lemma neg_less_zero:
+lemma val_neg_less_zero:
   assumes "x = IntVal n v"
   assumes "n \<le> 64"
   assumes "\<not>positive_intval x"
@@ -69,21 +34,21 @@ proof -
 qed
 
 (* Should be move to Less than phase *)
-lemma pos_less_neg:
+lemma val_pos_less_neg:
   assumes "x = IntVal n vx"
   assumes "y = IntVal n vy"
-  assumes "take_bit_val_eq x"
+  assumes "intval_is_truncated x"
   assumes "n \<le> 64"
   assumes "positive_intval x"
   assumes "\<not>positive_intval y"
   shows "val[x < y] = val[false]"
 proof -
   have "val[y < IntVal n 0] = val[true]"
-    using assms(2,4,6) by (meson neg_less_zero intval_bits_in_bounds.simps(1))
+    using assms(2,4,6) by (meson val_neg_less_zero intval_bits_in_bounds.simps(1))
   then have sint1: "sint (signed_take_bit (n - 1) vy) < sint (signed_take_bit (n - 1) 0)"
     using assms(2,6) val_neg_def by fastforce
   have "val[x < IntVal n 0] = val[false]"
-    by (metis assms(1,3,4,5) new_int_take_bit_eq pos_greater_zero)
+    by (metis assms(1,3,4,5) new_int_truncated_eq val_pos_greater_zero)
   then have sint2: "sint (signed_take_bit (n - 1) 0) \<le> sint (signed_take_bit (n - 1) vx)"
     using assms(1,2,3,4,5) val_pos_def by auto
   have "sint (signed_take_bit (n - 1) vy) < sint (signed_take_bit (n - 1) vx)"
@@ -92,78 +57,62 @@ proof -
     using assms(1,2) by simp
 qed
 
-lemma verify_isValPositive:
-  assumes "x = IntVal n v"
-  assumes "intval_bits_in_bounds x 2 64"
-  assumes "take_bit_val_eq x"
-  assumes "positive_intval x"
-  shows "sint(v) \<ge> 0"
-  using assms apply auto
-  by (metis One_nat_def assms(3,4) new_int.simps signed_take_bit_eq_if_positive tb_n1 val_pos_def)
-
-lemma verify_pos_val_leq64:
-  assumes "x = IntVal n v"
-  assumes "n \<le> 64"
-  assumes "take_bit_val_eq x"
-  assumes "positive_intval x"
-  shows "sint(v) \<ge> 0"
-  using assms verify_isValPositive apply auto
-  by (metis assms(3,4) new_int_take_bit_eq numeral_1_eq_Suc_0 tb_n1 signed_take_bit_eq_if_positive
-      numerals(1) val_pos_def)
-
 (* This is here mainly so that the word level can be lifted into the value level *)
-lemma prot2:
+lemma val_prot2:
   assumes "x = IntVal n vx"
   assumes "y = IntVal n vy"
   assumes "intval_bits_in_bounds x 2 64"
-  assumes "take_bit_val_eq x"
+  assumes "intval_is_truncated x"
   assumes "intval_bits_in_bounds y 2 64"
-  assumes "take_bit_val_eq y"
+  assumes "intval_is_truncated y"
   assumes "positive_intval x"
   assumes "positive_intval y"
   shows "(vx - vy) <s 0 \<longleftrightarrow> signed_take_bit (n - 1) (take_bit n (vx - vy)) <s 0"
-  using assms apply auto
+  using assms apply auto (* TODO *)
   sorry
 
-lemma below_sub_inv:
+lemma val_below_sub_inv:
   assumes "y = IntVal n vy"
   assumes "z = IntVal n vz"
   assumes "positive_intval y"
   assumes "positive_intval z"
   assumes "intval_bits_in_bounds y 2 64"
-  assumes "take_bit_val_eq y"
-  assumes "take_bit_val_eq z"
+  assumes "intval_is_truncated y"
+  assumes "intval_is_truncated z"
   assumes "val_to_bool val[y |<| z]"
   shows "\<not>positive_intval val[y - z]"
 proof -
   have zBounds: "intval_bits_in_bounds z 2 64"
     using assms(1,2,5) by auto
   have yPos: "0 \<le>s vy"
-    by (metis assms(1,3,5,6) signed_0 verify_isValPositive word_sle_eq)
+    by (metis assms(1,3,5,6) positive_intval_sint_geq_0 word_sle_eq intval_bits_in_bounds_width_leq
+        signed_0)
   have subUnfold: "val[y - z] = IntVal n (take_bit n (vy - vz))"
     by (simp add: assms(1,2))
   have "vy < vz"
     using assms(1,2,8) val_to_bool.elims(2) by fastforce
   then have "vy <s vz"
-    using assms sint_pos_lt_uint_below verify_isValPositive zBounds by blast
+    using intval_bits_in_bounds_width_leq sint_pos_lt_uint_below positive_intval_sint_geq_0 zBounds
+          assms
+    by blast
   then have "signed_take_bit (n - 1) (take_bit n (vy - vz)) <s 0"
-    using assms(1,2,3,4,5,6,7,8)
-    by (meson bin_below_sub prot2 signed.dual_order.strict_trans2 width_eq_implies_bitbounds_eq yPos
-        word_sless_eq)
+    using assms(1,2,3,4,5,6,7)
+    by (meson less_sub_zero val_prot2 signed.dual_order.strict_trans2 width_eq_implies_bitbounds_eq
+        yPos word_sless_eq)
   then have "\<not>(0 \<le> sint(signed_take_bit (n - 1) (take_bit n (vy - vz))))"
     by (simp add: word_sless_alt)
   then show ?thesis
     using subUnfold val_pos_def assms(1,5) by force
 qed
 
-lemma below_sub:
+lemma val_below_sub:
   assumes "y = IntVal n vy"
   assumes "z = IntVal n vz"
   assumes "positive_intval y"
   assumes "positive_intval z"
   assumes "intval_bits_in_bounds y 2 64"
-  assumes "take_bit_val_eq y"
-  assumes "take_bit_val_eq z"
+  assumes "intval_is_truncated y"
+  assumes "intval_is_truncated z"
   assumes "\<not>val_to_bool val[y |<| z]"
   shows "positive_intval val[y - z]"
 proof (cases "y = z")
@@ -180,42 +129,41 @@ next
     using False assms by auto
   have zBounds: "intval_bits_in_bounds z 2 64"
     using assms(1,2,5) by auto
-  moreover have vPos: "sint(vz) \<ge> 0"
-    using assms verify_isValPositive zBounds by presburger
+  moreover have vPos: "sint vz \<ge> 0"
+    using assms(1,2,4,5,7) intval_bits_in_bounds_width_leq positive_intval_sint_geq_0 by blast
   ultimately have "vz <s vy"
-    by (metis geq assms(1,3,5,6) sint_pos_lt_uint_below bin_negate_less notEq verify_isValPositive)
+    using assms(1,2,3,6) geq notEq sint_pos_lt_uint_below positive_intval_sint_geq_0 by fastforce
   then have subNotNeg: "\<not>((vy - vz) <s 0)"
-    by (metis (no_types, opaque_lifting) bin_below_sub order.strict_trans2 order_less_imp_not_eq2
+    by (metis (no_types, opaque_lifting) less_sub_zero order.strict_trans2 order_less_imp_not_eq2
         signed.less_trans signed.not_le signed_0 vPos word_sless_alt)
   have subUnfold: "val[y - z] = IntVal n (take_bit n (vy - vz))"
     by (simp add: assms(1,2))
   have "\<not>(signed_take_bit (n - 1) (take_bit n (vy - vz)) <s 0)"
-    using assms prot2 subNotNeg zBounds by blast
+    using assms val_prot2 subNotNeg zBounds by blast
   then have "0 \<le> sint(signed_take_bit (n - 1) (take_bit n (vy - vz)))"
     by (simp add: word_sless_alt)
   then show ?thesis
     using subUnfold val_pos_bit assms(1,5) by auto
 qed
 
-lemma val_below_eq_less_self:
-  assumes "x = IntVal n vx"
-  shows "val[x |<| x] = val[x < x]"
-  by (simp add: assms(1))
+lemma val_below_self_lt: "x = IntVal b xv \<Longrightarrow> val[x |<| x] = val[x < x]"
+  by simp
 
 lemma val_below_eq_less:
-  assumes "x = IntVal n vx"
-  assumes "y = IntVal n vy"
+  assumes "x = new_int n vx"
+  assumes "y = new_int n vy"
   assumes "n \<le> 64"
-  assumes "take_bit_val_eq x"
-  assumes "take_bit_val_eq y"
+  assumes "intval_is_truncated x"
+  assumes "intval_is_truncated y"
   assumes "positive_intval x"
   assumes "positive_intval y"
   shows "val[x |<| y] = val[x < y]"
-  using assms apply (cases x; cases y; auto)
+  using assms apply (cases x; cases y; auto) unfolding is_truncated_def
   by (smt (verit) assms(4,5,6,7) sint_pos_lt_uint_below new_int.elims numerals(1) numeral_1_eq_Suc_0
-      signed_take_bit_eq_if_positive tb_n1 verify_pos_val_leq64 word_sless_alt)
+      signed_take_bit_eq_if_positive intval_is_truncated_positive positive_intval_sint_geq_0
+      word_sless_alt is_truncated_def)
 
-lemma below_zero: "val[(new_int b v) |<| (new_int b 0)] = val[false]"
+lemma val_below_zero: "val[(new_int b v) |<| (new_int b 0)] = val[false]"
   by auto
 
 lemma val_below_less:
@@ -223,30 +171,33 @@ lemma val_below_less:
   assumes "y = new_int n vy"
   assumes "z = new_int n vz"
   assumes "intval_bits_in_bounds x 2 64"
-  assumes "take_bit_val_eq x"
-  assumes "take_bit_val_eq y"
-  assumes "take_bit_val_eq z"
+  assumes "intval_is_truncated x"
+  assumes "intval_is_truncated y"
+  assumes "intval_is_truncated z"
   assumes "positive_intval x"
   assumes "positive_intval y"
   assumes "positive_intval z"
   assumes "val[y - z] \<noteq> UndefVal"
-  shows "val[(x |<| ((y |<| z)? (IntVal n 0) : (y - z)))] = val[x < (y - z)]"
+  shows "val[x |<| ((y |<| z) ? (IntVal n 0) : (y - z))] = val[x < (y - z)]"
 proof (cases "val_to_bool val[y |<| z]")
   case True
   then have "\<not>positive_intval val[y - z]"
-    by (metis assms(1,2,3,4,6,7,9,10) below_sub_inv intval_bits_in_bounds.simps(1) new_int.simps)
+    by (metis assms(1-4,6,7,9,10) val_below_sub_inv intval_bits_in_bounds.simps(1) new_int.simps)
   then have "val[x < (y - z)] = val[false]"
-    using assms pos_less_neg by simp
+    using assms val_pos_less_neg by simp
   then show ?thesis
     by (simp add: True assms(1))
 next
   case False
   then have yzPos: "positive_intval val[y - z]"
-    by (metis assms(1,10,2,3,4,6,7,9) below_sub new_int.elims width_eq_implies_bitbounds_eq)
+    by (metis assms(1,10,2,3,4,6,7,9) val_below_sub new_int.elims width_eq_implies_bitbounds_eq)
   obtain vyz where yz: "val[y - z] = new_int n vyz"
     using assms(2,3) by auto
+  have "val[x |<| ((y |<| z) ? (IntVal n 0) : (y - z))] = val[x |<| (y - z)]"
+    using False by auto
   then show ?thesis
-    using False assms(1,8,4,5) val_below_eq_less yzPos by auto
+    by (metis assms(1,4,8) intval_bits_in_bounds.simps(1) new_int.elims new_int_truncated yzPos yz
+        val_below_eq_less)
 qed
 
 (* Exp level proofs *)
@@ -303,7 +254,7 @@ lemma exp_below_less:
       by simp
     have width: "xb = b"
       by (smt (verit, best) Value.inject(1) evalDet unfold_const cond sub xcWidth xysub cv)
-    then have rhsDef: "val[xa < (ya - za)] \<noteq> UndefVal"
+    then have "val[xa < (ya - za)] \<noteq> UndefVal"
       using bool_to_val.elims xv xysub by auto
     then have wf_rhs: "[m,p] \<turnstile> exp[x < (y - z)] \<mapsto> val[xa < (ya - za)]"
       by (metis BinaryExpr bin_eval.simps(14) p(1) sub)
@@ -313,23 +264,24 @@ lemma exp_below_less:
     have "[m,p] \<turnstile> exp[x < (y - z)] \<mapsto> val[xa |<| cond]"
     proof (cases "val_to_bool val[ya |<| za]")
       case True
-      have subBitEq: "take_bit_val_eq val[ya - za]"
-        using sub_iv by auto
-      then have geq: "val[xa < (ya - za)] = val[false]"
+      have subBitEq: "intval_is_truncated val[ya - za]"
+        using is_truncated_def sub_iv by force
+      then have "val[xa < (ya - za)] = val[false]"
         using assms apply simp
-        by (metis True below_sub_inv bit_bound_maintained eval_int_implies_take_bit_eq yzWidth yv za
-            intval_bits_in_bounds.simps(1) pos_less_neg width xa xaPos xv xysub ya yaPos zaPos zv)
+        by (metis val_below_sub_inv bit_bound_maintained eval_int_implies_truncated yv za zaPos True
+            yaPos zv intval_bits_in_bounds.simps(1) val_pos_less_neg width xa xaPos xv xysub yzWidth
+            ya)
       then show ?thesis
         using True cond unfold_const wf_rhs width xv by auto
     next
       case False
-      then have subPos: "positive_intval val[ya - za]"
+      then have "positive_intval val[ya - za]"
         by (metis stamp_width_eval_is_eq_intval xysub zv yzWidth za pos_stamp_eval_is_pos_intval ya
-            assms(2,3,5,6,8,9) below_sub yv)
+            assms(2,3,5,6,8,9) val_below_sub yv)
       then have "val[xa |<| (ya - za)] = val[xa < (ya - za)]"
-        by (smt (verit, ccfv_threshold) False bit_bound_maintained evalDet eval_unused_bits_zero xv
-            intval_bits_in_bounds.simps p(1) subPos take_bit_val_eq.simps(1) cond sub wf_rhs xaPos
-            assms xcWidth val_below_eq_less cv)
+        by (smt (verit, best) False bit_bound_maintained evalDet xv intval_bits_in_bounds.simps p(1)
+            cond sub wf_rhs xaPos assms xcWidth val_below_eq_less cv eval_int_implies_truncated
+            new_int_truncated_eq)
       then show ?thesis
         by (metis (full_types) False evalDet cond wf_rhs sub)
     qed
@@ -358,7 +310,7 @@ lemma exp_below_less_add:
   assumes "width_in_bounds (stamp_expr y) 2 64"
   assumes "width_in_bounds (stamp_expr z) 2 64"
   assumes "stamp_expr y = IntegerStamp b lo hi"
-  shows "exp[(x |<| ((y |<| z)? const (IntVal b 0) : (y + (-z))))] \<ge> exp[x < (y - z)]"
+  shows "exp[x |<| ((y |<| z)? const (IntVal b 0) : (y + (-z)))] \<ge> exp[x < (y - z)]"
 proof -
   have ltSub: "exp[x |<| ((y |<| z)? const (IntVal b 0) : (y + (-z)))] \<ge>
                exp[x |<| ((y |<| z)? const (IntVal b 0) : (y - z))]"

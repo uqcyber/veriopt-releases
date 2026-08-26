@@ -11,7 +11,7 @@ phase ConditionalNode
 begin
 
 (* Value level proofs *)
-lemma negation_condition_intval:
+lemma val_negate_condition:
   assumes "e = IntVal b ie"
   assumes "0 < b"
   shows "val[(!e) ? x : y] = val[e ? y : x]"

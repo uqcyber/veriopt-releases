@@ -43,7 +43,7 @@ lemma AddNeutral_Exp:
     have "[m,p] \<turnstile> exp[e + (const (new_int b 0))] \<mapsto> val[ev + (new_int b 0)]"
       using ev evalDet p(1,2,3) by fastforce
     then show ?thesis
-      by (metis ev evalDet eval_int_implies_take_bit_eq evv is_neutral_0 new_int_take_bit_eq p(1,2))
+      by (metis ev evalDet eval_int_implies_truncated evv is_neutral_0 new_int_truncated_eq p(1,2))
   qed
   done
 

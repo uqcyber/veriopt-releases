@@ -287,6 +287,12 @@ lemma val_to_bool_lt_eq_signed_lt:
 lemma val_to_bool_inverse: "val_to_bool (bool_to_val v) = v"
   by (metis bool_to_val.elims one_neq_zero val_to_bool.simps(1))
 
+lemma val_to_bool_not_negation_iff:
+  assumes "\<exists> v b . e = IntVal b v \<and> b > 0"
+  shows "val_to_bool e \<longleftrightarrow> \<not>(val_to_bool (intval_logic_negation e))"
+  by (metis (mono_tags, lifting) intval_logic_negation.simps(1) logic_negate_def new_int.simps assms
+      of_bool_eq(2) one_neq_zero take_bit_of_0 take_bit_of_1 val_to_bool.simps(1))
+
 subsubsection \<open>bitCount and $val_bit_count$ lemmas\<close>
 
 text \<open>bitCount lemmas\<close>

@@ -880,12 +880,40 @@ next
     using R by blast
 qed
 
-subsubsection \<open>boolean evaluation\<close>
+subsubsection \<open>$is_boolean$ evaluation\<close>
+
+lemma is_boolean_negation:
+  assumes "is_boolean c"
+  shows "is_boolean (UnaryExpr UnaryLogicNegation c)"
+  using assms unfolding is_boolean_def val_is_boolean_def bool_values_def apply auto
+  by (metis logic_negate_def bool_to_val.simps(2) bool_to_val_boolean intval_logic_negation.simps(1)
+      intval_logic_negation_bool_self IntVal1)
 
 lemma is_boolean_eval_boolean:
   assumes "is_boolean e"
   assumes "[m, p] \<turnstile> e \<mapsto> v"
   shows "val_is_boolean v"
   using assms unfolding is_boolean_def val_is_boolean_def by blast
+
+lemma is_boolean_eval_negation:
+  assumes "is_boolean e"
+  assumes "[m, p] \<turnstile> e \<mapsto> v"
+  shows "\<exists> v' . ([m, p] \<turnstile> (UnaryExpr UnaryLogicNegation e) \<mapsto> v') \<and> v = intval_logic_negation v'"
+  by (metis assms evaltree_not_undef intval_logic_negation.simps(2) intval_logic_negation_bool_self
+      is_boolean_eval_boolean unary_eval.simps(4) UnaryExpr)
+
+subsubsection \<open>Evaluation properties for particular operators\<close>
+
+text \<open>LogicNegation\<close>
+
+lemma unary_negation_eval:
+  assumes "[m, p] \<turnstile> (UnaryExpr UnaryLogicNegation e) \<mapsto> v"
+  shows "\<exists> v' . ([m, p] \<turnstile> e \<mapsto> v') \<and> v = intval_logic_negation v'"
+  using assms by auto
+
+lemma unary_negation_eval_intval:
+  assumes "[m, p] \<turnstile> (UnaryExpr UnaryLogicNegation e) \<mapsto> v"
+  shows "\<exists> v' b vv . ([m, p] \<turnstile> e \<mapsto> v') \<and> v' = IntVal b vv \<and> b > 0"
+  by (metis assms eval_bits_1_64 intval_logic_negation.elims unary_negation_eval unfold_unary)
 
 end

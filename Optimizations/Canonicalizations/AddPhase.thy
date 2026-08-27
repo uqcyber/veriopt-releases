@@ -3,6 +3,7 @@ subsection \<open>AddNode Phase\<close>
 theory AddPhase
   imports
     Common
+    Proofs.StampEvalThms
 begin
 
 phase AddNode
@@ -215,10 +216,10 @@ lemma AddNotExp:
       by (simp add: p)
     then have xaEq: "xa = x"
       using p by (simp add: evalDet)
-    then obtain xv where xv: "xa = IntVal b xv"
-      by (metis valid_int wf_stamp_def xaDef2 assms)
+    then obtain xv where xv: "xa = new_int b xv"
+      by (metis assms eval_int_implies_truncated new_int_truncated_eq valid_int wf_stamp_def xaDef)
     have wfInt: "wf_value (new_int b (not 0))"
-      using validDefIntConst xaDef by (simp add: eval_bits_1_64 xv wf_value_def)
+      using eval_new_int_wf_value_const xaDef xv by blast
     have toValRHS: "[m,p] \<turnstile> exp[const (new_int b (not 0))] \<mapsto> new_int b (not 0)"
       using wfInt by blast
     have "val[xa + (~xa)] = new_int b (not 0)"

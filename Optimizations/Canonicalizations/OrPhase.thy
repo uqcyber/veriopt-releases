@@ -3,6 +3,7 @@ subsection \<open>OrNode Phase\<close>
 theory OrPhase
   imports
     Common
+    Proofs.StampEvalThms
 begin
 
 context stamp_mask
@@ -116,10 +117,17 @@ lemma val_or_not_operands:
   "val[~x | ~y] = val[~(x & y)]"
   by (cases x; cases y; auto simp: take_bit_not_take_bit)
 
-lemma val_or_inverse:
+lemma val_or_inverse32:
   assumes "n = IntVal 32 v"
   shows "val[n | ~n] \<approx> new_int 32 (-1)"
   apply (auto simp: assms) by (metis bit.disj_cancel_right mask_eq_take_bit_minus_one take_bit_or)
+
+lemma val_or_inverse:
+  assumes "x = new_int b xv"
+  shows "val[x | ~x] = new_int b (not 0)"
+  using assms apply (cases x; auto)
+  by (metis (no_types, lifting) bit.conj_cancel_right take_bit_eq_mask word_not_dist(2) word_not_not
+      word_ao_dist word_ao_absorbs(7))
 
 (* Exp level proofs *)
 lemma exp_or_equal:
@@ -154,6 +162,30 @@ lemma exp_elim_redundant_false:
   qed
   done
 
+lemma exp_or_inverse:
+  assumes "stamp_expr x = IntegerStamp b l h"
+  assumes "wf_stamp x"
+  shows "exp[x | ~x] \<ge> exp[const (new_int b (not 0))]"
+  using assms apply auto
+  subgoal premises p for m p xa xaa
+  proof -
+    obtain xv where xv: "[m,p] \<turnstile> x \<mapsto> xv"
+      using p(3) by auto
+    obtain xb xvv where xvv: "xv = new_int xb xvv"
+      by (metis evalDet eval_int_implies_truncated intval_not.elims new_int_truncated_eq p(5,6) xv)
+    have width: "xb = b"
+      by (metis new_int.simps p(1,2) valid_value.simps(1) wf_stamp_def xv xvv)
+    have wf: "wf_value (new_int b (not 0))"
+      using eval_new_int_wf_value_const width xv xvv by blast
+    have rhsE: "[m,p] \<turnstile> exp[const (new_int b (not 0))] \<mapsto> new_int b (not 0)"
+      using wf by blast
+    have "val[xv | ~xv] = new_int b (not 0)"
+      using val_or_inverse by (simp add: width xvv)
+    then show ?thesis
+      by (metis evalDet neg_one.simps neg_one_value new_int_mask p(3,5) rhsE xv)
+  qed
+  done
+
 text \<open>Optimisations\<close>
 
 optimization OrEqual: "x | x \<longmapsto> x"
@@ -176,32 +208,12 @@ optimization OrLeftFallthrough: "x | y \<longmapsto> x when ((and (not (IRExpr_d
 optimization OrRightFallthrough: "x | y \<longmapsto> y when ((and (not (IRExpr_down y)) (IRExpr_up x)) = 0)"
   using simple_mask.OrRightFallthrough by blast
 
-optimization OrInverse: "(n | ~n) \<longmapsto> (const (new_int 32 (not 0)))
-                         when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
-  apply auto subgoal premises p for m p xa xaa
-  proof -
-    obtain nv where nv: "[m,p] \<turnstile> n \<mapsto> nv"
-      using p(3) by auto
-    obtain nbits nvv where nvv: "nv = IntVal nbits nvv"
-      by (metis evalDet evaltree_not_undef intval_logic_negation.cases intval_not.simps(3,4,5) nv
-          p(5,6))
-    then have width: "nbits = 32"
-      by (metis Value.inject(1) nv p(1,2) valid_int wf_stamp_def)
-    then have stamp: "constantAsStamp (IntVal 32 (mask 32)) =
-                  (IntegerStamp 32 (int_signed_value 32 (mask 32)) (int_signed_value 32 (mask 32)))"
-      by auto
-    have wf: "wf_value (IntVal 32 (mask 32))"
-      unfolding wf_value_def stamp apply auto by eval+
-    then have "val[nv | ~nv] = (new_int 32 (or (not nvv) nvv))"
-      using intval_or.simps val_or_inverse nvv width by auto
-    then show ?thesis
-      by (metis bit.compl_zero evalDet local.wf neg_one.elims nv p(3,5) bit.disj_cancel_left
-          neg_one_value new_int_mask unfold_const)
-  qed
-  done
+optimization OrInverse: "(n | ~n) \<longmapsto> (const (new_int b (not 0)))
+                         when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
+  using exp_or_inverse by force
 
-optimization OrInverseCommute: "(~n | n) \<longmapsto> (const (new_int 32 (not 0)))
-                                when (stamp_expr n = IntegerStamp 32 l h \<and> wf_stamp n)"
+optimization OrInverseCommute: "(~n | n) \<longmapsto> (const (new_int b (not 0)))
+                                when (stamp_expr n = IntegerStamp b l h \<and> wf_stamp n)"
   using OrInverse exp_or_commutative by auto
 
 end (* End of OrPhase *)

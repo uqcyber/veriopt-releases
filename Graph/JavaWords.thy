@@ -476,6 +476,47 @@ lemma take_bit_64:
   shows "take_bit 64 v = take_bit b v"
   by (metis assms min_def nle_le take_bit_take_bit)
 
+lemma take_bit_add_merge_iff:
+  fixes x y z :: "64word"
+  shows "(take_bit b (x + y) = take_bit b (x + z)) \<longleftrightarrow> (take_bit b y = take_bit b z)"
+  by (metis (no_types, opaque_lifting) take_bit_dist_addR add_minus_cancel)
+
+lemma take_bit_neg_sub_0_iff:
+  fixes x y :: "64word"
+  shows "(take_bit b (- x) = take_bit b (y - x)) \<longleftrightarrow> (take_bit b y = 0)"
+  by (metis (no_types, opaque_lifting) add.right_inverse take_bit_add_merge_iff add_minus_cancel
+      take_bit_of_0 uminus_add_conv_diff)
+
+lemma take_bit_neg_0_iff:
+  fixes v :: "64word"
+  shows "(take_bit b (- v) = 0) \<longleftrightarrow> (take_bit b v = 0)"
+  by (metis diff_self take_bit_neg_sub_0_iff take_bit_of_0)
+
+lemma take_bit_1_neq_0:
+  assumes "b \<ge> 1"
+  shows "take_bit b 1 \<noteq> 0"
+  using assms by force
+
+lemma take_bit_negate_not:
+  fixes v :: "64word"
+  assumes "b \<ge> 1"
+  shows "take_bit b (- v) \<noteq> take_bit b (not (take_bit b v))"
+  by (metis (no_types, lifting) take_bit_dist_addR add.right_inverse assms bit.compl_zero takeBitNot
+      take_bit_not_take_bit word_add_not)
+
+lemma take_bit_not_neg_neq:
+  fixes v :: "64word"
+  assumes "b \<ge> 1"
+  shows "take_bit b (- v) \<noteq> take_bit b (not v)"
+  by (metis assms take_bit_negate_not take_bit_not_take_bit)
+
+lemma take_bit_neg:
+  fixes v :: "64word"
+  assumes "b \<ge> 1"
+  shows "take_bit b (- v) \<noteq> take_bit b (- (v + 1))"
+  by (smt (verit, ccfv_threshold) assms ab_group_add_class.ab_left_minus minus_add_cancel zero_le
+      take_bit_of_0 take_bit_dist_addL take_bit_1_neq_0)
+
 text \<open>Helpful signed\_take\_bit properties\<close>
 
 lemma take_bit_eq_signed: "take_bit b v = v \<Longrightarrow> signed_take_bit b v = v"

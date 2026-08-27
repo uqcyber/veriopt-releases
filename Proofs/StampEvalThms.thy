@@ -606,18 +606,11 @@ lemma wf_integerstamp_eval_is_new_int:
   shows "\<exists>b xv. xa = new_int b xv"
   by (metis assms eval_int_implies_truncated new_int_truncated_eq valid_int wf_stamp_def)
 
-lemma eval_new_int_has_wf_value_zero:
-  assumes "[m,p] \<turnstile> x \<mapsto> xa"
-  assumes "xa = new_int xb xv"
-  shows "wf_value (new_int xb 0)"
-  by (metis assms eval_bits_1_64 new_int.elims validIntConst wf_value_def)
-
-lemma eval_new_int_has_wf_value_all_ones:
-  assumes "[m,p] \<turnstile> x \<mapsto> xa"
-  assumes "xa = new_int xb xv"
-  shows "wf_value (new_int xb (not 0))"
-  unfolding wf_value_def
-  by (metis assms eval_bits_1_64 new_int.elims new_int_unused_bits_zero validDefIntConst)
+lemma eval_new_int_wf_value_const:
+  assumes "[m,p] \<turnstile> x \<mapsto> xv"
+  assumes "xv = new_int xb xvv"
+  shows "wf_value (new_int xb cv)"
+  by (metis assms eval_bits_1_64 new_int.simps validIntConst wf_value_def)
 
 lemma wf_integerstamp_implies_zero_evals:
   assumes "wf_stamp x"
@@ -625,7 +618,7 @@ lemma wf_integerstamp_implies_zero_evals:
   assumes "[m,p] \<turnstile> x \<mapsto> xa"
   shows "[m,p] \<turnstile> (ConstantExpr (new_int xb 0)) \<mapsto> new_int xb 0"
   using assms(1) unfolding wf_stamp_def
-  by (metis assms(2,3) eval_new_int_has_wf_value_zero eval_unused_bits_zero new_int.simps valid_int
+  by (metis assms(2,3) eval_new_int_wf_value_const eval_unused_bits_zero new_int.simps valid_int
       unfold_const)
 
 lemma wf_integerstamp_implies_nonzero_bits:

@@ -453,6 +453,9 @@ lemma take_bit64 [simp]:
   shows "take_bit 64 w = w"
   by (metis take_bit_size_eq64 take_bit_length_eq)
 
+lemma take_bit_merge_shift: "take_bit b ((take_bit b (x << y)) << z) = take_bit b ((x << y) << z)"
+  unfolding shiftl_def by (simp add: push_bit_take_bit)
+
 text \<open>Lemmas for take\_bit equivalence.\<close>
 
 lemma takeBitNot:

@@ -60,9 +60,6 @@ lemma size_len_eq: "LENGTH('a) = Nat.size (v::'a::len word)"
 lemma unat_word_of_nat_unfold: "v < (2 ^ LENGTH('a)) \<Longrightarrow> unat (word_of_nat (v)::'a::len word) = v"
   using le_unat_uoi by (simp add: of_nat_inverse)
 
-lemma unat_word_of_nat_unfold_64: "v < (2 ^ LENGTH(64)) \<Longrightarrow> unat (word_of_nat (v)::64word) = v"
-  using unat_word_of_nat_unfold by blast
-
 lemma unat_word_of_nat_trunc_unfold:
   assumes "b \<le> LENGTH('a)"
   assumes "v = take_bit b v"
@@ -274,6 +271,9 @@ text \<open>Shifting and $push_bit$ lemmas\<close>
 lemma shift_succ: "\<forall> v i . (v << (Suc i)) = ((v << i) << 1)"
   unfolding shiftl_def by fastforce
 
+lemma successive_shift_to_sum: "(x << y) << z = x << (y + z)"
+  unfolding shiftl_def by (simp add: add.commute)
+
 lemma pow2_1_shift: "2 ^ j = 1 << j"
   by (simp add: shiftl_def)
 
@@ -287,8 +287,14 @@ lemma max_minus_1_shift_pow2: "(1 :: ('a :: len) word) << (LENGTH('a) - 1) = 2 ^
 lemma zero_shift: "(n :: ('a :: len) word) << 0 = n"
   unfolding shiftl_def by simp
 
-lemma len_shift_zero: "(n :: ('a :: len) word) << LENGTH('a) = 0"
+lemma shift_len_zero: "(n :: ('a :: len) word) << LENGTH('a) = 0"
   unfolding shiftl_def by simp
+
+lemma shift_gt_len_zero:
+  fixes x :: "'a :: len word"
+  assumes "y > LENGTH('a)"
+  shows "x << y = 0"
+  unfolding shiftl_def using assms by auto
 
 lemma bit_shift_upper:
   fixes n :: "'a::len word"
@@ -351,6 +357,18 @@ lemma pow2_succ_eq_2shift: "(2::'a :: len word) ^ Suc i = (2 << i)"
 lemma push_bit_pos: "b < LENGTH('a) \<Longrightarrow> ((push_bit b 1)::'a::len word) > 0"
   apply (induction b; auto)
   by (metis exp_eq_zero_iff pow2_succ_eq_2shift verit_comp_simplify1(3) word_neq_0_conv)
+
+lemma take_bit_shift_zero: "(take_bit b v) << 0 = take_bit b v"
+  unfolding shiftl_def by simp
+
+lemma take_bit_shift_leq_width_0: "b \<le> y \<Longrightarrow> take_bit b (x << y) = 0"
+  unfolding shiftl_def by (simp add: take_bit_push_bit)
+
+lemma take_bit_shift_len_zero:
+  fixes x :: "'a :: len word"
+  assumes "y \<ge> LENGTH('a)"
+  shows "take_bit b (x << y) = 0"
+  unfolding shiftl_def using assms by auto
 
 text \<open>Power of 2 lemmas\<close>
 
@@ -852,7 +870,6 @@ lemma bin_log2_highestOneBit_eq_64:
   qed
   done
 
-
 lemma sum_eq_card:
   fixes N :: nat
   shows "(\<Sum>i=0..N. of_bool (P i)) = card {i. 0 \<le> i \<and> i \<le> N \<and> P i}"
@@ -1048,12 +1065,10 @@ lemma bot_set: "w \<noteq> zero \<Longrightarrow> bit w (\<bottom> w)"
   using finite_bits unfolding botBit_def supp_def
   using Min_in top_set by auto
 
-lemma above_top_unset:
-  "i > \<top> w \<Longrightarrow> \<not>(bit w i)"
+lemma above_top_unset: "i > \<top> w \<Longrightarrow> \<not>(bit w i)"
   by (metis empty_def eq_Max_iff finite_bits topBit_def supp_def linorder_not_less mem_Collect_eq)
 
-lemma below_bot_unset:
-  "i < \<bottom> w \<Longrightarrow> \<not>(bit w i)"
+lemma below_bot_unset: "i < \<bottom> w \<Longrightarrow> \<not>(bit w i)"
   by (metis Min_gr_iff bex_empty finite_bits less_irrefl botBit_def supp_def mem_Collect_eq)
 
 lemma or_eq_add_disjoint:
@@ -1420,7 +1435,7 @@ proof -
   have foldAnd: "(and (word_of_nat (max)::64word) (63::64 word)) = (word_of_nat (max)::64word)"
     using and_mask_eq_iff_le_mask by (metis mask word_range)
   have "unat (word_of_nat (max)::64word) = max"
-    using lt_pow2 unat_word_of_nat_unfold_64 maxInSet by blast
+    using lt_pow2 unat_word_of_nat_unfold maxInSet by blast
   then show ?thesis
     using foldAnd maxInSet by auto
 qed
@@ -1468,7 +1483,7 @@ proof -
   have foldAnd: "(and (word_of_nat (min)::64word) (63::64 word)) = (word_of_nat (min)::64word)"
     by (metis and_mask_eq_iff_le_mask mask word_range)
   have "unat (word_of_nat (min)::64word) = min"
-    using lt_pow2 unat_word_of_nat_unfold_64 minInSet by blast
+    using lt_pow2 unat_word_of_nat_unfold minInSet by blast
   then show ?thesis
     using foldAnd minInSet by auto
 qed

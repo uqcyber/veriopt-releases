@@ -417,7 +417,7 @@ proof -
   have foldAnd: "(and (word_of_nat (max)::64word) (31::64 word)) = (word_of_nat (max)::64word)"
     by (metis le_mask_imp_and_mask mask word_range)
   have "unat (word_of_nat (max)::64word) = max"
-    unfolding maxInSet using unat_word_of_nat_unfold_64 lt_pow2 by presburger
+    unfolding maxInSet using unat_word_of_nat_unfold lt_pow2 by blast
   then show ?thesis
     unfolding maxInSet using foldAnd maxInSet by argo
 qed
@@ -464,7 +464,7 @@ proof -
   have foldAnd: "(and (word_of_nat (min)::64word) (31::64 word)) = (word_of_nat (min)::64word)"
     by (metis le_mask_imp_and_mask mask word_range)
   have "unat (word_of_nat (min)::64word) = min"
-    unfolding minInSet using unat_word_of_nat_unfold_64 lt_pow2 by blast
+    unfolding minInSet using unat_word_of_nat_unfold lt_pow2 by blast
   then show ?thesis
     unfolding minInSet using foldAnd minInSet by argo
 qed

@@ -479,6 +479,18 @@ lemma not_down_up_mask_and_zero_implies_zero:
       bit.de_Morgan_disj ucast_id down_spec or_eq_not_not_and up_spec word_ao_absorbs(2,8)
       word_bw_lcs(1) word_not_dist(2))
 
+lemma and_or_absorb_up_mask_iff:
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  shows "(and (\<up>x) yv) = (\<up>x) \<longleftrightarrow> (or (\<up>x) yv) = yv"
+  by (metis word_ao_absorbs(3) word_ao_absorbs(4))
+
+lemma and_or_absorb_up_down_mask_iff:
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  shows "(and (\<up>x) (\<down>y)) = (\<up>x) \<longleftrightarrow> (or (\<up>x) (\<down>y)) = (\<down>y)"
+  by (metis word_ao_absorbs(3) word_ao_absorbs(4))
+
 end
 
 definition wf_stamp :: "IRExpr \<Rightarrow> bool" where

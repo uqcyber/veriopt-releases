@@ -108,7 +108,7 @@ lemma val_sub_negative_const:
   shows "val[x - (-y)] = val[x + y]"
   by (cases x; simp add: assms)
 
-lemma negate_idempotent:
+lemma val_negate_idempotent:
   assumes "x = IntVal b v \<and> take_bit b v = v"
   shows "x = val[-(-x)]"
   by (auto simp: assms is_IntVal_def)
@@ -182,7 +182,7 @@ lemma exp_sub_then_left_sub:
 
 thm_oracles exp_sub_then_left_sub
 
-lemma SubtractZero_Exp:
+lemma exp_subtract_zero:
   "exp[(x - (const IntVal b 0))] \<ge> x"
   apply auto
   subgoal premises p for m p xa
@@ -202,7 +202,7 @@ lemma SubtractZero_Exp:
   qed
   done
 
-lemma ZeroSubtractValue_Exp:
+lemma exp_zero_subtract_value:
   assumes "wf_stamp x"
   assumes "stamp_expr x = IntegerStamp b lo hi"
   assumes "\<not>(is_ConstantExpr x)"
@@ -231,11 +231,11 @@ lemma exp_sub_after_sub_left:
       using p(1) by auto
     obtain yv where yv: "[m,p] \<turnstile> y \<mapsto> yv"
       using p(4) by blast
-    have lhsEval: "[m,p] \<turnstile> exp[((x - y) - x)] \<mapsto> val[((xv - yv) - xv)]"
+    have lhsEval: "[m,p] \<turnstile> exp[(x - y) - x] \<mapsto> val[(xv - yv) - xv]"
       by (metis BinaryExpr bin_eval.simps(2) evalDet p xv yv)
     have rhsEval: "[m,p] \<turnstile> exp[-y] \<mapsto> val[-yv]"
       by (metis evalDet p(1,2,3,4) unary_eval.simps(2) unfold_unary val_sub_after_left_sub yv)
-    have "val[((xv - yv) - xv)] = val[-yv]"
+    have "val[(xv - yv) - xv] = val[-yv]"
       using val_sub_after_left_sub lhsEval unfold_binary by auto
     then show ?thesis
       by (metis evalDet p(1,3,4) rhsEval xv yv)
@@ -282,8 +282,8 @@ optimization SubThenAddRight: "y - (x + y) \<longmapsto> -x"
 optimization SubThenSubLeft: "x - (x - y) \<longmapsto> y"
   using exp_sub_then_left_sub by blast
 
-optimization SubtractZero: "x - (const IntVal b 0) \<longmapsto> x"
-  using SubtractZero_Exp by fast
+optimization SubtractZero: "x - (const new_int b 0) \<longmapsto> x"
+  using exp_subtract_zero by fast
 
 thm_oracles SubtractZero
 
@@ -299,12 +299,12 @@ optimization SubNegativeValue: "x - (-y) \<longmapsto> x + y"
 
 thm_oracles SubNegativeValue
 
-optimization ZeroSubtractValue: "(const IntVal b 0) - x \<longmapsto> (-x)
+optimization ZeroSubtractValue: "(const new_int b 0) - x \<longmapsto> (-x)
                                  when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi \<and>
                                        \<not>(is_ConstantExpr x))"
-  using ZeroSubtractValue_Exp by auto
+  using exp_zero_subtract_value by auto
 
-optimization SubSelfIsZero: "(x - x) \<longmapsto> const IntVal b 0
+optimization SubSelfIsZero: "(x - x) \<longmapsto> const new_int b 0
                              when (wf_stamp x \<and> stamp_expr x = IntegerStamp b lo hi)"
   using exp_sub_self_is_zero by blast
 

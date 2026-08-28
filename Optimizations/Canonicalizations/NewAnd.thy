@@ -3,7 +3,6 @@ subsection \<open>Experimental AndNode Phase\<close>
 theory NewAnd
   imports
     Common
-    Graph.JavaLong
 begin
 
 text \<open> Proving the new optimisations in AndNode.eliminateRedundantBinaryArithmeticOp() \<close>

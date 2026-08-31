@@ -56,16 +56,16 @@ definition shiftl (infix "<<" 75) where
 lemma shiftl_power[simp]: "(x::('a::len) word) * (2 ^ j) = x << j"
   unfolding shiftl_def by (induction j; auto simp add: push_bit_eq_mult)
 
-lemma "(x::('a::len) word) * ((2 ^ j) + 1) = x << j + x"
+lemma shiftl_succ: "(x::('a::len) word) * ((2 ^ j) + 1) = x << j + x"
   by (simp add: distrib_left)
 
-lemma "(x::('a::len) word) * ((2 ^ j) - 1) = x << j - x"
+lemma shiftl_pred: "(x::('a::len) word) * ((2 ^ j) - 1) = x << j - x"
   by (simp add: right_diff_distrib)
 
-lemma "(x::('a::len) word) * ((2 ^ j) + (2 ^ k)) = x << j + x << k"
+lemma shiftl_distrib_sum: "(x::('a::len) word) * ((2 ^ j) + (2 ^ k)) = x << j + x << k"
   by (simp add: distrib_left)
 
-lemma "(x::('a::len) word) * ((2 ^ j) - (2 ^ k)) = x << j - x << k"
+lemma shiftl_distrib_sub: "(x::('a::len) word) * ((2 ^ j) - (2 ^ k)) = x << j - x << k"
   by (simp add: right_diff_distrib)
 
 text \<open>Unsigned shift right.\<close>
@@ -411,6 +411,9 @@ lemma sint_pos_lt_uint_below:
   by (metis word_less_iff_unsigned word_sless_alt sint_pos_lt_uint_lt assms)
 
 subsubsection \<open>Support lemmas for take bit and signed take bit.\<close>
+
+definition is_truncated :: "nat \<Rightarrow> 'a::len word \<Rightarrow> bool" where
+  "is_truncated b v = (take_bit b v = v)"
 
 text \<open>Lemmas for removing redundant take\_bit wrappers.\<close>
 

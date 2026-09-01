@@ -378,7 +378,7 @@ lemma exp_multiply_neutral:
 thm_oracles exp_multiply_neutral
 
 lemma exp_multiply_negative:
- "exp[x * -(const (IntVal b 1))] \<ge> exp[-x]"
+ "exp[x * (const (IntVal b (not 0)))] \<ge> exp[-x]"
   apply auto
   subgoal premises p for m p xa
   proof -
@@ -386,14 +386,13 @@ lemma exp_multiply_negative:
       using p(1) by auto
     obtain xb xvv where xvv: "xv = IntVal xb xvv"
       by (metis array_length.cases evalDet evaltree_not_undef intval_mul.simps(3,4,5) p(1,2) xv)
-    then have rewrite: "val[-(IntVal b 1)] = IntVal b (mask b)"
-      by simp
-    then have mulUnfold: "val[xv * (IntVal b (mask b))] =
-                          (if xb=b then (IntVal xb (take_bit xb (xvv*(mask xb)))) else UndefVal)"
-      by (metis new_int.simps xvv new_int_bin.simps intval_mul.simps(1))
+    then have mulUnfold: "intval_mul xa (IntVal b (-1)) = bin_eval BinMul xa (IntVal b (-1))"
+      by auto
+    then have "b = xb"
+      by (metis IRBinaryOp.distinct(79,81,83) empty_iff evalDet insert_iff bin_eval_input_bits_equal
+          p(1,2) xvv xv)
     then show ?thesis
-      by (metis evalDet eval_unused_bits_zero new_int.elims p(1,2) rewrite unary_eval.simps(2) xvv
-          unfold_unary val_multiply_negative xv)
+      using evalDet p(1) xv xvv by fastforce
   qed
   done
 
@@ -619,8 +618,8 @@ optimization MulNeutral: "x * ConstantExpr (IntVal b 1) \<longmapsto> x"
 optimization MulEliminator: "x * ConstantExpr (IntVal b 0) \<longmapsto> const (IntVal b 0)"
   using exp_multiply_zero_64 by fast
 
-optimization MulNegate: "x * -(const (IntVal b 1)) \<longmapsto> -x"
-  using exp_multiply_negative by presburger
+optimization MulNegate: "x * (const (IntVal b (not 0))) \<longmapsto> -x"
+  using exp_multiply_negative by auto
 
 optimization MulPower2: "x * y \<longmapsto> x << const (IntVal 64 i) 
                               when (i > 0 \<and> stamp_expr x = IntegerStamp 64 xl xh \<and> wf_stamp x \<and>

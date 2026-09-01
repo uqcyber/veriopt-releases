@@ -441,6 +441,7 @@ text \<open>Note that Java shift operators use unary numeric promotion, unlike o
   This means that the left-hand input determines the output size, while the
   right-hand input can be any size.\<close>
 
+(* Corresponds to ArithmeticOpTable.getShiftAmountMask(Stamp) *)
 definition shift_mask :: "iwidth \<Rightarrow> nat" where
   "shift_mask b = (if b = 64 then 0x3F else 0x1f)"
 

@@ -695,9 +695,9 @@ lemma unary_integer_convert_bitsize:
   using assms(2) apply (cases op; simp) (* the unary_normal and unary_boolean cases *)
   apply (metis assms(1) intval_narrow_ok intval_narrow.simps(1) Value.distinct(1) intval_bits.simps
          unary_eval.simps(5) is_IntVal_def new_int.elims)
-  by (metis (no_types, lifting) assms(1) intval_sign_extend_ok Value.distinct(1) order.strict_trans2
-      unary_eval.simps(6,7) intval_sign_extend.simps(1) intval_zero_extend.simps(1) is_IntVal_def
-      intval_zero_extend_ok new_int.elims intval_bits.simps)+
+  by (smt (verit) assms(1) intval_sign_extend_ok Value.distinct(1) order.strict_trans2 is_IntVal_def
+      unary_eval.simps(6,7) intval_sign_extend.simps(1) intval_zero_extend.simps(1) new_int.elims
+      intval_zero_extend_ok intval_bits.simps)+
 
 lemma unary_eval_bitsize:
   assumes "unary_eval op x = IntVal b v"

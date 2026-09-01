@@ -385,11 +385,11 @@ lemma bin_eval_bits_fixed_32_ops:
   assumes "result \<noteq> UndefVal"
   assumes "op \<in> binary_fixed_32_ops"
   shows "\<exists>v. result = new_int 32 v"
-  using assms apply (cases op; simp)
+  using assms apply (cases op; simp) prefer 3 prefer 6
+  apply (metis IntVal1 Value.inject(1) new_int.simps take_bit_minus_one_eq_mask take_bit_of_0)
+  apply (metis (no_types, opaque_lifting) bool_to_val.elims not0_implies_Suc zero_neq_numeral
+         signed_take_bit_Suc_1 signed_take_bit_eq_if_positive take_bit_of_0 not_bit_1_Suc)
   apply (metis (no_types, opaque_lifting) bin_eval_unused_bits_zero bool_to_val.elims assms(1))
-  prefer 5
-  using IntVal1 Value.inject(1) new_int.simps take_bit_minus_one_eq_mask assms(1)
-        bin_eval_unused_bits_zero bool_to_val.elims apply (metis take_bit_of_0, metis)
   by (metis (full_types) assms(1) bin_eval_unused_bits_zero bool_to_val.simps(1,2))+
 
 lemma bin_eval_bits_normal_ops:

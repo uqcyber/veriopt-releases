@@ -523,6 +523,16 @@ lemma take_bit_neg:
   by (smt (verit, ccfv_threshold) assms ab_group_add_class.ab_left_minus minus_add_cancel zero_le
       take_bit_of_0 take_bit_dist_addL take_bit_1_neq_0)
 
+lemma take_bit_suc:
+  fixes v :: "'a::len word"
+  assumes "\<not> bit v n"
+  shows "take_bit (Suc n) v = take_bit n v"
+  by (smt (verit, best) bit_take_bit_iff le_eq_less_or_eq less_Suc_eq_le take_bit_signed_take_bit
+      signed_take_bit_eq_if_positive signed_take_bit_take_bit linorder_not_less assms)
+
+lemma take_bit_leq: "take_bit b (v::'a::len word) \<le> v"
+  by (simp add: unsigned_take_bit_eq word_le_nat_alt)
+
 text \<open>Helpful signed\_take\_bit properties\<close>
 
 lemma take_bit_eq_signed: "take_bit b v = v \<Longrightarrow> signed_take_bit b v = v"

@@ -134,11 +134,6 @@ fun isDefaultForKind :: "Value \<Rightarrow> bool" where
 value "not(-1 << 8 :: int32)"
 value "mask 7 :: int32"
 
-lemma shift_n_eq_bit_n:
-  fixes val :: \<open>'a::len word\<close>
-  shows "(and (val >>> n) 1 = 1) = bit val n"
-  by (simp add: bit_iff_and_drop_bit_eq_1 shiftr_def)
-
 declare [[show_types=true]]
 lemma neg1_shift_eq_mask:
   fixes val :: \<open>'a::len word\<close>
@@ -147,13 +142,6 @@ lemma neg1_shift_eq_mask:
   assumes "0 < n"
   shows "((- 1 << n) :: 'a::len word) = not (mask n)" (is "?A = ?B")
   by (simp add: shiftl_def)
-
-lemma take_bit_suc:
-  fixes v :: int32
-  assumes "\<not> bit v (n::nat)"
-  shows "take_bit (Suc n::nat) v = take_bit (n::nat) v"
-  by (smt (verit, best) assms bit_take_bit_iff le_eq_less_or_eq less_Suc_eq_le linorder_not_less
-      signed_take_bit_eq_if_positive signed_take_bit_take_bit take_bit_signed_take_bit)
 
 lemma narrow_reverse_pos:
   assumes 1: "and (val32 >>> 7) 1 \<noteq> 1"

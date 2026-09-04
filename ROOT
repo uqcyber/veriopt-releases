@@ -43,7 +43,6 @@ session IEEE_Floating_Point in "Lib/IEEE_Floating_Point" = Word_Lib +
     IEEE_Single_NaN
     IEEE_Single_NaN_SMTLIB
 
-
 session Graph in Graph = IEEE_Floating_Point +
   description
     "GraalVM Intermediate Representation encoding"
@@ -52,6 +51,7 @@ session Graph in Graph = IEEE_Floating_Point +
   theories
     JavaWords
     JavaLong
+    JavaCodeUtil
     Values
     ValueThms
     Stamp

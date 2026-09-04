@@ -80,6 +80,12 @@ lemma is_power_of_2_nonzero: "is_power_of_2 v \<Longrightarrow> v \<noteq> 0"
 lemma is_power_of_2_implies_bitCount: "is_power_of_2 v \<Longrightarrow> bitCount v \<noteq> 0"
   unfolding bitCount_def is_power_of_2_def by (simp, metis no_bits_implies_zero signed.neq_iff)
 
+lemma is_power_of_2_sign_unset:
+  fixes v :: "'a :: len word"
+  assumes "is_power_of_2 v"
+  shows "\<not>(bit v (LENGTH('a) - 1))"
+  using assms unfolding is_power_of_2_def by (metis One_nat_def pos_signed_unset signed.nless_le)
+
 subsubsection \<open>$log2$\<close>
 
 lemma log2_highestOneBit_eq_64:

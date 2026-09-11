@@ -104,66 +104,62 @@ fun is_ground :: "IRExpr \<Rightarrow> bool" where
 typedef GroundExpr = "{ e :: IRExpr . is_ground e }"
   using is_ground.simps(6) by blast
 
-subsection \<open>Functions for re-calculating stamps\<close> 
+subsection \<open>Functions for re-calculating stamps\<close>
 
 text \<open>Note: in Java all integer calculations are done as 32 or 64 bit calculations.
   However, here we generalise the operators to allow any size calculations.
-  Many operators have the same output bits as their inputs.
-  However, the unary integer operators that are not $normal\_unary$ are narrowing 
-  or widening operators, so the result bits is specified by the operator.
-  The binary integer operators are divided into three groups:
+
+  The binary integer operators are divided into four groups:
   (1) $binary\_fixed\_32$ operators always output 32 bits,
-  (2) $binary\_shift\_ops$ operators output size is determined by their left argument,
-  and (3) other operators output the same number of bits as both their inputs.
+  (2) $binary\_shift$ operators output size is determined by their left argument,
+  (3) $binary\_normal$ operators output the same number of bits as both their inputs,
+  and (4) $binary\_fixed$ operators are a subset of $binary_normal$ operators, where the input bits
+          are restricted to 32 or 64.
+
+  The unary integer operators are divided into four groups:
+  (1) $unary\_normal$ operators output the same number of bits as their input,
+  (2) $unary\_integer\_convert$ operators are narrowing or widening operators, so the result bits
+      are specified by the operator,
+  (3) $unary\_fixed\_32$ operators always output 32 bits,
+  and (4) $unary\_boolean$ operators are a subset of $unary\_fixed\_32$ operators, where the output
+          value is a boolean.
 \<close>
 
 abbreviation binary_normal :: "IRBinaryOp set" where
   "binary_normal \<equiv> {BinAdd, BinMul, BinDiv, BinMod, BinSub, BinAnd, BinOr, BinXor}"
 
-abbreviation binary_fixed_32_ops :: "IRBinaryOp set" where
-  "binary_fixed_32_ops \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow, BinIntegerTest, BinIntegerNormalizeCompare}"
+abbreviation binary_fixed_32 :: "IRBinaryOp set" where
+  "binary_fixed_32 \<equiv> {BinShortCircuitOr, BinIntegerEquals, BinIntegerLessThan, BinIntegerBelow, BinIntegerTest, BinIntegerNormalizeCompare}"
 
-abbreviation binary_shift_ops :: "IRBinaryOp set" where
-  "binary_shift_ops \<equiv> {BinLeftShift, BinRightShift, BinURightShift}"
+abbreviation binary_shift :: "IRBinaryOp set" where
+  "binary_shift \<equiv> {BinLeftShift, BinRightShift, BinURightShift}"
 
-(* TODO add a note into the text above about this?
-
-  Describes operators whose output width matches the input (for 32 or 64), otherwise the output is
-  UndefVal.
-*)
-abbreviation binary_fixed_ops :: "IRBinaryOp set" where
-  "binary_fixed_ops \<equiv> {BinIntegerMulHigh}"
+abbreviation binary_fixed :: "IRBinaryOp set" where
+  "binary_fixed \<equiv> {BinIntegerMulHigh}"
 
 abbreviation unary_normal :: "IRUnaryOp set" where
   "unary_normal \<equiv> {UnaryAbs, UnaryNeg, UnaryNot, UnaryLogicNegation, UnaryReverseBytes}"
 
-(* TODO add a note into the text above about this ? *)
 abbreviation unary_fixed_32 :: "IRUnaryOp set" where
   "unary_fixed_32 \<equiv> {UnaryBitCount}"
 
-(* TODO add a note into the text above about this ? *)
 abbreviation unary_boolean :: "IRUnaryOp set" where
   "unary_boolean \<equiv> {UnaryIsNull}"
 
-(* TODO add a note into the text above about this ?
-
-   Describes operators which inherit from IntegerConvertNode; output widths are specified by the
-   operator.
-*)
 abbreviation unary_integer_convert :: "IRUnaryOp set" where
   "unary_integer_convert \<equiv> {op . is_UnaryNarrow op \<or> is_UnarySignExtend op \<or> is_UnaryZeroExtend op}"
 
-(* Helpful set lemmas *)
+text \<open>Helpful set lemmas\<close>
 
 lemma binary_ops_distinct:
-  shows "op \<in> binary_normal \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_shift_ops"
-  and   "op \<in> binary_fixed_32_ops \<Longrightarrow> op \<notin> binary_normal \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_shift_ops"
-  and   "op \<in> binary_fixed_ops \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_normal \<and> op \<notin> binary_shift_ops"
-  and   "op \<in> binary_shift_ops \<Longrightarrow> op \<notin> binary_fixed_32_ops \<and> op \<notin> binary_fixed_ops \<and> op \<notin> binary_normal"
+  shows "op \<in> binary_normal \<Longrightarrow> op \<notin> binary_fixed_32 \<and> op \<notin> binary_fixed \<and> op \<notin> binary_shift"
+  and   "op \<in> binary_fixed_32 \<Longrightarrow> op \<notin> binary_normal \<and> op \<notin> binary_fixed \<and> op \<notin> binary_shift"
+  and   "op \<in> binary_fixed \<Longrightarrow> op \<notin> binary_fixed_32 \<and> op \<notin> binary_normal \<and> op \<notin> binary_shift"
+  and   "op \<in> binary_shift \<Longrightarrow> op \<notin> binary_fixed_32 \<and> op \<notin> binary_fixed \<and> op \<notin> binary_normal"
   by auto
 
 lemma binary_ops_complete:
-  "op \<in> binary_normal \<or> op \<in> binary_fixed_32_ops \<or> op \<in> binary_fixed_ops \<or> op \<in> binary_shift_ops"
+  "op \<in> binary_normal \<or> op \<in> binary_fixed_32 \<or> op \<in> binary_fixed \<or> op \<in> binary_shift"
   by (cases op; auto)
 
 lemma unary_ops_distinct:
@@ -189,9 +185,9 @@ fun stamp_unary :: "IRUnaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
 
 fun stamp_binary :: "IRBinaryOp \<Rightarrow> Stamp \<Rightarrow> Stamp \<Rightarrow> Stamp" where
   "stamp_binary op (IntegerStamp b1 lo1 hi1) (IntegerStamp b2 lo2 hi2) =
-    (if op \<in> binary_shift_ops then unrestricted_stamp (IntegerStamp b1 lo1 hi1)
+    (if op \<in> binary_shift then unrestricted_stamp (IntegerStamp b1 lo1 hi1)
      else if b1 \<noteq> b2 then IllegalStamp else
-      (if op \<in> binary_fixed_32_ops
+      (if op \<in> binary_fixed_32
        then unrestricted_stamp (IntegerStamp 32 lo1 hi1)
        else unrestricted_stamp (IntegerStamp b1 lo1 hi1)))" |
   (* for now... *)

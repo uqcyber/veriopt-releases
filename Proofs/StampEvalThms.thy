@@ -372,10 +372,10 @@ lemma binary_obj: "v1 = ObjRef x \<or> v2 = ObjRef y \<Longrightarrow> bin_eval 
 
 text \<open>Some lemmas about the three different output sizes for binary operators.\<close>
 
-lemma bin_eval_bits_binary_shift_ops:
+lemma bin_eval_bits_binary_shift:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
   assumes "result \<noteq> UndefVal"
-  assumes "op \<in> binary_shift_ops"
+  assumes "op \<in> binary_shift"
   shows "\<exists>v. result = new_int b1 v"
   using assms apply (cases op; simp) prefer 2
   apply (smt (z3) new_int.simps take_bit_eq_mask word_bw_comms(2)) by blast+
@@ -383,7 +383,7 @@ lemma bin_eval_bits_binary_shift_ops:
 lemma bin_eval_bits_fixed_32_ops:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
   assumes "result \<noteq> UndefVal"
-  assumes "op \<in> binary_fixed_32_ops"
+  assumes "op \<in> binary_fixed_32"
   shows "\<exists>v. result = new_int 32 v"
   using assms apply (cases op; simp) prefer 3 prefer 6
   apply (metis IntVal1 Value.inject(1) new_int.simps take_bit_minus_one_eq_mask take_bit_of_0)
@@ -395,14 +395,14 @@ lemma bin_eval_bits_fixed_32_ops:
 lemma bin_eval_bits_normal_ops:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
   assumes "result \<noteq> UndefVal"
-  assumes "op \<notin> binary_fixed_32_ops"
+  assumes "op \<notin> binary_fixed_32"
   shows "\<exists>v. result = new_int b1 v"
   by (metis assms bin_eval_new_int intval_bits.simps)
 
 lemma bin_eval_input_bits_equal:
   assumes "result = bin_eval op (IntVal b1 v1) (IntVal b2 v2)"
   assumes "result \<noteq> UndefVal"
-  assumes "op \<notin> binary_shift_ops"
+  assumes "op \<notin> binary_shift"
   shows "b1 = b2"
   using assms apply (cases op; simp) by (meson new_int_bin.simps)+
 
@@ -433,12 +433,12 @@ proof -
   then have "stamp_expr (BinaryExpr op expr1 expr2) =
              unrestricted_stamp (IntegerStamp bres lo1 hi1)
            \<and> 0 < bres \<and> bres \<le> 64"
-    proof (cases "op \<in> binary_shift_ops")
+    proof (cases "op \<in> binary_shift")
       case True
       then show ?thesis
         unfolding stamp_expr.simps
         by (metis Value.inject(1) eval_bits_1_64 new_int.simps r assms(1,4) stamp_binary.simps(1) v1
-            bin_eval_bits_binary_shift_ops s2 s1 vres)
+            bin_eval_bits_binary_shift s2 s1 vres)
     next
       case False
       then have beq: "b1 = b2"

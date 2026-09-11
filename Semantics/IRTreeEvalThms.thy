@@ -82,7 +82,7 @@ lemma bin_eval_int:
 lemma bin_eval_new_int:
   assumes "bin_eval op x y \<noteq> UndefVal"
   shows "\<exists>b v. (bin_eval op x y) = new_int b v \<and>
-          b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits x)"
+          b = (if op \<in> binary_fixed_32 then 32 else intval_bits x)"
   using is_IntVal_def assms
 proof (cases op)
   case BinAdd
@@ -747,7 +747,7 @@ next
     by (auto simp add: unfold_binary)
   then have def: "bin_eval op xv yv \<noteq> UndefVal" and xv: "xv \<noteq> UndefVal" and "yv \<noteq> UndefVal"
     using evaltree_not_undef xy by (force, blast, blast)
-  then have "b = (if op \<in> binary_fixed_32_ops then 32 else intval_bits xv)"
+  then have "b = (if op \<in> binary_fixed_32 then 32 else intval_bits xv)"
     by (metis xy intval_bits.simps new_int.simps bin_eval_new_int)
   then show ?case
     by (smt (verit, best) Value.distinct(9,11,13) BinaryExpr.IH(1) xv bin_eval_inputs_are_ints xy

@@ -113,7 +113,7 @@ text \<open>Note: in Java all integer calculations are done as 32 or 64 bit calc
   (1) $binary\_fixed\_32$ operators always output 32 bits,
   (2) $binary\_shift$ operators output size is determined by their left argument,
   (3) $binary\_normal$ operators output the same number of bits as both their inputs,
-  and (4) $binary\_fixed$ operators are a subset of $binary_normal$ operators, where the input bits
+  and (4) $binary\_fixed$ operators are a subset of $binary\_normal$ operators, where the input bits
           are restricted to 32 or 64.
 
   The unary integer operators are divided into four groups:

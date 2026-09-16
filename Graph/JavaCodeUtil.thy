@@ -36,7 +36,7 @@ definition log2 :: "'a :: len word \<Rightarrow> nat" where
 text \<open>
 The condition: $ if (bit value (inputBits - 1)) $
 
-corresponds to the Java snippet: $ if ((value >>> (inputBits - 1) & 1) == 1) $
+corresponds to the Java snippet: $ if ((value >>> (inputBits - 1) \& 1) == 1) $
 
 which is shown to be equivalent by @{prf shift_n_eq_bit_n}\<close>
 (* Corresponds to CodeUtil.signExtend(JI)J *)

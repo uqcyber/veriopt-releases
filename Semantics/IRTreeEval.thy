@@ -436,6 +436,10 @@ locale stamp_mask =
       and down_spec: "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> (and (not v) (ucast (\<down>e))) = 0"
 begin
 
+(* Corresponds to IntegerStamp.bitwiseDisjoint(IntegerStamp, IntegerStamp) *)
+definition is_bitwise_disjoint :: "IRExpr \<Rightarrow> IRExpr \<Rightarrow> bool" where
+  "is_bitwise_disjoint x y = (and (\<up>x) (\<up>y) = 0)"
+
 lemma may_implies_either:
   "[m, p] \<turnstile> e \<mapsto> IntVal b v \<Longrightarrow> bit (\<up>e) n \<Longrightarrow> bit v n = False \<or> bit v n = True"
   by simp
@@ -486,6 +490,14 @@ lemma and_or_absorb_up_down_mask_iff:
   assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
   shows "(and (\<up>x) (\<down>y)) = (\<up>x) \<longleftrightarrow> (or (\<up>x) (\<down>y)) = (\<down>y)"
   by (metis word_ao_absorbs(3) word_ao_absorbs(4))
+
+lemma bitwise_disjoint_or_add_eq:
+  assumes "is_bitwise_disjoint x y"
+  assumes "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
+  assumes "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
+  shows "or xv yv = xv + yv"
+  using assms unfolding is_bitwise_disjoint_def
+  by (metis disjunctive_add_eq_or up_mask_and_zero_implies_zero)
 
 end
 

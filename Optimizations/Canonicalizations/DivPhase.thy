@@ -25,19 +25,16 @@ lemma word64_div_itself:
       take_bit_of_0 take_bit_signed_take_bit)
 
 (* Value level proofs *)
-fun valid_int :: "Value \<Rightarrow> bool" where
-  "valid_int (IntVal b v) = (0 < b \<and> b \<le> 64 \<and> take_bit b v = v)" |
-  "valid_int _ = False"
-
 lemma value_div_itself:
-  assumes "val[x / x] = IntVal b v"
-  assumes "valid_int x"
-  assumes "x \<noteq> val[IntVal b 0]"
-  shows "val[x / x] = val[IntVal b 1]"
-  using assms apply (cases x) defer
-  apply (smt (verit) word64_div_itself IntVal1 Value.distinct(1) bot_nat_0.not_eq_extremum of_int_1
-         intval_div.simps(1) intval_word.simps new_int.simps new_int_bin.elims valid_int.simps(1)
-         take_bit_numeral_1 take_bit_of_1 take_bit_of_1_eq_0_iff)
+  assumes "x = IntVal b v"
+  assumes "is_truncated b v"
+  assumes "intval_bits_in_bounds x 1 64"
+  assumes "x \<noteq> IntVal b 0"
+  shows "val[x / x] = IntVal b 1"
+  using assms apply (cases x) defer unfolding is_truncated_def
+  apply (smt (verit, best) intval_bits_in_bounds_imp word64_div_itself of_int_1 take_bit_1_neq_0
+         bot_nat_0.not_eq_extremum intval_div.simps(1) intval_word.simps new_int.simps take_bit_of_1
+         new_int_bin.elims take_bit_numeral_1 take_bit_of_1_eq_0_iff IntVal1)
   by simp+
 
 phase DivPhase
@@ -54,9 +51,11 @@ optimization DivItself: "(x / x) \<longmapsto> const IntVal b 1
     obtain xv where xv: "[m, p] \<turnstile> x \<mapsto> IntVal b xv"
       by (metis p BinaryExprE valid_int wf_stamp_def)
     then show ?thesis
-      by (metis (no_types, lifting) value_div_itself BinaryExprE xv bin_eval.simps(4) evalDet p(2)
-          eval_bits_1_64 eval_unused_bits_zero intval_div.simps(1) new_int.simps new_int_bin.elims
-          unfold_const validDefIntConst valid_int.simps(1) wf_value_def)
+      by (smt (verit, ccfv_SIG) value_div_itself BinaryExprE bin_eval.simps(4) evalDet p(2) less_one
+          eval_bits_1_64 eval_unused_bits_zero intval_div.simps(1) validDefIntConst zero_neq_numeral
+          wf_value_def ex_least_nat_le intval_bits_in_bounds.simps(1) is_truncated_def unfold_const
+          le_neq_implies_less less_numeral_extra(3) linorder_neqE_nat not_gr_zero numeral_One
+          of_int_0 of_int_1)
   qed
   done
 

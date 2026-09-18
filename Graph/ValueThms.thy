@@ -61,6 +61,9 @@ lemma width_eq_implies_bitbounds_eq:
   shows "intval_bits_in_bounds y lo hi"
   using assms by auto
 
+lemma intval_bits_in_bounds_imp: "x = IntVal b v \<Longrightarrow> intval_bits_in_bounds x l h \<Longrightarrow> l \<le> b \<and> b \<le> h"
+  by simp
+
 text \<open>Some min/max bounds for 64-bit words\<close>
 
 lemma bit_bounds_min64: "((fst (bit_bounds 64))) \<le> (sint (v::int64))"

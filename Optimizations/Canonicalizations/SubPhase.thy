@@ -195,7 +195,7 @@ lemma exp_subtract_zero:
       by (metis evalDet intval_sub.simps(1) new_int_bin.simps p(1,2) xv)
     then have unfoldSub: "val[xv - (IntVal b 0)] = (new_int xb (xvv - 0))"
       by (simp add: xvv)
-    have "val[xv] = new_int xb (xvv)"
+    have "xv = new_int xb (xvv)"
       using eval_unused_bits_zero xv xvv by auto
     then show ?thesis
       by (metis diff_zero evalDet p(1) unfoldSub xv)

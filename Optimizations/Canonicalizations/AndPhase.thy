@@ -220,8 +220,8 @@ lemma exp_and_neutral:
     then have "xb = b"
       by (metis p(1,2) valid_int_same_bits wf_stamp_def xv)
     then show ?thesis
-      by (metis evalDet eval_unused_bits_zero intval_and.simps(1) new_int.simps new_int_bin.simps
-          p(3) take_bit_eq_mask xv)
+      by (metis evalDet eval_unused_bits_zero intval_and.simps(1) new_int.simps new_int_bin.simps xv
+          p(3) take_bit_eq_mask)
   qed
   done
 

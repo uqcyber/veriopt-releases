@@ -486,8 +486,8 @@ lemma exp_xor_zero_equality:
       by (metis BinaryExpr bin_eval.simps(13) newIntY new_int_zero rhsDefined widthB ya unfold_const
           eval_new_int_wf_value_const)
     then show ?thesis
-      by (metis evalDet lhs newIntX newIntY new_int_zero p(1,3,4) xEq val_xor_zero_equality widthB
-          ya width)
+      by (metis evalDet lhs newIntX newIntY new_int_zero p(1,3,4) xEq val_xor_zero_equality width ya
+          widthB)
   qed
   done
 
@@ -520,7 +520,7 @@ lemma exp_sub_zero_equality:
       using bool_to_val.elims yBits yv by auto
     then have equals: "val[xa eq (xa - ya)] = val[ya eq (new_int b 0)]"
       by (metis intval_equals.simps(6) intval_sub.simps(1) lhsDefined newIntX newIntY xv yBits yv
-          new_int_bin.simps val_sub_zero_equality)
+          new_int_bin_def_width_iff val_sub_zero_equality)
     have "[m,p] \<turnstile> exp[y eq const (IntVal b 0)] \<mapsto> val[ya eq (IntVal b 0)]"
       by (metis BinaryExpr bin_eval.simps(13) newIntY new_int_zero unfold_const ya yBits rhsDefined
           eval_new_int_wf_value_const)

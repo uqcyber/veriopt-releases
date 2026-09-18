@@ -95,11 +95,11 @@ next
 next
   case BinDiv
   then show ?thesis
-    using assms apply (cases x; cases y; auto) by (meson new_int_bin.simps)
+    using assms apply (cases x; cases y; auto) by (meson new_int_bin_def_width_iff)
 next
   case BinMod
   then show ?thesis
-    using assms apply (cases x; cases y; auto) by (meson new_int_bin.simps)
+    using assms apply (cases x; cases y; auto) by (meson new_int_bin_def_width_iff)
 next
   case BinSub
   then show ?thesis
@@ -788,7 +788,7 @@ lemma bin_eval_normal_undef_implies_bits:
   assumes "op \<in> binary_normal"
   shows "xb = yb"
   using assms apply (cases op; auto) prefer 5 prefer 5
-  using new_int_bin.elims apply (meson, meson) by presburger+
+  using new_int_bin_def_width_iff apply (meson, meson) by presburger+
 
 lemma bin_eval_normal_bits:
   assumes "op \<in> binary_normal"

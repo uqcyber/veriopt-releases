@@ -179,7 +179,7 @@ lemma OrGeneralization:
       by (metis (no_types, opaque_lifting) bit.de_Morgan_conj word_bw_comms(2) xv down_spec
           word_not_not yv bit.disj_conj_distrib intval_or.simps(1) new_int_bin.simps ucast_id
           or.right_neutral)
-    then have notMaskEq: "(new_int b (not 0)) = (new_int b (mask b))"
+    then have "new_int b (not 0) = new_int b (mask b)"
       by auto
     then show ?thesis 
       by (metis neg_one.elims neg_one_value p(9,10) rhsWf unfold_const evalDet xv yv rhs)

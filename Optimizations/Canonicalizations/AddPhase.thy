@@ -72,8 +72,8 @@ lemma RedundantSubAdd_Exp:
       by (metis evaltree_not_undef intval_logic_negation.cases intval_sub.simps(3,4,5) subNotUndef
           av)
     then have widthSame: "bb = ba"
-      by (metis av bInt bv evalDet intval_sub.simps(1) new_int_bin.simps p(3,4,5))
-    have valEval: "val[((av - bv) + bv)] = val[av]"
+      using bInt new_int_bin_def_width_iff subNotUndef by force
+    have "val[(av - bv) + bv] = av"
       using aInt av eval_unused_bits_zero widthSame bInt by simp
     then show ?thesis
       by (metis av bv evalDet p(1,3,4))

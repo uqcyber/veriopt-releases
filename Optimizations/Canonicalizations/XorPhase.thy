@@ -137,8 +137,8 @@ lemma exp_xor_cancel:
       by (metis (no_types, opaque_lifting) bit.xor_compl_left bit.xor_compl_right take_bit_xor
           word_not_not)
     then have "[m,p] \<turnstile> exp[x \<oplus> y] \<mapsto> new_int b (xor xv yv)"
-      by (metis BinaryExpr Value.distinct(1) bin_eval.simps(8) xv yv intval_not.simps(1) xa ya
-          intval_xor.simps(1) new_int.simps new_int_bin.simps)
+      by (metis (lifting) BinaryExpr Value.distinct(1) bin_eval.simps(8) xv ext intval_not.simps(1)
+          xa ya intval_xor.simps(1) new_int.simps new_int_bin.simps yv intval_word.simps)
     then show ?thesis
       by (metis evalDet p(2,4) unfoldXor xa ya)
   qed

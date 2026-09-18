@@ -214,10 +214,11 @@ text \<open>Results about $new\_int$.\<close>
 lemma new_int_take_bits: "IntVal b val = new_int b v \<Longrightarrow> take_bit b val = val"
   by simp
 
-lemma new_int_bin_width:
-  assumes "new_int_bin b0 b1 v \<noteq> UndefVal"
-  shows "b0 = b1"
-  by (metis assms new_int_bin.simps)
+lemma new_int_bin_def_width_iff: "new_int_bin b0 b1 w \<noteq> UndefVal \<longleftrightarrow> b0 = b1"
+  by auto
+
+lemma new_int_bin_intval_width_iff: "is_IntVal (new_int_bin b0 b1 w) \<longleftrightarrow> b0 = b1"
+  by auto
 
 subsubsection \<open>$intval_is_truncated$ and $is_truncated$ lemmas\<close>
 

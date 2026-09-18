@@ -316,9 +316,7 @@ thm constant_shift
 
 optimization neutral_zero:
   "((e::i32exp) + const(IntVal b 0)) \<longmapsto> e"
-  apply auto
-  by (metis (no_types, lifting) add.right_neutral evalDet eval_unused_bits_zero intval_add.simps(1)
-      i32e_eval)
+  apply auto subgoal premises p for m p x using p eval_unused_bits_zero by (cases x; auto) done
 
 ML_val \<open>@{term "(e1 - e2) + e2 \<longmapsto> e1"}\<close>
 
@@ -361,8 +359,7 @@ lemma neutral_right_add_sub_val:
 
 optimization neutral_right_add_sub:
   "(e1::intexp) + ((e2::intexp) - e1) \<longmapsto> e2"
-  apply (simp add: size_gt_0)+
-  by (smt (verit) BinaryExprE bin_eval.simps(1,3) evalDet neutral_right_add_sub_val)
+  apply (auto simp add: size_gt_0)+ by (metis evalDet neutral_right_add_sub_val)
 
 optimization add_ynegate:
   "((x::i32exp) + (-(y::i32exp))) \<longmapsto> (x - y)"

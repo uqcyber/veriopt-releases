@@ -138,10 +138,8 @@ lemma valid_int_same_bits: "valid_value (IntVal b val) (IntegerStamp bits lo hi)
   by (meson valid_value.simps(1))
 
 text \<open>A valid value means a valid stamp.\<close>
-lemma valid_int_valid_stamp:
-  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
-  shows "valid_stamp (IntegerStamp bits lo hi)"
-  by (metis assms valid_value.simps(1))
+lemma valid_int_valid_stamp: "valid_value (IntVal b v) s \<Longrightarrow> valid_stamp s"
+  using valid_int_gives by blast
 
 text \<open>A valid int means a valid non-empty stamp.\<close>
 lemma valid_int_not_empty: "valid_value (IntVal b val) (IntegerStamp bits lo hi) \<Longrightarrow> lo \<le> hi"
@@ -152,22 +150,19 @@ lemma valid_int_fits: "valid_value (IntVal b v) (IntegerStamp bits lo hi) \<Long
   by (metis valid_value.simps(1))
 
 lemma valid_int_is_zero_masked:
-  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
-  shows "and val (not (mask bits)) = 0"
-  by (metis (no_types, lifting) assms bit.conj_cancel_right take_bit_eq_mask valid_int_fits
-      word_bw_assocs(1) word_log_esimps(1))
+  "valid_value (IntVal b val) (IntegerStamp bits lo hi) \<Longrightarrow> and val (not (mask bits)) = 0"
+  by (metis (no_types, lifting) bit.conj_cancel_right take_bit_eq_mask word_log_esimps(1)
+      word_bw_assocs(1) valid_int_fits)
 
 text \<open>Unsigned ints have bounds $0$ up to $2^bits$.\<close>
 lemma valid_int_unsigned_bounds:
-  assumes "valid_value (IntVal b val) (IntegerStamp bits lo hi)"
-  shows "uint val < 2 ^ bits"
-  by (metis assms mask_eq_iff take_bit_eq_mask valid_value.simps(1))
+  "valid_value (IntVal b v) (IntegerStamp bits lo hi) \<Longrightarrow> uint v < 2 ^ bits"
+  by (metis mask_eq_iff take_bit_eq_mask valid_value.simps(1))
 
 text \<open>Signed ints have the usual two-complement bounds.\<close>
 lemma valid_int_signed_upper_bound:
-  assumes "valid_value (IntVal b v) (IntegerStamp bits lo hi)"
-  shows "int_signed_value bits v < 2 ^ (bits - 1)"
-  using assms int_signed_value_range by blast
+  "valid_value (IntVal b v) (IntegerStamp bits lo hi) \<Longrightarrow> int_signed_value bits v < 2 ^ (bits - 1)"
+  using int_signed_value_range by blast
 
 lemma valid_int_signed_lower_bound:
   assumes "valid_value (IntVal b v) (IntegerStamp bits lo hi)"

@@ -29,9 +29,6 @@ lemma MaxOrNeg_max: "s \<noteq> {} \<Longrightarrow> MaxOrNeg s = Max s"
 
 subsection \<open>Helpful lemmas\<close>
 
-fun bin_is_even :: "'a::len word \<Rightarrow> bool" where
-  "bin_is_even v = (\<not>bit v 0)"
-
 subsubsection \<open>LENGTH lemmas\<close>
 
 lemma lt_64_iff: "v < 64 \<longleftrightarrow> v < LENGTH(64)"
@@ -125,6 +122,9 @@ lemma zero_empty_bits: "v = 0 \<Longrightarrow> {i . bit v i} = {}"
 lemma no_bits_implies_zero: "\<forall> i . \<not>bit v i \<Longrightarrow> v = 0"
   by (simp add: bit_eqI)
 
+lemma zero_implies_no_bits: "v = 0 \<Longrightarrow> \<forall> i . \<not>bit v i"
+  by (simp add: bit_eqI)
+
 lemma bits_1_set: "{n . bit 1 n} = {0}"
   by (simp add: bit_1_iff)
 
@@ -154,6 +154,17 @@ lemma upper_bits_unset_implies_0_1: "\<forall> i . i \<noteq> 0 \<longrightarrow
 
 lemma nonzero_nonempty_iff: "v \<noteq> 0 \<longleftrightarrow> {i . bit v i} \<noteq> {}"
   by (metis bits_same_set_implies_val_same zero_no_bits)
+
+lemma nonzero_max_lt_len:
+  fixes v :: "'a::len word"
+  assumes "v \<noteq> 0"
+  shows "Max {i . bit v i} < LENGTH('a)"
+proof -
+  have "{i . bit v i} \<noteq> {}"
+    using assms nonzero_nonempty_iff by auto
+  then show ?thesis
+    using bit_imp_le_length by auto
+qed
 
 lemma take_bit_eq: "v \<le> n \<Longrightarrow> take_bit n v = v"
   by (smt (verit) bintrunc_id nat_int of_nat_le_iff take_bit_nat_eq take_bit_nat_less_eq_self
@@ -356,10 +367,6 @@ lemma bitset_pow2_shift_eq:
   assumes "j < LENGTH('a)"
   shows "{n . bit ((2 ^ j)::('a::len) word) n} = {n . bit ((1 << j)::('a::len) word) n}"
   by (simp add: pow2_1_shift)
-
-lemma pow2_even: "k > 0 \<Longrightarrow> bin_is_even (2 ^ k)"
-  apply (induction k; auto)
-  by (metis bot_nat_0.not_eq_extremum not_bit_numeral_Bit0_0 shift_zeros_below zero_shift)
 
 text \<open>mask lemmas\<close>
 
@@ -810,24 +817,7 @@ hide_fact intersect_bitCount_helper
 
 subsection \<open> Word definitions and properties \<close>
 
-definition bin_log2 :: "'a::len word \<Rightarrow> nat" where
-  "bin_log2 v = (LENGTH('a) - 1 - numberOfLeadingZeros v)"
-
 text \<open> bitCount = 2 ==> {i . bit v i} = {lowestSetBit, highestSetBit} \<close>
-
-lemma bin_log2_highestOneBit_eq_64:
-  fixes v :: "64word"
-  assumes "v > 0"
-  shows "bin_log2 v = highestOneBit v"
-  using assms unfolding bin_log2_def numberOfLeadingZeros_def apply auto
-  subgoal premises p
-  proof -
-    have "int (63 - nat (63 - highestOneBit v)) = highestOneBit v"
-      using highestOneBit_gtzero_range [of v] assms by linarith
-    then show ?thesis
-      by (simp add: size64)
-  qed
-  done
 
 lemma sum_eq_card:
   fixes N :: nat
@@ -1327,7 +1317,40 @@ lemma topBit_0_imp_1:
 lemma topBit_highestOneBit_eq: "v \<noteq> 0 \<Longrightarrow> highestOneBit v = topBit v"
   unfolding highestOneBit_def topBit_def MaxOrNeg_def using no_bits_implies_zero by auto
 
-lemma unfold_topBit_64:
+lemma topBit_neg_msb:
+  fixes v :: "'a::len word"
+  assumes "v <s 0"
+  shows "topBit v = LENGTH('a) - 1"
+proof -
+  have "v \<noteq> 0"
+    using assms by auto
+  then show ?thesis
+    by (metis less_Suc_eq_le neg_signed_set not_less_less_Suc_eq topBit_higher_unset topBit_in_range
+        assms)
+qed
+
+lemma topBit_pos_lt_msb:
+  fixes v :: "'a::len word"
+  assumes "0 <s v"
+  shows "topBit v < LENGTH('a) - 1"
+proof -
+  have "topBit v \<in> word_inspection.supp v"
+    using supp_contains_topBit_nonzero_iff assms by blast
+  then show ?thesis
+    unfolding topBit_def word_inspection.supp_def apply auto
+    by (metis (mono_tags, lifting) assms bit_last_iff leD linorder_neqE_nat less_eq_decr_length_iff
+        signed.not_less_iff_gr_or_eq signed_0 word_sless_alt set_bits_in_range)
+qed
+
+lemma topBit_neg_iff:
+  fixes v :: "'a::len word"
+  assumes "topBit v \<in> word_inspection.supp v"
+  shows "topBit v = LENGTH('a) - 1 \<longleftrightarrow> v <s 0"
+  using assms unfolding topBit_def apply auto using One_nat_def topBit_def
+  by (metis assms pos_signed_unset signed.not_le_imp_less supp_contains_topBit_nonzero_iff
+      word_inspection.topBit_def supp_max_topBit word_inspection.top_set, metis topBit_neg_msb)
+
+lemma topBit_unfold_64:
   fixes yv :: "64word"
   assumes "bitCount yv = 2"
   shows "unat (and (word_of_nat (topBit yv)) (63::64 word)) = topBit yv"
@@ -1371,7 +1394,7 @@ qed
 lemma botBit_lowestOneBit_eq: "v \<noteq> 0 \<Longrightarrow> lowestOneBit v = botBit v"
   unfolding lowestOneBit_def botBit_def MinOrHighest_def using no_bits_implies_zero by auto
 
-lemma unfold_botBit_64:
+lemma botBit_unfold_64:
   fixes yv :: "64word"
   assumes "bitCount yv = 2"
   shows "unat (and (word_of_nat (botBit yv)) (63::64 word)) = (botBit yv)"
@@ -1395,5 +1418,23 @@ proof -
   then show ?thesis
     using foldAnd minInSet by auto
 qed
+
+subsection \<open>Long properties utilising @{locale bit_inspection} definitions}\<close>
+
+subsubsection \<open>Long.numberOfLeadingZeros}\<close>
+
+lemma numberOfLeadingZeros_neg_0: "v <s 0 \<Longrightarrow> numberOfLeadingZeros v = 0"
+  unfolding numberOfLeadingZeros_def highestOneBit_def MaxOrNeg_def using no_bits_implies_zero
+  apply auto using topBit_neg_msb topBit_def [of v] apply simp
+  by (smt (z3) int_ops(2) nat_int_comparison(3) not_int_zless_negative of_nat_diff topBit_neg_msb
+      word_size)
+
+lemma numberOfLeadingZeros_nonzero:
+  fixes v :: "'a::len word"
+  assumes "v \<noteq> 0"
+  shows "numberOfLeadingZeros v = LENGTH('a) - topBit v - 1"
+  unfolding numberOfLeadingZeros_def using topBit_highestOneBit_eq [of v] apply simp
+  by (metis assms diff_add_eq_diff_diff_swap nat_diff_distrib' nat_int of_nat_0_le_iff of_nat_Suc
+      size_word.rep_eq)
 
 end

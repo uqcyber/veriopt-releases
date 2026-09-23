@@ -316,7 +316,7 @@ proof -
       "new_int b (take_bit b (xv << shift_amount b (take_bit b (word_of_nat (topBit (take_bit b yv))))) +
                              (xv << shift_amount b (take_bit b (word_of_nat (botBit (take_bit b yv))))))
      = new_int b (xv << (topBit yv) + xv << (botBit yv))"
-    using bitCount_y by (simp add: assms(3,6) unfold_botBit_64 unfold_topBit_64)+
+    using bitCount_y by (simp add: assms(3,6) botBit_unfold_64 topBit_unfold_64)+
   have "val[(x << (val_top_bit y)) + (x << (val_bot_bit y))] =
         new_int b (xv << (topBit yv) + xv << (botBit yv))"
     using rhs unfold by argo
@@ -334,7 +334,7 @@ lemma val_mul_power_2_add_1_64:
   assumes "b = 64"
   shows "val[x * y] = val[(x << (val_top_bit y)) + x]"
   using assms apply auto
-  by (metis bitCount_2_mul_distribute unat_0 unfold_botBit_64 unfold_topBit_64 word_log_esimps(7)
+  by (metis bitCount_2_mul_distribute unat_0 botBit_unfold_64 topBit_unfold_64 word_log_esimps(7)
       zero_shift)
 
 (* Exp-level proofs *)

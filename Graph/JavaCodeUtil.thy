@@ -15,6 +15,12 @@ definition in_bit_range :: "nat \<Rightarrow> bool" where
 definition mask_shift :: "nat \<Rightarrow> 'a :: len word" where
   "mask_shift bits = ((-1) << bits)"
 
+lemma not_mask_shift_mask: "not (mask_shift n) = ((mask n)::'a::len word)"
+  by (simp add: JavaWords.shiftl_def mask_shift_def)
+
+lemma mask_shift_not_mask: "mask_shift n = ((not (mask n))::'a::len word)"
+  by (metis not_mask_shift_mask word_not_not)
+
 subsection \<open>Function definitions\<close>
 
 (* Corresponds to CodeUtil.isOdd(I)Z *)
@@ -34,18 +40,23 @@ definition log2 :: "'a :: len word \<Rightarrow> nat" where
   "log2 val = (if (0 <s val) then (LENGTH('a) - 1 - numberOfLeadingZeros val) else undefined)"
 
 text \<open>
-The condition: $ if (bit value (inputBits - 1)) $
+To facilitate verification, this definition is a simplified version of its Java counterpart.
+Specifically,
+- $bit value (inputBits - 1)$ corresponds to the Java snippet
+  $(value >>> (inputBits - 1) \& 1) == 1$
+  which is shown to be equivalent by @{prf shift_n_eq_bit_n}.
 
-corresponds to the Java snippet: $ if ((value >>> (inputBits - 1) \& 1) == 1) $
-
-which is shown to be equivalent by @{prf shift_n_eq_bit_n}\<close>
+- $mask inputBits$ corresponds to the Java snippet
+  $~(-1L << inputBits)$
+  which is shown to be equivalent by @{prf not_mask_shift_mask}.
+\<close>
 (* Corresponds to CodeUtil.signExtend(JI)J *)
 definition sign_extend :: "'a :: len word \<Rightarrow> nat \<Rightarrow> 'a :: len word" where
   "sign_extend value inputBits =
     (if (inputBits < 64)
      then (if (bit value (inputBits - 1))
            then (or value (mask_shift inputBits))
-           else (and value (not (mask_shift inputBits))))
+           else (and value (mask inputBits)))
      else value)"
 
 (* Corresponds to CodeUtil.zeroExtend(JI)J *)
@@ -67,10 +78,14 @@ definition max_value :: "nat \<Rightarrow> 'a :: len word" where
 
 subsection \<open>Properties\<close>
 
-subsubsection \<open>Helper functions\<close>
+subsubsection \<open>$is_even$\<close>
 
-lemma mask_eq_not_mask_shift: "mask b = not (mask_shift b)"
-  unfolding mask_shift_def shiftl_def by simp
+lemma is_even_iff: "even v \<longleftrightarrow> is_even v"
+  unfolding is_even_def by (metis even_word_def even_word_iff)
+
+lemma is_even_pow2: "k > 0 \<Longrightarrow> is_even (2 ^ k)"
+  unfolding is_even_def apply (induction k) apply simp
+  by (metis and_one_eq not_mod_2_eq_0_eq_1 shift_zeros_below bit_1_0 bit_and_iff pow2_1_shift)
 
 subsubsection \<open>$is_power_of_2$\<close>
 
@@ -88,15 +103,16 @@ lemma is_power_of_2_sign_unset:
 
 subsubsection \<open>$log2$\<close>
 
-lemma log2_highestOneBit_eq_64:
+lemma log2_topBit_eq_64:
   fixes v :: "64word"
   assumes "0 <s v"
-  shows "log2 v = highestOneBit v"
+  shows "log2 v = topBit v"
   using assms unfolding log2_def numberOfLeadingZeros_def apply auto
   subgoal premises p
   proof -
-    have "(LENGTH(64) - 1 - numberOfLeadingZeros v) = highestOneBit v"
-      by (metis bin_log2_def bin_log2_highestOneBit_eq_64 less_iff p word_gt_0)
+    have "(LENGTH(64) - 1 - numberOfLeadingZeros v) = topBit v"
+      by (metis (no_types, opaque_lifting) diff_commute diff_diff_cancel nat_less_le topBit_neg_msb
+          numberOfLeadingZeros_nonzero p topBit_pos_lt_msb)
     then show ?thesis
       by (simp add: numberOfLeadingZeros_def)
   qed
@@ -108,6 +124,6 @@ lemma sign_zero_extend_eq:
   assumes "bits < 64"
   assumes "\<not>(bit v (bits - 1))"
   shows "sign_extend v bits = zero_extend v bits"
-  using assms unfolding sign_extend_def zero_extend_def by simp
+  using assms unfolding sign_extend_def zero_extend_def by (simp add: not_mask_shift_mask)
 
 end

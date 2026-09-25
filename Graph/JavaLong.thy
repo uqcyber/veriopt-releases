@@ -1419,9 +1419,9 @@ proof -
     using foldAnd minInSet by auto
 qed
 
-subsection \<open>Long properties utilising @{locale bit_inspection} definitions}\<close>
+subsection \<open>Long properties utilising @{locale bit_inspection} definitions\<close>
 
-subsubsection \<open>Long.numberOfLeadingZeros}\<close>
+subsubsection \<open>Long.numberOfLeadingZeros\<close>
 
 lemma numberOfLeadingZeros_neg_0: "v <s 0 \<Longrightarrow> numberOfLeadingZeros v = 0"
   unfolding numberOfLeadingZeros_def highestOneBit_def MaxOrNeg_def using no_bits_implies_zero

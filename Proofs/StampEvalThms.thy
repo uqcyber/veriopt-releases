@@ -632,6 +632,14 @@ proof -
 qed
   done
 
+lemma wf_integerstamp_range:
+  assumes "stamp_expr x = IntegerStamp b l h"
+  assumes "wf_stamp x"
+  assumes "[m, p] \<turnstile> x \<mapsto> v"
+  shows "0 < b \<and> b \<le> 64"
+  using assms wf_integerstamp_implies_nonzero_bits
+  by (auto; metis eval_bits_1_64 new_int_zero wf_integerstamp_implies_zero_evals)
+
 lemma true_always_evals: "[m,p] \<turnstile> ConstantExpr (IntVal 32 1) \<mapsto> IntVal 32 1"
   by (simp add: unfold_const wf_value_true)
 

@@ -74,7 +74,7 @@ lemma bin_sub_zero_equality: "(x = (x - y)) \<longleftrightarrow> y = 0" for x y
   by simp
 
 lemma bin_not_self_equality: "(x = (not x)) \<longleftrightarrow> False" for x::int64
-  by (metis less_eq_mask takeBitNot)
+  by (metis less_eq_mask take_bit_not_width_iff)
 
 (* Value level proofs *)
 lemma val_addition_equality:
@@ -149,7 +149,7 @@ lemma val_not_self_equality:
   shows "val[x eq (~x)] = val[false]"
 proof -
   have "take_bit n (not xv) \<noteq> take_bit n xv"
-    using assms(2) takeBitNot by auto
+    using assms(2) take_bit_not_width_iff by auto
   then show ?thesis
     using assms(1) apply auto by (simp add: take_bit_not_take_bit)
 qed
@@ -198,8 +198,8 @@ lemma val_not_abs:
       by (simp add: take_bit_not_take_bit xIntVal xvv)
     then show ?thesis
       unfolding absX notX apply simp
-      by (metis (mono_tags, lifting) bool_to_val.simps(2) take_bit_not_neg_neq take_bit_not_take_bit
-          assms(3) xvv)
+      by (metis (mono_tags, lifting) bool_to_val.simps(2) take_bit_not_neg_neq_iff assms(3) xvv
+          take_bit_not_take_bit)
 next
     case False
     obtain xvv where xvv: "xvv = take_bit xb xv"
@@ -217,7 +217,7 @@ lemma val_negate_false:
   assumes "x = new_int xb xv"
   assumes "xb \<ge> 1"
   shows "val[(-x) eq (~x)] = val[false]"
-  using assms take_bit_negate_not by (cases x; auto)
+  using assms take_bit_negate_not_iff [of xb] by (cases x; auto)
 
 lemma val_negate_sub_right:
   assumes "x = new_int xb xv"

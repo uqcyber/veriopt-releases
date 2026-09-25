@@ -291,7 +291,7 @@ lemma val_and_associative: "val[(x & y) & z] = val[x & (y & z)]"
 
 lemma val_mul_associative: "val[(x * y) * z] = val[x * (y * z)]"
   apply (cases x; cases y; cases z; auto)
-  by (metis (no_types, lifting) mergeTakeBit mult.assoc new_int.elims new_int_take_bits)
+  by (metis (no_types, lifting) mergeTakeBit mult.assoc new_int.elims new_int_unused_bits_zero)
 
 lemma val_or_associative: "val[(x | y) | z] = val[x | (y | z)]"
   by (cases x; cases y; cases z; auto simp: or.assoc)

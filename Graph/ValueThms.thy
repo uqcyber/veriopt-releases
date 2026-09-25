@@ -213,8 +213,7 @@ lemma scast_bigger_bit_bounds:
 
 text \<open>Results about $new\_int$.\<close>
 
-(* may be too trivial? *)
-lemma new_int_take_bits: "IntVal b val = new_int b v \<Longrightarrow> take_bit b val = val"
+lemma new_int_unused_bits_zero: "IntVal b v = new_int b v0 \<Longrightarrow> take_bit b v = v"
   by simp
 
 lemma new_int_bin_def_width_iff: "new_int_bin b0 b1 w \<noteq> UndefVal \<longleftrightarrow> b0 = b1"

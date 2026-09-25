@@ -32,7 +32,7 @@ lemma value_div_itself:
   assumes "x \<noteq> IntVal b 0"
   shows "val[x / x] = IntVal b 1"
   using assms apply (cases x) defer unfolding is_truncated_def
-  apply (smt (verit, best) intval_bits_in_bounds_imp word64_div_itself of_int_1 take_bit_1_neq_0
+  apply (smt (verit, best) intval_bits_in_bounds_imp word64_div_itself of_int_1 take_bit_1_neq_0_iff
          bot_nat_0.not_eq_extremum intval_div.simps(1) intval_word.simps new_int.simps take_bit_of_1
          new_int_bin.elims take_bit_numeral_1 take_bit_of_1_eq_0_iff IntVal1)
   by simp+

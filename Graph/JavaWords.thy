@@ -461,11 +461,10 @@ lemma take_bit_merge_shift: "take_bit b ((take_bit b (x << y)) << z) = take_bit 
 
 text \<open>Lemmas for take\_bit equivalence.\<close>
 
-lemma takeBitNot:
-  assumes "xb \<ge> 1"
-  shows "take_bit xb (not xv) \<noteq> take_bit xb xv"
+lemma take_bit_not_width_iff: "b \<ge> 1 \<longleftrightarrow> take_bit b (not xv) \<noteq> take_bit b xv"
+  apply auto defer using not_less_eq_eq apply fastforce
   by (metis bit.xor_compl_left diff_0_right mask_eq_0_iff not_one_le_zero take_bit_not_eq_mask_diff
-      assms take_bit_xor xor_self_eq)
+      One_nat_def take_bit_xor xor_self_eq)
 
 lemma take_bit_minus_push_bit:
   fixes v :: "64word"
@@ -476,10 +475,10 @@ lemma take_bit_minus_push_bit:
   by (smt (z3) linordered_semidom_class.add_diff_inverse signed_take_bit_eq_if_positive less_Suc_eq
       zero_less_diff signed_take_bit_code One_nat_def plus_1_eq_Suc less_nat_zero_code not_gr_zero)
 
-lemma take_bit_64:
-  assumes "0 < b \<and> b \<le> 64"
+lemma take_bit_upper_bound:
+  assumes "0 < b \<and> b \<le> n"
   assumes "take_bit b v = v"
-  shows "take_bit 64 v = take_bit b v"
+  shows "take_bit n v = take_bit b v"
   by (metis assms min_def nle_le take_bit_take_bit)
 
 lemma take_bit_add_merge_iff:
@@ -498,37 +497,32 @@ lemma take_bit_neg_0_iff:
   shows "(take_bit b (- v) = 0) \<longleftrightarrow> (take_bit b v = 0)"
   by (metis diff_self take_bit_neg_sub_0_iff take_bit_of_0)
 
-lemma take_bit_1_neq_0:
-  assumes "b \<ge> 1"
-  shows "take_bit b 1 \<noteq> 0"
-  using assms by force
+lemma take_bit_1_neq_0_iff: "b \<ge> 1 \<longleftrightarrow> take_bit b 1 \<noteq> 0"
+  by force
 
-lemma take_bit_negate_not:
+lemma take_bit_negate_not_iff:
   fixes v :: "64word"
-  assumes "b \<ge> 1"
-  shows "take_bit b (- v) \<noteq> take_bit b (not (take_bit b v))"
-  by (metis (no_types, lifting) take_bit_dist_addR add.right_inverse assms bit.compl_zero takeBitNot
-      take_bit_not_take_bit word_add_not)
+  shows "b \<ge> 1 \<longleftrightarrow> take_bit b (- v) \<noteq> take_bit b (not (take_bit b v))"
+  apply auto defer using not_less_eq_eq apply fastforce
+  by (metis (no_types, lifting) take_bit_dist_addR add.right_inverse bit.compl_zero word_add_not
+      take_bit_not_take_bit One_nat_def take_bit_not_width_iff)
 
-lemma take_bit_not_neg_neq:
+lemma take_bit_not_neg_neq_iff:
   fixes v :: "64word"
-  assumes "b \<ge> 1"
-  shows "take_bit b (- v) \<noteq> take_bit b (not v)"
-  by (metis assms take_bit_negate_not take_bit_not_take_bit)
+  shows "b \<ge> 1 \<longleftrightarrow> take_bit b (- v) \<noteq> take_bit b (not v)"
+  apply auto apply (metis One_nat_def take_bit_negate_not_iff take_bit_not_take_bit)
+  using not_less_eq_eq by fastforce
 
-lemma take_bit_neg:
+lemma take_bit_neg_neq_succ_iff:
   fixes v :: "64word"
-  assumes "b \<ge> 1"
-  shows "take_bit b (- v) \<noteq> take_bit b (- (v + 1))"
-  by (smt (verit, ccfv_threshold) assms ab_group_add_class.ab_left_minus minus_add_cancel zero_le
-      take_bit_of_0 take_bit_dist_addL take_bit_1_neq_0)
+  shows "b \<ge> 1 \<longleftrightarrow> take_bit b (- v) \<noteq> take_bit b (- (v + 1))"
+  by (auto simp add: minus_diff_commute take_bit_neg_sub_0_iff)
 
-lemma take_bit_suc:
+lemma take_bit_succ_eq_iff:
   fixes v :: "'a::len word"
-  assumes "\<not> bit v n"
-  shows "take_bit (Suc n) v = take_bit n v"
+  shows "(\<not>bit v n) \<longleftrightarrow> take_bit (Suc n) v = take_bit n v"
   by (smt (verit, best) bit_take_bit_iff le_eq_less_or_eq less_Suc_eq_le take_bit_signed_take_bit
-      signed_take_bit_eq_if_positive signed_take_bit_take_bit linorder_not_less assms)
+      signed_take_bit_eq_if_positive signed_take_bit_take_bit linorder_not_less)
 
 lemma take_bit_leq: "take_bit b (v::'a::len word) \<le> v"
   by (simp add: unsigned_take_bit_eq word_le_nat_alt)

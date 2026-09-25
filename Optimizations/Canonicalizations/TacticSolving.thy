@@ -164,7 +164,7 @@ lemma OrGeneralization:
   assumes "wf_stamp y"
   assumes "wf_stamp exp[x | y]"
   assumes "(or (\<down>x) (\<down>y)) = not 0"
-  shows "exp[x | y] \<ge> exp[(const (new_int b (not 0)))]"
+  shows "exp[x | y] \<ge> exp[const (new_int b (not 0))]"
   using assms apply auto
   subgoal premises p for m p xvv yvv
   proof -
@@ -173,16 +173,13 @@ lemma OrGeneralization:
     obtain yv where yv: "[m, p] \<turnstile> y \<mapsto> IntVal b yv"
       by (metis p(2,4,10) valid_int wf_stamp_def)
     then have rhsWf: "wf_value (new_int b (not 0))"
-      by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def)
-    then have rhs: "(new_int b (not 0)) = val[IntVal b xv | IntVal b yv]" 
-      using assms word_ao_absorbs(1)
-      by (metis (no_types, opaque_lifting) bit.de_Morgan_conj word_bw_comms(2) xv down_spec
-          word_not_not yv bit.disj_conj_distrib intval_or.simps(1) new_int_bin.simps ucast_id
-          or.right_neutral)
-    then have "new_int b (not 0) = new_int b (mask b)"
-      by auto
-    then show ?thesis 
-      by (metis neg_one.elims neg_one_value p(9,10) rhsWf unfold_const evalDet xv yv rhs)
+      by (metis eval_bits_1_64 new_int.simps new_int_unused_bits_zero validDefIntConst wf_value_def)
+    then have "new_int b (not 0) = val[IntVal b xv | IntVal b yv]"
+      by (smt (z3) assms word_ao_absorbs(1) bit.de_Morgan_conj xv down_spec word_not_not yv ucast_id
+          intval_or.simps(1) new_int_bin.simps or.right_neutral IRExpr_down_def word_bw_lcs(1)
+          bit.conj_disj_distrib simple_mask.down_spec)
+    then show ?thesis
+      by (metis neg_one.simps neg_one_value p(10,9) rhsWf ConstantExpr evalDet xv yv new_int_mask)
     qed
     done
 end
@@ -198,7 +195,7 @@ begin
 lemma TakeBitNotSelf:
   assumes "b \<ge> 1"
   shows "(take_bit b (not e) = e) = False"
-  by (metis assms takeBitNot take_bit_not_take_bit)
+  by (metis assms take_bit_not_width_iff take_bit_not_take_bit)
 
 lemma ValNeverEqNotSelf:
   assumes "e = IntVal 32 ev"
@@ -260,18 +257,19 @@ lemma ExpXorFallThrough:
   using assms apply auto
   subgoal premises p for m p xa xaa ya
   proof -
-    obtain b xv where xa: "[m,p] \<turnstile> x \<mapsto> new_int b xv"
+    obtain xv where xa: "[m,p] \<turnstile> x \<mapsto> new_int b xv"
       by (metis new_int.simps eval_unused_bits_zero p(1,3,5) wf_stamp_def valid_int)
     obtain yv where ya: "[m,p] \<turnstile> y \<mapsto> new_int b yv"
-      by (metis Value.inject(1) wf_stamp_def p(1,2,3,4,8) eval_unused_bits_zero xa new_int.simps
-          valid_int)
+      by (metis wf_stamp_def p(2,4,8) eval_unused_bits_zero new_int.simps valid_int)
+    have "0 < b \<and> b \<le> 64"
+      using wf_integerstamp_range p by blast
     then have wfVal: "wf_value (new_int b 0)"
-      by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def xa)
+      using wf_value_zero by force
     then have "[m,p] \<turnstile> exp[y eq (const (new_int b 0))] \<mapsto> val[(xa \<oplus> ya) eq xa]"
       by (metis (no_types, lifting) ValXorFallThrough ConstantExpr bin_eval.simps(13) evalDet xa ya
           p(5,6,7,8) unfold_binary)
     then show ?thesis
-      by (metis evalDet new_int.elims p(1,3,5,7) take_bit_of_0 valid_value.simps(1) wf_stamp_def xa)
+      by (metis evalDet new_int.elims p(5,7) take_bit_of_0)
    qed 
   done
 
@@ -401,16 +399,16 @@ lemma ReturnZeroAndMask:
       by (metis valid_int wf_stamp_def assms(1,4) p(3,9) wf_stamp_def)
     obtain ev where exp: "[m, p] \<turnstile> exp[x & y] \<mapsto> IntVal b ev"
       by (metis BinaryExpr bin_eval.simps(6) p(5,9,10,11) assms(3) valid_int wf_stamp_def)
+    have "0 < b \<and> b \<le> 64"
+      using wf_integerstamp_range p by blast
     then have wfVal: "wf_value (new_int b 0)"
-      by (metis eval_bits_1_64 new_int.simps new_int_take_bits validDefIntConst wf_value_def)
+      by simp
     then have lhsEq: "IntVal b ev = val[(IntVal b xv) & (IntVal b yv)]"
       by (metis bin_eval.simps(6) yv xv evalDet exp unfold_binary)
-    then have newIntEquiv: "new_int b 0 = IntVal b ev"
+    then have "new_int b 0 = IntVal b ev"
       apply auto by (smt (z3) p(6) eval_unused_bits_zero xv yv up_mask_and_zero_implies_zero)
-    then have isZero: "ev = 0"
-      by auto
     then show ?thesis
-      by (metis evalDet lhsEq newIntEquiv p(9,10) unfold_const wfVal xv yv)
+      by (metis evalDet lhsEq new_int_zero p(9,10) ConstantExpr wfVal xv yv)
    qed
    done
 

@@ -164,7 +164,7 @@ next
   then show ?thesis
     using assms apply (cases x; cases y; auto)
     prefer 5 prefer 4 apply (metis take_bit_minus_one_eq_mask)
-    using IntVal1 new_int_take_bits take_bit_of_0 apply (blast, blast)
+    using IntVal1 new_int_unused_bits_zero take_bit_of_0 apply (blast, blast)
     by presburger+
 next
   case BinIntegerMulHigh
@@ -201,7 +201,7 @@ lemma validIntConst:
   assumes "v = new_int b ival"
   assumes "0 < b \<and> b \<le> 64"
   shows "valid_value v (constantAsStamp v)"
-  by (metis assms new_int.simps new_int_take_bits validDefIntConst)
+  by (metis assms new_int.simps new_int_unused_bits_zero validDefIntConst)
 
 subsubsection \<open>Evaluation Results are Valid\<close>
 
@@ -232,6 +232,9 @@ lemma evaltree_not_undef:
   shows "([m,p] \<turnstile> e \<mapsto> v) \<Longrightarrow> v \<noteq> UndefVal"
   apply (induction rule: "evaltree.induct") by (auto simp add: wf_value_def)
 
+lemma evaltree_domain: "[m,p] \<turnstile> e \<mapsto> v \<Longrightarrow> \<not>is_ConstantVar e \<and> \<not>is_VariableExpr e"
+  using is_ConstantVar_def is_VariableExpr_def by fastforce
+
 lemma leafint: "[m,p] \<turnstile> LeafExpr i (IntegerStamp b lo hi) \<mapsto> val \<Longrightarrow> (\<exists>b v. val = (IntVal b v))"
 (* Note: we could also add: ...\<and> lo \<le> sint v \<and> sint v \<le> hi *)
   by auto
@@ -258,13 +261,12 @@ lemma valid_value_unsigned_int_range [simp]:
 subsubsection \<open>Example Data-flow Optimisations\<close>
 
 (* TODO: need to know that valid_values fit within b bits!
-   This requires that the bounds also fit within b bits!
+   This requires that the bounds also fit within b bits! *)
 lemma valid_value_fits:
   assumes "valid_value (IntVal b v) (IntegerStamp b lo hi)"
   assumes "0 \<le> lo"
   shows "take_bit b v = v"
-  using assms valid_value_unsigned_int_range 
-*)
+  using assms valid_value.elims(2) by force
 
 (* An example refinement: a + 0 = a *)
 (*
@@ -624,14 +626,13 @@ next
         def)
 qed
 
-lemma new_int_unused_bits_zero: "IntVal b v = new_int b v0 \<Longrightarrow> take_bit b v = v"
-  by (simp add: new_int_take_bits)
-
 lemma unary_eval_unused_bits_zero: "unary_eval op x = IntVal b v \<Longrightarrow> take_bit b v = v"
-  by (metis unary_eval_new_int Value.inject(1) new_int.elims new_int_unused_bits_zero Value.simps(5))
+  by (metis unary_eval_new_int Value.inject(1) new_int_unused_bits_zero Value.simps(5)
+      new_int.elims)
 
 lemma bin_eval_unused_bits_zero: "bin_eval op x y = (IntVal b v) \<Longrightarrow> take_bit b v = v"
-  by (metis bin_eval_new_int Value.distinct(1) Value.inject(1) new_int.elims new_int_take_bits)
+  by (metis bin_eval_new_int Value.distinct(1) new_int_unused_bits_zero Value.inject(1)
+      new_int.elims)
 
 lemma eval_unused_bits_zero:
   "[m,p] \<turnstile> xe \<mapsto> (IntVal b ix) \<Longrightarrow> take_bit b ix = ix"
